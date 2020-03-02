@@ -1,0 +1,92 @@
+# This is just a draft and is nowhere close to the final view
+# it aims to guide the development, not as single source of truth
+
+digraph {
+    subgraph cluster_0 {
+        label="View"
+        InsightsViewer
+        RawDataViwer
+        NotificationsViewer
+        FeedbackForm
+    }
+
+    subgraph cluster_1 {
+        label="Agent"
+        PostfixAgentDriver
+        PostfixProcessor
+    }
+
+    subgraph cluster_2 {
+        label="Connections"
+        RawDataSocket
+    }
+
+    subgraph cluster_3 {
+        label="Postfix MTA (external)"
+        PostfixLogs
+    }
+
+    subgraph cluster_4 {
+        label="Core"
+        InsightsBase
+        Database [label="Mail Events DB"]
+        IntelCenter
+        InsightsGenerator
+        ExternalInsightsCenter
+        MTAEventsCollector
+    }
+
+    subgraph cluster_5 {
+        label="Internet"
+        LightMeterInsightsSource
+        CommunityInsightsSource
+        LightMeterFeedbackServer
+    }
+
+    subgraph cluster_6 {
+        label="Notification"
+        NotificationCenter
+    }
+
+    subgraph cluster_7 {
+        label="Auth"
+        UserManagement [label="TODO: User Management"]
+    }
+
+    subgraph cluster_8 {
+        label="Feedback"
+        FeedbackCenter
+    }
+
+    PostfixAgentDriver -> RawDataSocket [label="Pub Raw Data"]
+    PostfixAgentDriver -> PostfixLogs [label="Read Lines from Logs"]
+    RawDataViwer -> RawDataSocket [label="Sub to Raw Data"]
+    
+    PostfixProcessor -> RawDataSocket [label="Sub to Raw Data"];
+    PostfixProcessor -> MTAEventsCollector [label="Pub Postfix Status Entries"]
+
+    IntelCenter -> InsightsBase [label="Sub to new incoming MTA Info"]
+    IntelCenter -> NotificationCenter [label="Pub new Insignts"]
+
+    ExternalInsightsCenter -> InsightsBase [label="Pub Insights from LM.io and Community"]
+
+    ExternalInsightsCenter -> LightMeterInsightsSource [label="Sub News"]
+    ExternalInsightsCenter -> CommunityInsightsSource [label="Sub Community News"]
+
+    InsightsViewer -> InsightsBase [label="Sub for new Insights"]
+
+    NotificationsViewer -> NotificationCenter [label="Sub to new Notifications"]
+
+    FeedbackForm -> FeedbackCenter [label="Pub Feedback"]
+    FeedbackCenter -> LightMeterFeedbackServer
+
+    MTAEventsCollector -> Database [label="Pub new events"]
+
+    InsightsGenerator -> NotificationCenter [label="Pub new insights"]
+
+    InsightsGenerator -> InsightsBase [label="Pub Insights"]
+
+    InsightsBase -> Database [label="Sub events"]
+
+}
+
