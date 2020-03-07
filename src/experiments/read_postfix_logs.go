@@ -20,14 +20,16 @@ const (
 
 	procRegexpFormat = `^` + timeSmtpSentStatusRegexpFormat + ` ` + hostSmtpSentStatusRegexpFormat + ` ` + processSmtpSentStatusRegexpFormat + `: `
 
-	anythingExceptCommaSmtpSentStatusRegexpFormat = `[^,]+`
+	anythingExceptCommaRegexpFormat = `[^,]+`
+
+	relayComponentsRegexpFormat = `(?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)`
 
 	messageSentWithStatusSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
 		`to=<(?P<To>.+@.+)>` + `, ` +
-		`relay=(?P<Relay>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
-		`delay=(?P<Delay>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
-		`delays=(?P<Delays>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
-		`dsn=(?P<Dsn>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
+		`relay=` + relayComponentsRegexpFormat + `, ` +
+		`delay=(?P<Delay>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
+		`delays=(?P<Delays>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
+		`dsn=(?P<Dsn>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
 		`status=(?P<Status>[a-z]+)` + ` ` +
 		`(?P<ExtraMessage>.*)` +
 		`)`
@@ -81,7 +83,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Println("time:", string(status.Header.Time), ", queue:", string(status.Queue), ", to:", string(status.To), ", status:", string(status.Status))
+		fmt.Println("time:", string(status.Header.Time), ", queue:", string(status.Queue), ", to:", string(status.To), ", status:", string(status.Status), "relay name:", string(status.RelayName), ", ip:", string(status.RelayIp), ", port:", string(status.RelayPort))
 	}
 }
 
@@ -95,7 +97,9 @@ type SmtpSentStatus struct {
 	Header       LogHeader
 	Queue        []byte
 	To           []byte
-	Relay        []byte
+	RelayName    []byte
+	RelayIp      []byte
+	RelayPort    []byte
 	Delay        []byte
 	Delays       []byte
 	Dsn          []byte
@@ -126,7 +130,9 @@ func parseLogsFromStdin(publisher SmtpSentStatusPublisher) {
 
 	smtpQueueIndex := indexForGroup(smtpSentStatusRegexp, "Queue")
 	smtpToIndex := indexForGroup(smtpSentStatusRegexp, "To")
-	smtpRelayIndex := indexForGroup(smtpSentStatusRegexp, "Relay")
+	smtpRelayNameIndex := indexForGroup(smtpSentStatusRegexp, "RelayName")
+	smtpRelayIpIndex := indexForGroup(smtpSentStatusRegexp, "RelayIp")
+	smtpRelayPortIndex := indexForGroup(smtpSentStatusRegexp, "RelayPort")
 	smtpDelayIndex := indexForGroup(smtpSentStatusRegexp, "Delay")
 	smtpDelaysIndex := indexForGroup(smtpSentStatusRegexp, "Delays")
 	smtpDsnIndex := indexForGroup(smtpSentStatusRegexp, "Dsn")
@@ -170,7 +176,9 @@ func parseLogsFromStdin(publisher SmtpSentStatusPublisher) {
 
 			Queue:        payloadMatches[smtpQueueIndex],
 			To:           payloadMatches[smtpToIndex],
-			Relay:        payloadMatches[smtpRelayIndex],
+			RelayName:    payloadMatches[smtpRelayNameIndex],
+			RelayIp:      payloadMatches[smtpRelayIpIndex],
+			RelayPort:    payloadMatches[smtpRelayPortIndex],
 			Delay:        payloadMatches[smtpDelayIndex],
 			Delays:       payloadMatches[smtpDelaysIndex],
 			Dsn:          payloadMatches[smtpDsnIndex],
