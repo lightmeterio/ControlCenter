@@ -12,29 +12,29 @@ import (
 
 const (
 	// NOTE: adapted from https://github.com/youyo/postfix-log-parser.git
-	timesmtpSentStatusregexpFormat = `(?P<Time>[A-Za-z]{3}\s\s?[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2})`
-	hostsmtpSentStatusregexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
+	timeSmtpSentStatusRegexpFormat = `(?P<Time>[A-Za-z]{3}\s\s?[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2})`
+	hostSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 	// TODO: the process name can have more slash separated components, such as: postfix/submission/smtpd
-	processsmtpSentStatusregexpFormat = `(postfix(-[^/]+)?/(?P<Process>[a-z]+)\[[0-9]{1,5}\])`
-	queueIdsmtpSentStatusregexpFormat = `(?P<Queue>[0-9A-F]+)`
+	processSmtpSentStatusRegexpFormat = `(postfix(-[^/]+)?/(?P<Process>[a-z]+)\[[0-9]{1,5}\])`
+	queueIdSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
-	procRegexpFormat = `^` + timesmtpSentStatusregexpFormat + ` ` + hostsmtpSentStatusregexpFormat + ` ` + processsmtpSentStatusregexpFormat + `: `
+	procRegexpFormat = `^` + timeSmtpSentStatusRegexpFormat + ` ` + hostSmtpSentStatusRegexpFormat + ` ` + processSmtpSentStatusRegexpFormat + `: `
 
-	anythingExceptCommasmtpSentStatusregexpFormat = `[^,]+`
+	anythingExceptCommaSmtpSentStatusRegexpFormat = `[^,]+`
 
-	messageSentWithStatussmtpSentStatusregexpFormat = `(?P<MessageSentWithStatus>` +
+	messageSentWithStatusSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
 		`to=<(?P<To>.+@.+)>` + `, ` +
-		`relay=(?P<Relay>` + anythingExceptCommasmtpSentStatusregexpFormat + `)` + `, ` +
-		`delay=(?P<Delay>` + anythingExceptCommasmtpSentStatusregexpFormat + `)` + `, ` +
-		`delays=(?P<Delays>` + anythingExceptCommasmtpSentStatusregexpFormat + `)` + `, ` +
-		`dsn=(?P<Dsn>` + anythingExceptCommasmtpSentStatusregexpFormat + `)` + `, ` +
+		`relay=(?P<Relay>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
+		`delay=(?P<Delay>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
+		`delays=(?P<Delays>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
+		`dsn=(?P<Dsn>` + anythingExceptCommaSmtpSentStatusRegexpFormat + `)` + `, ` +
 		`status=(?P<Status>[a-z]+)` + ` ` +
 		`(?P<ExtraMessage>.*)` +
 		`)`
 
-	possiblePayloads = messageSentWithStatussmtpSentStatusregexpFormat
+	possiblePayloads = messageSentWithStatusSmtpSentStatusRegexpFormat
 
-	smtpSentStatusregexpFormat = `^` + queueIdsmtpSentStatusregexpFormat + `: ` +
+	smtpSentStatusRegexpFormat = `^` + queueIdSmtpSentStatusRegexpFormat + `: ` +
 		`(` + possiblePayloads + `)`
 )
 
@@ -117,7 +117,7 @@ func indexForGroup(smtpSentStatusRegexp *regexp.Regexp, name string) int {
 func parseLogsFromStdin(publisher SmtpSentStatusPublisher) {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	smtpSentStatusRegexp := regexp.MustCompile(smtpSentStatusregexpFormat)
+	smtpSentStatusRegexp := regexp.MustCompile(smtpSentStatusRegexpFormat)
 	procRegexp := regexp.MustCompile(procRegexpFormat)
 
 	timeIndex := indexForGroup(procRegexp, "Time")
