@@ -160,11 +160,33 @@ func main() {
 		}
 	}
 
+	deliveryStatus := func() {
+		query, err := db.Query(`select status, cast(count(status) as float) / cast((select count(status) from smtp) as float) from smtp group by status`)
+
+		if err != nil {
+			log.Fatal("Error query")
+		}
+
+		for query.Next() {
+			var status string
+			var value float64
+
+			query.Scan(&status, &value)
+
+			fmt.Println(status, value*100, "%")
+		}
+
+	}
+
 	fmt.Println("Summary:")
 	fmt.Println()
 	fmt.Println(countByStatus("sent"), "Sent")
 	fmt.Println(countByStatus("deferred"), "Deferred")
 	fmt.Println(countByStatus("bounced"), "Bounced")
+	fmt.Println()
+
+	fmt.Println("Delivery Status: ")
+	deliveryStatus()
 	fmt.Println()
 
 	fmt.Println("Busiest Domains:")
