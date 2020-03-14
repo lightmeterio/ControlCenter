@@ -1,0 +1,57 @@
+<head>
+	<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+</head>
+
+<body>
+	<div id='deliveryStatus'/>
+	<div id='countByStatus'/>
+	<div id='topBusiestDomains'/>
+	<div id='topBouncedDomains'/>
+	<div id='topDeferredDomains'/>
+
+  <script type="application/javascript">
+    fetch("/deliveryStatus").then(res => res.json()).then(function(data) {
+      var data = [{
+        values: data.map(v => v["Value"]),
+        labels: data.map(v => v["Status"]),
+        type: 'pie'
+      }];
+
+      var layout = {
+        title: "Delivery Status",
+        height: 400,
+        width: 500
+      };
+
+      Plotly.newPlot('deliveryStatus', data, layout);
+    })
+
+    const fillDomainCount = function(graphName, title) {
+      fetch("/" + graphName).then(res => res.json()).then(function(data) {
+        if (data == null) {
+          return
+        }
+
+        var data = [{
+          x: data.map(v => v["Domain"]),
+          y: data.map(v => v["Count"]),
+          type: 'bar'
+        }];
+
+        var layout = {
+          title: title,
+          height: 400,
+          width: 500
+        };
+
+        Plotly.newPlot(graphName, data, layout);
+      })
+    }
+
+    fillDomainCount("topBusiestDomains", "Busiest Domains")
+    fillDomainCount("topDeferredDomains", "Most Deferred Domains")
+    fillDomainCount("topBouncedDomains", "Most Bounced Domains")
+
+  </script>
+
+</body>
