@@ -5,9 +5,10 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/gob"
-	"fmt"
+	"encoding/json"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 )
@@ -69,32 +70,8 @@ func (pub *ChannelBasedSmtpSentStatusPublisher) Close() {
 	close(pub.channel)
 }
 
-func main() {
-	c := make(chan []byte, 10)
-	pub := ChannelBasedSmtpSentStatusPublisher{c}
-	go parseLogsFromStdin(&pub)
-
-	os.Remove("lm.db")
-
-	db, err := sql.Open("sqlite3", "lm.db")
-
-	if err != nil {
-		log.Fatal("error opening database")
-	}
-
-	defer db.Close()
-
-	if _, err := db.Exec("create table smtp(recipient_local_part text, recipient_domain_part text, relay_name text, status text)"); err != nil {
-		log.Fatal("error creating database: ", err)
-	}
-
-	tx, err := db.Begin()
-
-	if err != nil {
-		log.Fatal("error starting transaction")
-	}
-
-	stmt, err := tx.Prepare("insert into smtp(recipient_local_part, recipient_domain_part, relay_name, status) values(?, ?, ?, ?)")
+func fillDatabase(db *sql.DB, c chan []byte) {
+	stmt, err := db.Prepare("insert into smtp(recipient_local_part, recipient_domain_part, relay_name, status) values(?, ?, ?, ?)")
 
 	if err != nil {
 		log.Fatal("error preparing insert statement")
@@ -118,8 +95,28 @@ func main() {
 			log.Fatal("error inserting value")
 		}
 	}
+}
 
-	tx.Commit()
+func main() {
+	c := make(chan []byte, 10)
+	pub := ChannelBasedSmtpSentStatusPublisher{c}
+	go parseLogsFromStdin(&pub)
+
+	os.Remove("lm.db")
+
+	db, err := sql.Open("sqlite3", "lm.db")
+
+	if err != nil {
+		log.Fatal("error opening database")
+	}
+
+	defer db.Close()
+
+	if _, err := db.Exec("create table smtp(recipient_local_part text, recipient_domain_part text, relay_name text, status text)"); err != nil {
+		log.Fatal("error creating database: ", err)
+	}
+
+	go fillDatabase(db, c)
 
 	countByStatus := func(status string) int {
 		stmt, err := db.Prepare(`select count(status) from smtp where cast(status as text) = ?`)
@@ -143,7 +140,14 @@ func main() {
 		return countValue
 	}
 
-	listDomainAndCount := func(queryStr string) {
+	type domainAndCount struct {
+		Domain string
+		Count  int
+	}
+
+	listDomainAndCount := func(queryStr string) []domainAndCount {
+		var r []domainAndCount
+
 		query, err := db.Query(queryStr)
 
 		if err != nil {
@@ -156,11 +160,20 @@ func main() {
 
 			query.Scan(&domain, &countValue)
 
-			fmt.Println(domain, countValue)
+			r = append(r, domainAndCount{domain, countValue})
 		}
+
+		return r
 	}
 
-	deliveryStatus := func() {
+	type deliveryValue struct {
+		Status string
+		Value  float64
+	}
+
+	deliveryStatus := func() []deliveryValue {
+		var r []deliveryValue
+
 		query, err := db.Query(`select status, cast(count(status) as float) / cast((select count(status) from smtp) as float) from smtp group by status`)
 
 		if err != nil {
@@ -173,32 +186,39 @@ func main() {
 
 			query.Scan(&status, &value)
 
-			fmt.Println(status, value*100, "%")
+			r = append(r, deliveryValue{status, value * 100})
 		}
 
+		return r
 	}
 
-	fmt.Println("Summary:")
-	fmt.Println()
-	fmt.Println(countByStatus("sent"), "Sent")
-	fmt.Println(countByStatus("deferred"), "Deferred")
-	fmt.Println(countByStatus("bounced"), "Bounced")
-	fmt.Println()
+	serveJson := func(w http.ResponseWriter, r *http.Request, v interface{}) {
+		w.Header().Set("Content-Type", "application/json")
+		encoded, _ := json.Marshal(v)
+		w.Write(encoded)
+	}
 
-	fmt.Println("Delivery Status: ")
-	deliveryStatus()
-	fmt.Println()
+	http.HandleFunc("/countByStatus", func(w http.ResponseWriter, r *http.Request) {
+		serveJson(w, r, map[string]int{"sent": countByStatus("sent"), "deferred": countByStatus("deferred"), "bounced": countByStatus("bounced")})
+	})
 
-	fmt.Println("Busiest Domains:")
-	listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`)
-	fmt.Println()
+	http.HandleFunc("/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
+		serveJson(w, r, listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`))
+	})
 
-	fmt.Println("Most bounced Domains:")
-	listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp where cast(status as text) = "bounced" group by recipient_domain_part order by c desc limit 20`)
-	fmt.Println()
+	http.HandleFunc("/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
+		serveJson(w, r, listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp where cast(status as text) = "bounced" group by recipient_domain_part order by c desc limit 20`))
+	})
 
-	fmt.Println("Most deferred domains:")
-	listDomainAndCount(`select relay_name, count(relay_name) as c from smtp where cast(status as text) = "deferred" group by relay_name order by c desc limit 20`)
+	http.HandleFunc("/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
+		serveJson(w, r, listDomainAndCount(`select relay_name, count(relay_name) as c from smtp where cast(status as text) = "deferred" group by relay_name order by c desc limit 20`))
+	})
+
+	http.HandleFunc("/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
+		serveJson(w, r, deliveryStatus())
+	})
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 type LogHeader struct {
