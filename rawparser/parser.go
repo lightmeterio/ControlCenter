@@ -46,7 +46,7 @@ type LogHeader struct {
 }
 
 type LogPayload interface {
-	Visit(func(LogPayload) error) error
+	isRawPayload()
 }
 
 type RawRecord struct {
@@ -68,8 +68,7 @@ type RawSmtpSentStatus struct {
 	ExtraMessage        []byte
 }
 
-func (RawSmtpSentStatus) Visit(func(LogPayload) error) error {
-	return nil
+func (RawSmtpSentStatus) isRawPayload() {
 }
 
 func indexForGroup(r *regexp.Regexp, name string) int {
