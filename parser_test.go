@@ -41,8 +41,7 @@ func TestSMTPParsing(t *testing.T) {
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command))`))
 		So(parsed, ShouldNotEqual, nil)
 		So(err, ShouldEqual, nil)
-		p, cast := parsed.Payload.(*SmtpSentStatus)
-		So(p, ShouldNotEqual, nil)
+		p, cast := parsed.Payload.(SmtpSentStatus)
 		So(cast, ShouldEqual, true)
 
 		So(parsed.Header.Time.Day, ShouldEqual, 16)

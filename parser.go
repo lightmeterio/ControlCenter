@@ -8,20 +8,18 @@ import (
 	"time"
 )
 
-func atoi(s []byte) int {
-	if r, e := strconv.Atoi(string(s)); e == nil {
-		return r
-	}
-
-	panic("atoi error! " + string(s))
+func atoi(s []byte) (int, error) {
+	return strconv.Atoi(string(s))
 }
 
-func atof(s []byte) float32 {
-	if r, e := strconv.ParseFloat(string(s), 32); e == nil {
-		return float32(r)
+func atof(s []byte) (float32, error) {
+	r, e := strconv.ParseFloat(string(s), 32)
+
+	if e == nil {
+		return float32(r), nil
 	}
 
-	panic("atoi error! " + string(s))
+	return 0, e
 }
 
 func parseMonth(m []byte) time.Month {
@@ -55,13 +53,13 @@ func parseMonth(m []byte) time.Month {
 	panic("Invalid Month! " + string(m))
 }
 
-func parseProcess(p []byte) Process {
+func parseProcess(p []byte) (Process, error) {
 	switch string(p) {
 	case "smtp":
-		return SmtpProcess
+		return SmtpProcess, nil
 	}
 
-	panic("Failed to parse process")
+	return 0, rawparser.UnsupportedLogLineError
 }
 
 type Payload interface {
@@ -100,25 +98,58 @@ func Parse(line []byte) (Record, error) {
 		return Record{}, err
 	}
 
+	day, err := atoi(p.Header.Day)
+
+	if err != nil {
+		return Record{}, err
+	}
+
+	hour, err := atoi(p.Header.Hour)
+
+	if err != nil {
+		return Record{}, err
+	}
+
+	minute, err := atoi(p.Header.Minute)
+
+	if err != nil {
+		return Record{}, err
+	}
+
+	second, err := atoi(p.Header.Second)
+
+	if err != nil {
+		return Record{}, err
+	}
+
+	process, err := parseProcess(p.Header.Process)
+
+	if err != nil {
+		return Record{}, err
+	}
+
 	h := Header{
 		Time: Time{
-			Day:    uint8(atoi(p.Header.Day)),
+			Day:    uint8(day),
 			Month:  parseMonth(p.Header.Month),
-			Hour:   uint8(atoi(p.Header.Hour)),
-			Minute: uint8(atoi(p.Header.Minute)),
-			Second: uint8(atoi(p.Header.Second)),
+			Hour:   uint8(hour),
+			Minute: uint8(minute),
+			Second: uint8(second),
 		},
 		Host:    string(p.Header.Host),
-		Process: parseProcess(p.Header.Process),
+		Process: process,
 	}
 
 	switch p.Payload.(type) {
 	case rawparser.RawSmtpSentStatus:
-		return Record{Header: h,
-			Payload: convertSmtpSentStatus(p.Payload.(rawparser.RawSmtpSentStatus))}, nil
+		p, err := convertSmtpSentStatus(p.Payload.(rawparser.RawSmtpSentStatus))
+		if err != nil {
+			return Record{}, err
+		}
+		return Record{Header: h, Payload: p}, nil
 	}
 
-	panic("Not implemented!")
+	return Record{}, rawparser.UnsupportedLogLineError
 }
 
 type Delays struct {
@@ -166,37 +197,71 @@ func parseStatus(s []byte) SmtpStatus {
 	panic("Ahhh, invalid status!!!" + string(s))
 }
 
-func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) *SmtpSentStatus {
+func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error) {
 	q, err := hex.DecodeString(string(p.Queue))
 
 	if err != nil {
-		// TODO: handle error on decoding the queue. Maybe even pre-allocate the destination buffer
-		panic("Ahhh, invalid queue")
+		return SmtpSentStatus{}, err
 	}
 
 	ip := net.ParseIP(string(p.RelayIp))
 
 	if ip == nil {
-		// TODO: handle error on invalid ip address
-		panic("Ahhh, invalid IP address")
+		return SmtpSentStatus{}, &net.ParseError{}
 	}
 
-	return &SmtpSentStatus{
+	relayPort, err := atoi(p.RelayPort)
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	delay, err := atof(p.Delay)
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	smtpdDelay, err := atof(p.Delays[1])
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	cleanupDelay, err := atof(p.Delays[2])
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	qmgrDelay, err := atof(p.Delays[3])
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	smtpDelay, err := atof(p.Delays[4])
+
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
+	return SmtpSentStatus{
 		Queue:               q,
 		RecipientLocalPart:  string(p.RecipientLocalPart),
 		RecipientDomainPart: string(p.RecipientDomainPart),
 		RelayName:           string(p.RelayName),
 		RelayIP:             ip,
-		RelayPort:           uint16(atoi(p.RelayPort)),
-		Delay:               atof(p.Delay),
+		RelayPort:           uint16(relayPort),
+		Delay:               delay,
 		Delays: Delays{
-			Smtpd:   atof(p.Delays[1]),
-			Cleanup: atof(p.Delays[2]),
-			Qmgr:    atof(p.Delays[3]),
-			Smtp:    atof(p.Delays[4]),
+			Smtpd:   smtpdDelay,
+			Cleanup: cleanupDelay,
+			Qmgr:    qmgrDelay,
+			Smtp:    smtpDelay,
 		},
 		Dsn:          string(p.Dsn),
 		Status:       parseStatus(p.Status),
 		ExtraMessage: string(p.ExtraMessage),
-	}
+	}, nil
 }
