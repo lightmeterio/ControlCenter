@@ -52,8 +52,7 @@ func parseMonth(m []byte) time.Month {
 		return 12
 	}
 
-	// TODO: handle error as the user might feed us with wrong logs!
-	panic("Invalid Month!")
+	panic("Invalid Month! " + string(m))
 }
 
 func parseProcess(p []byte) Process {
@@ -94,11 +93,11 @@ type Record struct {
 	Payload Payload
 }
 
-func Parse(line []byte) (*Record, error) {
+func Parse(line []byte) (Record, error) {
 	p, err := rawparser.ParseLogLine(line)
 
 	if err != nil {
-		return nil, err
+		return Record{}, err
 	}
 
 	h := Header{
@@ -115,7 +114,7 @@ func Parse(line []byte) (*Record, error) {
 
 	switch p.Payload.(type) {
 	case rawparser.RawSmtpSentStatus:
-		return &Record{Header: h,
+		return Record{Header: h,
 			Payload: convertSmtpSentStatus(p.Payload.(rawparser.RawSmtpSentStatus))}, nil
 	}
 
@@ -164,8 +163,7 @@ func parseStatus(s []byte) SmtpStatus {
 		return BouncedStatus
 	}
 
-	// TODO: handle it as an error
-	panic("Ahhh, invalid status!!!")
+	panic("Ahhh, invalid status!!!" + string(s))
 }
 
 func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) *SmtpSentStatus {

@@ -6,7 +6,8 @@ import (
 
 const (
 	// NOTE: adapted from https://github.com/youyo/postfix-log-parser.git
-	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>[A-Za-z]{3})\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
+	possibleMonths                    = `Jan|Fev|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
+	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
 	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 	// TODO: the process name can have more slash separated components, such as: postfix/submission/smtpd
 	processRawSmtpSentStatusRegexpFormat = `(postfix(-[^/]+)?/(?P<Process>[a-z]+)\[[0-9]{1,5}\])`
@@ -24,7 +25,7 @@ const (
 		`delay=(?P<Delay>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
 		`delays=(?P<Delays>(?P<Delays0>[^/]+)/(?P<Delays1>[^/]+)/(?P<Delays2>[^/]+)/(?P<Delays3>[^/]+))` + `, ` +
 		`dsn=(?P<Dsn>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
-		`status=(?P<Status>[a-z]+)` + ` ` +
+		`status=(?P<Status>(deferred|bounced|sent))` + ` ` +
 		`(?P<ExtraMessage>.*)` +
 		`)`
 

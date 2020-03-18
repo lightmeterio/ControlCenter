@@ -10,26 +10,23 @@ import (
 
 func TestParsingInvalidLines(t *testing.T) {
 	Convey("Invalid Line", t, func() {
-		parsed, err := Parse([]byte("Invalid Line"))
-		So(parsed, ShouldEqual, nil)
+		_, err := Parse([]byte("Invalid Line"))
 		So(err, ShouldEqual, InvalidHeaderLineError)
 	})
 }
 
 func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	Convey("Unsupported Smtp Line", t, func() {
-		parsed, err := Parse([]byte(`Sep 16 00:07:41 smtpnode07 postfix-10.20.30.40/smtp[31868]: 0D59F4165A:` +
+		_, err := Parse([]byte(`Sep 16 00:07:41 smtpnode07 postfix-10.20.30.40/smtp[31868]: 0D59F4165A:` +
 			` host mx-aol.mail.gm0.yahoodns.net[44.55.66.77.88] said: 421 4.7.0 [TSS04] ` +
 			`Messages from 10.20.30.40 temporarily deferred due to user complaints - 4.16.55.1;i ` +
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command)`))
-		So(parsed, ShouldEqual, nil)
 		So(err, ShouldEqual, UnsupportedLogLineError)
 	})
 
 	Convey("Unsupported Log Line", t, func() {
-		parsed, err := Parse([]byte(`Sep 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: ` +
+		_, err := Parse([]byte(`Sep 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: ` +
 			`3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)`))
-		So(parsed, ShouldEqual, nil)
 		So(err, ShouldEqual, UnsupportedLogLineError)
 	})
 }
