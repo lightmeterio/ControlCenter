@@ -3,7 +3,7 @@ package parser
 import (
 	"encoding/hex"
 	. "github.com/smartystreets/goconvey/convey"
-	. "gitlab.com/lightmeter/postfix-logs-parser/rawparser"
+	. "gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
 	"testing"
 )

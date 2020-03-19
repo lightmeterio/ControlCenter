@@ -1,4 +1,4 @@
-module gitlab.com/lightmeter/postfix-logs-parser
+module gitlab.com/lightmeter/postfix-log-parser
 
 go 1.14
 

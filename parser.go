@@ -2,7 +2,7 @@ package parser
 
 import (
 	"encoding/hex"
-	"gitlab.com/lightmeter/postfix-logs-parser/rawparser"
+	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
 	"strconv"
 	"time"
