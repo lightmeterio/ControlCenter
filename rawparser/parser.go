@@ -35,7 +35,7 @@ const (
 		`(` + possibleSmtpPayloadsFormat + `)$`
 )
 
-type LogHeader struct {
+type RawHeader struct {
 	Time    []byte
 	Month   []byte
 	Day     []byte
@@ -46,13 +46,13 @@ type LogHeader struct {
 	Process []byte
 }
 
-type LogPayload interface {
+type RawPayload interface {
 	isRawPayload()
 }
 
 type RawRecord struct {
-	Header  LogHeader
-	Payload LogPayload
+	Header  RawHeader
+	Payload RawPayload
 }
 
 type RawSmtpSentStatus struct {
@@ -152,7 +152,7 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		return RawRecord{}, InvalidHeaderLineError
 	}
 
-	header := LogHeader{
+	header := RawHeader{
 		Time:    headerMatches[timeIndex],
 		Month:   headerMatches[monthIndex],
 		Day:     headerMatches[dayIndex],
@@ -176,7 +176,7 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 	}
 }
 
-func parseSmtpPayload(header LogHeader, linePayload []byte) (RawRecord, error) {
+func parseSmtpPayload(header RawHeader, linePayload []byte) (RawRecord, error) {
 	payloadMatches := possiblePayloadsRegexp.FindSubmatch(linePayload)
 
 	if len(payloadMatches) == 0 {

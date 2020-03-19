@@ -91,7 +91,7 @@ type Record struct {
 	Payload Payload
 }
 
-func parseHeader(h rawparser.LogHeader) (Header, error) {
+func parseHeader(h rawparser.RawHeader) (Header, error) {
 	day, err := atoi(h.Day)
 
 	if err != nil {
