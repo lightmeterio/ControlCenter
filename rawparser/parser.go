@@ -13,7 +13,7 @@ const (
 	processRawSmtpSentStatusRegexpFormat = `(postfix(-[^/]+)?/(?P<Process>[a-z]+)\[[0-9]{1,5}\])`
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
-	procRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat + ` ` + processRawSmtpSentStatusRegexpFormat + `: `
+	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat + ` ` + processRawSmtpSentStatusRegexpFormat + `: `
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
 
@@ -85,7 +85,7 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 
 var (
 	possiblePayloadsRegexp *regexp.Regexp
-	procRegexp             *regexp.Regexp
+	headerRegex            *regexp.Regexp
 
 	timeIndex    int
 	monthIndex   int
@@ -116,16 +116,16 @@ var (
 
 func init() {
 	possiblePayloadsRegexp = regexp.MustCompile(smtpPayloadsRegexpFormat)
-	procRegexp = regexp.MustCompile(procRegexpFormat)
+	headerRegex = regexp.MustCompile(headerRegexpFormat)
 
-	timeIndex = indexForGroup(procRegexp, "Time")
-	monthIndex = indexForGroup(procRegexp, "Month")
-	dayIndex = indexForGroup(procRegexp, "Day")
-	hourIndex = indexForGroup(procRegexp, "Hour")
-	minuteIndex = indexForGroup(procRegexp, "Minute")
-	secondIndex = indexForGroup(procRegexp, "Second")
-	hostIndex = indexForGroup(procRegexp, "Host")
-	processIndex = indexForGroup(procRegexp, "Process")
+	timeIndex = indexForGroup(headerRegex, "Time")
+	monthIndex = indexForGroup(headerRegex, "Month")
+	dayIndex = indexForGroup(headerRegex, "Day")
+	hourIndex = indexForGroup(headerRegex, "Hour")
+	minuteIndex = indexForGroup(headerRegex, "Minute")
+	secondIndex = indexForGroup(headerRegex, "Second")
+	hostIndex = indexForGroup(headerRegex, "Host")
+	processIndex = indexForGroup(headerRegex, "Process")
 
 	messageSentWithStatusIndex = indexForGroup(possiblePayloadsRegexp, "MessageSentWithStatus")
 	smtpQueueIndex = indexForGroup(possiblePayloadsRegexp, "Queue")
@@ -146,7 +146,7 @@ func init() {
 }
 
 func ParseLogLine(logLine []byte) (RawRecord, error) {
-	headerMatches := procRegexp.FindSubmatch(logLine)
+	headerMatches := headerRegex.FindSubmatch(logLine)
 
 	if len(headerMatches) == 0 {
 		return RawRecord{}, InvalidHeaderLineError

@@ -170,10 +170,26 @@ type Delays struct {
 type SmtpStatus int
 
 const (
-	SentStatus = iota
-	BouncedStatus
-	DeferredStatus
+	SentStatus     SmtpStatus = 0
+	BouncedStatus  SmtpStatus = 1
+	DeferredStatus SmtpStatus = 2
 )
+
+func (this SmtpStatus) String() string {
+	return strconv.FormatInt(int64(this), 10)
+}
+
+var (
+	smtpStatusHumanForm = map[SmtpStatus]string{
+		DeferredStatus: "deferred",
+		BouncedStatus:  "bounced",
+		SentStatus:     "sent",
+	}
+)
+
+func (this SmtpStatus) HumanForm() string {
+	return smtpStatusHumanForm[this]
+}
 
 type SmtpSentStatus struct {
 	Queue               []byte
