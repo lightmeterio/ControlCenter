@@ -145,11 +145,11 @@ func init() {
 	smtpExtraMessageIndex = indexForGroup(possiblePayloadsRegexp, "ExtraMessage")
 }
 
-func ParseLogLine(logLine []byte) (*RawRecord, error) {
+func ParseLogLine(logLine []byte) (RawRecord, error) {
 	headerMatches := procRegexp.FindSubmatch(logLine)
 
 	if len(headerMatches) == 0 {
-		return nil, InvalidHeaderLineError
+		return RawRecord{}, InvalidHeaderLineError
 	}
 
 	header := LogHeader{
@@ -172,20 +172,20 @@ func ParseLogLine(logLine []byte) (*RawRecord, error) {
 		return parseSmtpPayload(header, linePayload)
 	default:
 		// TODO: implement support for other processes
-		return nil, UnsupportedLogLineError
+		return RawRecord{}, UnsupportedLogLineError
 	}
 }
 
-func parseSmtpPayload(header LogHeader, linePayload []byte) (*RawRecord, error) {
+func parseSmtpPayload(header LogHeader, linePayload []byte) (RawRecord, error) {
 	payloadMatches := possiblePayloadsRegexp.FindSubmatch(linePayload)
 
 	if len(payloadMatches) == 0 {
-		return nil, UnsupportedLogLineError
+		return RawRecord{}, UnsupportedLogLineError
 	}
 
 	if len(payloadMatches[messageSentWithStatusIndex]) == 0 {
 		// TODO: implement other stuff done by the "smtp" process
-		return nil, UnsupportedLogLineError
+		return RawRecord{}, UnsupportedLogLineError
 	}
 
 	s := RawSmtpSentStatus{
@@ -206,5 +206,5 @@ func parseSmtpPayload(header LogHeader, linePayload []byte) (*RawRecord, error) 
 		ExtraMessage: payloadMatches[smtpExtraMessageIndex],
 	}
 
-	return &RawRecord{header, s}, nil
+	return RawRecord{header, s}, nil
 }
