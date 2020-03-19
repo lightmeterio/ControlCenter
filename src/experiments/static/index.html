@@ -26,7 +26,7 @@
       Plotly.newPlot('deliveryStatus', data, layout);
     })
 
-    const fillDomainCount = function(graphName, title) {
+    const fillBarChart = function(graphName, title) {
       fetch("/" + graphName).then(res => res.json()).then(function(data) {
         if (data == null) {
           return
@@ -48,9 +48,9 @@
       })
     }
 
-    fillDomainCount("topBusiestDomains", "Busiest Domains")
-    fillDomainCount("topDeferredDomains", "Most Deferred Domains")
-    fillDomainCount("topBouncedDomains", "Most Bounced Domains")
+    fillBarChart("topBusiestDomains", "Busiest Domains")
+    fillBarChart("topDeferredDomains", "Most Deferred Domains")
+    fillBarChart("topBouncedDomains", "Most Bounced Domains")
 
   </script>
 
