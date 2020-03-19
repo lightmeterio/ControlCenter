@@ -52,7 +52,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(parsed.Header.Host, ShouldEqual, "smtpnode07")
 		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
 
-		q, _ := hex.DecodeString("0C31D3D1E6")
+		q, _ := hex.DecodeString("0c31d3d1e6")
 
 		So(string(p.Queue), ShouldEqual, string(q))
 		So(p.RecipientLocalPart, ShouldEqual, "redacted")
@@ -71,5 +71,77 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.ExtraMessage, ShouldEqual, `(host mx-aol.mail.gm0.yahoodns.net[11.22.33.44] said: 421 4.7.0 [TSS04] `+
 			`Messages from 10.20.30.40 temporarily deferred due to user complaints - 4.16.55.1; `+
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command))`)
+	})
+
+	Convey("Basic SMTP Status from different logs", t, func() {
+		parsed, err := Parse([]byte(`Feb  5 17:24:35 mail postfix/smtp[9635]: D298F2C60812: to=<user1234@icloud.com>,` +
+			` relay=mx6.mail.icloud.com[17.178.97.79]:25, delay=428621, delays=428619/0.02/1.9/0, ` +
+			`dsn=4.7.0, status=deferred (host mx6.mail.icloud.com[17.178.97.79] ` +
+			`refused to talk to me: 550 5.7.0 Blocked - see https://support.proofpoint.com/dnsbl-lookup.cgi?ip=142.93.169.220)`))
+		So(parsed, ShouldNotEqual, nil)
+		So(err, ShouldEqual, nil)
+		p, cast := parsed.Payload.(SmtpSentStatus)
+		So(cast, ShouldEqual, true)
+
+		So(parsed.Header.Time.Day, ShouldEqual, 5)
+		So(parsed.Header.Time.Month.String(), ShouldEqual, "February")
+		So(parsed.Header.Time.Hour, ShouldEqual, 17)
+		So(parsed.Header.Time.Minute, ShouldEqual, 24)
+		So(parsed.Header.Time.Second, ShouldEqual, 35)
+		So(parsed.Header.Host, ShouldEqual, "mail")
+		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
+
+		q, _ := hex.DecodeString("d298f2c60812")
+
+		So(string(p.Queue), ShouldEqual, string(q))
+		So(p.RecipientLocalPart, ShouldEqual, "user1234")
+		So(p.RecipientDomainPart, ShouldEqual, "icloud.com")
+		So(p.RelayName, ShouldEqual, "mx6.mail.icloud.com")
+
+		So(p.RelayIP, ShouldEqual, net.ParseIP("17.178.97.79"))
+		So(p.RelayPort, ShouldEqual, 25)
+		So(p.Delay, ShouldEqual, 428621)
+		So(p.Delays.Smtpd, ShouldEqual, 428619)
+		So(p.Delays.Cleanup, ShouldEqual, 0.02)
+		So(p.Delays.Qmgr, ShouldEqual, 1.9)
+		So(p.Delays.Smtp, ShouldEqual, 0)
+		So(p.Dsn, ShouldEqual, "4.7.0")
+		So(p.Status, ShouldEqual, DeferredStatus)
+	})
+
+	Convey("A bounced message", t, func() {
+		parsed, err := Parse([]byte(`Feb  3 04:41:17 mail postfix/smtp[10603]: AE8E32C60819: to=<mail@e.mail.com>, ` +
+			`relay=none, delay=0.02, delays=0.01/0/0.01/0, dsn=5.4.4, status=bounced ` +
+			`(Host or domain name not found. Name service error for name=e.mail.com type=AAAA: Host not found)`))
+		So(parsed, ShouldNotEqual, nil)
+		So(err, ShouldEqual, nil)
+		p, cast := parsed.Payload.(SmtpSentStatus)
+		So(cast, ShouldEqual, true)
+
+		So(parsed.Header.Time.Day, ShouldEqual, 3)
+		So(parsed.Header.Time.Month.String(), ShouldEqual, "February")
+		So(parsed.Header.Time.Hour, ShouldEqual, 4)
+		So(parsed.Header.Time.Minute, ShouldEqual, 41)
+		So(parsed.Header.Time.Second, ShouldEqual, 17)
+		So(parsed.Header.Host, ShouldEqual, "mail")
+		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
+
+		q, _ := hex.DecodeString("ae8e32c60819")
+
+		So(string(p.Queue), ShouldEqual, string(q))
+		So(p.RecipientLocalPart, ShouldEqual, "mail")
+		So(p.RecipientDomainPart, ShouldEqual, "e.mail.com")
+		So(p.RelayName, ShouldEqual, "none")
+
+		So(p.RelayIP, ShouldEqual, nil)
+		So(p.RelayPort, ShouldEqual, 0)
+		So(p.Delay, ShouldEqual, 0.02)
+		So(p.Delays.Smtpd, ShouldEqual, 0.01)
+		So(p.Delays.Cleanup, ShouldEqual, 0)
+		So(p.Delays.Qmgr, ShouldEqual, 0.01)
+		So(p.Delays.Smtp, ShouldEqual, 0)
+		So(p.Dsn, ShouldEqual, "5.4.4")
+		So(p.Status, ShouldEqual, BouncedStatus)
+
 	})
 }

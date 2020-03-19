@@ -6,7 +6,7 @@ import (
 
 const (
 	// NOTE: adapted from https://github.com/youyo/postfix-log-parser.git
-	possibleMonths                    = `Jan|Fev|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
+	possibleMonths                    = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
 	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
 	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 	// TODO: the process name can have more slash separated components, such as: postfix/submission/smtpd
@@ -17,7 +17,8 @@ const (
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
 
-	relayComponentsRegexpFormat = `(?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)`
+	// Relay name might be absent, having only "none"
+	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|none)`
 
 	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
 		`to=<(?P<RecipientLocalPart>[^@]+)@(?P<RecipientDomainPart>[^>]+)>` + `, ` +

@@ -228,13 +228,31 @@ func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error
 		return SmtpSentStatus{}, err
 	}
 
-	ip := net.ParseIP(string(p.RelayIp))
+	ip, err := func() (net.IP, error) {
+		if len(p.RelayIp) == 0 {
+			return nil, nil
+		}
 
-	if ip == nil {
-		return SmtpSentStatus{}, &net.ParseError{}
+		ip := net.ParseIP(string(p.RelayIp))
+
+		if ip == nil {
+			return nil, &net.ParseError{}
+		}
+
+		return ip, nil
+	}()
+
+	if err != nil {
+		return SmtpSentStatus{}, err
 	}
 
-	relayPort, err := atoi(p.RelayPort)
+	relayPort, err := func() (int, error) {
+		if len(p.RelayPort) == 0 {
+			return 0, nil
+		}
+
+		return atoi(p.RelayPort)
+	}()
 
 	if err != nil {
 		return SmtpSentStatus{}, err
@@ -270,11 +288,19 @@ func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error
 		return SmtpSentStatus{}, err
 	}
 
+	relayName := func() string {
+		if len(p.RelayName) == 0 {
+			return "none"
+		}
+
+		return string(p.RelayName)
+	}()
+
 	return SmtpSentStatus{
 		Queue:               q,
 		RecipientLocalPart:  string(p.RecipientLocalPart),
 		RecipientDomainPart: string(p.RecipientDomainPart),
-		RelayName:           string(p.RelayName),
+		RelayName:           relayName,
 		RelayIP:             ip,
 		RelayPort:           uint16(relayPort),
 		Delay:               delay,
