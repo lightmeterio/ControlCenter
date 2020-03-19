@@ -91,6 +91,50 @@ type Record struct {
 	Payload Payload
 }
 
+func parseHeader(h rawparser.LogHeader) (Header, error) {
+	day, err := atoi(h.Day)
+
+	if err != nil {
+		return Header{}, err
+	}
+
+	hour, err := atoi(h.Hour)
+
+	if err != nil {
+		return Header{}, err
+	}
+
+	minute, err := atoi(h.Minute)
+
+	if err != nil {
+		return Header{}, err
+	}
+
+	second, err := atoi(h.Second)
+
+	if err != nil {
+		return Header{}, err
+	}
+
+	process, err := parseProcess(h.Process)
+
+	if err != nil {
+		return Header{}, err
+	}
+
+	return Header{
+		Time: Time{
+			Day:    uint8(day),
+			Month:  parseMonth(h.Month),
+			Hour:   uint8(hour),
+			Minute: uint8(minute),
+			Second: uint8(second),
+		},
+		Host:    string(h.Host),
+		Process: process,
+	}, nil
+}
+
 func Parse(line []byte) (Record, error) {
 	p, err := rawparser.ParseLogLine(line)
 
@@ -98,46 +142,10 @@ func Parse(line []byte) (Record, error) {
 		return Record{}, err
 	}
 
-	day, err := atoi(p.Header.Day)
+	h, err := parseHeader(p.Header)
 
 	if err != nil {
 		return Record{}, err
-	}
-
-	hour, err := atoi(p.Header.Hour)
-
-	if err != nil {
-		return Record{}, err
-	}
-
-	minute, err := atoi(p.Header.Minute)
-
-	if err != nil {
-		return Record{}, err
-	}
-
-	second, err := atoi(p.Header.Second)
-
-	if err != nil {
-		return Record{}, err
-	}
-
-	process, err := parseProcess(p.Header.Process)
-
-	if err != nil {
-		return Record{}, err
-	}
-
-	h := Header{
-		Time: Time{
-			Day:    uint8(day),
-			Month:  parseMonth(p.Header.Month),
-			Hour:   uint8(hour),
-			Minute: uint8(minute),
-			Second: uint8(second),
-		},
-		Host:    string(p.Header.Host),
-		Process: process,
 	}
 
 	switch p.Payload.(type) {
