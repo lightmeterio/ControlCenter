@@ -178,13 +178,7 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, InvalidHeaderLineError
 	}
 
-	processLine := headerMatches[processAndMaybePidIndex]
-
-	if len(processLine) == 0 {
-		panic("There is an error in the header Regex! Fix it!")
-	}
-
-	linePayload := logLine[len(headerMatches[0]):]
+	payloadLine := logLine[len(headerMatches[0]):]
 
 	if len(headerMatches[processIndex]) == 0 {
 		return RawHeader{}, nil, UnsupportedLogLineError
@@ -205,11 +199,11 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		Second:  headerMatches[secondIndex],
 		Host:    headerMatches[hostIndex],
 		Process: postfixProcessMatches[postfixProcessIndex],
-	}, linePayload, nil
+	}, payloadLine, nil
 }
 
 func ParseLogLine(logLine []byte) (RawRecord, error) {
-	header, linePayload, err := tryToGetHeaderAndPayloadContent(logLine)
+	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
 	if err != nil {
 		return RawRecord{}, err
@@ -217,15 +211,15 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 
 	switch string(header.Process) {
 	case "smtp":
-		return parseSmtpPayload(header, linePayload)
+		return parseSmtpPayload(header, payloadLine)
 	default:
 		// TODO: implement support for other non-smtp processes
 		return RawRecord{}, UnsupportedLogLineError
 	}
 }
 
-func parseSmtpPayload(header RawHeader, linePayload []byte) (RawRecord, error) {
-	payloadMatches := possibleSmtpPayloadsRegexp.FindSubmatch(linePayload)
+func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
+	payloadMatches := possibleSmtpPayloadsRegexp.FindSubmatch(payloadLine)
 
 	if len(payloadMatches) == 0 {
 		return RawRecord{}, UnsupportedLogLineError
