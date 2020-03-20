@@ -99,10 +99,16 @@ func main() {
 		Count  int
 	}
 
-	listDomainAndCount := func(queryStr string) []domainAndCount {
+	listDomainAndCount := func(queryStr string, args ...interface{}) []domainAndCount {
 		var r []domainAndCount
 
-		query, err := db.Query(queryStr)
+		stmt, err := db.Prepare(queryStr)
+
+		if err != nil {
+			log.Fatal("Error preparing query")
+		}
+
+		query, err := stmt.Query(args...)
 
 		if err != nil {
 			log.Fatal("Error query")
@@ -161,13 +167,13 @@ func main() {
 	})
 
 	http.HandleFunc("/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
-		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ` + parser.BouncedStatus.String() + ` group by recipient_domain_part order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query))
+		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
+		serveJson(w, r, listDomainAndCount(query, parser.BouncedStatus.String()))
 	})
 
 	http.HandleFunc("/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
-		query := `select relay_name, count(relay_name) as c from smtp where status = ` + parser.DeferredStatus.String() + ` group by relay_name order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query))
+		query := `select relay_name, count(relay_name) as c from smtp where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
+		serveJson(w, r, listDomainAndCount(query, parser.DeferredStatus.String()))
 	})
 
 	http.HandleFunc("/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
