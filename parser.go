@@ -236,7 +236,7 @@ func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error
 		ip := net.ParseIP(string(p.RelayIp))
 
 		if ip == nil {
-			return nil, &net.ParseError{}
+			return nil, &net.ParseError{Type: "IP Address", Text: "Invalid Relay IP"}
 		}
 
 		return ip, nil
