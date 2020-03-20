@@ -148,9 +148,9 @@ func Parse(line []byte) (Record, error) {
 		return Record{}, err
 	}
 
-	switch p.Payload.(type) {
-	case rawparser.RawSmtpSentStatus:
-		p, err := convertSmtpSentStatus(p.Payload.(rawparser.RawSmtpSentStatus))
+	switch p.PayloadType {
+	case rawparser.PayloadTypeSmtpMessageStatus:
+		p, err := convertSmtpSentStatus(p.RawSmtpSentStatus)
 		if err != nil {
 			return Record{}, err
 		}
