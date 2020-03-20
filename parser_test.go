@@ -29,6 +29,11 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 			`3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)`))
 		So(err, ShouldEqual, UnsupportedLogLineError)
 	})
+
+	Convey("Unsupported Log Line with slash on process", t, func() {
+		_, err := Parse([]byte(`Feb  3 02:55:42 mail postfix/submission/smtpd[21543]: connect from unknown[11.22.33.44]`))
+		So(err, ShouldEqual, UnsupportedLogLineError)
+	})
 }
 
 func TestSMTPParsing(t *testing.T) {

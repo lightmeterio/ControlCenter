@@ -5,20 +5,25 @@ import (
 )
 
 const (
-	// NOTE: adapted from https://github.com/youyo/postfix-log-parser.git
-	possibleMonths                    = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
+	possibleMonths = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
+
 	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
+
 	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
-	// TODO: the process name can have more slash separated components, such as: postfix/submission/smtpd
-	processRawSmtpSentStatusRegexpFormat = `(postfix(-[^/]+)?/(?P<Process>[a-z]+)\[[0-9]{1,5}\])`
+
+	processRawSmtpSentStatusRegexpFormat = `postfix(?P<PostfixSuffix>-[^/]+)?/` +
+		`(?P<ProcessName>[^[]+)` +
+		`\[(?P<ProcessId>[0-9]{1,5})\]`
+
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
-	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat + ` ` + processRawSmtpSentStatusRegexpFormat + `: `
+	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat +
+		` ` + processRawSmtpSentStatusRegexpFormat + `: `
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
 
-	// Relay name might be absent, having only "none"
-	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|none)`
+	// NOTE: Relay name might be absent, having only "none"
+	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|` + `none)`
 
 	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
 		`to=<(?P<RecipientLocalPart>[^@]+)@(?P<RecipientDomainPart>[^>]+)>` + `, ` +
@@ -133,7 +138,7 @@ func init() {
 	minuteIndex = indexForGroup(headerRegex, "Minute")
 	secondIndex = indexForGroup(headerRegex, "Second")
 	hostIndex = indexForGroup(headerRegex, "Host")
-	processIndex = indexForGroup(headerRegex, "Process")
+	processIndex = indexForGroup(headerRegex, "ProcessName")
 
 	messageSentWithStatusIndex = indexForGroup(possiblePayloadsRegexp, "MessageSentWithStatus")
 	smtpQueueIndex = indexForGroup(possiblePayloadsRegexp, "Queue")
