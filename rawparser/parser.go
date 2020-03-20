@@ -171,11 +171,11 @@ func init() {
 	smtpExtraMessageIndex = indexForGroup(possibleSmtpPayloadsRegexp, "ExtraMessage")
 }
 
-func ParseLogLine(logLine []byte) (RawRecord, error) {
+func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
 	headerMatches := headerRegexp.FindSubmatch(logLine)
 
 	if len(headerMatches) == 0 {
-		return RawRecord{}, InvalidHeaderLineError
+		return RawHeader{}, nil, InvalidHeaderLineError
 	}
 
 	processLine := headerMatches[processAndMaybePidIndex]
@@ -187,18 +187,16 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 	linePayload := logLine[len(headerMatches[0]):]
 
 	if len(headerMatches[processIndex]) == 0 {
-		return RawRecord{}, UnsupportedLogLineError
+		return RawHeader{}, nil, UnsupportedLogLineError
 	}
 
 	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
 
 	if len(postfixProcessMatches) == 0 {
-		return RawRecord{}, UnsupportedLogLineError
+		return RawHeader{}, nil, UnsupportedLogLineError
 	}
 
-	postfixProcess := postfixProcessMatches[postfixProcessIndex]
-
-	header := RawHeader{
+	return RawHeader{
 		Time:    headerMatches[timeIndex],
 		Month:   headerMatches[monthIndex],
 		Day:     headerMatches[dayIndex],
@@ -206,10 +204,18 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		Minute:  headerMatches[minuteIndex],
 		Second:  headerMatches[secondIndex],
 		Host:    headerMatches[hostIndex],
-		Process: postfixProcess,
+		Process: postfixProcessMatches[postfixProcessIndex],
+	}, linePayload, nil
+}
+
+func ParseLogLine(logLine []byte) (RawRecord, error) {
+	header, linePayload, err := tryToGetHeaderAndPayloadContent(logLine)
+
+	if err != nil {
+		return RawRecord{}, err
 	}
 
-	switch string(postfixProcess) {
+	switch string(header.Process) {
 	case "smtp":
 		return parseSmtpPayload(header, linePayload)
 	default:
