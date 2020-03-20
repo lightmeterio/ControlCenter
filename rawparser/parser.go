@@ -9,7 +9,7 @@ const (
 
 	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
 
-	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
+	hostRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
 	postfixProcessRawSmtpRegexpFormat = `^postfix(?P<PostfixSuffix>-[^/]+)?/` + `(?P<ProcessName>.*)`
 
@@ -17,7 +17,7 @@ const (
 
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
-	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat +
+	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRegexpFormat +
 		` ` + processRegexpFormat + `: `
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
