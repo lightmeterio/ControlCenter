@@ -53,7 +53,7 @@ func parseMonth(m []byte) time.Month {
 	panic("Invalid Month! " + string(m))
 }
 
-func parseProcess(p []byte) (Process, error) {
+func parsePostfixProcess(p []byte) (Process, error) {
 	switch string(p) {
 	case "smtp":
 		return SmtpProcess, nil
@@ -116,7 +116,7 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
-	process, err := parseProcess(h.Process)
+	process, err := parsePostfixProcess(h.Process)
 
 	if err != nil {
 		return Header{}, err

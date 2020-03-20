@@ -98,7 +98,7 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 
 var (
 	possibleSmtpPayloadsRegexp *regexp.Regexp
-	headerRegex                *regexp.Regexp
+	headerRegexp               *regexp.Regexp
 	postfixProcessRegexp       *regexp.Regexp
 
 	timeIndex   int
@@ -135,22 +135,21 @@ var (
 func init() {
 	possibleSmtpPayloadsRegexp = regexp.MustCompile(smtpPayloadsRegexpFormat)
 
-	// TODO: rename it to headerRegex!
-	headerRegex = regexp.MustCompile(headerRegexpFormat)
+	headerRegexp = regexp.MustCompile(headerRegexpFormat)
 
 	postfixProcessRegexp = regexp.MustCompile(postfixProcessRawSmtpRegexpFormat)
 
-	timeIndex = indexForGroup(headerRegex, "Time")
-	monthIndex = indexForGroup(headerRegex, "Month")
-	dayIndex = indexForGroup(headerRegex, "Day")
-	hourIndex = indexForGroup(headerRegex, "Hour")
-	minuteIndex = indexForGroup(headerRegex, "Minute")
-	secondIndex = indexForGroup(headerRegex, "Second")
-	hostIndex = indexForGroup(headerRegex, "Host")
+	timeIndex = indexForGroup(headerRegexp, "Time")
+	monthIndex = indexForGroup(headerRegexp, "Month")
+	dayIndex = indexForGroup(headerRegexp, "Day")
+	hourIndex = indexForGroup(headerRegexp, "Hour")
+	minuteIndex = indexForGroup(headerRegexp, "Minute")
+	secondIndex = indexForGroup(headerRegexp, "Second")
+	hostIndex = indexForGroup(headerRegexp, "Host")
 
-	processAndMaybePidIndex = indexForGroup(headerRegex, "ProcessAndMaybePid")
-	processIndex = indexForGroup(headerRegex, "Process")
-	processIdIndex = indexForGroup(headerRegex, "ProcessId")
+	processAndMaybePidIndex = indexForGroup(headerRegexp, "ProcessAndMaybePid")
+	processIndex = indexForGroup(headerRegexp, "Process")
+	processIdIndex = indexForGroup(headerRegexp, "ProcessId")
 
 	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
 
@@ -173,7 +172,7 @@ func init() {
 }
 
 func ParseLogLine(logLine []byte) (RawRecord, error) {
-	headerMatches := headerRegex.FindSubmatch(logLine)
+	headerMatches := headerRegexp.FindSubmatch(logLine)
 
 	if len(headerMatches) == 0 {
 		return RawRecord{}, InvalidHeaderLineError
@@ -210,8 +209,6 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		Process: smtpProcess,
 	}
 
-	// NOTE: hopefully the compiler will not heap allocate a string here,
-	// but use the slice content directly
 	switch string(smtpProcess) {
 	case "smtp":
 		return parseSmtpPayload(header, linePayload)
