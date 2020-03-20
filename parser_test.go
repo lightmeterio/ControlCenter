@@ -34,6 +34,17 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		_, err := Parse([]byte(`Feb  3 02:55:42 mail postfix/submission/smtpd[21543]: connect from unknown[11.22.33.44]`))
 		So(err, ShouldEqual, UnsupportedLogLineError)
 	})
+
+	Convey("Unsupported opendkim line", t, func() {
+		_, err := Parse([]byte(`Feb  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
+		So(err, ShouldEqual, UnsupportedLogLineError)
+	})
+
+	Convey("Unsupported dovecot line", t, func() {
+		_, err := Parse([]byte(`Feb  5 18:56:52 mail dovecot: imap(laal@mail.io)<28358><CO3htpid9tRXDNo5>: Connection closed (IDLE running for 0.001 + waiting input for 28.914 secs, 2 B in + 10 B out, state=wait-input) in=703 out=12338 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0`))
+		So(err, ShouldEqual, UnsupportedLogLineError)
+	})
+
 }
 
 func TestSMTPParsing(t *testing.T) {

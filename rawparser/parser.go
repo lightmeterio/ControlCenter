@@ -11,9 +11,17 @@ const (
 
 	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
-	processRawSmtpSentStatusRegexpFormat = `postfix(?P<PostfixSuffix>-[^/]+)?/` +
+	postfixProcessRawSmtpSentStatusRegexpFormat = `postfix(?P<PostfixSuffix>-[^/]+)?/` +
 		`(?P<ProcessName>[^[]+)` +
 		`\[(?P<ProcessId>[0-9]{1,5})\]`
+
+	otherNonPostfixLogLinesRegexpFormat = `[^:]+`
+
+	processRawSmtpSentStatusRegexpFormat = `(` +
+		postfixProcessRawSmtpSentStatusRegexpFormat +
+		`|` +
+		otherNonPostfixLogLinesRegexpFormat +
+		`)`
 
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
