@@ -11,22 +11,14 @@ const (
 
 	hostRawSmtpSentStatusRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
-	postfixProcessRawSmtpSentStatusRegexpFormat = `postfix(?P<PostfixSuffix>-[^/]+)?/` +
-		`(?P<ProcessName>[^[]+)` +
-		`\[(?P<ProcessId>[0-9]{1,5})\]`
+	postfixProcessRawSmtpRegexpFormat = `^postfix(?P<PostfixSuffix>-[^/]+)?/` + `(?P<ProcessName>.*)`
 
-	otherNonPostfixLogLinesRegexpFormat = `[^:]+`
-
-	processRawSmtpSentStatusRegexpFormat = `(` +
-		postfixProcessRawSmtpSentStatusRegexpFormat +
-		`|` +
-		otherNonPostfixLogLinesRegexpFormat +
-		`)`
+	processRegexpFormat = `(?P<ProcessAndMaybePid>(?P<Process>[^[\s:]+)(\[(?P<ProcessId>[0-9]{1,5})\])?)`
 
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
 	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRawSmtpSentStatusRegexpFormat +
-		` ` + processRawSmtpSentStatusRegexpFormat + `: `
+		` ` + processRegexpFormat + `: `
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
 
@@ -105,17 +97,22 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 }
 
 var (
-	possiblePayloadsRegexp *regexp.Regexp
-	headerRegex            *regexp.Regexp
+	possibleSmtpPayloadsRegexp *regexp.Regexp
+	headerRegex                *regexp.Regexp
+	postfixProcessRegexp       *regexp.Regexp
 
-	timeIndex    int
-	monthIndex   int
-	dayIndex     int
-	hourIndex    int
-	minuteIndex  int
-	secondIndex  int
-	hostIndex    int
-	processIndex int
+	timeIndex   int
+	monthIndex  int
+	dayIndex    int
+	hourIndex   int
+	minuteIndex int
+	secondIndex int
+	hostIndex   int
+
+	processAndMaybePidIndex int
+	processIndex            int
+	processIdIndex          int
+	postfixProcessIndex     int
 
 	messageSentWithStatusIndex   int
 	smtpQueueIndex               int
@@ -136,8 +133,12 @@ var (
 )
 
 func init() {
-	possiblePayloadsRegexp = regexp.MustCompile(smtpPayloadsRegexpFormat)
+	possibleSmtpPayloadsRegexp = regexp.MustCompile(smtpPayloadsRegexpFormat)
+
+	// TODO: rename it to headerRegex!
 	headerRegex = regexp.MustCompile(headerRegexpFormat)
+
+	postfixProcessRegexp = regexp.MustCompile(postfixProcessRawSmtpRegexpFormat)
 
 	timeIndex = indexForGroup(headerRegex, "Time")
 	monthIndex = indexForGroup(headerRegex, "Month")
@@ -146,24 +147,29 @@ func init() {
 	minuteIndex = indexForGroup(headerRegex, "Minute")
 	secondIndex = indexForGroup(headerRegex, "Second")
 	hostIndex = indexForGroup(headerRegex, "Host")
-	processIndex = indexForGroup(headerRegex, "ProcessName")
 
-	messageSentWithStatusIndex = indexForGroup(possiblePayloadsRegexp, "MessageSentWithStatus")
-	smtpQueueIndex = indexForGroup(possiblePayloadsRegexp, "Queue")
-	smtpRecipientLocalPartIndex = indexForGroup(possiblePayloadsRegexp, "RecipientLocalPart")
-	smtpRecipientDomainPartIndex = indexForGroup(possiblePayloadsRegexp, "RecipientDomainPart")
-	smtpRelayNameIndex = indexForGroup(possiblePayloadsRegexp, "RelayName")
-	smtpRelayIpIndex = indexForGroup(possiblePayloadsRegexp, "RelayIp")
-	smtpRelayPortIndex = indexForGroup(possiblePayloadsRegexp, "RelayPort")
-	smtpDelayIndex = indexForGroup(possiblePayloadsRegexp, "Delay")
-	smtpDelaysIndex = indexForGroup(possiblePayloadsRegexp, "Delays")
-	smtpDelays0Index = indexForGroup(possiblePayloadsRegexp, "Delays0")
-	smtpDelays1Index = indexForGroup(possiblePayloadsRegexp, "Delays1")
-	smtpDelays2Index = indexForGroup(possiblePayloadsRegexp, "Delays2")
-	smtpDelays3Index = indexForGroup(possiblePayloadsRegexp, "Delays3")
-	smtpDsnIndex = indexForGroup(possiblePayloadsRegexp, "Dsn")
-	smtpStatusIndex = indexForGroup(possiblePayloadsRegexp, "Status")
-	smtpExtraMessageIndex = indexForGroup(possiblePayloadsRegexp, "ExtraMessage")
+	processAndMaybePidIndex = indexForGroup(headerRegex, "ProcessAndMaybePid")
+	processIndex = indexForGroup(headerRegex, "Process")
+	processIdIndex = indexForGroup(headerRegex, "ProcessId")
+
+	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
+
+	messageSentWithStatusIndex = indexForGroup(possibleSmtpPayloadsRegexp, "MessageSentWithStatus")
+	smtpQueueIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Queue")
+	smtpRecipientLocalPartIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RecipientLocalPart")
+	smtpRecipientDomainPartIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RecipientDomainPart")
+	smtpRelayNameIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayName")
+	smtpRelayIpIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayIp")
+	smtpRelayPortIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayPort")
+	smtpDelayIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Delay")
+	smtpDelaysIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Delays")
+	smtpDelays0Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays0")
+	smtpDelays1Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays1")
+	smtpDelays2Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays2")
+	smtpDelays3Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays3")
+	smtpDsnIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Dsn")
+	smtpStatusIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Status")
+	smtpExtraMessageIndex = indexForGroup(possibleSmtpPayloadsRegexp, "ExtraMessage")
 }
 
 func ParseLogLine(logLine []byte) (RawRecord, error) {
@@ -173,6 +179,26 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		return RawRecord{}, InvalidHeaderLineError
 	}
 
+	processLine := headerMatches[processAndMaybePidIndex]
+
+	if len(processLine) == 0 {
+		panic("There is an error in the header Regex! Fix it!")
+	}
+
+	linePayload := logLine[len(headerMatches[0]):]
+
+	if len(headerMatches[processIndex]) == 0 {
+		return RawRecord{}, UnsupportedLogLineError
+	}
+
+	smtpProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
+
+	if len(smtpProcessMatches) == 0 {
+		return RawRecord{}, UnsupportedLogLineError
+	}
+
+	smtpProcess := smtpProcessMatches[postfixProcessIndex]
+
 	header := RawHeader{
 		Time:    headerMatches[timeIndex],
 		Month:   headerMatches[monthIndex],
@@ -181,24 +207,22 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		Minute:  headerMatches[minuteIndex],
 		Second:  headerMatches[secondIndex],
 		Host:    headerMatches[hostIndex],
-		Process: headerMatches[processIndex],
+		Process: smtpProcess,
 	}
-
-	linePayload := logLine[len(headerMatches[0]):]
 
 	// NOTE: hopefully the compiler will not heap allocate a string here,
 	// but use the slice content directly
-	switch string(headerMatches[processIndex]) {
+	switch string(smtpProcess) {
 	case "smtp":
 		return parseSmtpPayload(header, linePayload)
 	default:
 		// TODO: implement support for other processes
-		return RawRecord{}, UnsupportedLogLineError
+		return RawRecord{Header: header}, UnsupportedLogLineError
 	}
 }
 
 func parseSmtpPayload(header RawHeader, linePayload []byte) (RawRecord, error) {
-	payloadMatches := possiblePayloadsRegexp.FindSubmatch(linePayload)
+	payloadMatches := possibleSmtpPayloadsRegexp.FindSubmatch(linePayload)
 
 	if len(payloadMatches) == 0 {
 		return RawRecord{}, UnsupportedLogLineError
