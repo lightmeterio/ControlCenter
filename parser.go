@@ -290,7 +290,7 @@ func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error
 
 	relayName := func() string {
 		if len(p.RelayName) == 0 {
-			return "none"
+			return ""
 		}
 
 		return string(p.RelayName)

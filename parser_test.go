@@ -147,7 +147,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(string(p.Queue), ShouldEqual, string(q))
 		So(p.RecipientLocalPart, ShouldEqual, "mail")
 		So(p.RecipientDomainPart, ShouldEqual, "e.mail.com")
-		So(p.RelayName, ShouldEqual, "none")
+		So(p.RelayName, ShouldEqual, "")
 
 		So(p.RelayIP, ShouldEqual, nil)
 		So(p.RelayPort, ShouldEqual, 0)
