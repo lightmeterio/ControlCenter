@@ -190,13 +190,13 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		return RawRecord{}, UnsupportedLogLineError
 	}
 
-	smtpProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
+	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
 
-	if len(smtpProcessMatches) == 0 {
+	if len(postfixProcessMatches) == 0 {
 		return RawRecord{}, UnsupportedLogLineError
 	}
 
-	smtpProcess := smtpProcessMatches[postfixProcessIndex]
+	postfixProcess := postfixProcessMatches[postfixProcessIndex]
 
 	header := RawHeader{
 		Time:    headerMatches[timeIndex],
@@ -206,14 +206,14 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		Minute:  headerMatches[minuteIndex],
 		Second:  headerMatches[secondIndex],
 		Host:    headerMatches[hostIndex],
-		Process: smtpProcess,
+		Process: postfixProcess,
 	}
 
-	switch string(smtpProcess) {
+	switch string(postfixProcess) {
 	case "smtp":
 		return parseSmtpPayload(header, linePayload)
 	default:
-		// TODO: implement support for other processes
+		// TODO: implement support for other non-smtp processes
 		return RawRecord{Header: header}, UnsupportedLogLineError
 	}
 }
