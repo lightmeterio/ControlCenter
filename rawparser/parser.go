@@ -220,7 +220,7 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		return parseSmtpPayload(header, linePayload)
 	default:
 		// TODO: implement support for other non-smtp processes
-		return RawRecord{Header: header}, UnsupportedLogLineError
+		return RawRecord{}, UnsupportedLogLineError
 	}
 }
 
