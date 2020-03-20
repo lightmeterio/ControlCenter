@@ -7,7 +7,7 @@ import (
 const (
 	possibleMonths = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
 
-	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2}) (?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
+	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
 
 	hostRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
@@ -17,8 +17,8 @@ const (
 
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
-	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + ` ` + hostRegexpFormat +
-		` ` + processRegexpFormat + `: `
+	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + `\s` + hostRegexpFormat +
+		` ` + processRegexpFormat + `:\s`
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
 
@@ -26,18 +26,18 @@ const (
 	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|` + `none)`
 
 	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
-		`to=<(?P<RecipientLocalPart>[^@]+)@(?P<RecipientDomainPart>[^>]+)>` + `, ` +
-		`relay=` + relayComponentsRegexpFormat + `, ` +
-		`delay=(?P<Delay>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
-		`delays=(?P<Delays>(?P<Delays0>[^/]+)/(?P<Delays1>[^/]+)/(?P<Delays2>[^/]+)/(?P<Delays3>[^/]+))` + `, ` +
-		`dsn=(?P<Dsn>` + anythingExceptCommaRegexpFormat + `)` + `, ` +
-		`status=(?P<Status>(deferred|bounced|sent))` + ` ` +
+		`to=<(?P<RecipientLocalPart>[^@]+)@(?P<RecipientDomainPart>[^>]+)>` + `,\s` +
+		`relay=` + relayComponentsRegexpFormat + `,\s` +
+		`delay=(?P<Delay>` + anythingExceptCommaRegexpFormat + `)` + `,\s` +
+		`delays=(?P<Delays>(?P<Delays0>[^/]+)/(?P<Delays1>[^/]+)/(?P<Delays2>[^/]+)/(?P<Delays3>[^/]+))` + `,\s` +
+		`dsn=(?P<Dsn>` + anythingExceptCommaRegexpFormat + `)` + `,\s` +
+		`status=(?P<Status>(deferred|bounced|sent))` + `\s` +
 		`(?P<ExtraMessage>.*)` +
 		`)`
 
 	possibleSmtpPayloadsFormat = messageSentWithStatusRawSmtpSentStatusRegexpFormat
 
-	smtpPayloadsRegexpFormat = `^` + queueIdRawSmtpSentStatusRegexpFormat + `: ` +
+	smtpPayloadsRegexpFormat = `^` + queueIdRawSmtpSentStatusRegexpFormat + `:\s` +
 		`(` + possibleSmtpPayloadsFormat + `)$`
 )
 
