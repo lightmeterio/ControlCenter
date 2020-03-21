@@ -90,7 +90,7 @@ func TestSMTPParsing(t *testing.T) {
 	})
 
 	Convey("Basic SMTP Status from different logs", t, func() {
-		parsed, err := Parse([]byte(`Feb  5 17:24:35 mail postfix/smtp[9635]: D298F2C60812: to=<user1234@icloud.com>,` +
+		parsed, err := Parse([]byte(`Feb  5 17:24:35 mail postfix/smtp[9635]: D298F2C60812: to=<"user 1234 with space"@icloud.com>,` +
 			` relay=mx6.mail.icloud.com[17.178.97.79]:25, delay=428621, delays=428619/0.02/1.9/0, ` +
 			`dsn=4.7.0, status=deferred (host mx6.mail.icloud.com[17.178.97.79] ` +
 			`refused to talk to me: 550 5.7.0 Blocked - see https://support.proofpoint.com/dnsbl-lookup.cgi?ip=142.93.169.220)`))
@@ -110,7 +110,7 @@ func TestSMTPParsing(t *testing.T) {
 		q, _ := hex.DecodeString("d298f2c60812")
 
 		So(string(p.Queue), ShouldEqual, string(q))
-		So(p.RecipientLocalPart, ShouldEqual, "user1234")
+		So(p.RecipientLocalPart, ShouldEqual, "user 1234 with space")
 		So(p.RecipientDomainPart, ShouldEqual, "icloud.com")
 		So(p.RelayName, ShouldEqual, "mx6.mail.icloud.com")
 
@@ -158,6 +158,5 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.Delays.Smtp, ShouldEqual, 0)
 		So(p.Dsn, ShouldEqual, "5.4.4")
 		So(p.Status, ShouldEqual, BouncedStatus)
-
 	})
 }
