@@ -1,13 +1,13 @@
 <head>
-	<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+  <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
 </head>
 
 <body>
-	<div id='deliveryStatus'/>
-	<div id='countByStatus'/>
-	<div id='topBusiestDomains'/>
-	<div id='topBouncedDomains'/>
-	<div id='topDeferredDomains'/>
+  <div id='deliveryStatus'></div>
+  <div id='countByStatus'></div>
+  <div id='topBusiestDomains'></div>
+  <div id='topBouncedDomains'></div>
+  <div id='topDeferredDomains'></div>
 
   <script type="application/javascript">
     fetch("/deliveryStatus").then(res => res.json()).then(function(data) {
