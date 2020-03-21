@@ -175,10 +175,6 @@ const (
 	DeferredStatus SmtpStatus = 2
 )
 
-func (this SmtpStatus) String() string {
-	return strconv.FormatInt(int64(this), 10)
-}
-
 var (
 	smtpStatusHumanForm = map[SmtpStatus]string{
 		DeferredStatus: "deferred",
@@ -187,7 +183,7 @@ var (
 	}
 )
 
-func (this SmtpStatus) HumanForm() string {
+func (this SmtpStatus) String() string {
 	return smtpStatusHumanForm[this]
 }
 
