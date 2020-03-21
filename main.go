@@ -1,3 +1,5 @@
+//go:generate go run ./assets/assets_generate.go
+
 package main
 
 import (
@@ -158,29 +160,33 @@ func main() {
 		w.Write(encoded)
 	}
 
-	http.HandleFunc("/countByStatus", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
 		serveJson(w, r, map[string]int{"sent": countByStatus(parser.SentStatus), "deferred": countByStatus(parser.DeferredStatus), "bounced": countByStatus(parser.BouncedStatus)})
 	})
 
-	http.HandleFunc("/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
 		serveJson(w, r, listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`))
 	})
 
-	http.HandleFunc("/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
 		serveJson(w, r, listDomainAndCount(query, parser.BouncedStatus))
 	})
 
-	http.HandleFunc("/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select relay_name, count(relay_name) as c from smtp where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
 		serveJson(w, r, listDomainAndCount(query, parser.DeferredStatus))
 	})
 
-	http.HandleFunc("/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
 		serveJson(w, r, deliveryStatus())
 	})
 
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.Handle("/", http.FileServer(httpAssets))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

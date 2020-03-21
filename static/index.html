@@ -1,5 +1,6 @@
+<html>
 <head>
-  <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+  <script src='/3rd/plotly.min.js'></script>
 </head>
 
 <body>
@@ -10,7 +11,7 @@
   <div id='topDeferredDomains'></div>
 
   <script type="application/javascript">
-    fetch("/deliveryStatus").then(res => res.json()).then(function(data) {
+    fetch("/api/deliveryStatus").then(res => res.json()).then(function(data) {
       var data = [{
         values: data.map(v => v["Value"]),
         labels: data.map(v => v["Status"]),
@@ -27,7 +28,7 @@
     })
 
     const fillBarChart = function(graphName, title) {
-      fetch("/" + graphName).then(res => res.json()).then(function(data) {
+      fetch("/api/" + graphName).then(res => res.json()).then(function(data) {
         if (data == null) {
           return
         }
@@ -55,3 +56,4 @@
   </script>
 
 </body>
+</html>
