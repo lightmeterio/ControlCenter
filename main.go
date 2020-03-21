@@ -146,7 +146,7 @@ func main() {
 
 			query.Scan(&status, &value)
 
-			r = append(r, deliveryValue{status.HumanForm(), value * 100})
+			r = append(r, deliveryValue{status.String(), value * 100})
 		}
 
 		return r
@@ -168,12 +168,12 @@ func main() {
 
 	http.HandleFunc("/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query, parser.BouncedStatus.String()))
+		serveJson(w, r, listDomainAndCount(query, parser.BouncedStatus))
 	})
 
 	http.HandleFunc("/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select relay_name, count(relay_name) as c from smtp where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query, parser.DeferredStatus.String()))
+		serveJson(w, r, listDomainAndCount(query, parser.DeferredStatus))
 	})
 
 	http.HandleFunc("/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
