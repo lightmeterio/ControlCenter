@@ -44,7 +44,7 @@ type Publisher interface {
 }
 
 type ChannelBasedPublisher struct {
-	channel chan parser.Record
+	channel chan<- parser.Record
 }
 
 func (pub *ChannelBasedPublisher) Publish(status parser.Record) {
