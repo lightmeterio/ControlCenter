@@ -1,14 +1,6 @@
 <html>
 <head>
   <script src='/3rd/plotly.min.js'></script>
-</head>
-
-<body>
-  <div id='deliveryStatus'></div>
-  <div id='countByStatus'></div>
-  <div id='topBusiestDomains'></div>
-  <div id='topBouncedDomains'></div>
-  <div id='topDeferredDomains'></div>
 
   <script type="application/javascript">
     fetch("/api/deliveryStatus").then(res => res.json()).then(function(data) {
@@ -52,8 +44,34 @@
     fillBarChart("topBusiestDomains", "Busiest Domains")
     fillBarChart("topDeferredDomains", "Most Deferred Domains")
     fillBarChart("topBouncedDomains", "Most Bounced Domains")
-
   </script>
 
+  <style>
+    .gadget {
+      display: table-cell;
+    }
+
+    .dashboard-line {
+      display: table;
+    }
+
+    .dashboard-line {
+      display: table-row;
+    }
+  </style>
+  <title>Lightmeter ControlCenter</title>
+</head>
+
+<body>
+  <div class="dashboard">
+    <div class="dashboard-line">
+      <div class="gadget" id='deliveryStatus'></div>
+      <div class="gadget" id='topBusiestDomains'></div>
+    </div>
+    <div class="dashboard-line">
+      <div class="gadget" id='topBouncedDomains'></div>
+      <div class="gadget" id='topDeferredDomains'></div>
+    </div>
+  </div>
 </body>
 </html>
