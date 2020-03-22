@@ -6,13 +6,35 @@ import (
 	"bufio"
 	"database/sql"
 	"encoding/json"
+	"flag"
+	"github.com/hpcloud/tail"
 	_ "github.com/mattn/go-sqlite3"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
+
+type watchableFilenames []string
+
+func (this watchableFilenames) String() string {
+	return strings.Join(this, ", ")
+}
+
+func (this *watchableFilenames) Set(value string) error {
+	*this = append(*this, value)
+	return nil
+}
+
+var (
+	filesToWatch watchableFilenames
+)
+
+func init() {
+	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times")
+}
 
 type Publisher interface {
 	Publish(parser.Record)
@@ -54,9 +76,15 @@ func fillDatabase(db *sql.DB, c chan parser.Record) {
 }
 
 func main() {
+	flag.Parse()
+
 	c := make(chan parser.Record, 10)
 	pub := ChannelBasedPublisher{c}
 	go parseLogsFromStdin(&pub)
+
+	for _, filename := range filesToWatch {
+		go watchFileForChanges(filename, &pub)
+	}
 
 	os.Remove("lm.db")
 
@@ -191,6 +219,35 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+func tryToParseAndPublish(line []byte, publisher Publisher) {
+	r, err := parser.Parse(line)
+
+	if err != nil {
+		if err == rawparser.InvalidHeaderLineError {
+			log.Printf("Invalid Postfix header: \"%s\"", string(line))
+		}
+		return
+	}
+
+	publisher.Publish(r)
+}
+
+func watchFileForChanges(filename string, publisher Publisher) error {
+	log.Println("Now watching file", filename, "for changes")
+
+	t, err := tail.TailFile(filename, tail.Config{Follow: true, ReOpen: true})
+
+	if err != nil {
+		return err
+	}
+
+	for line := range t.Lines {
+		tryToParseAndPublish([]byte(line.Text), publisher)
+	}
+
+	return nil
+}
+
 func parseLogsFromStdin(publisher Publisher) {
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -201,16 +258,7 @@ func parseLogsFromStdin(publisher Publisher) {
 
 		logLine := scanner.Bytes()
 
-		r, err := parser.Parse(logLine)
-
-		if err != nil {
-			if err == rawparser.InvalidHeaderLineError {
-				log.Printf("Invalid Postfix header: \"%s\"", string(logLine))
-			}
-			continue
-		}
-
-		publisher.Publish(r)
+		tryToParseAndPublish(logLine, publisher)
 	}
 
 	publisher.Close()
