@@ -235,7 +235,20 @@ func tryToParseAndPublish(line []byte, publisher Publisher) {
 func watchFileForChanges(filename string, publisher Publisher) error {
 	log.Println("Now watching file", filename, "for changes")
 
-	t, err := tail.TailFile(filename, tail.Config{Follow: true, ReOpen: true})
+	t, err := tail.TailFile(filename, tail.Config{
+		Follow: true,
+		ReOpen: true,
+		Logger: tail.DiscardingLogger,
+
+		// Read File from the beginning
+		// TODO: turn it into an option,
+		// as we want to import the whole file on the first execution
+		// maybe check if the database is empty instead?
+		Location: &tail.SeekInfo{
+			Offset: 0,
+			Whence: os.SEEK_SET,
+		},
+	})
 
 	if err != nil {
 		return err
@@ -256,9 +269,7 @@ func parseLogsFromStdin(publisher Publisher) {
 			break
 		}
 
-		logLine := scanner.Bytes()
-
-		tryToParseAndPublish(logLine, publisher)
+		tryToParseAndPublish(scanner.Bytes(), publisher)
 	}
 
 	publisher.Close()
