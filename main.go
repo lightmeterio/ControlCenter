@@ -29,11 +29,13 @@ func (this *watchableFilenames) Set(value string) error {
 }
 
 var (
-	filesToWatch watchableFilenames
+	filesToWatch   watchableFilenames
+	watchFromStdin bool
 )
 
 func init() {
 	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times")
+	flag.BoolVar(&watchFromStdin, "stdin", false, "Read log lines from stdin")
 }
 
 type Publisher interface {
@@ -80,7 +82,10 @@ func main() {
 
 	c := make(chan parser.Record, 10)
 	pub := ChannelBasedPublisher{c}
-	go parseLogsFromStdin(&pub)
+
+	if watchFromStdin {
+		go parseLogsFromStdin(&pub)
+	}
 
 	for _, filename := range filesToWatch {
 		go watchFileForChanges(filename, &pub)
