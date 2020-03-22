@@ -136,7 +136,7 @@ func main() {
 	deliveryStatus := func() []deliveryValue {
 		var r []deliveryValue
 
-		query, err := db.Query(`select status, cast(count(status) as float) / cast((select count(status) from smtp) as float) from smtp group by status`)
+		query, err := db.Query(`select status, count(status) from smtp group by status`)
 
 		if err != nil {
 			log.Fatal("Error query")
@@ -148,7 +148,7 @@ func main() {
 
 			query.Scan(&status, &value)
 
-			r = append(r, deliveryValue{status.String(), value * 100})
+			r = append(r, deliveryValue{status.String(), value})
 		}
 
 		return r
