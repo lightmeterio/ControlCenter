@@ -77,6 +77,86 @@ func fillDatabase(db *sql.DB, c chan parser.Record) {
 	}
 }
 
+func countByStatus(db *sql.DB, status parser.SmtpStatus) int {
+	stmt, err := db.Prepare(`select count(status) from smtp where status = ?`)
+
+	if err != nil {
+		log.Fatal("error preparing query")
+	}
+
+	sentResult, err := stmt.Query(status)
+
+	if err != nil {
+		log.Fatal("error querying")
+	}
+
+	var countValue int
+
+	sentResult.Next()
+
+	sentResult.Scan(&countValue)
+
+	return countValue
+}
+
+type domainAndCount struct {
+	Domain string
+	Count  int
+}
+
+func listDomainAndCount(db *sql.DB, queryStr string, args ...interface{}) []domainAndCount {
+	var r []domainAndCount
+
+	stmt, err := db.Prepare(queryStr)
+
+	if err != nil {
+		log.Fatal("Error preparing query")
+	}
+
+	query, err := stmt.Query(args...)
+
+	if err != nil {
+		log.Fatal("Error query")
+	}
+
+	for query.Next() {
+		var domain string
+		var countValue int
+
+		query.Scan(&domain, &countValue)
+
+		r = append(r, domainAndCount{domain, countValue})
+	}
+
+	return r
+}
+
+type deliveryValue struct {
+	Status string
+	Value  float64
+}
+
+func deliveryStatus(db *sql.DB) []deliveryValue {
+	var r []deliveryValue
+
+	query, err := db.Query(`select status, count(status) from smtp group by status`)
+
+	if err != nil {
+		log.Fatal("Error query")
+	}
+
+	for query.Next() {
+		var status parser.SmtpStatus
+		var value float64
+
+		query.Scan(&status, &value)
+
+		r = append(r, deliveryValue{status.String(), value})
+	}
+
+	return r
+}
+
 func main() {
 	flag.Parse()
 
@@ -107,86 +187,6 @@ func main() {
 
 	go fillDatabase(db, c)
 
-	countByStatus := func(status parser.SmtpStatus) int {
-		stmt, err := db.Prepare(`select count(status) from smtp where status = ?`)
-
-		if err != nil {
-			log.Fatal("error preparing query")
-		}
-
-		sentResult, err := stmt.Query(status)
-
-		if err != nil {
-			log.Fatal("error querying")
-		}
-
-		var countValue int
-
-		sentResult.Next()
-
-		sentResult.Scan(&countValue)
-
-		return countValue
-	}
-
-	type domainAndCount struct {
-		Domain string
-		Count  int
-	}
-
-	listDomainAndCount := func(queryStr string, args ...interface{}) []domainAndCount {
-		var r []domainAndCount
-
-		stmt, err := db.Prepare(queryStr)
-
-		if err != nil {
-			log.Fatal("Error preparing query")
-		}
-
-		query, err := stmt.Query(args...)
-
-		if err != nil {
-			log.Fatal("Error query")
-		}
-
-		for query.Next() {
-			var domain string
-			var countValue int
-
-			query.Scan(&domain, &countValue)
-
-			r = append(r, domainAndCount{domain, countValue})
-		}
-
-		return r
-	}
-
-	type deliveryValue struct {
-		Status string
-		Value  float64
-	}
-
-	deliveryStatus := func() []deliveryValue {
-		var r []deliveryValue
-
-		query, err := db.Query(`select status, count(status) from smtp group by status`)
-
-		if err != nil {
-			log.Fatal("Error query")
-		}
-
-		for query.Next() {
-			var status parser.SmtpStatus
-			var value float64
-
-			query.Scan(&status, &value)
-
-			r = append(r, deliveryValue{status.String(), value})
-		}
-
-		return r
-	}
-
 	serveJson := func(w http.ResponseWriter, r *http.Request, v interface{}) {
 		w.Header().Set("Content-Type", "application/json")
 		encoded, _ := json.Marshal(v)
@@ -194,30 +194,30 @@ func main() {
 	}
 
 	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, map[string]int{"sent": countByStatus(parser.SentStatus), "deferred": countByStatus(parser.DeferredStatus), "bounced": countByStatus(parser.BouncedStatus)})
+		serveJson(w, r, map[string]int{
+			"sent":     countByStatus(db, parser.SentStatus),
+			"deferred": countByStatus(db, parser.DeferredStatus),
+			"bounced":  countByStatus(db, parser.BouncedStatus),
+		})
 	})
 
 	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, listDomainAndCount(`select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`))
+		serveJson(w, r, listDomainAndCount(db, `select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`))
 	})
 
 	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query, parser.BouncedStatus))
+		serveJson(w, r, listDomainAndCount(db, query, parser.BouncedStatus))
 	})
 
 	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select relay_name, count(relay_name) as c from smtp where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(query, parser.DeferredStatus))
+		serveJson(w, r, listDomainAndCount(db, query, parser.DeferredStatus))
 	})
 
 	http.HandleFunc("/api/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, deliveryStatus())
+		serveJson(w, r, deliveryStatus(db))
 	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	http.Handle("/", http.FileServer(httpAssets))
 
