@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"flag"
 	"github.com/hpcloud/tail"
 	_ "github.com/mattn/go-sqlite3"
@@ -14,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -29,13 +31,15 @@ func (this *watchableFilenames) Set(value string) error {
 }
 
 var (
-	filesToWatch   watchableFilenames
-	watchFromStdin bool
+	filesToWatch       watchableFilenames
+	watchFromStdin     bool
+	workspaceDirectory string
 )
 
 func init() {
 	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times")
 	flag.BoolVar(&watchFromStdin, "stdin", false, "Read log lines from stdin")
+	flag.StringVar(&workspaceDirectory, "workspace", "lm_data", "Path to an existing directory to store all working data")
 }
 
 type Publisher interface {
@@ -56,7 +60,21 @@ func (pub *ChannelBasedPublisher) Close() {
 }
 
 func fillDatabase(db *sql.DB, c chan parser.Record) {
-	stmt, err := db.Prepare("insert into smtp(recipient_local_part, recipient_domain_part, relay_name, status) values(?, ?, ?, ?)")
+	stmt, err := db.Prepare(`insert into smtp(
+			queue,
+			recipient_local_part,
+			recipient_domain_part,
+			relay_name,
+			relay_ip,
+			relay_port,
+			delay,
+			delay_smtpd,
+			delay_cleanup,
+			delay_qmgr,
+			delay_smtp,
+			dsn,
+			status
+	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
 		log.Fatal("error preparing insert statement")
@@ -69,7 +87,20 @@ func fillDatabase(db *sql.DB, c chan parser.Record) {
 			continue
 		}
 
-		_, err := stmt.Exec(status.RecipientLocalPart, status.RecipientDomainPart, status.RelayName, status.Status)
+		_, err := stmt.Exec(
+			status.Queue,
+			status.RecipientLocalPart,
+			status.RecipientDomainPart,
+			status.RelayName,
+			[]byte(status.RelayIP),
+			status.RelayPort,
+			status.Delay,
+			status.Delays.Smtpd,
+			status.Delays.Cleanup,
+			status.Delays.Qmgr,
+			status.Delays.Smtp,
+			status.Dsn,
+			status.Status)
 
 		if err != nil {
 			log.Fatal("error inserting value")
@@ -160,20 +191,34 @@ func deliveryStatus(db *sql.DB) []deliveryValue {
 func main() {
 	flag.Parse()
 
-	c := make(chan parser.Record, 10)
-	pub := ChannelBasedPublisher{c}
-
-	if watchFromStdin {
-		go parseLogsFromStdin(&pub)
+	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
+		log.Fatal("Error creating working directory", workspaceDirectory, ":", err)
 	}
 
-	for _, filename := range filesToWatch {
-		go watchFileForChanges(filename, &pub)
+	dbFilename := path.Join(workspaceDirectory, "logs.db")
+
+	watchLocation, err := func() (*tail.SeekInfo, error) {
+		s, err := os.Stat(dbFilename)
+
+		if os.IsNotExist(err) {
+			return &tail.SeekInfo{
+				Offset: 0,
+				Whence: os.SEEK_SET,
+			}, nil
+		}
+
+		if s.IsDir() {
+			return nil, errors.New(dbFilename + " must be a regular file!")
+		}
+
+		return nil, nil
+	}()
+
+	if err != nil {
+		log.Fatal("Setup error:", err)
 	}
 
-	os.Remove("lm.db")
-
-	db, err := sql.Open("sqlite3", "lm.db")
+	db, err := sql.Open("sqlite3", dbFilename)
 
 	if err != nil {
 		log.Fatal("error opening database")
@@ -181,8 +226,35 @@ func main() {
 
 	defer db.Close()
 
-	if _, err := db.Exec("create table smtp(recipient_local_part text, recipient_domain_part text, relay_name text, status text)"); err != nil {
+	if _, err := db.Exec(`create table if not exists smtp(
+			queue                 blob,
+			recipient_local_part  text,
+			recipient_domain_part text,
+			relay_name            text,
+			relay_ip              blob,
+			relay_port            uint16,
+			delay                 double,
+			delay_smtpd   				double,
+			delay_cleanup 				double,
+			delay_qmgr    				double,
+			delay_smtp    				double,
+			dsn                   text,
+			status                integer
+		)`); err != nil {
+
 		log.Fatal("error creating database: ", err)
+	}
+
+	c := make(chan parser.Record, 10)
+
+	pub := ChannelBasedPublisher{c}
+
+	if watchFromStdin {
+		go parseLogsFromStdin(&pub)
+	}
+
+	for _, filename := range filesToWatch {
+		go watchFileForChanges(filename, watchLocation, &pub)
 	}
 
 	go fillDatabase(db, c)
@@ -237,22 +309,20 @@ func tryToParseAndPublish(line []byte, publisher Publisher) {
 	publisher.Publish(r)
 }
 
-func watchFileForChanges(filename string, publisher Publisher) error {
-	log.Println("Now watching file", filename, "for changes")
+func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Publisher) error {
+	log.Println("Now watching file", filename, "for changes from the", func() string {
+		if location == nil {
+			return "end"
+		}
+
+		return "beginning"
+	}())
 
 	t, err := tail.TailFile(filename, tail.Config{
-		Follow: true,
-		ReOpen: true,
-		Logger: tail.DiscardingLogger,
-
-		// Read File from the beginning
-		// TODO: turn it into an option,
-		// as we want to import the whole file on the first execution
-		// maybe check if the database is empty instead?
-		Location: &tail.SeekInfo{
-			Offset: 0,
-			Whence: os.SEEK_SET,
-		},
+		Follow:   true,
+		ReOpen:   true,
+		Logger:   tail.DiscardingLogger,
+		Location: location,
 	})
 
 	if err != nil {
