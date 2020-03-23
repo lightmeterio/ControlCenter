@@ -7,50 +7,19 @@ import (
 const (
 	possibleMonths = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
 
-	timeRawSmtpSentStatusRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
+	timeRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
 
 	hostRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
-	postfixProcessRawSmtpRegexpFormat = `^postfix(?P<PostfixSuffix>-[^/]+)?/` + `(?P<ProcessName>.*)`
+	postfixProcessRegexpFormat = `^postfix(?P<PostfixSuffix>-[^/]+)?/` + `(?P<ProcessName>.*)`
 
 	processRegexpFormat = `(?P<ProcessAndMaybePid>(?P<Process>[^[\s:]+)(\[(?P<ProcessId>[0-9]{1,5})\])?)`
 
-	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
-
-	headerRegexpFormat = `^` + timeRawSmtpSentStatusRegexpFormat + `\s` + hostRegexpFormat +
+	headerRegexpFormat = `^` + timeRegexpFormat + `\s` + hostRegexpFormat +
 		` ` + processRegexpFormat + `:\s`
-
-	anythingExceptCommaRegexpFormat = `[^,]+`
-
-	// NOTE: Relay name might be absent, having only "none"
-	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|` + `none)`
-
-	// TODO: I have the feeling this expression can be simplified a lot,
-	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well
-	// But I don't know how it's be performance-wise
-	mailRecipientPartRegexpFormat = `((?P<NonQuotedRecipientLocalPart>[^@"]+)|"(?P<QuotedRecipientLocalPart>[^@"]+)")`
-
-	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
-		`to=<` + mailRecipientPartRegexpFormat + `@(?P<RecipientDomainPart>[^>]+)>` + `,\s` +
-		`relay=` + relayComponentsRegexpFormat + `,\s` +
-		`delay=(?P<Delay>` + anythingExceptCommaRegexpFormat + `)` + `,\s` +
-		`delays=(?P<Delays>(?P<Delays0>[^/]+)/(?P<Delays1>[^/]+)/(?P<Delays2>[^/]+)/(?P<Delays3>[^/]+))` + `,\s` +
-		`dsn=(?P<Dsn>` + anythingExceptCommaRegexpFormat + `)` + `,\s` +
-		`status=(?P<Status>(deferred|bounced|sent))` + `\s` +
-		`(?P<ExtraMessage>.*)` +
-		`)`
-
-	possibleSmtpPayloadsFormat = messageSentWithStatusRawSmtpSentStatusRegexpFormat
-
-	smtpPayloadsRegexpFormat = `^` + queueIdRawSmtpSentStatusRegexpFormat + `:\s` +
-		`(` + possibleSmtpPayloadsFormat + `)$`
 )
 
 type PayloadType int
-
-const (
-	PayloadTypeSmtpMessageStatus PayloadType = iota
-)
 
 type RawHeader struct {
 	Time    []byte
@@ -76,20 +45,6 @@ type RawRecord struct {
 	RawSmtpSentStatus RawSmtpSentStatus
 }
 
-type RawSmtpSentStatus struct {
-	Queue               []byte
-	RecipientLocalPart  []byte
-	RecipientDomainPart []byte
-	RelayName           []byte
-	RelayIp             []byte
-	RelayPort           []byte
-	Delay               []byte
-	Delays              [5][]byte
-	Dsn                 []byte
-	Status              []byte
-	ExtraMessage        []byte
-}
-
 func indexForGroup(r *regexp.Regexp, name string) int {
 	e := r.SubexpNames()
 	for i, v := range e {
@@ -102,9 +57,8 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 }
 
 var (
-	possibleSmtpPayloadsRegexp *regexp.Regexp
-	headerRegexp               *regexp.Regexp
-	postfixProcessRegexp       *regexp.Regexp
+	headerRegexp         *regexp.Regexp
+	postfixProcessRegexp *regexp.Regexp
 
 	timeIndex   int
 	monthIndex  int
@@ -118,32 +72,12 @@ var (
 	processIndex            int
 	processIdIndex          int
 	postfixProcessIndex     int
-
-	messageSentWithStatusIndex           int
-	smtpQueueIndex                       int
-	smtpNonQuotedRecipientLocalPartIndex int
-	smtpQuotedRecipientLocalPartIndex    int
-	smtpRecipientDomainPartIndex         int
-	smtpRelayNameIndex                   int
-	smtpRelayIpIndex                     int
-	smtpRelayPortIndex                   int
-	smtpDelayIndex                       int
-	smtpDelaysIndex                      int
-	smtpDelays0Index                     int
-	smtpDelays1Index                     int
-	smtpDelays2Index                     int
-	smtpDelays3Index                     int
-	smtpDsnIndex                         int
-	smtpStatusIndex                      int
-	smtpExtraMessageIndex                int
 )
 
 func init() {
-	possibleSmtpPayloadsRegexp = regexp.MustCompile(smtpPayloadsRegexpFormat)
-
 	headerRegexp = regexp.MustCompile(headerRegexpFormat)
 
-	postfixProcessRegexp = regexp.MustCompile(postfixProcessRawSmtpRegexpFormat)
+	postfixProcessRegexp = regexp.MustCompile(postfixProcessRegexpFormat)
 
 	timeIndex = indexForGroup(headerRegexp, "Time")
 	monthIndex = indexForGroup(headerRegexp, "Month")
@@ -158,24 +92,6 @@ func init() {
 	processIdIndex = indexForGroup(headerRegexp, "ProcessId")
 
 	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
-
-	messageSentWithStatusIndex = indexForGroup(possibleSmtpPayloadsRegexp, "MessageSentWithStatus")
-	smtpQueueIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Queue")
-	smtpNonQuotedRecipientLocalPartIndex = indexForGroup(possibleSmtpPayloadsRegexp, "NonQuotedRecipientLocalPart")
-	smtpQuotedRecipientLocalPartIndex = indexForGroup(possibleSmtpPayloadsRegexp, "QuotedRecipientLocalPart")
-	smtpRecipientDomainPartIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RecipientDomainPart")
-	smtpRelayNameIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayName")
-	smtpRelayIpIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayIp")
-	smtpRelayPortIndex = indexForGroup(possibleSmtpPayloadsRegexp, "RelayPort")
-	smtpDelayIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Delay")
-	smtpDelaysIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Delays")
-	smtpDelays0Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays0")
-	smtpDelays1Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays1")
-	smtpDelays2Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays2")
-	smtpDelays3Index = indexForGroup(possibleSmtpPayloadsRegexp, "Delays3")
-	smtpDsnIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Dsn")
-	smtpStatusIndex = indexForGroup(possibleSmtpPayloadsRegexp, "Status")
-	smtpExtraMessageIndex = indexForGroup(possibleSmtpPayloadsRegexp, "ExtraMessage")
 }
 
 func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
@@ -223,49 +139,4 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 		// TODO: implement support for other non-smtp processes
 		return RawRecord{}, UnsupportedLogLineError
 	}
-}
-
-func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
-	payloadMatches := possibleSmtpPayloadsRegexp.FindSubmatch(payloadLine)
-
-	if len(payloadMatches) == 0 {
-		return RawRecord{}, UnsupportedLogLineError
-	}
-
-	if len(payloadMatches[messageSentWithStatusIndex]) == 0 {
-		// TODO: implement other stuff done by the "smtp" process
-		return RawRecord{}, UnsupportedLogLineError
-	}
-
-	recipientLocalPart := func() []byte {
-		if len(payloadMatches[smtpNonQuotedRecipientLocalPartIndex]) > 0 {
-			return payloadMatches[smtpNonQuotedRecipientLocalPartIndex]
-		}
-
-		return payloadMatches[smtpQuotedRecipientLocalPartIndex]
-	}()
-
-	s := RawSmtpSentStatus{
-		Queue:               payloadMatches[smtpQueueIndex],
-		RecipientLocalPart:  recipientLocalPart,
-		RecipientDomainPart: payloadMatches[smtpRecipientDomainPartIndex],
-		RelayName:           payloadMatches[smtpRelayNameIndex],
-		RelayIp:             payloadMatches[smtpRelayIpIndex],
-		RelayPort:           payloadMatches[smtpRelayPortIndex],
-		Delay:               payloadMatches[smtpDelayIndex],
-		Delays: [5][]byte{payloadMatches[smtpDelaysIndex],
-			payloadMatches[smtpDelays0Index],
-			payloadMatches[smtpDelays1Index],
-			payloadMatches[smtpDelays2Index],
-			payloadMatches[smtpDelays3Index]},
-		Dsn:          payloadMatches[smtpDsnIndex],
-		Status:       payloadMatches[smtpStatusIndex],
-		ExtraMessage: payloadMatches[smtpExtraMessageIndex],
-	}
-
-	return RawRecord{
-		Header:            header,
-		PayloadType:       PayloadTypeSmtpMessageStatus,
-		RawSmtpSentStatus: s,
-	}, nil
 }
