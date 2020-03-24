@@ -66,7 +66,7 @@ func (pub *ChannelBasedPublisher) Close() {
 }
 
 func fillDatabase(db *sql.DB, c chan Record) {
-	stmt, err := db.Prepare(`insert into smtp(
+	stmt, err := db.Prepare(`insert into postfix_smtp_message_status(
 			read_ts_sec,
 			read_ts_nsec,
 			time_month,
@@ -129,7 +129,7 @@ func fillDatabase(db *sql.DB, c chan Record) {
 }
 
 func countByStatus(db *sql.DB, status parser.SmtpStatus) int {
-	stmt, err := db.Prepare(`select count(status) from smtp where status = ?`)
+	stmt, err := db.Prepare(`select count(status) from postfix_smtp_message_status where status = ?`)
 
 	if err != nil {
 		log.Fatal("error preparing query")
@@ -190,7 +190,7 @@ type deliveryValue struct {
 func deliveryStatus(db *sql.DB) []deliveryValue {
 	var r []deliveryValue
 
-	query, err := db.Query(`select status, count(status) from smtp group by status`)
+	query, err := db.Query(`select status, count(status) from postfix_smtp_message_status group by status`)
 
 	if err != nil {
 		log.Fatal("Error query")
@@ -246,7 +246,7 @@ func main() {
 
 	defer db.Close()
 
-	if _, err := db.Exec(`create table if not exists smtp(
+	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
 			read_ts_sec           integer,
 			read_ts_nsec          integer,
 			time_month            integer,
@@ -301,16 +301,16 @@ func main() {
 	})
 
 	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, listDomainAndCount(db, `select recipient_domain_part, count(recipient_domain_part) as c from smtp group by recipient_domain_part order by c desc limit 20`))
+		serveJson(w, r, listDomainAndCount(db, `select recipient_domain_part, count(recipient_domain_part) as c from postfix_smtp_message_status group by recipient_domain_part order by c desc limit 20`))
 	})
 
 	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
-		query := `select recipient_domain_part, count(recipient_domain_part) as c from smtp where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
+		query := `select recipient_domain_part, count(recipient_domain_part) as c from postfix_smtp_message_status where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
 		serveJson(w, r, listDomainAndCount(db, query, parser.BouncedStatus))
 	})
 
 	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
-		query := `select relay_name, count(relay_name) as c from smtp where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
+		query := `select relay_name, count(relay_name) as c from postfix_smtp_message_status where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
 		serveJson(w, r, listDomainAndCount(db, query, parser.DeferredStatus))
 	})
 
