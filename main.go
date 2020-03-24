@@ -215,11 +215,14 @@ func main() {
 		log.Fatal("Error creating working directory", workspaceDirectory, ":", err)
 	}
 
-	dbFilename := path.Join(workspaceDirectory, "logs.db")
+	dbFilename := path.Join(workspaceDirectory, "postfix_logs.db")
 
 	watchLocation, err := func() (*tail.SeekInfo, error) {
 		s, err := os.Stat(dbFilename)
 
+		// in case the database does not yet exist, we watch the log files
+		// from their beginning, as an "first execution" process,
+		// to import as much as we can into the database.
 		if os.IsNotExist(err) {
 			return &tail.SeekInfo{
 				Offset: 0,
