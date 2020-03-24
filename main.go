@@ -17,6 +17,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
 type watchableFilenames []string
@@ -42,16 +43,21 @@ func init() {
 	flag.StringVar(&workspaceDirectory, "workspace", "lm_data", "Path to an existing directory to store all working data")
 }
 
+type Record struct {
+	Message parser.Record
+	Time    time.Time
+}
+
 type Publisher interface {
-	Publish(parser.Record)
+	Publish(Record)
 	Close()
 }
 
 type ChannelBasedPublisher struct {
-	channel chan<- parser.Record
+	channel chan<- Record
 }
 
-func (pub *ChannelBasedPublisher) Publish(status parser.Record) {
+func (pub *ChannelBasedPublisher) Publish(status Record) {
 	pub.channel <- status
 }
 
@@ -59,8 +65,15 @@ func (pub *ChannelBasedPublisher) Close() {
 	close(pub.channel)
 }
 
-func fillDatabase(db *sql.DB, c chan parser.Record) {
+func fillDatabase(db *sql.DB, c chan Record) {
 	stmt, err := db.Prepare(`insert into smtp(
+			read_ts_sec,
+			read_ts_nsec,
+			time_month,
+			time_day,
+			time_hour,
+			time_minute,
+			time_second,
 			queue,
 			recipient_local_part,
 			recipient_domain_part,
@@ -74,20 +87,27 @@ func fillDatabase(db *sql.DB, c chan parser.Record) {
 			delay_smtp,
 			dsn,
 			status
-	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
 		log.Fatal("error preparing insert statement")
 	}
 
 	for r := range c {
-		status, cast := r.Payload.(parser.SmtpSentStatus)
+		status, cast := r.Message.Payload.(parser.SmtpSentStatus)
 
 		if !cast {
 			continue
 		}
 
 		_, err := stmt.Exec(
+			r.Time.Unix(),
+			r.Time.UnixNano(),
+			r.Message.Header.Time.Month,
+			r.Message.Header.Time.Day,
+			r.Message.Header.Time.Hour,
+			r.Message.Header.Time.Minute,
+			r.Message.Header.Time.Second,
 			status.Queue,
 			status.RecipientLocalPart,
 			status.RecipientDomainPart,
@@ -227,6 +247,13 @@ func main() {
 	defer db.Close()
 
 	if _, err := db.Exec(`create table if not exists smtp(
+			read_ts_sec           integer,
+			read_ts_nsec          integer,
+			time_month            integer,
+			time_day              integer,
+			time_hour             integer,
+			time_minute           integer,
+			time_second           integer,
 			queue                 blob,
 			recipient_local_part  text,
 			recipient_domain_part text,
@@ -245,7 +272,7 @@ func main() {
 		log.Fatal("error creating database: ", err)
 	}
 
-	c := make(chan parser.Record, 10)
+	c := make(chan Record, 10)
 
 	pub := ChannelBasedPublisher{c}
 
@@ -306,7 +333,7 @@ func tryToParseAndPublish(line []byte, publisher Publisher) {
 		return
 	}
 
-	publisher.Publish(r)
+	publisher.Publish(Record{Time: time.Now(), Message: r})
 }
 
 func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Publisher) error {
