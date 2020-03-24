@@ -32,7 +32,7 @@ type RawHeader struct {
 	Process []byte
 }
 
-// NOTE: Go does not have unions and using interfaces implies on virtual calls
+// NOTE: Go does not have unions, and using interfaces implies on virtual calls
 // (which are being done in the higher level parsing interface, anyways),
 // so we add all the possible payloads inlined in the struct, with a field describing which
 // payload the whole record refers to.

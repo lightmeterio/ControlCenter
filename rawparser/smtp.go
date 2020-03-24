@@ -17,8 +17,8 @@ const (
 	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|` + `none)`
 
 	// TODO: I have the feeling this expression can be simplified a lot,
-	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well
-	// But I don't know how it's be performance-wise
+	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well,
+	// But I don't know how it'd be performance-wise
 	mailRecipientPartRegexpFormat = `((?P<NonQuotedRecipientLocalPart>[^@"]+)|"(?P<QuotedRecipientLocalPart>[^@"]+)")`
 
 	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
