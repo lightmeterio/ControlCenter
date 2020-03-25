@@ -7,5 +7,5 @@ import (
 )
 
 var (
-	HttpAssets http.FileSystem = http.Dir("./static")
+	HttpAssets http.FileSystem = http.Dir("./www")
 )
