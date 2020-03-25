@@ -10,9 +10,27 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
 
 This is a next generation rewrite of the previous [prototype](https://gitlab.com/lightmeter/prototype), and is currently work in progress.
 
+## Build from source code
+
+You'll need the Go compiler installed. Check http://golang.org for more information. The Go version we are currently using is 1.14.1.
+
+To build Lightmeter during development, execute:
+
+```
+./build.sh dev
+```
+
+And for the final release, execute:
+```
+./build.sh release
+```
+
+That will download all the dependencies and build a file called `lightmeter`,
+which you can simply copy to your Postfix server and use it as described in the `Usage` section.
+
 ## Usage
 
-- Following compilation of Lightmeter Control Center you should run the binary `read_postfix_logs` to read logs and launch a local webserver which allows viewing Lightmeter Control Center via a web ui in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
+- Following compilation of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver which allows viewing Lightmeter Control Center via a web ui in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
     - Logfiles provided via `watch` will be monitored for changes and the web ui automatically updated. An SQLite database is used in the backend for storing processed log data.
-- Specify which mail logs to watch using the command line argument `read_postfix_logs -watch [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
-- To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `read_postfix_logs -stdin < [log-data]`.
+- Specify which mail logs to watch using the command line argument `lightmeter -watch [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
+- To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.

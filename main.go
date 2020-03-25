@@ -1,5 +1,3 @@
-//go:generate go run ./assets/assets_generate.go
-
 package main
 
 import (
@@ -10,6 +8,7 @@ import (
 	"flag"
 	"github.com/hpcloud/tail"
 	_ "github.com/mattn/go-sqlite3"
+	"gitlab.com/lightmeter/controlcenter/staticdata"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"log"
@@ -321,7 +320,7 @@ func main() {
 		serveJson(w, r, deliveryStatus(db))
 	})
 
-	http.Handle("/", http.FileServer(httpAssets))
+	http.Handle("/", http.FileServer(staticdata.HttpAssets))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

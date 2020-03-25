@@ -12,9 +12,10 @@ func main() {
 	err := vfsgen.Generate(
 		http.Dir("./static"),
 		vfsgen.Options{
-			Filename:     "./http_vfsdata.go",
-			PackageName:  "main",
-			VariableName: "httpAssets",
+			Filename:     "./staticdata/http_vfsdata.go",
+			PackageName:  "staticdata",
+			BuildTags:    "release",
+			VariableName: "HttpAssets",
 		})
 
 	if err != nil {
