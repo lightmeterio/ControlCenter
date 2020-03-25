@@ -28,6 +28,18 @@ And for the final release, execute:
 That will download all the dependencies and build a file called `lightmeter`,
 which you can simply copy to your Postfix server and use it as described in the `Usage` section.
 
+### Cross compilation
+
+To cross compile, for instance, to Windows, execute, adapting to your environment:
+
+```
+CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 ./build.sh release
+```
+
+Which will create a file called `lightmeter.exe`.
+
+It's good to remember that we probably won't ever support Windows, but that does not mean you cannot use it there ;-)
+
 ## Usage
 
 - Following compilation of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver which allows viewing Lightmeter Control Center via a web ui in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
