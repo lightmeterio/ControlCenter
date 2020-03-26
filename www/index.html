@@ -1,0 +1,77 @@
+<html>
+<head>
+  <script src='/3rd/plotly.min.js'></script>
+
+  <script type="application/javascript">
+    fetch("/api/deliveryStatus").then(res => res.json()).then(function(data) {
+      var data = [{
+        values: data.map(v => v["Value"]),
+        labels: data.map(v => v["Status"]),
+        type: 'pie'
+      }];
+
+      var layout = {
+        title: "Delivery Status",
+        height: 400,
+        width: 500
+      };
+
+      Plotly.newPlot('deliveryStatus', data, layout);
+    })
+
+    const fillBarChart = function(graphName, title) {
+      fetch("/api/" + graphName).then(res => res.json()).then(function(data) {
+        if (data == null) {
+          return
+        }
+
+        var data = [{
+          x: data.map(v => v["Domain"]),
+          y: data.map(v => v["Count"]),
+          type: 'bar'
+        }];
+
+        var layout = {
+          title: title,
+          height: 400,
+          width: 500
+        };
+
+        Plotly.newPlot(graphName, data, layout);
+      })
+    }
+
+    fillBarChart("topBusiestDomains", "Busiest Domains")
+    fillBarChart("topDeferredDomains", "Most Deferred Domains")
+    fillBarChart("topBouncedDomains", "Most Bounced Domains")
+  </script>
+
+  <style>
+    .dashboard-gadget {
+      display: table-cell;
+    }
+
+    .dashboard-line {
+      display: table;
+    }
+
+    .dashboard-line {
+      display: table-row;
+    }
+  </style>
+  <title>Lightmeter ControlCenter</title>
+</head>
+
+<body>
+  <div class="dashboard">
+    <div class="dashboard-line">
+      <div class="dashboard-gadget" id='deliveryStatus'></div>
+      <div class="dashboard-gadget" id='topBusiestDomains'></div>
+    </div>
+    <div class="dashboard-line">
+      <div class="dashboard-gadget" id='topBouncedDomains'></div>
+      <div class="dashboard-gadget" id='topDeferredDomains'></div>
+    </div>
+  </div>
+</body>
+</html>
