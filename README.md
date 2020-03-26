@@ -23,6 +23,12 @@ To build Lightmeter during development, execute:
 And for the final release, execute:
 ```
 ./build.sh release
+
+```
+
+Extra build arguments can be passed to the build.sh script. For instance, to create a static linked version, execute:
+```
+./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
 ```
 
 That will download all the dependencies and build a file called `lightmeter`,
