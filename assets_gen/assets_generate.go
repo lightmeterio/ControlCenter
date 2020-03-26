@@ -10,9 +10,9 @@ import (
 
 func main() {
 	err := vfsgen.Generate(
-		http.Dir("./www"),
+		http.Dir("../www"),
 		vfsgen.Options{
-			Filename:     "./staticdata/http_vfsdata.go",
+			Filename:     "http_vfsdata.go",
 			PackageName:  "staticdata",
 			BuildTags:    "release",
 			VariableName: "HttpAssets",
