@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"encoding/hex"
 	. "github.com/smartystreets/goconvey/convey"
 	r "gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
@@ -68,9 +67,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(parsed.Header.Host, ShouldEqual, "smtpnode07")
 		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
 
-		q, _ := hex.DecodeString("0c31d3d1e6")
-
-		So(string(p.Queue), ShouldEqual, string(q))
+		So(p.Queue, ShouldEqual, "0C31D3D1E6")
 		So(p.RecipientLocalPart, ShouldEqual, "redacted")
 		So(p.RecipientDomainPart, ShouldEqual, "aol.com")
 		So(p.RelayName, ShouldEqual, "mx-aol.mail.gm0.yahoodns.net")
@@ -107,9 +104,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(parsed.Header.Host, ShouldEqual, "mail")
 		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
 
-		q, _ := hex.DecodeString("d298f2c60812")
-
-		So(string(p.Queue), ShouldEqual, string(q))
+		So(p.Queue, ShouldEqual, "D298F2C60812")
 		So(p.RecipientLocalPart, ShouldEqual, "user 1234 with space")
 		So(p.RecipientDomainPart, ShouldEqual, "icloud.com")
 		So(p.RelayName, ShouldEqual, "mx6.mail.icloud.com")
@@ -142,9 +137,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(parsed.Header.Host, ShouldEqual, "mail")
 		So(parsed.Header.Process, ShouldEqual, SmtpProcess)
 
-		q, _ := hex.DecodeString("ae8e32c60819")
-
-		So(string(p.Queue), ShouldEqual, string(q))
+		So(p.Queue, ShouldEqual, "AE8E32C60819")
 		So(p.RecipientLocalPart, ShouldEqual, "mail")
 		So(p.RecipientDomainPart, ShouldEqual, "e.mail.com")
 		So(p.RelayName, ShouldEqual, "")

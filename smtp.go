@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"encoding/hex"
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
 )
@@ -34,7 +33,7 @@ const (
 )
 
 type SmtpSentStatus struct {
-	Queue               []byte
+	Queue               string
 	RecipientLocalPart  string
 	RecipientDomainPart string
 	RelayName           string
@@ -64,12 +63,6 @@ func parseStatus(s []byte) SmtpStatus {
 }
 
 func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error) {
-	q, err := hex.DecodeString(string(p.Queue))
-
-	if err != nil {
-		return SmtpSentStatus{}, err
-	}
-
 	ip, err := func() (net.IP, error) {
 		if len(p.RelayIp) == 0 {
 			return nil, nil
@@ -139,7 +132,7 @@ func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error
 	}()
 
 	return SmtpSentStatus{
-		Queue:               q,
+		Queue:               string(p.Queue),
 		RecipientLocalPart:  string(p.RecipientLocalPart),
 		RecipientDomainPart: string(p.RecipientDomainPart),
 		RelayName:           relayName,
