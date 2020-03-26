@@ -1,0 +1,1 @@
+Oct  3 12:39:14 mailhost postfix-12.34.56.78/qmgr[24086]: B54DA300087: from=<redacted@company.com>, status=expired, returned to sender

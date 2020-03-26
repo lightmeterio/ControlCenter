@@ -3,7 +3,7 @@ package parser
 import (
 	"encoding/hex"
 	. "github.com/smartystreets/goconvey/convey"
-	. "gitlab.com/lightmeter/postfix-log-parser/rawparser"
+	r "gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
 	"testing"
 )
@@ -11,7 +11,7 @@ import (
 func TestParsingInvalidLines(t *testing.T) {
 	Convey("Invalid Line", t, func() {
 		_, err := Parse([]byte("Invalid Line"))
-		So(err, ShouldEqual, InvalidHeaderLineError)
+		So(err, ShouldEqual, r.InvalidHeaderLineError)
 	})
 }
 
@@ -21,28 +21,28 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 			` host mx-aol.mail.gm0.yahoodns.net[44.55.66.77] said: 421 4.7.0 [TSS04] ` +
 			`Messages from 10.20.30.40 temporarily deferred due to user complaints - 4.16.55.1;i ` +
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command)`))
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
 	Convey("Unsupported Log Line", t, func() {
 		_, err := Parse([]byte(`Sep 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: ` +
 			`3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)`))
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
 	Convey("Unsupported Log Line with slash on process", t, func() {
 		_, err := Parse([]byte(`Feb  3 02:55:42 mail postfix/submission/smtpd[21543]: connect from unknown[11.22.33.44]`))
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
 	Convey("Unsupported opendkim line", t, func() {
 		_, err := Parse([]byte(`Feb  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
 	Convey("Unsupported dovecot line", t, func() {
 		_, err := Parse([]byte(`Feb  5 18:56:52 mail dovecot: imap(laal@mail.io)<28358><CO3htpid9tRXDNo5>: Connection closed (IDLE running for 0.001 + waiting input for 28.914 secs, 2 B in + 10 B out, state=wait-input) in=703 out=12338 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0`))
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
 }
@@ -158,5 +158,28 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.Delays.Smtp, ShouldEqual, 0)
 		So(p.Dsn, ShouldEqual, "5.4.4")
 		So(p.Status, ShouldEqual, BouncedStatus)
+	})
+}
+
+func TestQmgrParsing(t *testing.T) {
+	Convey("Qmgr expired message", t, func() {
+		parsed, err := Parse([]byte(`Oct  3 12:39:14 mailhost postfix-12.34.56.78/qmgr[24086]: ` +
+			`B54DA300087: from=<redacted@company.com>, status=expired, returned to sender`))
+
+		So(parsed, ShouldNotEqual, nil)
+		So(err, ShouldEqual, nil)
+		p, cast := parsed.Payload.(QmgrReturnedToSender)
+		So(cast, ShouldEqual, true)
+
+		So(parsed.Header.Time.Day, ShouldEqual, 3)
+		So(parsed.Header.Time.Month.String(), ShouldEqual, "October")
+		So(parsed.Header.Time.Hour, ShouldEqual, 12)
+		So(parsed.Header.Time.Minute, ShouldEqual, 39)
+		So(parsed.Header.Time.Second, ShouldEqual, 14)
+		So(parsed.Header.Host, ShouldEqual, "mailhost")
+		So(parsed.Header.Process, ShouldEqual, QMgrProcess)
+		So(p.SenderLocalPart, ShouldEqual, "redacted")
+		So(p.SenderDomainPart, ShouldEqual, "company.com")
+		So(p.Queue, ShouldEndWith, "B54DA300087")
 	})
 }

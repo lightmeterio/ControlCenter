@@ -40,9 +40,10 @@ type RawHeader struct {
 // so, although this struct will grow as newer payloads are supported,
 // copying will perform better than using virtual calls
 type RawRecord struct {
-	Header            RawHeader
-	PayloadType       PayloadType
-	RawSmtpSentStatus RawSmtpSentStatus
+	Header               RawHeader
+	PayloadType          PayloadType
+	RawSmtpSentStatus    RawSmtpSentStatus
+	QmgrReturnedToSender QmgrReturnedToSender
 }
 
 func indexForGroup(r *regexp.Regexp, name string) int {
@@ -135,8 +136,9 @@ func ParseLogLine(logLine []byte) (RawRecord, error) {
 	switch string(header.Process) {
 	case "smtp":
 		return parseSmtpPayload(header, payloadLine)
+	case "qmgr":
+		return parseQmgrPayload(header, payloadLine)
 	default:
-		// TODO: implement support for other non-smtp processes
 		return RawRecord{}, UnsupportedLogLineError
 	}
 }

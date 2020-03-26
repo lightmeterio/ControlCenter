@@ -55,6 +55,8 @@ func parsePostfixProcess(p []byte) (Process, error) {
 	switch string(p) {
 	case "smtp":
 		return SmtpProcess, nil
+	case "qmgr":
+		return QMgrProcess, nil
 	}
 
 	return 0, rawparser.UnsupportedLogLineError
@@ -74,6 +76,7 @@ type Time struct {
 
 const (
 	SmtpProcess = iota
+	QMgrProcess
 )
 
 type Process int
@@ -149,6 +152,12 @@ func Parse(line []byte) (Record, error) {
 	switch p.PayloadType {
 	case rawparser.PayloadTypeSmtpMessageStatus:
 		p, err := convertSmtpSentStatus(p.RawSmtpSentStatus)
+		if err != nil {
+			return Record{}, err
+		}
+		return Record{Header: h, Payload: p}, nil
+	case rawparser.PayloadTypeQmgrReturnedToSender:
+		p, err := convertQmgrReturnedToSender(p.QmgrReturnedToSender)
 		if err != nil {
 			return Record{}, err
 		}

@@ -5,10 +5,6 @@ import (
 )
 
 const (
-	PayloadTypeSmtpMessageStatus PayloadType = iota
-)
-
-const (
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 
 	anythingExceptCommaRegexpFormat = `[^,]+`
