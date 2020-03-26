@@ -39,7 +39,7 @@ var (
 func init() {
 	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times")
 	flag.BoolVar(&watchFromStdin, "stdin", false, "Read log lines from stdin")
-	flag.StringVar(&workspaceDirectory, "workspace", "lm_data", "Path to an existing directory to store all working data")
+	flag.StringVar(&workspaceDirectory, "workspace", "lightmeter_workspace", "Path to an existing directory to store all working data")
 }
 
 type Record struct {
@@ -214,9 +214,9 @@ func main() {
 		log.Fatal("Error creating working directory", workspaceDirectory, ":", err)
 	}
 
-	dbFilename := path.Join(workspaceDirectory, "postfix_logs.db")
+	dbFilename := path.Join(workspaceDirectory, "data.db")
 
-	watchLocation, err := func() (*tail.SeekInfo, error) {
+	logFilesWatchLocation, err := func() (*tail.SeekInfo, error) {
 		s, err := os.Stat(dbFilename)
 
 		// in case the database does not yet exist, we watch the log files
@@ -283,7 +283,7 @@ func main() {
 	}
 
 	for _, filename := range filesToWatch {
-		go watchFileForChanges(filename, watchLocation, &pub)
+		go watchFileForChanges(filename, logFilesWatchLocation, &pub)
 	}
 
 	go fillDatabase(db, c)
