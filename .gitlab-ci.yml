@@ -4,6 +4,6 @@ test:
   stage: test
   before_script:
     - apk update
-    - apk add golang git
+    - apk add go git
   script:
     - go test
