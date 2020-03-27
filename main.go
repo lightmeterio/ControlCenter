@@ -34,12 +34,15 @@ var (
 	filesToWatch       watchableFilenames
 	watchFromStdin     bool
 	workspaceDirectory string
+	importOnly         bool
 )
 
 func init() {
 	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times")
 	flag.BoolVar(&watchFromStdin, "stdin", false, "Read log lines from stdin")
 	flag.StringVar(&workspaceDirectory, "workspace", "lightmeter_workspace", "Path to an existing directory to store all working data")
+	flag.BoolVar(&importOnly, "importonly", false,
+		"Only import logs from stdin, exiting imediately, without running the full application. Implies -stdin")
 }
 
 type Record struct {
@@ -64,8 +67,8 @@ func (pub *ChannelBasedPublisher) Close() {
 	close(pub.channel)
 }
 
-func fillDatabase(db *sql.DB, c chan Record) {
-	stmt, err := db.Prepare(`insert into postfix_smtp_message_status(
+func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
+	insertQuery := `insert into postfix_smtp_message_status(
 			read_ts_sec,
 			read_ts_nsec,
 			time_month,
@@ -86,17 +89,13 @@ func fillDatabase(db *sql.DB, c chan Record) {
 			delay_smtp,
 			dsn,
 			status
-	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	if err != nil {
-		log.Fatal("error preparing insert statement")
-	}
-
-	for r := range c {
+	insertCb := func(stmt *sql.Stmt, r Record) {
 		status, cast := r.Message.Payload.(parser.SmtpSentStatus)
 
 		if !cast {
-			continue
+			return
 		}
 
 		_, err := stmt.Exec(
@@ -111,7 +110,7 @@ func fillDatabase(db *sql.DB, c chan Record) {
 			status.RecipientLocalPart,
 			status.RecipientDomainPart,
 			status.RelayName,
-			[]byte(status.RelayIP),
+			status.RelayIP,
 			status.RelayPort,
 			status.Delay,
 			status.Delays.Smtpd,
@@ -122,7 +121,72 @@ func fillDatabase(db *sql.DB, c chan Record) {
 			status.Status)
 
 		if err != nil {
-			log.Fatal("error inserting value")
+			log.Fatal("error inserting value:", err)
+		}
+	}
+
+	performInsertsIntoDbGroupingInTransactions(db, c, 500*time.Millisecond, insertQuery, insertCb)
+
+	done <- true
+}
+
+func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
+	c <-chan Record, timeout time.Duration,
+	insertQuery string,
+	insertCb func(*sql.Stmt, Record)) {
+
+	var tx *sql.Tx
+	var stmt *sql.Stmt
+	var err error
+
+	countPerTransaction := 0
+
+	startTransaction := func() {
+		tx, err = db.Begin()
+
+		if err != nil {
+			log.Fatal(`Error preparing transaction:`, err)
+		}
+
+		stmt, err = tx.Prepare(insertQuery)
+
+		if err != nil {
+			log.Fatal("error preparing insert statement:", err)
+		}
+	}
+
+	closeTransaction := func() {
+		log.Println("Inserted", countPerTransaction, "rows in a transaction")
+
+		countPerTransaction = 0
+
+		if err := tx.Commit(); err != nil {
+			log.Fatal("Error commiting transaction:", err)
+		}
+	}
+
+	restartTransaction := func() {
+		closeTransaction()
+		startTransaction()
+	}
+
+	startTransaction()
+
+	timeoutTimer := time.Tick(timeout)
+
+	for {
+		select {
+		case r, ok := <-c:
+			if !ok {
+				closeTransaction()
+				return
+			}
+
+			countPerTransaction += 1
+			insertCb(stmt, r)
+
+		case <-timeoutTimer:
+			restartTransaction()
 		}
 	}
 }
@@ -216,6 +280,55 @@ func main() {
 
 	dbFilename := path.Join(workspaceDirectory, "data.db")
 
+	db, err := sql.Open("sqlite3", dbFilename)
+
+	if err != nil {
+		log.Fatal("error opening database")
+	}
+
+	defer db.Close()
+
+	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
+			read_ts_sec           integer,
+			read_ts_nsec          integer,
+			time_month            integer,
+			time_day              integer,
+			time_hour             integer,
+			time_minute           integer,
+			time_second           integer,
+			queue                 string,
+			recipient_local_part  text,
+			recipient_domain_part text,
+			relay_name            text,
+			relay_ip              blob,
+			relay_port            uint16,
+			delay                 double,
+			delay_smtpd   				double,
+			delay_cleanup 				double,
+			delay_qmgr    				double,
+			delay_smtp    				double,
+			dsn                   text,
+			status                integer
+		)`); err != nil {
+
+		log.Fatal("error creating database: ", err)
+	}
+
+	c := make(chan Record, 10)
+
+	pub := ChannelBasedPublisher{c}
+
+	done := make(chan bool)
+
+	go fillDatabase(db, c, done)
+
+	if importOnly {
+		parseLogsFromStdin(&pub)
+		<-done
+		log.Println("Yay! exiting...")
+		return
+	}
+
 	logFilesWatchLocation, err := func() (*tail.SeekInfo, error) {
 		s, err := os.Stat(dbFilename)
 
@@ -240,44 +353,6 @@ func main() {
 		log.Fatal("Setup error:", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbFilename)
-
-	if err != nil {
-		log.Fatal("error opening database")
-	}
-
-	defer db.Close()
-
-	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
-			read_ts_sec           integer,
-			read_ts_nsec          integer,
-			time_month            integer,
-			time_day              integer,
-			time_hour             integer,
-			time_minute           integer,
-			time_second           integer,
-			queue                 blob,
-			recipient_local_part  text,
-			recipient_domain_part text,
-			relay_name            text,
-			relay_ip              blob,
-			relay_port            uint16,
-			delay                 double,
-			delay_smtpd   				double,
-			delay_cleanup 				double,
-			delay_qmgr    				double,
-			delay_smtp    				double,
-			dsn                   text,
-			status                integer
-		)`); err != nil {
-
-		log.Fatal("error creating database: ", err)
-	}
-
-	c := make(chan Record, 10)
-
-	pub := ChannelBasedPublisher{c}
-
 	if watchFromStdin {
 		go parseLogsFromStdin(&pub)
 	}
@@ -285,8 +360,6 @@ func main() {
 	for _, filename := range filesToWatch {
 		go watchFileForChanges(filename, logFilesWatchLocation, &pub)
 	}
-
-	go fillDatabase(db, c)
 
 	serveJson := func(w http.ResponseWriter, r *http.Request, v interface{}) {
 		w.Header().Set("Content-Type", "application/json")
