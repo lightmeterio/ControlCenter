@@ -7,7 +7,7 @@ test:
     - apk add go git
     - go get -u github.com/jstemmer/go-junit-report
   script:
-    - go test -v 2>&1 | go-junit-report > report.xml
+    - go test -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
     reports:
       junit: report.xml
