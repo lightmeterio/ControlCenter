@@ -1,6 +1,9 @@
-image: golang:1.14-alpine
+image: alpine:3.11
 
 test:
   stage: test
+  before_script:
+    - apk update
+    - apk add golang git
   script:
     - go test
