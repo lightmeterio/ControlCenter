@@ -156,7 +156,8 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 
 	closeTransaction := func() {
-		log.Println("Inserted", countPerTransaction, "rows in a transaction")
+		// NOTE: improve it to be used for benchmarking
+		//log.Println("Inserted", countPerTransaction, "rows in a transaction")
 
 		countPerTransaction = 0
 
@@ -195,13 +196,13 @@ func countByStatus(db *sql.DB, status parser.SmtpStatus) int {
 	stmt, err := db.Prepare(`select count(status) from postfix_smtp_message_status where status = ?`)
 
 	if err != nil {
-		log.Fatal("error preparing query")
+		log.Fatal("error preparing query", err)
 	}
 
 	sentResult, err := stmt.Query(status)
 
 	if err != nil {
-		log.Fatal("error querying")
+		log.Fatal("error querying", err)
 	}
 
 	var countValue int
@@ -224,13 +225,13 @@ func listDomainAndCount(db *sql.DB, queryStr string, args ...interface{}) []doma
 	stmt, err := db.Prepare(queryStr)
 
 	if err != nil {
-		log.Fatal("Error preparing query")
+		log.Fatal("Error preparing query", err)
 	}
 
 	query, err := stmt.Query(args...)
 
 	if err != nil {
-		log.Fatal("Error query")
+		log.Fatal("Query error:", err)
 	}
 
 	for query.Next() {
@@ -256,7 +257,7 @@ func deliveryStatus(db *sql.DB) []deliveryValue {
 	query, err := db.Query(`select status, count(status) from postfix_smtp_message_status group by status`)
 
 	if err != nil {
-		log.Fatal("Error query")
+		log.Fatal("Query error:", err)
 	}
 
 	for query.Next() {
@@ -293,8 +294,6 @@ func main() {
 			}, nil
 		}
 
-		log.Println("Error:", err)
-
 		if s.IsDir() {
 			return nil, errors.New(dbFilename + " must be a regular file!")
 		}
@@ -309,7 +308,7 @@ func main() {
 	db, err := sql.Open("sqlite3", dbFilename)
 
 	if err != nil {
-		log.Fatal("error opening database")
+		log.Fatal("error opening database", err)
 	}
 
 	defer db.Close()
@@ -344,13 +343,13 @@ func main() {
 
 	pub := ChannelBasedPublisher{c}
 
-	done := make(chan bool)
+	doneWithDatabase := make(chan bool)
 
-	go fillDatabase(db, c, done)
+	go fillDatabase(db, c, doneWithDatabase)
 
 	if importOnly {
 		parseLogsFromStdin(&pub)
-		<-done
+		<-doneWithDatabase
 		return
 	}
 
