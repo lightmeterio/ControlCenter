@@ -369,12 +369,8 @@ func parseLogsFromStdin(publisher Publisher) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		if !scanner.Scan() {
-			break
+		if scanner.Scan() {
+			tryToParseAndPublish(scanner.Bytes(), publisher)
 		}
-
-		tryToParseAndPublish(scanner.Bytes(), publisher)
 	}
-
-	publisher.Close()
 }
