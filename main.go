@@ -280,6 +280,32 @@ func main() {
 
 	dbFilename := path.Join(workspaceDirectory, "data.db")
 
+	logFilesWatchLocation, err := func() (*tail.SeekInfo, error) {
+		s, err := os.Stat(dbFilename)
+
+		// in case the database does not yet exist, we watch the log files
+		// from their beginning, as an "first execution" process,
+		// to import as much as we can into the database.
+		if os.IsNotExist(err) {
+			return &tail.SeekInfo{
+				Offset: 0,
+				Whence: os.SEEK_SET,
+			}, nil
+		}
+
+		log.Println("Error:", err)
+
+		if s.IsDir() {
+			return nil, errors.New(dbFilename + " must be a regular file!")
+		}
+
+		return nil, nil
+	}()
+
+	if err != nil {
+		log.Fatal("Setup error:", err)
+	}
+
 	db, err := sql.Open("sqlite3", dbFilename)
 
 	if err != nil {
@@ -325,32 +351,7 @@ func main() {
 	if importOnly {
 		parseLogsFromStdin(&pub)
 		<-done
-		log.Println("Yay! exiting...")
 		return
-	}
-
-	logFilesWatchLocation, err := func() (*tail.SeekInfo, error) {
-		s, err := os.Stat(dbFilename)
-
-		// in case the database does not yet exist, we watch the log files
-		// from their beginning, as an "first execution" process,
-		// to import as much as we can into the database.
-		if os.IsNotExist(err) {
-			return &tail.SeekInfo{
-				Offset: 0,
-				Whence: os.SEEK_SET,
-			}, nil
-		}
-
-		if s.IsDir() {
-			return nil, errors.New(dbFilename + " must be a regular file!")
-		}
-
-		return nil, nil
-	}()
-
-	if err != nil {
-		log.Fatal("Setup error:", err)
 	}
 
 	if watchFromStdin {
