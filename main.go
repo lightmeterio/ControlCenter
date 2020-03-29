@@ -298,7 +298,10 @@ func main() {
 			return nil, errors.New(dbFilename + " must be a regular file!")
 		}
 
-		return nil, nil
+		return &tail.SeekInfo{
+			Offset: 0,
+			Whence: os.SEEK_END,
+		}, nil
 	}()
 
 	if err != nil {
@@ -413,7 +416,7 @@ func tryToParseAndPublish(line []byte, publisher Publisher) {
 
 func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Publisher) error {
 	log.Println("Now watching file", filename, "for changes from the", func() string {
-		if location == nil {
+		if location.Whence == os.SEEK_END {
 			return "end"
 		}
 
