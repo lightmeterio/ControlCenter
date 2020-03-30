@@ -31,10 +31,12 @@ func (this *watchableFilenames) Set(value string) error {
 }
 
 var (
-	filesToWatch       watchableFilenames
-	watchFromStdin     bool
-	workspaceDirectory string
-	importOnly         bool
+	filesToWatch          watchableFilenames
+	watchFromStdin        bool
+	workspaceDirectory    string
+	importOnly            bool
+	sqliteTransactionTime time.Duration    = 1000 * time.Millisecond
+	getNow                func() time.Time = time.Now
 )
 
 func init() {
@@ -88,14 +90,14 @@ func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
 			delay_qmgr,
 			delay_smtp,
 			dsn,
-			status
+		status
 	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	insertCb := func(stmt *sql.Stmt, r Record) {
+	insertCb := func(stmt *sql.Stmt, r Record) bool {
 		status, cast := r.Message.Payload.(parser.SmtpSentStatus)
 
 		if !cast {
-			return
+			return false
 		}
 
 		_, err := stmt.Exec(
@@ -123,9 +125,11 @@ func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
 		if err != nil {
 			log.Fatal("error inserting value:", err)
 		}
+
+		return true
 	}
 
-	performInsertsIntoDbGroupingInTransactions(db, c, 500*time.Millisecond, insertQuery, insertCb)
+	performInsertsIntoDbGroupingInTransactions(db, c, sqliteTransactionTime, insertQuery, insertCb)
 
 	done <- true
 }
@@ -133,7 +137,7 @@ func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
 func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	c <-chan Record, timeout time.Duration,
 	insertQuery string,
-	insertCb func(*sql.Stmt, Record)) {
+	insertCb func(*sql.Stmt, Record) bool) {
 
 	var tx *sql.Tx
 	var stmt *sql.Stmt
@@ -156,8 +160,16 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 
 	closeTransaction := func() {
+		if countPerTransaction == 0 {
+			if err := tx.Rollback(); err != nil {
+				log.Fatal("Error discarding empty trasaction", err)
+			}
+
+			return
+		}
+
 		// NOTE: improve it to be used for benchmarking
-		//log.Println("Inserted", countPerTransaction, "rows in a transaction")
+		log.Println("Inserted", countPerTransaction, "rows in a transaction")
 
 		countPerTransaction = 0
 
@@ -175,6 +187,8 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 
 	timeoutTimer := time.Tick(timeout)
 
+	// TODO: improve this by start a transaction only if there are new stuff to be inserted
+	// in the database
 	for {
 		select {
 		case r, ok := <-c:
@@ -183,8 +197,9 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 				return
 			}
 
-			countPerTransaction += 1
-			insertCb(stmt, r)
+			if insertCb(stmt, r) {
+				countPerTransaction += 1
+			}
 
 		case <-timeoutTimer:
 			restartTransaction()
@@ -281,6 +296,14 @@ func main() {
 
 	dbFilename := path.Join(workspaceDirectory, "data.db")
 
+	//isCreatingNewDb := func() bool {
+	//	if _, err := os.Stat(dbFilename); os.IsNotExist(err) {
+	//		return true
+	//	}
+
+	//	return false
+	//}()
+
 	logFilesWatchLocation, err := func() (*tail.SeekInfo, error) {
 		s, err := os.Stat(dbFilename)
 
@@ -308,15 +331,27 @@ func main() {
 		log.Fatal("Setup error:", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbFilename)
+	writerConnection, err := sql.Open("sqlite3", dbFilename+`?cache=shared&_loc=auto`)
 
 	if err != nil {
-		log.Fatal("error opening database", err)
+		log.Fatal("error opening write connection to the database", err)
 	}
 
-	defer db.Close()
+	// TODO: set page size only on the database is created!
+	if _, err := writerConnection.Exec(`PRAGMA page_size = 32768`); err != nil {
+		log.Fatal("error setting page_size:", err)
+	}
 
-	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
+	readerConnection, err := sql.Open("sqlite3", dbFilename+`?_query_only=true&cache=shared&_loc=auto`)
+
+	if err != nil {
+		log.Fatal("error opening read connection to the database", err)
+	}
+
+	defer writerConnection.Close()
+	defer readerConnection.Close()
+
+	if _, err := writerConnection.Exec(`create table if not exists postfix_smtp_message_status(
 			read_ts_sec           integer,
 			read_ts_nsec          integer,
 			time_month            integer,
@@ -342,13 +377,13 @@ func main() {
 		log.Fatal("error creating database: ", err)
 	}
 
-	c := make(chan Record, 10)
+	c := make(chan Record, 100)
 
 	pub := ChannelBasedPublisher{c}
 
 	doneWithDatabase := make(chan bool)
 
-	go fillDatabase(db, c, doneWithDatabase)
+	go fillDatabase(writerConnection, c, doneWithDatabase)
 
 	if importOnly {
 		parseLogsFromStdin(&pub)
@@ -372,28 +407,28 @@ func main() {
 
 	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
 		serveJson(w, r, map[string]int{
-			"sent":     countByStatus(db, parser.SentStatus),
-			"deferred": countByStatus(db, parser.DeferredStatus),
-			"bounced":  countByStatus(db, parser.BouncedStatus),
+			"sent":     countByStatus(readerConnection, parser.SentStatus),
+			"deferred": countByStatus(readerConnection, parser.DeferredStatus),
+			"bounced":  countByStatus(readerConnection, parser.BouncedStatus),
 		})
 	})
 
 	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, listDomainAndCount(db, `select recipient_domain_part, count(recipient_domain_part) as c from postfix_smtp_message_status group by recipient_domain_part order by c desc limit 20`))
+		serveJson(w, r, listDomainAndCount(readerConnection, `select recipient_domain_part, count(recipient_domain_part) as c from postfix_smtp_message_status group by recipient_domain_part order by c desc limit 20`))
 	})
 
 	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select recipient_domain_part, count(recipient_domain_part) as c from postfix_smtp_message_status where status = ? and relay_name != "" group by recipient_domain_part order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(db, query, parser.BouncedStatus))
+		serveJson(w, r, listDomainAndCount(readerConnection, query, parser.BouncedStatus))
 	})
 
 	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
 		query := `select relay_name, count(relay_name) as c from postfix_smtp_message_status where status = ? and relay_name != "" group by relay_name order by c desc limit 20`
-		serveJson(w, r, listDomainAndCount(db, query, parser.DeferredStatus))
+		serveJson(w, r, listDomainAndCount(readerConnection, query, parser.DeferredStatus))
 	})
 
 	http.HandleFunc("/api/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, deliveryStatus(db))
+		serveJson(w, r, deliveryStatus(readerConnection))
 	})
 
 	http.Handle("/", http.FileServer(staticdata.HttpAssets))
@@ -401,7 +436,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func tryToParseAndPublish(line []byte, publisher Publisher) {
+func tryToParseAndPublish(line []byte, now time.Time, publisher Publisher) {
 	r, err := parser.Parse(line)
 
 	if err != nil {
@@ -411,7 +446,7 @@ func tryToParseAndPublish(line []byte, publisher Publisher) {
 		return
 	}
 
-	publisher.Publish(Record{Time: time.Now(), Message: r})
+	publisher.Publish(Record{Time: now, Message: r})
 }
 
 func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Publisher) error {
@@ -435,7 +470,7 @@ func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Pub
 	}
 
 	for line := range t.Lines {
-		tryToParseAndPublish([]byte(line.Text), publisher)
+		tryToParseAndPublish([]byte(line.Text), line.Time, publisher)
 	}
 
 	return nil
@@ -446,7 +481,7 @@ func parseLogsFromStdin(publisher Publisher) {
 
 	for {
 		if scanner.Scan() {
-			tryToParseAndPublish(scanner.Bytes(), publisher)
+			tryToParseAndPublish(scanner.Bytes(), getNow(), publisher)
 		}
 	}
 }
