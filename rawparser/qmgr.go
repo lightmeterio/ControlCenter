@@ -47,16 +47,16 @@ func init() {
 	qmgrSenderDomainPartIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "SenderDomainPart")
 }
 
-func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
+func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
 	payloadMatches := qmgrPossiblePayloadsRegexp.FindSubmatch(payloadLine)
 
 	if len(payloadMatches) == 0 {
-		return RawRecord{}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
 	}
 
 	if len(payloadMatches[qmgrMessageSentWithStatusIndex]) == 0 {
 		// TODO: implement other stuff done by the "qmgr" process
-		return RawRecord{}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
 	}
 
 	senderLocalPart := func() []byte {
@@ -73,8 +73,7 @@ func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
 		SenderDomainPart: payloadMatches[qmgrSenderDomainPartIndex],
 	}
 
-	return RawRecord{
-		Header:               header,
+	return RawPayload{
 		PayloadType:          PayloadTypeQmgrReturnedToSender,
 		QmgrReturnedToSender: s,
 	}, nil

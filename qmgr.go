@@ -13,7 +13,9 @@ type QmgrReturnedToSender struct {
 func (QmgrReturnedToSender) isPayload() {
 }
 
-func convertQmgrReturnedToSender(p rawparser.QmgrReturnedToSender) (QmgrReturnedToSender, error) {
+func convertQmgrReturnedToSender(r rawparser.RawPayload) (Payload, error) {
+	p := r.QmgrReturnedToSender
+
 	return QmgrReturnedToSender{
 		Queue:            string(p.Queue),
 		SenderLocalPart:  string(p.SenderLocalPart),

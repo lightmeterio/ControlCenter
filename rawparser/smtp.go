@@ -91,16 +91,16 @@ func init() {
 	smtpExtraMessageIndex = indexForGroup(smtpPossiblePayloadsRegexp, "ExtraMessage")
 }
 
-func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
+func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
 	payloadMatches := smtpPossiblePayloadsRegexp.FindSubmatch(payloadLine)
 
 	if len(payloadMatches) == 0 {
-		return RawRecord{}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
 	}
 
 	if len(payloadMatches[smtpMessageSentWithStatusIndex]) == 0 {
 		// TODO: implement other stuff done by the "smtp" process
-		return RawRecord{}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
 	}
 
 	recipientLocalPart := func() []byte {
@@ -129,8 +129,7 @@ func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawRecord, error) {
 		ExtraMessage: payloadMatches[smtpExtraMessageIndex],
 	}
 
-	return RawRecord{
-		Header:            header,
+	return RawPayload{
 		PayloadType:       PayloadTypeSmtpMessageStatus,
 		RawSmtpSentStatus: s,
 	}, nil

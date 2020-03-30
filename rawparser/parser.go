@@ -19,8 +19,6 @@ const (
 		` ` + processRegexpFormat + `:\s`
 )
 
-type PayloadType int
-
 type RawHeader struct {
 	Time    []byte
 	Month   []byte
@@ -39,8 +37,7 @@ type RawHeader struct {
 // This is ok as all payloads here store basically byte slices only, which are trivially constructible and copyable
 // so, although this struct will grow as newer payloads are supported,
 // copying will perform better than using virtual calls
-type RawRecord struct {
-	Header               RawHeader
+type RawPayload struct {
 	PayloadType          PayloadType
 	RawSmtpSentStatus    RawSmtpSentStatus
 	QmgrReturnedToSender QmgrReturnedToSender
@@ -102,10 +99,23 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, InvalidHeaderLineError
 	}
 
+	buildHeader := func(process []byte) RawHeader {
+		return RawHeader{
+			Time:    headerMatches[timeIndex],
+			Month:   headerMatches[monthIndex],
+			Day:     headerMatches[dayIndex],
+			Hour:    headerMatches[hourIndex],
+			Minute:  headerMatches[minuteIndex],
+			Second:  headerMatches[secondIndex],
+			Host:    headerMatches[hostIndex],
+			Process: process,
+		}
+	}
+
 	payloadLine := logLine[len(headerMatches[0]):]
 
 	if len(headerMatches[processIndex]) == 0 {
-		return RawHeader{}, nil, UnsupportedLogLineError
+		return buildHeader(nil), nil, UnsupportedLogLineError
 	}
 
 	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
@@ -114,31 +124,34 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, UnsupportedLogLineError
 	}
 
-	return RawHeader{
-		Time:    headerMatches[timeIndex],
-		Month:   headerMatches[monthIndex],
-		Day:     headerMatches[dayIndex],
-		Hour:    headerMatches[hourIndex],
-		Minute:  headerMatches[minuteIndex],
-		Second:  headerMatches[secondIndex],
-		Host:    headerMatches[hostIndex],
-		Process: postfixProcessMatches[postfixProcessIndex],
-	}, payloadLine, nil
+	return buildHeader(postfixProcessMatches[postfixProcessIndex]), payloadLine, nil
 }
 
-func ParseLogLine(logLine []byte) (RawRecord, error) {
+var (
+	payloadHandlers = map[string]func(RawHeader, []byte) (RawPayload, error){
+		"smtp": parseSmtpPayload,
+		"qmgr": parseQmgrPayload,
+	}
+)
+
+func Parse(logLine []byte) (RawHeader, RawPayload, error) {
 	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
-	if err != nil {
-		return RawRecord{}, err
+	if err == InvalidHeaderLineError {
+		return RawHeader{}, RawPayload{}, err
 	}
 
-	switch string(header.Process) {
-	case "smtp":
-		return parseSmtpPayload(header, payloadLine)
-	case "qmgr":
-		return parseQmgrPayload(header, payloadLine)
-	default:
-		return RawRecord{}, UnsupportedLogLineError
+	if err != nil {
+		return header, RawPayload{}, err
 	}
+
+	handler, found := payloadHandlers[string(header.Process)]
+
+	if !found {
+		return header, RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+	}
+
+	p, err := handler(header, payloadLine)
+
+	return header, p, err
 }

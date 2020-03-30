@@ -51,15 +51,15 @@ func parseMonth(m []byte) time.Month {
 	panic("Invalid Month! " + string(m))
 }
 
-func parsePostfixProcess(p []byte) (Process, error) {
+func parsePostfixProcess(p []byte) Process {
 	switch string(p) {
 	case "smtp":
-		return SmtpProcess, nil
+		return SmtpProcess
 	case "qmgr":
-		return QMgrProcess, nil
+		return QMgrProcess
 	}
 
-	return 0, rawparser.UnsupportedLogLineError
+	return UnsupportedProcess
 }
 
 type Payload interface {
@@ -75,7 +75,8 @@ type Time struct {
 }
 
 const (
-	SmtpProcess = iota
+	UnsupportedProcess Process = iota
+	SmtpProcess
 	QMgrProcess
 )
 
@@ -85,11 +86,6 @@ type Header struct {
 	Time    Time
 	Host    string
 	Process Process
-}
-
-type Record struct {
-	Header  Header
-	Payload Payload
 }
 
 func parseHeader(h rawparser.RawHeader) (Header, error) {
@@ -117,11 +113,7 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
-	process, err := parsePostfixProcess(h.Process)
-
-	if err != nil {
-		return Header{}, err
-	}
+	process := parsePostfixProcess(h.Process)
 
 	return Header{
 		Time: Time{
@@ -136,33 +128,55 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 	}, nil
 }
 
-func Parse(line []byte) (Record, error) {
-	p, err := rawparser.ParseLogLine(line)
+func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Payload, error) {
+	if err == rawparser.InvalidHeaderLineError {
+		return Header{}, nil, err
+	}
+
+	if err != rawparser.UnsupportedLogLineError {
+		panic("This is a bug; maybe more error types have been added, but not handled. Who knows?!")
+	}
+
+	h, headerParsingError := parseHeader(header)
+
+	if headerParsingError != nil {
+		return h, nil, rawparser.UnsupportedLogLineError
+	}
+
+	return h, nil, err
+}
+
+var (
+	handlers = map[rawparser.PayloadType]func(rawparser.RawPayload) (Payload, error){
+		rawparser.PayloadTypeSmtpMessageStatus:    convertSmtpSentStatus,
+		rawparser.PayloadTypeQmgrReturnedToSender: convertQmgrReturnedToSender,
+	}
+)
+
+func Parse(line []byte) (Header, Payload, error) {
+	rawHeader, p, err := rawparser.Parse(line)
 
 	if err != nil {
-		return Record{}, err
+		return tryToParserHeaderOnly(rawHeader, err)
 	}
 
-	h, err := parseHeader(p.Header)
+	h, err := parseHeader(rawHeader)
 
 	if err != nil {
-		return Record{}, err
+		return Header{}, nil, err
 	}
 
-	switch p.PayloadType {
-	case rawparser.PayloadTypeSmtpMessageStatus:
-		p, err := convertSmtpSentStatus(p.RawSmtpSentStatus)
-		if err != nil {
-			return Record{}, err
-		}
-		return Record{Header: h, Payload: p}, nil
-	case rawparser.PayloadTypeQmgrReturnedToSender:
-		p, err := convertQmgrReturnedToSender(p.QmgrReturnedToSender)
-		if err != nil {
-			return Record{}, err
-		}
-		return Record{Header: h, Payload: p}, nil
+	handler, found := handlers[p.PayloadType]
+
+	if !found {
+		return h, nil, rawparser.UnsupportedLogLineError
 	}
 
-	return Record{}, rawparser.UnsupportedLogLineError
+	parsed, err := handler(p)
+
+	if err != nil {
+		return h, nil, err
+	}
+
+	return h, parsed, nil
 }

@@ -1,6 +1,9 @@
 package rawparser
 
+type PayloadType int
+
 const (
-	PayloadTypeQmgrReturnedToSender PayloadType = iota
-	PayloadTypeSmtpMessageStatus    PayloadType = iota
+	PayloadTypeUnsupported PayloadType = iota
+	PayloadTypeQmgrReturnedToSender
+	PayloadTypeSmtpMessageStatus
 )

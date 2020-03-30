@@ -1,7 +1,7 @@
 package parser
 
 func Fuzz(data []byte) int {
-	_, err := Parse(data)
+	_, _, err := Parse(data)
 
 	if err != nil {
 		return 0

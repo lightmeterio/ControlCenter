@@ -62,7 +62,9 @@ func parseStatus(s []byte) SmtpStatus {
 	panic("Ahhh, invalid status!!!" + string(s))
 }
 
-func convertSmtpSentStatus(p rawparser.RawSmtpSentStatus) (SmtpSentStatus, error) {
+func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
+	p := r.RawSmtpSentStatus
+
 	ip, err := func() (net.IP, error) {
 		if len(p.RelayIp) == 0 {
 			return nil, nil
