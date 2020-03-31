@@ -128,11 +128,12 @@ func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Paylo
 }
 
 var (
-	handlers = map[rawparser.PayloadType]func(rawparser.RawPayload) (Payload, error){
-		rawparser.PayloadTypeSmtpMessageStatus:    convertSmtpSentStatus,
-		rawparser.PayloadTypeQmgrReturnedToSender: convertQmgrReturnedToSender,
-	}
+	handlers = map[rawparser.PayloadType]func(rawparser.RawPayload) (Payload, error){}
 )
+
+func registerHandler(payloadType rawparser.PayloadType, handler func(rawparser.RawPayload) (Payload, error)) {
+	handlers[payloadType] = handler
+}
 
 func Parse(line []byte) (Header, Payload, error) {
 	rawHeader, p, err := rawparser.Parse(line)

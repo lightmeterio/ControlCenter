@@ -4,6 +4,10 @@ import (
 	"regexp"
 )
 
+func init() {
+	registerHandler("qmgr", parseQmgrPayload)
+}
+
 const (
 	// TODO: I have the feeling this expression can be simplified a lot,
 	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well,

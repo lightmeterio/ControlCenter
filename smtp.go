@@ -5,6 +5,10 @@ import (
 	"net"
 )
 
+func init() {
+	registerHandler(rawparser.PayloadTypeSmtpMessageStatus, convertSmtpSentStatus)
+}
+
 type Delays struct {
 	Smtpd   float32
 	Cleanup float32

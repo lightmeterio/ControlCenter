@@ -4,6 +4,10 @@ import (
 	"regexp"
 )
 
+func init() {
+	registerHandler("smtp", parseSmtpPayload)
+}
+
 const (
 	queueIdRawSmtpSentStatusRegexpFormat = `(?P<Queue>[0-9A-F]+)`
 

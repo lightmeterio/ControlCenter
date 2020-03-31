@@ -4,6 +4,10 @@ import (
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 )
 
+func init() {
+	registerHandler(rawparser.PayloadTypeQmgrReturnedToSender, convertQmgrReturnedToSender)
+}
+
 type QmgrReturnedToSender struct {
 	Queue            string
 	SenderLocalPart  string
