@@ -1,6 +1,7 @@
 package parser
 
 import (
+	//"errors"
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"time"
 )
@@ -42,6 +43,13 @@ type Time struct {
 	Hour   uint8
 	Minute uint8
 	Second uint8
+}
+
+// Follows convention from time.Data():
+//   The month, day, hour, min, sec, and nsec values may be outside their usual ranges
+//   and will be normalized during the conversion. For example, October 32 converts to November 1.
+func (t Time) Unix(year int, tz *time.Location) int64 {
+	return time.Date(year, t.Month, int(t.Day), int(t.Hour), int(t.Minute), int(t.Second), 0, tz).Unix()
 }
 
 type Header struct {

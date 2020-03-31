@@ -5,6 +5,7 @@ import (
 	r "gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestParsingInvalidLines(t *testing.T) {
@@ -188,5 +189,13 @@ func TestQmgrParsing(t *testing.T) {
 		So(p.SenderLocalPart, ShouldEqual, "redacted")
 		So(p.SenderDomainPart, ShouldEqual, "company.com")
 		So(p.Queue, ShouldEndWith, "B54DA300087")
+	})
+}
+
+func TestTimeConversion(t *testing.T) {
+	Convey("Convert to Unix timestamp on UTC", t, func() {
+		t := Time{Day: 25, Month: time.May, Hour: 5, Minute: 12, Second: 22}
+		ts := t.Unix(2008, time.UTC)
+		So(ts, ShouldEqual, 1211692342)
 	})
 }
