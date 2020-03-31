@@ -51,17 +51,6 @@ func parseMonth(m []byte) time.Month {
 	panic("Invalid Month! " + string(m))
 }
 
-func parsePostfixProcess(p []byte) Process {
-	switch string(p) {
-	case "smtp":
-		return SmtpProcess
-	case "qmgr":
-		return QMgrProcess
-	}
-
-	return UnsupportedProcess
-}
-
 type Payload interface {
 	isPayload()
 }
@@ -74,18 +63,10 @@ type Time struct {
 	Second uint8
 }
 
-const (
-	UnsupportedProcess Process = iota
-	SmtpProcess
-	QMgrProcess
-)
-
-type Process int
-
 type Header struct {
 	Time    Time
 	Host    string
-	Process Process
+	Process string
 }
 
 func parseHeader(h rawparser.RawHeader) (Header, error) {
@@ -113,7 +94,7 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
-	process := parsePostfixProcess(h.Process)
+	process := string(h.Process)
 
 	return Header{
 		Time: Time{

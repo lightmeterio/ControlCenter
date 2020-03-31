@@ -24,14 +24,14 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 
 		So(p, ShouldEqual, nil)
 		So(err, ShouldEqual, r.UnsupportedLogLineError)
-		So(h.Process, ShouldEqual, SmtpProcess)
+		So(h.Process, ShouldEqual, "smtp")
 		So(h.Time.Day, ShouldEqual, 16)
 		So(h.Time.Month.String(), ShouldEqual, "September")
 		So(h.Time.Hour, ShouldEqual, 0)
 		So(h.Time.Minute, ShouldEqual, 7)
 		So(h.Time.Second, ShouldEqual, 41)
 		So(h.Host, ShouldEqual, "smtpnode07")
-		So(h.Process, ShouldEqual, SmtpProcess)
+		So(h.Process, ShouldEqual, "smtp")
 	})
 
 	Convey("Unsupported Log Line", t, func() {
@@ -79,7 +79,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(header.Time.Minute, ShouldEqual, 7)
 		So(header.Time.Second, ShouldEqual, 43)
 		So(header.Host, ShouldEqual, "smtpnode07")
-		So(header.Process, ShouldEqual, SmtpProcess)
+		So(header.Process, ShouldEqual, "smtp")
 
 		So(p.Queue, ShouldEqual, "0C31D3D1E6")
 		So(p.RecipientLocalPart, ShouldEqual, "redacted")
@@ -116,7 +116,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(header.Time.Minute, ShouldEqual, 24)
 		So(header.Time.Second, ShouldEqual, 35)
 		So(header.Host, ShouldEqual, "mail")
-		So(header.Process, ShouldEqual, SmtpProcess)
+		So(header.Process, ShouldEqual, "smtp")
 
 		So(p.Queue, ShouldEqual, "D298F2C60812")
 		So(p.RecipientLocalPart, ShouldEqual, "user 1234 with space")
@@ -149,7 +149,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(header.Time.Minute, ShouldEqual, 41)
 		So(header.Time.Second, ShouldEqual, 17)
 		So(header.Host, ShouldEqual, "mail")
-		So(header.Process, ShouldEqual, SmtpProcess)
+		So(header.Process, ShouldEqual, "smtp")
 
 		So(p.Queue, ShouldEqual, "AE8E32C60819")
 		So(p.RecipientLocalPart, ShouldEqual, "mail")
@@ -184,7 +184,7 @@ func TestQmgrParsing(t *testing.T) {
 		So(header.Time.Minute, ShouldEqual, 39)
 		So(header.Time.Second, ShouldEqual, 14)
 		So(header.Host, ShouldEqual, "mailhost")
-		So(header.Process, ShouldEqual, QMgrProcess)
+		So(header.Process, ShouldEqual, "qmgr")
 		So(p.SenderLocalPart, ShouldEqual, "redacted")
 		So(p.SenderDomainPart, ShouldEqual, "company.com")
 		So(p.Queue, ShouldEndWith, "B54DA300087")
