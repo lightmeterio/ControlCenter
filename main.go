@@ -48,7 +48,8 @@ func init() {
 }
 
 type Record struct {
-	Message parser.Record
+	Header  parser.Header
+	Payload parser.Payload
 	Time    time.Time
 }
 
@@ -94,7 +95,7 @@ func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
 	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	insertCb := func(stmt *sql.Stmt, r Record) bool {
-		status, cast := r.Message.Payload.(parser.SmtpSentStatus)
+		status, cast := r.Payload.(parser.SmtpSentStatus)
 
 		if !cast {
 			return false
@@ -103,11 +104,11 @@ func fillDatabase(db *sql.DB, c <-chan Record, done chan<- bool) {
 		_, err := stmt.Exec(
 			r.Time.Unix(),
 			r.Time.UnixNano(),
-			r.Message.Header.Time.Month,
-			r.Message.Header.Time.Day,
-			r.Message.Header.Time.Hour,
-			r.Message.Header.Time.Minute,
-			r.Message.Header.Time.Second,
+			r.Header.Time.Month,
+			r.Header.Time.Day,
+			r.Header.Time.Hour,
+			r.Header.Time.Minute,
+			r.Header.Time.Second,
 			status.Queue,
 			status.RecipientLocalPart,
 			status.RecipientDomainPart,
@@ -437,7 +438,7 @@ func main() {
 }
 
 func tryToParseAndPublish(line []byte, now time.Time, publisher Publisher) {
-	r, err := parser.Parse(line)
+	h, p, err := parser.Parse(line)
 
 	if err != nil {
 		if err == rawparser.InvalidHeaderLineError {
@@ -446,7 +447,7 @@ func tryToParseAndPublish(line []byte, now time.Time, publisher Publisher) {
 		return
 	}
 
-	publisher.Publish(Record{Time: now, Message: r})
+	publisher.Publish(Record{Time: now, Header: h, Payload: p})
 }
 
 func watchFileForChanges(filename string, location *tail.SeekInfo, publisher Publisher) error {

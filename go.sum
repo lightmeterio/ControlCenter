@@ -22,8 +22,8 @@ github.com/stephens2424/writerset v1.0.2/go.mod h1:aS2JhsMn6eA7e82oNmW4rfsgAOp9C
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200327121022-109322e3c58f h1:ASEswKrISJ80NaBDei8t+k9+KVDblDHnWxSn1cN/5A4=
-gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200327121022-109322e3c58f/go.mod h1:gRaLMTYRZw5DOy1ScjYS9sercGjGuRQmdkT8Zd9UdzM=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200331170358-b9203f5e547d h1:SRPDK6vLVnjzOAglMmuQ7KZ1s8ji/iDyFZGGFLwyjTY=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200331170358-b9203f5e547d/go.mod h1:gRaLMTYRZw5DOy1ScjYS9sercGjGuRQmdkT8Zd9UdzM=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/mod v0.2.0/go.mod h1:s0Qsj1ACt9ePp/hMypM3fl4fZqREWJwdYDEqhRiZZUA=
