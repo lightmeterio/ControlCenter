@@ -1,11 +1,12 @@
 image: alpine:3.11
 
+before_script:
+  - apk update
+  - apk add go git
+  - go get -u github.com/jstemmer/go-junit-report
+
 test:
   stage: test
-  before_script:
-    - apk update
-    - apk add go git
-    - go get -u github.com/jstemmer/go-junit-report
   script:
     - go test ./... -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
