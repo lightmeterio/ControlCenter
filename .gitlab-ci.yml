@@ -18,3 +18,9 @@ test:
   artifacts:
     reports:
       junit: report.xml
+
+cover:
+  script:
+    - go test ./... -coverprofile=coverinfo.txt
+    - go tool cover -func=coverinfo.txt
+  coverage: /^total:\s+.*\s(\d+\.\d+)%$/
