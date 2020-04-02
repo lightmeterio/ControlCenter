@@ -1,5 +1,8 @@
 # Lightmeter ControlCenter (work in progress)
 
+![coverage](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)
+![pipeline](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)
+
 Welcome to Lightmeter, the Open Source email deliverability monitoring system.
 
 ## Supported Mail Transfer Agents
