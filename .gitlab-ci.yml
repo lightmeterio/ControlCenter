@@ -8,13 +8,13 @@ before_script:
 test:
   stage: test
   script:
-    - go test ./... -v 2>&1 | ~/go/bin/go-junit-report > report.xml
+    - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
     reports:
       junit: report.xml
 
 cover:
   script:
-    - go test ./... -coverprofile=coverinfo.txt
+    - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
