@@ -3,47 +3,105 @@
   <script src='3rd/plotly.min.js'></script>
 
   <script type="application/javascript">
-    fetch("api/deliveryStatus").then(res => res.json()).then(function(data) {
-      var data = [{
-        values: data.map(v => v["Value"]),
-        labels: data.map(v => v["Status"]),
-        type: 'pie'
-      }];
+    var drawDashboard = function() {
+      var formatDate = function(d) {
+        return d.toISOString().split('T')[0]
+      }
 
-      var layout = {
+      var incDate = function(value) {
+        // FIXME: That looks freaking ugly, but that's okay for now
+
+        var from = document.getElementById('date-from')
+        var to = document.getElementById('date-to')
+
+        var refDate = new Date(from.valueAsDate)
+
+        refDate.setDate(refDate.getDate() + value)
+        from.value = formatDate(refDate)
+
+        refDate.setDate(refDate.getDate() + Math.abs(value) - 1)
+        to.value = formatDate(refDate)
+
+        updateDashboard()
+      }
+
+      var selectNextDay = function() {
+        incDate(1)
+      }
+
+      var selectPrevDay = function() {
+        incDate(-1)
+      }
+
+      var selectNextWeek = function() {
+        incDate(7)
+      }
+
+      var selectPrevWeek = function() {
+        incDate(-7)
+      }
+
+      var updateArray = function(dst, src) {
+        dst.splice(0, Infinity, ...src)
+      }
+
+      var timeIntervalUrlParams = function() {
+        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value 
+      }
+
+      var deliveryStatusData = [{values: [], labels: [], type: 'pie'}]
+
+      Plotly.newPlot('deliveryStatus', deliveryStatusData, {
         title: "Delivery Status",
-        height: 400,
-        width: 500
-      };
-
-      Plotly.newPlot('deliveryStatus', data, layout);
-    })
-
-    const fillBarChart = function(graphName, title) {
-      fetch("api/" + graphName).then(res => res.json()).then(function(data) {
-        if (data == null) {
-          return
-        }
-
-        var data = [{
-          x: data.map(v => v["Domain"]),
-          y: data.map(v => v["Count"]),
-          type: 'bar'
-        }];
-
-        var layout = {
-          title: title,
-          height: 400,
-          width: 500
-        };
-
-        Plotly.newPlot(graphName, data, layout);
       })
-    }
 
-    fillBarChart("topBusiestDomains", "Busiest Domains")
-    fillBarChart("topDeferredDomains", "Most Deferred Domains")
-    fillBarChart("topBouncedDomains", "Most Bounced Domains")
+      var updateDeliveryStatus = function() {
+        fetch("api/deliveryStatus?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
+          var d = data != null ? data.map(v => v["Value"]) : []
+          var l = data != null ? data.map(v => v["Status"]) : []
+          updateArray(deliveryStatusData[0].values, d)
+          updateArray(deliveryStatusData[0].labels, l)
+          Plotly.redraw('deliveryStatus')
+        })
+      }
+
+      var updateBarChart = function(graphName, title) {
+        var chartData = [{x: [], y: [], type: 'bar'}]
+
+        Plotly.newPlot(graphName, chartData, {title: title})
+
+        return function() {
+          fetch("api/" + graphName + "?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
+            var x = data != null ? data.map(v => v["Domain"]) : []
+            var y = data != null ? data.map(v => v["Count"]) : []
+            updateArray(chartData[0].x, x)
+            updateArray(chartData[0].y, y)
+            Plotly.redraw(graphName)
+          })
+        }
+      }
+
+      var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
+      var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
+      var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
+
+      var updateDashboard = function() {
+        updateDeliveryStatus()
+        updateTopBusiestDomainsChart()
+        updateTopDeferredDomainsChart()
+        updateTopBouncedDomainsChart()
+      }
+
+      document.getElementById('date-from').onchange = updateDashboard
+      document.getElementById('date-to').onchange = updateDashboard
+      document.getElementById('prev-date').onclick = selectPrevDay
+      document.getElementById('next-date').onclick = selectNextDay
+      document.getElementById('prev-week').onclick = selectPrevWeek
+      document.getElementById('next-week').onclick = selectNextWeek
+      document.getElementById('reload-dashboard').onclick = updateDashboard
+
+      updateDashboard()
+    }
   </script>
 
   <style>
@@ -62,7 +120,24 @@
   <title>Lightmeter ControlCenter</title>
 </head>
 
-<body>
+<body onload="drawDashboard()">
+  <div id="date-interval-picker">
+    <div class="date-picker">
+      <span>From:</span>
+      <input id="date-from" type="date" required/>
+    </div>
+    <div class="date-picker">
+      <span>To:</span>
+      <input id="date-to" type="date" required/>
+    </div>
+    <div id="date-controls">
+      <button id="reload-dashboard">Reload</button>
+      <button id="prev-week">-1w</button>
+      <button id="prev-date">-1d</button>
+      <button id="next-date">+1d</button>
+      <button id="next-week">+1w</button>
+    </div>
+  </div>
   <div class="dashboard">
     <div class="dashboard-line">
       <div class="dashboard-gadget" id='deliveryStatus'></div>

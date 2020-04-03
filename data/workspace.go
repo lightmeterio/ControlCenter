@@ -66,11 +66,6 @@ func NewWorkspace(workspaceDirectory string, config Config) (Workspace, error) {
 
 	if _, err := writerConnection.Exec(`create table if not exists postfix_smtp_message_status(
 		read_ts_sec           integer,
-		time_month            integer,
-		time_day              integer,
-		time_hour             integer,
-		time_minute           integer,
-		time_second           integer,
 		queue                 string,
 		recipient_local_part  text,
 		recipient_domain_part text,
@@ -157,11 +152,6 @@ func (ws *Workspace) HasLogs() bool {
 func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Record, done chan<- interface{}) {
 	insertQuery := `insert into postfix_smtp_message_status(
 		read_ts_sec,
-		time_month,
-		time_day,
-		time_hour,
-		time_minute,
-		time_second,
 		queue,
 		recipient_local_part,
 		recipient_domain_part,
@@ -175,7 +165,7 @@ func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Reco
 		delay_smtp,
 		dsn,
 		status
-	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	insertCb := func(stmt *sql.Stmt, r Record) bool {
 		ts := timeConverter.Convert(r.Header.Time)
@@ -188,11 +178,6 @@ func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Reco
 
 		_, err := stmt.Exec(
 			ts,
-			r.Header.Time.Month,
-			r.Header.Time.Day,
-			r.Header.Time.Hour,
-			r.Header.Time.Minute,
-			r.Header.Time.Second,
 			status.Queue,
 			status.RecipientLocalPart,
 			status.RecipientDomainPart,
@@ -299,6 +284,8 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 }
 
 func buildInitialTime(db *sql.DB, logYear int, timezone *time.Location) (parser.Time, int, *time.Location) {
+	// TODO: return max(logYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
+
 	// FIXME: this query is way too complicated for something so simple
 	q, err := db.Query(`select read_ts_sec from postfix_smtp_message_status where rowid = (select max(rowid) from postfix_smtp_message_status)`)
 	if err != nil {

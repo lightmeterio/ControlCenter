@@ -96,30 +96,61 @@ func main() {
 		w.Write(encoded)
 	}
 
+	requestWithInterval := func(w http.ResponseWriter,
+		r *http.Request,
+		onParserSuccess func(interval data.TimeInterval)) {
+
+		if r.ParseForm() != nil {
+			log.Println("Error parsing form!")
+			serveJson(w, r, []int{})
+			return
+		}
+
+		interval, err := data.ParseTimeInterval(r.Form.Get("from"), r.Form.Get("to"), timezone)
+
+		if err != nil {
+			log.Println("Error parsing time interval:", err)
+			serveJson(w, r, []int{})
+			return
+		}
+
+		onParserSuccess(interval)
+	}
+
 	dashboard := ws.Dashboard()
 
 	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, map[string]int{
-			"sent":     dashboard.CountByStatus(parser.SentStatus),
-			"deferred": dashboard.CountByStatus(parser.DeferredStatus),
-			"bounced":  dashboard.CountByStatus(parser.BouncedStatus),
+		requestWithInterval(w, r, func(interval data.TimeInterval) {
+			serveJson(w, r, map[string]int{
+				"sent":     dashboard.CountByStatus(parser.SentStatus, interval),
+				"deferred": dashboard.CountByStatus(parser.DeferredStatus, interval),
+				"bounced":  dashboard.CountByStatus(parser.BouncedStatus, interval),
+			})
 		})
 	})
 
 	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, dashboard.TopBusiestDomains())
+		requestWithInterval(w, r, func(interval data.TimeInterval) {
+			serveJson(w, r, dashboard.TopBusiestDomains(interval))
+		})
 	})
 
 	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, dashboard.TopBouncedDomains())
+		requestWithInterval(w, r, func(interval data.TimeInterval) {
+			serveJson(w, r, dashboard.TopBouncedDomains(interval))
+		})
 	})
 
 	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, dashboard.TopDeferredDomains())
+		requestWithInterval(w, r, func(interval data.TimeInterval) {
+			serveJson(w, r, dashboard.TopDeferredDomains(interval))
+		})
 	})
 
 	http.HandleFunc("/api/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
-		serveJson(w, r, dashboard.DeliveryStatus())
+		requestWithInterval(w, r, func(interval data.TimeInterval) {
+			serveJson(w, r, dashboard.DeliveryStatus(interval))
+		})
 	})
 
 	http.Handle("/", http.FileServer(staticdata.HttpAssets))
