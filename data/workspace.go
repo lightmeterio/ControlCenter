@@ -22,7 +22,8 @@ type Config struct {
 }
 
 const (
-	filename = "data.db"
+	filename         = "data.db"
+	recordsQueueSize = 100
 )
 
 type Workspace struct {
@@ -97,7 +98,7 @@ func NewWorkspace(workspaceDirectory string, config Config) (Workspace, error) {
 		writerConnection: writerConnection,
 		readerConnection: readerConnection,
 		dirName:          workspaceDirectory,
-		records:          make(chan Record, 10),
+		records:          make(chan Record, recordsQueueSize),
 	}, nil
 }
 
@@ -110,10 +111,31 @@ func (ws *Workspace) NewPublisher() Publisher {
 }
 
 func (ws *Workspace) Run() <-chan interface{} {
-	done := make(chan interface{})
+	doneTimestamping := make(chan interface{})
+	doneInsertingOnDatabase := make(chan interface{})
 	converter := postfix.NewTimeConverter(buildInitialTime(ws.readerConnection, ws.config.DefaultYear, ws.config.Location))
-	go fillDatabase(converter, ws.writerConnection, ws.records, done)
-	return done
+	timedRecords := make(chan TimedRecord, recordsQueueSize)
+
+	go stampLogsWithTimeAndWaitUntilDatabaseIsFinished(converter, ws.records, timedRecords, doneTimestamping)
+	go fillDatabase(ws.writerConnection, timedRecords, doneInsertingOnDatabase, doneTimestamping)
+
+	return doneInsertingOnDatabase
+}
+
+// Gather non time stamped logs from various sources and timestamp them, making them ready
+// for inserting on the database
+func stampLogsWithTimeAndWaitUntilDatabaseIsFinished(timeConverter postfix.TimeConverter,
+	records <-chan Record,
+	timedRecords chan<- TimedRecord,
+	done chan<- interface{}) {
+
+	for r := range records {
+		timedRecords <- TimedRecord{Time: timeConverter.Convert(r.Header.Time), Record: r}
+	}
+
+	close(timedRecords)
+
+	done <- true
 }
 
 func (ws *Workspace) Close() error {
@@ -149,7 +171,9 @@ func (ws *Workspace) HasLogs() bool {
 	return value > 0
 }
 
-func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Record, done chan<- interface{}) {
+func fillDatabase(db *sql.DB, c <-chan TimedRecord,
+	doneInsertingOnDatabase chan<- interface{},
+	doneTimestamping <-chan interface{}) {
 	insertQuery := `insert into postfix_smtp_message_status(
 		read_ts_sec,
 		queue,
@@ -167,17 +191,15 @@ func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Reco
 		status
 	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	insertCb := func(stmt *sql.Stmt, r Record) bool {
-		ts := timeConverter.Convert(r.Header.Time)
-
-		status, cast := r.Payload.(parser.SmtpSentStatus)
+	insertCb := func(stmt *sql.Stmt, r TimedRecord) bool {
+		status, cast := r.Record.Payload.(parser.SmtpSentStatus)
 
 		if !cast {
 			return false
 		}
 
 		_, err := stmt.Exec(
-			ts,
+			r.Time.Unix(),
 			status.Queue,
 			status.RecipientLocalPart,
 			status.RecipientDomainPart,
@@ -201,13 +223,13 @@ func fillDatabase(timeConverter postfix.TimeConverter, db *sql.DB, c <-chan Reco
 
 	performInsertsIntoDbGroupingInTransactions(db, c, sqliteTransactionTime, insertQuery, insertCb)
 
-	done <- true
+	doneInsertingOnDatabase <- <-doneTimestamping
 }
 
 func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
-	c <-chan Record, timeout time.Duration,
+	c <-chan TimedRecord, timeout time.Duration,
 	insertQuery string,
-	insertCb func(*sql.Stmt, Record) bool) {
+	insertCb func(*sql.Stmt, TimedRecord) bool) {
 
 	var tx *sql.Tx = nil
 	var stmt *sql.Stmt = nil
@@ -301,7 +323,7 @@ func buildInitialTime(db *sql.DB, logYear int, timezone *time.Location) (parser.
 
 	var v int64
 	if err := q.Scan(&v); err != nil {
-		log.Println("Could not obtain time from existing database, using defaulted one")
+		log.Println("Could not obtain time from existing database, using defaulted one:", logYear)
 		return parser.Time{}, logYear, timezone
 	}
 
