@@ -49,7 +49,11 @@ type Time struct {
 //   The month, day, hour, min, sec, and nsec values may be outside their usual ranges
 //   and will be normalized during the conversion. For example, October 32 converts to November 1.
 func (t Time) Unix(year int, tz *time.Location) int64 {
-	return time.Date(year, t.Month, int(t.Day), int(t.Hour), int(t.Minute), int(t.Second), 0, tz).Unix()
+	return t.Time(year, tz).Unix()
+}
+
+func (t Time) Time(year int, tz *time.Location) time.Time {
+	return time.Date(year, t.Month, int(t.Day), int(t.Hour), int(t.Minute), int(t.Second), 0, tz)
 }
 
 type Header struct {
