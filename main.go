@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"flag"
-	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"log"
 	"net/http"
 	"os"
@@ -73,22 +71,22 @@ func main() {
 		go parseLogsFromStdin(pub)
 	}
 
-	logFilesWatchLocation := func() *tail.SeekInfo {
-		if !ws.HasLogs() {
-			return &tail.SeekInfo{
-				Offset: 0,
-				Whence: os.SEEK_SET,
-			}
-		}
-
-		return &tail.SeekInfo{
-			Offset: 0,
-			Whence: os.SEEK_END,
-		}
-	}()
+	logFilesWatchLocation := logeater.FindWatchingLocationForWorkspace(&ws)
 
 	for _, filename := range filesToWatch {
-		go watchFileForChanges(filename, logFilesWatchLocation, pub)
+		log.Println("Now watching file", filename, "for changes from the", func() string {
+			if logFilesWatchLocation.Whence == os.SEEK_END {
+				return "end"
+			}
+
+			return "beginning"
+		}())
+
+		go func() {
+			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
+				log.Println("Failed watching file:", filename, "error:", err)
+			}
+		}()
 	}
 
 	serveJson := func(w http.ResponseWriter, r *http.Request, v interface{}) {
@@ -159,59 +157,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func tryToParseAndPublish(line []byte, publisher data.Publisher) {
-	h, p, err := parser.Parse(line)
-
-	if err != nil && err == rawparser.InvalidHeaderLineError {
-		log.Printf("Invalid Postfix header: \"%s\"", string(line))
-		return
-	}
-
-	// we have a valid time here
-	if err != nil {
-		return
-	}
-
-	publisher.Publish(data.Record{Header: h, Payload: p})
-}
-
-func watchFileForChanges(filename string, location *tail.SeekInfo, publisher data.Publisher) error {
-	log.Println("Now watching file", filename, "for changes from the", func() string {
-		if location.Whence == os.SEEK_END {
-			return "end"
-		}
-
-		return "beginning"
-	}())
-
-	t, err := tail.TailFile(filename, tail.Config{
-		Follow:   true,
-		ReOpen:   true,
-		Logger:   tail.DiscardingLogger,
-		Location: location,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	for line := range t.Lines {
-		tryToParseAndPublish([]byte(line.Text), publisher)
-	}
-
-	return nil
-}
-
 func parseLogsFromStdin(publisher data.Publisher) {
-	scanner := bufio.NewScanner(os.Stdin)
-
-	for {
-		if !scanner.Scan() {
-			break
-		}
-
-		tryToParseAndPublish(scanner.Bytes(), publisher)
-	}
-
+	logeater.ReadFromReader(os.Stdin, publisher)
 	publisher.Close()
+	log.Println("STDIN has just closed!")
 }
