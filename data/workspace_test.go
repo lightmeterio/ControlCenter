@@ -115,6 +115,14 @@ func TestWorkspaceCreation(t *testing.T) {
 			}
 		}
 
+		parseTimeInterval := func(from, to string) TimeInterval {
+			interval, err := ParseTimeInterval(from, to, time.UTC)
+			if err != nil {
+				panic("pasring interval")
+			}
+			return interval
+		}
+
 		Convey("Inserts nothing", func() {
 			ws, done, pub, dtor := buildWs(1999)
 			defer dtor()
@@ -122,7 +130,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			pub.Close()
 			<-done
 
-			interval, _ := ParseTimeInterval("1999-12-02", "2000-01-03", time.UTC)
+			interval := parseTimeInterval("1999-12-02", "2000-01-03")
 
 			So(ws.HasLogs(), ShouldBeFalse)
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
@@ -139,7 +147,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			pub.Close()
 			<-done
 
-			interval, _ := ParseTimeInterval("1999-12-01", "2000-01-03", time.UTC)
+			interval := parseTimeInterval("1999-12-01", "2000-01-03")
 
 			So(ws.HasLogs(), ShouldBeTrue)
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
@@ -177,7 +185,7 @@ func TestWorkspaceCreation(t *testing.T) {
 
 			dashboard := ws.Dashboard()
 
-			interval, _ := ParseTimeInterval("1999-12-02", "2000-03-11", time.UTC)
+			interval := parseTimeInterval("1999-12-02", "2000-03-11")
 
 			So(ws.HasLogs(), ShouldBeTrue)
 
