@@ -65,6 +65,7 @@ func main() {
 	if importOnly {
 		parseLogsFromStdin(pub)
 		<-doneWithDatabase
+		log.Println("Importing has finished. Bye!")
 		return
 	}
 
