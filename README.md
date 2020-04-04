@@ -55,3 +55,4 @@ It's good to remember that we probably won't ever support Windows, but that does
     - Logfiles provided via `watch` will be monitored for changes and the web ui automatically updated. An SQLite database is used in the backend for storing processed log data.
 - Specify which mail logs to watch using the command line argument `lightmeter -watch [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
+- Postfix logs don't contain a year as part of the date of each line, so the year is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
