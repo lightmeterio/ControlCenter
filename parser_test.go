@@ -48,10 +48,15 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		So(err, ShouldEqual, r.UnsupportedLogLineError)
 	})
 
-	Convey("Unsupported opendkim line", t, func() {
-		_, p, err := Parse([]byte(`Feb  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
+	Convey("Unsupported opendkim line, but time is okay", t, func() {
+		h, p, err := Parse([]byte(`Feb  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
 		So(p, ShouldEqual, nil)
 		So(err, ShouldEqual, r.UnsupportedLogLineError)
+		So(h.Time.Month, ShouldEqual, time.February)
+		So(h.Time.Day, ShouldEqual, 5)
+		So(h.Time.Hour, ShouldEqual, 19)
+		So(h.Time.Minute, ShouldEqual, 0)
+		So(h.Time.Second, ShouldEqual, 2)
 	})
 
 	Convey("Unsupported dovecot line", t, func() {

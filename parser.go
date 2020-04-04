@@ -35,7 +35,7 @@ func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Paylo
 	h, headerParsingError := parseHeader(header)
 
 	if headerParsingError != nil {
-		return h, nil, rawparser.UnsupportedLogLineError
+		return Header{}, nil, rawparser.UnsupportedLogLineError
 	}
 
 	return h, nil, err

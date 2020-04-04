@@ -108,7 +108,7 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
 
 	if len(postfixProcessMatches) == 0 {
-		return RawHeader{}, nil, UnsupportedLogLineError
+		return buildHeader(nil), nil, UnsupportedLogLineError
 	}
 
 	return buildHeader(postfixProcessMatches[postfixProcessIndex]), payloadLine, nil
