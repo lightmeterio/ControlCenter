@@ -51,6 +51,7 @@ It's good to remember that we probably won't ever support Windows, but that does
 
 ## Usage
 
+- Run `lightmeter -help` to show a list of all available commands
 - Following compilation of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver which allows viewing Lightmeter Control Center via a web ui in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
     - Logfiles provided via `watch` will be monitored for changes and the web ui automatically updated. An SQLite database is used in the backend for storing processed log data.
 - Specify which mail logs to watch using the command line argument `lightmeter -watch [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
