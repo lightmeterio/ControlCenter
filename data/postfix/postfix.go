@@ -22,7 +22,7 @@ func NewTimeConverter(initialTime parser.Time, year int, timezone *time.Location
 	}
 }
 
-func (this *TimeConverter) Convert(t parser.Time) int64 {
+func (this *TimeConverter) Convert(t parser.Time) time.Time {
 	// Bump the year if we read something that looks like going backwards
 	// This is not a clever way to do it and can lead to many issues
 	// (one second backward will move to the next year!),
@@ -37,5 +37,5 @@ func (this *TimeConverter) Convert(t parser.Time) int64 {
 
 	this.firstExecution = false
 	this.lastTime = t
-	return t.Unix(this.year, this.timezone)
+	return t.Time(this.year, this.timezone)
 }
