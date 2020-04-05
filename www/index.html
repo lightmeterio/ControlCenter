@@ -49,20 +49,20 @@
         return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value 
       }
 
-      var deliveryStatusData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
+      var updateDonutChart = function(graphName, title) {
+        var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
 
-      Plotly.newPlot('deliveryStatus', deliveryStatusData, {
-        title: "Delivery Status",
-      })
+        Plotly.newPlot(graphName, chartData, {title: title})
 
-      var updateDeliveryStatus = function() {
-        fetch("api/deliveryStatus?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
-          var d = data != null ? data.map(v => v["Value"]) : []
-          var l = data != null ? data.map(v => v["Status"]) : []
-          updateArray(deliveryStatusData[0].values, d)
-          updateArray(deliveryStatusData[0].labels, l)
-          Plotly.redraw('deliveryStatus')
-        })
+        return function() {
+          fetch("api/" + graphName  + "?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
+            var d = data != null ? data.map(v => v["Value"]) : []
+            var l = data != null ? data.map(v => v["Status"]) : []
+            updateArray(chartData[0].values, d)
+            updateArray(chartData[0].labels, l)
+            Plotly.redraw(graphName)
+          })
+        }
       }
 
       var updateBarChart = function(graphName, title) {
@@ -81,6 +81,7 @@
         }
       }
 
+      var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
       var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
       var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
       var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
