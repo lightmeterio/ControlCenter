@@ -49,7 +49,7 @@
         return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value 
       }
 
-      var deliveryStatusData = [{values: [], labels: [], type: 'pie'}]
+      var deliveryStatusData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
 
       Plotly.newPlot('deliveryStatus', deliveryStatusData, {
         title: "Delivery Status",
@@ -115,6 +115,10 @@
 
     .dashboard-line {
       display: table-row;
+    }
+
+    .modebar {
+      display: none !important;
     }
   </style>
   <title>Lightmeter ControlCenter</title>
