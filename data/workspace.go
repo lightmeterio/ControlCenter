@@ -65,32 +65,12 @@ func NewWorkspace(workspaceDirectory string, config Config) (Workspace, error) {
 		return Workspace{}, err
 	}
 
-	if _, err := writerConnection.Exec(`create table if not exists postfix_smtp_message_status(
-		read_ts_sec           integer,
-		queue                 string,
-		recipient_local_part  text,
-		recipient_domain_part text,
-		relay_name            text,
-		relay_ip              blob,
-		relay_port            uint16,
-		delay                 double,
-		delay_smtpd   				double,
-		delay_cleanup 				double,
-		delay_qmgr    				double,
-		delay_smtp    				double,
-		dsn                   text,
-		status                integer
-		)`); err != nil {
-		readerConnection.Close()
-		writerConnection.Close()
-		return Workspace{}, err
-	}
-
-	if _, err := writerConnection.Exec(`create index if not exists time_index
-		on postfix_smtp_message_status (read_ts_sec)`); err != nil {
-		readerConnection.Close()
-		writerConnection.Close()
-		return Workspace{}, err
+	for _, handler := range payloadHandlers {
+		if err := handler.creator(writerConnection); err != nil {
+			readerConnection.Close()
+			writerConnection.Close()
+			return Workspace{}, err
+		}
 	}
 
 	return Workspace{
@@ -155,89 +135,41 @@ func (ws *Workspace) Close() error {
 }
 
 func (ws *Workspace) HasLogs() bool {
-	q, err := ws.readerConnection.Query(`select count(*) from postfix_smtp_message_status`)
-
-	if err != nil {
-		log.Fatal("Error checking if database has logs:", err)
+	for _, handler := range payloadHandlers {
+		if handler.counter(ws.readerConnection) > 0 {
+			return true
+		}
 	}
 
-	defer q.Close()
-
-	if !q.Next() {
-		return false
-	}
-
-	var value int
-
-	if q.Scan(&value) != nil {
-		return false
-	}
-
-	return value > 0
+	return false
 }
 
 func fillDatabase(db *sql.DB, c <-chan TimedRecord,
 	doneInsertingOnDatabase chan<- interface{},
 	doneTimestamping <-chan interface{}) {
-	insertQuery := `insert into postfix_smtp_message_status(
-		read_ts_sec,
-		queue,
-		recipient_local_part,
-		recipient_domain_part,
-		relay_name,
-		relay_ip,
-		relay_port,
-		delay,
-		delay_smtpd,
-		delay_cleanup,
-		delay_qmgr,
-		delay_smtp,
-		dsn,
-		status
-	) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	insertCb := func(stmt *sql.Stmt, r TimedRecord) bool {
-		status, cast := r.Record.Payload.(parser.SmtpSentStatus)
+	performInsertsIntoDbGroupingInTransactions(db, c, sqliteTransactionTime, func(tx *sql.Tx, r TimedRecord) error {
+		inserter := findInserterForPayload(r.Record.Payload)
 
-		if !cast {
-			return false
+		if inserter != nil {
+			return inserter(tx, r)
 		}
 
-		_, err := stmt.Exec(
-			r.Time.Unix(),
-			status.Queue,
-			status.RecipientLocalPart,
-			status.RecipientDomainPart,
-			status.RelayName,
-			status.RelayIP,
-			status.RelayPort,
-			status.Delay,
-			status.Delays.Smtpd,
-			status.Delays.Cleanup,
-			status.Delays.Qmgr,
-			status.Delays.Smtp,
-			status.Dsn,
-			status.Status)
-
-		if err != nil {
-			log.Fatal("error inserting value:", err)
-		}
-
-		return true
-	}
-
-	performInsertsIntoDbGroupingInTransactions(db, c, sqliteTransactionTime, insertQuery, insertCb)
+		return nil
+	})
 
 	doneInsertingOnDatabase <- <-doneTimestamping
 }
 
 func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	c <-chan TimedRecord, timeout time.Duration,
-	insertQuery string,
-	insertCb func(*sql.Stmt, TimedRecord) bool) {
+	insertCb func(*sql.Tx, TimedRecord) error) {
+
+	// This is the loop for the thread that inserts stuff in the logs database
+	// It should be blocked only by writting to filesystem
+	// It's executing during the entire program lifetime
 
 	var tx *sql.Tx = nil
-	var stmt *sql.Stmt = nil
 	var err error = nil
 
 	countPerTransaction := 0
@@ -249,18 +181,12 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 			log.Fatal(`Error preparing transaction:`, err)
 		}
 
-		stmt, err = tx.Prepare(insertQuery)
-
 		if err != nil {
 			log.Fatal("error preparing insert statement:", err)
 		}
 	}
 
 	closeTransaction := func() {
-		if err := stmt.Close(); err != nil {
-			log.Fatal("Error closing insert statement:", err)
-		}
-
 		if countPerTransaction == 0 {
 			if err := tx.Rollback(); err != nil {
 				log.Fatal("Error discarding empty trasaction", err)
@@ -298,9 +224,13 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 				return
 			}
 
-			if insertCb(stmt, r) {
-				countPerTransaction += 1
+			err := insertCb(tx, r)
+
+			if err != nil {
+				log.Fatal("Error on database insertion:", err)
 			}
+
+			countPerTransaction += 1
 
 			break
 
@@ -310,37 +240,25 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 }
 
-func buildInitialTime(db *sql.DB, logYear int, timezone *time.Location) (parser.Time, int, *time.Location) {
-	// TODO: return max(logYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
+func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) (parser.Time, int, *time.Location) {
+	// TODO: return max(defaultYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
 
-	// FIXME: this query is way too complicated for something so simple
-	q, err := db.Query(`select read_ts_sec from postfix_smtp_message_status where rowid = (select max(rowid) from postfix_smtp_message_status)`)
-	if err != nil {
-		log.Fatal("Error getting time for the last element:", err)
+	for _, handler := range payloadHandlers {
+		if v, err := handler.lastTimeReader(db); err == nil {
+			ts := time.Unix(v, 0).In(timezone)
+
+			log.Println("Using initial time from database as:", ts)
+
+			return parser.Time{
+				Month:  ts.Month(),
+				Day:    uint8(ts.Day()),
+				Hour:   uint8(ts.Hour()),
+				Minute: uint8(ts.Minute()),
+				Second: uint8(ts.Second()),
+			}, ts.Year(), timezone
+		}
 	}
 
-	defer q.Close()
-
-	if !q.Next() {
-		log.Println("Could not obtain time from existing database, using defaulted one:", logYear)
-		return parser.Time{}, logYear, timezone
-	}
-
-	var v int64
-	if err := q.Scan(&v); err != nil {
-		log.Println("Could not obtain time from existing database, using defaulted one:", logYear)
-		return parser.Time{}, logYear, timezone
-	}
-
-	ts := time.Unix(v, 0).In(timezone)
-
-	log.Println("Using initial time as:", ts)
-
-	return parser.Time{
-		Month:  ts.Month(),
-		Day:    uint8(ts.Day()),
-		Hour:   uint8(ts.Hour()),
-		Minute: uint8(ts.Minute()),
-		Second: uint8(ts.Second()),
-	}, ts.Year(), timezone
+	log.Println("Could not build initial time from database. Using default year", defaultYear)
+	return parser.Time{}, defaultYear, timezone
 }

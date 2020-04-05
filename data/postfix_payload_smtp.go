@@ -1,0 +1,137 @@
+package data
+
+import (
+	"database/sql"
+	"errors"
+	parser "gitlab.com/lightmeter/postfix-log-parser"
+	"log"
+)
+
+func init() {
+	registerPayloadHandler(payloadHandler{
+		creator:        tableCreationForSmtpSentStatus,
+		counter:        countLogsForSmtpSentStatus,
+		lastTimeReader: lastTimeInTableReaderForSmtpSentStatus,
+	})
+}
+
+func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
+	// FIXME: this query is way too complicated for something so simple
+	q, err := db.Query(`select read_ts_sec from postfix_smtp_message_status where rowid = (select max(rowid) from postfix_smtp_message_status)`)
+	if err != nil {
+		return 0, err
+	}
+
+	defer q.Close()
+
+	if !q.Next() {
+		return 0, errors.New("Could not obtain time from database")
+	}
+
+	var v int64
+	if err := q.Scan(&v); err != nil {
+		return 0, err
+	}
+
+	return v, nil
+}
+
+func countLogsForSmtpSentStatus(db *sql.DB) int {
+	q, err := db.Query(`select count(*) from postfix_smtp_message_status`)
+
+	if err != nil {
+		log.Fatal("Error checking if database has logs:", err)
+	}
+
+	defer q.Close()
+
+	if !q.Next() {
+		return 0
+	}
+
+	var value int
+
+	if q.Scan(&value) != nil {
+		return 0
+	}
+
+	return value
+}
+
+func tableCreationForSmtpSentStatus(db *sql.DB) error {
+	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
+		read_ts_sec           integer,
+		queue                 string,
+		recipient_local_part  text,
+		recipient_domain_part text,
+		relay_name            text,
+		relay_ip              blob,
+		relay_port            uint16,
+		delay                 double,
+		delay_smtpd   				double,
+		delay_cleanup 				double,
+		delay_qmgr    				double,
+		delay_smtp    				double,
+		dsn                   text,
+		status                integer
+		)`); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(`create index if not exists time_index
+		on postfix_smtp_message_status (read_ts_sec)`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func inserterForSmtpSentStatus(tx *sql.Tx, r TimedRecord) error {
+	status, _ := r.Record.Payload.(parser.SmtpSentStatus)
+
+	stmt, err := tx.Prepare(`
+		insert into postfix_smtp_message_status(
+			read_ts_sec,
+			queue,
+			recipient_local_part,
+			recipient_domain_part,
+			relay_name,
+			relay_ip,
+			relay_port,
+			delay,
+			delay_smtpd,
+			delay_cleanup,
+			delay_qmgr,
+			delay_smtp,
+			dsn,
+			status
+		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		r.Time.Unix(),
+		status.Queue,
+		status.RecipientLocalPart,
+		status.RecipientDomainPart,
+		status.RelayName,
+		status.RelayIP,
+		status.RelayPort,
+		status.Delay,
+		status.Delays.Smtpd,
+		status.Delays.Cleanup,
+		status.Delays.Qmgr,
+		status.Delays.Smtp,
+		status.Dsn,
+		status.Status)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
