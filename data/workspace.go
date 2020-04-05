@@ -93,7 +93,14 @@ func (ws *Workspace) NewPublisher() Publisher {
 func (ws *Workspace) Run() <-chan interface{} {
 	doneTimestamping := make(chan interface{})
 	doneInsertingOnDatabase := make(chan interface{})
-	converter := postfix.NewTimeConverter(buildInitialTime(ws.readerConnection, ws.config.DefaultYear, ws.config.Location))
+
+	newYearNotifier := func(year int, old parser.Time, new parser.Time) {
+		log.Println("Bumping year", year, ", old:", old, ", new:", new)
+	}
+
+	time, year := buildInitialTime(ws.readerConnection, ws.config.DefaultYear, ws.config.Location)
+
+	converter := postfix.NewTimeConverter(time, year, ws.config.Location, newYearNotifier)
 	timedRecords := make(chan TimedRecord, recordsQueueSize)
 
 	go stampLogsWithTimeAndWaitUntilDatabaseIsFinished(converter, ws.records, timedRecords, doneTimestamping)
@@ -240,7 +247,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 }
 
-func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) (parser.Time, int, *time.Location) {
+func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) (parser.Time, int) {
 	// TODO: return max(defaultYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
 
 	for _, handler := range payloadHandlers {
@@ -255,10 +262,10 @@ func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) (par
 				Hour:   uint8(ts.Hour()),
 				Minute: uint8(ts.Minute()),
 				Second: uint8(ts.Second()),
-			}, ts.Year(), timezone
+			}, ts.Year()
 		}
 	}
 
 	log.Println("Could not build initial time from database. Using default year", defaultYear)
-	return parser.Time{}, defaultYear, timezone
+	return parser.Time{}, defaultYear
 }

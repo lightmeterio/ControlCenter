@@ -2,7 +2,6 @@ package postfix
 
 import (
 	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"log"
 	"time"
 )
 
@@ -11,14 +10,22 @@ type TimeConverter struct {
 	lastTime       parser.Time
 	year           int
 	firstExecution bool
+
+	// every time a year change is detected, notifies it
+	newYearNotifier func(newYear int, old parser.Time, new parser.Time)
 }
 
-func NewTimeConverter(initialTime parser.Time, year int, timezone *time.Location) TimeConverter {
+func NewTimeConverter(initialTime parser.Time,
+	year int,
+	timezone *time.Location,
+	newYearNotifier func(int, parser.Time, parser.Time),
+) TimeConverter {
 	return TimeConverter{
-		firstExecution: true,
-		timezone:       timezone,
-		year:           year,
-		lastTime:       initialTime,
+		firstExecution:  true,
+		timezone:        timezone,
+		year:            year,
+		lastTime:        initialTime,
+		newYearNotifier: newYearNotifier,
 	}
 }
 
@@ -31,7 +38,7 @@ func (this *TimeConverter) Convert(t parser.Time) time.Time {
 	// FIXME: this probably won't work for any time before the unix epoch (ts negative),
 	// but who will go back in time and run Postfix?
 	if this.lastTime.Unix(this.year, this.timezone) > t.Unix(this.year, this.timezone) {
-		log.Println("Bumping year", this.year, ", old:", this.lastTime, ", new:", t)
+		this.newYearNotifier(this.year, this.lastTime, t)
 		this.year += 1
 	}
 
