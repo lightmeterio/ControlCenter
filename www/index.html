@@ -41,6 +41,12 @@
         incDate(-7)
       }
 
+      var moveToToday = function() {
+        var now = new Date()
+        document.getElementById('date-from').valueAsDate = now
+        document.getElementById('date-to').valueAsDate = now
+      }
+
       var updateArray = function(dst, src) {
         dst.splice(0, Infinity, ...src)
       }
@@ -49,13 +55,18 @@
         return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value 
       }
 
+      // TODO: maybe this is an async function?
+      var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
+        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(res => res.json())
+      }
+
       var updateDonutChart = function(graphName, title) {
         var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
 
         Plotly.newPlot(graphName, chartData, {title: title})
 
         return function() {
-          fetch("api/" + graphName  + "?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
+          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
             var d = data != null ? data.map(v => v["Value"]) : []
             var l = data != null ? data.map(v => v["Status"]) : []
             updateArray(chartData[0].values, d)
@@ -71,7 +82,7 @@
         Plotly.newPlot(graphName, chartData, {title: title})
 
         return function() {
-          fetch("api/" + graphName + "?" + timeIntervalUrlParams()).then(res => res.json()).then(function(data) {
+          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
             var x = data != null ? data.map(v => v["Domain"]) : []
             var y = data != null ? data.map(v => v["Count"]) : []
             updateArray(chartData[0].x, x)
@@ -100,6 +111,7 @@
       document.getElementById('prev-week').onclick = selectPrevWeek
       document.getElementById('next-week').onclick = selectNextWeek
       document.getElementById('reload-dashboard').onclick = updateDashboard
+      document.getElementById('to-today').onclick = moveToToday
 
       updateDashboard()
     }
@@ -137,6 +149,7 @@
     </div>
     <div id="date-controls">
       <button id="reload-dashboard">Reload</button>
+      <button id="to-today">Today</button>
       <button id="prev-week">-1w</button>
       <button id="prev-date">-1d</button>
       <button id="next-date">+1d</button>
