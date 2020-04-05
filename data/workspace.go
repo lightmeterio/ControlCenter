@@ -130,7 +130,12 @@ func stampLogsWithTimeAndWaitUntilDatabaseIsFinished(timeConverter postfix.TimeC
 	done chan<- interface{}) {
 
 	for r := range records {
-		timedRecords <- TimedRecord{Time: timeConverter.Convert(r.Header.Time), Record: r}
+		t := timeConverter.Convert(r.Header.Time)
+
+		// do not bother the database thread if we have no payload to insert
+		if r.Payload != nil {
+			timedRecords <- TimedRecord{Time: t, Record: r}
+		}
 	}
 
 	close(timedRecords)
