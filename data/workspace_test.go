@@ -4,11 +4,20 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"testing"
 	"time"
 )
+
+func tempDir() string {
+	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
+	if e != nil {
+		panic("error creating temp dir")
+	}
+	return dir
+}
 
 func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
@@ -19,7 +28,8 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Db is a directory instead of a file", func() {
-			dir, _ := ioutil.TempDir("", "")
+			dir := tempDir()
+			log.Println("workspace", dir)
 			defer os.RemoveAll(dir)
 			So(os.Mkdir(path.Join(dir, "data.db"), os.ModePerm), ShouldEqual, nil)
 			_, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
@@ -27,7 +37,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Db is not a sqlite file", func() {
-			dir, _ := ioutil.TempDir("", "")
+			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "data.db"), []byte("not a sqlite file header"), os.ModePerm)
 			_, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
@@ -37,27 +47,28 @@ func TestWorkspaceCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
-			dir, _ := ioutil.TempDir("", "")
+			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			So(err, ShouldEqual, nil)
+
 			defer ws.Close()
 			So(ws.HasLogs(), ShouldBeFalse)
-			So(err, ShouldEqual, nil)
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir, _ := ioutil.TempDir("", "")
+			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
-			So(ws.HasLogs(), ShouldBeFalse)
 			So(err, ShouldEqual, nil)
+			So(ws.HasLogs(), ShouldBeFalse)
 			So(ws.Close(), ShouldEqual, nil)
 			So(ws.readerConnection.Stats().OpenConnections, ShouldEqual, 0)
 			So(ws.writerConnection.Stats().OpenConnections, ShouldEqual, 0)
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir, _ := ioutil.TempDir("", "")
+			dir := tempDir()
 			defer os.RemoveAll(dir)
 
 			ws1, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
@@ -70,7 +81,7 @@ func TestWorkspaceCreation(t *testing.T) {
 	})
 
 	Convey("Inserting logs", t, func() {
-		dir, _ := ioutil.TempDir("", "")
+		dir := tempDir()
 		defer os.RemoveAll(dir)
 
 		buildWs := func(year int) (Workspace, <-chan interface{}, Publisher, func()) {
