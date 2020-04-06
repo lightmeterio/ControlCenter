@@ -1,18 +1,19 @@
 /**
  * This file describes how to add support for storing a new log type in the database
- * You'll need to add a new entry on the switch-case on findInserterForPayload()
+ * You'll need to add a new entry on the switch-case on FindInserterForPayload()
  * and register the other functions for the new log type with the function registerPayloadHandler()
  * in the respective init(). For an example, please check the file postfix_payload_smtp.go
  */
 
-package data
+package logdb
 
 import (
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
-func findInserterForPayload(payload parser.Payload) func(*sql.Tx, TimedRecord) error {
+func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.TimedRecord) error {
 	// NOTE: I wish go had a way to use type information as a map key
 	// so this switch could be simplified to registering handlers for payloads at runtime
 	// instead of this ugly switch case!

@@ -1,10 +1,11 @@
-package data
+package logdb
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"testing"
@@ -23,16 +24,15 @@ func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := NewWorkspace("/proc/lalala", Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open("/proc/lalala", data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldNotEqual, nil)
 		})
 
 		Convey("Db is a directory instead of a file", func() {
 			dir := tempDir()
-			log.Println("workspace", dir)
 			defer os.RemoveAll(dir)
 			So(os.Mkdir(path.Join(dir, "data.db"), os.ModePerm), ShouldEqual, nil)
-			_, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldNotEqual, nil)
 		})
 
@@ -40,41 +40,39 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "data.db"), []byte("not a sqlite file header"), os.ModePerm)
-			_, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldNotEqual, nil)
 		})
 	})
 
 	Convey("Creation succeeds", t, func() {
-		Convey("Create Workspace", func() {
+		Convey("Create DB", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			ws, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldEqual, nil)
 
-			defer ws.Close()
-			So(ws.HasLogs(), ShouldBeFalse)
+			defer db.Close()
+			So(db.HasLogs(), ShouldBeFalse)
 		})
 
 		Convey("Empty Database is properly closed", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			ws, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldEqual, nil)
-			So(ws.HasLogs(), ShouldBeFalse)
-			So(ws.Close(), ShouldEqual, nil)
-			So(ws.readerConnection.Stats().OpenConnections, ShouldEqual, 0)
-			So(ws.writerConnection.Stats().OpenConnections, ShouldEqual, 0)
+			So(db.HasLogs(), ShouldBeFalse)
+			So(db.Close(), ShouldEqual, nil)
 		})
 
 		Convey("Reopening workspace succeeds", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 
-			ws1, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			ws1, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			ws1.Close()
 
-			ws2, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: 1999})
+			ws2, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldEqual, nil)
 			ws2.Close()
 		})
@@ -84,16 +82,21 @@ func TestWorkspaceCreation(t *testing.T) {
 		dir := tempDir()
 		defer os.RemoveAll(dir)
 
-		buildWs := func(year int) (Workspace, <-chan interface{}, Publisher, func()) {
-			ws, err := NewWorkspace(dir, Config{Location: time.UTC, DefaultYear: year})
+		buildWs := func(year int) (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {
+			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: year})
 			So(err, ShouldEqual, nil)
-			done := ws.Run()
-			pub := ws.NewPublisher()
-			return ws, done, pub, func() { So(ws.Close(), ShouldEqual, nil) }
+			done := db.Run()
+			pub := db.NewPublisher()
+			dashboard, err := dashboard.New(db.ReadConnection())
+			So(err, ShouldEqual, nil)
+			return db, done, pub, dashboard, func() {
+				So(dashboard.Close(), ShouldEqual, nil)
+				So(db.Close(), ShouldEqual, nil)
+			}
 		}
 
-		smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) Record {
-			return Record{
+		smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) data.Record {
+			return data.Record{
 				Header: parser.Header{
 					Time:    t,
 					Host:    "mail",
@@ -115,8 +118,8 @@ func TestWorkspaceCreation(t *testing.T) {
 			}
 		}
 
-		noPayloadRecord := func(t parser.Time) Record {
-			return Record{
+		noPayloadRecord := func(t parser.Time) data.Record {
+			return data.Record{
 				Header: parser.Header{
 					Time:    parser.Time{Day: 3, Month: time.January, Hour: 13, Minute: 15, Second: 45},
 					Host:    "mail",
@@ -126,8 +129,8 @@ func TestWorkspaceCreation(t *testing.T) {
 			}
 		}
 
-		parseTimeInterval := func(from, to string) TimeInterval {
-			interval, err := ParseTimeInterval(from, to, time.UTC)
+		parseTimeInterval := func(from, to string) data.TimeInterval {
+			interval, err := data.ParseTimeInterval(from, to, time.UTC)
 			if err != nil {
 				panic("pasring interval")
 			}
@@ -135,24 +138,22 @@ func TestWorkspaceCreation(t *testing.T) {
 		}
 
 		Convey("Inserts nothing", func() {
-			ws, done, pub, dtor := buildWs(1999)
+			db, done, pub, dashboard, dtor := buildWs(1999)
 			defer dtor()
-			dashboard := ws.Dashboard()
 			pub.Close()
 			<-done
 
 			interval := parseTimeInterval("1999-12-02", "2000-01-03")
 
-			So(ws.HasLogs(), ShouldBeFalse)
+			So(db.HasLogs(), ShouldBeFalse)
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
 			So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
 			So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
 		})
 
 		Convey("Inserts one log entry", func() {
-			ws, done, pub, dtor := buildWs(1999)
+			db, done, pub, dashboard, dtor := buildWs(1999)
 			defer dtor()
-			dashboard := ws.Dashboard()
 
 			pub.Publish(smtpStatusRecord(parser.SentStatus, parser.Time{Month: time.December, Day: 2, Hour: 13, Minute: 10, Second: 10}))
 			pub.Close()
@@ -160,7 +161,7 @@ func TestWorkspaceCreation(t *testing.T) {
 
 			interval := parseTimeInterval("1999-12-01", "2000-01-03")
 
-			So(ws.HasLogs(), ShouldBeTrue)
+			So(db.HasLogs(), ShouldBeTrue)
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
 			So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
 			So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 1)
@@ -168,7 +169,7 @@ func TestWorkspaceCreation(t *testing.T) {
 
 		Convey("Insert, reopen, insert", func() {
 			func() {
-				_, done, pub, dtor := buildWs(1999)
+				_, done, pub, _, dtor := buildWs(1999)
 				defer dtor()
 				// this one is before the time interval
 				pub.Publish(smtpStatusRecord(parser.DeferredStatus, parser.Time{Month: time.November, Day: 2, Hour: 13, Minute: 10, Second: 10}))
@@ -179,7 +180,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			}()
 
 			// reopen workspace and add another log
-			ws, done, pub, dtor := buildWs(1999)
+			db, done, pub, dashboard, dtor := buildWs(1999)
 			defer dtor()
 
 			pub.Publish(smtpStatusRecord(parser.SentStatus, parser.Time{Month: time.December, Day: 4, Hour: 13, Minute: 10, Second: 10}))
@@ -194,11 +195,9 @@ func TestWorkspaceCreation(t *testing.T) {
 			pub.Close()
 			<-done
 
-			dashboard := ws.Dashboard()
-
 			interval := parseTimeInterval("1999-12-02", "2000-03-11")
 
-			So(ws.HasLogs(), ShouldBeTrue)
+			So(db.HasLogs(), ShouldBeTrue)
 
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
 			So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 1)
@@ -206,9 +205,9 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("No inserts, rolling back transaction on timeout (to exercise coverage)", func() {
-			_, done, pub, dtor := buildWs(1999)
+			_, done, pub, _, dtor := buildWs(1999)
 			defer dtor()
-			timeToSleep := time.Duration(float32(sqliteTransactionTime.Milliseconds())*1.5) * time.Millisecond
+			timeToSleep := time.Duration(float32(TransactionTime.Milliseconds())*1.5) * time.Millisecond
 			time.Sleep(timeToSleep)
 			pub.Close()
 			<-done

@@ -1,10 +1,11 @@
-package data
+package logdb
 
 import (
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"log"
 )
 
 func init() {
@@ -17,7 +18,14 @@ func init() {
 
 func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 	// FIXME: this query is way too complicated for something so simple
-	q, err := db.Query(`select read_ts_sec from postfix_smtp_message_status where rowid = (select max(rowid) from postfix_smtp_message_status)`)
+	q, err := db.Query(`
+	select
+		read_ts_sec
+	from
+		postfix_smtp_message_status
+	where
+		rowid = (select max(rowid) from postfix_smtp_message_status)`)
+
 	if err != nil {
 		return 0, err
 	}
@@ -39,9 +47,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 func countLogsForSmtpSentStatus(db *sql.DB) int {
 	q, err := db.Query(`select count(*) from postfix_smtp_message_status`)
 
-	if err != nil {
-		log.Fatal("Error checking if database has logs:", err)
-	}
+	util.MustSucceed(err, "countLogsForSmtpSentStatus")
 
 	defer q.Close()
 
@@ -78,7 +84,7 @@ func tableCreationForSmtpSentStatus(db *sql.DB) error {
 		return err
 	}
 
-	if _, err := db.Exec(`create index if not exists time_index
+	if _, err := db.Exec(`create index if not exists postfix_smtp_message_time_index
 		on postfix_smtp_message_status (read_ts_sec)`); err != nil {
 		return err
 	}
@@ -86,7 +92,7 @@ func tableCreationForSmtpSentStatus(db *sql.DB) error {
 	return nil
 }
 
-func inserterForSmtpSentStatus(tx *sql.Tx, r TimedRecord) error {
+func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 	status, _ := r.Record.Payload.(parser.SmtpSentStatus)
 
 	stmt, err := tx.Prepare(`

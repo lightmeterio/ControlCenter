@@ -6,6 +6,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
+	"gitlab.com/lightmeter/controlcenter/workspace"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"log"
 	"net/http"
@@ -47,7 +48,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	ws, err := data.NewWorkspace(workspaceDirectory, data.Config{
+	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
 		Location:    timezone,
 		DefaultYear: logYear,
 	})
@@ -116,7 +117,11 @@ func main() {
 		onParserSuccess(interval)
 	}
 
-	dashboard := ws.Dashboard()
+	dashboard, err := ws.Dashboard()
+
+	if err != nil {
+		log.Fatal("Error building dashboard:", err)
+	}
 
 	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
 		requestWithInterval(w, r, func(interval data.TimeInterval) {

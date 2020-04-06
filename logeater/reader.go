@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/workspace"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"io"
@@ -24,7 +25,7 @@ func ReadFromReader(reader io.Reader, pub data.Publisher) {
 }
 
 // TODO: hm... it feels this function should belong to data.Workspace!
-func FindWatchingLocationForWorkspace(ws *data.Workspace) tail.SeekInfo {
+func FindWatchingLocationForWorkspace(ws *workspace.Workspace) tail.SeekInfo {
 	if !ws.HasLogs() {
 		return tail.SeekInfo{
 			Offset: 0,

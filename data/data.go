@@ -25,14 +25,7 @@ type Publisher interface {
 	Close()
 }
 
-type ChannelBasedPublisher struct {
-	channel chan<- Record
-}
-
-func (pub *ChannelBasedPublisher) Publish(status Record) {
-	pub.channel <- status
-}
-
-func (pub *ChannelBasedPublisher) Close() {
-	close(pub.channel)
+type Config struct {
+	Location    *time.Location
+	DefaultYear int
 }
