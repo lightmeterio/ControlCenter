@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	"gitlab.com/lightmeter/controlcenter/util"
+
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
@@ -34,6 +37,7 @@ var (
 	workspaceDirectory string
 	importOnly         bool
 	showVersion        bool
+	dirToWatch         string
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -51,6 +55,7 @@ func init() {
 		"Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin")
 	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
+	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 
 	flag.Usage = func() {
 		printVersion()
@@ -103,9 +108,19 @@ func main() {
 
 		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
-				log.Println("Failed watching file:", filename, "error:", err)
+				log.Fatal("Failed watching file: ", filename, ", error: ", err)
 			}
 		}(filename)
+	}
+
+	if len(dirToWatch) != 0 {
+		dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
+		util.MustSucceed(err, "Opening directory: "+dirToWatch)
+		initialTime := time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
+		watcher := dirwatcher.NewDirectoryImporter(&dir, pub, timezone, initialTime)
+		go func() {
+			util.MustSucceed(watcher.Run(), "Watching directory")
+		}()
 	}
 
 	dashboard, err := ws.Dashboard()

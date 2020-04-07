@@ -38,8 +38,8 @@ func (this *TimeConverter) Convert(t parser.Time) time.Time {
 	// FIXME: this probably won't work for any time before the unix epoch (ts negative),
 	// but who will go back in time and run Postfix?
 	if this.lastTime.Unix(this.year, this.timezone) > t.Unix(this.year, this.timezone) {
-		this.newYearNotifier(this.year, this.lastTime, t)
 		this.year += 1
+		this.newYearNotifier(this.year, this.lastTime, t)
 	}
 
 	this.firstExecution = false
