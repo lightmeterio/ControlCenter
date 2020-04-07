@@ -16,6 +16,13 @@ type queries struct {
 	topBouncedDomains  *sql.Stmt
 }
 
+type Pair struct {
+	Key   interface{}
+	Value interface{}
+}
+
+type Pairs []Pair
+
 type Dashboard struct {
 	queries queries
 }
@@ -161,19 +168,19 @@ func (d Dashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInt
 	return countByStatus(d.queries.countByStatus, status, interval)
 }
 
-func (d Dashboard) TopBusiestDomains(interval data.TimeInterval) []DomainNameAndCount {
+func (d Dashboard) TopBusiestDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) TopBouncedDomains(interval data.TimeInterval) []DomainNameAndCount {
+func (d Dashboard) TopBouncedDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topBouncedDomains, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) TopDeferredDomains(interval data.TimeInterval) []DomainNameAndCount {
+func (d Dashboard) TopDeferredDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topDeferredDomains, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) DeliveryStatus(interval data.TimeInterval) []DeliveryValue {
+func (d Dashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
 	return deliveryStatus(d.queries.deliveryStatus, interval)
 }
 
@@ -193,13 +200,8 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 	return countValue
 }
 
-type DomainNameAndCount struct {
-	Domain string
-	Count  int
-}
-
-func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) []DomainNameAndCount {
-	var r []DomainNameAndCount
+func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
+	var r Pairs
 
 	query, err := stmt.Query(args...)
 
@@ -218,19 +220,14 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) []DomainNameAndCoun
 			domain = "<none>"
 		}
 
-		r = append(r, DomainNameAndCount{domain, countValue})
+		r = append(r, Pair{domain, countValue})
 	}
 
 	return r
 }
 
-type DeliveryValue struct {
-	Status string
-	Value  float64
-}
-
-func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) []DeliveryValue {
-	var r []DeliveryValue
+func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
+	var r Pairs
 
 	query, err := stmt.Query(interval.From.Unix(), interval.To.Unix())
 
@@ -244,7 +241,7 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) []DeliveryValue 
 
 		query.Scan(&status, &value)
 
-		r = append(r, DeliveryValue{status.String(), value})
+		r = append(r, Pair{status.String(), value})
 	}
 
 	return r

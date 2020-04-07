@@ -52,12 +52,22 @@
       }
 
       var timeIntervalUrlParams = function() {
-        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value 
+        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
       }
 
       // TODO: maybe this is an async function?
       var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
-        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(res => res.json())
+        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(function(res) {
+          if (res.ok) {
+            return res.json()
+          }
+
+          res.text().then(text => console.log("Error requesting method " +
+            methodName + ", status:\"" + res.statusText + "\"" +
+            ", text: \"" + text + "\""))
+
+          return null
+        })
       }
 
       var updateDonutChart = function(graphName, title) {
@@ -68,7 +78,7 @@
         return function() {
           fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
             var d = data != null ? data.map(v => v["Value"]) : []
-            var l = data != null ? data.map(v => v["Status"]) : []
+            var l = data != null ? data.map(v => v["Key"]) : []
             updateArray(chartData[0].values, d)
             updateArray(chartData[0].labels, l)
             Plotly.redraw(graphName)
@@ -83,8 +93,8 @@
 
         return function() {
           fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-            var x = data != null ? data.map(v => v["Domain"]) : []
-            var y = data != null ? data.map(v => v["Count"]) : []
+            var x = data != null ? data.map(v => v["Key"]) : []
+            var y = data != null ? data.map(v => v["Value"]) : []
             updateArray(chartData[0].x, x)
             updateArray(chartData[0].y, y)
             Plotly.redraw(graphName)

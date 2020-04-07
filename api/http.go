@@ -6,7 +6,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/postfix-log-parser"
-	"log"
 	"net/http"
 	"time"
 )
@@ -24,16 +23,14 @@ func requestWithInterval(timezone *time.Location,
 	onParserSuccess func(interval data.TimeInterval)) {
 
 	if r.ParseForm() != nil {
-		log.Println("Error parsing form!")
-		serveJson(w, r, []int{})
+		http.Error(w, "Wrong input", http.StatusUnprocessableEntity)
 		return
 	}
 
 	interval, err := data.ParseTimeInterval(r.Form.Get("from"), r.Form.Get("to"), timezone)
 
 	if err != nil {
-		log.Println("Error parsing time interval:", err)
-		serveJson(w, r, []int{})
+		http.Error(w, "Error parsing time interval:\""+err.Error()+"\"", http.StatusUnprocessableEntity)
 		return
 	}
 
