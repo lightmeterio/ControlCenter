@@ -1,13 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
+	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"log"
 	"net/http"
 	"os"
@@ -90,76 +89,19 @@ func main() {
 		}()
 	}
 
-	serveJson := func(w http.ResponseWriter, r *http.Request, v interface{}) {
-		w.Header().Set("Content-Type", "application/json")
-		encoded, _ := json.Marshal(v)
-		w.Write(encoded)
-	}
-
-	requestWithInterval := func(w http.ResponseWriter,
-		r *http.Request,
-		onParserSuccess func(interval data.TimeInterval)) {
-
-		if r.ParseForm() != nil {
-			log.Println("Error parsing form!")
-			serveJson(w, r, []int{})
-			return
-		}
-
-		interval, err := data.ParseTimeInterval(r.Form.Get("from"), r.Form.Get("to"), timezone)
-
-		if err != nil {
-			log.Println("Error parsing time interval:", err)
-			serveJson(w, r, []int{})
-			return
-		}
-
-		onParserSuccess(interval)
-	}
-
 	dashboard, err := ws.Dashboard()
 
 	if err != nil {
 		log.Fatal("Error building dashboard:", err)
 	}
 
-	http.HandleFunc("/api/countByStatus", func(w http.ResponseWriter, r *http.Request) {
-		requestWithInterval(w, r, func(interval data.TimeInterval) {
-			serveJson(w, r, map[string]int{
-				"sent":     dashboard.CountByStatus(parser.SentStatus, interval),
-				"deferred": dashboard.CountByStatus(parser.DeferredStatus, interval),
-				"bounced":  dashboard.CountByStatus(parser.BouncedStatus, interval),
-			})
-		})
-	})
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/api/topBusiestDomains", func(w http.ResponseWriter, r *http.Request) {
-		requestWithInterval(w, r, func(interval data.TimeInterval) {
-			serveJson(w, r, dashboard.TopBusiestDomains(interval))
-		})
-	})
+	api.HttpDashboard(mux, timezone, dashboard)
 
-	http.HandleFunc("/api/topBouncedDomains", func(w http.ResponseWriter, r *http.Request) {
-		requestWithInterval(w, r, func(interval data.TimeInterval) {
-			serveJson(w, r, dashboard.TopBouncedDomains(interval))
-		})
-	})
+	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
 
-	http.HandleFunc("/api/topDeferredDomains", func(w http.ResponseWriter, r *http.Request) {
-		requestWithInterval(w, r, func(interval data.TimeInterval) {
-			serveJson(w, r, dashboard.TopDeferredDomains(interval))
-		})
-	})
-
-	http.HandleFunc("/api/deliveryStatus", func(w http.ResponseWriter, r *http.Request) {
-		requestWithInterval(w, r, func(interval data.TimeInterval) {
-			serveJson(w, r, dashboard.DeliveryStatus(interval))
-		})
-	})
-
-	http.Handle("/", http.FileServer(staticdata.HttpAssets))
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func parseLogsFromStdin(publisher data.Publisher) {
