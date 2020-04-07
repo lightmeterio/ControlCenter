@@ -31,7 +31,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		Convey("Db is a directory instead of a file", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			So(os.Mkdir(path.Join(dir, "data.db"), os.ModePerm), ShouldEqual, nil)
+			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldEqual, nil)
 			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldNotEqual, nil)
 		})
@@ -39,7 +39,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		Convey("Db is not a sqlite file", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			ioutil.WriteFile(path.Join(dir, "data.db"), []byte("not a sqlite file header"), os.ModePerm)
+			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
 			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
 			So(err, ShouldNotEqual, nil)
 		})

@@ -18,7 +18,7 @@ var (
 )
 
 const (
-	filename         = "data.db"
+	filename         = "logs.db"
 	recordsQueueSize = 100
 )
 
