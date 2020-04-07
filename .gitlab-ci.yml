@@ -14,13 +14,13 @@ build:
 
 test:
   script:
-    - go test ./... -coverpkg=gitlab.com/lightmeter/controlcenter/data,gitlab.com/lightmeter/controlcenter/data/postfix,gitlab.com/lightmeter/controlcenter/logdb,gitlab.com/lightmeter/controlcenter/logeater,gitlab.com/lightmeter/controlcenter/staticdata,gitlab.com/lightmeter/controlcenter/workspace,gitlab.com/lightmeter/controlcenter/dashboard -v 2>&1 | ~/go/bin/go-junit-report > report.xml
+    - ./utils/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
     reports:
       junit: report.xml
 
 cover:
   script:
-    - go test ./... -coverpkg=gitlab.com/lightmeter/controlcenter/data,gitlab.com/lightmeter/controlcenter/data/postfix,gitlab.com/lightmeter/controlcenter/logdb,gitlab.com/lightmeter/controlcenter/logeater,gitlab.com/lightmeter/controlcenter/staticdata,gitlab.com/lightmeter/controlcenter/workspace,gitlab.com/lightmeter/controlcenter/dashboard -coverprofile=coverinfo.txt
+    - ./utils/go_test.sh -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
