@@ -63,7 +63,7 @@ func detachDB(db *sql.DB, schema string) error {
 }
 
 func createWriter(dbFilename string, config data.Config) (*sql.DB, error) {
-	conn, err := sql.Open("sqlite3", dbFilename+`?mode=rwc&cache=shared&_loc=auto`)
+	conn, err := sql.Open("sqlite3", `file:`+dbFilename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
 
 	if err != nil {
 		return nil, err
@@ -82,18 +82,11 @@ func createWriter(dbFilename string, config data.Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// TODO: set page size only on the database is created!
-	_, err = conn.Exec(`PRAGMA page_size = 32768`)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return conn, nil
 }
 
 func createReader(dbFilename string, config data.Config) (*sql.DB, error) {
-	conn, err := sql.Open("sqlite3", dbFilename+`?mode=ro,_query_only=true&cache=shared&_loc=auto`)
+	conn, err := sql.Open("sqlite3", `file:`+dbFilename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
 
 	if err != nil {
 		return nil, err
