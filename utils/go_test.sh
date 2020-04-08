@@ -12,6 +12,7 @@ PACKAGES="
   dashboard
   api
   util
+  lmsqlite3
 "
 
 PREFIX="gitlab.com/lightmeter/controlcenter/"
