@@ -8,7 +8,7 @@
 # TODO: implement some unit testing
 
 def replace_ip_v4(s, c, spans):
-    return s[:spans(0)[0]] + "11.22.33.44" + s[spans(0)[1]:]
+    return [s[:spans(0)[0]], "11.22.33.44", s[spans(0)[1]:]]
 
 def replace_email(s, c, spans):
     import hashlib
@@ -19,7 +19,7 @@ def replace_email(s, c, spans):
     hashed_local_part = hashlib.sha1(local_part.encode()).hexdigest()[:len(local_part)]
     hashed_domain_part = hashlib.sha1(domain_part.encode()).hexdigest()[:len(domain_part)]
 
-    return s[:spans(0)[0]] + "h-" + hashed_local_part + "@h-" + hashed_domain_part + ".com" + s[spans(0)[1]:]
+    return [s[:spans(0)[0]], "h-", hashed_local_part, "@h-", hashed_domain_part, ".com", s[spans(0)[1]:]]
 
 def replace_domain(s, c, spans):
     def hashed_value():
@@ -27,17 +27,21 @@ def replace_domain(s, c, spans):
         domain = s[spans(1)[0]:spans(1)[1]]
 
         if domain.startswith('h-'): # has already been hashed by the email replacer
-            return domain
+            return [domain]
 
-        return 'h-' + hashlib.sha1(domain.encode()).hexdigest()[:len(domain)]
+        return ['h-', hashlib.sha1(domain.encode()).hexdigest()[:len(domain)]]
 
-    return s[:spans(1)[0]] + hashed_value() + s[spans(1)[1]:]
+    return [s[:spans(1)[0]]] + hashed_value() + [s[spans(1)[1]:]]
 
 def replace_unix_file_path(s, c, spans):
     import hashlib
     path = s[spans(2)[0]:spans(2)[1]]
-    return s[:spans(2)[0]] + '/h-' + hashlib.sha1(path.encode()).hexdigest() + '/' + s[spans(3)[1]:]
+    return [s[:spans(2)[0]], '/h-', hashlib.sha1(path.encode()).hexdigest(), '/', s[spans(3)[1]:]]
 
+# A pattern is composed by a tuple consisting on a regex as first element
+# and a function(string, re.Pattern, Span) -> list<string>
+# Where Span = function(int) -> tuple(int, int) (please check the documentation for re.Match.span)
+# Uff, that's it (I am not yet used to do type annotations in Python :-()
 patterns = [
     (r'(\s)((/[\.\w_-]+)+)([^[])?', replace_unix_file_path),
     (r'\b([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\b', replace_ip_v4),
@@ -68,7 +72,7 @@ def rec_clean_pattern(s, c, r):
 
     spans = m.span
 
-    return [r(s[:spans(0)[1]], c, spans)] + rec_clean_pattern(s[spans(0)[1]:], c, r)
+    return r(s[:spans(0)[1]], c, spans) + rec_clean_pattern(s[spans(0)[1]:], c, r)
 
 def clean_pattern(s, c, r):
     return ''.join(rec_clean_pattern(s, c, r))
