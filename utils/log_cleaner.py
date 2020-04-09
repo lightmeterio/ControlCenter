@@ -33,7 +33,13 @@ def replace_domain(s, c, spans):
 
     return s[:spans(1)[0]] + hashed_value() + s[spans(1)[1]:]
 
+def replace_unix_file_path(s, c, spans):
+    import hashlib
+    path = s[spans(2)[0]:spans(2)[1]]
+    return s[:spans(2)[0]] + '/h-' + hashlib.sha1(path.encode()).hexdigest() + '/' + s[spans(3)[1]:]
+
 patterns = [
+    (r'(\s)((/[\.\w_-]+)+)([^[])?', replace_unix_file_path),
     (r'\b([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\b', replace_ip_v4),
     (r'([-\w_\.]+)@([-\w_\.]+)', replace_email), # unquoted emails
     (r'"([-\w_\.]+)"@([-\w_\.]+)', replace_email), # quoted emails, like in to=<"I have spaces"@domain.de>
