@@ -48,7 +48,10 @@ patterns = [
     (r'([-\w_\.]+)@([-\w_\.]+)', replace_email), # unquoted emails
     (r'"([-\w_\.]+)"@([-\w_\.]+)', replace_email), # quoted emails, like in to=<"I have spaces"@domain.de>
     # There's no official regexp for validating domains/hostnames. This is the best I could came up with so far :-(
-    (r'(((([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
+    # FIXME: It's very heavy and I noticed that more than half of the time (on my test files) is spent inside this
+    # regular expression!
+    # It'd be nice to optimize it by something more lightweight
+    (r'(((([a-zA-Z_][\-a-zA-Z-1-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
    ]
 
 def compile_regex(p):
@@ -63,25 +66,26 @@ def compile_regex(p):
 
 compiled_patterns = [(compile_regex(p), f) for (p, f) in patterns]
 
-def rec_clean_pattern(s, c, r):
+def clean_pattern(level, s, c, r):
     import re
     m = re.search(c, s)
 
     if m is None:
-        return [s]
+        # do not bother to build a list if there's nothing to be replaced
+        # and no recursive call has been yet made
+        return [s] if level > 0 else None
 
     spans = m.span
 
-    return r(s[:spans(0)[1]], c, spans) + rec_clean_pattern(s[spans(0)[1]:], c, r)
-
-def clean_pattern(s, c, r):
-    return ''.join(rec_clean_pattern(s, c, r))
+    return r(s[:spans(0)[1]], c, spans) + clean_pattern(level + 1, s[spans(0)[1]:], c, r)
 
 def clean_line(line):
     stripped = line.rstrip()
 
     for p in compiled_patterns:
-        stripped = clean_pattern(stripped, p[0], p[1])
+        replaced_or_none = clean_pattern(0, stripped, p[0], p[1])
+        if replaced_or_none is not None:
+            stripped = ''.join(replaced_or_none)
 
     return stripped
 
