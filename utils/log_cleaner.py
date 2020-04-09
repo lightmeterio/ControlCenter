@@ -53,16 +53,19 @@ def compile_regex(p):
 
 compiled_patterns = [(compile_regex(p), f) for (p, f) in patterns]
 
-def clean_pattern(s, c, r):
+def rec_clean_pattern(s, c, r):
     import re
     m = re.search(c, s)
 
     if m is None:
-        return s
+        return [s]
 
     spans = m.span
 
-    return r(s[:spans(0)[1]], c, spans) + clean_pattern(s[spans(0)[1]:], c, r)
+    return [r(s[:spans(0)[1]], c, spans)] + rec_clean_pattern(s[spans(0)[1]:], c, r)
+
+def clean_pattern(s, c, r):
+    return ''.join(rec_clean_pattern(s, c, r))
 
 def clean_line(line):
     stripped = line.rstrip()
