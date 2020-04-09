@@ -7,8 +7,6 @@
 # But it does the job for now.
 # TODO: implement some unit testing
 
-import re
-
 def replace_ip_v4(s, c, spans):
     return s[:spans(0)[0]] + "11.22.33.44" + s[spans(0)[1]:]
 
@@ -20,7 +18,7 @@ def replace_email(s, c, spans):
 
     hashed_local_part = hashlib.sha1(local_part.encode()).hexdigest()[:len(local_part)]
     hashed_domain_part = hashlib.sha1(domain_part.encode()).hexdigest()[:len(domain_part)]
-    
+
     return s[:spans(0)[0]] + "h-" + hashed_local_part + "@h-" + hashed_domain_part + ".com" + s[spans(0)[1]:]
 
 def replace_domain(s, c, spans):
@@ -45,6 +43,8 @@ patterns = [
 
 def compile_regex(p):
     import sys
+    import re
+
     try:
         return re.compile(p)
     except:
@@ -54,6 +54,7 @@ def compile_regex(p):
 compiled_patterns = [(compile_regex(p), f) for (p, f) in patterns]
 
 def clean_pattern(s, c, r):
+    import re
     m = re.search(c, s)
 
     if m is None:
@@ -63,16 +64,22 @@ def clean_pattern(s, c, r):
 
     return r(s[:spans(0)[1]], c, spans) + clean_pattern(s[spans(0)[1]:], c, r)
 
-def clean(s):
+def clean_line(line):
+    stripped = line.rstrip()
+
     for p in compiled_patterns:
-        s = clean_pattern(s, p[0], p[1])
-    return s
+        stripped = clean_pattern(stripped, p[0], p[1])
+
+    return stripped
 
 def main():
     import sys
+    from multiprocessing import Pool, cpu_count
 
-    for line in sys.stdin:
-        print(clean(line.rstrip()))
+    p = Pool(cpu_count() + 1)
+
+    for c in p.map(clean_line, sys.stdin):
+        print(c)
 
 if __name__ == '__main__':
     main()
