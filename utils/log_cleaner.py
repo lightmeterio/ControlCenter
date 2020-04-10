@@ -51,7 +51,7 @@ patterns = [
     # FIXME: It's very heavy and I noticed that more than half of the time (on my test files) is spent inside this
     # regular expression!
     # It'd be nice to optimize it by something more lightweight
-    (r'(((([a-zA-Z_][\-a-zA-Z-1-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
+    (r'(((([a-zA-Z_][\-a-zA-Z-0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
    ]
 
 def compile_regex(p):
