@@ -8,7 +8,17 @@
 # TODO: implement some unit testing
 
 def replace_ip_v4(s, c, spans):
-    return [s[:spans(0)[0]], "11.22.33.44", s[spans(0)[1]:]]
+    def transform(c):
+        # transform the number into something not 100% recoverable without ambiguity
+        # (but this is not cryptographically safe!)
+        # There's no proof that this function is not reversable.
+        # I am just playing with arbitrary numbers :-)
+        return str((int(int(int(c)/3.)*7.459)+1) % 256)
+
+    def comp(i):
+        return transform(s[spans(i)[0]:spans(i)[1]])
+
+    return [s[:spans(0)[0]], comp(1), "." , comp(2), ".", comp(3), ".", comp(4), s[spans(0)[1]:]]
 
 def replace_email(s, c, spans):
     import hashlib
@@ -44,14 +54,14 @@ def replace_unix_file_path(s, c, spans):
 # Uff, that's it (I am not yet used to do type annotations in Python :-()
 patterns = [
     (r'(\s)((/[\.\w_-]+)+)([^[])?', replace_unix_file_path),
-    (r'\b([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\b', replace_ip_v4),
+    (r'\b([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\b', replace_ip_v4),
     (r'([-\w_\.]+)@([-\w_\.]+)', replace_email), # unquoted emails
     (r'"([-\w_\.]+)"@([-\w_\.]+)', replace_email), # quoted emails, like in to=<"I have spaces"@domain.de>
     # There's no official regexp for validating domains/hostnames. This is the best I could came up with so far :-(
     # FIXME: It's very heavy and I noticed that more than half of the time (on my test files) is spent inside this
     # regular expression!
     # It'd be nice to optimize it by something more lightweight
-    (r'(((([a-zA-Z_][\-a-zA-Z-1-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
+    (r'(((([a-zA-Z_][\-a-zA-Z-0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))(\.(([a-zA-Z_][\-a-zA-Z0-9_]*)|([0-9][\-a-zA-Z_][\-a-zA-Z0-9_]*))))+)[^\.]', replace_domain),
    ]
 
 def compile_regex(p):
