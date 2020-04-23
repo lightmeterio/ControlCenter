@@ -3,9 +3,10 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
-	"gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 type queries struct {
@@ -201,7 +202,7 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 }
 
 func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
-	var r Pairs
+	r := Pairs{}
 
 	query, err := stmt.Query(args...)
 
@@ -227,7 +228,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 }
 
 func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
-	var r Pairs
+	r := Pairs{}
 
 	query, err := stmt.Query(interval.From.Unix(), interval.To.Unix())
 
