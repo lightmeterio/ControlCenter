@@ -4,6 +4,8 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description="Lightmeter ControlCenter Simple CLI Dashboard")
     parser.add_argument("host", help="URL for Lightmeter ControlCenter")
+    parser.add_argument("--date-from", help="Date interval begin (ex: 2019-12-23)")
+    parser.add_argument("--date-to", help="Date interval End (ex: 2019-12-23)")
     return parser.parse_args()
 
 args = parse_args()
@@ -13,7 +15,7 @@ lightmeter_api = f"{args.host}/api/"
 def req_json(method):
     import requests
 
-    r = requests.get(lightmeter_api + "/" + method)
+    r = requests.get(f"{lightmeter_api}/{method}?from={args.date_from}&to={args.date_to}")
 
     if r.status_code != 200 or r.headers['Content-Type'] != "application/json":
         raise Exception("Error Querying Lightmeter")
@@ -25,11 +27,10 @@ def build_delivery_status():
 
     def f(status):
         for p in s:
-            if p['Status'] == status:
+            if p['Key'] == status:
                 return p['Value']
+        return 0
 
-        raise Exception(r"Invalid status: {status}")
-    
     return f
 
 def list_domains_with_counts(title, method):
@@ -37,7 +38,7 @@ def list_domains_with_counts(title, method):
 
     print(f"\n{title}:\n")
     for e in l:
-        print(f"{e['Domain']} {e['Count']}")
+        print(f"{e['Key']} {e['Value']}")
     
 del_status = build_delivery_status()
 
