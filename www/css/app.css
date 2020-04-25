@@ -1,0 +1,27 @@
+.dashboard-gadget {
+    display: table-cell;
+}
+
+.dashboard-line {
+    display: table;
+}
+
+.dashboard-line {
+    display: table-row;
+}
+
+.modebar {
+    display: none !important;
+}
+
+.navbar-static-top {
+    height: 70px;
+    background: #FFFFFF 0% 0% no-repeat padding-box;
+    box-shadow: 0px 6px 20px #2C9CD61A;
+    opacity: 1;
+    margin-bottom: 1em;
+}
+
+.navbar-static-top .logo img {
+    height: 30px;
+}
