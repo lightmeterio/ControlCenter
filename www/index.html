@@ -17,40 +17,50 @@
     </head>
 
     <body onload="drawDashboard()">
-        <div class="container">
-            <div class="row" id="top-nav">
-                
-            </div>
-            <div id="date-interval-picker">
-                <div class="date-picker">
-                    <span>From:</span>
-                    <input id="date-from" type="date" required/>
-                </div>
-                <div class="date-picker">
-                    <span>To:</span>
-                    <input id="date-to" type="date" required/>
-                </div>
-                <div id="date-controls">
-                    <button id="reload-dashboard">Reload</button>
-                    <button id="to-today">Today</button>
-                    <button id="prev-week">-1w</button>
-                    <button id="prev-date">-1d</button>
-                    <button id="next-date">+1d</button>
-                    <button id="next-week">+1w</button>
+        <nav class="navbar navbar-default navbar-static-top">
+            <div class="container">
+                <div class="row align-items-center">
+                    <a class="logo" href="/" title="Home">
+                        <img src="img/logo-color-120.png" alt="Lightmeter logo" />
+                    </a>
                 </div>
             </div>
-            <div class="dashboard">
-                <div class="dashboard-line">
-                    <div class="dashboard-gadget" id='deliveryStatus'></div>
-                    <div class="dashboard-gadget" id='topBusiestDomains'></div>
+        </nav>
+            <div class="container">
+                <div class="row">
+                    <div id="date-interval-picker">
+                        <div class="date-picker">
+                            <span>From:</span>
+                            <input id="date-from" type="date" required/>
+                        </div>
+                        <div class="date-picker">
+                            <span>To:</span>
+                            <input id="date-to" type="date" required/>
+                        </div>
+                        <div id="date-controls">
+                            <button id="reload-dashboard">Reload</button>
+                            <button id="to-today">Today</button>
+                            <button id="prev-week">-1w</button>
+                            <button id="prev-date">-1d</button>
+                            <button id="next-date">+1d</button>
+                            <button id="next-week">+1w</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="dashboard-line">
+                <div class="row">
+                    <div class="col-3">
+                        <div class="dashboard-gadget" id='deliveryStatus'></div>
+                    </div>
+                    <div class="col-9">
+                        <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                    </div>
+                </div>
+                <div class="row">
                     <div class="dashboard-gadget" id='topBouncedDomains'></div>
                     <div class="dashboard-gadget" id='topDeferredDomains'></div>
                 </div>
             </div>
         </div>
-        
         <!-- Boostrap dependencies -->
         <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
