@@ -2,189 +2,189 @@
 <html lang="en">
 <head>
 
-  <!-- Boostrap and dependencies -->
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-  
-  <!-- Other 3rd party includes-->
-  <script src='3rd/plotly.min.js'></script>
+    <!-- Boostrap and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    
+    <!-- Other 3rd party includes-->
+    <script src='3rd/plotly.min.js'></script>
 
-  <script type="application/javascript">
-    var drawDashboard = function() {
-      var formatDate = function(d) {
-        return d.toISOString().split('T')[0]
-      }
+    <script type="application/javascript">
+        var drawDashboard = function() {
+            var formatDate = function(d) {
+                return d.toISOString().split('T')[0]
+            }
 
-      var incDate = function(value) {
-        // FIXME: That looks freaking ugly, but that's okay for now
+            var incDate = function(value) {
+                // FIXME: That looks freaking ugly, but that's okay for now
 
-        var from = document.getElementById('date-from')
-        var to = document.getElementById('date-to')
+                var from = document.getElementById('date-from')
+                var to = document.getElementById('date-to')
 
-        var refDate = new Date(from.valueAsDate)
+                var refDate = new Date(from.valueAsDate)
 
-        refDate.setDate(refDate.getDate() + value)
-        from.value = formatDate(refDate)
+                refDate.setDate(refDate.getDate() + value)
+                from.value = formatDate(refDate)
 
-        refDate.setDate(refDate.getDate() + Math.abs(value) - 1)
-        to.value = formatDate(refDate)
+                refDate.setDate(refDate.getDate() + Math.abs(value) - 1)
+                to.value = formatDate(refDate)
 
-        updateDashboard()
-      }
+                updateDashboard()
+            }
 
-      var selectNextDay = function() {
-        incDate(1)
-      }
+            var selectNextDay = function() {
+                incDate(1)
+            }
 
-      var selectPrevDay = function() {
-        incDate(-1)
-      }
+            var selectPrevDay = function() {
+                incDate(-1)
+            }
 
-      var selectNextWeek = function() {
-        incDate(7)
-      }
+            var selectNextWeek = function() {
+                incDate(7)
+            }
 
-      var selectPrevWeek = function() {
-        incDate(-7)
-      }
+            var selectPrevWeek = function() {
+                incDate(-7)
+            }
 
-      var moveToToday = function() {
-        var now = new Date()
-        document.getElementById('date-from').valueAsDate = now
-        document.getElementById('date-to').valueAsDate = now
-        updateDashboard()
-      }
+            var moveToToday = function() {
+                var now = new Date()
+                document.getElementById('date-from').valueAsDate = now
+                document.getElementById('date-to').valueAsDate = now
+                updateDashboard()
+            }
 
-      var updateArray = function(dst, src) {
-        dst.splice(0, Infinity, ...src)
-      }
+            var updateArray = function(dst, src) {
+                dst.splice(0, Infinity, ...src)
+            }
 
-      var timeIntervalUrlParams = function() {
-        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
-      }
+            var timeIntervalUrlParams = function() {
+                return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
+            }
 
-      // TODO: maybe this is an async function?
-      var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
-        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(function(res) {
-          if (res.ok) {
-            return res.json()
-          }
+            // TODO: maybe this is an async function?
+            var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
+                return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(function(res) {
+                    if (res.ok) {
+                        return res.json()
+                    }
 
-          res.text().then(text => console.log("Error requesting method " +
-            methodName + ", status:\"" + res.statusText + "\"" +
-            ", text: \"" + text + "\""))
+                    res.text().then(text => console.log("Error requesting method " +
+                        methodName + ", status:\"" + res.statusText + "\"" +
+                        ", text: \"" + text + "\""))
 
-          return null
-        })
-      }
+                    return null
+                })
+            }
 
-      var updateDonutChart = function(graphName, title) {
-        var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
+            var updateDonutChart = function(graphName, title) {
+                var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
 
-        Plotly.newPlot(graphName, chartData, {title: title})
+                Plotly.newPlot(graphName, chartData, {title: title})
 
-        return function() {
-          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-            var d = data != null ? data.map(v => v["Value"]) : []
-            var l = data != null ? data.map(v => v["Key"]) : []
-            updateArray(chartData[0].values, d)
-            updateArray(chartData[0].labels, l)
-            Plotly.redraw(graphName)
-          })
+                return function() {
+                    fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
+                        var d = data != null ? data.map(v => v["Value"]) : []
+                        var l = data != null ? data.map(v => v["Key"]) : []
+                        updateArray(chartData[0].values, d)
+                        updateArray(chartData[0].labels, l)
+                        Plotly.redraw(graphName)
+                    })
+                }
+            }
+
+            var updateBarChart = function(graphName, title) {
+                var chartData = [{x: [], y: [], type: 'bar'}]
+
+                Plotly.newPlot(graphName, chartData, {title: title})
+
+                return function() {
+                    fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
+                        var x = data != null ? data.map(v => v["Key"]) : []
+                        var y = data != null ? data.map(v => v["Value"]) : []
+                        updateArray(chartData[0].x, x)
+                        updateArray(chartData[0].y, y)
+                        Plotly.redraw(graphName)
+                    })
+                }
+            }
+
+            var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
+            var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
+            var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
+            var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
+
+            var updateDashboard = function() {
+                updateDeliveryStatus()
+                updateTopBusiestDomainsChart()
+                updateTopDeferredDomainsChart()
+                updateTopBouncedDomainsChart()
+            }
+
+            document.getElementById('date-from').onchange = updateDashboard
+            document.getElementById('date-to').onchange = updateDashboard
+            document.getElementById('prev-date').onclick = selectPrevDay
+            document.getElementById('next-date').onclick = selectNextDay
+            document.getElementById('prev-week').onclick = selectPrevWeek
+            document.getElementById('next-week').onclick = selectNextWeek
+            document.getElementById('reload-dashboard').onclick = updateDashboard
+            document.getElementById('to-today').onclick = moveToToday
+
+            updateDashboard()
         }
-      }
+    </script>
 
-      var updateBarChart = function(graphName, title) {
-        var chartData = [{x: [], y: [], type: 'bar'}]
-
-        Plotly.newPlot(graphName, chartData, {title: title})
-
-        return function() {
-          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-            var x = data != null ? data.map(v => v["Key"]) : []
-            var y = data != null ? data.map(v => v["Value"]) : []
-            updateArray(chartData[0].x, x)
-            updateArray(chartData[0].y, y)
-            Plotly.redraw(graphName)
-          })
+    <style>
+        .dashboard-gadget {
+            display: table-cell;
         }
-      }
 
-      var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
-      var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
-      var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
-      var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
+        .dashboard-line {
+            display: table;
+        }
 
-      var updateDashboard = function() {
-        updateDeliveryStatus()
-        updateTopBusiestDomainsChart()
-        updateTopDeferredDomainsChart()
-        updateTopBouncedDomainsChart()
-      }
+        .dashboard-line {
+            display: table-row;
+        }
 
-      document.getElementById('date-from').onchange = updateDashboard
-      document.getElementById('date-to').onchange = updateDashboard
-      document.getElementById('prev-date').onclick = selectPrevDay
-      document.getElementById('next-date').onclick = selectNextDay
-      document.getElementById('prev-week').onclick = selectPrevWeek
-      document.getElementById('next-week').onclick = selectNextWeek
-      document.getElementById('reload-dashboard').onclick = updateDashboard
-      document.getElementById('to-today').onclick = moveToToday
-
-      updateDashboard()
-    }
-  </script>
-
-  <style>
-    .dashboard-gadget {
-      display: table-cell;
-    }
-
-    .dashboard-line {
-      display: table;
-    }
-
-    .dashboard-line {
-      display: table-row;
-    }
-
-    .modebar {
-      display: none !important;
-    }
-  </style>
-  <title>Lightmeter ControlCenter</title>
+        .modebar {
+            display: none !important;
+        }
+    </style>
+    <title>Lightmeter ControlCenter</title>
 </head>
 
 <body onload="drawDashboard()">
-  <div id="date-interval-picker">
-    <div class="date-picker">
-      <span>From:</span>
-      <input id="date-from" type="date" required/>
+    <div id="date-interval-picker">
+        <div class="date-picker">
+            <span>From:</span>
+            <input id="date-from" type="date" required/>
+        </div>
+        <div class="date-picker">
+            <span>To:</span>
+            <input id="date-to" type="date" required/>
+        </div>
+        <div id="date-controls">
+            <button id="reload-dashboard">Reload</button>
+            <button id="to-today">Today</button>
+            <button id="prev-week">-1w</button>
+            <button id="prev-date">-1d</button>
+            <button id="next-date">+1d</button>
+            <button id="next-week">+1w</button>
+        </div>
     </div>
-    <div class="date-picker">
-      <span>To:</span>
-      <input id="date-to" type="date" required/>
+    <div class="dashboard">
+        <div class="dashboard-line">
+            <div class="dashboard-gadget" id='deliveryStatus'></div>
+            <div class="dashboard-gadget" id='topBusiestDomains'></div>
+        </div>
+        <div class="dashboard-line">
+            <div class="dashboard-gadget" id='topBouncedDomains'></div>
+            <div class="dashboard-gadget" id='topDeferredDomains'></div>
+        </div>
     </div>
-    <div id="date-controls">
-      <button id="reload-dashboard">Reload</button>
-      <button id="to-today">Today</button>
-      <button id="prev-week">-1w</button>
-      <button id="prev-date">-1d</button>
-      <button id="next-date">+1d</button>
-      <button id="next-week">+1w</button>
-    </div>
-  </div>
-  <div class="dashboard">
-    <div class="dashboard-line">
-      <div class="dashboard-gadget" id='deliveryStatus'></div>
-      <div class="dashboard-gadget" id='topBusiestDomains'></div>
-    </div>
-    <div class="dashboard-line">
-      <div class="dashboard-gadget" id='topBouncedDomains'></div>
-      <div class="dashboard-gadget" id='topDeferredDomains'></div>
-    </div>
-  </div>
 </body>
 </html>
