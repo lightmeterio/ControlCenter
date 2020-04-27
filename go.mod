@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/golang/mock v1.4.3
 	github.com/hpcloud/tail v1.0.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/smartystreets/goconvey v1.6.4
