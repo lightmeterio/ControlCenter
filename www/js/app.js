@@ -1,3 +1,8 @@
+
+// Enable range datepicker
+$('input[name="daterangepicker"]').daterangepicker();
+
+// Graph stuff
 var drawDashboard = function() {
     var formatDate = function(d) {
         return d.toISOString().split('T')[0]
