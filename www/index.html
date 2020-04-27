@@ -12,6 +12,9 @@
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+        
+        <!-- Fontawesome CSS -->
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
 
         <title>Lightmeter ControlCenter</title>
     </head>
@@ -30,7 +33,10 @@
                 <div class="row">
   <label for="example-date-input" class="col-2 col-form-label">Time interval</label>
   <div class="col-10">
-    <input class="form-control" type="text" name="daterangepicker">
+    <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+        <i class="fa fa-calendar"></i>&nbsp;
+        <span></span> <i class="fa fa-caret-down"></i>
+    </div>
   </div>
                     <div id="date-interval-picker">
                         <div class="date-picker">
