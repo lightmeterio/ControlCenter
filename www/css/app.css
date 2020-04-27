@@ -25,3 +25,26 @@
 .navbar-static-top .logo img {
     height: 30px;
 }
+
+#time-interval-field {
+    font: Bold 12px/16px Open Sans;
+    letter-spacing: 0px;
+    color: #2C9CD6;    
+}
+
+#time-interval-field span {
+    text-align: center;
+}
+
+div#time-interval-field {
+    background: #2C9CD60D 0% 0% no-repeat padding-box;
+    border: 1px solid #2C9CD633;
+    border-radius: 20px;
+}
+
+.time-interval label {
+    text-align: right;
+    font: SemiBold 12px/16px Open Sans;
+    letter-spacing: 0px;
+    color: #20232
+}

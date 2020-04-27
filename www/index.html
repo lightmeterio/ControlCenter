@@ -30,30 +30,11 @@
             </div>
         </nav>
             <div class="container">
-                <div class="row">
-  <label for="example-date-input" class="col-2 col-form-label">Time interval</label>
-  <div class="col-10">
-    <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-        <i class="fa fa-calendar"></i>&nbsp;
-        <span></span> <i class="fa fa-caret-down"></i>
-    </div>
-  </div>
-                    <div id="date-interval-picker">
-                        <div class="date-picker">
-                            <span>From:</span>
-                            <input id="date-from" type="date" required/>
-                        </div>
-                        <div class="date-picker">
-                            <span>To:</span>
-                            <input id="date-to" type="date" required/>
-                        </div>
-                        <div id="date-controls">
-                            <button id="reload-dashboard">Reload</button>
-                            <button id="to-today">Today</button>
-                            <button id="prev-week">-1w</button>
-                            <button id="prev-date">-1d</button>
-                            <button id="next-date">+1d</button>
-                            <button id="next-week">+1w</button>
+                <div class="row justify-content-end time-interval">
+                    <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
+                    <div class="col-3">
+                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                            <span></span>&nbsp;<i class="fa fa-calendar"></i>
                         </div>
                     </div>
                 </div>
@@ -68,6 +49,28 @@
                 <div class="row">
                     <div class="dashboard-gadget" id='topBouncedDomains'></div>
                     <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div id="date-interval-picker">
+                            <div class="date-picker">
+                                <span>From:</span>
+                                <input id="date-from" type="date" required/>
+                            </div>
+                            <div class="date-picker">
+                                <span>To:</span>
+                                <input id="date-to" type="date" required/>
+                            </div>
+                            <div id="date-controls">
+                                <button id="reload-dashboard">Reload</button>
+                                <button id="to-today">Today</button>
+                                <button id="prev-week">-1w</button>
+                                <button id="prev-date">-1d</button>
+                                <button id="next-date">+1d</button>
+                                <button id="next-week">+1w</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

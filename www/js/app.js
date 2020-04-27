@@ -6,10 +6,10 @@ $(function() {
     var end = moment();
 
     function cb(start, end) {
-        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+        $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
     }
 
-    $('#reportrange').daterangepicker({
+    $('#time-interval-field').daterangepicker({
         startDate: start,
         endDate: end,
         ranges: {
