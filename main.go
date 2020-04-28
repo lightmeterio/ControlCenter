@@ -2,16 +2,17 @@ package main
 
 import (
 	"flag"
-	"gitlab.com/lightmeter/controlcenter/api"
-	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/logeater"
-	"gitlab.com/lightmeter/controlcenter/staticdata"
-	"gitlab.com/lightmeter/controlcenter/workspace"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"gitlab.com/lightmeter/controlcenter/api"
+	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/staticdata"
+	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
 type watchableFilenames []string
@@ -96,6 +97,8 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+
+	exposeApiExplorer(mux)
 
 	api.HttpDashboard(mux, timezone, dashboard)
 

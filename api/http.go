@@ -8,8 +8,18 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
+
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
+
+// @title Lightmeter ControlCenter HTTP API
+// @version 0.1
+// @description That's pretty much it
+// @contact.name Lightmeter Team
+// @contact.url http://lightmeter.io
+// @contact.email dev@lightmeter.io
+// @license.name GNU Affero General Public License 3.0
+// @license.url https://www.gnu.org/licenses/agpl-3.0.en.html
 
 func serveJson(w http.ResponseWriter, r *http.Request, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -45,9 +55,18 @@ type handler struct {
 
 type countByStatusHandler handler
 
+type countByStatusResult map[string]int
+
+// @Summary Count By Status
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} countByStatusResult "desc"
+// @Failure 422 {string} string "desc"
+// @Router /api/countByStatus [get]
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, map[string]int{
+		serveJson(w, r, countByStatusResult{
 			"sent":     h.dashboard.CountByStatus(parser.SentStatus, interval),
 			"deferred": h.dashboard.CountByStatus(parser.DeferredStatus, interval),
 			"bounced":  h.dashboard.CountByStatus(parser.BouncedStatus, interval),
@@ -57,6 +76,13 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 type topBusiestDomainsHandler handler
 
+// @Summary Top Busiest Domains
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} dashboard.Pairs
+// @Failure 422 {string} string "desc"
+// @Router /api/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
@@ -65,6 +91,13 @@ func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 type topBouncedDomainsHandler handler
 
+// @Summary Top Bounced Domains
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} dashboard.Pairs
+// @Failure 422 {string} string "desc"
+// @Router /api/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
@@ -73,6 +106,13 @@ func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 type topDeferredDomainsHandler handler
 
+// @Summary Top Deferred Domains
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} dashboard.Pairs
+// @Failure 422 {string} string "desc"
+// @Router /api/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
@@ -81,6 +121,13 @@ func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 type deliveryStatusHandler handler
 
+// @Summary Delivery Status
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} dashboard.Pairs
+// @Failure 422 {string} string "desc"
+// @Router /api/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.DeliveryStatus(interval))
