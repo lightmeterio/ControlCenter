@@ -71,3 +71,10 @@ footer a {
 footer p {
     margin: 0;
 }
+
+.card .card-title {
+    font: 12px/20px Inter;
+    letter-spacing: 0px;
+    color: #202324;
+    font-weight: bold;
+}
