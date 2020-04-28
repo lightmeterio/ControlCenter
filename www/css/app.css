@@ -14,7 +14,7 @@
     display: none !important;
 }
 
-.navbar-static-top {
+header .navbar {
     height: 70px;
     background: #FFFFFF 0% 0% no-repeat padding-box;
     box-shadow: 0px 6px 20px #2C9CD61A;
@@ -22,8 +22,12 @@
     margin-bottom: 1em;
 }
 
-.navbar-static-top .logo img {
+header .logo img {
     height: 30px;
+}
+
+header .buttons {
+    color: #2C9CD6;
 }
 
 #time-interval-field {
@@ -44,7 +48,26 @@ div#time-interval-field {
 
 .time-interval label {
     text-align: right;
-    font: SemiBold 12px/16px Open Sans;
+    font: 12px/16px Open Sans;
     letter-spacing: 0px;
     color: #20232
+}
+
+footer {
+    padding: 0.5rem 0;
+}
+
+footer, footer a, footer a:hover {
+    background: #426475 0% 0% no-repeat padding-box;
+    font: 12px/15px Open Sans;
+    letter-spacing: 0px;
+    color: #FFFFFF;
+}
+
+footer a {
+    text-decoration: underline;
+}
+
+footer p {
+    margin: 0;
 }

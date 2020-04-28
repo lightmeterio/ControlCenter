@@ -20,15 +20,20 @@
     </head>
 
     <body onload="drawDashboard()">
-        <nav class="navbar navbar-default navbar-static-top">
-            <div class="container">
-                <div class="row align-items-center">
-                    <a class="logo" href="/" title="Home">
+    
+        <header>
+            <div class="navbar">
+                <div class="container d-flex justify-content-between">
+                    <a class="logo navbar-brand d-flex align-items-center" href="/" title="Home">
                         <img src="img/logo-color-120.png" alt="Lightmeter logo" />
                     </a>
+                    <span class="buttons">
+                        <i class="fas fa-cog"></i>
+                    </span>
                 </div>
             </div>
-        </nav>
+        </header>
+        
             <div class="container">
                 <div class="row justify-content-end time-interval">
                     <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
@@ -74,6 +79,16 @@
                 </div>
             </div>
         </div>
+        
+        <footer>
+            <div class="container">
+                <p class="float-right">
+                    <a href="#">&bull; Feedback</a>
+                </p>
+                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="lightmeter.io/privacy-policy/">Privacy Policy</a></p>
+            </div>
+        </footer>
+        
         <!-- Boostrap dependencies -->
         <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
