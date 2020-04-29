@@ -98,10 +98,12 @@ var drawDashboard = function() {
     var updateDonutChart = function(graphName, title) {
         var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
         var layout = {
-            title: title,
-            autosize: false,
-            width: 300,
-            height: 300
+          margin: {
+            t: 30,
+            l: 30,
+            r: 30,
+            b: 30
+          }
         };
 
         Plotly.newPlot(graphName, chartData, layout)
@@ -120,10 +122,12 @@ var drawDashboard = function() {
     var updateBarChart = function(graphName, title) {
         var chartData = [{x: [], y: [], type: 'bar'}]
         var layout = {
-            title: title,
-            autosize: false,
-            width: 800,
-            height: 300
+          margin: {
+            t: 30,
+            l: 30,
+            r: 30,
+            b: 30
+          }
         };
 
         Plotly.newPlot(graphName, chartData, layout)

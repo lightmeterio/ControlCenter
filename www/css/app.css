@@ -1,13 +1,10 @@
 .dashboard-gadget {
-    display: table-cell;
 }
 
 .dashboard-line {
-    display: table;
 }
 
 .dashboard-line {
-    display: table-row;
 }
 
 .modebar {
