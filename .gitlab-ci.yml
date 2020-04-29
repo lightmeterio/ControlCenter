@@ -1,3 +1,8 @@
+stages:
+  - test
+  - build
+  - publish
+
 image: alpine:3.11
 
 before_script:
@@ -6,13 +11,16 @@ before_script:
   - go get -u github.com/jstemmer/go-junit-report
 
 build:
+  stage: build
   script:
     - ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
   artifacts:
     paths:
       - ./lightmeter
+    expire_in: 7 days
 
 test:
+  stage: test
   script:
     - ./utils/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
@@ -20,7 +28,17 @@ test:
       junit: report.xml
 
 cover:
+  stage: test
   script:
     - ./utils/go_test.sh -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
+
+do-release:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/release-cli
+  when: manual
+  except:
+      - tags
+  script:
+    - ./release_on_gitlab.sh

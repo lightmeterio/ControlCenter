@@ -1,3 +1,4 @@
 http_vfsdata.go
 mock
 www/api.json
+version/version_release.go

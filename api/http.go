@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/version"
 
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -134,10 +135,27 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+type appVersionHandler struct{}
+
+type appVersion struct {
+	Version     string
+	Commit      string
+	TagOrBranch string
+}
+
+// @Summary Control Center Version
+// @Produce json
+// @Success 200 {object} appVersion
+// @Router /api/appVersion [get]
+func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	serveJson(w, r, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch})
+}
+
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
 	mux.Handle("/api/countByStatus", countByStatusHandler{dashboard, timezone})
 	mux.Handle("/api/topBusiestDomains", topBusiestDomainsHandler{dashboard, timezone})
 	mux.Handle("/api/topBouncedDomains", topBouncedDomainsHandler{dashboard, timezone})
 	mux.Handle("/api/topDeferredDomains", topDeferredDomainsHandler{dashboard, timezone})
 	mux.Handle("/api/deliveryStatus", deliveryStatusHandler{dashboard, timezone})
+	mux.Handle("/api/appVersion", appVersionHandler{})
 }
