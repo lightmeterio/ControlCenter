@@ -3,9 +3,10 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
-	"gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 type queries struct {
@@ -23,11 +24,21 @@ type Pair struct {
 
 type Pairs []Pair
 
-type Dashboard struct {
+type Dashboard interface {
+	Close() error
+
+	CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) int
+	TopBusiestDomains(interval data.TimeInterval) Pairs
+	TopBouncedDomains(interval data.TimeInterval) Pairs
+	TopDeferredDomains(interval data.TimeInterval) Pairs
+	DeliveryStatus(interval data.TimeInterval) Pairs
+}
+
+type SqlDbDashboard struct {
 	queries queries
 }
 
-func New(db *sql.DB) (Dashboard, error) {
+func New(db *sql.DB) (SqlDbDashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
 		count(*)
@@ -37,7 +48,7 @@ func New(db *sql.DB) (Dashboard, error) {
 		status = ? and read_ts_sec between ? and ?`)
 
 	if err != nil {
-		return Dashboard{}, err
+		return SqlDbDashboard{}, err
 	}
 
 	defer func() {
@@ -56,7 +67,7 @@ func New(db *sql.DB) (Dashboard, error) {
 	group by status`)
 
 	if err != nil {
-		return Dashboard{}, err
+		return SqlDbDashboard{}, err
 	}
 
 	defer func() {
@@ -79,7 +90,7 @@ func New(db *sql.DB) (Dashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return Dashboard{}, err
+		return SqlDbDashboard{}, err
 	}
 
 	defer func() {
@@ -102,7 +113,7 @@ func New(db *sql.DB) (Dashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return Dashboard{}, err
+		return SqlDbDashboard{}, err
 	}
 
 	defer func() {
@@ -125,7 +136,7 @@ func New(db *sql.DB) (Dashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return Dashboard{}, err
+		return SqlDbDashboard{}, err
 	}
 
 	defer func() {
@@ -134,7 +145,7 @@ func New(db *sql.DB) (Dashboard, error) {
 		}
 	}()
 
-	return Dashboard{
+	return SqlDbDashboard{
 		queries: queries{
 			countByStatus:      countByStatus,
 			deliveryStatus:     deliveryStatus,
@@ -145,7 +156,7 @@ func New(db *sql.DB) (Dashboard, error) {
 	}, nil
 }
 
-func (d Dashboard) Close() error {
+func (d SqlDbDashboard) Close() error {
 	errCountByStatus := d.queries.countByStatus.Close()
 	errDeliveryStatus := d.queries.deliveryStatus.Close()
 	errTopBusiestDomains := d.queries.topBusiestDomains.Close()
@@ -164,23 +175,23 @@ func (d Dashboard) Close() error {
 	return nil
 }
 
-func (d Dashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) int {
+func (d SqlDbDashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) int {
 	return countByStatus(d.queries.countByStatus, status, interval)
 }
 
-func (d Dashboard) TopBusiestDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopBusiestDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) TopBouncedDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopBouncedDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topBouncedDomains, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) TopDeferredDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopDeferredDomains(interval data.TimeInterval) Pairs {
 	return listDomainAndCount(d.queries.topDeferredDomains, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d Dashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
 	return deliveryStatus(d.queries.deliveryStatus, interval)
 }
 
@@ -201,7 +212,7 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 }
 
 func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
-	var r Pairs
+	r := Pairs{}
 
 	query, err := stmt.Query(args...)
 
@@ -227,7 +238,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 }
 
 func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
-	var r Pairs
+	r := Pairs{}
 
 	query, err := stmt.Query(interval.From.Unix(), interval.To.Unix())
 

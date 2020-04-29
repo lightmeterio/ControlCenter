@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -e
+set -o pipefail
 
 PACKAGES="
   data
@@ -23,4 +24,5 @@ for P in $PACKAGES; do
   COVERPKG="$COVERPKG,$PREFIX$P"
 done
 
+go generate gitlab.com/lightmeter/controlcenter/dashboard
 go test ./... -coverpkg=$COVERPKG "$@"
