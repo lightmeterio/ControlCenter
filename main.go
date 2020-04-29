@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
+	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
@@ -31,10 +33,15 @@ var (
 	watchFromStdin     bool
 	workspaceDirectory string
 	importOnly         bool
+	showVersion        bool
 
 	timezone *time.Location = time.UTC
 	logYear  int
 )
+
+func printVersion() {
+	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
+}
 
 func init() {
 	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times)")
@@ -43,10 +50,21 @@ func init() {
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import logs from stdin, exiting imediately, without running the full application. Implies -stdin")
 	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
+	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
+
+	flag.Usage = func() {
+		printVersion()
+		flag.PrintDefaults()
+	}
 }
 
 func main() {
 	flag.Parse()
+
+	if showVersion {
+		printVersion()
+		return
+	}
 
 	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
 		Location:    timezone,
