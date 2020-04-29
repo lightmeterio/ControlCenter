@@ -14,7 +14,7 @@ import (
 
 // @title Lightmeter ControlCenter HTTP API
 // @version 0.1
-// @description That's pretty much it
+// @description API for user interfaces
 // @contact.name Lightmeter Team
 // @contact.url http://lightmeter.io
 // @contact.email dev@lightmeter.io
