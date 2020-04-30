@@ -8,7 +8,7 @@ same version number chosen in the previous step.
 
 Commit and push your changes.
 
-After Gitlab CI for your commit finishes, click on the button ▶ and "do-release" for the correspondent pipeline.
+After Gitlab CI for your commit finishes, click on the button ▶ and "create-release" for the correspondent pipeline.
 
 After that, you'll have a new release in the Releases page.
 
