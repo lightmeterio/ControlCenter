@@ -1,16 +1,25 @@
+include:
+  - template: Security/License-Management.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+
+variables:
+  SAST_DEFAULT_ANALYZERS: "gosec,secrets"
+
 stages:
   - test
+  - security
   - build
   - publish
 
-image: alpine:3.11
-
-before_script:
-  - apk update
-  - apk add go git
-  - go get -u github.com/jstemmer/go-junit-report
+.go-builder:
+  image: alpine:3.11
+  before_script:
+    - apk update
+    - apk add go git
+    - go get -u github.com/jstemmer/go-junit-report
 
 build:
+  extends: .go-builder
   stage: build
   script:
     - ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
@@ -20,6 +29,7 @@ build:
     expire_in: 7 days
 
 test:
+  extends: .go-builder
   stage: test
   script:
     - ./utils/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
@@ -28,17 +38,60 @@ test:
       junit: report.xml
 
 cover:
+  extends: .go-builder
   stage: test
   script:
+    - go get -u github.com/t-yuki/gocover-cobertura
     - ./utils/go_test.sh -coverprofile=coverinfo.txt
+    - go run github.com/t-yuki/gocover-cobertura < coverinfo.txt > cobertura.xml
+    - go tool cover -html=coverinfo.txt -o coverage.html
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
+  artifacts:
+    reports:
+      cobertura: cobertura.xml
+    paths:
+      - coverage.html
+    expire_in: 7 days
 
-do-release:
+publish-release:
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli
   when: manual
   except:
       - tags
   script:
-    - ./release_on_gitlab.sh
+    - ./ci/release_on_gitlab.sh
+
+license_management:
+  stage: security
+
+sast:
+  stage: security
+
+build-docker-image:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  stage: build
+  script:
+    - mkdir -p .docker-cache
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/ci/Dockerfile --no-push --cache-dir .docker-cache
+  artifacts:
+    paths:
+      - .docker-cache
+    expire_in: 1 day
+
+publish-docker-image:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  stage: publish
+  needs:
+    - job: build-docker-image
+      artifacts: true
+  when: manual
+  except:
+    - tags
+  script:
+    - sh ci/publish_docker_image.sh

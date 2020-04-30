@@ -1,15 +1,19 @@
-FROM alpine:3.11
+FROM alpine:3.11 AS builder
 
-RUN apk update && apk add git go
+RUN apk update && apk add go git
 
-VOLUME /src
-
-VOLUME /dst
+ADD . /src
 
 WORKDIR /src
 
+RUN ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
+
+FROM busybox:1.31.1-musl
+
+COPY --from=builder /src/lightmeter /lightmeter
+
+VOLUME /logs
+
 USER 1000
 
-ENV HOME /tmp
-
-CMD ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w" && mv lightmeter /dst
+ENTRYPOINT ["/lightmeter"]
