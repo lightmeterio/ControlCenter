@@ -39,46 +39,6 @@ var drawDashboard = function() {
         return d.toISOString().split('T')[0]
     }
 
-    var incDate = function(value) {
-        // FIXME: That looks freaking ugly, but that's okay for now
-
-        var from = document.getElementById('date-from')
-        var to = document.getElementById('date-to')
-
-        var refDate = new Date(from.valueAsDate)
-
-        refDate.setDate(refDate.getDate() + value)
-        from.value = formatDate(refDate)
-
-        refDate.setDate(refDate.getDate() + Math.abs(value) - 1)
-        to.value = formatDate(refDate)
-
-        updateDashboard()
-    }
-
-    var selectNextDay = function() {
-        incDate(1)
-    }
-
-    var selectPrevDay = function() {
-        incDate(-1)
-    }
-
-    var selectNextWeek = function() {
-        incDate(7)
-    }
-
-    var selectPrevWeek = function() {
-        incDate(-7)
-    }
-
-    var moveToToday = function() {
-        var now = new Date()
-        document.getElementById('date-from').valueAsDate = now
-        document.getElementById('date-to').valueAsDate = now
-        updateDashboard()
-    }
-
     var updateArray = function(dst, src) {
         dst.splice(0, Infinity, ...src)
     }
@@ -161,15 +121,6 @@ var drawDashboard = function() {
         updateTopDeferredDomainsChart()
         updateTopBouncedDomainsChart()
     }
-
-    document.getElementById('date-from').onchange = updateDashboard
-    document.getElementById('date-to').onchange = updateDashboard
-    document.getElementById('prev-date').onclick = selectPrevDay
-    document.getElementById('next-date').onclick = selectNextDay
-    document.getElementById('prev-week').onclick = selectPrevWeek
-    document.getElementById('next-week').onclick = selectNextWeek
-    document.getElementById('reload-dashboard').onclick = updateDashboard
-    document.getElementById('to-today').onclick = moveToToday
 
     updateDashboard()
 }
