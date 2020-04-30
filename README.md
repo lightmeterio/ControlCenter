@@ -58,3 +58,9 @@ It's good to remember that we probably won't ever support Windows, but that does
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
 - Mailserver data is stored in separate workspaces. See `-help` for more details on managing these.
 - Postfix logs don't contain a year as part of the date of each line, so the year is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
+
+### API
+
+Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
+
+Swagger-based API documentation and experimentation pages are generated automatically on development builds. Access them via `http://lightmeter-address:8080/api`, eg. [http://localhost:8080/api](http://localhost:8080/api).
