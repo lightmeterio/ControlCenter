@@ -48,8 +48,8 @@ var drawDashboard = function() {
     }
 
     // TODO: maybe this is an async function?
-    var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
-        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(function(res) {
+    var apiCallGet = function(url) {
+        return fetch(url).then(function(res) {
             if (res.ok) {
                 return res.json()
             }
@@ -60,6 +60,10 @@ var drawDashboard = function() {
 
             return null
         })
+    }
+
+    var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
+        return apiCallGet("api/" + methodName + "?" + timeIntervalUrlParams())
     }
 
     var updateDonutChart = function(graphName, title) {
@@ -122,5 +126,20 @@ var drawDashboard = function() {
         updateTopBouncedDomainsChart()
     }
 
+    var setupApplicationInfo = function() {
+        apiCallGet("/api/appVersion").then(function(data) {
+            // TODO: fill UI with version and build info
+            // You'll need to "./build.sh release" to have meaningful values
+            // Example of received data:
+            // {
+            //     Commit: "6fbcce9", // empty string on non release version
+            //     TagOrBranch: "add-bootstrap", // empty string on non release version
+            //     Version: "0.0.0", // "<dev>" on non release version
+            // }
+            console.log(data)
+        })
+    }
+
+    setupApplicationInfo()
     updateDashboard()
 }
