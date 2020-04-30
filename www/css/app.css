@@ -11,6 +11,13 @@
     display: none !important;
 }
 
+body {
+    background: #F4FAFD!important;
+}
+
+.main-content {
+}
+
 #date-from, #date-to {
   display: none;
 }
@@ -56,6 +63,7 @@ div#time-interval-field {
 
 footer {
     padding: 0.5rem 0;
+    margin-top: 1rem;
 }
 
 footer, footer a, footer a:hover {

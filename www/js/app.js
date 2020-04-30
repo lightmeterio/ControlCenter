@@ -1,3 +1,9 @@
+// Tabbed graphs
+$('#overview-graphs a').on('click', function (e) {
+    e.preventDefault()
+    $(this).tab('show')
+})
+
 // Graph stuff
 var drawDashboard = function() {
     var updateInterval = function(start, end) {

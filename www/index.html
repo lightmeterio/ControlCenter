@@ -34,12 +34,12 @@
             </div>
         </header>
         
-            <div class="container">
-                <div class="row justify-content-end time-interval">
+            <div class="container main-content">
+                <div class="row justify-content-end align-items-center time-interval">
                     <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
-                    <div class="col-3">
-                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                            <span></span>&nbsp;<i class="fa fa-calendar"></i>
+                    <div class="col-2">
+                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;">
+                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
                         </div>
                     </div>
                 </div>
@@ -53,24 +53,44 @@
                         </div>
                     </div>
                     <div class="col-9">
-                        <ul class="nav nav-tabs">
-                          <li class="active"><a data-toggle="tab" href="#busiest-domains">Busiest Domains</a></li>
-                          <li><a data-toggle="tab" href="#deferred-domains">Deferred Domains</a></li>
-                          <li><a data-toggle="tab" href="#bounced-domains">Bounced Domains</a></li>
-                        </ul>
-
-                        <div class="card tab-content">
-                            <div class="card-body tab-pane fade in active show" id="busiest-domains">
-                                <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                        <div class="card">
+                            <div class="card-header">
+                            
+                                <ul class="nav nav-tabs card-header-tabs" id="overview-graphs" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="#busiest-domains" role="tab" aria-controls="busiest-domains" aria-selected="true">Busiest domains</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link"    href="#bounced-domains" role="tab" aria-controls="bounced-domains" aria-selected="false">Bounced domains</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#deferred-domains" role="tab" aria-controls="deferred-domains" aria-selected="false">Deferred domains</a>
+                                    </li>
+                                </ul>
                             </div>
-                            <div class="card-body tab-pane fade" id="deferred-domains">
-                                <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                            <div class="card-body">
+                                
+                                <div class="tab-content mt-3">
+                                    <div class="tab-pane active" id="bounced-domains" role="tabpanel">
+                                        <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                                    </div>
+                                    
+                                    <div class="tab-pane" id="bounced-domains" role="tabpanel" aria-labelledby="bounced-domains-tab">    
+                                        <div class="dashboard-gadget" id='topBouncedDomains'></div>
+                                    </div>
+                                    
+                                    <div class="tab-pane" id="deferred-domains" role="tabpanel" aria-labelledby="deferred-domains-tab">
+                                        <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body tab-pane fade" id="bounced-domains">
-                                <div class="dashboard-gadget" id='topBouncedDomains'></div>
-                            </div>
+                            
                         </div>
                     </div>
+                </div>
+                <div class="row">
+                    
+                    
                 </div>
                 <input id="date-from" type="date" required/>
                 <input id="date-to" type="date" required/>
