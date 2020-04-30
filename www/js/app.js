@@ -1,33 +1,40 @@
-
-// Enable range datepicker
-$(function() {
-
-    var start = moment().subtract(29, 'days');
-    var end = moment();
-
-    function cb(start, end) {
-        $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
-    }
-
-    $('#time-interval-field').daterangepicker({
-        startDate: start,
-        endDate: end,
-        ranges: {
-           'Today': [moment(), moment()],
-           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-           'This Month': [moment().startOf('month'), moment().endOf('month')],
-           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        }
-    }, cb);
-
-    cb(start, end);
-
-});
-
 // Graph stuff
 var drawDashboard = function() {
+    var updateInterval = function(start, end) {
+        var from = document.getElementById('date-from')
+        var to = document.getElementById('date-to')
+
+        from.value = formatDate(start)
+        to.value = formatDate(end)
+    }
+    
+    // Enable range datepicker
+    $(function() {
+        var start = moment().subtract(29, 'days');
+        var end = moment();
+    
+        function cb(start, end) {
+            $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
+            updateInterval(start.toDate(), end.toDate())
+            updateDashboard() 
+        }
+    
+        $('#time-interval-field').daterangepicker({
+            startDate: start,
+            endDate: end,
+            ranges: {
+               'Today': [moment(), moment()],
+               'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+               'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+               'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+               'This Month': [moment().startOf('month'), moment().endOf('month')],
+               'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            }
+        }, cb);
+    
+        cb(start, end);
+    })
+
     var formatDate = function(d) {
         return d.toISOString().split('T')[0]
     }

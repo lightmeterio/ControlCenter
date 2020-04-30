@@ -11,6 +11,10 @@
     display: none !important;
 }
 
+#date-from, #date-to {
+  display: none;
+}
+
 header .navbar {
     height: 70px;
     background: #FFFFFF 0% 0% no-repeat padding-box;
