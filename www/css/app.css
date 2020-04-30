@@ -90,3 +90,16 @@ footer p {
     color: #202324;
     font-weight: bold;
 }
+
+.nav-tabs .nav-link {
+    color: #1D8CAF;
+    font-size: 15px;
+}
+
+.main-content .nav-tabs .nav-item.show .nav-link
+, .main-content  .nav-tabs .nav-link.active {
+    color: #fff;
+    background: #1D8CAF 0% 0% no-repeat padding-box;
+    border-radius: 27px;
+    border: none;
+}
