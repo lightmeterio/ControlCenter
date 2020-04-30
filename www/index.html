@@ -53,38 +53,45 @@
                         </div>
                     </div>
                     <div class="col-9">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Busiest domains</h5>
-                                    <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                        <ul class="nav nav-tabs">
+                          <li class="active"><a data-toggle="tab" href="#busiest-domains">Busiest Domains</a></li>
+                          <li><a data-toggle="tab" href="#deferred-domains">Deferred Domains</a></li>
+                          <li><a data-toggle="tab" href="#bounced-domains">Bounced Domains</a></li>
+                        </ul>
+
+                        <div class="card tab-content">
+                            <div class="card-body tab-pane fade in active show" id="busiest-domains">
+                                <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                            </div>
+                            <div class="card-body tab-pane fade" id="deferred-domains">
+                                <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                            </div>
+                            <div class="card-body tab-pane fade" id="bounced-domains">
+                                <div class="dashboard-gadget" id='topBouncedDomains'></div>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
-                    <div class="dashboard-gadget" id='topBouncedDomains'></div>
-                    <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                  hahaha
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div id="date-interval-picker">
-                            <div class="date-picker">
-                                <span>From:</span>
-                                <input id="date-from" type="date" required/>
-                            </div>
-                            <div class="date-picker">
-                                <span>To:</span>
-                                <input id="date-to" type="date" required/>
-                            </div>
-                            <div id="date-controls">
-                                <button id="reload-dashboard">Reload</button>
-                                <button id="to-today">Today</button>
-                                <button id="prev-week">-1w</button>
-                                <button id="prev-date">-1d</button>
-                                <button id="next-date">+1d</button>
-                                <button id="next-week">+1w</button>
-                            </div>
-                        </div>
+                <div id="date-interval-picker">
+                    <div class="date-picker">
+                        <span>From:</span>
+                        <input id="date-from" type="date" required/>
+                    </div>
+                    <div class="date-picker">
+                        <span>To:</span>
+                        <input id="date-to" type="date" required/>
+                    </div>
+                    <div id="date-controls">
+                        <button id="reload-dashboard">Reload</button>
+                        <button id="to-today">Today</button>
+                        <button id="prev-week">-1w</button>
+                        <button id="prev-date">-1d</button>
+                        <button id="next-date">+1d</button>
+                        <button id="next-week">+1w</button>
                     </div>
                 </div>
             </div>
