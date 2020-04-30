@@ -27,7 +27,6 @@ header .navbar {
     background: #FFFFFF 0% 0% no-repeat padding-box;
     box-shadow: 0px 6px 20px #2C9CD61A;
     opacity: 1;
-    margin-bottom: 1em;
 }
 
 header .logo img {
@@ -36,6 +35,10 @@ header .logo img {
 
 header .buttons {
     color: #2C9CD6;
+}
+
+.time-interval {
+    margin: 0.6rem 0 0.3rem 0;
 }
 
 #time-interval-field {
