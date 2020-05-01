@@ -1,6 +1,6 @@
-FROM alpine:3.11 AS builder
+FROM golang:1.14.2-alpine3.11 AS builder
 
-RUN apk update && apk add go git
+RUN apk update && apk add gcc libc-dev git
 
 ADD . /src
 
@@ -8,7 +8,7 @@ WORKDIR /src
 
 RUN ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
 
-FROM busybox:1.31.1-musl
+FROM scratch
 
 COPY --from=builder /src/lightmeter /lightmeter
 
