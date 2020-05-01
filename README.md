@@ -1,7 +1,7 @@
 # Postfix Log Parser Go Library
 
-![coverage](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/coverage.svg)
-![pipeline](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/pipeline.svg)
+[![pipeline status](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/postfix-log-parser/-/commits/master)
+[![coverage report](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/coverage.svg)](https://gitlab.com/lightmeter/postfix-log-parser/-/commits/master)
 
 This is an eternal work in progress Postfix Log Parser used by Lightmeter Control Center.
 
