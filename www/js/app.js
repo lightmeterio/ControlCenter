@@ -73,14 +73,29 @@ var drawDashboard = function() {
     }
 
     var updateDonutChart = function(graphName, title) {
-        var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
+        var chartData = [{
+            values: [], 
+            'marker': {
+                'colors': [
+                    'rgb(135, 197, 40)',
+                    'rgb(255, 92, 111)',
+                    'rgb(118, 17, 195)',
+                    'rgb(122, 130, 171)',
+                ]
+            },
+            labels: [], 
+            type: 'pie', 
+            hole: 0.3
+        }]
         var layout = {
-          margin: {
-            t: 30,
-            l: 30,
-            r: 30,
-            b: 30
-          }
+            width: 340,
+            height: 220,
+            margin: {
+                t: 20,
+                l: 20,
+                r: 20,
+                b: 20
+            }
         };
 
         Plotly.newPlot(graphName, chartData, layout)
@@ -97,14 +112,50 @@ var drawDashboard = function() {
     }
 
     var updateBarChart = function(graphName, title) {
-        var chartData = [{x: [], y: [], type: 'bar'}]
+        var chartData = [{
+            x: [], 
+            y: [], 
+            type: 'bar',
+            marker: {
+                color: [
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                    'rgb(149, 205, 234)', 
+                ]
+            }
+        }]
         var layout = {
-          margin: {
-            t: 30,
-            l: 30,
-            r: 30,
-            b: 30
-          }
+            width: 660,
+            height: 220,
+            xaxis: {
+                automargin: true,
+            },
+            yaxis: {
+                automargin: true,
+            },
+            margin: {
+                t: 0,
+                l: 30,
+                r: 0,
+                b: 50
+            }
         };
 
         Plotly.newPlot(graphName, chartData, layout)
