@@ -2,8 +2,18 @@
 
 set -o pipefail
 set -e
+set -vx
 
-IMAGE_TAG=${CI_COMMIT_TAG:-bad-dev}
+function image_tag() {
+  if [ -n "${CI_COMMIT_TAG}" ]; then
+    echo "${CI_COMMIT_TAG#release/}"
+  else
+    echo "ERROR: we publish docker images only on new tags for now" >&2
+    return 1
+  fi
+}
+
+IMAGE_TAG=$(image_tag)
 
 cat > /kaniko/.docker/config.json << EOF
 {
@@ -15,6 +25,8 @@ cat > /kaniko/.docker/config.json << EOF
   }
 }"
 EOF
+
+mkdir -p .docker-cache
 
 /kaniko/executor \
   --context $CI_PROJECT_DIR \
