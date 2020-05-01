@@ -1,0 +1,166 @@
+.dashboard-gadget {
+}
+
+.dashboard-line {
+}
+
+.dashboard-line {
+}
+
+.modebar {
+    display: none !important;
+}
+
+body {
+    background: #F4FAFD!important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: Inter;
+}
+
+.main-content {
+}
+
+#date-from, #date-to {
+  display: none;
+}
+
+header .navbar {
+    height: 70px;
+    background: #FFFFFF 0% 0% no-repeat padding-box;
+    box-shadow: 0px 6px 20px #2C9CD61A;
+    opacity: 1;
+}
+
+header .logo img {
+    height: 30px;
+}
+
+header .buttons {
+    color: #2C9CD6;
+    /* TODO: reveal the buttons once functionality is implemented */
+    display: none;
+}
+
+.time-interval {
+    margin: 0.6rem 0 0.3rem 0;
+}
+
+#time-interval-field {
+    font: Bold 12px/16px Open Sans;
+    letter-spacing: 0px;
+    color: #2C9CD6;    
+}
+
+#time-interval-field span {
+    text-align: center;
+}
+
+div#time-interval-field {
+    background: #2C9CD60D 0% 0% no-repeat padding-box;
+    border: 1px solid #2C9CD633;
+    border-radius: 20px;
+}
+
+.time-interval label {
+    text-align: right;
+    font: 12px/16px Open Sans;
+    letter-spacing: 0px;
+    color: #20232
+}
+
+footer {
+    padding: 0.5rem 0;
+    margin-top: 1rem;
+}
+
+footer, footer a, footer a:hover {
+    background: #426475 0% 0% no-repeat padding-box;
+    font: 12px/15px Open Sans;
+    letter-spacing: 0px;
+    color: #FFFFFF;
+}
+
+footer a {
+    text-decoration: none;
+}
+
+footer p {
+    margin: 0;
+}
+
+h5.row-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.main-content .card {
+    border-radius: 0;
+    border: none;
+}
+
+.card .card-title {
+    font: 12px/20px Inter;
+    letter-spacing: 0px;
+    color: #202324;
+    font-weight: bold;
+}
+
+.main-content .card-header {
+    background: none;
+    border: none;
+}
+
+.card-header
+, .nav-tabs .nav-link {
+    font-size: 15px;
+    font-weight: bold;
+    font-family: Inter;
+    color: #202324;
+}
+
+.nav-tabs .nav-link {
+    color: #1D8CAF;
+}
+
+.main-content .nav-tabs .nav-item.show .nav-link
+, .main-content  .nav-tabs .nav-link.active
+, .main-content .nav-tabs .nav-link:focus
+, .main-content .nav-tabs .nav-link:hover {
+        border-radius: 27px;
+}
+
+.main-content .nav-tabs .nav-item.show .nav-link
+, .main-content  .nav-tabs .nav-link.active {
+    color: #fff;
+    background: #1D8CAF 0% 0% no-repeat padding-box;
+    border: none;
+}
+
+.main-content .nav-tabs .nav-link:focus
+, .main-content .nav-tabs .nav-link:hover {
+    border: 1px solid #95CDEA;
+}
+
+.main-content .card-body {
+    padding: 0 0.2rem 0.2rem 0.2rem;
+}
+
+.insights .card-block {
+    padding: 1rem 1rem 1.5rem 0.5rem;
+}
+
+.insights .card-title {
+    margin: 0 0 0.3rem 0;
+    font: 15px/25px Inter;
+}
+
+.insights .card-text {
+    font: 12px/18px 'Open Sans', sans-serif;
+}
+
+.insights .gradient-bg {
+ background: rgb(0,212,255);
+background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%); 
+}

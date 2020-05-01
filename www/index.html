@@ -1,181 +1,179 @@
-<html>
-<head>
-  <script src='3rd/plotly.min.js'></script>
+<!doctype html>
+<html lang="en">
+    <head>
 
-  <script type="application/javascript">
-    var drawDashboard = function() {
-      var formatDate = function(d) {
-        return d.toISOString().split('T')[0]
-      }
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        
+        <link rel="stylesheet" href="css/app.css">
+        
+        <!-- Boostrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 
-      var incDate = function(value) {
-        // FIXME: That looks freaking ugly, but that's okay for now
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+        
+        <!-- Fontawesome CSS -->
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
 
-        var from = document.getElementById('date-from')
-        var to = document.getElementById('date-to')
+        <title>Lightmeter ControlCenter</title>
+    </head>
 
-        var refDate = new Date(from.valueAsDate)
+    <body onload="drawDashboard()">
+    
+        <header>
+            <div class="navbar">
+                <div class="container d-flex justify-content-between">
+                    <a class="logo navbar-brand d-flex align-items-center" href="/" title="Home">
+                        <img src="img/logo-color-120.png" alt="Lightmeter logo" />
+                    </a>
+                    <span class="buttons">
+                        <i class="fas fa-cog" onclick="alert('Release data goes here')"></i>
+                    </span>
+                </div>
+            </div>
+        </header>
+        
+            <div class="container main-content">
+                <div class="row justify-content-end align-items-center time-interval">
+                    <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
+                    <div class="col-2">
+                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;">
+                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="row-title">Status</h5>
+                    </div>
+                </div>
+                <div class="row">
+                    
+                    <div class="col-4">
+                        <div class="card">
+                            <div class="card-header">
+                                Delivery
+                            </div>
+                            <div class="card-body">
+                                    <div class="dashboard-gadget" id='deliveryStatus'></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-8">
+                        <div class="card">
+                            <div class="card-header">
+                            
+                                <ul class="nav nav-tabs card-header-tabs" id="overview-graphs" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="#busiest-domains" role="tab" aria-controls="busiest-domains" aria-selected="true">Busiest domains</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#bounced-domains" role="tab" aria-controls="bounced-domains" aria-selected="false">Bounced domains</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#deferred-domains" role="tab" aria-controls="deferred-domains" aria-selected="false">Deferred domains</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                
+                                <div class="tab-content mt-3">
+                                    <div class="tab-pane active" id="busiest-domains" role="tabpanel">
+                                        <div class="dashboard-gadget" id='topBusiestDomains'></div>
+                                    </div>
+                                    
+                                    <div class="tab-pane" id="bounced-domains" role="tabpanel" aria-labelledby="bounced-domains-tab">    
+                                        <div class="dashboard-gadget" id='topBouncedDomains'></div>
+                                    </div>
+                                    
+                                    <div class="tab-pane" id="deferred-domains" role="tabpanel" aria-labelledby="deferred-domains-tab">
+                                        <div class="dashboard-gadget" id='topDeferredDomains'></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="row-title">Insights</h5>
+                    </div>
+                </div>
+                <div class="row insights">
+                    <div class="col-6">
+                        <div class="card">
+                            <div class="row">
+                                <div class="col-3 gradient-bg">
+                                </div>
+                                <div class="col-9">
+                                    <div class="card-block">
+                                        <h6 class="card-title">Welcome to Lightmeter</h6>
+                                        <p class="card-text">Thanks for trying this early Alpha release of Lightmeter Control Center - enjoy your stay</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card">
+                            <div class="row">
+                                <div class="col-3 gradient-bg">
+                                </div>
+                                <div class="col-9">
+                                    <div class="card-block">
+                                        <h6 class="card-title">Inroduction to insights</h6>
+                                        <p class="card-text">Here you'll find useful information about your mail activity in future releases</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden input fields -->
+                <input id="date-from" type="date" required/>
+                <input id="date-to" type="date" required/>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="container">
+                <p class="float-right">
+                    &bull; 
+                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);">Feedback</a>
+                </p>
+                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="lightmeter.io/privacy-policy/">Privacy Policy</a></p>
+            </div>
+        </footer>
+        
+        <!-- Boostrap dependencies -->
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+        
+        <!-- Other 3rd party dependencies -->
+        <script src='3rd/plotly.min.js'></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+        
+        <!-- App scripts -->
+        <script src='js/app.js'></script>
+        
+        <!-- Lightmeter-hosted Matomo analytics -->
+        <script type="text/javascript">
+        var _paq = window._paq || [];
+        _paq.push(['trackPageView']);
+        _paq.push(['enableLinkTracking']);
+        (function() {
+            var u="https://matomo.lightmeter.io/";
+            _paq.push(['setTrackerUrl', u+'matomo.php']);
+            _paq.push(['setSiteId', '3']);
+            var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+            g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+        })();
+        </script>
+        <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
 
-        refDate.setDate(refDate.getDate() + value)
-        from.value = formatDate(refDate)
-
-        refDate.setDate(refDate.getDate() + Math.abs(value) - 1)
-        to.value = formatDate(refDate)
-
-        updateDashboard()
-      }
-
-      var selectNextDay = function() {
-        incDate(1)
-      }
-
-      var selectPrevDay = function() {
-        incDate(-1)
-      }
-
-      var selectNextWeek = function() {
-        incDate(7)
-      }
-
-      var selectPrevWeek = function() {
-        incDate(-7)
-      }
-
-      var moveToToday = function() {
-        var now = new Date()
-        document.getElementById('date-from').valueAsDate = now
-        document.getElementById('date-to').valueAsDate = now
-        updateDashboard()
-      }
-
-      var updateArray = function(dst, src) {
-        dst.splice(0, Infinity, ...src)
-      }
-
-      var timeIntervalUrlParams = function() {
-        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
-      }
-
-      // TODO: maybe this is an async function?
-      var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
-        return fetch("api/" + methodName + "?" + timeIntervalUrlParams()).then(function(res) {
-          if (res.ok) {
-            return res.json()
-          }
-
-          res.text().then(text => console.log("Error requesting method " +
-            methodName + ", status:\"" + res.statusText + "\"" +
-            ", text: \"" + text + "\""))
-
-          return null
-        })
-      }
-
-      var updateDonutChart = function(graphName, title) {
-        var chartData = [{values: [], labels: [], type: 'pie', hole: 0.4}]
-
-        Plotly.newPlot(graphName, chartData, {title: title})
-
-        return function() {
-          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-            var d = data != null ? data.map(v => v["Value"]) : []
-            var l = data != null ? data.map(v => v["Key"]) : []
-            updateArray(chartData[0].values, d)
-            updateArray(chartData[0].labels, l)
-            Plotly.redraw(graphName)
-          })
-        }
-      }
-
-      var updateBarChart = function(graphName, title) {
-        var chartData = [{x: [], y: [], type: 'bar'}]
-
-        Plotly.newPlot(graphName, chartData, {title: title})
-
-        return function() {
-          fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-            var x = data != null ? data.map(v => v["Key"]) : []
-            var y = data != null ? data.map(v => v["Value"]) : []
-            updateArray(chartData[0].x, x)
-            updateArray(chartData[0].y, y)
-            Plotly.redraw(graphName)
-          })
-        }
-      }
-
-      var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
-      var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
-      var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
-      var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
-
-      var updateDashboard = function() {
-        updateDeliveryStatus()
-        updateTopBusiestDomainsChart()
-        updateTopDeferredDomainsChart()
-        updateTopBouncedDomainsChart()
-      }
-
-      document.getElementById('date-from').onchange = updateDashboard
-      document.getElementById('date-to').onchange = updateDashboard
-      document.getElementById('prev-date').onclick = selectPrevDay
-      document.getElementById('next-date').onclick = selectNextDay
-      document.getElementById('prev-week').onclick = selectPrevWeek
-      document.getElementById('next-week').onclick = selectNextWeek
-      document.getElementById('reload-dashboard').onclick = updateDashboard
-      document.getElementById('to-today').onclick = moveToToday
-
-      updateDashboard()
-    }
-  </script>
-
-  <style>
-    .dashboard-gadget {
-      display: table-cell;
-    }
-
-    .dashboard-line {
-      display: table;
-    }
-
-    .dashboard-line {
-      display: table-row;
-    }
-
-    .modebar {
-      display: none !important;
-    }
-  </style>
-  <title>Lightmeter ControlCenter</title>
-</head>
-
-<body onload="drawDashboard()">
-  <div id="date-interval-picker">
-    <div class="date-picker">
-      <span>From:</span>
-      <input id="date-from" type="date" required/>
-    </div>
-    <div class="date-picker">
-      <span>To:</span>
-      <input id="date-to" type="date" required/>
-    </div>
-    <div id="date-controls">
-      <button id="reload-dashboard">Reload</button>
-      <button id="to-today">Today</button>
-      <button id="prev-week">-1w</button>
-      <button id="prev-date">-1d</button>
-      <button id="next-date">+1d</button>
-      <button id="next-week">+1w</button>
-    </div>
-  </div>
-  <div class="dashboard">
-    <div class="dashboard-line">
-      <div class="dashboard-gadget" id='deliveryStatus'></div>
-      <div class="dashboard-gadget" id='topBusiestDomains'></div>
-    </div>
-    <div class="dashboard-line">
-      <div class="dashboard-gadget" id='topBouncedDomains'></div>
-      <div class="dashboard-gadget" id='topDeferredDomains'></div>
-    </div>
-  </div>
-</body>
+    </body>
 </html>
