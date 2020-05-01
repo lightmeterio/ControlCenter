@@ -1,5 +1,7 @@
 include:
   - template: Security/License-Management.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: License-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
 
 variables:
@@ -9,6 +11,7 @@ stages:
   - test
   - security
   - build
+  - package
   - publish
 
 .go-builder:
@@ -73,7 +76,7 @@ build-docker-image:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  stage: build
+  stage: package
   script:
     - mkdir -p .docker-cache
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/ci/Dockerfile --no-push --cache-dir .docker-cache

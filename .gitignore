@@ -1,4 +1,4 @@
 http_vfsdata.go
-mock
+*_mock.go
 www/api.json
 version/version_release.go
