@@ -14,8 +14,14 @@ stages:
   - build
   - package
   - publish
+  - docker
+
+.on-non-tag:
+  except:
+    - tags
 
 .go-builder:
+  extends: .on-non-tag
   image: alpine:3.11
   before_script:
     - apk update
@@ -59,43 +65,42 @@ cover:
     expire_in: 7 days
 
 publish-release:
+  extends: .on-non-tag
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli
   when: manual
-  except:
-      - tags
   script:
     - ./ci/release_on_gitlab.sh
 
 license_management:
+  extends: .on-non-tag
   stage: security
 
 sast:
+  extends: .on-non-tag
   stage: security
 
-build-docker-image:
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  stage: package
-  script:
-    - mkdir -p .docker-cache
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/ci/Dockerfile --no-push --cache-dir .docker-cache
-  artifacts:
-    paths:
-      - .docker-cache
-    expire_in: 1 day
+dependency_scanning:
+  extends: .on-non-tag
+  stage: test
+
+code_quality:
+  extends: .on-non-tag
+  stage: test
+  only:
+    refs:
+      - branches
+
+license_scanning:
+  extends: .on-non-tag
+  stage: test
 
 publish-docker-image:
+  only:
+    - tags
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  stage: publish
-  needs:
-    - job: build-docker-image
-      artifacts: true
-  when: manual
-  except:
-    - tags
+  stage: docker
   script:
     - sh ci/publish_docker_image.sh
