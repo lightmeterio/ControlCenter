@@ -91,15 +91,40 @@ footer p {
     font-weight: bold;
 }
 
+.main-content .card-header {
+    background: none;
+    border: none;
+}
+
+.card-header
+, .nav-tabs .nav-link {
+    font-size: 15px;
+    font-weight: bold;
+    color: #202324;
+}
+
 .nav-tabs .nav-link {
     color: #1D8CAF;
-    font-size: 15px;
+}
+
+.main-content .nav-tabs .nav-item.show .nav-link
+, .main-content  .nav-tabs .nav-link.active
+, .main-content .nav-tabs .nav-link:focus
+, .main-content .nav-tabs .nav-link:hover {
+        border-radius: 27px;
 }
 
 .main-content .nav-tabs .nav-item.show .nav-link
 , .main-content  .nav-tabs .nav-link.active {
     color: #fff;
     background: #1D8CAF 0% 0% no-repeat padding-box;
-    border-radius: 27px;
     border: none;
 }
+
+.main-content .nav-tabs .nav-link:focus
+, .main-content .nav-tabs .nav-link:hover {
+    border: 1px solid #95CDEA;
+}
+
+.main-content .card-body {
+    padding: 0 0.2rem 0.2rem 0.2rem;
