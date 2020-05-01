@@ -84,6 +84,16 @@ footer p {
     margin: 0;
 }
 
+h5.row-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.main-content .card {
+    border-radius: 0;
+    border: none;
+}
+
 .card .card-title {
     font: 12px/20px Inter;
     letter-spacing: 0px;
@@ -128,3 +138,22 @@ footer p {
 
 .main-content .card-body {
     padding: 0 0.2rem 0.2rem 0.2rem;
+}
+
+.insights .card-block {
+    padding: 1rem 1rem 1.5rem 0.5rem;
+}
+
+.insights .card-title {
+    margin: 0 0 0.3rem 0;
+    font: 15px/25px Inter;
+}
+
+.insights .card-text {
+    font: 12px/18px 'Open Sans', sans-serif;
+}
+
+.insights .gradient-bg {
+ background: rgb(0,212,255);
+background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%); 
+}
