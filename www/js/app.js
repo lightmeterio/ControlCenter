@@ -117,6 +117,7 @@ var drawDashboard = function() {
             y: [], 
             type: 'bar',
             marker: {
+                // TODO: find a more elegant solution for this
                 color: [
                     'rgb(149, 205, 234)', 
                     'rgb(149, 205, 234)', 

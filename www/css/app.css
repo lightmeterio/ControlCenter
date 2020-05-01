@@ -15,6 +15,10 @@ body {
     background: #F4FAFD!important;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-family: Inter;
+}
+
 .main-content {
 }
 
@@ -110,6 +114,7 @@ h5.row-title {
 , .nav-tabs .nav-link {
     font-size: 15px;
     font-weight: bold;
+    font-family: Inter;
     color: #202324;
 }
 
