@@ -4,5 +4,5 @@ set -e
 
 export GO111MODULE=off
 
-go-fuzz-build
-go-fuzz
+go run github.com/dvyukov/go-fuzz/go-fuzz-build
+go run github.com/dvyukov/go-fuzz/go-fuzz
