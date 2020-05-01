@@ -1,7 +1,7 @@
 # Lightmeter ControlCenter (work in progress)
 
-![coverage](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)
-![pipeline](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)
+[![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
+[![coverage report](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 
 Welcome to Lightmeter, the Open Source email deliverability monitoring system.
 
