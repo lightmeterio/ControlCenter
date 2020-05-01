@@ -1,45 +1,45 @@
 package parser
 
 import (
-	//"errors"
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"time"
+
+	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 )
 
 func parseMonth(m []byte) time.Month {
 	switch string(m) {
 	case "Jan":
-		return 1
+		return time.January
 	case "Feb":
-		return 2
+		return time.February
 	case "Mar":
-		return 3
+		return time.March
 	case "Apr":
-		return 4
+		return time.April
 	case "May":
-		return 5
+		return time.May
 	case "Jun":
-		return 6
+		return time.June
 	case "Jul":
-		return 7
+		return time.July
 	case "Aug":
-		return 8
+		return time.August
 	case "Sep":
-		return 9
+		return time.September
 	case "Oct":
-		return 10
+		return time.October
 	case "Nov":
-		return 11
+		return time.November
 	case "Dec":
-		return 12
+		return time.December
 	}
 
 	panic("Invalid Month! " + string(m))
 }
 
 type Time struct {
-	Day    uint8
 	Month  time.Month
+	Day    uint8
 	Hour   uint8
 	Minute uint8
 	Second uint8
