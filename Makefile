@@ -39,6 +39,7 @@ swag:
 	cp docs/swagger.json www/api.json
 
 clean: clean_binaries clean_swag clean_staticdata clean_mocks
+	rm -f dependencies.svg
 
 clean_binaries:
 	rm -f lightmeter
@@ -52,3 +53,5 @@ clean_swag:
 clean_mocks:
 	rm -f dashboard/mock/dashboard_mock.go
 
+dependencies.svg:
+	go mod graph | utils/gen_deps_graph.py | dot -Tsvg > dependencies.svg
