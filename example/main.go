@@ -8,9 +8,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"os"
+
+	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 
 		h, p, err := parser.Parse(scanner.Bytes())
 
-		if err != nil && err == rawparser.InvalidHeaderLineError {
+		if !parser.IsRecoverableError(err) {
 			continue
 		}
 
