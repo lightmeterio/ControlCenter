@@ -13,6 +13,8 @@ github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200501102143-de26424c1180 h1:o8aJxveMHAV+nZEd+O38QcGEoPBGbVphSBks5K15fFA=
 gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200501102143-de26424c1180/go.mod h1:zBuhWiJDPauiexqEaOcPu1bqM/UVYSeRusW/cxXp5JI=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200502111447-22412a66d19f h1:qw5P7UHYHkjpXk7lX4AR5P6MRNkqbir0e6o5b6Vbw+M=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200502111447-22412a66d19f/go.mod h1:zBuhWiJDPauiexqEaOcPu1bqM/UVYSeRusW/cxXp5JI=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=

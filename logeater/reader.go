@@ -2,14 +2,14 @@ package logeater
 
 import (
 	"bufio"
+	"io"
+	"log"
+	"os"
+
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
-	"io"
-	"log"
-	"os"
 )
 
 func ReadFromReader(reader io.Reader, pub data.Publisher) {
@@ -61,7 +61,7 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 func tryToParseAndPublish(line []byte, publisher data.Publisher) {
 	h, p, err := parser.Parse(line)
 
-	if err != nil && err == rawparser.InvalidHeaderLineError {
+	if !parser.IsRecoverableError(err) {
 		log.Printf("Invalid Postfix header: \"%s\"", string(line))
 		return
 	}
