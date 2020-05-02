@@ -187,7 +187,7 @@ var drawDashboard = function() {
     var setupApplicationInfo = function() {
         apiCallGet("/api/appVersion").then(function(data) {
             // TODO: fill UI with version and build info
-            // You'll need to "./build.sh release" to have meaningful values
+            // You'll need to "make release" to have meaningful values
             // Example of received data:
             // {
             //     Commit: "6fbcce9", // empty string on non release version

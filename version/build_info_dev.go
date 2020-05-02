@@ -1,6 +1,9 @@
+// +build !release
+
 package version
 
-const (
+var (
+	Version     = "<dev>"
 	Commit      = "0000000"
 	TagOrBranch = ""
 )
