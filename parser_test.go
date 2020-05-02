@@ -11,6 +11,7 @@ import (
 
 func TestErrorKinds(t *testing.T) {
 	Convey("Some errors still allows to recover header info", t, func() {
+		So(IsRecoverableError(nil), ShouldBeTrue)
 		So(IsRecoverableError(UnsupportedLogLineError), ShouldBeTrue)
 		So(IsRecoverableError(InvalidHeaderLineError), ShouldBeFalse)
 		So(IsRecoverableError(errors.New("Some Random Error")), ShouldBeFalse)

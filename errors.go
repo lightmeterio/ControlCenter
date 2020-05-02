@@ -10,5 +10,5 @@ var (
 )
 
 func IsRecoverableError(err error) bool {
-	return err == UnsupportedLogLineError
+	return err == nil || err == UnsupportedLogLineError
 }
