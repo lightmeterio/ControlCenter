@@ -6,12 +6,12 @@ $('#overview-graphs a').on('click', function (e) {
 
 // Graph stuff
 var drawDashboard = function() {
-    var updateInterval = function(start, end) {
-        var from = document.getElementById('date-from')
-        var to = document.getElementById('date-to')
+    var dateFrom = ""
+    var dateTo = ""
 
-        from.value = formatDate(start)
-        to.value = formatDate(end)
+    var updateInterval = function(start, end) {
+        dateFrom = formatDate(start)
+        dateTo = formatDate(end)
     }
     
     // Enable range datepicker
@@ -50,7 +50,7 @@ var drawDashboard = function() {
     }
 
     var timeIntervalUrlParams = function() {
-        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
+        return "from=" + dateFrom + "&to=" + dateTo
     }
 
     // TODO: maybe this is an async function?
@@ -60,9 +60,11 @@ var drawDashboard = function() {
                 return res.json()
             }
 
-            res.text().then(text => console.log("Error requesting method " +
-                methodName + ", status:\"" + res.statusText + "\"" +
-                ", text: \"" + text + "\""))
+            res.text().then(function(text) {
+              console.log("Error requesting url: " +
+                url + ", status:\"" + res.statusText + "\"" +
+                ", text: \"" + text + "\"")
+            })
 
             return null
         })
@@ -199,5 +201,4 @@ var drawDashboard = function() {
     }
 
     setupApplicationInfo()
-    updateDashboard()
 }

@@ -22,10 +22,6 @@ h1, h2, h3, h4, h5, h6 {
 .main-content {
 }
 
-#date-from, #date-to {
-  display: none;
-}
-
 header .navbar {
     height: 70px;
     background: #FFFFFF 0% 0% no-repeat padding-box;
