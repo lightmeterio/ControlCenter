@@ -20,18 +20,18 @@ You'll need the Go compiler installed. Check http://golang.org for more informat
 To build Lightmeter during development, execute:
 
 ```
-./build.sh dev
+make dev
 ```
 
 And for the final release, execute:
 ```
-./build.sh release
+make release
 
 ```
 
-Extra build arguments can be passed to the build.sh script. For instance, to create a static linked version, execute:
+And to create a static linked (please use carefully) version, execute:
 ```
-./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
+make static_release
 ```
 
 That will download all the dependencies and build a file called `lightmeter`,
@@ -39,10 +39,10 @@ which you can simply copy to your Postfix server and use it as described in the 
 
 ### Cross compilation
 
-To cross compile, for instance, to Windows, execute, adapting to your environment:
+To compile to Windows, using Linux as host (requires cross compiler):
 
 ```
-CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 ./build.sh release
+make windows_release
 ```
 
 Which will create a file called `lightmeter.exe`.

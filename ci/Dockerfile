@@ -1,12 +1,12 @@
 FROM golang:1.14.2-alpine3.11 AS builder
 
-RUN apk update && apk add gcc libc-dev git
+RUN apk update && apk add gcc libc-dev git make
 
 ADD . /src
 
 WORKDIR /src
 
-RUN ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
+RUN make static_release
 
 FROM scratch
 

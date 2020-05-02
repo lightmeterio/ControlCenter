@@ -24,5 +24,7 @@ for P in $PACKAGES; do
   COVERPKG="$COVERPKG,$PREFIX$P"
 done
 
-go generate gitlab.com/lightmeter/controlcenter/dashboard
+export CGO_ENABLED=1
+
+make mocks
 go test ./... -coverpkg=$COVERPKG "$@"

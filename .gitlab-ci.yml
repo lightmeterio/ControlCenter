@@ -25,14 +25,14 @@ stages:
   image: alpine:3.11
   before_script:
     - apk update
-    - apk add go git
+    - apk add go git make
     - go get -u github.com/jstemmer/go-junit-report
 
 build:
   extends: .go-builder
   stage: build
   script:
-    - ./build.sh release -a -ldflags "-linkmode external -extldflags '-static' -s -w"
+    - make static_release
   artifacts:
     paths:
       - ./lightmeter
