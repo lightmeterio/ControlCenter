@@ -35,8 +35,6 @@ header .logo img {
 
 header .buttons {
     color: #2C9CD6;
-    /* TODO: reveal the buttons once functionality is implemented */
-    display: none;
 }
 
 .time-interval {
