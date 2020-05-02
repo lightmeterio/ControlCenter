@@ -24,6 +24,10 @@ release: static_www
 	go build -tags="release" -o "lightmeter" -ldflags \
 		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}"
 
+windows_release: static_www
+	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags \
+		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}"
+
 static_release: static_www 
 	go build -tags="release" -o "lightmeter" -ldflags \
 		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION} -linkmode external -extldflags '-static' -s -w" -a -v
@@ -42,7 +46,7 @@ clean: clean_binaries clean_swag clean_staticdata clean_mocks
 	rm -f dependencies.svg
 
 clean_binaries:
-	rm -f lightmeter
+	rm -f lightmeter lightmeter.exe
 
 clean_staticdata:
 	rm -f staticdata/http_vfsdata.go

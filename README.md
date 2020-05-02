@@ -39,10 +39,10 @@ which you can simply copy to your Postfix server and use it as described in the 
 
 ### Cross compilation
 
-To cross compile, for instance, to Windows, execute, adapting to your environment:
+To compile to Windows, using Linux as host (requires cross compiler):
 
 ```
-CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 make release
+make windows_release
 ```
 
 Which will create a file called `lightmeter.exe`.
