@@ -74,6 +74,8 @@ var drawDashboard = function() {
         return apiCallGet("api/" + methodName + "?" + timeIntervalUrlParams())
     }
 
+    var resizers = []
+
     var updateDonutChart = function(graphName, title) {
         var chartData = [{
             values: [], 
@@ -90,7 +92,6 @@ var drawDashboard = function() {
             hole: 0.3
         }]
         var layout = {
-            width: 340,
             height: 220,
             margin: {
                 t: 20,
@@ -100,7 +101,7 @@ var drawDashboard = function() {
             }
         };
 
-        Plotly.newPlot(graphName, chartData, layout)
+        Plotly.newPlot(graphName, chartData, layout, {responsive: true})
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
@@ -145,7 +146,6 @@ var drawDashboard = function() {
             }
         }]
         var layout = {
-            width: 660,
             height: 220,
             xaxis: {
                 automargin: true,
@@ -161,7 +161,12 @@ var drawDashboard = function() {
             }
         };
 
-        Plotly.newPlot(graphName, chartData, layout)
+        Plotly.newPlot(graphName, chartData, layout, {responsive: true}).then(function() {
+            resizers.push(function(dimension) {
+                layout.width = dimension.contentRect.width
+                Plotly.redraw(graphName)
+            })
+        })
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
@@ -192,6 +197,17 @@ var drawDashboard = function() {
             e.textContent = "Version: " + data.Version + ", commit: " + data.Commit
         })
     }
+
+    // Plotly has a bug that makes it unable to resize hidden graphs:
+    // https://github.com/plotly/plotly.js/issues/2769
+    // We try to workaround it
+    var graphAreaResizeObserver = new ResizeObserver(function(entry) {
+        for (cb in resizers) {
+          resizers[cb](entry[0])
+        }
+    })
+
+    graphAreaResizeObserver.observe(document.getElementById('basic-graphs-area'))
 
     setupApplicationInfo()
 }
