@@ -27,9 +27,31 @@
                         <img src="img/logo-color-120.png" alt="Lightmeter logo" />
                     </a>
                     <span class="buttons">
-                        <i class="fas fa-cog" onclick="alert('Release data goes here')"></i>
-                        <span id="release-info"/>
+                        <i class="fas fa-info-circle" data-toggle="modal" data-target="#settingsModal"></i>
                     </span>
+                        
+                    <!-- Settings modal -->
+                    <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="settingsModalLabel">About</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    Lightmeter Control Center
+                                    <br/>
+                                    <span id="release-info"/>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        
                 </div>
             </div>
         </header>
