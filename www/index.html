@@ -6,15 +6,14 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         
-        <link rel="stylesheet" href="css/app.css">
+        <link rel="stylesheet" type="text/css" href="css/app.css">
         
         <!-- Boostrap CSS -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-
-        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+        <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
         
         <!-- Fontawesome CSS -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
 
         <title>Lightmeter ControlCenter</title>
     </head>
@@ -28,8 +27,31 @@
                         <img src="img/logo-color-120.png" alt="Lightmeter logo" />
                     </a>
                     <span class="buttons">
-                        <i class="fas fa-cog" onclick="alert('Release data goes here')"></i>
+                        <i class="fas fa-info-circle" data-toggle="modal" data-target="#settingsModal"></i>
                     </span>
+                        
+                    <!-- Settings modal -->
+                    <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="settingsModalLabel">About</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    Lightmeter Control Center
+                                    <br/>
+                                    <span id="release-info"/>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        
                 </div>
             </div>
         </header>
@@ -78,7 +100,7 @@
                             </div>
                             <div class="card-body">
                                 
-                                <div class="tab-content mt-3">
+                                <div id="basic-graphs-area" class="tab-content mt-3">
                                     <div class="tab-pane active" id="busiest-domains" role="tabpanel">
                                         <div class="dashboard-gadget" id='topBusiestDomains'></div>
                                     </div>
@@ -131,9 +153,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Hidden input fields -->
-                <input id="date-from" type="date" required/>
-                <input id="date-to" type="date" required/>
             </div>
         </div>
         
@@ -143,22 +162,22 @@
                     &bull; 
                     <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);">Feedback</a>
                 </p>
-                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="lightmeter.io/privacy-policy/">Privacy Policy</a></p>
+                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/">Privacy Policy</a></p>
             </div>
         </footer>
         
         <!-- Boostrap dependencies -->
-        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
+        <script type="text/javascript" src="3rd/js/popper.min.js"></script>
+        <script type="text/javascript" src="3rd/js/bootstrap.min.js"></script>
         
         <!-- Other 3rd party dependencies -->
-        <script src='3rd/plotly.min.js'></script>
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+        <script type="text/javascript" src='3rd/js/plotly.min.js'></script>
+        <script type="text/javascript" src="3rd/js/moment.min.js"></script>
+        <script type="text/javascript" src="3rd/js/daterangepicker.min.js"></script>
         
         <!-- App scripts -->
-        <script src='js/app.js'></script>
+        <script type="text/javascript" src='js/app.js'></script>
         
         <!-- Lightmeter-hosted Matomo analytics -->
         <script type="text/javascript">

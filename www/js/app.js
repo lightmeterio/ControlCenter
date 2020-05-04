@@ -6,12 +6,12 @@ $('#overview-graphs a').on('click', function (e) {
 
 // Graph stuff
 var drawDashboard = function() {
-    var updateInterval = function(start, end) {
-        var from = document.getElementById('date-from')
-        var to = document.getElementById('date-to')
+    var dateFrom = ""
+    var dateTo = ""
 
-        from.value = formatDate(start)
-        to.value = formatDate(end)
+    var updateInterval = function(start, end) {
+        dateFrom = formatDate(start)
+        dateTo = formatDate(end)
     }
     
     // Enable range datepicker
@@ -50,7 +50,7 @@ var drawDashboard = function() {
     }
 
     var timeIntervalUrlParams = function() {
-        return "from=" + document.getElementById('date-from').value + "&to=" + document.getElementById('date-to').value
+        return "from=" + dateFrom + "&to=" + dateTo
     }
 
     // TODO: maybe this is an async function?
@@ -60,9 +60,11 @@ var drawDashboard = function() {
                 return res.json()
             }
 
-            res.text().then(text => console.log("Error requesting method " +
-                methodName + ", status:\"" + res.statusText + "\"" +
-                ", text: \"" + text + "\""))
+            res.text().then(function(text) {
+              console.log("Error requesting url: " +
+                url + ", status:\"" + res.statusText + "\"" +
+                ", text: \"" + text + "\"")
+            })
 
             return null
         })
@@ -71,6 +73,8 @@ var drawDashboard = function() {
     var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
         return apiCallGet("api/" + methodName + "?" + timeIntervalUrlParams())
     }
+
+    var resizers = []
 
     var updateDonutChart = function(graphName, title) {
         var chartData = [{
@@ -88,7 +92,6 @@ var drawDashboard = function() {
             hole: 0.3
         }]
         var layout = {
-            width: 340,
             height: 220,
             margin: {
                 t: 20,
@@ -98,7 +101,7 @@ var drawDashboard = function() {
             }
         };
 
-        Plotly.newPlot(graphName, chartData, layout)
+        Plotly.newPlot(graphName, chartData, layout, {responsive: true})
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
@@ -143,7 +146,6 @@ var drawDashboard = function() {
             }
         }]
         var layout = {
-            width: 660,
             height: 220,
             xaxis: {
                 automargin: true,
@@ -159,7 +161,12 @@ var drawDashboard = function() {
             }
         };
 
-        Plotly.newPlot(graphName, chartData, layout)
+        Plotly.newPlot(graphName, chartData, layout, {responsive: true}).then(function() {
+            resizers.push(function(dimension) {
+                layout.width = dimension.contentRect.width
+                Plotly.redraw(graphName)
+            })
+        })
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
@@ -186,18 +193,32 @@ var drawDashboard = function() {
 
     var setupApplicationInfo = function() {
         apiCallGet("/api/appVersion").then(function(data) {
-            // TODO: fill UI with version and build info
-            // You'll need to "make release" to have meaningful values
-            // Example of received data:
-            // {
-            //     Commit: "6fbcce9", // empty string on non release version
-            //     TagOrBranch: "add-bootstrap", // empty string on non release version
-            //     Version: "0.0.0", // "<dev>" on non release version
-            // }
-            console.log(data)
+            var e = document.getElementById("release-info")
+            e.textContent = "Version: " + data.Version + ", commit: " + data.Commit
         })
     }
 
+    // Plotly has a bug that makes it unable to resize hidden graphs:
+    // https://github.com/plotly/plotly.js/issues/2769
+    // We try to workaround it
+    var setupResizers = function() {
+        // Bail out, no support for ResizeObserver
+        if (window.ResizeObserver === undefined) {
+            return function() {}
+        }
+
+        var graphAreaResizeObserver = new ResizeObserver(function(entry) {
+                for (cb in resizers) {
+                    resizers[cb](entry[0])
+                }
+        })
+
+        return function(e) {
+            graphAreaResizeObserver.observe(e)
+        }
+    }()
+
+    setupResizers(document.getElementById('basic-graphs-area'))
+
     setupApplicationInfo()
-    updateDashboard()
 }

@@ -11,6 +11,10 @@
     display: none !important;
 }
 
+* {
+    font-family: 'Open Sans', sans-serif;
+}
+
 body {
     background: #F4FAFD!important;
 }
@@ -20,10 +24,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .main-content {
-}
-
-#date-from, #date-to {
-  display: none;
 }
 
 header .navbar {
@@ -39,8 +39,6 @@ header .logo img {
 
 header .buttons {
     color: #2C9CD6;
-    /* TODO: reveal the buttons once functionality is implemented */
-    display: none;
 }
 
 .time-interval {
@@ -163,4 +161,8 @@ h5.row-title {
 .insights .gradient-bg {
  background: rgb(0,212,255);
 background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%); 
+}
+
+.modal-dialog .modal-content {
+    border-radius: 0;
 }

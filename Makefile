@@ -15,22 +15,22 @@ else
 	GIT_BRANCH = ""
 endif
 
+BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}
+
 all: dev
 
 dev: mocks swag
-	go build -tags="dev" -o "lightmeter"
+	go build -tags="dev" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release: static_www
-	go build -tags="release" -o "lightmeter" -ldflags \
-		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}"
+	go build -tags="release" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 windows_release: static_www
-	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags \
-		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}"
+	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
 
 static_release: static_www 
 	go build -tags="release" -o "lightmeter" -ldflags \
-		"-X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION} -linkmode external -extldflags '-static' -s -w" -a -v
+		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/staticdata
