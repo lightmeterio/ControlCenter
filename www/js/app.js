@@ -201,13 +201,24 @@ var drawDashboard = function() {
     // Plotly has a bug that makes it unable to resize hidden graphs:
     // https://github.com/plotly/plotly.js/issues/2769
     // We try to workaround it
-    var graphAreaResizeObserver = new ResizeObserver(function(entry) {
-        for (cb in resizers) {
-          resizers[cb](entry[0])
+    var setupResizers = function() {
+        // Bail out, no support for ResizeObserver
+        if (window.ResizeObserver === undefined) {
+            return function() {}
         }
-    })
 
-    graphAreaResizeObserver.observe(document.getElementById('basic-graphs-area'))
+        var graphAreaResizeObserver = new ResizeObserver(function(entry) {
+                for (cb in resizers) {
+                    resizers[cb](entry[0])
+                }
+        })
+
+        return function(e) {
+            graphAreaResizeObserver.observe(e)
+        }
+    }()
+
+    setupResizers(document.getElementById('basic-graphs-area'))
 
     setupApplicationInfo()
 }
