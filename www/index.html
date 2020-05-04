@@ -43,7 +43,15 @@
                                 <div class="modal-body">
                                     Lightmeter Control Center
                                     <br/>
-                                    <span id="release-info"/>
+                                    <span id="release-info"></span>
+                                    <br/>
+                                    <br/>
+                                    <ul>
+                                        <li><a href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui" target="_blank">Website</a></li>
+                                        <li><a href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1" target="_blank">Newsletter</a></li>
+                                        <li><a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a></li>
+                                        <li><a href="https://mastodon.social/@lightmeter/" target="_blank">Mastodon</a></li>
+                                    </ul>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -59,9 +67,9 @@
             <div class="container main-content">
                 <div class="row justify-content-end align-items-center time-interval">
                     <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
-                    <div class="col-2">
+                    <div class="col-3">
                         <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;">
-                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar" onclick="_paq.push(['trackEvent', 'About', 'clickHeaderButton']);"></i>
                         </div>
                     </div>
                 </div>
@@ -160,9 +168,9 @@
             <div class="container">
                 <p class="float-right">
                     &bull; 
-                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);">Feedback</a>
+                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">Feedback</a>
                 </p>
-                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/">Privacy Policy</a></p>
+                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">Privacy Policy</a></p>
             </div>
         </footer>
         

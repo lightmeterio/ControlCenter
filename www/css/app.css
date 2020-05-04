@@ -41,6 +41,10 @@ header .buttons {
     color: #2C9CD6;
 }
 
+span.buttons {
+    cursor: pointer;
+}
+
 .time-interval {
     margin: 0.6rem 0 0.3rem 0;
 }
