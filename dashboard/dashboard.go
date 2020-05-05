@@ -208,6 +208,8 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 
 	query.Scan(&countValue)
 
+	util.MustSucceed(query.Err(), "Error on rows")
+
 	return countValue
 }
 
@@ -234,6 +236,8 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 		r = append(r, Pair{domain, countValue})
 	}
 
+	util.MustSucceed(query.Err(), "Error on rows")
+
 	return r
 }
 
@@ -254,6 +258,8 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 
 		r = append(r, Pair{status.String(), value})
 	}
+
+	util.MustSucceed(query.Err(), "Error on rows")
 
 	return r
 }

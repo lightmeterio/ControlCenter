@@ -3,6 +3,7 @@ package logdb
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
@@ -41,6 +42,8 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 		return 0, err
 	}
 
+	util.MustSucceed(q.Err(), "Error on rows")
+
 	return v, nil
 }
 
@@ -60,6 +63,8 @@ func countLogsForSmtpSentStatus(db *sql.DB) int {
 	if q.Scan(&value) != nil {
 		return 0
 	}
+
+	util.MustSucceed(q.Err(), "Error on rows")
 
 	return value
 }
