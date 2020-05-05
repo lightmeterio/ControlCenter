@@ -53,10 +53,8 @@ var (
 	secondIndex int
 	hostIndex   int
 
-	processAndMaybePidIndex int
-	processIndex            int
-	processIdIndex          int
-	postfixProcessIndex     int
+	processIndex        int
+	postfixProcessIndex int
 )
 
 func init() {
@@ -72,9 +70,7 @@ func init() {
 	secondIndex = indexForGroup(headerRegexp, "Second")
 	hostIndex = indexForGroup(headerRegexp, "Host")
 
-	processAndMaybePidIndex = indexForGroup(headerRegexp, "ProcessAndMaybePid")
 	processIndex = indexForGroup(headerRegexp, "Process")
-	processIdIndex = indexForGroup(headerRegexp, "ProcessId")
 
 	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
 }
