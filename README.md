@@ -2,6 +2,7 @@
 
 [![pipeline status](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/postfix-log-parser/-/commits/master)
 [![coverage report](https://gitlab.com/lightmeter/postfix-log-parser/badges/master/coverage.svg)](https://gitlab.com/lightmeter/postfix-log-parser/-/commits/master)
+[![report_card](https://goreportcard.com/badge/gitlab.com/lightmeter/postfix-log-parser)](https://goreportcard.com/report/gitlab.com/lightmeter/postfix-log-parser)
 
 This is an eternal work in progress Postfix Log Parser used by Lightmeter Control Center.
 
