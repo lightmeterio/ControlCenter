@@ -1,10 +1,22 @@
-image: golang:1.14.2-alpine3.11
+stages:
+  - test
+  - security
 
-before_script:
-  - apk update
-  - apk add gcc libc-dev
+include:
+  - template: Security/License-Management.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: License-Scanning.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+  - template: Code-Quality.gitlab-ci.yml
+
+.go-builder:
+  image: golang:1.14.2-alpine3.11
+  before_script:
+    - apk update
+    - apk add gcc libc-dev
 
 test:
+  extends: .go-builder
   stage: test
   script:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -v 2>&1 | go run github.com/jstemmer/go-junit-report > report.xml
@@ -13,6 +25,7 @@ test:
       junit: report.xml
 
 cover:
+  extends: .go-builder
   script:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
