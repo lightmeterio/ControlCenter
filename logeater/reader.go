@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"log"
-	"os"
 
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -29,13 +28,13 @@ func FindWatchingLocationForWorkspace(ws *workspace.Workspace) tail.SeekInfo {
 	if !ws.HasLogs() {
 		return tail.SeekInfo{
 			Offset: 0,
-			Whence: os.SEEK_SET,
+			Whence: io.SeekCurrent,
 		}
 	}
 
 	return tail.SeekInfo{
 		Offset: 0,
-		Whence: os.SEEK_END,
+		Whence: io.SeekEnd,
 	}
 }
 

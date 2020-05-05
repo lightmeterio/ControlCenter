@@ -270,7 +270,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 		startTransaction()
 	}
 
-	timeoutTimer := time.Tick(timeout)
+	ticker := time.NewTicker(timeout)
 
 	startTransaction()
 
@@ -287,7 +287,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 			util.MustSucceed(insertCb(tx, r), "Database insertion")
 			countPerTransaction += 1
 			break
-		case <-timeoutTimer:
+		case <-ticker.C:
 			restartTransaction()
 		}
 	}
