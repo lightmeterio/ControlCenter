@@ -3,15 +3,15 @@ package logdb
 import (
 	"database/sql"
 	"errors"
-	_ "github.com/mattn/go-sqlite3"
+	"log"
+	"path"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/data/postfix"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
-	"log"
-	"path"
-	"time"
 )
 
 var (
