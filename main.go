@@ -101,11 +101,11 @@ func main() {
 			return "beginning"
 		}())
 
-		go func() {
+		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
 				log.Println("Failed watching file:", filename, "error:", err)
 			}
-		}()
+		}(filename)
 	}
 
 	dashboard, err := ws.Dashboard()
