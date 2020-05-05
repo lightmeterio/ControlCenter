@@ -38,7 +38,6 @@ var (
 	qmgrNonQuotedSenderLocalPartIndex int
 	qmgrQuotedSenderLocalPartIndex    int
 	qmgrSenderDomainPartIndex         int
-	qmgrStatusIndex                   int
 )
 
 func init() {
