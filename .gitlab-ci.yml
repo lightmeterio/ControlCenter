@@ -10,11 +10,22 @@ variables:
 
 stages:
   - test
+  - lint
   - security
   - build
   - package
   - publish
   - docker
+
+lint:
+  image: golangci/golangci-lint:v1.26.0
+  stage: lint
+  allow_failure: true
+  script:
+    - golangci-lint run --out-format=junit-xml > golangci-output.xml
+  artifacts:
+    reports:
+      junit: golangci-output.xml
 
 .on-non-tag:
   except:
