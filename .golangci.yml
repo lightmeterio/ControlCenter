@@ -26,3 +26,7 @@ linters:
     - unused
     - structcheck
     - errcheck
+
+issues:
+  exclude:
+    - '^singleCaseSwitch'
