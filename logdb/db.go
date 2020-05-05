@@ -238,7 +238,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	insertCb func(*sql.Tx, data.TimedRecord) error) {
 
 	// This is the loop for the thread that inserts stuff in the logs database
-	// It should be blocked only by writting to filesystem
+	// It should be blocked only by writing to filesystem
 	// It's executing during the entire program lifetime
 
 	var tx *sql.Tx = nil
@@ -262,7 +262,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 
 		countPerTransaction = 0
 
-		util.MustSucceed(tx.Commit(), "Commiting transaction")
+		util.MustSucceed(tx.Commit(), "Committing transaction")
 	}
 
 	restartTransaction := func() {
