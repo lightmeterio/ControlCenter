@@ -52,12 +52,12 @@ It's good to remember that we probably won't ever support Windows, but that does
 ## Usage
 
 - Run `lightmeter -help` to show a list of all available commands
-- Following compilation of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver which allows viewing Lightmeter Control Center via a web ui in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
-    - Logfiles provided via `watch` will be monitored for changes and the web ui automatically updated. An SQLite database is used in the backend for storing processed log data. Note that `watch` only looks for new changes from the last recorded time of the previous import; therefore it does not scan the entire contents of the specified logfile.
+- Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/).
+    - Logfiles provided using the `-watch` argument will be monitored for changes and the Web UI automatically updated. An SQLite database is used in the backend for storing processed log data. Note that `-watch` only looks for new changes from the last recorded time of the previous import; therefore it does not scan the entire contents of the specified logfile if it has previously been imported or watched.
 - Specify which mail logs to watch using the command line argument `lightmeter -watch [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
-- Mailserver data is stored in separate workspaces. See `-help` for more details on managing these.
-- Postfix logs don't contain a year as part of the date of each line, so the year is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
+- Mailserver data is stored in separate workspaces so that different servers can be monitored separately. See `-help` for more details on managing these.
+- Postfix logs don't contain a year as part of the date of each line, so the year for processed logs is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
 
 ### API
 
