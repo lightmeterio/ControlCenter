@@ -3,26 +3,7 @@
 set -e
 set -o pipefail
 
-PACKAGES="
-  data
-  data/postfix
-  logdb
-  logeater
-  staticdata
-  workspace
-  dashboard
-  api
-  util
-  lmsqlite3
-"
-
-PREFIX="gitlab.com/lightmeter/controlcenter/"
-
-COVERPKG=""
-
-for P in $PACKAGES; do
-  COVERPKG="$COVERPKG,$PREFIX$P"
-done
+COVERPKG="$(go list ./... | tr '\n' ',')"
 
 export CGO_ENABLED=1
 
