@@ -2,11 +2,11 @@ package workspace
 
 import (
 	"errors"
-	_ "github.com/mattn/go-sqlite3"
+	"os"
+
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logdb"
-	"os"
 )
 
 type Workspace struct {
