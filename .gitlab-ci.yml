@@ -1,13 +1,24 @@
-stages:
-  - test
-  - security
-
 include:
   - template: Security/License-Management.gitlab-ci.yml
   - template: Dependency-Scanning.gitlab-ci.yml
   - template: License-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
   - template: Code-Quality.gitlab-ci.yml
+
+stages:
+  - test
+  - lint
+  - security
+
+lint:
+  image: golangci/golangci-lint:v1.26.0
+  stage: lint
+  allow_failure: true
+  script:
+    - golangci-lint run --out-format=junit-xml > golangci-output.xml
+  artifacts:
+    reports:
+      junit: golangci-output.xml
 
 .go-builder:
   image: golang:1.14.2-alpine3.11
