@@ -1,3 +1,5 @@
+// vim: noexpandtab ts=4 sw=4
+
 // Tabbed graphs
 $('#overview-graphs a').on('click', function (e) {
     e.preventDefault()
@@ -10,21 +12,21 @@ var drawDashboard = function() {
     var dateTo = ""
 
     var updateInterval = function(start, end) {
-        dateFrom = formatDate(start)
-        dateTo = formatDate(end)
+        dateFrom = start
+        dateTo = end
+        updateDashboard()
     }
-    
+
     // Enable range datepicker
     $(function() {
-        var start = moment().subtract(29, 'days');
-        var end = moment();
-    
         function cb(start, end) {
             $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
-            updateInterval(start.toDate(), end.toDate())
-            updateDashboard() 
+            updateInterval(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'))
         }
-    
+
+        var start = moment().subtract(29, 'days');
+        var end = moment();
+
         $('#time-interval-field').daterangepicker({
             startDate: start,
             endDate: end,
@@ -37,13 +39,9 @@ var drawDashboard = function() {
                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
             }
         }, cb);
-    
+
         cb(start, end);
     })
-
-    var formatDate = function(d) {
-        return d.toISOString().split('T')[0]
-    }
 
     var updateArray = function(dst, src) {
         dst.splice(0, Infinity, ...src)
