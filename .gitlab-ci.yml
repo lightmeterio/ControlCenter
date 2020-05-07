@@ -22,7 +22,7 @@ lint:
   stage: lint
   allow_failure: true
   script:
-    - golangci-lint run --out-format=junit-xml > golangci-output.xml
+    - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
   artifacts:
     reports:
       junit: golangci-output.xml
