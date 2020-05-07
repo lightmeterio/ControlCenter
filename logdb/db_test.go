@@ -1,15 +1,16 @@
 package logdb
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/data"
+	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 func tempDir() string {
@@ -95,7 +96,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			}
 		}
 
-		smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) data.Record {
+		smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {
 			return data.Record{
 				Header: parser.Header{
 					Time:    t,
@@ -104,8 +105,8 @@ func TestWorkspaceCreation(t *testing.T) {
 				},
 				Payload: parser.SmtpSentStatus{
 					Queue:               "AA",
-					RecipientLocalPart:  "recipient",
-					RecipientDomainPart: "gmail.com",
+					RecipientLocalPart:  recipientLocalPart,
+					RecipientDomainPart: recipientDomainPart,
 					RelayName:           "",
 					RelayIP:             nil,
 					RelayPort:           0,
@@ -116,6 +117,10 @@ func TestWorkspaceCreation(t *testing.T) {
 					ExtraMessage:        "",
 				},
 			}
+		}
+
+		smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) data.Record {
+			return smtpStatusRecordWithRecipient(status, t, "recipient", "test.com")
 		}
 
 		noPayloadRecord := func(t parser.Time) data.Record {
@@ -202,6 +207,80 @@ func TestWorkspaceCreation(t *testing.T) {
 			So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
 			So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 1)
 			So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 2)
+		})
+
+		Convey("Many different smtp status", func() {
+			_, done, pub, d, dtor := buildWs(1999)
+			defer dtor()
+
+			interval := parseTimeInterval("1999-12-02", "2000-03-11")
+
+			t := func(mo time.Month, d, h, m, s uint8) parser.Time {
+				return parser.Time{Month: mo, Day: d, Hour: h, Minute: m, Second: s}
+			}
+
+			{
+				s := parser.SentStatus
+				d := parser.DeferredStatus
+				b := parser.BouncedStatus
+
+				// Something before the interval
+				pub.Publish(smtpStatusRecordWithRecipient(s, t(time.December, 1, 13, 0, 0), "recip", "domain"))
+
+				// Inside the interval
+				pub.Publish(smtpStatusRecordWithRecipient(s, t(time.December, 2, 14, 1, 2), "r1", "alalala.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 2, 14, 1, 4), "r3", "alalala.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 3, 14, 1, 4), "r3", "email2.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 5, 15, 1, 0), "r2", "email3.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 6, 16, 1, 4), "r3", "alalala.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 4, 15, 1, 0), "r2", "email1.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 4, 16, 1, 0), "r2", "example1.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 4, 16, 2, 1), "r2", "example1.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.March, 11, 16, 2, 1), "r100", "email2.com"))
+
+				// Something after the interval
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.March, 12, 13, 0, 0), "recip", "domain"))
+			}
+
+			pub.Close()
+			<-done
+
+			Convey("Busiest: used domain, regardless of the status", func() {
+				So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "alalala.com", Value: 3},
+					dashboard.Pair{Key: "abcdf.com", Value: 2},
+					dashboard.Pair{Key: "email2.com", Value: 2},
+					dashboard.Pair{Key: "example1.com", Value: 2},
+					dashboard.Pair{Key: "email1.com", Value: 1},
+					dashboard.Pair{Key: "email3.com", Value: 1},
+				})
+			})
+
+			Convey("Bounced: status = bounced", func() {
+				So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "abcdf.com", Value: 2},
+					dashboard.Pair{Key: "alalala.com", Value: 2},
+					dashboard.Pair{Key: "email2.com", Value: 1},
+				})
+			})
+
+			Convey("Deferred: status = deferred", func() {
+				So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "email1.com", Value: 1},
+					dashboard.Pair{Key: "email2.com", Value: 1},
+					dashboard.Pair{Key: "email3.com", Value: 1},
+				})
+			})
+
+			Convey("Delivery Status", func() {
+				So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "sent", Value: 3},
+					dashboard.Pair{Key: "bounced", Value: 5},
+					dashboard.Pair{Key: "deferred", Value: 3},
+				})
+			})
 		})
 
 		Convey("No inserts, rolling back transaction on timeout (to exercise coverage)", func() {
