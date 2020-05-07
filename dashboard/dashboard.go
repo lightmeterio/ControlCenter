@@ -59,12 +59,16 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 
 	deliveryStatus, err := db.Prepare(`
 	select
-		status, count(status)
+		status, count(status) as c
 	from
 		postfix_smtp_message_status
 	where
 		read_ts_sec between ? and ?
-	group by status`)
+	group by 
+		status
+	order by
+		status
+	`)
 
 	if err != nil {
 		return SqlDbDashboard{}, err
@@ -78,15 +82,15 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 
 	topDeferredDomains, err := db.Prepare(`
 	select
-		relay_name, count(relay_name) as c
+		recipient_domain_part, count(relay_name) as c
 	from
 		postfix_smtp_message_status
 	where
 		status = ? and read_ts_sec between ? and ?
 	group by
-		relay_name
+		recipient_domain_part
 	order by
-		c desc
+		c desc, recipient_domain_part asc
 	limit 20`)
 
 	if err != nil {
@@ -109,7 +113,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	group by
 		recipient_domain_part
 	order by
-		c desc
+		c desc, recipient_domain_part asc
 	limit 20`)
 
 	if err != nil {
@@ -132,7 +136,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	group by
 		recipient_domain_part 
 	order by
-		c desc
+		c desc, recipient_domain_part asc
 	limit 20`)
 
 	if err != nil {
@@ -206,7 +210,7 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 
 	query.Next()
 
-	query.Scan(&countValue)
+	util.MustSucceed(query.Scan(&countValue), "scan")
 
 	util.MustSucceed(query.Err(), "Error on rows")
 
@@ -226,7 +230,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 		var domain string
 		var countValue int
 
-		query.Scan(&domain, &countValue)
+		util.MustSucceed(query.Scan(&domain, &countValue), "scan")
 
 		// If the relay info is not available, use a placeholder
 		if len(domain) == 0 {
@@ -252,9 +256,9 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 
 	for query.Next() {
 		var status parser.SmtpStatus
-		var value float64
+		var value int
 
-		query.Scan(&status, &value)
+		util.MustSucceed(query.Scan(&status, &value), "scan")
 
 		r = append(r, Pair{status.String(), value})
 	}

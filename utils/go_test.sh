@@ -3,7 +3,8 @@
 set -e
 set -o pipefail
 
-COVERPKG="$(go list ./... | tr '\n' ',')"
+# test everything except mocks and the main package
+COVERPKG="$(go list ./... | egrep -v '(controlcenter|mock)$' | tr '\n' ',')"
 
 export CGO_ENABLED=1
 
