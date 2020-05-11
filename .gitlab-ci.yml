@@ -1,5 +1,4 @@
 include:
-  - template: Security/License-Management.gitlab-ci.yml
   - template: Dependency-Scanning.gitlab-ci.yml
   - template: License-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
@@ -83,7 +82,7 @@ publish-release:
   script:
     - ./ci/release_on_gitlab.sh
 
-license_management:
+license_scanning:
   extends: .on-non-tag
   stage: test
 
