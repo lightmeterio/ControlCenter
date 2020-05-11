@@ -20,6 +20,8 @@ lint:
   image: golangci/golangci-lint:v1.26.0
   stage: test
   allow_failure: true
+  except:
+    - tags
   script:
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
   artifacts:
