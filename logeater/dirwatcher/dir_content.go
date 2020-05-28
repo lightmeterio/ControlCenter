@@ -2,6 +2,7 @@ package dirwatcher
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -77,7 +78,7 @@ func (f *LocalDirectoryContent) watcherForEntry(filename string, offset int64) (
 		ReOpen:    false,
 		Logger:    tail.DefaultLogger,
 		MustExist: true,
-		Location:  &tail.SeekInfo{Offset: offset, Whence: os.SEEK_SET},
+		Location:  &tail.SeekInfo{Offset: offset, Whence: io.SeekStart},
 	})
 
 	if err != nil {

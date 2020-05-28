@@ -140,7 +140,7 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 	return h2.Time, true, err
 }
 
-func guessInitialDateForFile(reader fileReader, modificationTime time.Time) (time.Time, error) {
+func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time.Time, error) {
 	scanner := bufio.NewScanner(reader)
 
 	timeFirstLine, ok, err := readFirstLine(scanner)
@@ -459,7 +459,7 @@ func processorForQueue(offsetChan chan int64, converterChan timeConverterChan, c
 }
 
 func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[string]timeConverterChan, content DirectoryContent, queues fileQueues) ([]*queueProcessor, error) {
-	p := make([]*queueProcessor, len(queues), len(queues))
+	p := make([]*queueProcessor, len(queues))
 
 	for k, v := range queues {
 		converterChan, ok := converterChans[k]
@@ -512,7 +512,7 @@ func createConveterForQueueProcessor(p *queueProcessor, content DirectoryContent
 	}
 
 	// Copy the pattern string so it can be moved into the log lambda below
-	// NOTE: I really miss explicit onwership checked at compile time :-(
+	// NOTE: I really miss explicit ownership checked at compile time :-(
 	pattern := p.pattern
 
 	converter := postfix.NewTimeConverter(
@@ -926,7 +926,7 @@ func watchCurrentFilesForNewLogs(
 		cancel <- struct{}{}
 	}
 
-	return
+	return waitForDone, cancelCall
 }
 
 func timeConverterChansFromQueues(queues fileQueues) map[string]timeConverterChan {
