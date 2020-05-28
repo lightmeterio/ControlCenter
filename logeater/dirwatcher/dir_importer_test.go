@@ -539,6 +539,32 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 			So(t, ShouldEqual, parseTime(`2019-11-03 01:33:20 +0000`))
 		})
 	})
+
+	Convey("Finds start time among several files from directory contents", t, func() {
+		dirContent := FakeDirectoryContent{
+			entries: fileEntryList{
+				fileEntry{filename: "log/mail.info.2.gz", modificationTime: parseTime(`2020-03-29 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.info", modificationTime: parseTime(`2020-03-30 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-02-28 18:18:10 +0000`)},
+				fileEntry{filename: "log/mail.err", modificationTime: parseTime(`2020-01-31 19:01:53 +0000`)},
+			},
+			contents: map[string]fakeFileData{
+				"log/mail.info.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
+Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+				"log/mail.info": plainDataFile(`Mar 30 01:33:20 mail dovecot: Useless Payload`),
+				"log/mail.log": plainDataFile(`Nov  3 01:33:20 mail dovecot: Useless Payload
+Nov 23 06:28:55 mail dovecot: Useless Payload
+Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+				"log/mail.err": plainDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
+Jan 23 06:28:55 mail dovecot: Useless Payload
+Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+			},
+		}
+
+		t, err := FindInitialLogTime(dirContent)
+		So(err, ShouldEqual, nil)
+		So(t, ShouldEqual, parseTime(`2019-11-03 01:33:20 +0000`))
+	})
 }
 
 func TestImportDirectoryOnly(t *testing.T) {

@@ -17,11 +17,11 @@ type localDirectoryContent struct {
 	entries fileEntryList
 }
 
-func NewDirectoryContent(dir string) (localDirectoryContent, error) {
+func NewDirectoryContent(dir string) (DirectoryContent, error) {
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
-		return localDirectoryContent{}, err
+		return nil, err
 	}
 
 	entries := fileEntryList{}
@@ -31,7 +31,7 @@ func NewDirectoryContent(dir string) (localDirectoryContent, error) {
 		entries = append(entries, fileEntry{filename: name, modificationTime: i.ModTime()})
 	}
 
-	return localDirectoryContent{entries: entries}, nil
+	return &localDirectoryContent{entries: entries}, nil
 }
 
 func (f *localDirectoryContent) fileEntries() fileEntryList {

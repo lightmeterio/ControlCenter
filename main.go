@@ -71,6 +71,23 @@ func main() {
 		return
 	}
 
+	postfixLogsDirContent := func() dirwatcher.DirectoryContent {
+		if len(dirToWatch) != 0 {
+			dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
+			util.MustSucceed(err, "Opening directory: "+dirToWatch)
+			return dir
+		}
+
+		return nil
+	}()
+
+	if postfixLogsDirContent != nil {
+		initialLogTimeFromDirectory, err := dirwatcher.FindInitialLogTime(postfixLogsDirContent)
+		util.MustSucceed(err, "Obtaining initial time from directory: "+dirToWatch)
+		log.Println("Using initial time from postfix log directory:", initialLogTimeFromDirectory)
+		logYear = initialLogTimeFromDirectory.Year()
+	}
+
 	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
 		Location:    timezone,
 		DefaultYear: logYear,
@@ -113,10 +130,7 @@ func main() {
 		}(filename)
 	}
 
-	if len(dirToWatch) != 0 {
-		dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
-		util.MustSucceed(err, "Opening directory: "+dirToWatch)
-
+	if postfixLogsDirContent != nil {
 		initialTime := func() time.Time {
 			t := ws.MostRecentLogTime()
 
@@ -129,7 +143,7 @@ func main() {
 
 		log.Println("Start importing Postfix logs directory from time", initialTime)
 
-		watcher := dirwatcher.NewDirectoryImporter(&dir, pub, timezone, initialTime)
+		watcher := dirwatcher.NewDirectoryImporter(postfixLogsDirContent, pub, timezone, initialTime)
 
 		go func() {
 			util.MustSucceed(watcher.Run(), "Watching directory")

@@ -252,6 +252,50 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	return t, nil
 }
 
+func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
+	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
+
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	descriptors := []fileDescriptor{}
+
+	fileClosers := []func(){}
+
+	defer func() {
+		for _, f := range fileClosers {
+			f()
+		}
+	}()
+
+	for _, queue := range queues {
+		if len(queue) == 0 {
+			continue
+		}
+
+		entry := queue[0]
+
+		filename := entry.filename
+
+		reader, err := content.readerForEntry(filename)
+
+		if err != nil {
+			return time.Time{}, err
+		}
+
+		fileClosers = append(fileClosers, func() {
+			util.MustSucceed(reader.Close(), "Closing file: "+filename)
+		})
+
+		d := fileDescriptor{modificationTime: entry.modificationTime, reader: reader}
+
+		descriptors = append(descriptors, d)
+	}
+
+	return findEarlierstTimeFromFiles(descriptors)
+}
+
 type fileReader interface {
 	io.Reader
 	io.Closer
