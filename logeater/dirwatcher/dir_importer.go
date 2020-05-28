@@ -621,7 +621,14 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	return chosenIndex
 }
 
-func importExistingLogs(offsetChans map[string]chan int64, converterChans map[string]timeConverterChan, content DirectoryContent, queues fileQueues, pub data.Publisher) error {
+func importExistingLogs(
+	offsetChans map[string]chan int64,
+	converterChans map[string]timeConverterChan,
+	content DirectoryContent,
+	queues fileQueues,
+	pub data.Publisher,
+	after time.Time,
+) error {
 	/*
 	 * Open all log files, including archived (compressed or not, but logrotate)
 	 * and read them line by line, publishing them in the right order they were generated (or
@@ -655,7 +662,9 @@ func importExistingLogs(offsetChans map[string]chan int64, converterChans map[st
 
 		t := queueProcessors[toBeUpdated].record
 
-		pub.Publish(data.Record{Header: t.header, Payload: t.payload})
+		if t.time.After(after) {
+			pub.Publish(data.Record{Header: t.header, Payload: t.payload})
+		}
 	}
 }
 
@@ -960,7 +969,7 @@ func (importer *DirectoryImporter) Run() error {
 		done()
 	}
 
-	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub); err != nil {
+	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.after); err != nil {
 		interruptWatching()
 		return err
 	}

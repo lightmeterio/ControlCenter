@@ -621,7 +621,45 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 			So(pub.logs[10].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
 		})
 
-		Convey("Multiple files in multiple queues, new lines after files are open", func() {
+		Convey("Get only logs after a point in time in the middle of a file", func() {
+			dirContent := FakeDirectoryContent{
+				entries: fileEntryList{
+					fileEntry{filename: "log/mail.log.4.gz", modificationTime: parseTime(`2020-03-13 04:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.5.gz", modificationTime: parseTime(`2020-02-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.2.gz", modificationTime: parseTime(`2020-06-18 07:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"log/mail.log.5.gz": gzippedDataFile(`Feb  1 12:00:00 mail dovecot: Useless Payload
+Feb 14 06:01:53 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log.4.gz": gzippedDataFile(`Feb 14 06:01:54 mail dovecot: Useless Payload
+Feb 23 13:46:15 mail dovecot: Useless Payload
+Mar 13 04:00:09 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log.2.gz": gzippedDataFile(`Mar 14 06:28:55 mail dovecot: Useless Payload
+Jun 18 06:28:55 mail someotherstuff: useless`),
+					"log/mail.log.1": plainDataFile(`Jun 18 08:29:33 mail dovecot: Useless Payload
+Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log": plainCurrentDataFile(`Jul 18 00:00:00 mail dovecot: Useless Payload
+Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
+				},
+			}
+			pub := fakePublisher{}
+			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`2020-06-18 06:28:54 +0000`))
+			err := importer.Run()
+			So(err, ShouldEqual, nil)
+			So(len(pub.logs), ShouldEqual, 5)
+
+			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 6, Minute: 28, Second: 55})
+
+			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
+			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 14, Hour: 7, Minute: 1, Second: 53})
+
+			So(pub.logs[3].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
+		})
+
+		Convey("Multiple files in multiple queues, no new lines after files are open", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
 					fileEntry{filename: "mail.info", modificationTime: parseTime(`2001-01-01 00:00:03 +0000`)},
