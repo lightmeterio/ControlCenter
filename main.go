@@ -116,8 +116,21 @@ func main() {
 	if len(dirToWatch) != 0 {
 		dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 		util.MustSucceed(err, "Opening directory: "+dirToWatch)
-		initialTime := time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
+
+		initialTime := func() time.Time {
+			t := ws.MostRecentLogTime()
+
+			if t.IsZero() {
+				return time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
+			}
+
+			return t
+		}()
+
+		log.Println("Start importing Postfix logs directory from time", initialTime)
+
 		watcher := dirwatcher.NewDirectoryImporter(&dir, pub, timezone, initialTime)
+
 		go func() {
 			util.MustSucceed(watcher.Run(), "Watching directory")
 		}()

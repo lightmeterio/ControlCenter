@@ -3,6 +3,7 @@ package workspace
 import (
 	"errors"
 	"os"
+	"time"
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -33,6 +34,12 @@ func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, err
 
 func (ws *Workspace) Dashboard() (dashboard.Dashboard, error) {
 	return dashboard.New(ws.logs.ReadConnection())
+}
+
+// Obtain the most recent time inserted in the database,
+// or a zero'd time in case case no value has been found
+func (ws *Workspace) MostRecentLogTime() time.Time {
+	return ws.logs.MostRecentLogTime()
 }
 
 func (ws *Workspace) NewPublisher() data.Publisher {
