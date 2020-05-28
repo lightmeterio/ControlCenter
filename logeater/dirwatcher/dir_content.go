@@ -13,15 +13,15 @@ import (
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
-type LocalDirectoryContent struct {
+type localDirectoryContent struct {
 	entries fileEntryList
 }
 
-func NewDirectoryContent(dir string) (LocalDirectoryContent, error) {
+func NewDirectoryContent(dir string) (localDirectoryContent, error) {
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
-		return LocalDirectoryContent{}, err
+		return localDirectoryContent{}, err
 	}
 
 	entries := fileEntryList{}
@@ -31,14 +31,14 @@ func NewDirectoryContent(dir string) (LocalDirectoryContent, error) {
 		entries = append(entries, fileEntry{filename: name, modificationTime: i.ModTime()})
 	}
 
-	return LocalDirectoryContent{entries: entries}, nil
+	return localDirectoryContent{entries: entries}, nil
 }
 
-func (f *LocalDirectoryContent) fileEntries() fileEntryList {
+func (f *localDirectoryContent) fileEntries() fileEntryList {
 	return f.entries
 }
 
-func (f *LocalDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, error) {
 	reader, err := os.Open(filename)
 
 	if err != nil {
@@ -48,7 +48,7 @@ func (f *LocalDirectoryContent) readerForEntry(filename string) (fileReader, err
 	return ensureReaderIsDecompressed(reader, filename)
 }
 
-func (f *LocalDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (f *localDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
 	return os.Open(filename)
 }
 
@@ -72,7 +72,7 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 	// It never reaches here, actually
 }
 
-func (f *LocalDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
+func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
 		ReOpen:    false,
@@ -88,7 +88,7 @@ func (f *LocalDirectoryContent) watcherForEntry(filename string, offset int64) (
 	return &localFileWatcher{t, filename}, nil
 }
 
-func (f *LocalDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
+func (f *localDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
 	for _, e := range f.entries {
 		if filename == e.filename {
 			return e.modificationTime, nil
