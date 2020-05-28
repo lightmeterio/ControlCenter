@@ -29,7 +29,7 @@ type logPatterns []string
 
 type fileQueues map[string]fileEntryList
 
-func buildFilesToImport(list fileEntryList, patterns logPatterns, after time.Time) fileQueues {
+func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime time.Time) fileQueues {
 	// FIXME: refactor this function into small ones,
 	// as currently it's as large as hell
 
@@ -62,7 +62,7 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, after time.Tim
 				continue
 			}
 
-			if entry.modificationTime.Before(after) {
+			if entry.modificationTime.Before(initialTime) {
 				continue
 			}
 
@@ -275,19 +275,19 @@ type DirectoryContent interface {
 }
 
 type DirectoryImporter struct {
-	content DirectoryContent
-	pub     data.Publisher
-	tz      *time.Location
-	after   time.Time
+	content     DirectoryContent
+	pub         data.Publisher
+	tz          *time.Location
+	initialTime time.Time
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
 	pub data.Publisher,
 	tz *time.Location,
-	after time.Time,
+	initialTime time.Time,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, tz, after}
+	return DirectoryImporter{content, pub, tz, initialTime}
 }
 
 type timedRecord struct {
@@ -312,14 +312,14 @@ func readFromReader(reader io.Reader,
 	}
 }
 
-func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, after time.Time) (fileQueues, error) {
+func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
 	entries := content.fileEntries()
 
 	if len(entries) == 0 {
 		return fileQueues{}, errors.New("Empty Directory")
 	}
 
-	queues := buildFilesToImport(entries, patterns, after)
+	queues := buildFilesToImport(entries, patterns, initialTime)
 
 	if len(queues) == 0 {
 		return fileQueues{}, errors.New("Empty Directory")
@@ -627,7 +627,7 @@ func importExistingLogs(
 	content DirectoryContent,
 	queues fileQueues,
 	pub data.Publisher,
-	after time.Time,
+	initialTime time.Time,
 ) error {
 	/*
 	 * Open all log files, including archived (compressed or not, but logrotate)
@@ -662,7 +662,7 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if t.time.After(after) {
+		if t.time.After(initialTime) {
 			pub.Publish(data.Record{Header: t.header, Payload: t.payload})
 		}
 	}
@@ -950,7 +950,7 @@ func offsetChansFromQueues(queues fileQueues) map[string]chan int64 {
 }
 
 func (importer *DirectoryImporter) Run() error {
-	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.after)
+	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.initialTime)
 
 	if err != nil {
 		return err
@@ -969,7 +969,7 @@ func (importer *DirectoryImporter) Run() error {
 		done()
 	}
 
-	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.after); err != nil {
+	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime); err != nil {
 		interruptWatching()
 		return err
 	}
