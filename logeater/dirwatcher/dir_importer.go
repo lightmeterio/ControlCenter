@@ -680,6 +680,8 @@ func importExistingLogs(
 	 * so the order among different lines on the same second is not deterministic.
 	 */
 
+	initialImportTime := time.Now()
+
 	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues)
 
 	if err != nil {
@@ -698,7 +700,8 @@ func importExistingLogs(
 		queueProcessors = updatedQueueProcessors
 
 		if len(queueProcessors) == 0 {
-			log.Println("Finished importing postfix log directory")
+			elapsedTime := time.Since(initialImportTime)
+			log.Println("Finished importing postfix log directory in:", elapsedTime)
 			return nil
 		}
 
@@ -710,6 +713,7 @@ func importExistingLogs(
 			pub.Publish(data.Record{Header: t.header, Payload: t.payload})
 		}
 	}
+
 }
 
 type newLogsPublisher struct {
