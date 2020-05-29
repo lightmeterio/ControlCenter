@@ -29,10 +29,57 @@ type logPatterns []string
 
 type fileQueues map[string]fileEntryList
 
-func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime time.Time) fileQueues {
-	// FIXME: refactor this function into small ones,
-	// as currently it's as large as hell
+func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pattern string, initialTime time.Time) fileEntryList {
+	// NOTE: we are using the default logrotate naming convension. More info at:
+	// http://man7.org/linux/man-pages/man5/logrotate.conf.5.html
+	reg, err := regexp.Compile(`^(` + pattern + `)(\.(\d+)(\.gz)?)?$`)
 
+	util.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
+
+	entries := make(fileEntryList, 0, len(list))
+
+	type rec struct {
+		entry fileEntry
+		index int
+	}
+
+	recs := []rec{}
+
+	for _, entry := range list {
+		basename := path.Base(entry.filename)
+		matches := reg.FindSubmatch([]byte(basename))
+
+		if len(matches) == 0 || entry.modificationTime.Before(initialTime) {
+			continue
+		}
+
+		index := func() int {
+			if len(matches[3]) == 0 {
+				return 0
+			}
+
+			index, err := strconv.Atoi(string(matches[3]))
+			util.MustSucceed(err, "Atoi")
+
+			return index
+		}()
+
+		recs = append(recs, rec{entry: entry, index: index})
+	}
+
+	sort.Slice(recs, func(i, j int) bool {
+		// desc sort, so we have mail.log.2.gz, mail.log.1, mail.log
+		return recs[i].index > recs[j].index
+	})
+
+	for _, r := range recs {
+		entries = append(entries, r.entry)
+	}
+
+	return entries
+}
+
+func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime time.Time) fileQueues {
 	if len(patterns) == 0 {
 		return fileQueues{}
 	}
@@ -40,54 +87,7 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime ti
 	queues := make(fileQueues, len(patterns))
 
 	for _, pattern := range patterns {
-		// NOTE: we are using the default logrotate naming convension. More info at:
-		// http://man7.org/linux/man-pages/man5/logrotate.conf.5.html
-		reg, err := regexp.Compile(`^(` + pattern + `)(\.(\d+)(\.gz)?)?$`)
-		util.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
-
-		queues[pattern] = make(fileEntryList, 0, len(list))
-
-		type rec struct {
-			entry fileEntry
-			index int
-		}
-
-		recs := []rec{}
-
-		for _, entry := range list {
-			basename := path.Base(entry.filename)
-			matches := reg.FindSubmatch([]byte(basename))
-
-			if len(matches) == 0 {
-				continue
-			}
-
-			if entry.modificationTime.Before(initialTime) {
-				continue
-			}
-
-			index := func() int {
-				if len(matches[3]) == 0 {
-					return 0
-				}
-
-				index, err := strconv.Atoi(string(matches[3]))
-				util.MustSucceed(err, "Atoi")
-
-				return index
-			}()
-
-			recs = append(recs, rec{entry: entry, index: index})
-		}
-
-		sort.Slice(recs, func(i, j int) bool {
-			// desc sort, so we have mail.log.2.gz, mail.log.1, mail.log
-			return recs[i].index > recs[j].index
-		})
-
-		for _, r := range recs {
-			queues[pattern] = append(queues[pattern], r.entry)
-		}
+		queues[pattern] = sortedEntriesFilteredByPatternAndMoreRecentThanTime(list, pattern, initialTime)
 	}
 
 	return queues
@@ -97,8 +97,8 @@ var (
 	refFirstSecondInYear = asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})
 )
 
-// Return the "Calendar second" of that time in the year 2000
-// I guess any leap year would work. 2000 is arbitrary.
+// Convert to a time.Time{} using the year 2000.
+// 2000 is arbitrary, as any leap year would work
 func asRefTime(v parser.Time) time.Time {
 	return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
 }
