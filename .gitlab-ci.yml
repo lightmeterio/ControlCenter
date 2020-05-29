@@ -6,6 +6,7 @@ include:
 
 variables:
   SAST_DEFAULT_ANALYZERS: "gosec,secrets"
+  GO111MODULE: "on"
 
 stages:
   - test
@@ -16,21 +17,21 @@ stages:
   - publish
   - docker
 
+.on-non-tag:
+  rules:
+    - if: '$CI_COMMIT_TAG == null'
+      when: always
+    
 lint:
+  extends: .on-non-tag
   image: golangci/golangci-lint:v1.26.0
   stage: test
   allow_failure: true
-  except:
-    - tags
   script:
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
   artifacts:
     reports:
       junit: golangci-output.xml
-
-.on-non-tag:
-  except:
-    - tags
 
 .go-builder:
   extends: .on-non-tag
@@ -80,7 +81,9 @@ publish-release:
   extends: .on-non-tag
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli
-  when: manual
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+      when: manual
   script:
     - ./ci/release_on_gitlab.sh
 
@@ -99,17 +102,15 @@ dependency_scanning:
 code_quality:
   extends: .on-non-tag
   stage: test
-  only:
-    refs:
-      - branches
 
 license_scanning:
   extends: .on-non-tag
   stage: test
 
 publish-docker-image:
-  only:
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG != null'
+      when: always
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
