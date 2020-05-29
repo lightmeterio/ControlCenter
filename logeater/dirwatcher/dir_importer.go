@@ -731,12 +731,8 @@ func (pub newLogsPublisher) Close() {
 }
 
 type sortableRecord struct {
-	record timedRecord
-
-	// When the same queue adds multiple items to the heap that happen in the same second', we want to preserve their original order
-	// so we use extra values for sorting
-	queueIndex int
-	sequence   uint64
+	record parsedRecord
+	time   time.Time
 }
 
 func (r sortableRecord) Less(other sortableRecord) bool {
@@ -745,23 +741,23 @@ func (r sortableRecord) Less(other sortableRecord) bool {
 	// this to one line:
 	// `return make_tuple(r.timedRecord, r.queueIndex, r.sequence) < make_tuple(other.timedRecord, other.queueIndex, other.sequence)`
 
-	if r.record.time.Before(other.record.time) {
+	if r.time.Before(other.time) {
 		return true
 	}
 
-	if r.record.time.After(other.record.time) {
+	if r.time.After(other.time) {
 		return false
 	}
 
-	if r.queueIndex < other.queueIndex {
+	if r.record.queueIndex < other.record.queueIndex {
 		return true
 	}
 
-	if r.queueIndex > other.queueIndex {
+	if r.record.queueIndex > other.record.queueIndex {
 		return false
 	}
 
-	return r.sequence < other.sequence
+	return r.record.sequence < other.record.sequence
 }
 
 // Implement heap.Interface
@@ -791,14 +787,25 @@ func (t *sortableRecordHeap) Pop() interface{} {
 	return x
 }
 
+type parsedRecord struct {
+	header  parser.Header
+	payload parser.Payload
+
+	// When the same queue adds multiple items to the heap that happen in the same second
+	// we want to preserve their original order
+	// so we use extra values for sorting
+	queueIndex int
+	sequence   uint64
+}
+
+// responsible for watching for new logs added to a file
+// and buffering them into a channel (outChan).
 func startWatchingOnQueue(
 	entry fileEntry,
 	queueIndex int,
-	converterChan timeConverterChan,
 	offsetChan <-chan int64,
 	content DirectoryContent,
-	outChan chan<- sortableRecord,
-	done chan<- struct{}) {
+	outChan chan<- parsedRecord) {
 
 	offset := <-offsetChan
 
@@ -808,13 +815,10 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	converter := <-converterChan
-
 	watcher.run(func(h parser.Header, p parser.Payload) {
-		t := converter.Convert(h.Time)
-
-		record := sortableRecord{
-			record:     timedRecord{header: h, payload: p, time: t},
+		record := parsedRecord{
+			header:     h,
+			payload:    p,
 			queueIndex: queueIndex,
 			sequence:   sequence,
 		}
@@ -823,6 +827,31 @@ func startWatchingOnQueue(
 
 		sequence++
 	})
+
+	close(outChan)
+}
+
+// given the (bufferized) logs received by startWatchingOnQueue() via a channel,
+// wait until the initial import is finished, obtaining the time converter from it
+func startTimestampingParsedLogs(
+	converterChan timeConverterChan,
+	sortableRecordsChan chan<- sortableRecord,
+	parsedRecordsChan <-chan parsedRecord,
+	done chan<- struct{}) {
+
+	// While the initial import happens,
+	// the time converter is not available,
+	// being owned by the import process.
+	// once it's finished, we take onwership
+	// over the converter and start using it from
+	// the exact point in time the import stopped.
+	converter := <-converterChan
+
+	for p := range parsedRecordsChan {
+		t := converter.Convert(p.header.Time)
+		r := sortableRecord{record: p, time: t}
+		sortableRecordsChan <- r
+	}
 
 	done <- struct{}{}
 }
@@ -859,8 +888,11 @@ func startFileWatchers(
 
 		queueIndex := patternIndexes[pattern]
 
+		parsedRecordsChan := make(chan parsedRecord, maxNumberOfCachedElementsInTheHeap)
+
 		actions = append(actions, func() {
-			go startWatchingOnQueue(entry, queueIndex, converterChan, offsetChan, content, sortableRecordsChan, done)
+			go startWatchingOnQueue(entry, queueIndex, offsetChan, content, parsedRecordsChan)
+			go startTimestampingParsedLogs(converterChan, sortableRecordsChan, parsedRecordsChan, done)
 		})
 	}
 
@@ -883,7 +915,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 	flushHeap := func() {
 		for h.Len() > 0 {
 			s := heap.Pop(&h).(sortableRecord)
-			r := timedRecord{header: s.record.header, payload: s.record.payload, time: s.record.time}
+			r := timedRecord{header: s.record.header, payload: s.record.payload, time: s.time}
 			pub.Publish(r)
 		}
 	}
@@ -943,7 +975,7 @@ func watchCurrentFilesForNewLogs(
 
 	// All watchers will write to this channel
 	// and the publisher thread will read from it
-	sortableRecordsChan := make(chan sortableRecord, maxNumberOfCachedElementsInTheHeap)
+	sortableRecordsChan := make(chan sortableRecord)
 
 	startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher)
 
