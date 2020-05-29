@@ -532,7 +532,7 @@ func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[
 	return p, nil
 }
 
-func createConveterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header) (*postfix.TimeConverter, error) {
+func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header) (*postfix.TimeConverter, error) {
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
@@ -607,7 +607,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 		}
 
 		if p.converter == nil {
-			converter, err := createConveterForQueueProcessor(p, content, header)
+			converter, err := createConverterForQueueProcessor(p, content, header)
 
 			if err != nil {
 				return false, err
@@ -625,7 +625,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 }
 
 func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, toBeUpdated int) ([]*queueProcessor, error) {
-	updatedProcessors := []*queueProcessor{}
+	updatedProcessors := make([]*queueProcessor, 0, len(processors))
 
 	for i, p := range processors {
 		isFirstExecution := toBeUpdated != -1
@@ -713,7 +713,6 @@ func importExistingLogs(
 			pub.Publish(data.Record{Header: t.header, Payload: t.payload})
 		}
 	}
-
 }
 
 type newLogsPublisher struct {
@@ -842,7 +841,7 @@ func startTimestampingParsedLogs(
 	// While the initial import happens,
 	// the time converter is not available,
 	// being owned by the import process.
-	// once it's finished, we take onwership
+	// once it's finished, we take ownership
 	// over the converter and start using it from
 	// the exact point in time the import stopped.
 	converter := <-converterChan
