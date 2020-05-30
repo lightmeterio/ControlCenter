@@ -47,7 +47,7 @@ var (
 
 func WatchFileCancelable(filename string,
 	location tail.SeekInfo,
-	publisher data.Publisher) (error, chan<- interface{}, <-chan error) {
+	publisher data.Publisher) (err error, stopWatching func(), waitForDone func()) {
 
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
@@ -55,35 +55,43 @@ func WatchFileCancelable(filename string,
 		Logger:    tail.DiscardingLogger,
 		MustExist: true,
 		Location:  &location,
+		Poll:      false,
 	})
 
 	if err != nil {
 		return err, nil, nil
 	}
 
-	cancel := make(chan interface{})
+	cancel := make(chan struct{}, 1)
 	done := make(chan error)
 
-	cleanup := make(chan interface{})
-
 	go func() {
-		<-cancel
-		util.MustSucceed(t.Stop(), "Stopping file watcher")
-		cleanup <- nil
-	}()
+	loop:
+		for {
+			select {
+			case line, ok := <-t.Lines:
+				if !ok {
+					break loop
+				}
 
-	go func() {
-		for line := range t.Lines {
-			tryToParseAndPublish([]byte(line.Text), publisher)
+				tryToParseAndPublish([]byte(line.Text), publisher)
+				break
+
+			case <-cancel:
+				break loop
+			}
 		}
 
-		<-cleanup
-		t.Cleanup()
+		util.MustSucceed(t.Stop(), "stopping watcher")
 
 		done <- nil
 	}()
 
-	return nil, cancel, done
+	return nil, func() {
+			cancel <- struct{}{}
+		}, func() {
+			<-done
+		}
 }
 
 func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher) error {
@@ -94,11 +102,9 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 		return err
 	}
 
-	if err := <-done; err != nil {
-		return err
-	}
+	done()
 
-	return err
+	return nil
 }
 
 func tryToParseAndPublish(line []byte, publisher data.Publisher) {
