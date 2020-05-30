@@ -59,6 +59,28 @@ It's good to remember that we probably won't ever support Windows, but that does
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
 - Mailserver data is stored in separate workspaces so that different servers can be monitored separately. See `-help` for more details on managing these.
 - Postfix logs don't contain a year as part of the date of each line, so the year for processed logs is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
+- Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
+(even if compressed with gzip) and waiting new log files that happen after such import.
+To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
+Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
+Currently the following patterns for log files are "watched":
+  - mail.log
+  - mail.info
+  - mail.warn
+  - mail.err
+
+The importing process will take a long time, depending on how many files you have and how big they are.
+
+It's important not to use `-watch_dir` with other ways of obtaining logs, and future versions of Lightmeter will disable such behaviour.
+
+In case you are having an error like this:
+
+```
+2020/05/29 13:45:05 Missing file mail.log . Instead, found:  /var/log/mail/mail.log.2.gz
+
+```
+
+This means you should have a file mail.log, which means you should check your Postfix installation and ensure it's emitting logs properly.
 
 ### API
 

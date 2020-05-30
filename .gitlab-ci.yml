@@ -19,7 +19,11 @@ stages:
 
 .on-non-tag:
   rules:
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never
     - if: '$CI_COMMIT_TAG == null'
+      when: always
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE != null && $CI_MERGE_REQUEST_EVENT_TYPE != "detached"'
       when: always
     
 lint:

@@ -155,6 +155,12 @@ func (db *DB) NewPublisher() data.Publisher {
 	return &ChannelBasedPublisher{db.records}
 }
 
+// Obtain the most recent time inserted in the database,
+// or a zero'd time in case case no value has been found
+func (db *DB) MostRecentLogTime() time.Time {
+	return buildInitialTime(db.readerConnection, db.config.DefaultYear, db.config.Location)
+}
+
 func (db *DB) Run() <-chan interface{} {
 	doneTimestamping := make(chan interface{})
 	doneInsertingOnDatabase := make(chan interface{})
@@ -163,7 +169,21 @@ func (db *DB) Run() <-chan interface{} {
 		log.Println("Bumping year", year, ", old:", old, ", new:", new)
 	}
 
-	time, year := buildInitialTime(db.readerConnection, db.config.DefaultYear, db.config.Location)
+	time, year := func(ts time.Time) (parser.Time, int) {
+		if ts.IsZero() {
+			return parser.Time{}, db.config.DefaultYear
+		}
+
+		log.Println("Using initial time from database as:", ts)
+
+		return parser.Time{
+			Month:  ts.Month(),
+			Day:    uint8(ts.Day()),
+			Hour:   uint8(ts.Hour()),
+			Minute: uint8(ts.Minute()),
+			Second: uint8(ts.Second()),
+		}, ts.Year()
+	}(db.MostRecentLogTime())
 
 	converter := postfix.NewTimeConverter(time, year, db.config.Location, newYearNotifier)
 	timedRecords := make(chan data.TimedRecord, recordsQueueSize)
@@ -293,25 +313,16 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 }
 
-func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) (parser.Time, int) {
+func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) time.Time {
 	// TODO: return max(defaultYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
 
 	for _, handler := range payloadHandlers {
 		if v, err := handler.lastTimeReader(db); err == nil {
 			ts := time.Unix(v, 0).In(timezone)
-
-			log.Println("Using initial time from database as:", ts)
-
-			return parser.Time{
-				Month:  ts.Month(),
-				Day:    uint8(ts.Day()),
-				Hour:   uint8(ts.Hour()),
-				Minute: uint8(ts.Minute()),
-				Second: uint8(ts.Second()),
-			}, ts.Year()
+			return ts
 		}
 	}
 
 	log.Println("Could not build initial time from database. Using default year", defaultYear)
-	return parser.Time{}, defaultYear
+	return time.Time{}
 }

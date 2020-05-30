@@ -5,8 +5,11 @@ import (
 	"io"
 	"log"
 
+	"errors"
+
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -38,21 +41,68 @@ func FindWatchingLocationForWorkspace(ws *workspace.Workspace) tail.SeekInfo {
 	}
 }
 
-func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher) error {
+var (
+	FileIsNotRegular = errors.New("File is not regular")
+)
+
+func WatchFileCancelable(filename string,
+	location tail.SeekInfo,
+	publisher data.Publisher) (err error, stopWatching func(), waitForDone func()) {
+
 	t, err := tail.TailFile(filename, tail.Config{
-		Follow:   true,
-		ReOpen:   true,
-		Logger:   tail.DiscardingLogger,
-		Location: &location,
+		Follow:    true,
+		ReOpen:    false,
+		Logger:    tail.DiscardingLogger,
+		MustExist: true,
+		Location:  &location,
+		Poll:      false,
 	})
+
+	if err != nil {
+		return err, nil, nil
+	}
+
+	cancel := make(chan struct{}, 1)
+	done := make(chan error)
+
+	go func() {
+	loop:
+		for {
+			select {
+			case line, ok := <-t.Lines:
+				if !ok {
+					break loop
+				}
+
+				tryToParseAndPublish([]byte(line.Text), publisher)
+				break
+
+			case <-cancel:
+				break loop
+			}
+		}
+
+		util.MustSucceed(t.Stop(), "stopping watcher")
+
+		done <- nil
+	}()
+
+	return nil, func() {
+			cancel <- struct{}{}
+		}, func() {
+			<-done
+		}
+}
+
+func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher) error {
+	// it ends only when the file is deleted (I guess, as its behaviour is defined in the tail package)
+	err, _, done := WatchFileCancelable(filename, location, publisher)
 
 	if err != nil {
 		return err
 	}
 
-	for line := range t.Lines {
-		tryToParseAndPublish([]byte(line.Text), publisher)
-	}
+	done()
 
 	return nil
 }
