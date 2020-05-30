@@ -83,6 +83,8 @@ publish-release:
   image: registry.gitlab.com/gitlab-org/release-cli
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"'
+      changes:
+        - VERSION.txt
       when: manual
   script:
     - ./ci/release_on_gitlab.sh
