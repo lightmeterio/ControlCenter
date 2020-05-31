@@ -244,8 +244,6 @@ func (f FakeDirectoryContent) modificationTimeForEntry(filename string) (time.Ti
 	panic("File not Found!")
 }
 
-var tz = time.UTC
-
 func TestGuessingYearWhenFileStarts(t *testing.T) {
 	Convey("Guess Based on file content and modification date", t, func() {
 		Convey("Empty file uses modification date directly", func() {
@@ -572,7 +570,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldNotEqual, nil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -592,7 +590,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -625,7 +623,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 11)
@@ -671,7 +669,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`2020-06-18 06:28:54 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`2020-06-18 06:28:54 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -708,7 +706,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -813,7 +811,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 45)
@@ -838,7 +836,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -868,7 +866,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, tz, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
 			So(len(pub.logs), ShouldEqual, 6)

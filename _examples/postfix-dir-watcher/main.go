@@ -19,10 +19,10 @@ func (p *pub) Publish(r data.Record) {
 		return
 	}
 
-	j, err := json.MarshalIndent(map[string]interface{}{
+	j, err := json.Marshal(map[string]interface{}{
 		"header":  r.Header,
 		"payload": r.Payload,
-	}, "", "  ")
+	})
 
 	if err != nil {
 		log.Fatalln("JSON Error:", err)
@@ -53,7 +53,7 @@ func main() {
 
 	pub := pub{}
 
-	watcher := dirwatcher.NewDirectoryImporter(content, &pub, time.UTC, initialTime)
+	watcher := dirwatcher.NewDirectoryImporter(content, &pub, initialTime)
 
 	if err := watcher.Run(); err != nil {
 		log.Fatalln("Error: ", err)

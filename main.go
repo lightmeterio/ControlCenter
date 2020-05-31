@@ -143,7 +143,7 @@ func main() {
 
 		log.Println("Start importing Postfix logs directory from time", initialTime)
 
-		watcher := dirwatcher.NewDirectoryImporter(postfixLogsDirContent, pub, timezone, initialTime)
+		watcher := dirwatcher.NewDirectoryImporter(postfixLogsDirContent, pub, initialTime)
 
 		go func() {
 			util.MustSucceed(watcher.Run(), "Watching directory")

@@ -321,17 +321,15 @@ type DirectoryContent interface {
 type DirectoryImporter struct {
 	content     DirectoryContent
 	pub         data.Publisher
-	tz          *time.Location
 	initialTime time.Time
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
 	pub data.Publisher,
-	tz *time.Location,
 	initialTime time.Time,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, tz, initialTime}
+	return DirectoryImporter{content, pub, initialTime}
 }
 
 type timedRecord struct {
