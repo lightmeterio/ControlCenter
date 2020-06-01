@@ -4,8 +4,9 @@
 [![coverage report](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![report_card](https://goreportcard.com/badge/gitlab.com/lightmeter/controlcenter)](https://goreportcard.com/report/gitlab.com/lightmeter/controlcenter)
 
-Welcome to Lightmeter, the Open Source email deliverability monitoring system.
+Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
 
+![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/Selection_816.png "Lightmeter Control Center 0.0.2 screenshot")
 ## Supported Mail Transfer Agents
 
 Currently Postfix MTA is supported. Future support for additional MTAs is planned.
@@ -87,3 +88,4 @@ This means you should have a file mail.log, which means you should check your Po
 Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
 
 Swagger-based API documentation and experimentation pages are generated automatically on development builds. Access them via `http://lightmeter-address:8080/api`, eg. [http://localhost:8080/api](http://localhost:8080/api).
+
