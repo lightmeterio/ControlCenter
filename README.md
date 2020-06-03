@@ -7,6 +7,13 @@
 Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
 
 ![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/Selection_816.png "Lightmeter Control Center 0.0.2 screenshot")
+
+## Quickstart
+
+1. Install Lightmeter Control Center as you prefer, then run it using `./lightmeter -watch_dir /path/to/mail/log/dir`
+1. Open `http://localhost:8080/` to see the interface
+1. If necessary change the date range to see graphs for the period of the logs you just imported
+
 ## Supported Mail Transfer Agents
 
 Currently Postfix MTA is supported. Future support for additional MTAs is planned.
