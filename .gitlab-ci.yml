@@ -40,3 +40,23 @@ cover:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
+
+variables:
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  GIT_DEPTH: "0"
+
+sonarcloud-check:
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner
+  rules:
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never
+    - if: '$CI_COMMIT_TAG == null'
+      when: always
