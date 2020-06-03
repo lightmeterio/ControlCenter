@@ -23,7 +23,7 @@ fi
 
 if [ $SHOWUSAGE == 1 ]
   then
-    echo "Example usage: batch_log_cleaner /var/mail/log /home/admin/cleaned_logs"
+    echo "Example usage: $0 /var/mail/log /home/admin/cleaned_logs"
     exit 1
 fi
 
