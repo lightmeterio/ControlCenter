@@ -6,12 +6,11 @@ include:
 
 stages:
   - test
-  - lint
-  - security
+  - extra
 
 lint:
   image: golangci/golangci-lint:v1.26.0
-  stage: lint
+  stage: extra
   allow_failure: true
   script:
     - golangci-lint run --out-format=junit-xml > golangci-output.xml
@@ -35,17 +34,25 @@ test:
       junit: report.xml
 
 cover:
+  stage: test
   extends: .go-builder
   script:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
   coverage: /^total:\s+.*\s(\d+\.\d+)%$/
+  artifacts:
+    paths:
+      - coverinfo.txt
+    expire_in: 1 hour
 
 variables:
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
   GIT_DEPTH: "0"
 
 sonarcloud-check:
+  dependencies:
+    - cover
+  stage: extra
   image:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
