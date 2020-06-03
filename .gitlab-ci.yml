@@ -10,7 +10,6 @@ variables:
 
 stages:
   - test
-  - lint
   - security
   - build
   - package
@@ -79,6 +78,7 @@ cover:
       cobertura: cobertura.xml
     paths:
       - coverage.html
+      - coverinfo.txt
     expire_in: 7 days
 
 publish-release:
@@ -109,10 +109,6 @@ code_quality:
   extends: .on-non-tag
   stage: test
 
-license_scanning:
-  extends: .on-non-tag
-  stage: test
-
 publish-docker-image:
   rules:
     - if: '$CI_COMMIT_TAG != null'
@@ -123,3 +119,22 @@ publish-docker-image:
   stage: docker
   script:
     - sh ci/publish_docker_image.sh
+
+sonarcloud-check:
+  dependencies:
+    - cover
+  stage: security
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner
+  rules:
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never
+    - if: '$CI_COMMIT_TAG == null'
+      when: always
