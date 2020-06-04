@@ -377,7 +377,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 }
 
 var (
-	patterns       = logPatterns{"mail.log", "mail.info", "mail.err", "mail.warn"}
+	patterns       = logPatterns{"mail.log", "mail.err", "mail.warn"}
 	patternIndexes = map[string]int{}
 )
 

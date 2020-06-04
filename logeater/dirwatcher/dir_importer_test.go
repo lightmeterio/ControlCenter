@@ -452,7 +452,7 @@ func TestBuildingfileQueues(t *testing.T) {
 			}
 
 			// select all files modified after Mar 10, 00:00:00
-			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.info", "mail.warn"}, parseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
+			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, parseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
 				fileQueues{
 					"mail.log": fileEntryList{
 						fileEntry{filename: "logs/mail.log.1", modificationTime: parseTime(`2020-04-03 08:36:24 +0200`)},
@@ -463,12 +463,6 @@ func TestBuildingfileQueues(t *testing.T) {
 						fileEntry{filename: "logs/mail.err.2.gz", modificationTime: parseTime(`2020-03-15 07:39:37 +0200`)},
 						fileEntry{filename: "logs/mail.err.1", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
 						fileEntry{filename: "logs/mail.err", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
-					},
-					"mail.info": fileEntryList{
-						fileEntry{filename: "logs/mail.info.3.gz", modificationTime: parseTime(`2020-03-16 07:42:56 +0200`)},
-						fileEntry{filename: "logs/mail.info.2.gz", modificationTime: parseTime(`2020-03-22 07:25:05 +0200`)},
-						fileEntry{filename: "logs/mail.info.1", modificationTime: parseTime(`2020-03-29 08:51:33 +0200`)},
-						fileEntry{filename: "logs/mail.info", modificationTime: parseTime(`2020-04-03 18:58:34 +0200`)},
 					},
 					"mail.warn": fileEntryList{
 						fileEntry{filename: "logs/mail.warn.3.gz", modificationTime: parseTime(`2020-03-16 07:42:56 +0200`)},
@@ -541,15 +535,15 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 	Convey("Finds start time among several files from directory contents", t, func() {
 		dirContent := FakeDirectoryContent{
 			entries: fileEntryList{
-				fileEntry{filename: "log/mail.info.2.gz", modificationTime: parseTime(`2020-03-29 19:01:53 +0000`)},
-				fileEntry{filename: "log/mail.info", modificationTime: parseTime(`2020-03-30 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.warn.2.gz", modificationTime: parseTime(`2020-03-29 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.warn", modificationTime: parseTime(`2020-03-30 19:01:53 +0000`)},
 				fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-02-28 18:18:10 +0000`)},
 				fileEntry{filename: "log/mail.err", modificationTime: parseTime(`2020-01-31 19:01:53 +0000`)},
 			},
 			contents: map[string]fakeFileData{
-				"log/mail.info.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
+				"log/mail.warn.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				"log/mail.info": plainDataFile(`Mar 30 01:33:20 mail dovecot: Useless Payload`),
+				"log/mail.warn": plainDataFile(`Mar 30 01:33:20 mail dovecot: Useless Payload`),
 				"log/mail.log": plainDataFile(`Nov  3 01:33:20 mail dovecot: Useless Payload
 Nov 23 06:28:55 mail dovecot: Useless Payload
 Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
@@ -686,15 +680,15 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 		Convey("Multiple files in multiple queues, no new lines after files are open", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "mail.info", modificationTime: parseTime(`2001-01-01 00:00:03 +0000`)},
-					fileEntry{filename: "mail.info.1", modificationTime: parseTime(`2001-01-01 00:00:01 +0000`)},
+					fileEntry{filename: "mail.err", modificationTime: parseTime(`2001-01-01 00:00:03 +0000`)},
+					fileEntry{filename: "mail.err.1", modificationTime: parseTime(`2001-01-01 00:00:01 +0000`)},
 					fileEntry{filename: "mail.log", modificationTime: parseTime(`2001-01-01 00:00:30 +0000`)},
 					fileEntry{filename: "mail.log.1", modificationTime: parseTime(`2000-12-31 23:59:56 +0000`)},
 				},
 				contents: map[string]fakeFileData{
-					"mail.info": plainCurrentDataFile(`Jan  1 00:00:02 mail postfix/postscreen[18660]: a`, ``),
+					"mail.err": plainCurrentDataFile(`Jan  1 00:00:02 mail postfix/postscreen[18660]: a`, ``),
 
-					"mail.info.1": plainDataFile(`Dec 31 23:59:55 mail dovecot: pop3-login:
+					"mail.err.1": plainDataFile(`Dec 31 23:59:55 mail dovecot: pop3-login:
 Jan  1 00:00:01 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
 Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`),
 
@@ -730,11 +724,6 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 					fileEntry{filename: "mail.err.2.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
 					fileEntry{filename: "mail.err.3.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
 					fileEntry{filename: "mail.err.4.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.info", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.info.1", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.info.2.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.info.3.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.info.4.gz", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
 					fileEntry{filename: "mail.log", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
 					fileEntry{filename: "mail.log.1", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
 					fileEntry{filename: "mail.warn", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
@@ -760,26 +749,6 @@ Mar 10 14:34:14 mail opendkim[225]: D76632C620BA: key`),
 
 					"mail.err.4.gz": gzippedDataFile(`Feb 15 20:34:29 mail opendkim[225]: a
 Feb 15 20:34:29 mail opendkim[225]: 1CDB02C620B5: key`),
-
-					"mail.info": plainCurrentDataFile(`Mar 29 06:53:16 mail postfix/postscreen[18660]: a
-Mar 29 06:53:16 mail postfix/dnsblog[18666]: addr
-Apr  3 16:58:34 mail dovecot: imap`, ``),
-
-					"mail.info.1": plainDataFile(`Mar 22 06:28:55 mail dovecot: pop3-login:
-Mar 22 07:23:34 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
-Mar 29 06:47:09 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`),
-
-					"mail.info.2.gz": gzippedDataFile(`Mar 16 06:44:51 mail postfix/postscreen[26600]: a
-Mar 16 06:44:51 mail postfix/dnsblog[26606]: addr
-Mar 22 05:47:10 mail postfix/postscreen[21960]: DISCONNECT [112.95.40.50]:53980`),
-
-					"mail.info.3.gz": gzippedDataFile(`Mar  8 07:00:04 mail postfix/postscreen[13974]: a
-Mar  8 07:00:04 mail postfix/dnsblog[13980]: addr 155.217.13.142 listed by domain h-3824e3d85a1cce as 58.1.38.1
-Mar 16 06:35:26 mail dovecot: imap-login:`),
-
-					"mail.info.4.gz": gzippedDataFile(`Mar  1 06:44:32 mail postfix/submission/smtpd[5689]: a
-Mar  1 06:44:32 mail postfix/submission/smtpd[5689]: lost
-Mar  8 04:41:14 mail postfix/postscreen[18165]: DISCONNECT [222.135.68.207]:54117`),
 
 					"mail.log": plainCurrentDataFile(`Apr  3 06:40:07 mail dovecot: imap-login:
 Apr  3 06:41:08 mail postfix/qmgr[10471]: 2E4522C620DA:
@@ -814,7 +783,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldEqual, nil)
-			So(len(pub.logs), ShouldEqual, 45)
+			So(len(pub.logs), ShouldEqual, 30)
 		})
 	})
 }
@@ -850,11 +819,11 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
 					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.info", modificationTime: parseTime(`2020-08-19 00:00:00 +0000`)},
+					fileEntry{filename: "log/mail.err", modificationTime: parseTime(`2020-08-19 00:00:00 +0000`)},
 					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
-					"log/mail.info": plainCurrentDataFile(`Jul 12 00:00:00 mail dovecot: Useless Payload
+					"log/mail.err": plainCurrentDataFile(`Jul 12 00:00:00 mail dovecot: Useless Payload
 `,
 						`Jul 19 00:00:00 mail dovecot: Useless Payload
 Aug 12 00:00:00 mail dovecot: Useless Payload`),
