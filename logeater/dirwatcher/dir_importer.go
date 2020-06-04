@@ -422,15 +422,19 @@ func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (file
 
 	offset, err := readSeeker.Seek(0, io.SeekEnd)
 
+	defer func() {
+		if err != nil {
+			util.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
+		}
+	}()
+
 	if err != nil {
-		util.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
 		return nil, 0, err
 	}
 
 	_, err = readSeeker.Seek(0, io.SeekStart)
 
 	if err != nil {
-		util.MustSucceed(readSeeker.Close(), "Closing on seeking file to begin")
 		return nil, 0, err
 	}
 
