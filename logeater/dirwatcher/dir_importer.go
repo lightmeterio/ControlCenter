@@ -93,19 +93,14 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime ti
 	return queues
 }
 
-var (
-	refFirstSecondInYear = asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})
-)
-
-// Convert to a time.Time{} using the year 2000.
-// 2000 is arbitrary, as any leap year would work
-func asRefTime(v parser.Time) time.Time {
-	return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
-}
-
 // Given a leap year, what nth second is a time on it?
 func secondInTheYear(v parser.Time) float64 {
-	return asRefTime(v).Sub(refFirstSecondInYear).Seconds()
+	asRefTime := func(v parser.Time) time.Time {
+		return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
+	}
+
+	return asRefTime(v).Sub(
+		asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})).Seconds()
 }
 
 func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
