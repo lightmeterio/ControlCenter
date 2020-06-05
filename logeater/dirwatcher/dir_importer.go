@@ -93,19 +93,14 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime ti
 	return queues
 }
 
-var (
-	refFirstSecondInYear = asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})
-)
-
-// Convert to a time.Time{} using the year 2000.
-// 2000 is arbitrary, as any leap year would work
-func asRefTime(v parser.Time) time.Time {
-	return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
-}
-
 // Given a leap year, what nth second is a time on it?
 func secondInTheYear(v parser.Time) float64 {
-	return asRefTime(v).Sub(refFirstSecondInYear).Seconds()
+	asRefTime := func(v parser.Time) time.Time {
+		return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
+	}
+
+	return asRefTime(v).Sub(
+		asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})).Seconds()
 }
 
 func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
@@ -377,7 +372,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 }
 
 var (
-	patterns       = logPatterns{"mail.log", "mail.info", "mail.err", "mail.warn"}
+	patterns       = logPatterns{"mail.log", "mail.err", "mail.warn"}
 	patternIndexes = map[string]int{}
 )
 
@@ -427,15 +422,19 @@ func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (file
 
 	offset, err := readSeeker.Seek(0, io.SeekEnd)
 
+	defer func() {
+		if err != nil {
+			util.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
+		}
+	}()
+
 	if err != nil {
-		util.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
 		return nil, 0, err
 	}
 
 	_, err = readSeeker.Seek(0, io.SeekStart)
 
 	if err != nil {
-		util.MustSucceed(readSeeker.Close(), "Closing on seeking file to begin")
 		return nil, 0, err
 	}
 
@@ -899,7 +898,10 @@ func startFileWatchers(
 }
 
 const (
-	maxNumberOfCachedElementsInTheHeap = 2048
+	// While the importing of the archived logs has not finished,
+	// how many new parsed logs do we keep in memory, received by
+	// postfix in realtime?
+	maxNumberOfCachedElementsInTheHeap = 500000
 )
 
 func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogsPublisher) <-chan struct{} {
@@ -1027,6 +1029,14 @@ func offsetChansFromQueues(queues fileQueues) map[string]chan int64 {
 }
 
 func (importer *DirectoryImporter) Run() error {
+	return importer.run(true)
+}
+
+func (importer *DirectoryImporter) ImportOnly() error {
+	return importer.run(false)
+}
+
+func (importer *DirectoryImporter) run(watch bool) error {
 	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.initialTime)
 
 	if err != nil {
@@ -1039,7 +1049,13 @@ func (importer *DirectoryImporter) Run() error {
 
 	offsetChans := offsetChansFromQueues(queues)
 
-	done, cancel := watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
+	done, cancel := func() (func(), func()) {
+		if watch {
+			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
+		}
+
+		return func() {}, func() {}
+	}()
 
 	interruptWatching := func() {
 		cancel()
@@ -1049,6 +1065,10 @@ func (importer *DirectoryImporter) Run() error {
 	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime); err != nil {
 		interruptWatching()
 		return err
+	}
+
+	if !watch {
+		return nil
 	}
 
 	// Start really publishing the buffered records here, indefinitely
