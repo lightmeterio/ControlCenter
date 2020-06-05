@@ -1026,6 +1026,14 @@ func offsetChansFromQueues(queues fileQueues) map[string]chan int64 {
 }
 
 func (importer *DirectoryImporter) Run() error {
+	return importer.run(true)
+}
+
+func (importer *DirectoryImporter) ImportOnly() error {
+	return importer.run(false)
+}
+
+func (importer *DirectoryImporter) run(watch bool) error {
 	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.initialTime)
 
 	if err != nil {
@@ -1038,7 +1046,13 @@ func (importer *DirectoryImporter) Run() error {
 
 	offsetChans := offsetChansFromQueues(queues)
 
-	done, cancel := watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
+	done, cancel := func() (func(), func()) {
+		if watch {
+			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
+		}
+
+		return func() {}, func() {}
+	}()
 
 	interruptWatching := func() {
 		cancel()
@@ -1048,6 +1062,10 @@ func (importer *DirectoryImporter) Run() error {
 	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime); err != nil {
 		interruptWatching()
 		return err
+	}
+
+	if !watch {
+		return nil
 	}
 
 	// Start really publishing the buffered records here, indefinitely

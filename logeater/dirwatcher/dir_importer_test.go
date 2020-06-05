@@ -677,6 +677,30 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
 		})
 
+		Convey("Import only, not watching new log entries", func() {
+			dirContent := FakeDirectoryContent{
+				entries: fileEntryList{
+					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"log/mail.log.1": plainDataFile(`Jun 18 08:29:33 mail dovecot: Useless Payload
+Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log": plainCurrentDataFile(`Jul 18 00:00:00 mail dovecot: Useless Payload`,
+						`Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`),
+				},
+			}
+			pub := fakePublisher{}
+			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			err := importer.ImportOnly()
+			So(err, ShouldEqual, nil)
+			So(len(pub.logs), ShouldEqual, 3)
+
+			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
+			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 14, Hour: 7, Minute: 1, Second: 53})
+			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
+		})
+
 		Convey("Multiple files in multiple queues, no new lines after files are open", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
