@@ -45,7 +45,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-		status = ? and read_ts_sec between ? and ?`)
+		status = ? and read_ts_sec between ? and ? and relay_name != "127.0.0.1"`)
 
 	if err != nil {
 		return SqlDbDashboard{}, err
@@ -63,7 +63,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-		read_ts_sec between ? and ?
+		read_ts_sec between ? and ? and relay_name != "127.0.0.1"
 	group by 
 		status
 	order by
@@ -132,7 +132,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-			read_ts_sec between ? and ?
+			read_ts_sec between ? and ? and relay_name != "127.0.0.1"
 	group by
 		recipient_domain_part 
 	order by
