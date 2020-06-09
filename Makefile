@@ -58,4 +58,4 @@ clean_mocks:
 	rm -f dashboard/mock/dashboard_mock.go
 
 dependencies.svg:
-	go mod graph | utils/gen_deps_graph.py | dot -Tsvg > dependencies.svg
+	go mod graph | tools/gen_deps_graph.py | dot -Tsvg > dependencies.svg

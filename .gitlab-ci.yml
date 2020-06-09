@@ -58,7 +58,7 @@ test:
   extends: .go-builder
   stage: test
   script:
-    - ./utils/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
+    - ./tools/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
     reports:
       junit: report.xml
@@ -68,7 +68,7 @@ cover:
   stage: test
   script:
     - go get -u github.com/t-yuki/gocover-cobertura
-    - ./utils/go_test.sh -coverprofile=coverinfo.txt
+    - ./tools/go_test.sh -coverprofile=coverinfo.txt
     - go run github.com/t-yuki/gocover-cobertura < coverinfo.txt > cobertura.xml
     - go tool cover -html=coverinfo.txt -o coverage.html
     - go tool cover -func=coverinfo.txt
