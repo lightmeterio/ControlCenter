@@ -5,7 +5,7 @@
 # same dependency is used.
 # Receives input via stdin
 # Usage:
-# go mod graph | utils/gen_deps_graph.py | dot -Tsvg > output.svg
+# go mod graph | tools/gen_deps_graph.py | dot -Tsvg > output.svg
 
 import fileinput
 
