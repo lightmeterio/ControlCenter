@@ -132,7 +132,7 @@ sonarcloud-check:
     paths:
       - .sonar/cache
   script:
-    - sonar-scanner
+    - sonar-scanner -Dsonar.projectVersion=$(cat VERSION.txt)
   rules:
     - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
       when: never
