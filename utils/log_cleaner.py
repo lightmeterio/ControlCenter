@@ -8,6 +8,9 @@
 # TODO: implement some unit testing
 
 def replace_ip_v4(s, c, spans):
+    if s[spans(0)[0]:spans(0)[1]] == "127.0.0.1":
+        return [s]
+
     def transform(c):
         # transform the number into something not 100% recoverable without ambiguity
         # (but this is not cryptographically safe!)
