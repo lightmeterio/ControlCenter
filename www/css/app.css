@@ -276,8 +276,9 @@ h5.row-title {
 }
 
 .insights .gradient-bg {
- background: rgb(0,212,255);
-background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%); 
+    background: rgb(0,212,255);
+    background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%);
+    background-clip: content-box;
 }
 
 .modal-dialog .modal-content {
