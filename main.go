@@ -58,7 +58,7 @@ func printVersion() {
 func init() {
 	flag.Var(&filesToWatch, "watch_file", "File to watch (can be used multiple times)")
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
-	flag.StringVar(&workspaceDirectory, "workspace", "lightmeter_workspace", "Path to the directory to store all working data")
+	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin")
 	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
