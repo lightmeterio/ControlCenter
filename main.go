@@ -160,6 +160,8 @@ func main() {
 
 	exposeApiExplorer(mux)
 
+	exposeProfiler(mux)
+
 	api.HttpDashboard(mux, timezone, dashboard)
 
 	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
