@@ -38,6 +38,7 @@ var (
 	importOnly         bool
 	showVersion        bool
 	dirToWatch         string
+	address            string
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -56,6 +57,7 @@ func init() {
 	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
+	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
 
 	flag.Usage = func() {
 		printVersion()
@@ -164,7 +166,7 @@ func main() {
 
 	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(address, mux))
 }
 
 func parseLogsFromStdin(publisher data.Publisher) {
