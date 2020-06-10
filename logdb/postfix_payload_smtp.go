@@ -71,20 +71,21 @@ func countLogsForSmtpSentStatus(db *sql.DB) int {
 
 func tableCreationForSmtpSentStatus(db *sql.DB) error {
 	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
-		read_ts_sec           integer,
-		queue                 string,
-		recipient_local_part  text,
-		recipient_domain_part text,
-		relay_name            text,
-		relay_ip              blob,
-		relay_port            uint16,
-		delay                 double,
-		delay_smtpd   				double,
-		delay_cleanup 				double,
-		delay_qmgr    				double,
-		delay_smtp    				double,
-		dsn                   text,
-		status                integer
+  read_ts_sec           integer,
+  process_ip            blob,
+  queue                 string,
+  recipient_local_part  text,
+  recipient_domain_part text,
+  relay_name            text,
+  relay_ip              blob,
+  relay_port            uint16,
+  delay                 double,
+  delay_smtpd   				double,
+  delay_cleanup 				double,
+  delay_qmgr    				double,
+  delay_smtp    				double,
+  dsn                   text,
+  status                integer
 		)`); err != nil {
 		return err
 	}
@@ -103,6 +104,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 	stmt, err := tx.Prepare(`
 		insert into postfix_smtp_message_status(
 			read_ts_sec,
+			process_ip,
 			queue,
 			recipient_local_part,
 			recipient_domain_part,
@@ -116,7 +118,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 			delay_smtp,
 			dsn,
 			status
-		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
 		return err
@@ -126,6 +128,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 
 	_, err = stmt.Exec(
 		r.Time.Unix(),
+		r.Record.Header.ProcessIP,
 		status.Queue,
 		status.RecipientLocalPart,
 		status.RecipientDomainPart,

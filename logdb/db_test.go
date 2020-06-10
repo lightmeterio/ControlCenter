@@ -297,14 +297,6 @@ func TestLogsInsertion(t *testing.T) {
 		})
 
 		Convey("Ignore sending to itself as relay is ignored", func() {
-			// NOTE: it smells like this test (and maybe the others that use a dashboard
-			// should be moved to the `dashboard` package, or rely on custom sql queries, independent
-			// from the dashboard ones.
-			// Right now it feels that the logs database and the dashboard are highly coupled :-(
-
-			_, done, pub, d, dtor := buildWs(2020)
-			defer dtor()
-
 			parse := func(line string) data.Record {
 				h, p, err := parser.Parse([]byte(line))
 
@@ -315,33 +307,81 @@ func TestLogsInsertion(t *testing.T) {
 				return data.Record{Header: h, Payload: p}
 			}
 
-			// this line is ignored, as we noticed that postfix first sends an email to itself, before trying to forward it to the destination
-			pub.Publish(parse(`Jun  3 10:40:57 mail postfix/smtp[9710]: 4AA091855DA0: to=<invalid.email@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.23, delays=0.15/0/0/0.08, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 776E41855DB2)`))
+			Convey("Implicit IP", func() {
+				// NOTE: it smells like this test (and maybe the others that use a dashboard
+				// should be moved to the `dashboard` package, or rely on custom sql queries, independent
+				// from the dashboard ones.
+				// Right now it feels that the logs database and the dashboard are highly coupled :-(
 
-			pub.Publish(parse(`Jun  3 10:40:59 mail postfix/smtp[9890]: 776E41855DB2: to=<invalid.email@example.com>, relay=mx.example.com[11.22.33.44]:25, delay=1.9, delays=0/0/1.5/0.37, dsn=5.1.1, status=bounced (host mx.example.com[11.22.33.44] said: 550 5.1.1 <invalid.email@example.com> User unknown (in reply to RCPT TO command))`))
+				_, done, pub, d, dtor := buildWs(2020)
+				defer dtor()
 
-			pub.Close()
-			<-done
+				// this line is ignored, as we noticed that postfix first sends an email to itself, before trying to forward it to the destination
+				pub.Publish(parse(`Jun  3 10:40:57 mail postfix/smtp[9710]: 4AA091855DA0: to=<invalid.email@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.23, delays=0.15/0/0/0.08, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 776E41855DB2)`))
 
-			interval := parseTimeInterval(`2020-06-03`, `2020-06-03`)
+				pub.Publish(parse(`Jun  3 10:40:59 mail postfix/smtp[9890]: 776E41855DB2: to=<invalid.email@example.com>, relay=mx.example.com[11.22.33.44]:25, delay=1.9, delays=0/0/1.5/0.37, dsn=5.1.1, status=bounced (host mx.example.com[11.22.33.44] said: 550 5.1.1 <invalid.email@example.com> User unknown (in reply to RCPT TO command))`))
 
-			So(d.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
-			So(d.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
-			So(d.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
+				pub.Close()
+				<-done
 
-			So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 1},
+				interval := parseTimeInterval(`2020-06-03`, `2020-06-03`)
+
+				So(d.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
+				So(d.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
+				So(d.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
+
+				So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "bounced", Value: 1},
+				})
+
+				So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example.com", Value: 1},
+				})
+
+				So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example.com", Value: 1},
+				})
+
+				So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{})
 			})
 
-			So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
-				dashboard.Pair{Key: "example.com", Value: 1},
-			})
+			Convey("Explicit IP", func() {
+				// NOTE: it smells like this test (and maybe the others that use a dashboard
+				// should be moved to the `dashboard` package, or rely on custom sql queries, independent
+				// from the dashboard ones.
+				// Right now it feels that the logs database and the dashboard are highly coupled :-(
 
-			So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
-				dashboard.Pair{Key: "example.com", Value: 1},
-			})
+				_, done, pub, d, dtor := buildWs(2020)
+				defer dtor()
 
-			So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{})
+				// this line is ignored, as we noticed that postfix first sends an email to itself, before trying to forward it to the destination
+				pub.Publish(parse(`Jun  3 10:40:57 mail postfix-1.2.3.4/smtp[9710]: 4AA091855DA0: to=<invalid.email@example.com>, relay=1.2.3.4[1.2.3.4]:10024, delay=0.23, delays=0.15/0/0/0.08, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 776E41855DB2)`))
+
+				pub.Publish(parse(`Jun  3 10:40:59 mail postfix-1.2.3.4/smtp[9890]: 776E41855DB2: to=<invalid.email@example.com>, relay=mx.example.com[11.22.33.44]:25, delay=1.9, delays=0/0/1.5/0.37, dsn=5.1.1, status=bounced (host mx.example.com[11.22.33.44] said: 550 5.1.1 <invalid.email@example.com> User unknown (in reply to RCPT TO command))`))
+
+				pub.Close()
+				<-done
+
+				interval := parseTimeInterval(`2020-06-03`, `2020-06-03`)
+
+				So(d.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
+				So(d.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
+				So(d.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
+
+				So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "bounced", Value: 1},
+				})
+
+				So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example.com", Value: 1},
+				})
+
+				So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example.com", Value: 1},
+				})
+
+				So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{})
+			})
 		})
 	})
 }
