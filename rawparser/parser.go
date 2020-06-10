@@ -11,7 +11,7 @@ const (
 
 	hostRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
 
-	postfixProcessRegexpFormat = `^postfix(?P<PostfixSuffix>-[^/]+)?/` + `(?P<ProcessName>.*)`
+	postfixProcessRegexpFormat = `^postfix(-(?P<PostfixSuffix>[^/]+))?/` + `(?P<ProcessName>.*)`
 
 	processRegexpFormat = `(?P<ProcessAndMaybePid>(?P<Process>[^[\s:]+)(\[(?P<ProcessId>[0-9]{1,5})\])?)`
 
@@ -20,14 +20,15 @@ const (
 )
 
 type RawHeader struct {
-	Time    []byte
-	Month   []byte
-	Day     []byte
-	Hour    []byte
-	Minute  []byte
-	Second  []byte
-	Host    []byte
-	Process []byte
+	Time      []byte
+	Month     []byte
+	Day       []byte
+	Hour      []byte
+	Minute    []byte
+	Second    []byte
+	Host      []byte
+	Process   []byte
+	ProcessIP []byte
 }
 
 func indexForGroup(r *regexp.Regexp, name string) int {
@@ -53,8 +54,9 @@ var (
 	secondIndex int
 	hostIndex   int
 
-	processIndex        int
-	postfixProcessIndex int
+	processIndex              int
+	postfixProcessIndex       int
+	postfixProcessSuffixIndex int
 )
 
 func init() {
@@ -73,6 +75,7 @@ func init() {
 	processIndex = indexForGroup(headerRegexp, "Process")
 
 	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
+	postfixProcessSuffixIndex = indexForGroup(postfixProcessRegexp, "PostfixSuffix")
 }
 
 func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
@@ -82,32 +85,33 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, InvalidHeaderLineError
 	}
 
-	buildHeader := func(process []byte) RawHeader {
+	buildHeader := func(process, suffix []byte) RawHeader {
 		return RawHeader{
-			Time:    headerMatches[timeIndex],
-			Month:   headerMatches[monthIndex],
-			Day:     headerMatches[dayIndex],
-			Hour:    headerMatches[hourIndex],
-			Minute:  headerMatches[minuteIndex],
-			Second:  headerMatches[secondIndex],
-			Host:    headerMatches[hostIndex],
-			Process: process,
+			Time:      headerMatches[timeIndex],
+			Month:     headerMatches[monthIndex],
+			Day:       headerMatches[dayIndex],
+			Hour:      headerMatches[hourIndex],
+			Minute:    headerMatches[minuteIndex],
+			Second:    headerMatches[secondIndex],
+			Host:      headerMatches[hostIndex],
+			Process:   process,
+			ProcessIP: suffix,
 		}
 	}
 
 	payloadLine := logLine[len(headerMatches[0]):]
 
 	if len(headerMatches[processIndex]) == 0 {
-		return buildHeader(nil), nil, UnsupportedLogLineError
+		return buildHeader(nil, nil), nil, UnsupportedLogLineError
 	}
 
 	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
 
 	if len(postfixProcessMatches) == 0 {
-		return buildHeader(nil), nil, UnsupportedLogLineError
+		return buildHeader(nil, nil), nil, UnsupportedLogLineError
 	}
 
-	return buildHeader(postfixProcessMatches[postfixProcessIndex]), payloadLine, nil
+	return buildHeader(postfixProcessMatches[postfixProcessIndex], postfixProcessMatches[postfixProcessSuffixIndex]), payloadLine, nil
 }
 
 var (

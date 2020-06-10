@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"net"
 	"time"
 
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
@@ -57,9 +58,10 @@ func (t Time) Time(year int, tz *time.Location) time.Time {
 }
 
 type Header struct {
-	Time    Time
-	Host    string
-	Process string
+	Time      Time
+	Host      string
+	Process   string
+	ProcessIP net.IP
 }
 
 func parseHeader(h rawparser.RawHeader) (Header, error) {
@@ -87,6 +89,8 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
+	processIP := net.ParseIP(string(h.ProcessIP))
+
 	process := string(h.Process)
 
 	return Header{
@@ -97,7 +101,8 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 			Minute: uint8(minute),
 			Second: uint8(second),
 		},
-		Host:    string(h.Host),
-		Process: process,
+		Host:      string(h.Host),
+		Process:   process,
+		ProcessIP: processIP,
 	}, nil
 }
