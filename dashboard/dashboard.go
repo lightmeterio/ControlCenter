@@ -38,6 +38,8 @@ type SqlDbDashboard struct {
 	queries queries
 }
 
+const removeSentToLocalhostSqlFragment = `((process_ip is not null and relay_ip != process_ip) or (process_ip is null and relay_name != "127.0.0.1"))`
+
 func New(db *sql.DB) (SqlDbDashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
@@ -45,7 +47,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-		status = ? and read_ts_sec between ? and ?`)
+		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
 
 	if err != nil {
 		return SqlDbDashboard{}, err
@@ -63,8 +65,8 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-		read_ts_sec between ? and ?
-	group by 
+		read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
+	group by
 		status
 	order by
 		status
@@ -132,9 +134,9 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	from
 		postfix_smtp_message_status
 	where
-			read_ts_sec between ? and ?
+			read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
 	group by
-		recipient_domain_part 
+		recipient_domain_part
 	order by
 		c desc, recipient_domain_part asc
 	limit 20`)
