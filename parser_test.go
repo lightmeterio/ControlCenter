@@ -96,6 +96,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(header.Time.Second, ShouldEqual, 43)
 		So(header.Host, ShouldEqual, "smtpnode07")
 		So(header.Process, ShouldEqual, "smtp")
+		So(header.ProcessIP, ShouldEqual, net.ParseIP("10.20.30.40"))
 
 		So(p.Queue, ShouldEqual, "0C31D3D1E6")
 		So(p.RecipientLocalPart, ShouldEqual, "redacted")
@@ -133,6 +134,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(header.Time.Second, ShouldEqual, 35)
 		So(header.Host, ShouldEqual, "mail")
 		So(header.Process, ShouldEqual, "smtp")
+		So(header.ProcessIP, ShouldEqual, nil)
 
 		So(p.Queue, ShouldEqual, "D298F2C60812")
 		So(p.RecipientLocalPart, ShouldEqual, "user 1234 with space")
