@@ -24,18 +24,18 @@ func atof(s []byte) (float32, error) {
 }
 
 func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Payload, error) {
-	if err == rawparser.InvalidHeaderLineError {
+	if err == rawparser.ErrInvalidHeaderLine {
 		return Header{}, nil, err
 	}
 
-	if err != rawparser.UnsupportedLogLineError {
+	if err != rawparser.ErrUnsupportedLogLine {
 		panic("This is a bug; maybe more error types have been added, but not handled. Who knows?!")
 	}
 
 	h, headerParsingError := parseHeader(header)
 
 	if headerParsingError != nil {
-		return Header{}, nil, rawparser.UnsupportedLogLineError
+		return Header{}, nil, rawparser.ErrUnsupportedLogLine
 	}
 
 	return h, nil, err
@@ -65,7 +65,7 @@ func Parse(line []byte) (Header, Payload, error) {
 	handler, found := handlers[p.PayloadType]
 
 	if !found {
-		return h, nil, rawparser.UnsupportedLogLineError
+		return h, nil, rawparser.ErrUnsupportedLogLine
 	}
 
 	parsed, err := handler(p)

@@ -54,12 +54,12 @@ func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawPayload, error) 
 	payloadMatches := qmgrPossiblePayloadsRegexp.FindSubmatch(payloadLine)
 
 	if len(payloadMatches) == 0 {
-		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
 	if len(payloadMatches[qmgrMessageSentWithStatusIndex]) == 0 {
 		// TODO: implement other stuff done by the "qmgr" process
-		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
 	senderLocalPart := func() []byte {

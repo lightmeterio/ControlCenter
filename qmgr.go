@@ -15,6 +15,7 @@ type QmgrReturnedToSender struct {
 }
 
 func (QmgrReturnedToSender) isPayload() {
+	// required by interface Payload
 }
 
 func convertQmgrReturnedToSender(r rawparser.RawPayload) (Payload, error) {

@@ -99,12 +99,12 @@ func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawPayload, error) 
 	payloadMatches := smtpPossiblePayloadsRegexp.FindSubmatch(payloadLine)
 
 	if len(payloadMatches) == 0 {
-		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
 	if len(payloadMatches[smtpMessageSentWithStatusIndex]) == 0 {
 		// TODO: implement other stuff done by the "smtp" process
-		return RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
 	recipientLocalPart := func() []byte {

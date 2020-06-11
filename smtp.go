@@ -1,8 +1,9 @@
 package parser
 
 import (
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 	"net"
+
+	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 )
 
 func init() {
@@ -26,8 +27,8 @@ var (
 	}
 )
 
-func (this SmtpStatus) String() string {
-	return smtpStatusHumanForm[this]
+func (s SmtpStatus) String() string {
+	return smtpStatusHumanForm[s]
 }
 
 const (
@@ -51,6 +52,7 @@ type SmtpSentStatus struct {
 }
 
 func (SmtpSentStatus) isPayload() {
+	// required by Payload interface
 }
 
 func parseStatus(s []byte) SmtpStatus {

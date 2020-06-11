@@ -82,7 +82,7 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 	headerMatches := headerRegexp.FindSubmatch(logLine)
 
 	if len(headerMatches) == 0 {
-		return RawHeader{}, nil, InvalidHeaderLineError
+		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
 	buildHeader := func(process, suffix []byte) RawHeader {
@@ -102,13 +102,13 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 	payloadLine := logLine[len(headerMatches[0]):]
 
 	if len(headerMatches[processIndex]) == 0 {
-		return buildHeader(nil, nil), nil, UnsupportedLogLineError
+		return buildHeader(nil, nil), nil, ErrUnsupportedLogLine
 	}
 
 	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
 
 	if len(postfixProcessMatches) == 0 {
-		return buildHeader(nil, nil), nil, UnsupportedLogLineError
+		return buildHeader(nil, nil), nil, ErrUnsupportedLogLine
 	}
 
 	return buildHeader(postfixProcessMatches[postfixProcessIndex], postfixProcessMatches[postfixProcessSuffixIndex]), payloadLine, nil
@@ -125,7 +125,7 @@ func registerHandler(process string, handler func(RawHeader, []byte) (RawPayload
 func Parse(logLine []byte) (RawHeader, RawPayload, error) {
 	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
-	if err == InvalidHeaderLineError {
+	if err == ErrInvalidHeaderLine {
 		return RawHeader{}, RawPayload{}, err
 	}
 
@@ -136,7 +136,7 @@ func Parse(logLine []byte) (RawHeader, RawPayload, error) {
 	handler, found := payloadHandlers[string(header.Process)]
 
 	if !found {
-		return header, RawPayload{PayloadType: PayloadTypeUnsupported}, UnsupportedLogLineError
+		return header, RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
 	p, err := handler(header, payloadLine)

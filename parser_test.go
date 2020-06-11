@@ -12,8 +12,8 @@ import (
 func TestErrorKinds(t *testing.T) {
 	Convey("Some errors still allows to recover header info", t, func() {
 		So(IsRecoverableError(nil), ShouldBeTrue)
-		So(IsRecoverableError(UnsupportedLogLineError), ShouldBeTrue)
-		So(IsRecoverableError(InvalidHeaderLineError), ShouldBeFalse)
+		So(IsRecoverableError(ErrUnsupportedLogLine), ShouldBeTrue)
+		So(IsRecoverableError(ErrInvalidHeaderLine), ShouldBeFalse)
 		So(IsRecoverableError(errors.New("Some Random Error")), ShouldBeFalse)
 	})
 }
@@ -22,7 +22,7 @@ func TestParsingInvalidLines(t *testing.T) {
 	Convey("Invalid Line", t, func() {
 		_, p, err := Parse([]byte("Invalid Line"))
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, InvalidHeaderLineError)
+		So(err, ShouldEqual, ErrInvalidHeaderLine)
 	})
 }
 
@@ -34,7 +34,7 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command)`))
 
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
 		So(h.Process, ShouldEqual, "smtp")
 		So(h.Time.Day, ShouldEqual, 16)
 		So(h.Time.Month.String(), ShouldEqual, "September")
@@ -49,19 +49,19 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		_, p, err := Parse([]byte(`Sep 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: ` +
 			`3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)`))
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
 	})
 
 	Convey("Unsupported Log Line with slash on process", t, func() {
 		_, p, err := Parse([]byte(`Feb  3 02:55:42 mail postfix/submission/smtpd[21543]: connect from unknown[11.22.33.44]`))
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
 	})
 
 	Convey("Unsupported opendkim line, but time is okay", t, func() {
 		h, p, err := Parse([]byte(`Feb  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
 		So(h.Time.Month, ShouldEqual, time.February)
 		So(h.Time.Day, ShouldEqual, 5)
 		So(h.Time.Hour, ShouldEqual, 19)
@@ -72,7 +72,7 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	Convey("Unsupported dovecot line", t, func() {
 		_, p, err := Parse([]byte(`Feb  5 18:56:52 mail dovecot: imap(laal@mail.io)<28358><CO3htpid9tRXDNo5>: Connection closed (IDLE running for 0.001 + waiting input for 28.914 secs, 2 B in + 10 B out, state=wait-input) in=703 out=12338 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0`))
 		So(p, ShouldEqual, nil)
-		So(err, ShouldEqual, UnsupportedLogLineError)
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
 	})
 }
 
