@@ -5,10 +5,10 @@ import (
 )
 
 var (
-	InvalidHeaderLineError  = rawparser.InvalidHeaderLineError
-	UnsupportedLogLineError = rawparser.UnsupportedLogLineError
+	ErrInvalidHeaderLine  = rawparser.ErrInvalidHeaderLine
+	ErrUnsupportedLogLine = rawparser.ErrUnsupportedLogLine
 )
 
 func IsRecoverableError(err error) bool {
-	return err == nil || err == UnsupportedLogLineError
+	return err == nil || err == ErrUnsupportedLogLine
 }

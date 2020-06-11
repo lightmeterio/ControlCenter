@@ -3,6 +3,6 @@ package rawparser
 import "errors"
 
 var (
-	InvalidHeaderLineError  = errors.New("Could not parse header")
-	UnsupportedLogLineError = errors.New("Unsupported payload")
+	ErrInvalidHeaderLine  = errors.New("Could not parse header")
+	ErrUnsupportedLogLine = errors.New("Unsupported payload")
 )
