@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"container/heap"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"path"
@@ -872,7 +873,7 @@ func startFileWatchers(
 	content DirectoryContent,
 	queues fileQueues,
 	sortableRecordsChan chan<- sortableRecord,
-	done chan<- struct{}) {
+	done chan<- struct{}) error {
 
 	actions := []func(){}
 
@@ -881,7 +882,7 @@ func startFileWatchers(
 		entry := queue[len(queue)-1]
 
 		if path.Base(entry.filename) != pattern {
-			log.Fatalln("Missing file", pattern, ". Instead, found: ", entry.filename)
+			return util.WrapError(fmt.Errorf("Missing file: %s. Instead found: %s", pattern, entry.filename))
 		}
 
 		converterChan, ok := converterChans[pattern]
@@ -909,6 +910,8 @@ func startFileWatchers(
 	for _, f := range actions {
 		f()
 	}
+
+	return nil
 }
 
 const (
@@ -980,7 +983,7 @@ func watchCurrentFilesForNewLogs(
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
 	queues fileQueues,
-	pub newLogsPublisher) (waitForDone func(), cancelCall func()) {
+	pub newLogsPublisher) (waitForDone func(), cancelCall func(), returnError error) {
 
 	nonEmptyQueues := filterNonEmptyQueues(queues)
 
@@ -990,7 +993,9 @@ func watchCurrentFilesForNewLogs(
 	// and the publisher thread will read from it
 	sortableRecordsChan := make(chan sortableRecord)
 
-	startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher)
+	if err := startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher); err != nil {
+		return func() {}, func() {}, util.WrapError(err)
+	}
 
 	donePublishing := publishNewLogsSorted(sortableRecordsChan, pub)
 
@@ -1019,7 +1024,7 @@ func watchCurrentFilesForNewLogs(
 		cancel <- struct{}{}
 	}
 
-	return waitForDone, cancelCall
+	return waitForDone, cancelCall, nil
 }
 
 func timeConverterChansFromQueues(queues fileQueues) map[string]timeConverterChan {
@@ -1063,13 +1068,17 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	offsetChans := offsetChansFromQueues(queues)
 
-	done, cancel := func() (func(), func()) {
+	done, cancel, err := func() (func(), func(), error) {
 		if watch {
 			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
 		}
 
-		return func() {}, func() {}
+		return func() {}, func() {}, nil
 	}()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
 
 	interruptWatching := func() {
 		cancel()
