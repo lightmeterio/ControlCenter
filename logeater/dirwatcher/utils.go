@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"compress/gzip"
 	"strings"
+
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 type gzippedFileReader struct {
@@ -13,7 +15,7 @@ type gzippedFileReader struct {
 
 func (r *gzippedFileReader) Close() error {
 	if err := r.gzipReader.Close(); err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	return r.fileReader.Close()
@@ -45,7 +47,7 @@ func ensureReaderIsDecompressed(plainReader fileReader, filename string) (fileRe
 		gzipReader, err := gzip.NewReader(reader)
 
 		if err != nil {
-			return nil, err
+			return nil, util.WrapError(err)
 		}
 
 		return &gzippedFileReader{fileReader: reader, gzipReader: gzipReader}, nil

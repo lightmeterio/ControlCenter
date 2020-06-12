@@ -52,7 +52,7 @@ func attachDatabase(conn *sql.DB, filename, schemaName string, flags string) err
 	_, err := conn.Exec(q)
 
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	return nil
@@ -60,14 +60,14 @@ func attachDatabase(conn *sql.DB, filename, schemaName string, flags string) err
 
 func detachDB(db *sql.DB, schema string) error {
 	_, err := db.Exec(`detach database ` + schema)
-	return err
+	return util.WrapError(err)
 }
 
 func createWriter(dbFilename string, config data.Config) (*sql.DB, error) {
 	conn, err := sql.Open("lm_sqlite3", `file:`+dbFilename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return nil, err
+		return nil, util.WrapError(err)
 	}
 
 	defer func() {
@@ -80,7 +80,7 @@ func createWriter(dbFilename string, config data.Config) (*sql.DB, error) {
 
 	if err != nil {
 		log.Println("Error creating table or indexes:", err)
-		return nil, err
+		return nil, util.WrapError(err)
 	}
 
 	return conn, nil
@@ -90,7 +90,7 @@ func createReader(dbFilename string, config data.Config) (*sql.DB, error) {
 	conn, err := sql.Open("lm_sqlite3", `file:`+dbFilename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return nil, err
+		return nil, util.WrapError(err)
 	}
 
 	defer func() {
@@ -105,7 +105,7 @@ func createReader(dbFilename string, config data.Config) (*sql.DB, error) {
 func createTables(db *sql.DB) error {
 	for _, handler := range payloadHandlers {
 		if err := handler.creator(db); err != nil {
-			return err
+			return util.WrapError(err)
 		}
 	}
 
@@ -118,7 +118,7 @@ func Open(workspaceDirectory string, config data.Config) (DB, error) {
 	writerConnection, err := createWriter(dbFilename, config)
 
 	if err != nil {
-		return DB{}, err
+		return DB{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -130,7 +130,7 @@ func Open(workspaceDirectory string, config data.Config) (DB, error) {
 	readerConnection, err := createReader(dbFilename, config)
 
 	if err != nil {
-		return DB{}, err
+		return DB{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -220,7 +220,7 @@ func (db *DB) Close() error {
 	errWriter := db.writerConnection.Close()
 
 	if errWriter != nil || errReader != nil {
-		return errors.New("error closing database: writer:(" + errWriter.Error() + "), reader: (" + errReader.Error() + ")")
+		return util.WrapError(errors.New("error closing database: writer:(" + errWriter.Error() + "), reader: (" + errReader.Error() + ")"))
 	}
 
 	return nil

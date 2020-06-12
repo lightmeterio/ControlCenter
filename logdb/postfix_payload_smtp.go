@@ -17,6 +17,8 @@ func init() {
 	})
 }
 
+var ErrCouldNotObtainTimeFromDatabase = errors.New("Could not obtain time from database")
+
 func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 	// FIXME: this query is way too complicated for something so simple
 	q, err := db.Query(`
@@ -28,18 +30,18 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 		rowid = (select max(rowid) from postfix_smtp_message_status)`)
 
 	if err != nil {
-		return 0, err
+		return 0, util.WrapError(err)
 	}
 
 	defer q.Close()
 
 	if !q.Next() {
-		return 0, errors.New("Could not obtain time from database")
+		return 0, util.WrapError(ErrCouldNotObtainTimeFromDatabase)
 	}
 
 	var v int64
 	if err := q.Scan(&v); err != nil {
-		return 0, err
+		return 0, util.WrapError(err)
 	}
 
 	util.MustSucceed(q.Err(), "Error on rows")
@@ -87,12 +89,12 @@ func tableCreationForSmtpSentStatus(db *sql.DB) error {
   dsn                   text,
   status                integer
 		)`); err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	if _, err := db.Exec(`create index if not exists postfix_smtp_message_time_index
 		on postfix_smtp_message_status (read_ts_sec)`); err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	return nil
@@ -121,7 +123,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	defer stmt.Close()
@@ -144,7 +146,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 		status.Status)
 
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	return nil

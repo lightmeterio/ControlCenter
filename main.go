@@ -39,6 +39,7 @@ var (
 	showVersion        bool
 	dirToWatch         string
 	address            string
+	verbose            bool
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -58,11 +59,30 @@ func init() {
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
+	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
 
 	flag.Usage = func() {
 		printVersion()
 		flag.PrintDefaults()
 	}
+}
+
+func die(err error, msg ...interface{}) {
+	expandError := func(err error) error {
+		if e, ok := err.(*util.Error); ok {
+			return e.Chain()
+		}
+
+		return err
+	}
+
+	log.Println(msg...)
+
+	if verbose {
+		log.Print(expandError(err))
+	}
+
+	os.Exit(1)
 }
 
 func main() {
@@ -76,7 +96,11 @@ func main() {
 	postfixLogsDirContent := func() dirwatcher.DirectoryContent {
 		if len(dirToWatch) != 0 {
 			dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
-			util.MustSucceed(err, "Opening directory: "+dirToWatch)
+
+			if err != nil {
+				die(err, "Error opening directory:", dirToWatch)
+			}
+
 			return dir
 		}
 
@@ -85,7 +109,11 @@ func main() {
 
 	if postfixLogsDirContent != nil {
 		initialLogTimeFromDirectory, err := dirwatcher.FindInitialLogTime(postfixLogsDirContent)
-		util.MustSucceed(err, "Obtaining initial time from directory: "+dirToWatch)
+
+		if err != nil {
+			die(err, "Could not obtain initial log time from directory:", dirToWatch)
+		}
+
 		log.Println("Using initial time from postfix log directory:", initialLogTimeFromDirectory)
 		logYear = initialLogTimeFromDirectory.Year()
 	}
@@ -96,7 +124,7 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatal("Could not initialize workspace:", err)
+		die(err, "Error opening workspace directory:", workspaceDirectory)
 	}
 
 	doneWithDatabase := ws.Run()
@@ -127,7 +155,7 @@ func main() {
 
 		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
-				log.Fatal("Failed watching file: ", filename, ", error: ", err)
+				die(err, "Error watching file:", filename)
 			}
 		}(filename)
 	}
@@ -148,14 +176,16 @@ func main() {
 		watcher := dirwatcher.NewDirectoryImporter(postfixLogsDirContent, pub, initialTime)
 
 		go func() {
-			util.MustSucceed(watcher.Run(), "Watching directory")
+			if err := watcher.Run(); err != nil {
+				die(err, "Error watching directory:", dirToWatch)
+			}
 		}()
 	}
 
 	dashboard, err := ws.Dashboard()
 
 	if err != nil {
-		log.Fatal("Error building dashboard:", err)
+		die(err, "Error creating dashboard")
 	}
 
 	mux := http.NewServeMux()

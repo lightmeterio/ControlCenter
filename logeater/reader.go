@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 
-	"errors"
-
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
@@ -41,10 +39,6 @@ func FindWatchingLocationForWorkspace(ws *workspace.Workspace) tail.SeekInfo {
 	}
 }
 
-var (
-	FileIsNotRegular = errors.New("File is not regular")
-)
-
 func WatchFileCancelable(filename string,
 	location tail.SeekInfo,
 	publisher data.Publisher) (err error, stopWatching func(), waitForDone func()) {
@@ -59,7 +53,7 @@ func WatchFileCancelable(filename string,
 	})
 
 	if err != nil {
-		return err, nil, nil
+		return util.WrapError(err), nil, nil
 	}
 
 	cancel := make(chan struct{}, 1)
@@ -99,7 +93,7 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 	err, _, done := WatchFileCancelable(filename, location, publisher)
 
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	done()

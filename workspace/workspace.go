@@ -1,13 +1,13 @@
 package workspace
 
 import (
-	"errors"
 	"os"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logdb"
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 type Workspace struct {
@@ -17,13 +17,13 @@ type Workspace struct {
 
 func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, error) {
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
-		return Workspace{}, errors.New("Error creating working directory " + workspaceDirectory + ": " + err.Error())
+		return Workspace{}, util.WrapError(err, "Error creating working directory ", workspaceDirectory)
 	}
 
 	logDb, err := logdb.Open(workspaceDirectory, config)
 
 	if err != nil {
-		return Workspace{}, err
+		return Workspace{}, util.WrapError(err)
 	}
 
 	return Workspace{
