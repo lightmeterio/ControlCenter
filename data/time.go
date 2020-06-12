@@ -3,10 +3,12 @@ package data
 import (
 	"errors"
 	"time"
+
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 var (
-	OutOfOrderTimeInterval = errors.New("Time Interval is Out of Order")
+	ErrOutOfOrderTimeInterval = errors.New("Time Interval is Out of Order")
 )
 
 type TimeInterval struct {
@@ -18,19 +20,19 @@ func ParseTimeInterval(fromStr string, toStr string, location *time.Location) (T
 	from, err := time.ParseInLocation("2006-01-02", fromStr, location)
 
 	if err != nil {
-		return TimeInterval{}, err
+		return TimeInterval{}, util.WrapError(err)
 	}
 
 	to, err := time.ParseInLocation("2006-01-02", toStr, location)
 
 	if err != nil {
-		return TimeInterval{}, err
+		return TimeInterval{}, util.WrapError(err)
 	}
 
 	to = to.Add(23 * time.Hour).Add(59 * time.Minute).Add(59 * time.Second)
 
 	if from.After(to) {
-		return TimeInterval{}, OutOfOrderTimeInterval
+		return TimeInterval{}, ErrOutOfOrderTimeInterval
 	}
 
 	return TimeInterval{From: from, To: to}, nil

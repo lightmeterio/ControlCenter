@@ -1,9 +1,10 @@
 package data
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTimeInterval(t *testing.T) {
@@ -22,7 +23,7 @@ func TestTimeInterval(t *testing.T) {
 
 		Convey("Fail to parse out of order Interval", func() {
 			_, err := ParseTimeInterval("2020-05-17", "2020-03-23", time.UTC)
-			So(err, ShouldEqual, OutOfOrderTimeInterval)
+			So(err, ShouldEqual, ErrOutOfOrderTimeInterval)
 		})
 	})
 }

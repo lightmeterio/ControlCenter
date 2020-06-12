@@ -50,7 +50,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
 
 	if err != nil {
-		return SqlDbDashboard{}, err
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -73,7 +73,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	`)
 
 	if err != nil {
-		return SqlDbDashboard{}, err
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -96,7 +96,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, err
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -119,7 +119,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, err
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -142,7 +142,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, err
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
@@ -162,6 +162,8 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	}, nil
 }
 
+var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries!")
+
 func (d SqlDbDashboard) Close() error {
 	errCountByStatus := d.queries.countByStatus.Close()
 	errDeliveryStatus := d.queries.deliveryStatus.Close()
@@ -175,7 +177,7 @@ func (d SqlDbDashboard) Close() error {
 		errTopDeferredDomains != nil ||
 		errTopBouncedDomains != nil {
 
-		return errors.New("Error closing any of the dashboard queries!")
+		return util.WrapError(ErrClosingDashboardQueries)
 	}
 
 	return nil
