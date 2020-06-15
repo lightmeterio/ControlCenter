@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"errors"
+
 	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
 )
 
@@ -10,5 +12,5 @@ var (
 )
 
 func IsRecoverableError(err error) bool {
-	return err == nil || err == ErrUnsupportedLogLine
+	return err == nil || errors.Is(err, ErrUnsupportedLogLine)
 }
