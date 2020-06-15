@@ -3,7 +3,7 @@ package parser
 func Fuzz(data []byte) int {
 	_, _, err := Parse(data)
 
-	if err != nil {
+	if !IsRecoverableError(err) {
 		return 0
 	}
 
