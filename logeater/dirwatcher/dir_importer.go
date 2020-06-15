@@ -117,6 +117,7 @@ func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 		if err == nil {
 			return nil
 		}
+
 		return util.WrapError(err)
 	}()
 }
@@ -142,6 +143,7 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 		if err == nil {
 			return nil
 		}
+
 		return util.WrapError(err)
 	}()
 }
@@ -156,7 +158,7 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 		return modificationTime, nil
 	}
 
-	if err != nil && !parser.IsRecoverableError(errors.Unwrap(err)) {
+	if !parser.IsRecoverableError(err) {
 		// failed to read first line
 		return time.Time{}, util.WrapError(err)
 	}
@@ -189,7 +191,7 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 		return timeFirstLine.Time(year, modificationTime.Location()), nil
 	}
 
-	if err != nil && !parser.IsRecoverableError(errors.Unwrap(err)) {
+	if !parser.IsRecoverableError(err) {
 		// failed reading last line
 		return time.Time{}, util.WrapError(err)
 	}
