@@ -38,13 +38,25 @@ func WrapError(err error, args ...interface{}) *Error {
 	return &Error{line, file, msg, err}
 }
 
+type Chainable interface {
+	Chain() ErrorChain
+}
+
 // Return a chain of errors, from top to bottom of the "stack"
-func (e *Error) Chain() ErrorChain {
-	if err, ok := e.Err.(*Error); ok {
-		return append(ErrorChain{e}, err.Chain()...)
+func Chain(c Chainable) ErrorChain {
+	return c.Chain()
+}
+
+func BuildChain(outer, inner error) ErrorChain {
+	if err, ok := inner.(Chainable); ok {
+		return append(ErrorChain{outer}, err.Chain()...)
 	}
 
-	return ErrorChain{e, e.Err}
+	return ErrorChain{outer, inner}
+}
+
+func (e *Error) Chain() ErrorChain {
+	return BuildChain(e, e.Err)
 }
 
 type ErrorChain []error
