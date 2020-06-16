@@ -18,7 +18,7 @@
 
 Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
 
-![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/Selection_816.png "Lightmeter Control Center 0.0.2 screenshot")
+![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/screenshot-of-Lightmeter-dashboard-0.0.3.png "Lightmeter Control Center 0.0.2 screenshot")
 
 ## Quickstart
 
@@ -33,6 +33,10 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
 ## Status
 
 This is a next generation rewrite of the previous [prototype](https://gitlab.com/lightmeter/prototype), and is currently work in progress.
+
+## Install using Docker
+
+Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You need to specify which version to pull, as the `latest` tag is not yet used.
 
 ## Build from source code
 
