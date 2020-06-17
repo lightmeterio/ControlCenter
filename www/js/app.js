@@ -160,10 +160,10 @@ var drawDashboard = function() {
         };
 
         Plotly.newPlot(graphName, chartData, layout, {responsive: true}).then(function() {
-            resizers.push(function(dimension) {
-                layout.width = dimension.contentRect.width
-                Plotly.redraw(graphName)
-            })
+//             resizers.push(function(dimension) {
+//                 layout.width = dimension.contentRect.width
+//                 Plotly.redraw(graphName)
+//             })
         })
 
         return function() {
@@ -195,28 +195,6 @@ var drawDashboard = function() {
             e.textContent = "Version: " + data.Version + ", commit: " + data.Commit
         })
     }
-
-    // Plotly has a bug that makes it unable to resize hidden graphs:
-    // https://github.com/plotly/plotly.js/issues/2769
-    // We try to workaround it
-    var setupResizers = function() {
-        // Bail out, no support for ResizeObserver
-        if (window.ResizeObserver === undefined) {
-            return function() {}
-        }
-
-        var graphAreaResizeObserver = new ResizeObserver(function(entry) {
-                for (cb in resizers) {
-                    resizers[cb](entry[0])
-                }
-        })
-
-        return function(e) {
-            graphAreaResizeObserver.observe(e)
-        }
-    }()
-
-    setupResizers(document.getElementById('basic-graphs-area'))
 
     setupApplicationInfo()
 }
