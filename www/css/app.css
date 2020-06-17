@@ -164,7 +164,7 @@ h1, h2, h3, h4, h5, h6 {
 header .navbar {
     height: 70px;
     background: #FFFFFF 0% 0% no-repeat padding-box;
-    box-shadow: 0px 6px 20px #2C9CD61A;
+    box-shadow: 0px 6px 8px #00000029;
     opacity: 1;
 }
 
@@ -239,6 +239,10 @@ h5.row-title {
 .main-content .card {
     border-radius: 0;
     border: none;
+}
+
+.card-block {
+    background-color: #F9F9F9;
 }
 
 .card .card-title {
@@ -333,20 +337,6 @@ h5.row-title {
 
 .panel h4 {
     font: 24px/24px Inter;
-
-.panel-body {
-    padding: 15px;
-}
-
-.panel-page .panel-body h1, 
-.panel-page .panel-body h2, 
-.panel-page .panel-body h3, 
-.panel-page .panel-body h4 {
-    color: #202324;
-}
-
-.panel-page .panel-body h2 {
-    font-size: 22px;
     font-weight: bold;
 }
 
@@ -540,4 +530,12 @@ input-group-addon a {
 
 .form-group small a {
     color: inherit;
+}
+
+.main-content .btn-outline-primary.btn-sm {
+    font: 12px/24px Inter;
+    font-weight: bold;
+    color: #1D8CAF;
+    border-color: #1D8CAF;
+    border: 1.5px solid;
 }
