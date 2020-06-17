@@ -145,14 +145,20 @@
 }
 
 body {
-    background: #F4FAFD!important;
+    background: #fffff!important;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-family: Inter;
 }
 
+.main-content h1 {
+    font: 32px/40px Inter;
+    font-weight: bold;
+}
+
 .main-content {
+    margin-top: 0.6rem;
 }
 
 header .navbar {
@@ -316,6 +322,17 @@ h5.row-title {
     -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
     box-shadow: 0 1px 1px rgba(0,0,0,.05);
 }
+
+.panel-default {
+    border-color: #ddd;
+}
+
+.panel h5 {
+    font: 12px/16px Inter;
+}
+
+.panel h4 {
+    font: 24px/24px Inter;
 
 .panel-body {
     padding: 15px;
