@@ -553,3 +553,32 @@ input-group-addon a {
     border-top-left-radius: 3px;
     border-top-right-radius: 3px;
 }
+
+.greeting {
+    background: transparent linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% no-repeat padding-box;
+    color: white;
+    padding: 0.5rem;
+}
+
+.greeting h3 {
+    font: 22px/32px Inter;
+    font-weight: bold;
+}
+
+.greeting p {
+    font-size: 15px;
+}
+
+.greeting .panel.status {
+    background-color: #E3FFFE;
+    color: #064D4B;
+}
+
+.greeting .panel.status h5 {
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.greeting .panel.status h5 {
+    font-size: 16px;
+}
