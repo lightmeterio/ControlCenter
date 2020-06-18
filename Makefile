@@ -2,6 +2,7 @@
 
 export GO111MODULE = on
 export CGO_ENABLED = 1
+export CGO_CFLAGS = -g -O2 -Wno-return-local-addr
 
 PACKAGE_ROOT = gitlab.com/lightmeter/controlcenter
 PACKAGE_VERSION = ${PACKAGE_ROOT}/version
