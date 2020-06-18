@@ -72,8 +72,6 @@ var drawDashboard = function() {
         return apiCallGet("api/v0/" + methodName + "?" + timeIntervalUrlParams())
     }
 
-    var resizers = []
-
     var updateDonutChart = function(graphName, title) {
         var chartData = [{
             values: [], 
@@ -91,6 +89,7 @@ var drawDashboard = function() {
         }]
         var layout = {
             height: 220,
+            width: 195,
             margin: {
                 t: 20,
                 l: 20,
@@ -145,6 +144,7 @@ var drawDashboard = function() {
         }]
         var layout = {
             height: 220,
+            width: 195,
             xaxis: {
                 automargin: true,
             },
@@ -159,12 +159,7 @@ var drawDashboard = function() {
             }
         };
 
-        Plotly.newPlot(graphName, chartData, layout, {responsive: true}).then(function() {
-//             resizers.push(function(dimension) {
-//                 layout.width = dimension.contentRect.width
-//                 Plotly.redraw(graphName)
-//             })
-        })
+        Plotly.newPlot(graphName, chartData, layout, {responsive: true});
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
@@ -177,18 +172,19 @@ var drawDashboard = function() {
         }
     }
 
-    var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
+    //var updateDeliveryStatus = updateDonutChart("deliveryStatus", "Delivery Status")
     var updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains", "Busiest Domains")
     var updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains", "Most Deferred Domains")
     var updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains", "Most Bounced Domains")
 
     var updateDashboard = function() {
-        updateDeliveryStatus()
+        //updateDeliveryStatus()
         updateTopBusiestDomainsChart()
         updateTopDeferredDomainsChart()
         updateTopBouncedDomainsChart()
     }
 
+    // Obtain lmcc version info from API
     var setupApplicationInfo = function() {
         apiCallGet("api/v0/appVersion").then(function(data) {
             var e = document.getElementById("release-info")
