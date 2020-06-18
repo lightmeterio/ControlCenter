@@ -44,7 +44,9 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 		return 0, util.WrapError(err)
 	}
 
-	util.MustSucceed(q.Err(), "Error on rows")
+	if err := q.Err(); err != nil {
+		return 0, util.WrapError(err)
+	}
 
 	return v, nil
 }
