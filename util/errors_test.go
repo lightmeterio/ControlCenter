@@ -78,6 +78,14 @@ func TestErrorWrapping(t *testing.T) {
 			So(countLines(Chain(e2)), ShouldEqual, 2)
 			So(countLines(Chain(e3)), ShouldEqual, 3)
 			So(countLines(Chain(e4)), ShouldEqual, 4)
+
+			Convey("Unwrap", func() {
+				So(TryToUnwrap(nil), ShouldEqual, nil)
+				So(TryToUnwrap(e1), ShouldEqual, e1)
+				So(TryToUnwrap(e2), ShouldEqual, e1)
+				So(TryToUnwrap(e3), ShouldEqual, e1)
+				So(TryToUnwrap(e4), ShouldEqual, e1)
+			})
 		})
 
 		Convey("With custom error", func() {
@@ -95,6 +103,13 @@ func TestErrorWrapping(t *testing.T) {
 
 			So(countLines(Chain(e3)), ShouldEqual, 3)
 			So(countLines(Chain(e4)), ShouldEqual, 4)
+
+			Convey("Unwrap", func() {
+				So(TryToUnwrap(e1), ShouldEqual, e1)
+				So(TryToUnwrap(e2), ShouldEqual, e1)
+				So(TryToUnwrap(e3), ShouldEqual, e1)
+				So(TryToUnwrap(e4), ShouldEqual, e1)
+			})
 		})
 	})
 }
