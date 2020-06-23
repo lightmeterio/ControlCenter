@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+    <head>
+      <title>Login</title>
+      <script type="text/javascript">
+        function submitForm() {
+          var form = document.getElementById("form")
+          const data = new URLSearchParams(new FormData(form))
+
+          fetch(window.location.href, {method: 'post', body: data})
+            .then(res => res.json())
+            .then(function(data) {
+            if (data == null) {
+              alert('Server Error!')
+              return
+            }
+
+            if (data.Error.length > 0) {
+              alert('Error: ' + data.Error)
+              return
+            }
+
+            window.location.href = "/"
+          }).catch(function(err) {
+            alert('Server Error')
+            console.log(err)
+          })
+        }
+      </script>
+    </head>
+
+    <body>
+      User Login:
+      <form method="post" id="form">
+        <div>
+        E-mail: <input name="email"/>
+        </div>
+        <div>
+        Password: <input type="password" name="password"/>
+        </div>
+        <input type="button" onclick="submitForm()" value="Login"></input>
+      </form>
+    </body>
+</html>
