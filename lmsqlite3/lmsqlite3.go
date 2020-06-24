@@ -5,6 +5,7 @@ package lmsqlite3
  */
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	sqlite "github.com/mattn/go-sqlite3"
 	"net"
@@ -25,10 +26,21 @@ func ipToString(b []byte) string {
 	return ip.String()
 }
 
+func computeSha256Sum(b []byte) []byte {
+	hash := sha256.New()
+	return hash.Sum(b)
+}
+
 func init() {
 	sql.Register("lm_sqlite3", &sqlite.SQLiteDriver{
 		ConnectHook: func(conn *sqlite.SQLiteConn) error {
-			conn.RegisterFunc("lm_ip_to_string", ipToString, true)
+			if err := conn.RegisterFunc("lm_ip_to_string", ipToString, true); err != nil {
+				return err
+			}
+
+			if err := conn.RegisterFunc("lm_sha256_sum", computeSha256Sum, true); err != nil {
+				return err
+			}
 			return nil
 		},
 	})

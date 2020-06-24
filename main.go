@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
-	"gitlab.com/lightmeter/controlcenter/util"
-
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
@@ -198,7 +198,17 @@ func main() {
 
 	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
 
-	log.Fatal(http.ListenAndServe(address, mux))
+	// Some paths that don't require authentication
+	// That's what people nowadays call a "allow list".
+	publicPaths := []string{
+		"/img",
+		"/css",
+		"/fonts",
+		"/js",
+		"/3rd",
+	}
+
+	log.Fatal(http.ListenAndServe(address, httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)))
 }
 
 func parseLogsFromStdin(publisher data.Publisher) {

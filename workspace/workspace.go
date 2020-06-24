@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logdb"
@@ -13,6 +14,7 @@ import (
 type Workspace struct {
 	config data.Config
 	logs   logdb.DB
+	auth   *auth.Auth
 }
 
 func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, error) {
@@ -26,14 +28,25 @@ func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, err
 		return Workspace{}, util.WrapError(err)
 	}
 
+	auth, err := auth.NewAuth(workspaceDirectory)
+
+	if err != nil {
+		return Workspace{}, util.WrapError(err)
+	}
+
 	return Workspace{
 		config: config,
 		logs:   logDb,
+		auth:   auth,
 	}, nil
 }
 
 func (ws *Workspace) Dashboard() (dashboard.Dashboard, error) {
 	return dashboard.New(ws.logs.ReadConnection())
+}
+
+func (ws *Workspace) Auth() *auth.Auth {
+	return ws.auth
 }
 
 // Obtain the most recent time inserted in the database,

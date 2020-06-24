@@ -39,6 +39,18 @@ func (e *customError) Unwrap() error {
 	return e.inner
 }
 
+type customWrappingError struct {
+	inner error
+}
+
+func (e *customWrappingError) Error() string {
+	return "another_custom_error"
+}
+
+func (e *customWrappingError) Unwrap() error {
+	return e.inner
+}
+
 func TestErrorWrapping(t *testing.T) {
 	Convey("Empty message", t, func() {
 		err := errors.New("Boom")
@@ -78,6 +90,14 @@ func TestErrorWrapping(t *testing.T) {
 			So(countLines(Chain(e2)), ShouldEqual, 2)
 			So(countLines(Chain(e3)), ShouldEqual, 3)
 			So(countLines(Chain(e4)), ShouldEqual, 4)
+
+			Convey("Unwrap", func() {
+				So(TryToUnwrap(nil), ShouldEqual, nil)
+				So(TryToUnwrap(e1), ShouldEqual, e1)
+				So(TryToUnwrap(e2), ShouldEqual, e1)
+				So(TryToUnwrap(e3), ShouldEqual, e1)
+				So(TryToUnwrap(e4), ShouldEqual, e1)
+			})
 		})
 
 		Convey("With custom error", func() {
@@ -95,6 +115,45 @@ func TestErrorWrapping(t *testing.T) {
 
 			So(countLines(Chain(e3)), ShouldEqual, 3)
 			So(countLines(Chain(e4)), ShouldEqual, 4)
+
+			Convey("Unwrap", func() {
+				So(TryToUnwrap(e1), ShouldEqual, e1)
+				So(TryToUnwrap(e2), ShouldEqual, e1)
+				So(TryToUnwrap(e3), ShouldEqual, e1)
+				So(TryToUnwrap(e4), ShouldEqual, e1)
+			})
+
+			Convey("Try to cast", func() {
+				{
+					_, ok := ErrorAs(e4, nil)
+					So(ok, ShouldBeFalse)
+				}
+
+				{
+					_, ok := ErrorAs(e1, &customError{})
+					So(ok, ShouldBeFalse)
+				}
+
+				{
+					// Same type
+					e, ok := ErrorAs(e2, &Error{})
+					So(ok, ShouldBeTrue)
+					_, ok = e.(*Error)
+					So(ok, ShouldBeTrue)
+				}
+
+				{
+					e, ok := ErrorAs(e4, &customError{})
+					So(ok, ShouldBeTrue)
+					_, ok = e.(*customError)
+					So(ok, ShouldBeTrue)
+				}
+
+				{
+					_, ok := ErrorAs(e2, &customWrappingError{})
+					So(ok, ShouldBeFalse)
+				}
+			})
 		})
 	})
 }

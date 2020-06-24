@@ -1,7 +1,9 @@
 package util
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 )
 
@@ -36,6 +38,51 @@ func WrapError(err error, args ...interface{}) *Error {
 	msg := fmt.Sprint(args...)
 
 	return &Error{line, file, msg, err}
+}
+
+// Given an error, tries to unwrap it recursively until finds a "trivial" error
+// which cannot be unwrapped anymore.
+// It differs from errors.Unwrap() on returning the error itself
+// in case it cannot be unwrapped, instead of nil
+func TryToUnwrap(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if e, ok := err.(*Error); ok {
+		return TryToUnwrap(e.Err)
+	}
+
+	if chainable, ok := err.(Chainable); ok {
+		chain := chainable.Chain()
+		return TryToUnwrap(chain[len(chain)-1])
+	}
+
+	return err
+}
+
+// Dive into wrapped errors from src until return an error that casts to
+// the target error or such error is not found
+func ErrorAs(src error, target error) (error, bool) {
+	if target == nil {
+		return nil, false
+	}
+
+	targetValue := reflect.ValueOf(target)
+
+	r := src
+
+	for r != nil {
+		srcValue := reflect.ValueOf(r)
+
+		if srcValue.Type() == targetValue.Type() {
+			return r, true
+		}
+
+		r = errors.Unwrap(r)
+	}
+
+	return nil, false
 }
 
 type Chainable interface {
