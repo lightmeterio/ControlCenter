@@ -92,6 +92,7 @@ Currently the following patterns for log files are "watched":
   - mail.info
   - mail.warn
   - mail.err
+- Web UI authenticated sessions last 1 week by default
 
 The importing process will take a long time, depending on how many files you have and how big they are.
 
