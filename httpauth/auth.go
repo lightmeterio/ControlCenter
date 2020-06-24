@@ -144,7 +144,7 @@ func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.R
 	}
 
 	if !authOk {
-		writeJsonResponse(w, loginResponse{Error: "Invalid user/password"}, http.StatusUnauthorized)
+		writeJsonResponse(w, loginResponse{Error: "Invalid email address or password"}, http.StatusUnauthorized)
 		auth.handlers.LoginFailure(w, r)
 		return
 	}

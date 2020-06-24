@@ -259,7 +259,7 @@ func TestHTTPAuth(t *testing.T) {
 				body, _ := ioutil.ReadAll(r.Body)
 				response := struct{ Error string }{}
 				So(json.Unmarshal(body, &response), ShouldEqual, nil)
-				So(response.Error, ShouldEqual, "Invalid user/password")
+				So(response.Error, ShouldEqual, "Invalid email address or password")
 			})
 
 			Convey("User registrations fails", func() {
