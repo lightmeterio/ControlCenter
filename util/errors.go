@@ -1,7 +1,9 @@
 package util
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 )
 
@@ -57,6 +59,30 @@ func TryToUnwrap(err error) error {
 	}
 
 	return err
+}
+
+// Dive into wrapped errors from src until return an error that casts to
+// the target error or such error is not found
+func ErrorAs(src error, target error) (error, bool) {
+	if target == nil {
+		return nil, false
+	}
+
+	targetValue := reflect.ValueOf(target)
+
+	r := src
+
+	for r != nil {
+		srcValue := reflect.ValueOf(r)
+
+		if srcValue.Type() == targetValue.Type() {
+			return r, true
+		}
+
+		r = errors.Unwrap(r)
+	}
+
+	return nil, false
 }
 
 type Chainable interface {
