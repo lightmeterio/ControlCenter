@@ -16,7 +16,14 @@
             }
 
             if (data.Error.length > 0) {
-              alert('Error: ' + data.Error)
+                
+              var message = ('Error: ' + data.Error)
+
+              // add hints of pwd weakness
+              if (data.Detailed && data.Detailed.Sequence[0].pattern) {
+                  message += '. Vulnerable to: ' + data.Detailed.Sequence[0].pattern + '.'
+              }
+              alert(message)
               return
             }
 
