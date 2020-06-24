@@ -24,6 +24,21 @@ func validateEmail(email string) error {
 	return nil
 }
 
+type PasswordErrorDetailedDescription zxcvbn.Result
+
+type PasswordValidationError struct {
+	err    error
+	Result PasswordErrorDetailedDescription
+}
+
+func (e *PasswordValidationError) Unwrap() error {
+	return e.err
+}
+
+func (e *PasswordValidationError) Error() string {
+	return e.err.Error()
+}
+
 func validatePassword(email, password string) error {
 	strength := zxcvbn.PasswordStrength(password, []string{email})
 
@@ -31,7 +46,7 @@ func validatePassword(email, password string) error {
 
 	if strength.Score < 3 {
 		log.Println("Registration request denied due weak password")
-		return ErrWeakPassword
+		return &PasswordValidationError{err: ErrWeakPassword, Result: PasswordErrorDetailedDescription(strength)}
 	}
 
 	return nil
