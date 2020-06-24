@@ -80,8 +80,8 @@ func (r *Auth) Register(email, name, password string) error {
 	}
 
 	defer func() {
-		if err == nil {
-			util.MustSucceed(tx.Commit(), "Committing user registration")
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "Rolling back user registration transaction")
 		}
 	}()
 
@@ -104,6 +104,12 @@ func (r *Auth) Register(email, name, password string) error {
 	}
 
 	id, err := result.LastInsertId()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	err = tx.Commit()
 
 	if err != nil {
 		return util.WrapError(err)

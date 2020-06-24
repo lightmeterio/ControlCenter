@@ -67,7 +67,7 @@ func TestAuth(t *testing.T) {
 		Convey("Register User Fails", func() {
 			Convey("Empty password", func() {
 				err := auth.Register("user@example.com", "Name Surname", "")
-				So(errors.Is(err, ErrEmptyPassword), ShouldBeTrue)
+				So(errors.Is(err, ErrWeakPassword), ShouldBeTrue)
 			})
 
 			Convey("Password is equal to email", func() {
