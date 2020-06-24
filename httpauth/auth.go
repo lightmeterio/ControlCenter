@@ -195,12 +195,22 @@ func saveSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, se
 }
 
 type registrationResponse struct {
-	Error string
+	Error    string
+	Detailed interface{}
 }
 
 func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request) {
 	response := registrationResponse{
 		Error: util.TryToUnwrap(err).Error(),
+
+		Detailed: func() interface{} {
+			if e, ok := util.ErrorAs(err, &auth.PasswordValidationError{}); ok {
+				d, _ := e.(*auth.PasswordValidationError)
+				return &d.Result
+			}
+
+			return nil
+		}(),
 	}
 
 	writeJsonResponse(w, response, http.StatusUnauthorized)
