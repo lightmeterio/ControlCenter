@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"time"
 )
 
 func changeRequestURL(r *http.Request, path string) *http.Request {
@@ -22,12 +23,14 @@ type CookieStoreRegistrar struct {
 	workspaceDirectory string
 }
 
+const SessionDuration = time.Hour * 24 * 7 // 1 week
+
 func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	sessionsDir := path.Join(r.workspaceDirectory, "http_sessions")
 	util.MustSucceed(os.MkdirAll(sessionsDir, os.ModePerm), "Creating http sessions directory")
 	store := sessions.NewFilesystemStore(sessionsDir, r.Auth.SessionKeys()...)
 	store.Options.HttpOnly = true
-	store.Options.MaxAge = 1 * 60 * 60 // cookies last one hour
+	store.Options.MaxAge = int(SessionDuration.Seconds())
 	return store
 }
 
