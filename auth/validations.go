@@ -5,11 +5,13 @@ import (
 	"github.com/trustelem/zxcvbn"
 	"log"
 	"regexp"
+	"strings"
 )
 
 var (
 	ErrInvalidEmail = errors.New("Invalid Email Address")
 	ErrWeakPassword = errors.New("Weak Password")
+	ErrInvalidName  = errors.New("Invalid Name")
 )
 
 var (
@@ -19,6 +21,14 @@ var (
 func validateEmail(email string) error {
 	if !emailRegexp.Match([]byte(email)) {
 		return ErrInvalidEmail
+	}
+
+	return nil
+}
+
+func validateName(name string) error {
+	if len(strings.TrimSpace(name)) == 0 {
+		return ErrInvalidName
 	}
 
 	return nil

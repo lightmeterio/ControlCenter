@@ -84,6 +84,11 @@ func TestAuth(t *testing.T) {
 				err := auth.Register("user@email.com", "Name Surname", "ElvisForever")
 				So(errors.Is(err, ErrWeakPassword), ShouldBeTrue)
 			})
+
+			Convey("Empty Name", func() {
+				err := auth.Register("user@email.com", "   ", strongPassword)
+				So(errors.Is(err, ErrInvalidName), ShouldBeTrue)
+			})
 		})
 
 		Convey("Register User", func() {

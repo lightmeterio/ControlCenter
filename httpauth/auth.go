@@ -3,6 +3,7 @@ package httpauth
 import (
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"log"
 	"mime"
 	"net/http"
@@ -216,24 +217,35 @@ func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request
 	writeJsonResponse(w, response, http.StatusUnauthorized)
 }
 
-func handleRegistrationSubmission(auth *Authenticator, w http.ResponseWriter, r *http.Request, session *sessions.Session) {
+func extractRegistrationFormInfo(r *http.Request) (string, string, string, error) {
 	email, hasEmail := r.Form["email"]
 	password, hasPassword := r.Form["password"]
-	name := r.Form.Get("name") // user name can be empty
+	name := r.Form.Get("name")
 
 	if !(hasEmail && len(email) > 0 && hasPassword && len(password) > 0) {
+		return "", "", "", errors.New("Missing form information")
+	}
+
+	return email[0], name, password[0], nil
+}
+
+func handleRegistrationSubmission(auth *Authenticator, w http.ResponseWriter, r *http.Request, session *sessions.Session) {
+	email, name, password, err := extractRegistrationFormInfo(r)
+
+	if err != nil {
+		log.Println("Registration error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
 		return
 	}
 
-	if err := auth.auth.Register(email[0], name, password[0]); err != nil {
+	if err := auth.auth.Register(email, name, password); err != nil {
 		handleRegistrationFailure(err, w, r)
 		return
 	}
 
 	// Implicitly log in
-	session.Values["auth"] = SessionData{Email: email[0], Name: name}
+	session.Values["auth"] = SessionData{Email: email, Name: name}
 
 	if err := saveSession(auth, w, r, session); err != nil {
 		log.Println("Error saving session on Registration:", err)

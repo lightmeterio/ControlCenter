@@ -73,6 +73,10 @@ func (r *Auth) Register(email, name, password string) error {
 		return util.WrapError(err)
 	}
 
+	if err := validateName(name); err != nil {
+		return util.WrapError(err)
+	}
+
 	tx, err := r.writerConnection.Begin()
 
 	if err != nil {
