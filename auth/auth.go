@@ -167,6 +167,10 @@ func (r *Auth) HasAnyUser() (bool, error) {
 	return count > 0, nil
 }
 
+// NOTE: For some reason, rowserrcheck is not able to see that q.Err() is being called,
+// so we disable the check here until the linter is fixed or someone finds the bug in this
+// code.
+//nolint:rowserrcheck
 func tryToObtainExistingKeys(tx *sql.Tx) ([][]byte, error) {
 	q, err := tx.Query(`select value from meta where key = ?`, "session_key")
 
