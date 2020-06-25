@@ -28,9 +28,9 @@ func TestSessionKey(t *testing.T) {
 		{
 			auth, _ := NewAuth(path.Join(dir))
 			generatedKey = auth.SessionKeys()
-			So(generatedKey, ShouldNotEqual, nil)
+			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
-			So(generatedKey[0], ShouldNotEqual, nil)
+			So(generatedKey[0], ShouldNotBeNil)
 		}
 
 		{
@@ -49,18 +49,18 @@ func TestAuth(t *testing.T) {
 		dir := tempDir()
 		defer os.RemoveAll(dir)
 		auth, err := NewAuth(path.Join(dir))
-		So(err, ShouldEqual, nil)
-		So(auth, ShouldNotEqual, nil)
+		So(err, ShouldBeNil)
+		So(auth, ShouldNotBeNil)
 
 		Convey("No user is initially registred", func() {
 			ok, err := auth.HasAnyUser()
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			So(ok, ShouldBeFalse)
 
 			Convey("Login fails", func() {
 				ok, _, err := auth.Authenticate("user@example.com", "password")
 				So(ok, ShouldBeFalse)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 			})
 		})
 
@@ -126,32 +126,32 @@ func TestAuth(t *testing.T) {
 
 		Convey("Register User", func() {
 			err := auth.Register("user@example.com", "Name Surname", strongPassword)
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			ok, err := auth.HasAnyUser()
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			So(ok, ShouldBeTrue)
 
 			Convey("Registering the same user again fails", func() {
 				err := auth.Register("user@example.com", "Another Surname", strongPassword)
-				So(err, ShouldNotEqual, nil)
+				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Login fails with wrong user", func() {
 				ok, _, err := auth.Authenticate("wrong_user@example.com", strongPassword)
 				So(ok, ShouldBeFalse)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 			})
 
 			Convey("Login fails with wrong password", func() {
 				ok, _, err := auth.Authenticate("user@example.com", "654321")
 				So(ok, ShouldBeFalse)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 			})
 
 			Convey("Login succeeds", func() {
 				ok, userData, err := auth.Authenticate("user@example.com", strongPassword)
 				So(ok, ShouldBeTrue)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(userData.Id, ShouldEqual, 1)
 				So(userData.Email, ShouldEqual, "user@example.com")
 				So(userData.Name, ShouldEqual, "Name Surname")

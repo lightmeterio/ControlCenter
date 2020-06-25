@@ -26,15 +26,15 @@ func TestDatabaseCreation(t *testing.T) {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
 			_, err := Open("/proc/lalala", data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldNotEqual, nil)
+			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Db is a directory instead of a file", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldEqual, nil)
+			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldBeNil)
 			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldNotEqual, nil)
+			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Db is not a sqlite file", func() {
@@ -42,7 +42,7 @@ func TestDatabaseCreation(t *testing.T) {
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
 			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldNotEqual, nil)
+			So(err, ShouldNotBeNil)
 		})
 	})
 
@@ -51,7 +51,7 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 
 			defer db.Close()
 			So(db.HasLogs(), ShouldBeFalse)
@@ -61,9 +61,9 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			So(db.HasLogs(), ShouldBeFalse)
-			So(db.Close(), ShouldEqual, nil)
+			So(db.Close(), ShouldBeNil)
 		})
 
 		Convey("Reopening workspace succeeds", func() {
@@ -74,7 +74,7 @@ func TestDatabaseCreation(t *testing.T) {
 			ws1.Close()
 
 			ws2, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			ws2.Close()
 		})
 	})
@@ -95,14 +95,14 @@ func TestLogsInsertion(t *testing.T) {
 
 		buildWs := func(year int) (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {
 			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: year})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			done := db.Run()
 			pub := db.NewPublisher()
 			dashboard, err := dashboard.New(db.ReadConnection())
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			return db, done, pub, dashboard, func() {
-				So(dashboard.Close(), ShouldEqual, nil)
-				So(db.Close(), ShouldEqual, nil)
+				So(dashboard.Close(), ShouldBeNil)
+				So(db.Close(), ShouldBeNil)
 			}
 		}
 

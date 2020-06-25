@@ -23,13 +23,13 @@ func tempDir() string {
 
 func appendToFile(filename string, lines []string) {
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	So(err, ShouldEqual, nil)
+	So(err, ShouldBeNil)
 	defer f.Close()
 
 	for _, line := range lines {
 		_, err = f.Write([]byte(line + "\n"))
-		So(err, ShouldEqual, nil)
-		So(f.Sync(), ShouldEqual, nil)
+		So(err, ShouldBeNil)
+		So(f.Sync(), ShouldBeNil)
 	}
 }
 
@@ -45,14 +45,14 @@ func TestWatchingFiles(t *testing.T) {
 
 		Convey("Fails if file does not exist", func() {
 			err, _, _ := WatchFileCancelable(dir+"/non_existent_file.log", startOfFileLocation, &pub)
-			So(err, ShouldNotEqual, nil)
+			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Given an empty file, detect a line added to it", func() {
 			filename := dir + "/empty_mail.log"
 			appendToFile(filename, []string{""})
 			err, cancel, done := WatchFileCancelable(filename, startOfFileLocation, &pub)
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			content := "Mar  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated"
 			time.Sleep(500 * time.Millisecond)
 			appendToFile(filename, []string{content})
@@ -72,7 +72,7 @@ func TestWatchingFiles(t *testing.T) {
 			}
 
 			err, cancel, done := WatchFileCancelable(filename, endOfFileLocation, &pub)
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 
 			{
 				content := []string{`Nov  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated`,

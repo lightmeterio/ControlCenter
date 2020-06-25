@@ -22,7 +22,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
 			_, err := NewWorkspace("/proc/lalala", data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldNotEqual, nil)
+			So(err, ShouldNotBeNil)
 		})
 	})
 
@@ -31,7 +31,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 
 			defer ws.Close()
 			So(ws.HasLogs(), ShouldBeFalse)
@@ -41,9 +41,9 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			So(ws.HasLogs(), ShouldBeFalse)
-			So(ws.Close(), ShouldEqual, nil)
+			So(ws.Close(), ShouldBeNil)
 		})
 
 		Convey("Reopening workspace succeeds", func() {
@@ -54,7 +54,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			ws1.Close()
 
 			ws2, err := NewWorkspace(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			ws2.Close()
 		})
 	})
