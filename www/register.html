@@ -6,8 +6,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="icon" href="img/favicon.svg" sizes="any" type="image/svg+xml">
         
-        <link rel="stylesheet" type="text/css" href="css/app.css">
-        
         <!-- Boostrap CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
         <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
@@ -15,23 +13,70 @@
         <!-- Fontawesome CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
         
+        <!-- App CSS -->
+        <link rel="stylesheet" type="text/css" href="css/app.css">
+        
         <title>Registration</title>
     </head>
 
-    <body>
-        Registration page Yeah!
-        <form method="post" id="form">
-            <div>
-            E-mail: <input name="email"/>
+    <body class="panel-page">
+    
+        <div class="container">
+        
+        <div class="row row justify-content-center vh-93">
+            <div class="col-sm-5 align-self-center">
+                <div class="panel panel-default mx-auto">
+                    <div class="panel-body">
+                    
+                            <div class="row justify-content-center">
+                                <div class="col-10">
+                                    <img class="logo w-100" src="img/logo-color-120.png" alt="Lightmeter logo">
+                                </div>
+                            </div>
+                            
+                            <h2>Get started</h2>
+                            <p>Register a new administrator account. This is necessary to login.</p>
+                            
+                            <div class="field-group">
+                                <h4>User details</h4>
+                                <form method="post" id="form">
+                                    <div class="form-group">
+                                    
+                                    <label for="name" class="sr-only">Name:</label>
+                                    <input class="form-control" aria-describedby="nameHelp" placeholder="Name" name="name"/>
+                                    
+                                    <label for="email" class="sr-only">E-mail:</label>
+                                    <input type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email"/>
+                                    
+                                    <label for="password" class="sr-only">Password:</label>
+                                    <input type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password"/>
+                                    <!--
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" name="newsletter">
+                                        <label class="form-check-label" for="exampleCheck1">Monthly newsletter</label>
+                                    </div>
+                                    -->
+                                    <input type="button" class="btn-sm btn-primary w-100" onclick="submitForm()" value="Register" id="register"></input>
+                                </form>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-            Name: <input name="name"/>
+        </div>
+        
+        <footer>
+            <div class="container">
+                Made with
+                <svg class="bi bi-heart-fill" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/>
+                </svg>
+                by Open Source professionals
             </div>
-            <div>
-            Password: <input type="password" name="password"/>
-            </div>
-            <input type="button" onclick="submitForm()" value="Register"></input>
-        </form>
+        </footer>
+        
+        </div>
         
         <!-- Boostrap dependencies -->
         <script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
@@ -47,7 +92,6 @@
         <script type="text/javascript" src="js/app.js"></script>
         
         <!-- Lightmeter-hosted Matomo analytics -->
-        
         <script type="text/javascript">
         var _paq = window._paq || [];
         // TODO: make version dynamic from JS

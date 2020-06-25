@@ -111,6 +111,14 @@
 }
 /* END Extrabold Italic */
 
+.vh-93 {
+    min-height: 93vh;
+}
+
+.w-35 {
+    width: 35%;
+}
+
 .dashboard-gadget {
 }
 
@@ -283,4 +291,103 @@ h5.row-title {
 
 .modal-dialog .modal-content {
     border-radius: 0;
+}
+
+.panel-default {
+    border-color: #ddd;
+}
+.panel {
+    margin-bottom: 20px;
+    background-color: #fff;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.panel-body {
+    padding: 15px;
+}
+
+.panel-page .panel-body h1, 
+.panel-page .panel-body h2, 
+.panel-page .panel-body h3, 
+.panel-page .panel-body h4 {
+    color: #202324;
+}
+
+.panel-page .panel-body h2 {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.panel-page .panel-body h4 {
+    margin-bottom: 1rem;
+}
+
+.panel-page .panel:first-child {
+    box-shadow: 0px 1px 30px #0000001A;
+}
+
+.panel-page .panel-body h4 {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.panel-page .panel-body {
+    padding: 15px 15%;
+}
+
+.panel-page .logo {
+        margin: 1.5rem 0 2.5rem 0;
+}
+
+.panel .form-control {
+    background-color: #F5F7F7;
+    border: 1px solid #EBEBEB;
+    border-radius: 0.25rem;
+    margin: 0.4rem 0;
+}
+
+.panel-page .field-group {
+    margin: 2rem 0;
+}
+
+.panel .form-control,
+.panel .form-check-label {
+    font-size: 14px;
+    color: #909192;
+}
+
+form #register {
+    margin-top: 1.5em;
+}
+
+.panel .form-control::placeholder {
+    font-size: 14px;
+    color: #909192;
+}
+
+.panel-page footer{
+    background-color: inherit;
+    text-align: center;
+    color: #202324;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background-color: #2C9CD6;
+    border-radius: 0.25rem;
+    border: none;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.btn-group-sm>.btn, .btn-sm {
+    line-height: 2;
+}
+
+.panel-page footer .bi-heart-fill path {
+    color: #FFDC00;
 }
