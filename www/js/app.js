@@ -226,6 +226,15 @@ $(function () {
   $('[data-toggle="tooltip"]').tooltip()
 })
 
+// enable keyboard 'enter' to submit form
+$(function(){
+    $('.form-control').keypress(function(e){
+        if(e.which == 13) {
+            $( "#submit" ).click()
+        }
+    })
+})
+
 // for registration page
 function submitRegisterForm() {
     var form = document.getElementById("form")
