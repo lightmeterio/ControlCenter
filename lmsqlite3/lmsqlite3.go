@@ -5,9 +5,10 @@ package lmsqlite3
  */
 
 import (
-	"crypto/sha256"
 	"database/sql"
 	sqlite "github.com/mattn/go-sqlite3"
+	"gitlab.com/lightmeter/controlcenter/util"
+	"golang.org/x/crypto/bcrypt"
 	"net"
 )
 
@@ -26,9 +27,16 @@ func ipToString(b []byte) string {
 	return ip.String()
 }
 
-func computeSha256Sum(b []byte) []byte {
-	hash := sha256.New()
-	return hash.Sum(b)
+const bcryptCost = bcrypt.DefaultCost
+
+func computeBcryptSum(b []byte) []byte {
+	r, err := bcrypt.GenerateFromPassword(b, bcryptCost)
+	util.MustSucceed(err, "computing bcrypt")
+	return r
+}
+
+func compareBcryptValue(hash, v []byte) bool {
+	return bcrypt.CompareHashAndPassword(hash, v) == nil
 }
 
 func init() {
@@ -38,9 +46,14 @@ func init() {
 				return err
 			}
 
-			if err := conn.RegisterFunc("lm_sha256_sum", computeSha256Sum, true); err != nil {
+			if err := conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true); err != nil {
 				return err
 			}
+
+			if err := conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true); err != nil {
+				return err
+			}
+
 			return nil
 		},
 	})
