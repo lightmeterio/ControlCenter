@@ -111,7 +111,7 @@ func TestHTTPAuth(t *testing.T) {
 
 		buildCookieClient := func() *http.Client {
 			jar, err := cookiejar.New(&cookiejar.Options{})
-			So(err, ShouldEqual, nil)
+			So(err, ShouldBeNil)
 			return &http.Client{Jar: jar}
 		}
 
@@ -126,7 +126,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Redirects to the login page", func() {
 				r, err := c.Get(s.URL)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 1)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -136,7 +136,7 @@ func TestHTTPAuth(t *testing.T) {
 			Convey("Error happens checking whether there is any user", func() {
 				registrar.shouldFailToCheckIfThereIsAnyUser = true
 				r, err := c.Get(s.URL)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				body, _ := ioutil.ReadAll(r.Body)
 				So(string(body), ShouldEqual, "Server Error")
@@ -144,7 +144,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Logout when user is not logged in goes to login page", func() {
 				r, err := c.Get(s.URL + "/logout")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 1)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -158,7 +158,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Logout when user is not logged in goes to registration page", func() {
 				r, err := c.Get(s.URL + "/logout")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 1)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -167,7 +167,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Stay in the login page", func() {
 				r, err := c.Get(s.URL + "/login")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -177,7 +177,7 @@ func TestHTTPAuth(t *testing.T) {
 			Convey("Redirects to registration otherwise", func() {
 				Convey("From main page", func() {
 					r, err := c.Get(s.URL)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 1)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -186,7 +186,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("From some arbitrary page", func() {
 					r, err := c.Get(s.URL + "/some/nested/resource/")
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 1)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -196,7 +196,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Stay in the registration page", func() {
 				r, err := c.Get(s.URL + "/register")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -205,9 +205,9 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Login will fail on invalid method", func() {
 				req, err := http.NewRequest("DELETE", s.URL+"/login", nil)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				r, err := c.Do(req)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -216,7 +216,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Login will fail on wrong request mime", func() {
 				r, err := c.Post(s.URL+"/login", "application/json", nil)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -225,7 +225,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Login will fail on invalid request mime", func() {
 				r, err := c.Post(s.URL+"/login", "ksajdhfk*I&^&*^87678  $$343", nil)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -234,7 +234,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Login will fail on invalid form data", func() {
 				r, err := c.Post(s.URL+"/login", "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -244,7 +244,7 @@ func TestHTTPAuth(t *testing.T) {
 			Convey("Login will fail due to some error with the authenticator", func() {
 				registrar.authenticateYieldsError = true
 				r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"some_password"}})
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -253,21 +253,21 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Login will fail as there is no registred user", func() {
 				r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"some_password"}})
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
 				response := struct{ Error string }{}
-				So(json.Unmarshal(body, &response), ShouldEqual, nil)
+				So(json.Unmarshal(body, &response), ShouldBeNil)
 				So(response.Error, ShouldEqual, "Invalid email address or password")
 			})
 
 			Convey("User registrations fails", func() {
 				Convey("Invalid HTTP method", func() {
 					req, err := http.NewRequest("DELETE", s.URL+"/register", nil)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					r, err := c.Do(req)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -276,7 +276,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("Invalid form mime type", func() {
 					r, err := c.Post(s.URL+"/register", "application/json", strings.NewReader(`{}`))
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -285,7 +285,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("Invalid Form data", func() {
 					r, err := c.Post(s.URL+"/register", "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -294,7 +294,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("No email and password provided", func() {
 					r, err := c.PostForm(s.URL+"/register", url.Values{})
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -306,7 +306,7 @@ func TestHTTPAuth(t *testing.T) {
 						"password": {"some_password"},
 					})
 
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -318,7 +318,7 @@ func TestHTTPAuth(t *testing.T) {
 						"email": {"alice@example.com"},
 					})
 
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -333,7 +333,7 @@ func TestHTTPAuth(t *testing.T) {
 						"password": {"poor password"},
 					})
 
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 					body, _ := ioutil.ReadAll(r.Body)
 
@@ -341,7 +341,7 @@ func TestHTTPAuth(t *testing.T) {
 						Error string
 					}{}
 
-					So(json.Unmarshal(body, &response), ShouldEqual, nil)
+					So(json.Unmarshal(body, &response), ShouldBeNil)
 
 					So(response.Error, ShouldEqual, "Weak Password")
 				})
@@ -354,7 +354,7 @@ func TestHTTPAuth(t *testing.T) {
 					"password": {"correcthorsebatterystable"},
 				})
 
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				body, _ := ioutil.ReadAll(r.Body)
@@ -363,12 +363,12 @@ func TestHTTPAuth(t *testing.T) {
 					Error string
 				}{}
 
-				So(json.Unmarshal(body, &response), ShouldEqual, nil)
+				So(json.Unmarshal(body, &response), ShouldBeNil)
 				So(response.Error, ShouldEqual, "")
 
 				Convey("After registred, the user is authenticated", func() {
 					r, err := c.Get(s.URL) // go to main page
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -377,7 +377,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("After registred, going to login page redirects to the main page", func() {
 					r, err := c.Get(s.URL + "/login")
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -386,7 +386,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("After registred, going to registration page redirects to the main page", func() {
 					r, err := c.Get(s.URL + "/register")
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 0)
 					body, _ := ioutil.ReadAll(r.Body)
@@ -395,7 +395,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("User logs out, returning to the login page", func() {
 					r, err := c.Get(s.URL + "/logout")
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(failedAttempts, ShouldEqual, 0)
 					So(logoutAttempts, ShouldEqual, 1)
@@ -405,7 +405,7 @@ func TestHTTPAuth(t *testing.T) {
 					Convey("User is unauthorized again", func() {
 						Convey("From main page", func() {
 							r, err := c.Get(s.URL)
-							So(err, ShouldEqual, nil)
+							So(err, ShouldBeNil)
 							So(r.StatusCode, ShouldEqual, http.StatusOK)
 							So(failedAttempts, ShouldEqual, 1)
 							body, _ := ioutil.ReadAll(r.Body)
@@ -414,7 +414,7 @@ func TestHTTPAuth(t *testing.T) {
 
 						Convey("From some arbitrary page", func() {
 							r, err := c.Get(s.URL + "/some/nested/resource/")
-							So(err, ShouldEqual, nil)
+							So(err, ShouldBeNil)
 							So(r.StatusCode, ShouldEqual, http.StatusOK)
 							So(failedAttempts, ShouldEqual, 1)
 							body, _ := ioutil.ReadAll(r.Body)
@@ -424,24 +424,24 @@ func TestHTTPAuth(t *testing.T) {
 
 					Convey("User can login again", func() {
 						r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})
-						So(err, ShouldEqual, nil)
+						So(err, ShouldBeNil)
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 						So(failedAttempts, ShouldEqual, 0)
 						body, _ := ioutil.ReadAll(r.Body)
 						response := struct{ Error string }{}
-						So(json.Unmarshal(body, &response), ShouldEqual, nil)
+						So(json.Unmarshal(body, &response), ShouldBeNil)
 						So(response.Error, ShouldEqual, "")
 					})
 
 					Convey("User can login again with posting more complex mime-type", func() {
 						formData := url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}}
 						r, err := c.Post(s.URL+"/login", "application/x-www-form-urlencoded;charset=UTF-8", strings.NewReader(formData.Encode()))
-						So(err, ShouldEqual, nil)
+						So(err, ShouldBeNil)
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 						So(failedAttempts, ShouldEqual, 0)
 						body, _ := ioutil.ReadAll(r.Body)
 						response := struct{ Error string }{}
-						So(json.Unmarshal(body, &response), ShouldEqual, nil)
+						So(json.Unmarshal(body, &response), ShouldBeNil)
 						So(response.Error, ShouldEqual, "")
 					})
 				})
@@ -454,10 +454,10 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("Unregistred User fails to connect", func() {
 				req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				req.SetBasicAuth("user@example.com", "123456")
 				r, err := c.Do(req)
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 			})
 
@@ -468,29 +468,29 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("Auth fails due wrong credentials", func() {
 					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "wrong_password")
 					r, err := c.Do(req)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 				})
 
 				Convey("Auth fails due internal error", func() {
 					registrar.authenticateYieldsError = true
 					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "654321")
 					r, err := c.Do(req)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				})
 
 				Convey("Auth succeeds on correct credentials", func() {
 					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "654321")
 					r, err := c.Do(req)
-					So(err, ShouldEqual, nil)
+					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					body, _ := ioutil.ReadAll(r.Body)
 					So(string(body), ShouldEqual, "Secret Area, dear Sakura")
@@ -504,7 +504,7 @@ func TestHTTPAuth(t *testing.T) {
 				defer c.CloseIdleConnections()
 
 				r, err := c.Get(s.URL + "/public/resource")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -516,7 +516,7 @@ func TestHTTPAuth(t *testing.T) {
 				defer c.CloseIdleConnections()
 
 				r, err := c.Get(s.URL + "/visible")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 0)
 				body, _ := ioutil.ReadAll(r.Body)
@@ -528,7 +528,7 @@ func TestHTTPAuth(t *testing.T) {
 				defer c.CloseIdleConnections()
 
 				r, err := c.Get(s.URL + "/publicaly_private/resource")
-				So(err, ShouldEqual, nil)
+				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 				So(failedAttempts, ShouldEqual, 1)
 				body, _ := ioutil.ReadAll(r.Body)

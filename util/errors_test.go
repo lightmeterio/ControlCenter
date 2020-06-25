@@ -92,7 +92,7 @@ func TestErrorWrapping(t *testing.T) {
 			So(countLines(Chain(e4)), ShouldEqual, 4)
 
 			Convey("Unwrap", func() {
-				So(TryToUnwrap(nil), ShouldEqual, nil)
+				So(TryToUnwrap(nil), ShouldBeNil)
 				So(TryToUnwrap(e1), ShouldEqual, e1)
 				So(TryToUnwrap(e2), ShouldEqual, e1)
 				So(TryToUnwrap(e3), ShouldEqual, e1)
