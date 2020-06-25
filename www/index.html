@@ -29,8 +29,10 @@
                         <img src="img/logo-color-120.png" alt="Lightmeter logo" />
                     </a>
                     <span class="buttons">
-                        <i class="fas fa-info-circle" data-toggle="modal" data-target="#settingsModal"></i>
-                        <i class="fas fa-sign-out-alt" onclick="window.location.href='/logout';"></i>
+                        <span data-toggle="modal" data-target="#settingsModal">
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Information"></i>
+                        </span>
+                        <i class="fas fa-sign-out-alt" onclick="window.location.href='/logout';" data-toggle="tooltip" data-placement="bottom" title="Log out"></i>
                     </span>
                         
                     <!-- Settings modal -->

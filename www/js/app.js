@@ -221,6 +221,11 @@ var drawDashboard = function() {
     setupApplicationInfo()
 }
 
+// enable tooltips everywhere
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+})
+
 // for registration page
 function submitRegisterForm() {
     var form = document.getElementById("form")
