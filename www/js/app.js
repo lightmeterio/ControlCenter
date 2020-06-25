@@ -220,3 +220,74 @@ var drawDashboard = function() {
 
     setupApplicationInfo()
 }
+
+// enable tooltips everywhere
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+})
+
+// enable keyboard 'enter' to submit form
+$(function(){
+    $('.form-control').keypress(function(e){
+        if(e.which == 13) {
+            $( "#submit" ).click()
+        }
+    })
+})
+
+// for registration page
+function submitRegisterForm() {
+    var form = document.getElementById("form")
+    const data = new URLSearchParams(new FormData(form))
+
+    fetch(window.location.href, {method: 'post', body: data})
+    .then(res => res.json())
+    .then(function(data) {
+    if (data == null) {
+        alert('Server Error!')
+        return
+    }
+
+    if (data.Error.length > 0) {
+        
+        var message = ('Error: ' + data.Error)
+
+        // add hints of pwd weakness
+        if (data.Detailed && data.Detailed.Sequence && data.Detailed.Sequence[0].pattern) {
+            message += '. Vulnerable to: ' + data.Detailed.Sequence[0].pattern + '.'
+        }
+        alert(message)
+        return
+    }
+
+    window.location.href = "/"
+    }).catch(function(err) {
+    alert('Server Error')
+    console.log(err)
+    })
+}
+
+// for login page
+function submitLoginForm() {
+    var form = document.getElementById("form")
+    const data = new URLSearchParams(new FormData(form))
+
+    fetch(window.location.href, {method: 'post', body: data})
+    .then(res => res.json())
+    .then(function(data) {
+    if (data == null) {
+        alert('Server Error!')
+        return
+    }
+
+    if (data.Error.length > 0) {
+        alert('Error: ' + data.Error)
+        return
+    }
+
+    window.location.href = "/"
+    }).catch(function(err) {
+    alert('Server Error')
+    console.log(err)
+    })
+}
