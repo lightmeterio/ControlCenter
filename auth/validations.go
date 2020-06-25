@@ -49,8 +49,8 @@ func (e *PasswordValidationError) Error() string {
 	return e.err.Error()
 }
 
-func validatePassword(email, password string) error {
-	strength := zxcvbn.PasswordStrength(password, []string{email})
+func validatePassword(email, name, password string) error {
+	strength := zxcvbn.PasswordStrength(password, []string{email, name})
 
 	log.Println("Requested to register password with strength score:", strength.Score, "and calc time:", strength.CalcTime)
 

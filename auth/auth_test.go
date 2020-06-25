@@ -75,6 +75,11 @@ func TestAuth(t *testing.T) {
 				So(errors.Is(err, ErrWeakPassword), ShouldBeTrue)
 			})
 
+			Convey("Password is equal to name", func() {
+				err := auth.Register("user@example.com", strongPassword, strongPassword)
+				So(errors.Is(err, ErrWeakPassword), ShouldBeTrue)
+			})
+
 			Convey("Invalid email", func() {
 				err := auth.Register("not@an@email.com", "Name Surname", strongPassword)
 				So(errors.Is(err, ErrInvalidEmail), ShouldBeTrue)
@@ -88,6 +93,34 @@ func TestAuth(t *testing.T) {
 			Convey("Empty Name", func() {
 				err := auth.Register("user@email.com", "   ", strongPassword)
 				So(errors.Is(err, ErrInvalidName), ShouldBeTrue)
+			})
+		})
+
+		Convey("Register Multiple Users", func() {
+			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
+			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`
+
+			So(auth.Register("user.one@example.com", "User One", user1Passwd), ShouldBeNil)
+			So(auth.Register("user.two@example.com", "User Two", user2Passwd), ShouldBeNil)
+
+			Convey("Passwords do not mix", func() {
+				{
+					ok, _, err := auth.Authenticate("user.one@example.com", user2Passwd)
+					So(err, ShouldBeNil)
+					So(ok, ShouldBeFalse)
+				}
+
+				{
+					ok, _, err := auth.Authenticate("user.two@example.com", user1Passwd)
+					So(err, ShouldBeNil)
+					So(ok, ShouldBeFalse)
+				}
+
+				{
+					ok, _, err := auth.Authenticate("user.two@example.com", user2Passwd)
+					So(err, ShouldBeNil)
+					So(ok, ShouldBeTrue)
+				}
 			})
 		})
 

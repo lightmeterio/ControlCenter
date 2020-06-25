@@ -2,14 +2,13 @@ package logdb
 
 import (
 	"database/sql"
-	"errors"
 	"log"
 	"path"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/data/postfix"
-	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -36,7 +35,8 @@ func (pub *ChannelBasedPublisher) Close() {
 }
 
 type DB struct {
-	config data.Config
+	config   data.Config
+	connPair dbconn.ConnPair
 
 	writerConnection *sql.DB
 
@@ -46,60 +46,13 @@ type DB struct {
 	records chan data.Record
 }
 
-func attachDatabase(conn *sql.DB, filename, schemaName string, flags string) error {
-	q := `attach database 'file:` + filename + `?` + flags + `' as ` + schemaName
-
-	_, err := conn.Exec(q)
-
-	if err != nil {
+func setupWriterConn(conn *sql.DB) error {
+	if err := createTables(conn); err != nil {
+		log.Println("Error creating table or indexes:", err)
 		return util.WrapError(err)
 	}
 
 	return nil
-}
-
-func detachDB(db *sql.DB, schema string) error {
-	_, err := db.Exec(`detach database ` + schema)
-	return util.WrapError(err)
-}
-
-func createWriter(dbFilename string, config data.Config) (*sql.DB, error) {
-	conn, err := sql.Open("lm_sqlite3", `file:`+dbFilename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(conn.Close(), "Closing RW connection on error")
-		}
-	}()
-
-	err = createTables(conn)
-
-	if err != nil {
-		log.Println("Error creating table or indexes:", err)
-		return nil, util.WrapError(err)
-	}
-
-	return conn, nil
-}
-
-func createReader(dbFilename string, config data.Config) (*sql.DB, error) {
-	conn, err := sql.Open("lm_sqlite3", `file:`+dbFilename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(conn.Close(), "Closing RO Connection on error")
-		}
-	}()
-
-	return conn, nil
 }
 
 func createTables(db *sql.DB) error {
@@ -115,7 +68,7 @@ func createTables(db *sql.DB) error {
 func Open(workspaceDirectory string, config data.Config) (DB, error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
 
-	writerConnection, err := createWriter(dbFilename, config)
+	connPair, err := dbconn.NewConnPair(dbFilename)
 
 	if err != nil {
 		return DB{}, util.WrapError(err)
@@ -123,32 +76,25 @@ func Open(workspaceDirectory string, config data.Config) (DB, error) {
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(writerConnection.Close(), "Closing writer on error")
+			util.MustSucceed(connPair.Close(), "Closing connection on error")
 		}
 	}()
 
-	readerConnection, err := createReader(dbFilename, config)
+	err = setupWriterConn(connPair.RwConn)
 
 	if err != nil {
 		return DB{}, util.WrapError(err)
 	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(readerConnection.Close(), "Closing reader on error")
-		}
-	}()
 
 	return DB{
-		config:           config,
-		writerConnection: writerConnection,
-		readerConnection: readerConnection,
-		records:          make(chan data.Record, recordsQueueSize),
+		config:   config,
+		connPair: connPair,
+		records:  make(chan data.Record, recordsQueueSize),
 	}, nil
 }
 
 func (db *DB) ReadConnection() *sql.DB {
-	return db.readerConnection
+	return db.connPair.RoConn
 }
 
 func (db *DB) NewPublisher() data.Publisher {
@@ -158,7 +104,7 @@ func (db *DB) NewPublisher() data.Publisher {
 // Obtain the most recent time inserted in the database,
 // or a zero'd time in case case no value has been found
 func (db *DB) MostRecentLogTime() time.Time {
-	return buildInitialTime(db.readerConnection, db.config.DefaultYear, db.config.Location)
+	return buildInitialTime(db.connPair.RoConn, db.config.DefaultYear, db.config.Location)
 }
 
 func (db *DB) Run() <-chan interface{} {
@@ -189,7 +135,7 @@ func (db *DB) Run() <-chan interface{} {
 	timedRecords := make(chan data.TimedRecord, recordsQueueSize)
 
 	go stampLogsWithTimeAndWaitUntilDatabaseIsFinished(converter, db.records, timedRecords, doneTimestamping)
-	go fillDatabase(db.writerConnection, timedRecords, doneInsertingOnDatabase, doneTimestamping)
+	go fillDatabase(db.connPair.RwConn, timedRecords, doneInsertingOnDatabase, doneTimestamping)
 
 	return doneInsertingOnDatabase
 }
@@ -216,19 +162,12 @@ func stampLogsWithTimeAndWaitUntilDatabaseIsFinished(timeConverter postfix.TimeC
 }
 
 func (db *DB) Close() error {
-	errReader := db.readerConnection.Close()
-	errWriter := db.writerConnection.Close()
-
-	if errWriter != nil || errReader != nil {
-		return util.WrapError(errors.New("error closing database: writer:(" + errWriter.Error() + "), reader: (" + errReader.Error() + ")"))
-	}
-
-	return nil
+	return db.connPair.Close()
 }
 
 func (db *DB) HasLogs() bool {
 	for _, handler := range payloadHandlers {
-		if handler.counter(db.readerConnection) > 0 {
+		if handler.counter(db.connPair.RoConn) > 0 {
 			return true
 		}
 	}
