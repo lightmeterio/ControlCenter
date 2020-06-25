@@ -1,44 +1,103 @@
 <!doctype html>
 <html lang="en">
     <head>
-      <title>Login</title>
-      <script type="text/javascript">
-        function submitForm() {
-          var form = document.getElementById("form")
-          const data = new URLSearchParams(new FormData(form))
-
-          fetch(window.location.href, {method: 'post', body: data})
-            .then(res => res.json())
-            .then(function(data) {
-            if (data == null) {
-              alert('Server Error!')
-              return
-            }
-
-            if (data.Error.length > 0) {
-              alert('Error: ' + data.Error)
-              return
-            }
-
-            window.location.href = "/"
-          }).catch(function(err) {
-            alert('Server Error')
-            console.log(err)
-          })
-        }
-      </script>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="icon" href="img/favicon.svg" sizes="any" type="image/svg+xml">
+        
+        <!-- Boostrap CSS -->
+        <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
+        
+        <!-- Fontawesome CSS -->
+        <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
+        
+        <!-- App CSS -->
+        <link rel="stylesheet" type="text/css" href="css/app.css">
+        
+        <title>Registration</title>
     </head>
 
-    <body>
-      User Login:
-      <form method="post" id="form">
-        <div>
-        E-mail: <input name="email"/>
+    <body class="panel-page">
+    
+        <div class="container">
+        
+        <div class="row row justify-content-center vh-93">
+            <div class="col-sm-5 align-self-center">
+                <div class="panel panel-default mx-auto">
+                    <div class="panel-body">
+                    
+                            <div class="row justify-content-center">
+                                <div class="col-10">
+                                    <img class="logo w-100" src="img/logo-color-120.png" alt="Lightmeter logo">
+                                </div>
+                            </div>
+                            
+                            <h2>Login</h2>
+                            
+                            <div class="field-group">
+                                <form method="post" id="form">
+                                    <div class="form-group">
+                                    
+                                    <label for="email" class="sr-only">E-mail:</label>
+                                    <input type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email"/>
+                                    
+                                    <label for="password" class="sr-only">Password:</label>
+                                    <input type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password"/>
+                                    
+                                    <input type="button" class="btn-sm btn-primary w-100" onclick="submitLoginForm()" value="Login" id="register"></input>
+                                </form>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-        Password: <input type="password" name="password"/>
+        
+        <footer>
+            <div class="container">
+                Made with
+                <svg class="bi bi-heart-fill" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/>
+                </svg>
+                by Open Source professionals
+            </div>
+        </footer>
+        
         </div>
-        <input type="button" onclick="submitForm()" value="Login"></input>
-      </form>
+        
+        <!-- Boostrap dependencies -->
+        <script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
+        <script type="text/javascript" src="3rd/js/popper.min.js"></script>
+        <script type="text/javascript" src="3rd/js/bootstrap.min.js"></script>
+        
+        <!-- Other 3rd party dependencies -->
+        <script type="text/javascript" src="3rd/js/plotly.min.js"></script>
+        <script type="text/javascript" src="3rd/js/moment.min.js"></script>
+        <script type="text/javascript" src="3rd/js/daterangepicker.min.js"></script>
+        
+        <!-- App scripts -->
+        <script type="text/javascript" src="js/app.js"></script>
+        
+        <!-- Lightmeter-hosted Matomo analytics -->
+        <script type="text/javascript">
+        var _paq = window._paq || [];
+        // TODO: make version dynamic from JS
+        _paq.push(['setCustomDimension', 1, '0.0.2']);
+        _paq.push(['trackPageView']);
+        _paq.push(['enableLinkTracking']);
+        (function() {
+            var u="https://matomo.lightmeter.io/";
+            _paq.push(['setTrackerUrl', u+'matomo.php']);
+            _paq.push(['setSiteId', '3']);
+            var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+            g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+        })();
+        </script>
+        
+        <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+
     </body>
 </html>
