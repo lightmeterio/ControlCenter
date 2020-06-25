@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"errors"
-	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io"
 	"log"
@@ -24,8 +24,7 @@ type Registrar interface {
 }
 
 type Auth struct {
-	writerConnection *sql.DB
-	readerConnection *sql.DB
+	connPair dbconn.ConnPair
 }
 
 var (
@@ -77,7 +76,7 @@ func (r *Auth) Register(email, name, password string) error {
 		return util.WrapError(err)
 	}
 
-	tx, err := r.writerConnection.Begin()
+	tx, err := r.connPair.RwConn.Begin()
 
 	if err != nil {
 		return util.WrapError(err)
@@ -125,7 +124,7 @@ func (r *Auth) Register(email, name, password string) error {
 }
 
 func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
-	q, err := r.readerConnection.Query("select rowid, email, name from users where email = ? and password = lm_sha256_sum(?)", email, password)
+	q, err := r.connPair.RoConn.Query("select rowid, email, name from users where email = ? and password = lm_sha256_sum(?)", email, password)
 
 	if err != nil {
 		return false, UserData{}, util.WrapError(err)
@@ -152,7 +151,7 @@ func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
 }
 
 func (r *Auth) HasAnyUser() (bool, error) {
-	q, err := r.readerConnection.Query("select count(*) from users")
+	q, err := r.connPair.RoConn.Query("select count(*) from users")
 
 	if err != nil {
 		return false, util.WrapError(err)
@@ -235,14 +234,14 @@ func generateKeys(tx *sql.Tx) ([][]byte, error) {
 }
 
 func (r *Auth) SessionKeys() [][]byte {
-	_, err := r.writerConnection.Exec(`create table if not exists meta(
+	_, err := r.connPair.RwConn.Exec(`create table if not exists meta(
 		key string,
 		value blob
 	)`)
 
 	util.MustSucceed(err, "Ensuring auth meta table exists")
 
-	tx, err := r.writerConnection.Begin()
+	tx, err := r.connPair.RwConn.Begin()
 
 	util.MustSucceed(err, "Starting transaction on session key management")
 
@@ -267,50 +266,20 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func createWriterConnection(filename string) (*sql.DB, error) {
-	conn, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(conn.Close(), "Closing DB connection on error")
-		}
-	}()
-
-	_, err = conn.Exec(`create table if not exists users(
+func setupWriterConnection(conn *sql.DB) error {
+	if _, err := conn.Exec(`create table if not exists users(
 		email string,
 		name string,
 		password blob
-	)`)
-
-	if err != nil {
-		return nil, util.WrapError(err)
+	)`); err != nil {
+		return util.WrapError(err)
 	}
 
-	return conn, nil
-}
-
-func createReaderConnection(filename string) (*sql.DB, error) {
-	conn, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=private&_loc=auto&_journal=WAL`)
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(conn.Close(), "Closing DB connection on error")
-		}
-	}()
-
-	return conn, nil
+	return nil
 }
 
 func NewAuth(dirname string) (*Auth, error) {
-	writerConn, err := createWriterConnection(path.Join(dirname, "auth.db"))
+	connPair, err := dbconn.NewConnPair(path.Join(dirname, "auth.db"))
 
 	if err != nil {
 		return nil, util.WrapError(err)
@@ -318,15 +287,15 @@ func NewAuth(dirname string) (*Auth, error) {
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(writerConn.Close(), "Closing DB connection on error")
+			util.MustSucceed(connPair.Close(), "Closing DB connection on error")
 		}
 	}()
 
-	readerConn, err := createReaderConnection(path.Join(dirname, "auth.db"))
+	err = setupWriterConnection(connPair.RwConn)
 
 	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
-	return &Auth{writerConnection: writerConn, readerConnection: readerConn}, nil
+	return &Auth{connPair: connPair}, nil
 }
