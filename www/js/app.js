@@ -221,7 +221,7 @@ var drawDashboard = function() {
     setupApplicationInfo()
 }
 
-// for registration and login page
+// for registration page
 function submitRegisterForm() {
     var form = document.getElementById("form")
     const data = new URLSearchParams(new FormData(form))
