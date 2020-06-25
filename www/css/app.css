@@ -377,12 +377,18 @@ form #register {
     color: #909192;
 }
 
-.panel-page footer{
+.panel-page footer,
+.panel-page footer a, 
+.panel-page footer a:hover {
     background-color: inherit;
     text-align: center;
     color: #202324;
     font-weight: bold;
     font-size: 12px;
+}
+
+.panel-page footer a:hover {
+    text-decoration: underline;
 }
 
 .btn-primary {
