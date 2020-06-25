@@ -166,6 +166,10 @@ span.buttons {
     cursor: pointer;
 }
 
+span.buttons i {
+    margin-left: 0.5rem;
+}
+
 .time-interval {
     margin: 0.6rem 0 0.3rem 0;
 }
