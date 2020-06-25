@@ -64,7 +64,7 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 }
 
 func (r *Auth) Register(email, name, password string) error {
-	if err := validatePassword(email, password); err != nil {
+	if err := validatePassword(email, name, password); err != nil {
 		return util.WrapError(err)
 	}
 
