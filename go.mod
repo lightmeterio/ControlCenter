@@ -11,6 +11,7 @@ require (
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd // indirect
 	github.com/trustelem/zxcvbn v1.0.1 // indirect
 	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200615094002-38fc4cbf9edf
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )

@@ -94,7 +94,7 @@ func (r *Auth) Register(email, name, password string) error {
 		return util.WrapError(err)
 	}
 
-	stmt, err := tx.Prepare(`insert into users(email, name, password) values(?, ?, lm_sha256_sum(?))`)
+	stmt, err := tx.Prepare(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`)
 
 	util.MustSucceed(err, "creating register stmt")
 
@@ -124,7 +124,7 @@ func (r *Auth) Register(email, name, password string) error {
 }
 
 func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
-	q, err := r.connPair.RoConn.Query("select rowid, email, name from users where email = ? and password = lm_sha256_sum(?)", email, password)
+	q, err := r.connPair.RoConn.Query("select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password)
 
 	if err != nil {
 		return false, UserData{}, util.WrapError(err)
