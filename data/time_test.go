@@ -9,8 +9,13 @@ import (
 
 func TestTimeInterval(t *testing.T) {
 	Convey("Parse Time interval", t, func() {
-		Convey("Fail to Parse", func() {
-			_, err := ParseTimeInterval("lalala", "lalala", time.UTC)
+		Convey("Fail to Parse interval begin", func() {
+			_, err := ParseTimeInterval("lalala", "2010-01-01", time.UTC)
+			So(err, ShouldNotEqual, nil)
+		})
+
+		Convey("Fail to parse interval end", func() {
+			_, err := ParseTimeInterval("2000-01-01", "lalala", time.UTC)
 			So(err, ShouldNotEqual, nil)
 		})
 
