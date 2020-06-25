@@ -325,6 +325,11 @@ h5.row-title {
     font-weight: bold;
 }
 
+.panel-page p {
+    font-size: 14px;
+    color: #202324;
+}
+
 .panel-page .panel-body h4 {
     margin-bottom: 1rem;
 }
