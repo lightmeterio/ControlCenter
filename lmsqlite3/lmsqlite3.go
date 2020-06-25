@@ -27,7 +27,7 @@ func ipToString(b []byte) string {
 	return ip.String()
 }
 
-const bcryptCost = bcrypt.DefaultCost
+const bcryptCost = 12
 
 func computeBcryptSum(b []byte) []byte {
 	r, err := bcrypt.GenerateFromPassword(b, bcryptCost)
