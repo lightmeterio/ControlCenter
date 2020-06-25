@@ -137,7 +137,7 @@
 }
 
 body {
-    background: #F4FAFD!important;
+    background: #F4FAFD;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -399,4 +399,11 @@ form #register {
 
 .panel-page footer .bi-heart-fill path {
     color: #FFDC00;
+}
+
+body.panel-page {
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-image: url('../img/login-gradient-bg.svg');
+    background-color: #F7F8F9;
 }
