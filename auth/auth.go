@@ -23,13 +23,19 @@ type Registrar interface {
 	HasAnyUser() (bool, error)
 }
 
+type Options struct {
+	AllowMultipleUsers bool
+}
+
 type Auth struct {
+	options  Options
 	connPair dbconn.ConnPair
 }
 
 var (
 	ErrGeneralAuthenticationError = errors.New("General Authentication Error")
 	ErrUserAlreadyRegistred       = errors.New("User is Already Registred")
+	ErrRegistrationDenied         = errors.New("Maximum Number of Users Already Registered")
 )
 
 func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
@@ -64,6 +70,16 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 }
 
 func (r *Auth) Register(email, name, password string) error {
+	hasAnyUser, err := r.HasAnyUser()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	if !r.options.AllowMultipleUsers && hasAnyUser {
+		return ErrRegistrationDenied
+	}
+
 	if err := validatePassword(email, name, password); err != nil {
 		return util.WrapError(err)
 	}
@@ -278,7 +294,7 @@ func setupWriterConnection(conn *sql.DB) error {
 	return nil
 }
 
-func NewAuth(dirname string) (*Auth, error) {
+func NewAuth(dirname string, options Options) (*Auth, error) {
 	connPair, err := dbconn.NewConnPair(path.Join(dirname, "auth.db"))
 
 	if err != nil {
@@ -297,5 +313,5 @@ func NewAuth(dirname string) (*Auth, error) {
 		return nil, util.WrapError(err)
 	}
 
-	return &Auth{connPair: connPair}, nil
+	return &Auth{options: options, connPair: connPair}, nil
 }
