@@ -28,7 +28,7 @@ func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, err
 		return Workspace{}, util.WrapError(err)
 	}
 
-	auth, err := auth.NewAuth(workspaceDirectory)
+	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
 		return Workspace{}, util.WrapError(err)

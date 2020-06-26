@@ -26,7 +26,7 @@ func TestSessionKey(t *testing.T) {
 		// NOTE: for now we are generating only one key, but
 		// gennerating multiple ones is desirable
 		{
-			auth, _ := NewAuth(path.Join(dir))
+			auth, _ := NewAuth(path.Join(dir), Options{})
 			generatedKey = auth.SessionKeys()
 			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
@@ -34,7 +34,7 @@ func TestSessionKey(t *testing.T) {
 		}
 
 		{
-			auth, _ := NewAuth(path.Join(dir))
+			auth, _ := NewAuth(path.Join(dir), Options{})
 			recoveredKey = auth.SessionKeys()
 		}
 
@@ -48,7 +48,7 @@ func TestAuth(t *testing.T) {
 	Convey("Test Auth", t, func() {
 		dir := tempDir()
 		defer os.RemoveAll(dir)
-		auth, err := NewAuth(path.Join(dir))
+		auth, err := NewAuth(path.Join(dir), Options{})
 		So(err, ShouldBeNil)
 		So(auth, ShouldNotBeNil)
 
@@ -94,9 +94,22 @@ func TestAuth(t *testing.T) {
 				err := auth.Register("user@email.com", "   ", strongPassword)
 				So(errors.Is(err, ErrInvalidName), ShouldBeTrue)
 			})
+
+			Convey("Multiple users is forbidden", func() {
+				// register one user, forbidding any others
+				err := auth.Register("user@email.com", "Valid Name", strongPassword)
+				So(err, ShouldBeNil)
+
+				err = auth.Register("another.user@email.com", "Another User", strongPassword)
+				So(errors.Is(err, ErrRegistrationDenied), ShouldBeTrue)
+			})
 		})
 
 		Convey("Register Multiple Users", func() {
+			auth, err := NewAuth(path.Join(dir), Options{AllowMultipleUsers: true})
+
+			So(err, ShouldBeNil)
+
 			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
 			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`
 
@@ -121,6 +134,15 @@ func TestAuth(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(ok, ShouldBeTrue)
 				}
+			})
+
+			Convey("Double registration of the same user fails", func() {
+				// register one user, forbidding any others
+				err := auth.Register("user@email.com", "Valid Name", strongPassword)
+				So(err, ShouldBeNil)
+
+				err = auth.Register("user@email.com", "Another Valid User", `67567567HGFHGFHGhgfghfhg***&*`)
+				So(errors.Is(err, ErrUserAlreadyRegistred), ShouldBeTrue)
 			})
 		})
 
