@@ -35,7 +35,7 @@ type Auth struct {
 var (
 	ErrGeneralAuthenticationError = errors.New("General Authentication Error")
 	ErrUserAlreadyRegistred       = errors.New("User is Already Registred")
-	ErrRegistrationDenied         = errors.New("Registration Denied")
+	ErrRegistrationDenied         = errors.New("Maximum Number of Users Already Registered")
 )
 
 func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
