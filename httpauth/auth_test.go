@@ -17,6 +17,7 @@ import (
 )
 
 type fakeRegistrar struct {
+	sessionKey                        []byte
 	email                             string
 	name                              string
 	password                          string
@@ -60,7 +61,7 @@ func (f *fakeRegistrar) Authenticate(email, password string) (bool, auth.UserDat
 }
 
 func (f *fakeRegistrar) CookieStore() sessions.Store {
-	return sessions.NewCookieStore([]byte("SUPER_SECRET_KEYS"))
+	return sessions.NewCookieStore(f.sessionKey)
 }
 
 func TestHTTPAuth(t *testing.T) {
@@ -69,43 +70,44 @@ func TestHTTPAuth(t *testing.T) {
 		logoutAttempts := 0
 
 		registrar := &fakeRegistrar{
+			sessionKey:                        []byte("session_key_1_super_secret"),
 			authenticated:                     false,
 			shouldFailToRegister:              false,
 			shouldFailToAuthenticate:          false,
 			shouldFailToCheckIfThereIsAnyUser: false,
 		}
 
-		authenticator := NewAuthenticatorWithOptions(
-			AuthHandlers{
-				Unauthorized: func(w http.ResponseWriter, r *http.Request) {
-					failedAttempts++
-				},
-				Public: func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("Public: " + r.URL.Path))
-				},
-				ShowLogin: func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("Login Page Content"))
-				},
-				Register: func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("Registration Page Content"))
-				},
-				LoginFailure: func(w http.ResponseWriter, r *http.Request) {
-				},
-				SecretArea: func(session SessionData, w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("Secret Area, dear " + session.Name))
-				},
-				Logout: func(session SessionData, w http.ResponseWriter, r *http.Request) {
-					logoutAttempts++
-				},
-				ServerError: func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("Server Error"))
-				},
+		authHandlers := AuthHandlers{
+			Unauthorized: func(w http.ResponseWriter, r *http.Request) {
+				failedAttempts++
 			},
+			Public: func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Public: " + r.URL.Path))
+			},
+			ShowLogin: func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Login Page Content"))
+			},
+			Register: func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Registration Page Content"))
+			},
+			LoginFailure: func(w http.ResponseWriter, r *http.Request) {
+			},
+			SecretArea: func(session SessionData, w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Secret Area, dear " + session.Name))
+			},
+			Logout: func(session SessionData, w http.ResponseWriter, r *http.Request) {
+				logoutAttempts++
+			},
+			ServerError: func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Server Error"))
+			},
+		}
+
+		s := httptest.NewServer(NewAuthenticatorWithOptions(
+			authHandlers,
 			registrar,
 			[]string{"/public", "/visible"},
-		)
-
-		s := httptest.NewServer(authenticator)
+		))
 
 		defer s.Close()
 
@@ -534,6 +536,41 @@ func TestHTTPAuth(t *testing.T) {
 				body, _ := ioutil.ReadAll(r.Body)
 				So(string(body), ShouldEqual, "Registration Page Content")
 			})
+		})
+
+		Convey("If server session keys are updated, the client session must expire, requiring login again", func() {
+			c := buildCookieClient()
+
+			registrar.email = "user@example.com"
+			registrar.password = "654321"
+			registrar.name = "Sakura"
+
+			// first user logs in
+			r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"user@example.com"}, "password": {"654321"}})
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			// The server session keys change, requiring the user to log in again
+			registrar.sessionKey = []byte("new_super_secret_key")
+
+			newServer := httptest.NewServer(NewAuthenticatorWithOptions(
+				authHandlers,
+				registrar,
+				[]string{"/public", "/visible"},
+			))
+
+			r, err = c.Get(newServer.URL + "/secret/resource")
+
+			// The session expires as the keys changed, and user is asked to login again
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			body, _ := ioutil.ReadAll(r.Body)
+			So(string(body), ShouldEqual, "Login Page Content")
+
+			// And the user can login again
+			r, err = c.PostForm(newServer.URL+"/login", url.Values{"email": {"user@example.com"}, "password": {"654321"}})
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
 		})
 	})
 }

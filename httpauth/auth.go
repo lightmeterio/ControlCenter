@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
@@ -98,13 +99,38 @@ func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Req
 	postCb()
 }
 
-func withSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, cb func(*sessions.Session)) {
-	session, err := auth.store.Get(r, "lightmeter-controlcenter-session")
+const sessionName = "lightmeter-controlcenter-session"
+
+func handleFailureOnObtainingSession(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
+	// replace session cookie by a empty one, which means to delete it
+	cookie := &http.Cookie{
+		Name:     sessionName,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+	}
+
+	redirectUrl, err := defaultUnauthorisedRedirectUrl(auth, w, r)
 
 	if err != nil {
-		log.Println("Error getting session")
+		log.Println("Error getting session:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+		return
+	}
+
+	http.SetCookie(w, cookie)
+
+	http.Redirect(w, r, redirectUrl, http.StatusFound)
+}
+
+func withSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, cb func(*sessions.Session)) {
+	session, err := auth.store.Get(r, sessionName)
+
+	if err != nil {
+		log.Println("Error getting session. Force session expiration:", err)
+		handleFailureOnObtainingSession(auth, w, r)
 		return
 	}
 
@@ -259,22 +285,24 @@ func handleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 	handleFormSubmissionOnSession(auth, w, r, auth.handlers.Register, handleRegistrationSubmission)
 }
 
+func defaultUnauthorisedRedirectUrl(auth *Authenticator, w http.ResponseWriter, r *http.Request) (string, error) {
+	ok, err := auth.auth.HasAnyUser()
+
+	if err != nil {
+		return "", util.WrapError(err)
+	}
+
+	if ok {
+		return "/login", nil
+	}
+
+	return "/register", nil
+}
+
 func handleUnauthorized(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 	auth.handlers.Unauthorized(w, r)
 
-	redirectUrl, err := func() (string, error) {
-		ok, err := auth.auth.HasAnyUser()
-
-		if err != nil {
-			return "", util.WrapError(err)
-		}
-
-		if ok {
-			return "/login", nil
-		}
-
-		return "/register", nil
-	}()
+	redirectUrl, err := defaultUnauthorisedRedirectUrl(auth, w, r)
 
 	if err != nil {
 		log.Println("Error Checking whether any user is already registred:", err)
