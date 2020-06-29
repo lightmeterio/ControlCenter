@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/api"
+	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/logeater"
@@ -40,6 +41,8 @@ var (
 	dirToWatch         string
 	address            string
 	verbose            bool
+	emailToPasswdReset string
+	passwordToReset    string
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -60,6 +63,8 @@ func init() {
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
 	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
+	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
+	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
 
 	flag.Usage = func() {
 		printVersion()
@@ -85,11 +90,34 @@ func die(err error, msg ...interface{}) {
 	os.Exit(1)
 }
 
+func performPasswordReset() {
+	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
+
+	if err != nil {
+		die(err, "Error opening auth database:", err)
+	}
+
+	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
+		die(err, "Error reseting password:", err)
+	}
+
+	if err := auth.Close(); err != nil {
+		die(err, "Error closing auth database:", err)
+	}
+
+	log.Println("Password for user", emailToPasswdReset, "reset successfully")
+}
+
 func main() {
 	flag.Parse()
 
 	if showVersion {
 		printVersion()
+		return
+	}
+
+	if len(emailToPasswdReset) > 0 {
+		performPasswordReset()
 		return
 	}
 
