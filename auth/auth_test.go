@@ -27,6 +27,7 @@ func TestSessionKey(t *testing.T) {
 		// gennerating multiple ones is desirable
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 			generatedKey = auth.SessionKeys()
 			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
@@ -35,6 +36,7 @@ func TestSessionKey(t *testing.T) {
 
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 			recoveredKey = auth.SessionKeys()
 		}
 
@@ -51,6 +53,7 @@ func TestAuth(t *testing.T) {
 		auth, err := NewAuth(path.Join(dir), Options{})
 		So(err, ShouldBeNil)
 		So(auth, ShouldNotBeNil)
+		defer func() { So(auth.Close(), ShouldBeNil) }()
 
 		Convey("No user is initially registred", func() {
 			ok, err := auth.HasAnyUser()
@@ -109,6 +112,8 @@ func TestAuth(t *testing.T) {
 			auth, err := NewAuth(path.Join(dir), Options{AllowMultipleUsers: true})
 
 			So(err, ShouldBeNil)
+
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 
 			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
 			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`

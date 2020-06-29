@@ -315,3 +315,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 
 	return &Auth{options: options, connPair: connPair}, nil
 }
+
+func (r *Auth) Close() error {
+	return r.connPair.Close()
+}
