@@ -98,7 +98,7 @@ func performPasswordReset() {
 	}
 
 	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
-		die(err, "Error reseting password:", err)
+		die(err, "Error resetting password:", err)
 	}
 
 	if err := auth.Close(); err != nil {
