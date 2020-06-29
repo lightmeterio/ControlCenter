@@ -27,6 +27,7 @@ func TestSessionKey(t *testing.T) {
 		// gennerating multiple ones is desirable
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 			generatedKey = auth.SessionKeys()
 			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
@@ -35,6 +36,7 @@ func TestSessionKey(t *testing.T) {
 
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 			recoveredKey = auth.SessionKeys()
 		}
 
@@ -51,6 +53,7 @@ func TestAuth(t *testing.T) {
 		auth, err := NewAuth(path.Join(dir), Options{})
 		So(err, ShouldBeNil)
 		So(auth, ShouldNotBeNil)
+		defer func() { So(auth.Close(), ShouldBeNil) }()
 
 		Convey("No user is initially registred", func() {
 			ok, err := auth.HasAnyUser()
@@ -109,6 +112,8 @@ func TestAuth(t *testing.T) {
 			auth, err := NewAuth(path.Join(dir), Options{AllowMultipleUsers: true})
 
 			So(err, ShouldBeNil)
+
+			defer func() { So(auth.Close(), ShouldBeNil) }()
 
 			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
 			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`
@@ -177,6 +182,53 @@ func TestAuth(t *testing.T) {
 				So(userData.Id, ShouldEqual, 1)
 				So(userData.Email, ShouldEqual, "user@example.com")
 				So(userData.Name, ShouldEqual, "Name Surname")
+			})
+		})
+	})
+}
+
+func TestResetPassword(t *testing.T) {
+	Convey("Reset Password", t, func() {
+		dir := tempDir()
+		defer os.RemoveAll(dir)
+
+		{
+			auth, err := NewAuth(path.Join(dir), Options{})
+			So(err, ShouldBeNil)
+			defer func() { So(auth.Close(), ShouldBeNil) }()
+			So(auth.Register("email@example.com", `Nora`, `(1Yow@byU]>`), ShouldBeNil)
+		}
+
+		Convey("Fail to reset password", func() {
+			auth, err := NewAuth(path.Join(dir), Options{})
+			So(err, ShouldBeNil)
+			defer func() { So(auth.Close(), ShouldBeNil) }()
+
+			Convey("Invalid user", func() {
+				So(errors.Is(auth.ChangePassword("invalid.user@example.com", `kjhjk^^776767&&&$123456`), ErrInvalidEmail), ShouldBeTrue)
+			})
+
+			Convey("Too weak", func() {
+				So(errors.Is(auth.ChangePassword("email@example.com", `123456`), ErrWeakPassword), ShouldBeTrue)
+			})
+
+			Convey("Equals email", func() {
+				So(errors.Is(auth.ChangePassword("email@example.com", `email@example.com`), ErrWeakPassword), ShouldBeTrue)
+			})
+
+			Convey("Equals Name", func() {
+				So(errors.Is(auth.ChangePassword("email@example.com", `Nora`), ErrWeakPassword), ShouldBeTrue)
+			})
+
+			Convey("Succeeds", func() {
+				So(auth.ChangePassword("email@example.com", `**^NeuEp4ssd:?&`), ShouldBeNil)
+
+				ok, u, err := auth.Authenticate("email@example.com", `**^NeuEp4ssd:?&`)
+
+				So(err, ShouldBeNil)
+				So(ok, ShouldBeTrue)
+				So(u.Id, ShouldEqual, 1)
+				So(u.Email, ShouldEqual, "email@example.com")
 			})
 		})
 	})

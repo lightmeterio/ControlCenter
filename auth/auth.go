@@ -39,19 +39,9 @@ var (
 )
 
 func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
-	q, err := tx.Query(`select count(*) from users where email = ?`, email)
+	var count int
 
-	if err != nil {
-		return util.WrapError(err)
-	}
-
-	if !q.Next() {
-		return util.WrapError(ErrGeneralAuthenticationError, `Error checking if user is already registred`)
-	}
-
-	count := 0
-
-	if err := q.Scan(&count); err != nil {
+	if err := tx.QueryRow(`select count(*) from users where email = ?`, email).Scan(&count); err != nil {
 		return util.WrapError(err)
 	}
 
@@ -60,10 +50,6 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 
 		// Here it's okay (privacy wise) and useful to inform that the user is already registred
 		return util.WrapError(ErrUserAlreadyRegistred)
-	}
-
-	if err := q.Err(); err != nil {
-		return util.WrapError(err)
 	}
 
 	return nil
@@ -92,7 +78,15 @@ func (r *Auth) Register(email, name, password string) error {
 		return util.WrapError(err)
 	}
 
-	tx, err := r.connPair.RwConn.Begin()
+	if err := registerInDb(r.connPair.RwConn, email, name, password); err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
+}
+
+func registerInDb(db *sql.DB, email, name, password string) error {
+	tx, err := db.Begin()
 
 	if err != nil {
 		return util.WrapError(err)
@@ -110,13 +104,7 @@ func (r *Auth) Register(email, name, password string) error {
 		return util.WrapError(err)
 	}
 
-	stmt, err := tx.Prepare(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`)
-
-	util.MustSucceed(err, "creating register stmt")
-
-	defer stmt.Close()
-
-	result, err := stmt.Exec(email, name, password)
+	result, err := tx.Exec(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`, email, name, password)
 
 	if err != nil {
 		return util.WrapError(err, "executing user registration query")
@@ -140,26 +128,17 @@ func (r *Auth) Register(email, name, password string) error {
 }
 
 func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
-	q, err := r.connPair.RoConn.Query("select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password)
+	d := UserData{}
 
-	if err != nil {
-		return false, UserData{}, util.WrapError(err)
-	}
+	err := r.connPair.RoConn.
+		QueryRow("select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
+		Scan(&d.Id, &d.Email, &d.Name)
 
-	defer q.Close()
-
-	if !q.Next() {
-		// no user found
+	if errors.Is(err, sql.ErrNoRows) {
 		return false, UserData{}, nil
 	}
 
-	d := UserData{}
-
-	if err := q.Scan(&d.Id, &d.Email, &d.Name); err != nil {
-		return false, UserData{}, util.WrapError(err)
-	}
-
-	if err := q.Err(); err != nil {
+	if err != nil {
 		return false, UserData{}, util.WrapError(err)
 	}
 
@@ -167,25 +146,9 @@ func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
 }
 
 func (r *Auth) HasAnyUser() (bool, error) {
-	q, err := r.connPair.RoConn.Query("select count(*) from users")
-
-	if err != nil {
-		return false, util.WrapError(err)
-	}
-
-	defer q.Close()
-
-	if !q.Next() {
-		return false, util.WrapError(ErrGeneralAuthenticationError, `Error counting users`)
-	}
-
 	var count int
 
-	if err := q.Scan(&count); err != nil {
-		return false, util.WrapError(err)
-	}
-
-	if err := q.Err(); err != nil {
+	if err := r.connPair.RoConn.QueryRow("select count(*) from users").Scan(&count); err != nil {
 		return false, util.WrapError(err)
 	}
 
@@ -314,4 +277,74 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 	}
 
 	return &Auth{options: options, connPair: connPair}, nil
+}
+
+func (r *Auth) Close() error {
+	return r.connPair.Close()
+}
+
+func nameForEmail(tx *sql.Tx, email string) (string, error) {
+	var name string
+
+	err := tx.QueryRow(`select name from users where email = ?`, email).Scan(&name)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidEmail
+	}
+
+	if err != nil {
+		return "", util.WrapError(err)
+	}
+
+	return name, nil
+}
+
+func updatePassword(tx *sql.Tx, email, password string) error {
+	_, err := tx.Exec(`update users set password = lm_bcrypt_sum(?) where email = ?`, password, email)
+
+	if err != nil {
+		return util.WrapError(err, "executing password reset query")
+	}
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
+}
+
+func (r *Auth) ChangePassword(email, password string) error {
+	tx, err := r.connPair.RwConn.Begin()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
+		}
+	}()
+
+	name, err := nameForEmail(tx, email)
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	if err := validatePassword(email, name, password); err != nil {
+		return util.WrapError(err)
+	}
+
+	if err := updatePassword(tx, email, password); err != nil {
+		return util.WrapError(err)
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
 }

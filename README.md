@@ -117,3 +117,8 @@ Swagger-based API documentation and experimentation pages are generated automati
 
 - Single user, password-based authentication is currently supported by default. Multiple user accounts via self-registration, without approval, can be enabled by changing the value of `AllowMultipleUsers` in `auth/auth.go` and recompiling.
 
+#### Password reset
+
+You can reset the user password using the command line:
+
+`./lightmeter -email_reset '<registration-email>' -password '<new-password>'`
