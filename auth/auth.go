@@ -319,3 +319,69 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 func (r *Auth) Close() error {
 	return r.connPair.Close()
 }
+
+func nameForEmail(tx *sql.Tx, email string) (string, error) {
+	var name string
+
+	err := tx.QueryRow(`select name from users where email = ?`, email).Scan(&name)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidEmail
+	}
+
+	if err != nil {
+		return "", util.WrapError(err)
+	}
+
+	return name, nil
+}
+
+func updatePassword(tx *sql.Tx, email, password string) error {
+	_, err := tx.Exec(`update users set password = lm_bcrypt_sum(?) where email = ?`, password, email)
+
+	if err != nil {
+		return util.WrapError(err, "executing password reset query")
+	}
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
+}
+
+func (r *Auth) ChangePassword(email, password string) error {
+	tx, err := r.connPair.RwConn.Begin()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
+		}
+	}()
+
+	name, err := nameForEmail(tx, email)
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	if err := validatePassword(email, name, password); err != nil {
+		return util.WrapError(err)
+	}
+
+	if err := updatePassword(tx, email, password); err != nil {
+		return util.WrapError(err)
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
+}
