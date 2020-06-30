@@ -94,15 +94,15 @@ func performPasswordReset() {
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		die(err, "Error opening auth database:", err)
+		die(util.WrapError(err), "Error opening auth database:", err)
 	}
 
 	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
-		die(err, "Error resetting password:", err)
+		die(util.WrapError(err), "Error resetting password:", err)
 	}
 
 	if err := auth.Close(); err != nil {
-		die(err, "Error closing auth database:", err)
+		die(util.WrapError(err), "Error closing auth database:", err)
 	}
 
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
@@ -126,7 +126,7 @@ func main() {
 			dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
 			if err != nil {
-				die(err, "Error opening directory:", dirToWatch)
+				die(util.WrapError(err), "Error opening directory:", dirToWatch)
 			}
 
 			return dir
@@ -139,7 +139,7 @@ func main() {
 		initialLogTimeFromDirectory, err := dirwatcher.FindInitialLogTime(postfixLogsDirContent)
 
 		if err != nil {
-			die(err, "Could not obtain initial log time from directory:", dirToWatch)
+			die(util.WrapError(err), "Could not obtain initial log time from directory:", dirToWatch)
 		}
 
 		log.Println("Using initial time from postfix log directory:", initialLogTimeFromDirectory)
@@ -152,7 +152,7 @@ func main() {
 	})
 
 	if err != nil {
-		die(err, "Error opening workspace directory:", workspaceDirectory)
+		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory)
 	}
 
 	doneWithDatabase := ws.Run()
@@ -183,7 +183,7 @@ func main() {
 
 		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
-				die(err, "Error watching file:", filename)
+				die(util.WrapError(err), "Error watching file:", filename)
 			}
 		}(filename)
 	}
@@ -205,7 +205,7 @@ func main() {
 
 		go func() {
 			if err := watcher.Run(); err != nil {
-				die(err, "Error watching directory:", dirToWatch)
+				die(util.WrapError(err), "Error watching directory:", dirToWatch)
 			}
 		}()
 	}
@@ -213,7 +213,7 @@ func main() {
 	dashboard, err := ws.Dashboard()
 
 	if err != nil {
-		die(err, "Error creating dashboard")
+		die(util.WrapError(err), "Error creating dashboard")
 	}
 
 	mux := http.NewServeMux()
