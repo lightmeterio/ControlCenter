@@ -20,10 +20,10 @@ func (e *Error) Unwrap() error {
 
 func (e *Error) Error() string {
 	if len(e.Msg) > 0 {
-		return fmt.Sprintf("%s:%d: \"%s\"", e.Filename, e.Line, e.Msg)
+		return e.Msg
 	}
 
-	return fmt.Sprintf("%s:%d", e.Filename, e.Line)
+	return e.Err.Error()
 }
 
 // Wrap an error adding more context such as filename and line where wrapping happened
@@ -108,10 +108,24 @@ func (e *Error) Chain() ErrorChain {
 
 type ErrorChain []error
 
+func errInChain(err error) string {
+	e, ok := err.(*Error)
+
+	if !ok {
+		return err.Error()
+	}
+
+	if len(e.Msg) > 0 {
+		return fmt.Sprintf("%s:%d: \"%s\"", e.Filename, e.Line, e.Msg)
+	}
+
+	return fmt.Sprintf("%s:%d", e.Filename, e.Line)
+}
+
 func (chain ErrorChain) Error() string {
 	s := ""
 	for _, e := range chain {
-		s += "> " + e.Error() + "\n"
+		s += "> " + errInChain(e) + "\n"
 	}
 	return s
 }
