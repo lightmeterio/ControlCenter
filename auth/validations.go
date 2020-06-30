@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	ErrInvalidEmail = errors.New("Invalid Email Address")
-	ErrWeakPassword = errors.New("Weak Password")
-	ErrInvalidName  = errors.New("Invalid Name")
+	ErrInvalidEmail         = errors.New("Invalid Email Address")
+	ErrEmailAddressNotFound = errors.New("Email Address Not Found")
+	ErrWeakPassword         = errors.New("Weak Password")
+	ErrInvalidName          = errors.New("Invalid Name")
 )
 
 var (

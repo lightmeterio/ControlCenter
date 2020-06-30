@@ -289,7 +289,7 @@ func nameForEmail(tx *sql.Tx, email string) (string, error) {
 	err := tx.QueryRow(`select name from users where email = ?`, email).Scan(&name)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrInvalidEmail
+		return "", ErrEmailAddressNotFound
 	}
 
 	if err != nil {

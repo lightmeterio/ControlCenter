@@ -205,7 +205,7 @@ func TestResetPassword(t *testing.T) {
 			defer func() { So(auth.Close(), ShouldBeNil) }()
 
 			Convey("Invalid user", func() {
-				So(errors.Is(auth.ChangePassword("invalid.user@example.com", `kjhjk^^776767&&&$123456`), ErrInvalidEmail), ShouldBeTrue)
+				So(errors.Is(auth.ChangePassword("invalid.user@example.com", `kjhjk^^776767&&&$123456`), ErrEmailAddressNotFound), ShouldBeTrue)
 			})
 
 			Convey("Too weak", func() {
