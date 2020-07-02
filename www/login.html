@@ -41,12 +41,12 @@
                                     <div class="form-group">
                                     
                                         <label for="email" class="sr-only">E-mail:</label>
-                                        <input type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email" autoFocus />
+                                        <input id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email" autoFocus />
                                         
                                         <label for="password" class="sr-only">Password:</label>
-                                        <input type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password" />
+                                        <input id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password" />
                                         
-                                        <input type="button" class="btn-sm btn-primary w-100" onclick="submitLoginForm()" value="Login" id="submit"></input>
+                                        <input type="button" class="btn-sm btn-primary w-100" onclick="submitLoginForm()" value="Login" id="submit" />
                                     
                                     </div>
                                 </form>
@@ -67,8 +67,6 @@
                 by <a href="https://lightmeter.io" target="_blank" data-toggle="tooltip" data-placement="top" title="Lightmeter website">Open Source professionals</a>
             </div>
         </footer>
-        
-        </div>
         
         <!-- Boostrap dependencies -->
         <script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
