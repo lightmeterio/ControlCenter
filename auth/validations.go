@@ -3,8 +3,8 @@ package auth
 import (
 	"errors"
 	"github.com/trustelem/zxcvbn"
+	"gitlab.com/lightmeter/controlcenter/helpers"
 	"log"
-	"regexp"
 	"strings"
 )
 
@@ -15,12 +15,8 @@ var (
 	ErrInvalidName          = errors.New("Invalid Name")
 )
 
-var (
-	emailRegexp = regexp.MustCompile(`^[^@\s]+@[^@\s]+$`)
-)
-
 func validateEmail(email string) error {
-	if !emailRegexp.Match([]byte(email)) {
+	if !helpers.IsValidEmailAddress(email) {
 		return ErrInvalidEmail
 	}
 
