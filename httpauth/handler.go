@@ -51,6 +51,7 @@ func NewAuthenticator(h http.Handler, auth *auth.Auth, workspaceDirectory string
 			LoginFailure: func(w http.ResponseWriter, r *http.Request) {
 			},
 			SecretArea: func(session SessionData, w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "no-store")
 				h.ServeHTTP(w, r)
 			},
 			Logout: func(session SessionData, w http.ResponseWriter, r *http.Request) {
