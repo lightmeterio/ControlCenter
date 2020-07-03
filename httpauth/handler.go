@@ -31,6 +31,7 @@ func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	store := sessions.NewFilesystemStore(sessionsDir, r.Auth.SessionKeys()...)
 	store.Options.HttpOnly = true
 	store.Options.MaxAge = int(SessionDuration.Seconds())
+	store.Options.SameSite = http.SameSiteStrictMode
 	return store
 }
 
