@@ -53,6 +53,8 @@ func (s *HTTPSubscriber) Subscribe(email string) error {
 		return util.WrapError(err)
 	}
 
+	defer func() { util.MustSucceed(res.Body.Close(), "") }()
+
 	if res.StatusCode != http.StatusOK {
 		log.Println("Error subscribing email to newsletter!")
 		return util.WrapError(ErrSubscribingToNewsletter)
