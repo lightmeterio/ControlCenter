@@ -50,8 +50,13 @@
                                     <label for="email" class="sr-only">E-mail:</label>
                                     <input form="form" id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email" />
 
-                                    <label for="password" class="sr-only">Password:</label>
-                                    <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password" />
+                                    <div class="input-group" id="show_hide_password">
+                                        <label for="password" class="sr-only">Password:</label>
+                                        <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password">
+                                        <div class="input-group-addon">
+                                            <a href=""><i class="fa fa-eye-slash" aria-hidden="true"></i></a>
+                                        </div>
+                                    </div>
 
                                     <div class="form-check">
                                         <input form="settingsForm" type="checkbox" class="form-check-input" name="subscribe_newsletter"/>
