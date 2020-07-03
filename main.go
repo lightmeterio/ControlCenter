@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
+	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
@@ -216,6 +217,10 @@ func main() {
 		die(util.WrapError(err), "Error creating dashboard")
 	}
 
+	settings := ws.Settings()
+
+	initialSetupHandler := httpsettings.NewInitialSetupHandler(settings)
+
 	mux := http.NewServeMux()
 
 	exposeApiExplorer(mux)
@@ -226,6 +231,8 @@ func main() {
 
 	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
 
+	mux.Handle("/settings/initialSetup", initialSetupHandler)
+
 	// Some paths that don't require authentication
 	// That's what people nowadays call a "allow list".
 	publicPaths := []string{
@@ -235,9 +242,12 @@ func main() {
 		"/js",
 		"/3rd",
 		"/debug",
+		"/settings/initialSetup",
 	}
 
-	log.Fatal(http.ListenAndServe(address, httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)))
+	authWrapper := httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)
+
+	log.Fatal(http.ListenAndServe(address, authWrapper))
 }
 
 func parseLogsFromStdin(publisher data.Publisher) {
