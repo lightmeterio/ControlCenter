@@ -122,3 +122,8 @@ Swagger-based API documentation and experimentation pages are generated automati
 You can reset the user password using the command line:
 
 `./lightmeter -email_reset '<registration-email>' -password '<new-password>'`
+
+#### Delete users
+
+- Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf lightmeter_workspace/auth.db*`.
+- Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
