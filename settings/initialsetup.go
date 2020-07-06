@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"context"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
@@ -9,7 +10,7 @@ import (
 )
 
 type SystemSetup interface {
-	SetInitialOptions(InitialSetupOptions) error
+	SetInitialOptions(context.Context, InitialSetupOptions) error
 }
 
 type SetupMailKind string
@@ -46,13 +47,13 @@ func validMailKind(k SetupMailKind) bool {
 		k == MailKindTransactional
 }
 
-func (c *MasterConf) SetInitialOptions(o InitialSetupOptions) error {
+func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOptions) error {
 	if !validMailKind(o.MailKind) {
 		return ErrInvalidInintialSetupOption
 	}
 
 	if o.SubscribeToNewsletter {
-		if err := c.newsletterSubscriber.Subscribe(o.Email); err != nil {
+		if err := c.newsletterSubscriber.Subscribe(context, o.Email); err != nil {
 			log.Println("Failed to subscribe with error:", err)
 			return util.WrapError(ErrFailedToSubscribeToNewsletter)
 		}

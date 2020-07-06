@@ -89,7 +89,7 @@ func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	mailKind := r.Form.Get("email_kind")
 
-	if err := h.s.SetInitialOptions(settings.InitialSetupOptions{
+	if err := h.s.SetInitialOptions(r.Context(), settings.InitialSetupOptions{
 		SubscribeToNewsletter: subscribe,
 		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,

@@ -1,6 +1,7 @@
 package httpsettings
 
 import (
+	"context"
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/settings"
@@ -16,7 +17,7 @@ type fakeSystemSetup struct {
 	shouldFailToSetup bool
 }
 
-func (f *fakeSystemSetup) SetInitialOptions(o settings.InitialSetupOptions) error {
+func (f *fakeSystemSetup) SetInitialOptions(context.Context, settings.InitialSetupOptions) error {
 	if f.shouldFailToSetup {
 		return errors.New(`Some Unknwon Failure!`)
 	}

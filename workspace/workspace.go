@@ -54,7 +54,7 @@ func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, err
 		return Workspace{}, util.WrapError(err)
 	}
 
-	settings, err := settings.NewMasterConf(m, newsletter.NewSubscriber("https://phplist.lightmeter.io/lists/?p=asubscribe&id=2"))
+	settings, err := settings.NewMasterConf(m, newsletter.NewSubscriber("https://phplist.lightmeter.io/"))
 
 	if err != nil {
 		return Workspace{}, util.WrapError(err)
