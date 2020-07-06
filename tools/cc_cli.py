@@ -6,16 +6,20 @@ def parse_args():
     parser.add_argument("host", help="URL for Lightmeter ControlCenter")
     parser.add_argument("--date-from", help="Date interval begin (ex: 2019-12-23)")
     parser.add_argument("--date-to", help="Date interval End (ex: 2019-12-23)")
+    parser.add_argument("--user", help="Auth Username")
+    parser.add_argument("--password", help="Auth Password")
     return parser.parse_args()
 
 args = parse_args()
 
-lightmeter_api = f"{args.host}/api/"
+lightmeter_api = f"{args.host}/v0/api/"
 
 def req_json(method):
     import requests
 
-    r = requests.get(f"{lightmeter_api}/{method}?from={args.date_from}&to={args.date_to}")
+    url = f"{lightmeter_api}/{method}?from={args.date_from}&to={args.date_to}"
+
+    r = requests.get(url, auth=(args.user, args.password))
 
     if r.status_code != 200 or r.headers['Content-Type'] != "application/json":
         raise Exception("Error Querying Lightmeter")
