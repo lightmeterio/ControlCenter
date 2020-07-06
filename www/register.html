@@ -58,19 +58,25 @@
                                         </div>
                                     </div>
 
+                                    <div class="input-group">
+                                        <label for="email_kind" class="sr-only">Most of my mail is:</label>
+                                        <select form="settingsForm" class="form-control custom-select" name="email_kind" id="email_kind">
+                                            <option value="" selected disabled>Most of my mail is:</option>
+                                            <option value="direct">Direct (personal, office, one-to-one)</option>
+                                            <option value="transactional">Transactional (notifications, apps)</option>
+                                            <option value="marketing">Marketing (newsletters, adverts)</option>
+                                          </select>
+                                          <div class="input-group-append">
+                                              <button class="btn btn-outline-secondary" type="button">
+                                                  <i class="far fa-question-circle"></i>
+                                              </button>
+                                          </div>
+                                    </div>
+
                                     <div class="form-check">
                                         <input form="settingsForm" type="checkbox" class="form-check-input" name="subscribe_newsletter"/>
                                         <label class="form-check-label" for="subscribe_newsletter">Monthly newsletter</label>
                                     </div>
-
-                                <div class="form-group">
-                                    <label for="email_kind">Most of my mail is</label>
-                                    <select form="settingsForm" class="form-control" name="email_kind">
-                                      <option value="direct">Direct (personal, office, one-to-one)</option>
-                                      <option value="transactional">Transactional (notifications, apps)</option>
-                                      <option value="marketing">Marketing (newsletters, adverts)</option>
-                                    </select>
-                                </div>
 
                                 <input type="button" class="btn-sm btn-primary w-100" onclick="submitRegisterForm()" value="Register" id="submit" />
                             </div>
