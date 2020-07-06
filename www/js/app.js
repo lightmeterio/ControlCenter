@@ -69,7 +69,7 @@ var drawDashboard = function() {
     }
 
     var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
-        return apiCallGet("api/" + methodName + "?" + timeIntervalUrlParams())
+        return apiCallGet("api/v0/" + methodName + "?" + timeIntervalUrlParams())
     }
 
     var resizers = []
@@ -190,7 +190,7 @@ var drawDashboard = function() {
     }
 
     var setupApplicationInfo = function() {
-        apiCallGet("/api/appVersion").then(function(data) {
+        apiCallGet("api/v0/appVersion").then(function(data) {
             var e = document.getElementById("release-info")
             e.textContent = "Version: " + data.Version + ", commit: " + data.Commit
         })
