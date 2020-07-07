@@ -70,12 +70,14 @@ func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 		v, ok := r.Form["email"]
 
+		errFormValidationInvalidEmail := errors.New("Invalid Email")
+
 		if !ok {
-			return "", errors.New("Invalid Email")
+			return "", errFormValidationInvalidEmail
 		}
 
 		if len(v) != 1 {
-			return "", errors.New("Invalid Email")
+			return "", errFormValidationInvalidEmail
 		}
 
 		return v[0], nil
@@ -83,7 +85,7 @@ func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("Error getting email address", err)
+		log.Println("Error getting email address:", err)
 		return
 	}
 
