@@ -26,7 +26,8 @@ func serveJson(w http.ResponseWriter, r *http.Request, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	encoded, err := json.Marshal(v)
 	util.MustSucceed(err, "Encoding as JSON in the http API")
-	w.Write(encoded)
+	_, err = w.Write(encoded)
+	util.MustSucceed(err, "")
 }
 
 func requestWithInterval(timezone *time.Location,
