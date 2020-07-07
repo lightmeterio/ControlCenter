@@ -111,6 +111,14 @@
 }
 /* END Extrabold Italic */
 
+.align-right {
+    text-align: right;
+}
+
+.align-left {
+    text-align: left;
+}
+
 .vh-93 {
     min-height: 93vh;
 }
@@ -430,7 +438,6 @@ body.panel-page {
 
 .input-group-addon .fa {
     font-size: 1rem;
-    font-weight: 100;
     color: #838685;
 }
 
@@ -445,6 +452,7 @@ input-group-addon a {
 .input-group > .custom-select:not(:first-child), .input-group > .form-control:not(:first-child) {
     border-top-left-radius: 0.25rem;
     border-bottom-left-radius: 0.25rem;
+    border-right: 0;
 }
 
 .input-group-addon, .input-group-btn {
@@ -470,7 +478,7 @@ input-group-addon a {
 .form-check {
     display: flex;
     align-items: center;
-    margin: 1rem 0 1rem 0.1rem;
+    margin: 0.8rem 0 0.8rem 0.1rem;
 }
 .form-check-input {
     margin-top: 0px;
@@ -483,7 +491,7 @@ input-group-addon a {
 }
 
 .input-group-append .btn {
-    background-color: #F7F8F9;
+    background-color: #DBDBDB;
     border: 1px solid #EBEBEB;
     margin-left: -1px;
     padding: .1rem .6rem;
@@ -501,8 +509,18 @@ input-group-addon a {
 
 .form-control.custom-select {
     margin: 0;
+    background-color: #E6E7E7;
+    color: #202324;
 }
 
-.form-control.custom-select .btn {
+.input-group-append .btn {
+    line-height: 1.25;
+}
 
+.form-group #submit {
+    margin-top: 0.2rem;
+}
+
+.form-group small a {
+    color: inherit;
 }
