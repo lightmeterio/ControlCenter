@@ -35,7 +35,9 @@ func encodeBody(reader io.Reader) (string, error) {
 
 	encoder := base64.NewEncoder(base64.StdEncoding, &base64Writer)
 
-	encoder.Write(body)
+	if _, err := encoder.Write(body); err != nil {
+		return "", util.WrapError(err)
+	}
 
 	if err := encoder.Close(); err != nil {
 		return "", util.WrapError(err)
