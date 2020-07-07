@@ -43,9 +43,16 @@
                                         <label for="email" class="sr-only">E-mail:</label>
                                         <input id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="Email" name="email" autoFocus />
                                         
-                                        <label for="password" class="sr-only">Password:</label>
-                                        <input id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password" />
-                                        
+                                        <div class="input-group" id="show_hide_password">
+                                            <label for="password" class="sr-only">Password:</label>
+                                            <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="Password" name="password">
+                                            <div class="input-group-addon">
+                                                <a href=""><i class="fa fa-eye-slash" aria-hidden="true"></i></a>
+                                            </div>
+                                        </div>
+                                       
+                                        <p class="align-right"><small><a href="https://gitlab.com/lightmeter/controlcenter#password-reset">Forgot password?</a></small></p>
+ 
                                         <input type="button" class="btn-sm btn-primary w-100" onclick="submitLoginForm()" value="Login" id="submit" />
                                     
                                     </div>
@@ -93,6 +100,5 @@
         </script>
         
         <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
-
     </body>
 </html>

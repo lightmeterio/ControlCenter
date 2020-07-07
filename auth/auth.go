@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io"
 	"log"
@@ -30,6 +31,7 @@ type Options struct {
 type Auth struct {
 	options  Options
 	connPair dbconn.ConnPair
+	meta     *meta.MetadataHandler
 }
 
 var (
@@ -155,43 +157,7 @@ func (r *Auth) HasAnyUser() (bool, error) {
 	return count > 0, nil
 }
 
-// NOTE: For some reason, rowserrcheck is not able to see that q.Err() is being called,
-// so we disable the check here until the linter is fixed or someone finds the bug in this
-// code.
-//nolint:rowserrcheck
-func tryToObtainExistingKeys(tx *sql.Tx) ([][]byte, error) {
-	q, err := tx.Query(`select value from meta where key = ?`, "session_key")
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
-	defer func() {
-		util.MustSucceed(q.Close(), "")
-	}()
-
-	var sessionKeys [][]byte = nil
-
-	for q.Next() {
-		sessionKey := make([]byte, 32)
-
-		if err := q.Scan(&sessionKey); err != nil {
-			log.Println("Error reading session key from database:", err)
-			return nil, util.WrapError(err)
-		}
-
-		sessionKeys = append(sessionKeys, sessionKey)
-	}
-
-	if err := q.Err(); err != nil {
-		log.Println("Error on query for session key:", err)
-		return nil, util.WrapError(err)
-	}
-
-	return sessionKeys, nil
-}
-
-func generateKeys(tx *sql.Tx) ([][]byte, error) {
+func generateKeys() ([][]byte, error) {
 	sessionKey := make([]byte, 32)
 
 	n, err := io.ReadFull(rand.Reader, sessionKey)
@@ -202,45 +168,43 @@ func generateKeys(tx *sql.Tx) ([][]byte, error) {
 
 	log.Println("Generated Session key with ", n, "bytes")
 
-	_, err = tx.Exec(`insert into meta(key, value) values("session_key", ?)`, sessionKey)
-
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
 	return [][]byte{sessionKey}, nil
-
 }
 
 func (r *Auth) SessionKeys() [][]byte {
-	_, err := r.connPair.RwConn.Exec(`create table if not exists meta(
-		key string,
-		value blob
-	)`)
-
-	util.MustSucceed(err, "Ensuring auth meta table exists")
-
-	tx, err := r.connPair.RwConn.Begin()
-
-	util.MustSucceed(err, "Starting transaction on session key management")
-
-	defer func() {
-		if err == nil {
-			util.MustSucceed(tx.Commit(), "")
-		}
-	}()
-
-	existingKeys, err := tryToObtainExistingKeys(tx)
+	values, err := r.meta.Retrieve("session_key")
 
 	util.MustSucceed(err, "Obtaining session keys from database")
 
-	if existingKeys != nil {
-		return existingKeys
+	if len(values) > 0 {
+		keys := [][]byte{}
+
+		for _, v := range values {
+			k, ok := v.([]byte)
+
+			if !ok {
+				panic("Wrong value for session_key!")
+			}
+
+			keys = append(keys, k)
+		}
+
+		return keys
 	}
 
-	keys, err := generateKeys(tx)
+	keys, err := generateKeys()
 
 	util.MustSucceed(err, "Generating session keys")
+
+	items := []meta.Item{}
+
+	for _, k := range keys {
+		items = append(items, meta.Item{Key: "session_key", Value: k})
+	}
+
+	_, err = r.meta.Store(items)
+
+	util.MustSucceed(err, "Storing session keys")
 
 	return keys
 }
@@ -276,7 +240,13 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, util.WrapError(err)
 	}
 
-	return &Auth{options: options, connPair: connPair}, nil
+	m, err := meta.NewMetaDataHandler(connPair)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	return &Auth{options: options, connPair: connPair, meta: m}, nil
 }
 
 func (r *Auth) Close() error {

@@ -111,6 +111,14 @@
 }
 /* END Extrabold Italic */
 
+.align-right {
+    text-align: right;
+}
+
+.align-left {
+    text-align: left;
+}
+
 .vh-93 {
     min-height: 93vh;
 }
@@ -412,4 +420,107 @@ body.panel-page {
     background-size: cover;
     background-image: url('../img/login-gradient-bg.svg');
     background-color: #F7F8F9;
+}
+
+.input-group-addon {
+    padding: 0 .5rem;
+    margin-bottom: 0;
+    line-height: 1.25;
+    text-align: center;
+    background-color: #F7F8F9;
+    border: 1px solid #EBEBEB;
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-radius: .25rem;
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.input-group-addon .fa {
+    font-size: 1rem;
+    color: #838685;
+}
+
+input-group-addon a {
+}
+
+.input-group .form-control:not(:first-child), .input-group-addon:not(:first-child), .input-group-btn:not(:first-child) > .btn, .input-group-btn:not(:first-child) > .btn-group > .btn, .input-group-btn:not(:first-child) > .dropdown-toggle, .input-group-btn:not(:last-child) > .btn-group:not(:first-child) > .btn, .input-group-btn:not(:last-child) > .btn:not(:first-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group > .custom-select:not(:first-child), .input-group > .form-control:not(:first-child) {
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+    border-right: 0;
+}
+
+.input-group-addon, .input-group-btn {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.input-group .form-control, .input-group-addon, .input-group-btn {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: center;
+    align-items: center;
+}
+
+#show_hide_password {
+    margin: 0.4rem 0;
+}
+
+#show_hide_password input {
+    margin: 0;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    margin: 0.8rem 0 0.8rem 0.1rem;
+}
+.form-check-input {
+    margin-top: 0px;
+}
+
+.input-group-append, .input-group-prepend {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+}
+
+.input-group-append .btn {
+    background-color: #DBDBDB;
+    border: 1px solid #EBEBEB;
+    margin-left: -1px;
+    padding: .1rem .6rem;
+}
+
+.input-group > .input-group-append > .btn, .input-group > .input-group-append > .input-group-text, .input-group > .input-group-prepend:first-child > .btn:not(:first-child), .input-group > .input-group-prepend:first-child > .input-group-text:not(:first-child), .input-group > .input-group-prepend:not(:first-child) > .btn, .input-group > .input-group-prepend:not(:first-child) > .input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group-append .btn, .input-group-prepend .btn {
+    position: relative;
+    z-index: 2;
+}
+
+.form-control.custom-select {
+    margin: 0;
+    background-color: #E6E7E7;
+    color: #202324;
+}
+
+.input-group-append .btn {
+    line-height: 1.25;
+}
+
+.form-group #submit {
+    margin-top: 0.2rem;
+}
+
+.form-group small a {
+    color: inherit;
 }

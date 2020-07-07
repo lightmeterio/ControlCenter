@@ -238,32 +238,41 @@ $(function(){
 // for registration page
 function submitRegisterForm() {
     var form = document.getElementById("form")
-    const data = new URLSearchParams(new FormData(form))
+    var registrationFormData = new FormData(form)
 
-    fetch(window.location.href, {method: 'post', body: data})
+    fetch(window.location.href, {method: 'post', body: new URLSearchParams(registrationFormData)})
     .then(res => res.json())
     .then(function(data) {
-    if (data == null) {
-        alert('Server Error!')
-        return
-    }
-
-    if (data.Error.length > 0) {
-        
-        var message = ('Error: ' + data.Error)
-
-        // add hints of pwd weakness
-        if (data.Detailed && data.Detailed.Sequence && data.Detailed.Sequence[0].pattern) {
-            message += '. Vulnerable to: ' + data.Detailed.Sequence[0].pattern + '.'
+        if (data == null) {
+            alert('Server Error!')
+            return
         }
-        alert(message)
-        return
-    }
 
-    window.location.href = "/"
+        if (data.Error.length > 0) {
+            var message = ('Error: ' + data.Error)
+
+            // add hints of pwd weakness
+            if (data.Detailed && data.Detailed.Sequence && data.Detailed.Sequence[0].pattern) {
+                message += '. Vulnerable to: ' + data.Detailed.Sequence[0].pattern + '.'
+            }
+            alert(message)
+            return
+        }
+
+        var form = document.getElementById("settingsForm")
+        var settingsFormData = new FormData(form)
+        settingsFormData.append("email", registrationFormData.get("email"))
+
+        fetch("/settings/initialSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
+            console.log("Ales Gute!")
+            window.location.href = "/"
+        }).catch(function(err) {
+            alert('Settings Error on initial setup!')
+            console.log(err)
+        })
     }).catch(function(err) {
-    alert('Server Error')
-    console.log(err)
+        alert('Server Error')
+        console.log(err)
     })
 }
 
@@ -291,3 +300,19 @@ function submitLoginForm() {
     console.log(err)
     })
 }
+
+// password field show / hide
+$(document).ready(function() {
+    $("#show_hide_password a").on('click', function(event) {
+        event.preventDefault();
+        if($('#show_hide_password input').attr("type") == "text"){
+            $('#show_hide_password input').attr('type', 'password');
+            $('#show_hide_password i').addClass( "fa-eye-slash" );
+            $('#show_hide_password i').removeClass( "fa-eye" );
+        }else if($('#show_hide_password input').attr("type") == "password"){
+            $('#show_hide_password input').attr('type', 'text');
+            $('#show_hide_password i').removeClass( "fa-eye-slash" );
+            $('#show_hide_password i').addClass( "fa-eye" );
+        }
+    });
+});

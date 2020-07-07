@@ -34,11 +34,13 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
 
 This is a next generation rewrite of the previous [prototype](https://gitlab.com/lightmeter/prototype), and is currently work in progress.
 
-## Install using Docker
+## Install
+
+### Install using Docker
 
 Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You need to specify which version to pull, as the `latest` tag is not yet used.
 
-## Build from source code
+### Build from source code
 
 You'll need the Go compiler installed. Check http://golang.org for more information. The Go version we are currently using is 1.14.1.
 
@@ -72,7 +74,16 @@ make windows_release
 
 Which will create a file called `lightmeter.exe`.
 
-It's good to remember that we probably won't ever support Windows, but that does not mean you cannot use it there ;-)
+It's good to remember that we probably won't ever support Windows, but that does not mean you cannot use it there :)
+
+## Upgrade
+
+Automatic data migration during upgrade is not yet supported. Depending on how you upgrade, your data may be lost.
+
+- Keep your account data (e.g. administrator accounts and preferences): do not delete `<workspace name>/auth.db*`
+- Keep your mail performance data: do not delete `<workspace name>/logs.db*`
+
+Achieving this is easy using manual upgrade based on replacing binary files. For Docker-based installations you should configure a workspace directory outside of the Lightmeter Docker container. See 'Usage' on how to specify which workspace directory Lightmeter should use.
 
 ## Usage
 
@@ -122,3 +133,8 @@ Swagger-based API documentation and experimentation pages are generated automati
 You can reset the user password using the command line:
 
 `./lightmeter -email_reset '<registration-email>' -password '<new-password>'`
+
+#### Delete users
+
+- Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf lightmeter_workspace/auth.db*`.
+- Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
