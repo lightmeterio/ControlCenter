@@ -208,7 +208,7 @@ func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeI
 
 	util.MustSucceed(err, "CountByStatus")
 
-	defer query.Close()
+	defer func() { util.MustSucceed(query.Close(), "") }()
 
 	var countValue int
 
@@ -228,7 +228,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 
 	util.MustSucceed(err, "ListDomainAndCount")
 
-	defer query.Close()
+	defer func() { util.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
 		var domain string
@@ -256,7 +256,7 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 
 	util.MustSucceed(err, "DeliveryStatus")
 
-	defer query.Close()
+	defer func() { util.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
 		var status parser.SmtpStatus
