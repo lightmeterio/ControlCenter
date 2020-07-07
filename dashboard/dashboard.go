@@ -204,23 +204,14 @@ func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
 }
 
 func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) int {
-	query, err := stmt.Query(status, interval.From.Unix(), interval.To.Unix())
-
-	util.MustSucceed(err, "CountByStatus")
-
-	defer func() { util.MustSucceed(query.Close(), "") }()
-
-	var countValue int
-
-	query.Next()
-
-	util.MustSucceed(query.Scan(&countValue), "scan")
-
-	util.MustSucceed(query.Err(), "Error on rows")
-
+	countValue := 0
+	util.MustSucceed(stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue), "")
 	return countValue
 }
 
+// rowserrcheck is buggy and unable to see that the query errors are being checked
+// when query.Close() is inside a closure
+//nolint:rowserrcheck
 func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 	r := Pairs{}
 
@@ -249,6 +240,9 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 	return r
 }
 
+// rowserrcheck is buggy and unable to see that the query errors are being checked
+// when query.Close() is inside a closure
+//nolint:rowserrcheck
 func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 	r := Pairs{}
 
