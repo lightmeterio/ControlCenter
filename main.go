@@ -234,6 +234,7 @@ func main() {
 		"/fonts",
 		"/js",
 		"/3rd",
+		"/debug",
 	}
 
 	log.Fatal(http.ListenAndServe(address, httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)))

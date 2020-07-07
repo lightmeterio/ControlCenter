@@ -64,7 +64,7 @@ type countByStatusResult map[string]int
 // @Produce json
 // @Success 200 {object} countByStatusResult "desc"
 // @Failure 422 {string} string "desc"
-// @Router /api/countByStatus [get]
+// @Router /api/v0/countByStatus [get]
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, countByStatusResult{
@@ -83,7 +83,7 @@ type topBusiestDomainsHandler handler
 // @Produce json
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
-// @Router /api/topBusiestDomains [get]
+// @Router /api/v0/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
@@ -98,7 +98,7 @@ type topBouncedDomainsHandler handler
 // @Produce json
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
-// @Router /api/topBouncedDomains [get]
+// @Router /api/v0/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
@@ -113,7 +113,7 @@ type topDeferredDomainsHandler handler
 // @Produce json
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
-// @Router /api/topDeferredDomains [get]
+// @Router /api/v0/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
@@ -128,7 +128,7 @@ type deliveryStatusHandler handler
 // @Produce json
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
-// @Router /api/deliveryStatus [get]
+// @Router /api/v0/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		serveJson(w, r, h.dashboard.DeliveryStatus(interval))
@@ -146,16 +146,16 @@ type appVersion struct {
 // @Summary Control Center Version
 // @Produce json
 // @Success 200 {object} appVersion
-// @Router /api/appVersion [get]
+// @Router /api/v0/appVersion [get]
 func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveJson(w, r, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch})
 }
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	mux.Handle("/api/countByStatus", countByStatusHandler{dashboard, timezone})
-	mux.Handle("/api/topBusiestDomains", topBusiestDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/topBouncedDomains", topBouncedDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/topDeferredDomains", topDeferredDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/deliveryStatus", deliveryStatusHandler{dashboard, timezone})
-	mux.Handle("/api/appVersion", appVersionHandler{})
+	mux.Handle("/api/v0/countByStatus", countByStatusHandler{dashboard, timezone})
+	mux.Handle("/api/v0/topBusiestDomains", topBusiestDomainsHandler{dashboard, timezone})
+	mux.Handle("/api/v0/topBouncedDomains", topBouncedDomainsHandler{dashboard, timezone})
+	mux.Handle("/api/v0/topDeferredDomains", topDeferredDomainsHandler{dashboard, timezone})
+	mux.Handle("/api/v0/deliveryStatus", deliveryStatusHandler{dashboard, timezone})
+	mux.Handle("/api/v0/appVersion", appVersionHandler{})
 }
