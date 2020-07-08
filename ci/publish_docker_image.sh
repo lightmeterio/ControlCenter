@@ -33,4 +33,7 @@ mkdir -p .docker-cache
   --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
   --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG \
   --destination $CI_REGISTRY_IMAGE:latest \
+  --build-arg "LIGHTMETER_VERSION=$(cat VERSION.txt)" \
+  --build-arg "LIGHTMETER_COMMIT=$CI_COMMIT_SHA" \
+  --build-arg "IMAGE_TAG=$IMAGE_TAG" \
   --cache-dir .docker-cache
