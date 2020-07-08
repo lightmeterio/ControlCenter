@@ -32,4 +32,5 @@ mkdir -p .docker-cache
   --context $CI_PROJECT_DIR \
   --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
   --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG \
+  --destination $CI_REGISTRY_IMAGE:latest \
   --cache-dir .docker-cache
