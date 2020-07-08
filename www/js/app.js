@@ -264,7 +264,6 @@ function submitRegisterForm() {
         settingsFormData.append("email", registrationFormData.get("email"))
 
         fetch("/settings/initialSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
-            console.log("Ales Gute!")
             window.location.href = "/"
         }).catch(function(err) {
             alert('Settings Error on initial setup!')
