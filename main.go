@@ -242,7 +242,6 @@ func main() {
 		"/js",
 		"/3rd",
 		"/debug",
-		"/settings/initialSetup",
 	}
 
 	authWrapper := httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)
