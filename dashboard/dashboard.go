@@ -3,6 +3,7 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
@@ -232,7 +233,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 			domain = "<none>"
 		}
 
-		r = append(r, Pair{domain, countValue})
+		r = append(r, Pair{strings.ToLower(domain), countValue})
 	}
 
 	util.MustSucceed(query.Err(), "Error on rows")
