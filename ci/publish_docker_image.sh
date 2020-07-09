@@ -21,6 +21,11 @@ cat > /kaniko/.docker/config.json << EOF
     "$CI_REGISTRY":{
       "username":"$CI_REGISTRY_USER",
       "password":"$CI_REGISTRY_PASSWORD"
+    },
+
+    "https://index.docker.io/v1/":{
+      "username":"$DOCKER_IO_REGISTRY_USER",
+      "password":"$DOCKER_IO_REGISTRY_PASSWORD"
     }
   }
 }"
@@ -28,9 +33,16 @@ EOF
 
 mkdir -p .docker-cache
 
+docker login
+
 /kaniko/executor \
   --context $CI_PROJECT_DIR \
   --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
   --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG \
   --destination $CI_REGISTRY_IMAGE:latest \
+  --destination index.docker.io/lightmeter/controlcenter:$IMAGE_TAG \
+  --destination index.docker.io/lightmeter/controlcenter:latest \
+  --build-arg "LIGHTMETER_VERSION=$(cat VERSION.txt)" \
+  --build-arg "LIGHTMETER_COMMIT=$CI_COMMIT_SHA" \
+  --build-arg "IMAGE_TAG=$IMAGE_TAG" \
   --cache-dir .docker-cache
