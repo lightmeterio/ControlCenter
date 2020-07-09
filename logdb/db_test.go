@@ -231,14 +231,14 @@ func TestLogsInsertion(t *testing.T) {
 					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.December, 1, 13, 0, 0), "recip", "domain"))
 
 					// Inside the interval
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.December, 2, 14, 1, 2), "r1", "alalala.com"))
+					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.December, 2, 14, 1, 2), "r1", "ALALALA.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 2, 14, 1, 4), "r3", "alalala.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 3, 14, 1, 4), "r3", "email2.com"))
+					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 5, 15, 1, 0), "r2", "email3.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 6, 16, 1, 4), "r3", "alalala.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 4, 15, 1, 0), "r2", "email1.com"))
+					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 4, 16, 1, 0), "r2", "example1.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 4, 16, 2, 1), "r2", "example1.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.March, 11, 16, 2, 1), "r100", "email2.com"))
