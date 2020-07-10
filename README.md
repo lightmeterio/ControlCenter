@@ -87,6 +87,8 @@ Achieving this is easy using manual upgrade based on replacing binary files. For
 
 ## Usage
 
+### Self built binary
+
 - Run `lightmeter -help` to show a list of all available commands
 - Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
     - Logfiles provided using the `-watch` argument will be monitored for changes and the Web UI automatically updated. An SQLite database is used in the backend for storing processed log data. Note that `-watch` only looks for new changes from the last recorded time of the previous import; therefore it does not scan the entire contents of the specified logfile if it has previously been imported or watched.
@@ -117,6 +119,22 @@ In case you are having an error like this:
 ```
 
 This means you should have a file mail.log, which means you should check your Postfix installation and ensure it's emitting logs properly.
+
+### Docker image
+
+The simplest way to use the latest version with docker is with the command:
+
+```
+$ docker run -p 8080:8080 -v "<path_to_workspace>:/workspace:rw" -v "/var/log/:/logs:ro" \
+  registry.gitlab.com/lightmeter/controlcenter -workspace /workspace -watch_dir /logs
+
+```
+
+Where `<path_to_workspace>` is a directory where Control Center will keep data that has to be persisted accross restarts. 
+
+Then open your browser on http://localhost:8080 to access the web based user interface.
+
+You can find all released images in the [registry page](https://gitlab.com/lightmeter/controlcenter/container_registry).
 
 ### API
 
