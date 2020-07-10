@@ -38,7 +38,7 @@ This is a next generation rewrite of the previous [prototype](https://gitlab.com
 
 ### Install using Docker
 
-Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You need to specify which version to pull, as the `latest` tag is not yet used.
+Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You can use the `latest` tag if desired. For usage see [Docker image](#docker-image).
 
 ### Build from source code
 
