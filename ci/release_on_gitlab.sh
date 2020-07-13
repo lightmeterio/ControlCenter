@@ -17,4 +17,6 @@ release-cli create \
   --name "ControlCenter $VERSION" \
   --description "$(cat $RELEASE_NOTES)" \
   --tag-name "release/$VERSION" \
-  --ref $CI_COMMIT_SHA
+  --ref $CI_COMMIT_SHA \
+  --assets-links-name "Binary for linux amd64" \
+  --assets-links-url "https://bintray.com/lightmeter/controlcenter/download_file?file_path=lightmeter-linux_amd64-$VERSION"
