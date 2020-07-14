@@ -1,5 +1,6 @@
 # Lightmeter ControlCenter (work in progress)
 
+[![Download](https://api.bintray.com/packages/lightmeter/controlcenter/controlcenter/images/download.svg)](https://bintray.com/lightmeter/controlcenter/controlcenter/_latestVersion)
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![coverage report](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![report_card](https://goreportcard.com/badge/gitlab.com/lightmeter/controlcenter)](https://goreportcard.com/report/gitlab.com/lightmeter/controlcenter)
