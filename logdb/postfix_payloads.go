@@ -13,7 +13,7 @@ import (
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
-func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.TimedRecord) error {
+func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) error {
 	// NOTE: I wish go had a way to use type information as a map key
 	// so this switch could be simplified to registering handlers for payloads at runtime
 	// instead of this ugly switch case!

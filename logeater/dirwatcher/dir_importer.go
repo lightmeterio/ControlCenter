@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/data/postfix"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -399,7 +398,7 @@ func init() {
 	}
 }
 
-type timeConverterChan chan *postfix.TimeConverter
+type timeConverterChan chan *parser.TimeConverter
 
 type queueProcessor struct {
 	readers       []fileReader
@@ -407,7 +406,7 @@ type queueProcessor struct {
 	entries       fileEntryList
 	record        timedRecord
 	currentIndex  int
-	converter     *postfix.TimeConverter
+	converter     *parser.TimeConverter
 	converterChan timeConverterChan
 	pattern       string
 }
@@ -546,7 +545,7 @@ func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[
 	return p, nil
 }
 
-func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header) (*postfix.TimeConverter, error) {
+func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header) (*parser.TimeConverter, error) {
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
@@ -573,7 +572,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 	// NOTE: I really miss explicit ownership checked at compile time :-(
 	pattern := p.pattern
 
-	converter := postfix.NewTimeConverter(
+	converter := parser.NewTimeConverter(
 		header.Time,
 		initialTime.Year(),
 		initialTime.Location(),
@@ -1033,7 +1032,7 @@ func timeConverterChansFromQueues(queues fileQueues) map[string]timeConverterCha
 	chans := map[string]timeConverterChan{}
 
 	for k := range queues {
-		chans[k] = make(chan *postfix.TimeConverter, 1)
+		chans[k] = make(chan *parser.TimeConverter, 1)
 	}
 
 	return chans
@@ -1098,9 +1097,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	// Start really publishing the buffered records here, indefinitely
 	for r := range newLogsPublisher.records {
-		// TODO: we are losing the converted time here, that can be useful for the publisher
-		// Maybe we should include it as well, to avoid it to be recalculated further in the data flow
-		importer.pub.Publish(data.Record{Header: r.header, Payload: r.payload})
+		importer.pub.Publish(data.Record{Time: r.time, Header: r.header, Payload: r.payload})
 	}
 
 	// It should never get here in production, only used by the tests

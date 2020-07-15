@@ -21,30 +21,18 @@ var ErrCouldNotObtainTimeFromDatabase = errors.New("Could not obtain time from d
 
 func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 	// FIXME: this query is way too complicated for something so simple
-	q, err := db.Query(`
+
+	var v int64
+
+	err := db.QueryRow(`
 	select
 		read_ts_sec
 	from
 		postfix_smtp_message_status
 	where
-		rowid = (select max(rowid) from postfix_smtp_message_status)`)
+		rowid = (select max(rowid) from postfix_smtp_message_status)`).Scan(&v)
 
 	if err != nil {
-		return 0, util.WrapError(err)
-	}
-
-	defer q.Close()
-
-	if !q.Next() {
-		return 0, util.WrapError(ErrCouldNotObtainTimeFromDatabase)
-	}
-
-	var v int64
-	if err := q.Scan(&v); err != nil {
-		return 0, util.WrapError(err)
-	}
-
-	if err := q.Err(); err != nil {
 		return 0, util.WrapError(err)
 	}
 
@@ -52,44 +40,28 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 }
 
 func countLogsForSmtpSentStatus(db *sql.DB) int {
-	q, err := db.Query(`select count(*) from postfix_smtp_message_status`)
-
-	util.MustSucceed(err, "countLogsForSmtpSentStatus")
-
-	defer q.Close()
-
-	if !q.Next() {
-		return 0
-	}
-
-	var value int
-
-	if q.Scan(&value) != nil {
-		return 0
-	}
-
-	util.MustSucceed(q.Err(), "Error on rows")
-
+	value := 0
+	util.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
 	return value
 }
 
 func tableCreationForSmtpSentStatus(db *sql.DB) error {
 	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
-  read_ts_sec           integer,
-  process_ip            blob,
-  queue                 string,
-  recipient_local_part  text collate nocase,
-  recipient_domain_part text collate nocase,
-  relay_name            text collate nocase,
-  relay_ip              blob,
-  relay_port            uint16,
-  delay                 double,
-  delay_smtpd   				double,
-  delay_cleanup 				double,
-  delay_qmgr    				double,
-  delay_smtp    				double,
-  dsn                   text,
-  status                integer
+	read_ts_sec           integer,
+	process_ip            blob,
+	queue                 string,
+	recipient_local_part  text collate nocase,
+	recipient_domain_part text collate nocase,
+	relay_name            text collate nocase,
+	relay_ip              blob,
+	relay_port            uint16,
+	delay                 double,
+	delay_smtpd           double,
+	delay_cleanup         double,
+	delay_qmgr            double,
+	delay_smtp            double,
+	dsn                   text,
+	status                integer
 		)`); err != nil {
 		return util.WrapError(err)
 	}
@@ -102,8 +74,8 @@ func tableCreationForSmtpSentStatus(db *sql.DB) error {
 	return nil
 }
 
-func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
-	status, _ := r.Record.Payload.(parser.SmtpSentStatus)
+func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
+	status, _ := r.Payload.(parser.SmtpSentStatus)
 
 	stmt, err := tx.Prepare(`
 		insert into postfix_smtp_message_status(
@@ -132,7 +104,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.TimedRecord) error {
 
 	_, err = stmt.Exec(
 		r.Time.Unix(),
-		r.Record.Header.ProcessIP,
+		r.Header.ProcessIP,
 		status.Queue,
 		status.RecipientLocalPart,
 		status.RecipientDomainPart,

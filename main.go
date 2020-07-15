@@ -148,8 +148,7 @@ func main() {
 	}
 
 	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
-		Location:    timezone,
-		DefaultYear: logYear,
+		Location: timezone,
 	})
 
 	if err != nil {
