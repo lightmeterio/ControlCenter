@@ -5,10 +5,9 @@ import (
 )
 
 type TimeConverter struct {
-	timezone       *time.Location
-	lastTime       Time
-	year           int
-	firstExecution bool
+	timezone *time.Location
+	lastTime Time
+	year     int
 
 	// every time a year change is detected, notifies it
 	newYearNotifier func(newYear int, old Time, new Time)
@@ -20,7 +19,6 @@ func NewTimeConverter(initialTime Time,
 	newYearNotifier func(int, Time, Time),
 ) TimeConverter {
 	return TimeConverter{
-		firstExecution:  true,
 		timezone:        timezone,
 		year:            year,
 		lastTime:        initialTime,
@@ -41,7 +39,6 @@ func (this *TimeConverter) Convert(t Time) time.Time {
 		this.newYearNotifier(this.year, this.lastTime, t)
 	}
 
-	this.firstExecution = false
 	this.lastTime = t
 	return t.Time(this.year, this.timezone)
 }
