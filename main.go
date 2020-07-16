@@ -34,16 +34,16 @@ func (this *watchableFilenames) Set(value string) error {
 }
 
 var (
-	filesToWatch       watchableFilenames
-	watchFromStdin     bool
-	workspaceDirectory string
-	importOnly         bool
-	showVersion        bool
-	dirToWatch         string
-	address            string
-	verbose            bool
-	emailToPasswdReset string
-	passwordToReset    string
+	filesToWatch         watchableFilenames
+	shouldWatchFromStdin bool
+	workspaceDirectory   string
+	importOnly           bool
+	showVersion          bool
+	dirToWatch           string
+	address              string
+	verbose              bool
+	emailToPasswdReset   string
+	passwordToReset      string
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -54,8 +54,8 @@ func printVersion() {
 }
 
 func init() {
-	flag.Var(&filesToWatch, "watch", "File to watch (can be used multiple times)")
-	flag.BoolVar(&watchFromStdin, "stdin", false, "Read log lines from stdin")
+	flag.Var(&filesToWatch, "watch_file", "File to watch (can be used multiple times)")
+	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	flag.StringVar(&workspaceDirectory, "workspace", "lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin")
@@ -109,68 +109,36 @@ func performPasswordReset() {
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
 }
 
-func main() {
-	flag.Parse()
-
-	if showVersion {
-		printVersion()
-		return
-	}
-
-	if len(emailToPasswdReset) > 0 {
-		performPasswordReset()
-		return
-	}
-
-	postfixLogsDirContent := func() dirwatcher.DirectoryContent {
-		if len(dirToWatch) != 0 {
-			dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
-
-			if err != nil {
-				die(util.WrapError(err), "Error opening directory:", dirToWatch)
-			}
-
-			return dir
-		}
-
-		return nil
-	}()
-
-	if postfixLogsDirContent != nil {
-		initialLogTimeFromDirectory, err := dirwatcher.FindInitialLogTime(postfixLogsDirContent)
-
-		if err != nil {
-			die(util.WrapError(err), "Could not obtain initial log time from directory:", dirToWatch)
-		}
-
-		log.Println("Using initial time from postfix log directory:", initialLogTimeFromDirectory)
-		logYear = initialLogTimeFromDirectory.Year()
-	}
-
-	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
-		Location: timezone,
-	})
+func runWatchingDirectory(ws *workspace.Workspace) {
+	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
 	if err != nil {
-		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory)
+		die(util.WrapError(err), "Error opening directory:", dirToWatch)
 	}
 
-	doneWithDatabase := ws.Run()
+	initialTime := func() time.Time {
+		t := ws.MostRecentLogTime()
 
-	pub := ws.NewPublisher()
+		if t.IsZero() {
+			return time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
+		}
 
-	if importOnly {
-		parseLogsFromStdin(pub)
-		<-doneWithDatabase
-		log.Println("Importing has finished. Bye!")
-		return
-	}
+		return t
+	}()
 
-	if watchFromStdin {
-		go parseLogsFromStdin(pub)
-	}
+	log.Println("Start importing Postfix logs directory from time", initialTime)
 
-	logFilesWatchLocation := logeater.FindWatchingLocationForWorkspace(&ws)
+	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
+
+	go func() {
+		if err := watcher.Run(); err != nil {
+			die(util.WrapError(err), "Error watching directory:", dirToWatch)
+		}
+	}()
+}
+
+func runWatchingFiles(ws *workspace.Workspace) {
+	logFilesWatchLocation := logeater.FindWatchingLocationForWorkspace(ws)
 
 	for _, filename := range filesToWatch {
 		log.Println("Now watching file", filename, "for changes from the", func() string {
@@ -182,40 +150,28 @@ func main() {
 		}())
 
 		go func(filename string) {
-			if err := logeater.WatchFile(filename, logFilesWatchLocation, pub); err != nil {
+			if err := logeater.WatchFile(filename, logFilesWatchLocation, ws.NewPublisher(), buildInitialLogsTime(ws)); err != nil {
 				die(util.WrapError(err), "Error watching file:", filename)
 			}
 		}(filename)
 	}
+}
 
-	if postfixLogsDirContent != nil {
-		initialTime := func() time.Time {
-			t := ws.MostRecentLogTime()
+func watchFromStdin(ws *workspace.Workspace) {
+	go parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(ws))
+}
 
-			if t.IsZero() {
-				return time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
-			}
+func buildInitialLogsTime(ws *workspace.Workspace) time.Time {
+	ts := ws.MostRecentLogTime()
 
-			return t
-		}()
-
-		log.Println("Start importing Postfix logs directory from time", initialTime)
-
-		watcher := dirwatcher.NewDirectoryImporter(postfixLogsDirContent, pub, initialTime)
-
-		go func() {
-			if err := watcher.Run(); err != nil {
-				die(util.WrapError(err), "Error watching directory:", dirToWatch)
-			}
-		}()
+	if !ts.IsZero() {
+		return ts
 	}
 
-	dashboard, err := ws.Dashboard()
+	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, timezone)
+}
 
-	if err != nil {
-		die(util.WrapError(err), "Error creating dashboard")
-	}
-
+func startHTTPServer(ws *workspace.Workspace) {
 	settings := ws.Settings()
 
 	initialSetupHandler := httpsettings.NewInitialSetupHandler(settings)
@@ -225,6 +181,12 @@ func main() {
 	exposeApiExplorer(mux)
 
 	exposeProfiler(mux)
+
+	dashboard, err := ws.Dashboard()
+
+	if err != nil {
+		die(util.WrapError(err), "Error creating dashboard")
+	}
 
 	api.HttpDashboard(mux, timezone, dashboard)
 
@@ -248,8 +210,60 @@ func main() {
 	log.Fatal(http.ListenAndServe(address, authWrapper))
 }
 
-func parseLogsFromStdin(publisher data.Publisher) {
-	logeater.ReadFromReader(os.Stdin, publisher)
+func main() {
+	flag.Parse()
+
+	if showVersion {
+		printVersion()
+		return
+	}
+
+	if len(emailToPasswdReset) > 0 {
+		performPasswordReset()
+		return
+	}
+
+	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
+		Location: timezone,
+	})
+
+	if err != nil {
+		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory)
+	}
+
+	doneWithDatabase := ws.Run()
+
+	if importOnly {
+		parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(&ws))
+		<-doneWithDatabase
+		log.Println("Importing has finished. Bye!")
+		return
+	}
+
+	func() {
+		if len(dirToWatch) > 0 {
+			runWatchingDirectory(&ws)
+			return
+		}
+
+		if shouldWatchFromStdin {
+			watchFromStdin(&ws)
+			return
+		}
+
+		if len(filesToWatch) > 0 {
+			runWatchingFiles(&ws)
+			return
+		}
+
+		die(nil, "No logs sources specified! Use -help to more info.")
+	}()
+
+	startHTTPServer(&ws)
+}
+
+func parseLogsFromStdin(publisher data.Publisher, ts time.Time) {
+	logeater.ReadFromReader(os.Stdin, publisher, ts)
 	publisher.Close()
 	log.Println("STDIN has just closed!")
 }
