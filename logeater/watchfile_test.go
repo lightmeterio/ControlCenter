@@ -34,24 +34,25 @@ func appendToFile(filename string, lines []string) {
 }
 
 func TestWatchingFiles(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
-
 	Convey("Watch Files", t, func() {
+		firstSecondInJanuary := parseTime(`2000-01-01 00:00:00 +0000`)
+		dir := tempDir()
+		defer os.RemoveAll(dir)
+
 		startOfFileLocation := tail.SeekInfo{Offset: 0, Whence: io.SeekStart}
 		endOfFileLocation := tail.SeekInfo{Offset: 0, Whence: io.SeekEnd}
 
 		pub := FakePublisher{}
 
 		Convey("Fails if file does not exist", func() {
-			err, _, _ := WatchFileCancelable(dir+"/non_existent_file.log", startOfFileLocation, &pub)
+			err, _, _ := WatchFileCancelable(dir+"/non_existent_file.log", startOfFileLocation, &pub, firstSecondInJanuary)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Given an empty file, detect a line added to it", func() {
 			filename := dir + "/empty_mail.log"
 			appendToFile(filename, []string{""})
-			err, cancel, done := WatchFileCancelable(filename, startOfFileLocation, &pub)
+			err, cancel, done := WatchFileCancelable(filename, startOfFileLocation, &pub, firstSecondInJanuary)
 			So(err, ShouldBeNil)
 			content := "Mar  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated"
 			time.Sleep(500 * time.Millisecond)
@@ -71,7 +72,7 @@ func TestWatchingFiles(t *testing.T) {
 				appendToFile(filename, content)
 			}
 
-			err, cancel, done := WatchFileCancelable(filename, endOfFileLocation, &pub)
+			err, cancel, done := WatchFileCancelable(filename, endOfFileLocation, &pub, firstSecondInJanuary)
 			So(err, ShouldBeNil)
 
 			{

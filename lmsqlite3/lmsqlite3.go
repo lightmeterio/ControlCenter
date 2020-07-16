@@ -42,18 +42,9 @@ func compareBcryptValue(hash, v []byte) bool {
 func init() {
 	sql.Register("lm_sqlite3", &sqlite.SQLiteDriver{
 		ConnectHook: func(conn *sqlite.SQLiteConn) error {
-			if err := conn.RegisterFunc("lm_ip_to_string", ipToString, true); err != nil {
-				return err
-			}
-
-			if err := conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true); err != nil {
-				return err
-			}
-
-			if err := conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true); err != nil {
-				return err
-			}
-
+			util.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true), "")
+			util.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true), "")
+			util.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true), "")
 			return nil
 		},
 	})

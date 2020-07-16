@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/data/postfix"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 var (
@@ -19,7 +17,7 @@ var (
 
 const (
 	filename         = "logs.db"
-	recordsQueueSize = 100
+	recordsQueueSize = 4096
 )
 
 type ChannelBasedPublisher struct {
@@ -27,7 +25,9 @@ type ChannelBasedPublisher struct {
 }
 
 func (pub *ChannelBasedPublisher) Publish(status data.Record) {
-	pub.Channel <- status
+	if status.Payload != nil {
+		pub.Channel <- status
+	}
 }
 
 func (pub *ChannelBasedPublisher) Close() {
@@ -37,13 +37,7 @@ func (pub *ChannelBasedPublisher) Close() {
 type DB struct {
 	config   data.Config
 	connPair dbconn.ConnPair
-
-	writerConnection *sql.DB
-
-	// connection that is unable to do any changes to the database (like inserts, updates, etc.)
-	readerConnection *sql.DB
-
-	records chan data.Record
+	records  chan data.Record
 }
 
 func setupWriterConn(conn *sql.DB) error {
@@ -104,61 +98,13 @@ func (db *DB) NewPublisher() data.Publisher {
 // Obtain the most recent time inserted in the database,
 // or a zero'd time in case case no value has been found
 func (db *DB) MostRecentLogTime() time.Time {
-	return buildInitialTime(db.connPair.RoConn, db.config.DefaultYear, db.config.Location)
+	return buildInitialTime(db.connPair.RoConn, db.config.Location)
 }
 
 func (db *DB) Run() <-chan interface{} {
-	doneTimestamping := make(chan interface{})
 	doneInsertingOnDatabase := make(chan interface{})
-
-	newYearNotifier := func(year int, old parser.Time, new parser.Time) {
-		log.Println("Bumping year", year, ", old:", old, ", new:", new)
-	}
-
-	time, year := func(ts time.Time) (parser.Time, int) {
-		if ts.IsZero() {
-			return parser.Time{}, db.config.DefaultYear
-		}
-
-		log.Println("Using initial time from database as:", ts)
-
-		return parser.Time{
-			Month:  ts.Month(),
-			Day:    uint8(ts.Day()),
-			Hour:   uint8(ts.Hour()),
-			Minute: uint8(ts.Minute()),
-			Second: uint8(ts.Second()),
-		}, ts.Year()
-	}(db.MostRecentLogTime())
-
-	converter := postfix.NewTimeConverter(time, year, db.config.Location, newYearNotifier)
-	timedRecords := make(chan data.TimedRecord, recordsQueueSize)
-
-	go stampLogsWithTimeAndWaitUntilDatabaseIsFinished(converter, db.records, timedRecords, doneTimestamping)
-	go fillDatabase(db.connPair.RwConn, timedRecords, doneInsertingOnDatabase, doneTimestamping)
-
+	go fillDatabase(db.connPair.RwConn, db.records, doneInsertingOnDatabase)
 	return doneInsertingOnDatabase
-}
-
-// Gather non time stamped logs from various sources and timestamp them, making them ready
-// for inserting on the database
-func stampLogsWithTimeAndWaitUntilDatabaseIsFinished(timeConverter postfix.TimeConverter,
-	records <-chan data.Record,
-	timedRecords chan<- data.TimedRecord,
-	done chan<- interface{}) {
-
-	for r := range records {
-		t := timeConverter.Convert(r.Header.Time)
-
-		// do not bother the database thread if we have no payload to insert
-		if r.Payload != nil {
-			timedRecords <- data.TimedRecord{Time: t, Record: r}
-		}
-	}
-
-	close(timedRecords)
-
-	done <- true
 }
 
 func (db *DB) Close() error {
@@ -175,12 +121,17 @@ func (db *DB) HasLogs() bool {
 	return false
 }
 
-func fillDatabase(db *sql.DB, c <-chan data.TimedRecord,
-	doneInsertingOnDatabase chan<- interface{},
-	doneTimestamping <-chan interface{}) {
+func fillDatabase(db *sql.DB, c <-chan data.Record,
+	doneInsertingOnDatabase chan<- interface{}) {
 
-	performInsertsIntoDbGroupingInTransactions(db, c, TransactionTime, func(tx *sql.Tx, r data.TimedRecord) error {
-		inserter := findInserterForPayload(r.Record.Payload)
+	lastTime := time.Time{}
+
+	performInsertsIntoDbGroupingInTransactions(db, c, TransactionTime, func(tx *sql.Tx, r data.Record) error {
+		if lastTime.After(r.Time) {
+			log.Panicln("Out of order log insertion in the database. Old:", lastTime, ", new:", r.Time)
+		}
+
+		inserter := findInserterForPayload(r.Payload)
 
 		if inserter != nil {
 			return inserter(tx, r)
@@ -189,12 +140,12 @@ func fillDatabase(db *sql.DB, c <-chan data.TimedRecord,
 		return nil
 	})
 
-	doneInsertingOnDatabase <- <-doneTimestamping
+	doneInsertingOnDatabase <- nil
 }
 
 func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
-	c <-chan data.TimedRecord, timeout time.Duration,
-	insertCb func(*sql.Tx, data.TimedRecord) error) {
+	c <-chan data.Record, timeout time.Duration,
+	insertCb func(*sql.Tx, data.Record) error) {
 
 	// This is the loop for the thread that inserts stuff in the logs database
 	// It should be blocked only by writing to filesystem
@@ -252,16 +203,18 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 }
 
-func buildInitialTime(db *sql.DB, defaultYear int, timezone *time.Location) time.Time {
-	// TODO: return max(defaultYear, year_read_from_database) as lightmeter might be restarted on the next year (rare, but possible)
+func buildInitialTime(db *sql.DB, timezone *time.Location) time.Time {
+	r := int64(0)
 
 	for _, handler := range payloadHandlers {
-		if v, err := handler.lastTimeReader(db); err == nil {
-			ts := time.Unix(v, 0).In(timezone)
-			return ts
+		if v, err := handler.lastTimeReader(db); err == nil && v > r {
+			r = v
 		}
 	}
 
-	log.Println("Could not build initial time from database. Using default year", defaultYear)
-	return time.Time{}
+	if r == 0 {
+		return time.Time{}
+	}
+
+	return time.Unix(r, 0).In(timezone)
 }

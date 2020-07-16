@@ -25,7 +25,7 @@ func TestDatabaseCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := Open("/proc/lalala", data.Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open("/proc/lalala", data.Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 
@@ -33,7 +33,7 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldBeNil)
-			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 
@@ -41,7 +41,7 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
-			_, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			_, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 	})
@@ -50,7 +50,7 @@ func TestDatabaseCreation(t *testing.T) {
 		Convey("Create DB", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			db, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 
 			defer db.Close()
@@ -60,7 +60,7 @@ func TestDatabaseCreation(t *testing.T) {
 		Convey("Empty Database is properly closed", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			db, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			So(db.HasLogs(), ShouldBeFalse)
 			So(db.Close(), ShouldBeNil)
@@ -70,10 +70,10 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 
-			ws1, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			ws1, err := Open(dir, data.Config{Location: time.UTC})
 			ws1.Close()
 
-			ws2, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: 1999})
+			ws2, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			ws2.Close()
 		})
@@ -93,22 +93,46 @@ func TestLogsInsertion(t *testing.T) {
 		dir := tempDir()
 		defer os.RemoveAll(dir)
 
-		buildWs := func(year int) (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {
-			db, err := Open(dir, data.Config{Location: time.UTC, DefaultYear: year})
+		buildWs := func() (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {
+			db, err := Open(dir, data.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			done := db.Run()
 			pub := db.NewPublisher()
 			dashboard, err := dashboard.New(db.ReadConnection())
 			So(err, ShouldBeNil)
+
 			return db, done, pub, dashboard, func() {
 				So(dashboard.Close(), ShouldBeNil)
 				So(db.Close(), ShouldBeNil)
 			}
 		}
 
+		var converter parser.TimeConverter
+
+		initConverter := func(year int, db *DB) {
+			t, year := func(ts time.Time, year int) (parser.Time, int) {
+				if ts.IsZero() {
+					return parser.Time{}, year
+				}
+
+				return parser.Time{
+					Month:  ts.Month(),
+					Day:    uint8(ts.Day()),
+					Hour:   uint8(ts.Hour()),
+					Minute: uint8(ts.Minute()),
+					Second: uint8(ts.Second()),
+				}, ts.Year()
+			}(db.MostRecentLogTime(), year)
+
+			converter = parser.NewTimeConverter(t, year, time.UTC, func(int, parser.Time, parser.Time) {})
+		}
+
 		Convey("Inserting logs", func() {
 			smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {
+				So(converter, ShouldNotBeNil)
+
 				return data.Record{
+					Time: converter.Convert(t),
 					Header: parser.Header{
 						Time:    t,
 						Host:    "mail",
@@ -135,9 +159,12 @@ func TestLogsInsertion(t *testing.T) {
 			}
 
 			noPayloadRecord := func(t parser.Time) data.Record {
+				So(converter, ShouldNotBeNil)
+
 				return data.Record{
+					Time: converter.Convert(t),
 					Header: parser.Header{
-						Time:    parser.Time{Day: 3, Month: time.January, Hour: 13, Minute: 15, Second: 45},
+						Time:    t,
 						Host:    "mail",
 						Process: "smtp",
 					},
@@ -146,10 +173,12 @@ func TestLogsInsertion(t *testing.T) {
 			}
 
 			Convey("Inserts nothing", func() {
-				db, done, pub, dashboard, dtor := buildWs(1999)
+				db, done, pub, dashboard, dtor := buildWs()
 				defer dtor()
 				pub.Close()
 				<-done
+
+				initConverter(1999, &db)
 
 				interval := parseTimeInterval("1999-12-02", "2000-01-03")
 
@@ -160,8 +189,10 @@ func TestLogsInsertion(t *testing.T) {
 			})
 
 			Convey("Inserts one log entry", func() {
-				db, done, pub, dashboard, dtor := buildWs(1999)
+				db, done, pub, dashboard, dtor := buildWs()
 				defer dtor()
+
+				initConverter(1999, &db)
 
 				pub.Publish(smtpStatusRecord(parser.SentStatus, parser.Time{Month: time.December, Day: 2, Hour: 13, Minute: 10, Second: 10}))
 				pub.Close()
@@ -177,8 +208,11 @@ func TestLogsInsertion(t *testing.T) {
 
 			Convey("Insert, reopen, insert", func() {
 				func() {
-					_, done, pub, _, dtor := buildWs(1999)
+					db, done, pub, _, dtor := buildWs()
 					defer dtor()
+
+					initConverter(1999, &db)
+
 					// this one is before the time interval
 					pub.Publish(smtpStatusRecord(parser.DeferredStatus, parser.Time{Month: time.November, Day: 2, Hour: 13, Minute: 10, Second: 10}))
 
@@ -188,8 +222,10 @@ func TestLogsInsertion(t *testing.T) {
 				}()
 
 				// reopen workspace and add another log
-				db, done, pub, dashboard, dtor := buildWs(1999)
+				db, done, pub, dashboard, dtor := buildWs()
 				defer dtor()
+
+				initConverter(1999, &db)
 
 				pub.Publish(smtpStatusRecord(parser.SentStatus, parser.Time{Month: time.December, Day: 4, Hour: 13, Minute: 10, Second: 10}))
 				pub.Publish(smtpStatusRecord(parser.DeferredStatus, parser.Time{Month: time.December, Day: 5, Hour: 13, Minute: 10, Second: 10}))
@@ -213,8 +249,9 @@ func TestLogsInsertion(t *testing.T) {
 			})
 
 			Convey("Many different smtp status", func() {
-				_, done, pub, d, dtor := buildWs(1999)
+				db, done, pub, d, dtor := buildWs()
 				defer dtor()
+				initConverter(1999, &db)
 
 				interval := parseTimeInterval("1999-12-02", "2000-03-11")
 
@@ -287,7 +324,7 @@ func TestLogsInsertion(t *testing.T) {
 			})
 
 			Convey("No inserts, rolling back transaction on timeout (to exercise coverage)", func() {
-				_, done, pub, _, dtor := buildWs(1999)
+				_, done, pub, _, dtor := buildWs()
 				defer dtor()
 				timeToSleep := time.Duration(float32(TransactionTime.Milliseconds())*1.5) * time.Millisecond
 				time.Sleep(timeToSleep)
@@ -304,7 +341,7 @@ func TestLogsInsertion(t *testing.T) {
 					panic("Parsing line!!!")
 				}
 
-				return data.Record{Header: h, Payload: p}
+				return data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p}
 			}
 
 			Convey("Implicit IP", func() {
@@ -313,8 +350,10 @@ func TestLogsInsertion(t *testing.T) {
 				// from the dashboard ones.
 				// Right now it feels that the logs database and the dashboard are highly coupled :-(
 
-				_, done, pub, d, dtor := buildWs(2020)
+				db, done, pub, d, dtor := buildWs()
 				defer dtor()
+
+				initConverter(2020, &db)
 
 				// this line is ignored, as we noticed that postfix first sends an email to itself, before trying to forward it to the destination
 				pub.Publish(parse(`Jun  3 10:40:57 mail postfix/smtp[9710]: 4AA091855DA0: to=<invalid.email@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.23, delays=0.15/0/0/0.08, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 776E41855DB2)`))
@@ -351,8 +390,10 @@ func TestLogsInsertion(t *testing.T) {
 				// from the dashboard ones.
 				// Right now it feels that the logs database and the dashboard are highly coupled :-(
 
-				_, done, pub, d, dtor := buildWs(2020)
+				db, done, pub, d, dtor := buildWs()
 				defer dtor()
+
+				initConverter(2020, &db)
 
 				// this line is ignored, as we noticed that postfix first sends an email to itself, before trying to forward it to the destination
 				pub.Publish(parse(`Jun  3 10:40:57 mail postfix-1.2.3.4/smtp[9710]: 4AA091855DA0: to=<invalid.email@example.com>, relay=1.2.3.4[1.2.3.4]:10024, delay=0.23, delays=0.15/0/0/0.08, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 776E41855DB2)`))
