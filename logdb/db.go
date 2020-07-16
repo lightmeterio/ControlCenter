@@ -124,7 +124,13 @@ func (db *DB) HasLogs() bool {
 func fillDatabase(db *sql.DB, c <-chan data.Record,
 	doneInsertingOnDatabase chan<- interface{}) {
 
+	lastTime := time.Time{}
+
 	performInsertsIntoDbGroupingInTransactions(db, c, TransactionTime, func(tx *sql.Tx, r data.Record) error {
+		if lastTime.After(r.Time) {
+			log.Panicln("Out of order log insertion in the database. Old:", lastTime, ", new:", r.Time)
+		}
+
 		inserter := findInserterForPayload(r.Payload)
 
 		if inserter != nil {
@@ -198,13 +204,17 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 }
 
 func buildInitialTime(db *sql.DB, timezone *time.Location) time.Time {
-	// TODO: return the most recent value among all handlers
+	r := int64(0)
+
 	for _, handler := range payloadHandlers {
-		if v, err := handler.lastTimeReader(db); err == nil {
-			ts := time.Unix(v, 0).In(timezone)
-			return ts
+		if v, err := handler.lastTimeReader(db); err == nil && v > r {
+			r = v
 		}
 	}
 
-	return time.Time{}
+	if r == 0 {
+		return time.Time{}
+	}
+
+	return time.Unix(r, 0).In(timezone)
 }
