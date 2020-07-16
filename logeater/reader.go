@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"log"
+	"time"
 
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -12,15 +13,28 @@ import (
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
-func ReadFromReader(reader io.Reader, pub data.Publisher) {
+func convertTsToTime(ts time.Time) (parser.Time, int) {
+	return parser.Time{
+		Month:  ts.Month(),
+		Day:    uint8(ts.Day()),
+		Hour:   uint8(ts.Hour()),
+		Minute: uint8(ts.Minute()),
+		Second: uint8(ts.Second()),
+	}, ts.Year()
+}
+
+func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
 	scanner := bufio.NewScanner(reader)
+
+	t, year := convertTsToTime(ts)
+	converter := parser.NewTimeConverter(t, year, ts.Location(), func(int, parser.Time, parser.Time) {})
 
 	for {
 		if !scanner.Scan() {
 			break
 		}
 
-		tryToParseAndPublish(scanner.Bytes(), pub)
+		tryToParseAndPublish(scanner.Bytes(), pub, &converter)
 	}
 }
 
@@ -41,7 +55,9 @@ func FindWatchingLocationForWorkspace(ws *workspace.Workspace) tail.SeekInfo {
 
 func WatchFileCancelable(filename string,
 	location tail.SeekInfo,
-	publisher data.Publisher) (err error, stopWatching func(), waitForDone func()) {
+	publisher data.Publisher,
+	ts time.Time,
+) (err error, stopWatching func(), waitForDone func()) {
 
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
@@ -59,6 +75,9 @@ func WatchFileCancelable(filename string,
 	cancel := make(chan struct{}, 1)
 	done := make(chan error)
 
+	time, year := convertTsToTime(ts)
+	converter := parser.NewTimeConverter(time, year, ts.Location(), func(int, parser.Time, parser.Time) {})
+
 	go func() {
 	loop:
 		for {
@@ -68,7 +87,7 @@ func WatchFileCancelable(filename string,
 					break loop
 				}
 
-				tryToParseAndPublish([]byte(line.Text), publisher)
+				tryToParseAndPublish([]byte(line.Text), publisher, &converter)
 				break
 
 			case <-cancel:
@@ -88,9 +107,9 @@ func WatchFileCancelable(filename string,
 		}
 }
 
-func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher) error {
+func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher, ts time.Time) error {
 	// it ends only when the file is deleted (I guess, as its behaviour is defined in the tail package)
-	err, _, done := WatchFileCancelable(filename, location, publisher)
+	err, _, done := WatchFileCancelable(filename, location, publisher, ts)
 
 	if err != nil {
 		return util.WrapError(err)
@@ -101,7 +120,7 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 	return nil
 }
 
-func tryToParseAndPublish(line []byte, publisher data.Publisher) {
+func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *parser.TimeConverter) {
 	h, p, err := parser.Parse(line)
 
 	if !parser.IsRecoverableError(err) {
@@ -109,5 +128,5 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher) {
 		return
 	}
 
-	publisher.Publish(data.Record{Header: h, Payload: p})
+	publisher.Publish(data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p})
 }

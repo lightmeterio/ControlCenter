@@ -12,32 +12,44 @@ type FakePublisher struct {
 	logs []data.Record
 }
 
-func (this *FakePublisher) Publish(r data.Record) {
-	this.logs = append(this.logs, r)
+func (f *FakePublisher) Publish(r data.Record) {
+	f.logs = append(f.logs, r)
 }
 
 func (FakePublisher) Close() {
+}
+
+func parseTime(s string) time.Time {
+	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
+
+	if err != nil {
+		panic("parsing time: " + err.Error())
+	}
+
+	return p
 }
 
 func TestReadingLogs(t *testing.T) {
 	Convey("Read From Reader", t, func() {
 		pub := FakePublisher{}
 
+		firstSecondInJanuary := parseTime(`2000-01-01 00:00:00 +0000`)
+
 		Convey("Read Nothing", func() {
 			reader := strings.NewReader(``)
-			ReadFromReader(reader, &pub)
+			ReadFromReader(reader, &pub, firstSecondInJanuary)
 			So(len(pub.logs), ShouldEqual, 0)
 		})
 
 		Convey("Ignore Wrong Line", func() {
 			reader := strings.NewReader(`Not a valid log line`)
-			ReadFromReader(reader, &pub)
+			ReadFromReader(reader, &pub, firstSecondInJanuary)
 			So(len(pub.logs), ShouldEqual, 0)
 		})
 
 		Convey("Accepts line with error on reading the payload (but header is okay)", func() {
 			reader := strings.NewReader(`Mar  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated`)
-			ReadFromReader(reader, &pub)
+			ReadFromReader(reader, &pub, firstSecondInJanuary)
 			So(len(pub.logs), ShouldEqual, 1)
 			So(pub.logs[0].Payload, ShouldBeNil)
 			So(pub.logs[0].Header.Time.Day, ShouldEqual, 1)
@@ -45,6 +57,7 @@ func TestReadingLogs(t *testing.T) {
 			So(pub.logs[0].Header.Time.Hour, ShouldEqual, 7)
 			So(pub.logs[0].Header.Time.Minute, ShouldEqual, 42)
 			So(pub.logs[0].Header.Time.Second, ShouldEqual, 10)
+			So(pub.logs[0].Time, ShouldEqual, parseTime(`2000-03-01 07:42:10 +0000`))
 		})
 
 		Convey("Read three lines, one of them with invalid payload", func() {
@@ -55,12 +68,11 @@ Nov  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated
 
 Dec 16 14:08:45 smtpnode07 postfix-10.20.30.40/smtp[3022]: 0C31D3D1E6: to=<a@b.c>, relay=a.net[1.2.3.4]:25, delay=1, delays=0/0.9/0.69/0.03, dsn=4.7.0, status=deferred Extra text)
 			`)
-			ReadFromReader(reader, &pub)
+			ReadFromReader(reader, &pub, firstSecondInJanuary)
 			So(len(pub.logs), ShouldEqual, 3)
 			So(pub.logs[0].Payload, ShouldNotBeNil)
 			So(pub.logs[1].Payload, ShouldBeNil)
 			So(pub.logs[2].Payload, ShouldNotBeNil)
 		})
-
 	})
 }
