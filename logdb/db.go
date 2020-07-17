@@ -131,6 +131,8 @@ func fillDatabase(db *sql.DB, c <-chan data.Record,
 			log.Panicln("Out of order log insertion in the database. Old:", lastTime, ", new:", r.Time)
 		}
 
+		lastTime = r.Time
+
 		inserter := findInserterForPayload(r.Payload)
 
 		if inserter != nil {

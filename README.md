@@ -103,7 +103,6 @@ To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which i
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
 Currently the following patterns for log files are "watched":
   - mail.log
-  - mail.info
   - mail.warn
   - mail.err
 - Web UI authenticated sessions last 1 week by default
