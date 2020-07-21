@@ -3,6 +3,7 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util"
@@ -89,7 +90,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	where
 		status = ? and read_ts_sec between ? and ?
 	group by
-		d
+		d collate nocase
 	order by
 		c desc, d collate nocase asc
 	limit 20`)
@@ -112,7 +113,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 	where
 		read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
 	group by
-		d
+		d collate nocase
 	order by
 		c desc, d collate nocase asc
 	limit 20`)
@@ -205,7 +206,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 			domain = "<none>"
 		}
 
-		r = append(r, Pair{domain, countValue})
+		r = append(r, Pair{strings.ToLower(domain), countValue})
 	}
 
 	util.MustSucceed(query.Err(), "Error on rows")

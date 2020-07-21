@@ -26,17 +26,6 @@ func TestMapping(t *testing.T) {
 			So(l.Resolve("exemplo.com.br"), ShouldEqual, "exemplo.com.br")
 		})
 
-		Convey("Search is case insensitive", func() {
-			l, err := Mapping(RawList{
-				"example": []string{"example.com", "beispiel.de"},
-			})
-
-			So(err, ShouldBeNil)
-			So(l.Resolve("EXAMPLE.COM"), ShouldEqual, "example")
-			So(l.Resolve("BEISPIEL.DE"), ShouldEqual, "example")
-			So(l.Resolve("SomethingElse.uk"), ShouldEqual, "somethingelse.uk")
-		})
-
 		Convey("Duplicate mapping", func() {
 			_, err := Mapping(RawList{
 				"example":  []string{"example.com", "beispiel.de"},
@@ -45,6 +34,5 @@ func TestMapping(t *testing.T) {
 
 			So(err, ShouldNotBeNil)
 		})
-
 	})
 }

@@ -3,7 +3,6 @@ package domainmapping
 import (
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/util"
-	"strings"
 )
 
 type RawList map[string][]string
@@ -40,12 +39,10 @@ func Mapping(list RawList) (Mapper, error) {
 }
 
 func (m *Mapper) Resolve(domain string) string {
-	lower := strings.ToLower(domain)
-
-	r, ok := m.r[lower]
+	r, ok := m.r[domain]
 
 	if !ok {
-		return lower
+		return domain
 	}
 
 	return r
