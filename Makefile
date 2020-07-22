@@ -36,7 +36,9 @@ static_release: static_www domain_mapping_list
 static_www:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/staticdata
 
-domain_mapping_list:
+domain_mapping_list: domainmapping/generated_list.go
+
+domainmapping/generated_list.go: domainmapping/mapping.json
 	go generate gitlab.com/lightmeter/controlcenter/domainmapping
 
 mocks:
