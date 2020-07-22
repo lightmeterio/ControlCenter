@@ -13,10 +13,10 @@ func TestPostfixTimeConverter(t *testing.T) {
 	newYearNotifier := func(int, Time, Time) {}
 
 	Convey("With zeroed initial time", t, func() {
-		initialTime := Time{}
+		initialTime := DefaultTimeInYear(1999, tz)
 
 		Convey("Calls without changing year", func() {
-			c := NewTimeConverter(initialTime, 1999, tz, newYearNotifier)
+			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
 			So(c.year, ShouldEqual, 1999)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
@@ -26,7 +26,7 @@ func TestPostfixTimeConverter(t *testing.T) {
 		})
 
 		Convey("Change year if the calendar changes", func() {
-			c := NewTimeConverter(initialTime, 1999, tz, newYearNotifier)
+			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.December, Day: 31, Hour: 23, Minute: 59, Second: 58}).Unix(), ShouldEqual, 946684798)
 			So(c.year, ShouldEqual, 1999)
 			So(c.Convert(Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0}).Unix(), ShouldEqual, 946684800)
@@ -35,16 +35,16 @@ func TestPostfixTimeConverter(t *testing.T) {
 	})
 
 	Convey("With non zero initial time", t, func() {
-		initialTime := Time{Month: time.February, Day: 21, Hour: 14, Minute: 52, Second: 34}
+		initialTime := time.Date(1999, time.February, 20, 14, 52, 34, 0, tz)
 
 		Convey("Calls without changing year", func() {
-			c := NewTimeConverter(initialTime, 1999, tz, newYearNotifier)
+			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
 			So(c.year, ShouldEqual, 1999)
 		})
 
 		Convey("Calls changing year", func() {
-			c := NewTimeConverter(initialTime, 1999, tz, newYearNotifier)
+			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0}).Unix(), ShouldEqual, 946684800)
 			So(c.year, ShouldEqual, 2000)
 		})
@@ -59,15 +59,7 @@ func TestPostfixTimeConverter(t *testing.T) {
 
 		t = t.In(time.UTC)
 
-		initialTime := Time{
-			Month:  t.Month(),
-			Day:    uint8(t.Day()),
-			Hour:   uint8(t.Hour()),
-			Minute: uint8(t.Minute()),
-			Second: uint8(t.Second()),
-		}
-
-		c := NewTimeConverter(initialTime, t.Year(), t.Location(), func(int, Time, Time) {})
+		c := NewTimeConverter(t, func(int, Time, Time) {})
 		c.Convert(Time{Month: time.March, Day: 29, Hour: 2, Minute: 59, Second: 10})
 		So(c.year, ShouldEqual, 2020)
 
