@@ -14,8 +14,7 @@ type queries struct {
 	countByStatus      *sql.Stmt
 	deliveryStatus     *sql.Stmt
 	topBusiestDomains  *sql.Stmt
-	topDeferredDomains *sql.Stmt
-	topBouncedDomains  *sql.Stmt
+	topDomainsByStatus *sql.Stmt
 }
 
 type Pair struct {
@@ -83,17 +82,17 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 		}
 	}()
 
-	topDeferredDomains, err := db.Prepare(`
+	topDomainsByStatus, err := db.Prepare(`
 	select
-		recipient_domain_part, count(relay_name) as c
+		lm_resolve_domain_mapping(recipient_domain_part) as d, count(lm_resolve_domain_mapping(recipient_domain_part)) as c
 	from
 		postfix_smtp_message_status
 	where
 		status = ? and read_ts_sec between ? and ?
 	group by
-		recipient_domain_part
+		d collate nocase
 	order by
-		c desc, recipient_domain_part asc
+		c desc, d collate nocase asc
 	limit 20`)
 
 	if err != nil {
@@ -102,44 +101,21 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(topDeferredDomains.Close(), "Closing topDeferredDomains")
-		}
-	}()
-
-	topBouncedDomains, err := db.Prepare(`
-	select
-		recipient_domain_part, count(recipient_domain_part) as c
-	from
-		postfix_smtp_message_status
-	where
-		status = ? and read_ts_sec between ? and ?
-	group by
-		recipient_domain_part
-	order by
-		c desc, recipient_domain_part asc
-	limit 20`)
-
-	if err != nil {
-		return SqlDbDashboard{}, util.WrapError(err)
-	}
-
-	defer func() {
-		if err != nil {
-			util.MustSucceed(topBouncedDomains.Close(), "Closing topBouncedDomains")
+			util.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
 		}
 	}()
 
 	topBusiestDomains, err := db.Prepare(`
 	select
-		recipient_domain_part, count(recipient_domain_part) as c
+		lm_resolve_domain_mapping(recipient_domain_part) as d, count(lm_resolve_domain_mapping(recipient_domain_part)) as c
 	from
 		postfix_smtp_message_status
 	where
-			read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
+		read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
 	group by
-		recipient_domain_part
+		d collate nocase
 	order by
-		c desc, recipient_domain_part asc
+		c desc, d collate nocase asc
 	limit 20`)
 
 	if err != nil {
@@ -157,8 +133,7 @@ func New(db *sql.DB) (SqlDbDashboard, error) {
 			countByStatus:      countByStatus,
 			deliveryStatus:     deliveryStatus,
 			topBusiestDomains:  topBusiestDomains,
-			topDeferredDomains: topDeferredDomains,
-			topBouncedDomains:  topBouncedDomains,
+			topDomainsByStatus: topDomainsByStatus,
 		},
 	}, nil
 }
@@ -169,13 +144,11 @@ func (d SqlDbDashboard) Close() error {
 	errCountByStatus := d.queries.countByStatus.Close()
 	errDeliveryStatus := d.queries.deliveryStatus.Close()
 	errTopBusiestDomains := d.queries.topBusiestDomains.Close()
-	errTopDeferredDomains := d.queries.topDeferredDomains.Close()
-	errTopBouncedDomains := d.queries.topBouncedDomains.Close()
+	errTopBouncedDomains := d.queries.topDomainsByStatus.Close()
 
 	if errCountByStatus != nil ||
 		errDeliveryStatus != nil ||
 		errTopBusiestDomains != nil ||
-		errTopDeferredDomains != nil ||
 		errTopBouncedDomains != nil {
 
 		return util.WrapError(ErrClosingDashboardQueries)
@@ -193,11 +166,11 @@ func (d SqlDbDashboard) TopBusiestDomains(interval data.TimeInterval) Pairs {
 }
 
 func (d SqlDbDashboard) TopBouncedDomains(interval data.TimeInterval) Pairs {
-	return listDomainAndCount(d.queries.topBouncedDomains, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
+	return listDomainAndCount(d.queries.topDomainsByStatus, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
 }
 
 func (d SqlDbDashboard) TopDeferredDomains(interval data.TimeInterval) Pairs {
-	return listDomainAndCount(d.queries.topDeferredDomains, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
+	return listDomainAndCount(d.queries.topDomainsByStatus, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
 }
 
 func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {

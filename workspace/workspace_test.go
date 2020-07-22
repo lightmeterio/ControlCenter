@@ -3,11 +3,16 @@ package workspace
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 )
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
 
 func tempDir() string {
 	dir, e := ioutil.TempDir("", "lightmeter-tests-*")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"
@@ -13,6 +14,10 @@ import (
 	"testing"
 	"time"
 )
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
 
 func tempDir() string {
 	dir, e := ioutil.TempDir("", "lightmeter-tests-*")

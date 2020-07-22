@@ -20,21 +20,26 @@ BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSI
 
 all: dev
 
-dev: mocks swag
+dev: mocks swag domain_mapping_list
 	go build -tags="dev" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-release: static_www
+release: static_www domain_mapping_list
 	go build -tags="release" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-windows_release: static_www
+windows_release: static_www domain_mapping_list
 	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
 
-static_release: static_www 
+static_release: static_www domain_mapping_list
 	go build -tags="release" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/staticdata
+
+domain_mapping_list: domainmapping/generated_list.go
+
+domainmapping/generated_list.go: domainmapping/mapping.json
+	go generate gitlab.com/lightmeter/controlcenter/domainmapping
 
 mocks:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
