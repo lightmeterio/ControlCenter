@@ -34,8 +34,12 @@ func (pub *ChannelBasedPublisher) Close() {
 	close(pub.Channel)
 }
 
+type Config struct {
+	Location *time.Location
+}
+
 type DB struct {
-	config   data.Config
+	config   Config
 	connPair dbconn.ConnPair
 	records  chan data.Record
 }
@@ -59,7 +63,7 @@ func createTables(db *sql.DB) error {
 	return nil
 }
 
-func Open(workspaceDirectory string, config data.Config) (DB, error) {
+func Open(workspaceDirectory string, config Config) (DB, error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
 
 	connPair, err := dbconn.NewConnPair(dbFilename)
