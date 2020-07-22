@@ -865,11 +865,17 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			So(len(pub.logs), ShouldEqual, 6)
 
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
+			So(pub.logs[0].Time, ShouldEqual, parseTime(`2020-06-18 08:29:33 +0000`))
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 12, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[1].Time, ShouldEqual, parseTime(`2020-07-12 00:00:00 +0000`))
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[2].Time, ShouldEqual, parseTime(`2020-07-18 00:00:00 +0000`))
 			So(pub.logs[3].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 19, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[3].Time, ShouldEqual, parseTime(`2020-07-19 00:00:00 +0000`))
 			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
+			So(pub.logs[4].Time, ShouldEqual, parseTime(`2020-08-10 00:00:40 +0000`))
 			So(pub.logs[5].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 12, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[5].Time, ShouldEqual, parseTime(`2020-08-12 00:00:00 +0000`))
 		})
 	})
 }
