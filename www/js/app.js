@@ -266,6 +266,11 @@ function submitRegisterForm() {
         fetch("/settings/initialSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
             // matomo registration success
             _paq.push(['trackEvent', 'RegisterAdmin', 'success'])
+            
+            // matomo newsletter signup requested
+            if (settingsFormData.has('subscribe_newsletter') && settingsFormData.get('subscribe_newsletter') == 'on') {
+                _paq.push(['trackEvent', 'RegisterAdmin', 'newsletterOn'])
+            }
             window.location.href = "/"
         }).catch(function(err) {
             alert('Settings Error on initial setup!')
