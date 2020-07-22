@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -51,12 +52,12 @@ func genList(l domainmapping.RawList) string {
 	s := ""
 
 	for k, v := range l {
-		s += fmt.Sprintf("\n\tl[`%s`] = make([]string, 0, %d)", k, len(v))
+		s += fmt.Sprintf("\n\tl[`%s`] = make([]string, 0, %d)", strings.ToLower(k), len(v))
 	}
 
 	for k, v := range l {
 		for _, d := range v {
-			s += fmt.Sprintf("\n\tl[`%s`] = append(l[`%s`], `%s`)", k, k, d)
+			s += fmt.Sprintf("\n\tl[`%s`] = append(l[`%s`], `%s`)", strings.ToLower(k), strings.ToLower(k), strings.ToLower(d))
 		}
 	}
 
