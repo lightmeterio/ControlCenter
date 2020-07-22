@@ -13,21 +13,10 @@ import (
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
-func convertTsToTime(ts time.Time) (parser.Time, int) {
-	return parser.Time{
-		Month:  ts.Month(),
-		Day:    uint8(ts.Day()),
-		Hour:   uint8(ts.Hour()),
-		Minute: uint8(ts.Minute()),
-		Second: uint8(ts.Second()),
-	}, ts.Year()
-}
-
 func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
 	scanner := bufio.NewScanner(reader)
 
-	t, year := convertTsToTime(ts)
-	converter := parser.NewTimeConverter(t, year, ts.Location(), func(int, parser.Time, parser.Time) {})
+	converter := parser.NewTimeConverter(ts, func(int, parser.Time, parser.Time) {})
 
 	for {
 		if !scanner.Scan() {
@@ -75,8 +64,7 @@ func WatchFileCancelable(filename string,
 	cancel := make(chan struct{}, 1)
 	done := make(chan error)
 
-	time, year := convertTsToTime(ts)
-	converter := parser.NewTimeConverter(time, year, ts.Location(), func(int, parser.Time, parser.Time) {})
+	converter := parser.NewTimeConverter(ts, func(int, parser.Time, parser.Time) {})
 
 	go func() {
 	loop:

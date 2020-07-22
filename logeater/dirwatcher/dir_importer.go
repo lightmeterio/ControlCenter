@@ -573,9 +573,15 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 	pattern := p.pattern
 
 	converter := parser.NewTimeConverter(
-		header.Time,
-		initialTime.Year(),
-		initialTime.Location(),
+		time.Date(initialTime.Year(),
+			header.Time.Month,
+			int(header.Time.Day),
+			int(header.Time.Hour),
+			int(header.Time.Minute),
+			int(header.Time.Second),
+			0,
+			initialTime.Location(),
+		),
 		func(int, parser.Time, parser.Time) {
 			log.Println("Changed Year on log queue", pattern)
 		})

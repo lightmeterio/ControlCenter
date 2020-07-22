@@ -124,21 +124,15 @@ func TestLogsInsertion(t *testing.T) {
 		var converter parser.TimeConverter
 
 		initConverter := func(year int, db *DB) {
-			t, year := func(ts time.Time, year int) (parser.Time, int) {
-				if ts.IsZero() {
-					return parser.Time{}, year
+			t := func(ts time.Time) time.Time {
+				if !ts.IsZero() {
+					return ts
 				}
 
-				return parser.Time{
-					Month:  ts.Month(),
-					Day:    uint8(ts.Day()),
-					Hour:   uint8(ts.Hour()),
-					Minute: uint8(ts.Minute()),
-					Second: uint8(ts.Second()),
-				}, ts.Year()
-			}(db.MostRecentLogTime(), year)
+				return parser.DefaultTimeInYear(year, ts.Location())
+			}(db.MostRecentLogTime())
 
-			converter = parser.NewTimeConverter(t, year, time.UTC, func(int, parser.Time, parser.Time) {})
+			converter = parser.NewTimeConverter(t, func(int, parser.Time, parser.Time) {})
 		}
 
 		smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {
