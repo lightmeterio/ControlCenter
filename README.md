@@ -88,8 +88,6 @@ Achieving this is easy using manual upgrade based on replacing binary files. For
 
 ## Usage
 
-### Self built binary
-
 - Run `lightmeter -help` to show a list of all available commands
 - Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
     - Logfiles provided using the `-watch_file` argument will be monitored for changes and the Web UI automatically updated. An SQLite database is used in the backend for storing processed log data. Note that `-watch_file` only looks for new changes from the last recorded time of the previous import; therefore it does not scan the entire contents of the specified logfile if it has previously been imported or watched.
@@ -159,10 +157,10 @@ You can reset the user password using the command line:
 
 ## Domain Mapping
 
-Domain Mapping is supported, grouping related recipients as single ones.
-Currently the mapping is hardcoded in the application, and can only be changed at build time.
+Domain Mapping is supported. This means remote hosts which are related to each other are treated as one where necessary (eg outlook.com and hotmail.com).
 
-We hope delivering a good mapping list useful for most users, but if you have custom needs, you can rebuild Control Center with a custom
-list by customizing the file `domainmapping/mapping.json` before running `make`.
+Currently the mapping is hardcoded in the application - changing the mappings requires [rebuilding](#Build-from-source-code) the application.
 
-Please consider sending us a merge request in case you think your domain mapping can benefit other users!
+Mappings are stored in `domainmapping/mapping.json` and cover the largest remote hosts by default. The mappings can be easily customised by editing that file, followed by [rebuilding](#Build-from-source-code).
+
+Please consider extending the default mappings by making merge requests to benefit all users!
