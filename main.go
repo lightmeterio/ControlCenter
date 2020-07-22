@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/logeater"
@@ -217,6 +218,9 @@ func main() {
 		printVersion()
 		return
 	}
+
+	// Use the domain mapping defined on domainmapping/list.json file
+	domainmapping.RegisterDefaultMapping()
 
 	if len(emailToPasswdReset) > 0 {
 		performPasswordReset()

@@ -10,6 +10,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -19,6 +21,14 @@ func tempDir() string {
 		panic("error creating temp dir")
 	}
 	return dir
+}
+
+func init() {
+	// NOTE: unfortunately the domain mapping code uses a singleton (to be accessed internally via sqlite)
+	// that outlives all the test cases, so it's more clear for it to be defined globally as well
+	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
+	util.MustSucceed(err, "")
+	domainmapping.RegisterMapping(&m)
 }
 
 func TestDatabaseCreation(t *testing.T) {
@@ -127,51 +137,55 @@ func TestLogsInsertion(t *testing.T) {
 			converter = parser.NewTimeConverter(t, year, time.UTC, func(int, parser.Time, parser.Time) {})
 		}
 
+		smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {
+			So(converter, ShouldNotBeNil)
+
+			return data.Record{
+				Time: converter.Convert(t),
+				Header: parser.Header{
+					Time:    t,
+					Host:    "mail",
+					Process: "smtp",
+				},
+				Payload: parser.SmtpSentStatus{
+					Queue:               "AA",
+					RecipientLocalPart:  recipientLocalPart,
+					RecipientDomainPart: recipientDomainPart,
+					RelayName:           "",
+					RelayIP:             nil,
+					RelayPort:           0,
+					Delay:               3.4,
+					Delays:              parser.Delays{Smtpd: 0.1, Cleanup: 0.2, Qmgr: 0.3},
+					Dsn:                 "4.5.6",
+					Status:              status,
+					ExtraMessage:        "",
+				},
+			}
+		}
+
+		smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) data.Record {
+			return smtpStatusRecordWithRecipient(status, t, "recipient", "test.com")
+		}
+
+		noPayloadRecord := func(t parser.Time) data.Record {
+			So(converter, ShouldNotBeNil)
+
+			return data.Record{
+				Time: converter.Convert(t),
+				Header: parser.Header{
+					Time:    t,
+					Host:    "mail",
+					Process: "smtp",
+				},
+				Payload: nil,
+			}
+		}
+
+		t := func(mo time.Month, d, h, m, s uint8) parser.Time {
+			return parser.Time{Month: mo, Day: d, Hour: h, Minute: m, Second: s}
+		}
+
 		Convey("Inserting logs", func() {
-			smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {
-				So(converter, ShouldNotBeNil)
-
-				return data.Record{
-					Time: converter.Convert(t),
-					Header: parser.Header{
-						Time:    t,
-						Host:    "mail",
-						Process: "smtp",
-					},
-					Payload: parser.SmtpSentStatus{
-						Queue:               "AA",
-						RecipientLocalPart:  recipientLocalPart,
-						RecipientDomainPart: recipientDomainPart,
-						RelayName:           "",
-						RelayIP:             nil,
-						RelayPort:           0,
-						Delay:               3.4,
-						Delays:              parser.Delays{Smtpd: 0.1, Cleanup: 0.2, Qmgr: 0.3},
-						Dsn:                 "4.5.6",
-						Status:              status,
-						ExtraMessage:        "",
-					},
-				}
-			}
-
-			smtpStatusRecord := func(status parser.SmtpStatus, t parser.Time) data.Record {
-				return smtpStatusRecordWithRecipient(status, t, "recipient", "test.com")
-			}
-
-			noPayloadRecord := func(t parser.Time) data.Record {
-				So(converter, ShouldNotBeNil)
-
-				return data.Record{
-					Time: converter.Convert(t),
-					Header: parser.Header{
-						Time:    t,
-						Host:    "mail",
-						Process: "smtp",
-					},
-					Payload: nil,
-				}
-			}
-
 			Convey("Inserts nothing", func() {
 				db, done, pub, dashboard, dtor := buildWs()
 				defer dtor()
@@ -255,10 +269,6 @@ func TestLogsInsertion(t *testing.T) {
 
 				interval := parseTimeInterval("1999-12-02", "2000-03-11")
 
-				t := func(mo time.Month, d, h, m, s uint8) parser.Time {
-					return parser.Time{Month: mo, Day: d, Hour: h, Minute: m, Second: s}
-				}
-
 				{
 					s := parser.SentStatus
 					d := parser.DeferredStatus
@@ -273,7 +283,7 @@ func TestLogsInsertion(t *testing.T) {
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 2, 14, 1, 4), "r3", "alalala.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.December, 5, 15, 1, 0), "r2", "email3.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 6, 16, 1, 4), "r3", "alalala.com"))
+					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.December, 6, 16, 1, 4), "r3", "ALALALA.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
 					pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
 					pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 4, 16, 1, 0), "r2", "example1.com"))
@@ -333,17 +343,61 @@ func TestLogsInsertion(t *testing.T) {
 			})
 		})
 
-		Convey("Ignore sending to itself as relay is ignored", func() {
-			parse := func(line string) data.Record {
-				h, p, err := parser.Parse([]byte(line))
+		parse := func(line string) data.Record {
+			h, p, err := parser.Parse([]byte(line))
 
-				if err != nil {
-					panic("Parsing line!!!")
-				}
-
-				return data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p}
+			if err != nil {
+				panic("Parsing line!!!")
 			}
 
+			return data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p}
+		}
+
+		Convey("Group According to Domain mapping", func() {
+			db, done, pub, d, dtor := buildWs()
+			defer dtor()
+
+			initConverter(2020, &db)
+
+			{
+				s := parser.SentStatus
+				d := parser.DeferredStatus
+				b := parser.BouncedStatus
+
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 1, 1, 0, 0), "p1", "domaintobegrouped.de"))
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 2, 1, 0, 0), "p1", "another.de"))
+				pub.Publish(smtpStatusRecordWithRecipient(d, t(time.January, 2, 2, 0, 0), "p1", "domaintobegrouped.com"))
+
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 3, 1, 0, 0), "p1", "domaintobegrouped.de"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 4, 1, 0, 0), "p1", "domaintobegrouped.com"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 5, 1, 0, 0), "p1", "domaintobegrouped.de"))
+				pub.Publish(smtpStatusRecordWithRecipient(b, t(time.January, 6, 1, 0, 0), "p1", "another.de"))
+
+				pub.Publish(smtpStatusRecordWithRecipient(s, t(time.January, 6, 1, 0, 0), "p1", "domaintobegrouped.com"))
+			}
+
+			pub.Close()
+			<-done
+
+			interval := parseTimeInterval(`2020-01-01`, `2020-12-31`)
+
+			So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+				dashboard.Pair{Key: "grouped", Value: 6},
+				dashboard.Pair{Key: "another.de", Value: 2},
+			})
+
+			So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+				dashboard.Pair{Key: "grouped", Value: 3},
+				dashboard.Pair{Key: "another.de", Value: 1},
+			})
+
+			So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{
+				dashboard.Pair{Key: "grouped", Value: 2},
+				dashboard.Pair{Key: "another.de", Value: 1},
+			})
+		})
+
+		Convey("Ignore sending to itself as relay is ignored", func() {
 			Convey("Implicit IP", func() {
 				// NOTE: it smells like this test (and maybe the others that use a dashboard
 				// should be moved to the `dashboard` package, or rely on custom sql queries, independent

@@ -45,6 +45,7 @@ func init() {
 			util.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true), "")
 			util.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true), "")
 			util.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true), "")
+			util.MustSucceed(conn.RegisterFunc("lm_resolve_domain_mapping", resolveDomainMapping, true), "")
 			return nil
 		},
 	})
