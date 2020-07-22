@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io/ioutil"
@@ -19,16 +20,14 @@ func main() {
 	util.MustSucceed(json.Unmarshal(b, &l), "Invalid domain mapping file")
 	_, err = domainmapping.Mapping(l)
 	util.MustSucceed(err, "Malformed domain mapping file")
-	s, err := json.Marshal(l)
+	_, err = json.Marshal(l)
 	util.MustSucceed(err, "")
-	util.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(s), 0600), "")
+	util.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(l), 0600), "")
 }
 
-func fileContent(s []byte) []byte {
-	return []byte(`
-package domainmapping
+func fileContent(l domainmapping.RawList) []byte {
+	return []byte(`package domainmapping
 
-import "encoding/json"
 import "gitlab.com/lightmeter/controlcenter/util"
 
 func init() {
@@ -42,9 +41,24 @@ func mustBeValidList() *Mapper {
 }
 
 func mustParse() RawList {
-	l := RawList{}
-	util.MustSucceed(json.Unmarshal([]byte(` + "`" + string(s) + "`" + `), &l), "")
+	l := RawList{} ` + genList(l) + `
 	return l
 }
 `)
+}
+
+func genList(l domainmapping.RawList) string {
+	s := ""
+
+	for k, v := range l {
+		s += fmt.Sprintf("\n\tl[`%s`] = make([]string, 0, %d)", k, len(v))
+	}
+
+	for k, v := range l {
+		for _, d := range v {
+			s += fmt.Sprintf("\n\tl[`%s`] = append(l[`%s`], `%s`)", k, k, d)
+		}
+	}
+
+	return s
 }
