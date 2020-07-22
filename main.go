@@ -87,7 +87,7 @@ func die(err error, msg ...interface{}) {
 	log.Println(msg...)
 
 	if verbose {
-		log.Print(expandError(err))
+		log.Println("Detailed Error:\n", expandError(err).Error())
 	}
 
 	os.Exit(1)
@@ -232,7 +232,7 @@ func main() {
 	})
 
 	if err != nil {
-		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory)
+		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory, ". Maybe you need to use another workspace (-workspace)?")
 	}
 
 	doneWithDatabase := ws.Run()
