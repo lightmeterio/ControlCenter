@@ -12,7 +12,7 @@ type Mapper struct {
 	r map[string]string
 }
 
-func reverseList(l RawList) (map[string]string, error) {
+func invertMapping(l RawList) (map[string]string, error) {
 	result := make(map[string]string, len(l))
 
 	for k, v := range l {
@@ -29,7 +29,7 @@ func reverseList(l RawList) (map[string]string, error) {
 }
 
 func Mapping(list RawList) (Mapper, error) {
-	r, err := reverseList(list)
+	r, err := invertMapping(list)
 
 	if err != nil {
 		return Mapper{}, util.WrapError(err)
