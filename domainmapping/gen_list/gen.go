@@ -17,6 +17,8 @@ func main() {
 	util.MustSucceed(err, "")
 	l := domainmapping.RawList{}
 	util.MustSucceed(json.Unmarshal(b, &l), "Invalid domain mapping file")
+	_, err = domainmapping.Mapping(l)
+	util.MustSucceed(err, "Malformed domain mapping file")
 	s, err := json.Marshal(l)
 	util.MustSucceed(err, "")
 	util.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(s), 0600), "")
@@ -29,7 +31,15 @@ package domainmapping
 import "encoding/json"
 import "gitlab.com/lightmeter/controlcenter/util"
 
-var DefaultMapping = Mapping(mustParse())
+func init() {
+	DefaultMapping = mustBeValidList()
+}
+
+func mustBeValidList() *Mapper {
+	m, err := Mapping(mustParse())
+	util.MustSucceed(err, "Invalid Domain List")
+	return &m
+}
 
 func mustParse() RawList {
 	l := RawList{}
