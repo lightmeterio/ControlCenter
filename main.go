@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
@@ -219,8 +220,7 @@ func main() {
 		return
 	}
 
-	// Use the domain mapping defined on domainmapping/mapping.json file
-	domainmapping.RegisterDefaultMapping()
+	lmsqlite3.Initialize(lmsqlite3.Options{"domain_mapping": domainmapping.DefaultMapping})
 
 	if len(emailToPasswdReset) > 0 {
 		performPasswordReset()

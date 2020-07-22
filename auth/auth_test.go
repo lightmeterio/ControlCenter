@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"io/ioutil"
 	"os"
 	"path"
@@ -15,6 +16,10 @@ func tempDir() string {
 		panic("error creating temp dir")
 	}
 	return dir
+}
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
 func TestSessionKey(t *testing.T) {

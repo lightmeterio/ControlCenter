@@ -48,24 +48,4 @@ func (m *Mapper) Resolve(domain string) string {
 	return r
 }
 
-func Resolve(domain string) string {
-	return globalMapping.Resolve(domain)
-}
-
-var (
-	globalMapping  *Mapper
-	DefaultMapping *Mapper
-)
-
-func init() {
-	m, _ := Mapping(RawList{})
-	globalMapping = &m
-}
-
-func RegisterMapping(m *Mapper) {
-	globalMapping = m
-}
-
-func RegisterDefaultMapping() {
-	RegisterMapping(DefaultMapping)
-}
+var DefaultMapping *Mapper

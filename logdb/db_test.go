@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -28,7 +29,10 @@ func init() {
 	// that outlives all the test cases, so it's more clear for it to be defined globally as well
 	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
 	util.MustSucceed(err, "")
-	domainmapping.RegisterMapping(&m)
+
+	lmsqlite3.Initialize(lmsqlite3.Options{
+		"domain_mapping": &m,
+	})
 }
 
 func TestDatabaseCreation(t *testing.T) {
