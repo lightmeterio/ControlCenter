@@ -156,3 +156,13 @@ You can reset the user password using the command line:
 
 - Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf lightmeter_workspace/auth.db*`.
 - Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
+
+## Domain Mapping
+
+Domain Mapping is supported, grouping related recipients as single ones.
+Currently the mapping is hardcoded in the application, and can only be changed at build time.
+
+We hope delivering a good mapping list useful for most users, but if you have custom needs, you can rebuild Control Center with a custom
+list by customizing the file `domainmapping/mapping.json` before running `make`.
+
+Please consider sending us a merge request in case you think your domain mapping can benefit other users!
