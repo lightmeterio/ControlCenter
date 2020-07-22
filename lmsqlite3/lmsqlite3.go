@@ -56,9 +56,7 @@ func registerDomainMapping(conn *sqlite.SQLiteConn, options Options) error {
 		mapper = &m
 	}
 
-	if err := conn.RegisterFunc("lm_resolve_domain_mapping", func(domain string) string {
-		return mapper.Resolve(domain)
-	}, true); err != nil {
+	if err := conn.RegisterFunc("lm_resolve_domain_mapping", mapper.Resolve, true); err != nil {
 		return util.WrapError(err)
 	}
 
