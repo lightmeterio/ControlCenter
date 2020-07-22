@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	f, err := os.Open("list.json")
+	f, err := os.Open("mapping.json")
 	util.MustSucceed(err, "")
 	b, err := ioutil.ReadAll(f)
 	util.MustSucceed(err, "")

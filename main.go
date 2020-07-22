@@ -219,7 +219,7 @@ func main() {
 		return
 	}
 
-	// Use the domain mapping defined on domainmapping/list.json file
+	// Use the domain mapping defined on domainmapping/mapping.json file
 	domainmapping.RegisterDefaultMapping()
 
 	if len(emailToPasswdReset) > 0 {
