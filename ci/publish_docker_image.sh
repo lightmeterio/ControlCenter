@@ -5,11 +5,6 @@ set -e
 set -vx
 
 function image_tag() {
-  if [ "$LMCC_OMG_FORCE_PUBLISHING_DOCKER_IMAGE_TAG" != "none" ]; then
-    echo "$LMCC_OMG_FORCE_PUBLISHING_DOCKER_IMAGE_TAG"
-    return
-  fi
-
   if [ -n "${CI_COMMIT_TAG}" ]; then
     echo "${CI_COMMIT_TAG#release/}"
   else
