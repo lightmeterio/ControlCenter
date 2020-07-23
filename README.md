@@ -25,8 +25,8 @@ Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and ma
 
 1. Install Lightmeter Control Center as you prefer, then run it using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
    This command will start the application monitoring `/var/log` in real time (including old logs found there), and store operation files in `lightmeter_workspace` folder in your user's home directory.
-1. Open `http://localhost:8080/` to see the interface
-1. If necessary change the date range to see graphs for the period of the logs you just imported
+1. Open `http://localhost:8080/` to see the web interface
+1. If necessary, change the date range to see charts for the period of the logs you just imported
 
 ## Supported Mail Transfer Agents
 
