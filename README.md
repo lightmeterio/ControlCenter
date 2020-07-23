@@ -23,9 +23,10 @@ Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and ma
 
 ## Quickstart
 
-1. Install Lightmeter Control Center as you prefer, then run it using `./lightmeter -watch_dir /path/to/mail/log/dir`
-1. Open `http://localhost:8080/` to see the interface
-1. If necessary change the date range to see graphs for the period of the logs you just imported
+1. Install Lightmeter Control Center as you prefer, then run it using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
+   This command will start the application monitoring `/var/log` in real time (including old logs found there), and store operation files in `lightmeter_workspace` folder in your user's home directory.
+1. Open `http://localhost:8080/` to see the web interface
+1. If necessary, change the date range to see charts for the period of the logs you just imported
 
 ## Supported Mail Transfer Agents
 
@@ -93,7 +94,7 @@ Achieving this is easy using manual upgrade based on replacing binary files. For
     - Logfiles provided using the `-watch_file` argument will be monitored for changes and the Web UI automatically updated. An SQLite database is used in the backend for storing processed log data. Note that `-watch_file` only looks for new changes from the last recorded time of the previous import; therefore it does not scan the entire contents of the specified logfile if it has previously been imported or watched.
 - Specify which mail logs to watch using the command line argument `lightmeter -watch_file [path/to/logfile.log]`. This argument can be specified multiple times to read from multiple files.
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
-- Mailserver data is stored in separate workspaces so that different servers can be monitored separately. See `-help` for more details on managing these.
+- Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
 - Postfix logs don't contain a year as part of the date of each line, so the year for processed logs is assumed to be this year. To override this and specify a year manually, use the `-what_year_is_it` flag like `-what_year_is_it 2018` 
 - Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
 (even if compressed with gzip) and waiting new log files that happen after such import.
@@ -152,8 +153,8 @@ You can reset the user password using the command line:
 
 #### Delete users
 
-- Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf lightmeter_workspace/auth.db*`.
-- Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
+- Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf /var/lib/lightmeter_workspace/auth.db*`.
+- Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 /var/lib/lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
 
 ## Domain Mapping
 
