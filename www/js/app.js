@@ -237,8 +237,18 @@ $(function(){
 
 // for registration page
 function submitRegisterForm() {
-    var form = document.getElementById("form")
-    var registrationFormData = new FormData(form)
+    var registrationFormData = new FormData(document.getElementById("form"))
+
+    var settingsFormData = new FormData(document.getElementById("settingsForm"))
+
+    var emailKind = settingsFormData.get("email_kind")
+
+    if (emailKind === null || emailKind.length == 0) {
+        alert("Please select an option for 'Most of my mail is' - see help for details")
+        return
+    }
+
+    settingsFormData.append("email", registrationFormData.get("email"))
 
     fetch(window.location.href, {method: 'post', body: new URLSearchParams(registrationFormData)})
     .then(res => res.json())
@@ -258,10 +268,6 @@ function submitRegisterForm() {
             alert(message)
             return
         }
-
-        var form = document.getElementById("settingsForm")
-        var settingsFormData = new FormData(form)
-        settingsFormData.append("email", registrationFormData.get("email"))
 
         fetch("/settings/initialSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
             // matomo registration success
