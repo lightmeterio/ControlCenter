@@ -123,7 +123,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 
 	func() {
 		if initialTime.IsZero() {
-			log.Println("Start importing Postfix logs directory on a new workspace")
+			log.Println("Start importing Postfix logs directory into a new workspace")
 			return
 		}
 
