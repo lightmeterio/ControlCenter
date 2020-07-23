@@ -24,6 +24,7 @@ const (
 var (
 	ErrInvalidInintialSetupOption    = errors.New(`Invalid Initial Setup Option`)
 	ErrFailedToSubscribeToNewsletter = errors.New(`Error Subscribing To Newsletter`)
+	ErrInvalidMailKindOption         = errors.New(`Invalid Mail Kind`)
 )
 
 type InitialSetupOptions struct {
@@ -49,7 +50,7 @@ func validMailKind(k SetupMailKind) bool {
 
 func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOptions) error {
 	if !validMailKind(o.MailKind) {
-		return ErrInvalidInintialSetupOption
+		return ErrInvalidMailKindOption
 	}
 
 	if o.SubscribeToNewsletter {
