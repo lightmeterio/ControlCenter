@@ -39,7 +39,7 @@ func TestDatabaseCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := Open("/proc/lalala", data.Config{Location: time.UTC})
+			_, err := Open("/proc/lalala", Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 
@@ -47,7 +47,7 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldBeNil)
-			_, err := Open(dir, data.Config{Location: time.UTC})
+			_, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 
@@ -55,7 +55,7 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
-			_, err := Open(dir, data.Config{Location: time.UTC})
+			_, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 	})
@@ -64,7 +64,7 @@ func TestDatabaseCreation(t *testing.T) {
 		Convey("Create DB", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			db, err := Open(dir, data.Config{Location: time.UTC})
+			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 
 			defer db.Close()
@@ -74,7 +74,7 @@ func TestDatabaseCreation(t *testing.T) {
 		Convey("Empty Database is properly closed", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			db, err := Open(dir, data.Config{Location: time.UTC})
+			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			So(db.HasLogs(), ShouldBeFalse)
 			So(db.Close(), ShouldBeNil)
@@ -84,10 +84,10 @@ func TestDatabaseCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 
-			ws1, err := Open(dir, data.Config{Location: time.UTC})
+			ws1, err := Open(dir, Config{Location: time.UTC})
 			ws1.Close()
 
-			ws2, err := Open(dir, data.Config{Location: time.UTC})
+			ws2, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			ws2.Close()
 		})
@@ -108,7 +108,7 @@ func TestLogsInsertion(t *testing.T) {
 		defer os.RemoveAll(dir)
 
 		buildWs := func() (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {
-			db, err := Open(dir, data.Config{Location: time.UTC})
+			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			done := db.Run()
 			pub := db.NewPublisher()
@@ -124,21 +124,15 @@ func TestLogsInsertion(t *testing.T) {
 		var converter parser.TimeConverter
 
 		initConverter := func(year int, db *DB) {
-			t, year := func(ts time.Time, year int) (parser.Time, int) {
-				if ts.IsZero() {
-					return parser.Time{}, year
+			t := func(ts time.Time) time.Time {
+				if !ts.IsZero() {
+					return ts
 				}
 
-				return parser.Time{
-					Month:  ts.Month(),
-					Day:    uint8(ts.Day()),
-					Hour:   uint8(ts.Hour()),
-					Minute: uint8(ts.Minute()),
-					Second: uint8(ts.Second()),
-				}, ts.Year()
-			}(db.MostRecentLogTime(), year)
+				return parser.DefaultTimeInYear(year, ts.Location())
+			}(db.MostRecentLogTime())
 
-			converter = parser.NewTimeConverter(t, year, time.UTC, func(int, parser.Time, parser.Time) {})
+			converter = parser.NewTimeConverter(t, func(int, parser.Time, parser.Time) {})
 		}
 
 		smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t parser.Time, recipientLocalPart, recipientDomainPart string) data.Record {

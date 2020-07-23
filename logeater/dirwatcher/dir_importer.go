@@ -341,12 +341,6 @@ func NewDirectoryImporter(
 	return DirectoryImporter{content, pub, initialTime}
 }
 
-type timedRecord struct {
-	header  parser.Header
-	payload parser.Payload
-	time    time.Time
-}
-
 func readFromReader(reader io.Reader,
 	filename string,
 	onNewRecord func(parser.Header, parser.Payload)) {
@@ -404,7 +398,7 @@ type queueProcessor struct {
 	readers       []fileReader
 	scanners      []*bufio.Scanner
 	entries       fileEntryList
-	record        timedRecord
+	record        data.Record
 	currentIndex  int
 	converter     *parser.TimeConverter
 	converterChan timeConverterChan
@@ -573,9 +567,15 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 	pattern := p.pattern
 
 	converter := parser.NewTimeConverter(
-		header.Time,
-		initialTime.Year(),
-		initialTime.Location(),
+		time.Date(initialTime.Year(),
+			header.Time.Month,
+			int(header.Time.Day),
+			int(header.Time.Hour),
+			int(header.Time.Minute),
+			int(header.Time.Second),
+			0,
+			initialTime.Location(),
+		),
 		func(int, parser.Time, parser.Time) {
 			log.Println("Changed Year on log queue", pattern)
 		})
@@ -631,7 +631,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 
 		convertedTime := p.converter.Convert(header.Time)
 
-		p.record = timedRecord{header: header, payload: payload, time: convertedTime}
+		p.record = data.Record{Header: header, Payload: payload, Time: convertedTime}
 
 		return true, nil
 	}
@@ -666,7 +666,7 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	chosenIndex := -1
 
 	for i, p := range queueProcessors {
-		if chosenIndex == -1 || queueProcessors[chosenIndex].record.time.After(p.record.time) {
+		if chosenIndex == -1 || queueProcessors[chosenIndex].record.Time.After(p.record.Time) {
 			chosenIndex = i
 		}
 	}
@@ -722,8 +722,8 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if t.time.After(initialTime) {
-			pub.Publish(data.Record{Header: t.header, Payload: t.payload})
+		if t.Time.After(initialTime) {
+			pub.Publish(t)
 		}
 	}
 }
@@ -731,10 +731,10 @@ func importExistingLogs(
 type newLogsPublisher struct {
 	// a temporary buffer for the new lines that arrive before the archived logs are imported
 	// so we publish them in chronological order
-	records chan timedRecord
+	records chan data.Record
 }
 
-func (pub newLogsPublisher) Publish(r timedRecord) {
+func (pub newLogsPublisher) Publish(r data.Record) {
 	pub.records <- r
 }
 
@@ -932,7 +932,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 	flushHeap := func() {
 		for h.Len() > 0 {
 			s := heap.Pop(&h).(sortableRecord)
-			r := timedRecord{header: s.record.header, payload: s.record.payload, time: s.time}
+			r := data.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time}
 			pub.Publish(r)
 		}
 	}
@@ -1063,7 +1063,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		return util.WrapError(err)
 	}
 
-	newLogsPublisher := newLogsPublisher{records: make(chan timedRecord)}
+	newLogsPublisher := newLogsPublisher{records: make(chan data.Record)}
 
 	converterChans := timeConverterChansFromQueues(queues)
 
@@ -1097,7 +1097,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	// Start really publishing the buffered records here, indefinitely
 	for r := range newLogsPublisher.records {
-		importer.pub.Publish(data.Record{Time: r.time, Header: r.header, Payload: r.payload})
+		importer.pub.Publish(r)
 	}
 
 	// It should never get here in production, only used by the tests

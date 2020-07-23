@@ -16,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
@@ -118,17 +119,16 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 		die(util.WrapError(err), "Error opening directory:", dirToWatch)
 	}
 
-	initialTime := func() time.Time {
-		t := ws.MostRecentLogTime()
+	initialTime := ws.MostRecentLogTime()
 
-		if t.IsZero() {
-			return time.Date(1970, time.January, 1, 0, 0, 0, 0, timezone)
+	func() {
+		if initialTime.IsZero() {
+			log.Println("Start importing Postfix logs directory into a new workspace")
+			return
 		}
 
-		return t
+		log.Println("Importing Postfix logs directory from time", initialTime)
 	}()
-
-	log.Println("Start importing Postfix logs directory from time", initialTime)
 
 	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
 
@@ -227,7 +227,7 @@ func main() {
 		return
 	}
 
-	ws, err := workspace.NewWorkspace(workspaceDirectory, data.Config{
+	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
 	})
 

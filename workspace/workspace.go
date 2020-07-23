@@ -25,7 +25,7 @@ type Workspace struct {
 	settings     *settings.MasterConf
 }
 
-func NewWorkspace(workspaceDirectory string, config data.Config) (Workspace, error) {
+func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
 		return Workspace{}, util.WrapError(err, "Error creating working directory ", workspaceDirectory)
 	}

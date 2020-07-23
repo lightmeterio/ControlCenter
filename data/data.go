@@ -15,7 +15,3 @@ type Publisher interface {
 	Publish(Record)
 	Close()
 }
-
-type Config struct {
-	Location *time.Location
-}

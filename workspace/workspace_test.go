@@ -2,8 +2,8 @@ package workspace
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logdb"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -26,7 +26,7 @@ func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := NewWorkspace("/proc/lalala", data.Config{Location: time.UTC})
+			_, err := NewWorkspace("/proc/lalala", logdb.Config{Location: time.UTC})
 			So(err, ShouldNotBeNil)
 		})
 	})
@@ -35,7 +35,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		Convey("Create Workspace", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			ws, err := NewWorkspace(dir, data.Config{Location: time.UTC})
+			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 
 			defer ws.Close()
@@ -45,7 +45,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		Convey("Empty Database is properly closed", func() {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
-			ws, err := NewWorkspace(dir, data.Config{Location: time.UTC})
+			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			So(ws.HasLogs(), ShouldBeFalse)
 			So(ws.Close(), ShouldBeNil)
@@ -55,10 +55,10 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir := tempDir()
 			defer os.RemoveAll(dir)
 
-			ws1, err := NewWorkspace(dir, data.Config{Location: time.UTC})
+			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			ws1.Close()
 
-			ws2, err := NewWorkspace(dir, data.Config{Location: time.UTC})
+			ws2, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			ws2.Close()
 		})
