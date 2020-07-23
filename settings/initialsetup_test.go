@@ -66,7 +66,7 @@ func TestInitialSetup(t *testing.T) {
 			So(errors.Is(m.SetInitialOptions(context, InitialSetupOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              "Lalala"},
-			), ErrInvalidInintialSetupOption), ShouldBeTrue)
+			), ErrInvalidMailKindOption), ShouldBeTrue)
 		})
 
 		Convey("Fails to Subscribe", func() {
