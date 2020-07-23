@@ -33,8 +33,6 @@ EOF
 
 mkdir -p .docker-cache
 
-docker login
-
 /kaniko/executor \
   --context $CI_PROJECT_DIR \
   --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
