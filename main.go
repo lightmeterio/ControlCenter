@@ -232,7 +232,7 @@ func main() {
 	})
 
 	if err != nil {
-		die(util.WrapError(err), "Error opening workspace directory:", workspaceDirectory, ". Maybe you need to use another workspace (-workspace)?")
+		die(util.WrapError(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
 	}
 
 	doneWithDatabase := ws.Run()
