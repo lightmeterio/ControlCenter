@@ -121,7 +121,14 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 
 	initialTime := ws.MostRecentLogTime()
 
-	log.Println("Start importing Postfix logs directory from time", initialTime)
+	func() {
+		if initialTime.IsZero() {
+			log.Println("Start importing Postfix logs directory on a new workspace")
+			return
+		}
+
+		log.Println("Importing Postfix logs directory from time", initialTime)
+	}()
 
 	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
 
