@@ -1,10 +1,10 @@
 {
-	"163":[
-    "163.com",
-    "125.com",
-    "yeah.com"
+    "163":[
+      "163.com",
+      "125.com",
+      "yeah.com"
   ],
-	"aol":[
+    "aol":[
 	  "aaol.com",
 	  "about.me",
 	  "adtech.com",
@@ -105,6 +105,12 @@
 	  "writesoon.com",
 	  "yaol.com",
 	  "ygm.com"
+  ],
+    "Apple":[
+      "mac.com",
+      "me.com",
+      "iCloud.com",
+      "mobile.me"
   ],
 	"1and1":[
 	  "email.com",
@@ -450,20 +456,25 @@
 	  "microsoftsqlserver.com",
 	  "microsoftsilverlight.net",
 	  "microsoftsilverlight.org",
-	  "live.eu",
-	  "live.se",
 	  "internetexplorer.co",
 	  "microsoftsilverlight.com",
-	  "live.org",
 	  "internetexplorer.com",
 	  "ie8.co",
-	  "live.co",
-	  "live.com",
 	  "hotmail.co",
 	  "live.net",
+	  "live.de",
+	  "live.dk",
+	  "live.co.uk",
+	  "live.co",
+	  "live.com",
+	  "live.org",
+	  "live.eu",
+	  "live.se",
+	  "live.nl",
+	  "live.com.au",
 	  "hotmail.org",
 	  "hotmail.eu",
-	  "live.co.uk",
+	  "hotmail.de",
 	  "hotmail.net",
 	  "hotmail.co.uk",
 	  "bingbar.com",
@@ -483,9 +494,7 @@
 	  "hotmail.nl",
 	  "hotmail.be",
 	  "msn.com",
-	  "windowslive.com",
-	  "live.nl",
-	  "live.com.au"
+	  "windowslive.com"
   ],
 	"Onet.pl":[
 	  "onet.pl",
@@ -501,5 +510,9 @@
 	  "amorki.pl",
 	  "buziaczek.pl",
 	  "pseudonim.pl"
+  ],
+	"Google":[
+	  "gmail.com",
+	  "googlemail.com"
   ]
 }
