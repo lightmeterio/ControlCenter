@@ -341,22 +341,6 @@ func NewDirectoryImporter(
 	return DirectoryImporter{content, pub, initialTime}
 }
 
-func readFromReader(reader io.Reader,
-	filename string,
-	onNewRecord func(parser.Header, parser.Payload)) {
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-
-		h, p, err := parser.Parse(line)
-
-		if parser.IsRecoverableError(err) {
-			onNewRecord(h, p)
-		}
-	}
-}
-
 var ErrEmptyDirectory = errors.New("Empty Directory")
 
 func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
