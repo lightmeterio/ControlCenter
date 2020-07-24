@@ -32,7 +32,10 @@ lint:
   allow_failure: true
   script:
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
+    - golangci-lint run --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
   artifacts:
+    paths:
+      - golangci-output-checkstyle.xml
     reports:
       junit: golangci-output.xml
 
@@ -142,6 +145,7 @@ sonarcloud-check:
   stage: security
   dependencies:
     - cover
+    - lint
   image:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
