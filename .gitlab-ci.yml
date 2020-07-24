@@ -10,6 +10,7 @@ variables:
 
 stages:
   - test
+  - security
   - build
   - package
   - publish
@@ -135,8 +136,12 @@ publish-docker-image:
   script:
     - sh ci/publish_docker_image.sh
 
+# NOTE: this step must come after the coverage report
+# as it collects some artefacts from it!
 sonarcloud-check:
-  stage: test
+  stage: security
+  dependencies:
+    - cover
   image:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
