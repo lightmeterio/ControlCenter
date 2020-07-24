@@ -6,7 +6,6 @@ run:
 linters:
   enable-all: true
   disable:
-    - gosec
     - testpackage
     - goerr113
     - godox
@@ -21,11 +20,7 @@ linters:
     - gochecknoinits
     - unparam 
     - golint
-    - deadcode
     - gomnd
-    - unused
-    - structcheck
-    - errcheck
 
 issues:
   exclude:

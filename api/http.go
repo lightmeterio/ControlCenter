@@ -51,8 +51,10 @@ func requestWithInterval(timezone *time.Location,
 }
 
 type handler struct {
+	//nolint:structcheck
 	dashboard dashboard.Dashboard
-	timezone  *time.Location
+	//nolint:structcheck
+	timezone *time.Location
 }
 
 type countByStatusHandler handler

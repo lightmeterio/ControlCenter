@@ -1,6 +1,7 @@
 package dirwatcher
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"io"
@@ -13,6 +14,22 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
+
+func readFromReader(reader io.Reader,
+	filename string,
+	onNewRecord func(parser.Header, parser.Payload)) {
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+
+		h, p, err := parser.Parse(line)
+
+		if parser.IsRecoverableError(err) {
+			onNewRecord(h, p)
+		}
+	}
+}
 
 type fakePublisher struct {
 	logs []data.Record
