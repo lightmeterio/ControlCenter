@@ -1,0 +1,11 @@
+{
+  "name": "controlcenter-acceptance-tests",
+  "version": "0.0.1",
+  "description": "Lightmeter ControlCenter Acceptance Tests",
+  "scripts": {
+    "test": "gauge run specs/"
+  },
+  "dependencies": {
+    "taiko": "latest"
+  }
+}
