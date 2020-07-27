@@ -12,6 +12,7 @@ stages:
   - test
   - security
   - build
+  - acceptance-test
   - package
   - publish
   - docker
@@ -30,6 +31,7 @@ lint:
   image: golangci/golangci-lint:v1.27
   stage: test
   allow_failure: true
+  needs: []
   script:
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
     - golangci-lint run --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
@@ -51,6 +53,7 @@ lint:
 build:
   extends: .go-builder
   stage: build
+  needs: []
   script:
     - make static_release
   artifacts:
@@ -61,6 +64,7 @@ build:
 test:
   extends: .go-builder
   stage: test
+  needs: []
   script:
     - ./tools/go_test.sh -v 2>&1 | ~/go/bin/go-junit-report > report.xml
   artifacts:
@@ -71,6 +75,7 @@ test:
 cover:
   extends: .go-builder
   stage: test
+  needs: []
   script:
     - go get -u github.com/t-yuki/gocover-cobertura
     - ./tools/go_test.sh -coverprofile=coverinfo.txt
@@ -91,7 +96,9 @@ acceptance-test:
     LANGUAGE: de
   extends: .on-non-tag
   image: registry.gitlab.com/lightmeter/acceptance-tests-docker-image
-  stage: test
+  stage: acceptance-test
+  needs:
+    - build
   script:
     - npm --prefix acceptance_tests link
     - npm --prefix acceptance_tests test
@@ -109,6 +116,8 @@ acceptance-test:
 publish-binaries:
   extends: .go-builder
   stage: package
+  needs:
+    - build
   dependencies:
     - build
   rules:
@@ -124,6 +133,8 @@ publish-release:
   extends: .on-non-tag
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli
+  needs:
+    - publish-binaries
   dependencies:
     - publish-binaries
   rules:
@@ -137,18 +148,22 @@ publish-release:
 license_scanning:
   extends: .on-non-tag
   stage: test
+  needs: []
 
 sast:
   extends: .on-non-tag
   stage: test 
+  needs: []
 
 dependency_scanning:
   extends: .on-non-tag
   stage: test
+  needs: []
 
 code_quality:
   extends: .on-non-tag
   stage: test
+  needs: []
 
 publish-docker-image:
   rules:
@@ -158,6 +173,7 @@ publish-docker-image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   stage: docker
+  needs: []
   script:
     - sh ci/publish_docker_image.sh
 
@@ -166,6 +182,9 @@ publish-docker-image:
 sonarcloud-check:
   stage: security
   dependencies:
+    - cover
+    - lint
+  needs:
     - cover
     - lint
   image:
