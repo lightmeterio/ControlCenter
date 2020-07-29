@@ -3,6 +3,10 @@ http_vfsdata.go
 *_mock.go
 www/api.json
 version/version_release.go
+lightmeter
+docs/docs.go
+docs/swagger.json
+docs/swagger.yaml
 
 # IntelliJ project files 
 *.iml

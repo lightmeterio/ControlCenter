@@ -1,8 +1,8 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -51,11 +51,14 @@ func TestDashboard(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-			body, _ := ioutil.ReadAll(r.Body)
+			var body map[string]interface{}
+			dec := json.NewDecoder(r.Body)
+			err = dec.Decode(&body)
+			So(err, ShouldBeNil)
 
-			// FIXME: meh, we should not depend on the order of the elements of a map
-			// as they come from a Go map, which does not guarantee order
-			So(string(body), ShouldEqual, `{"bounced":2,"deferred":3,"sent":4}`)
+			// NOTE: all numbers are decoded into an interface{} as float64, so we want to have float64 here, too.
+			expected := map[string]interface{}{"bounced": float64(2), "deferred": float64(3), "sent": float64(4)}
+			So(body, ShouldResemble, expected)
 		})
 	})
 }
