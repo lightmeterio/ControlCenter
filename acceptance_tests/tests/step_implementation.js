@@ -5,7 +5,7 @@ const assert = require("assert");
 const headless = process.env.headless_chrome.toLowerCase() === 'true';
 
 beforeSuite(async () => {
-    await openBrowser({ headless: headless, args: ["--no-sandbox"] })
+    await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
 });
 
 afterSuite(async () => {
