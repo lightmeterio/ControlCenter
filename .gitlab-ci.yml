@@ -92,8 +92,6 @@ cover:
     expire_in: 7 days
 
 acceptance-test:
-  variables:
-    LANGUAGE: de
   extends: .on-non-tag
   image: registry.gitlab.com/lightmeter/acceptance-tests-docker-image
   stage: acceptance-test
