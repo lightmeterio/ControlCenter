@@ -156,7 +156,9 @@ You can reset the user password using the command line:
 - Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf /var/lib/lightmeter_workspace/auth.db*`.
 - Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 /var/lib/lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
 
-## Domain Mapping
+## Feature details
+
+### Domain Mapping
 
 Domain Mapping is supported. This means remote hosts which are related to each other are treated as one where necessary (eg outlook.com and hotmail.com).
 
@@ -165,3 +167,29 @@ Currently the mapping is hardcoded in the application - changing the mappings re
 Mappings are stored in `domainmapping/mapping.json` and cover the largest remote hosts by default. The mappings can be easily customised by editing that file, followed by [rebuilding](#Build-from-source-code).
 
 Please consider extending the default mappings by making merge requests to benefit all users!
+
+## Development
+
+### Browser automation tests
+
+These tests (also referred to as User Acceptance Tests) are found in the `acceptance_tests` directory and executed by [Gauge](https://gauge.org/) and [Taiko](https://github.com/getgauge/taiko). These tests are part of CI/CD and executed on every GitLab commit.
+
+### Run tests locally
+
+```bash
+make dev
+cd acceptance_tests
+ln -sf ../www
+# if you have chrome / chromium installed already, then disable duplicate chromium download...
+# export TAIKO_SKIP_CHROMIUM_DOWNLOAD=1
+# ... and set the path to your existing chrome / chromium binary
+# export TAIKO_BROWSER_PATH=/usr/bin/chrome-gnome-shell
+# get node dependencies including gauge and taiko
+npm install
+# set the path to necessary npm binaries
+export PATH=$PATH:$PWD/node_modules/.bin
+# execute tests
+npm test
+```
+
+After doing all this you should see a Chrome / Chromium browser open, and tests start to run.
