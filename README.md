@@ -177,16 +177,18 @@ These tests (also referred to as User Acceptance Tests) are found in the `accept
 ### Run tests locally
 
 ```bash
+make dev
 cd acceptance_tests
-// if you have chrome / chromium installed already, then disable duplicate chromium download...
-// export TAIKO_SKIP_CHROMIUM_DOWNLOAD=1
-// ... and set the path to your existing chrome / chromium binary
-// export TAIKO_BROWSER_PATH=/usr/bin/chrome-gnome-shell
-// get node dependencies including gauge and taiko
+ln -sf ../www
+# if you have chrome / chromium installed already, then disable duplicate chromium download...
+# export TAIKO_SKIP_CHROMIUM_DOWNLOAD=1
+# ... and set the path to your existing chrome / chromium binary
+# export TAIKO_BROWSER_PATH=/usr/bin/chrome-gnome-shell
+# get node dependencies including gauge and taiko
 npm install
-// set the path to necessary npm binaries
+# set the path to necessary npm binaries
 export PATH=$PATH:$PWD/node_modules/.bin
-// execute tests
+# execute tests
 npm test
 ```
 
