@@ -1,30 +1,56 @@
 /* globals gauge*/
 "use strict";
-const { click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf } = require('taiko');
+const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf } = require('taiko');
 const assert = require("assert");
+const child_process = require("child_process")
+const tmp = require("tmp")
+
+tmp.setGracefulCleanup();
+
 const headless = process.env.headless_chrome.toLowerCase() === 'true';
 
-beforeSuite(async () => {
-    await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
+var lightmeterProcess = null
+
+var tmpDir = tmp.dirSync()
+
+beforeSuite(async() => {
+    lightmeterProcess = child_process.execFile('../lightmeter', ['-workspace', tmpDir.name, '-stdin', '-listen', ':8080'])
+
+    return new Promise((r) => setTimeout(r, 2000)).then(async () => {
+        await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
+    })
+});
+
+step("Expect registration to fail", async () => {
+  alert("Please select an option for 'Most of my mail is' - see help for details", async ({message}) => {
+    console.log("accepting popup with message: " + message)
+    await accept()
+  })
 });
 
 afterSuite(async () => {
-    await closeBrowser();
+    await closeBrowser().then(function() {
+        lightmeterProcess.kill()
+    });
 });
 
 gauge.screenshotFn = async function() {
     return await screenshot({ encoding: 'base64' });
 };
 
-step("Goto google", async () => {
-    await goto('google.de');
+step("Go to main page", async () => {
+    await goto('localhost:8080');
 });
 
-step("Search for <query>", async (query) => {
-    await write(query);
-    await click('Google Suche')
+step("Focus on field with placeholder <placeholder>", async (placeholder) => {
+    await focus(textBox({placeholder: placeholder}))
 });
 
-step("Page contains <content>", async (content) => {
-    assert.ok(await text(content).exists());
+step("Click on <clickable>", async (clickable) => {
+    await click(clickable)
 });
+
+step("Type <content>", async (content) => {
+    await write(content)
+});
+
