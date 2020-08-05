@@ -1,0 +1,80 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: pt-BR\n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+
+#: www/login.i18n.html:37 www/login.i18n.html:56
+msgid "Login"
+msgstr "Login"
+
+#: www/login.i18n.html:43 www/register.i18n.html:50
+msgid "E-mail"
+msgstr "E-mail"
+
+#: www/login.i18n.html:44 www/register.i18n.html:51
+msgid "Email"
+msgstr "Email"
+
+#: www/login.i18n.html:54
+msgid "Forgot password?"
+msgstr "Esqueceu a senha??"
+
+#: www/register.i18n.html:65
+msgid "Direct (personal, office, one-to-one)"
+msgstr "Direto (pessoal, escritório, one-to-one)"
+
+#: www/register.i18n.html:67
+msgid "Marketing (newsletters, adverts)"
+msgstr "Marketing (boletim de notícias, anúncios)"
+
+#: www/register.i18n.html:70
+msgid "Different types of mail perform differently. This helps show the most relevant information."
+msgstr "Diferentes tipos de correio eletrônico funcionam de forma diferente. Esta opção mostra as informações mais relevantes."
+
+#: www/register.i18n.html:47 www/register.i18n.html:48
+msgid "Name"
+msgstr "Nome"
+
+#: www/login.i18n.html:47 www/login.i18n.html:48 www/register.i18n.html:54 www/register.i18n.html:55
+msgid "Password"
+msgstr "Senha"
+
+#: www/register.i18n.html:78
+msgid "Monthly newsletter"
+msgstr "Receber boletim de notícias mensal"
+
+#: www/register.i18n.html:38
+msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
+msgstr "Por favor crie uma conta de adminstrador - necessário para o login. Se você ja o fez, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">obtenha ajuda</a> para evitar cria-la novamente."
+
+#: www/register.i18n.html:62 www/register.i18n.html:64
+msgid "Most of my mail is…"
+msgstr "A maior parte to correio eletrônico é…"
+
+#: www/register.i18n.html:81
+msgid "Register"
+msgstr "Registrar"
+
+#: www/login.i18n.html:19 www/register.i18n.html:19
+msgid "Registration"
+msgstr "Registro"
+
+#: www/register.i18n.html:37
+msgid "Welcome"
+msgstr "Bem-vindo(a)"
+
+#: www/register.i18n.html:41
+msgid "User details"
+msgstr "Informações de usuário"
+
+#: www/register.i18n.html:66
+msgid "Transactional (notifications, apps)"
+msgstr "Transacional (notificações, apps)"
+
