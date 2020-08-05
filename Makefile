@@ -20,10 +20,10 @@ BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSI
 
 all: dev
 
-dev: mocks swag domain_mapping_list
+dev: mocks swag domain_mapping_list po2go
 	go build -tags="dev" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-release: static_www domain_mapping_list
+release: static_www domain_mapping_list po2go
 	go build -tags="release" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 windows_release: static_www domain_mapping_list
@@ -43,6 +43,12 @@ domainmapping/generated_list.go: domainmapping/mapping.json
 
 mocks:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
+
+po2go:
+	go generate gitlab.com/lightmeter/controlcenter/po
+
+code2po:
+	go run tools/code2po/main.go -i www -o po/en/LC_MESSAGES/controlcenter.po
 
 swag:
 	go run github.com/swaggo/swag/cmd/swag init --generalInfo api/http.go
