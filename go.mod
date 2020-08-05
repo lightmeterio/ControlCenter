@@ -12,6 +12,7 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1 // indirect
 	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722164326-f274d5c51ec9
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
