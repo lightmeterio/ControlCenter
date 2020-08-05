@@ -8,7 +8,7 @@ set -o pipefail
 export CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
 
 # test everything except mocks and the main package
-COVERPKG="$(go list ./... | egrep -v '(/examples/|(controlcenter|mock)$)' | tr '\n' ',')"
+COVERPKG="$(go list ./... | egrep -v '(/examples/|/po/|/tools/|(controlcenter|lightmeter|mock)$)' | tr '\n' ',')"
 
 export CGO_ENABLED=1
 
