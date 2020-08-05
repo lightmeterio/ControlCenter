@@ -13,6 +13,7 @@ import (
 
 func changeRequestURL(r *http.Request, path string) *http.Request {
 	newReq := &http.Request{}
+	*newReq = *r
 	newReq.URL = new(url.URL)
 	newReq.URL.Path = path
 	return newReq
@@ -44,10 +45,10 @@ func NewAuthenticator(h http.Handler, auth *auth.Auth, workspaceDirectory string
 				h.ServeHTTP(w, r)
 			},
 			ShowLogin: func(w http.ResponseWriter, r *http.Request) {
-				h.ServeHTTP(w, changeRequestURL(r, "/login.html"))
+				h.ServeHTTP(w, changeRequestURL(r, "/login.i18n.html"))
 			},
 			Register: func(w http.ResponseWriter, r *http.Request) {
-				h.ServeHTTP(w, changeRequestURL(r, "/register.html"))
+				h.ServeHTTP(w, changeRequestURL(r, "/register.i18n.html"))
 			},
 			LoginFailure: func(w http.ResponseWriter, r *http.Request) {
 			},
