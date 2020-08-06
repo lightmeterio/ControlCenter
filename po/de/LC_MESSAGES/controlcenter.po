@@ -1,42 +1,47 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"Report-Msgid-Bugs-To: \n"
+"Report-Msgid-Bugs-To: invoices@lightmeter.io\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: \n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2020-08-06 18:57+0000\n"
+"Last-Translator: Weblate Admin <invoices@lightmeter.io>\n"
+"Language-Team: German <http://translate.lightmeter.io/projects/controlcenter/"
+"html-pages/de/>\n"
 "Language: de\n"
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.1.1\n"
 
 #: www/login.i18n.html:37 www/login.i18n.html:56
 msgid "Login"
-msgstr ""
+msgstr "Anmeldung"
 
 #: www/login.i18n.html:43 www/register.i18n.html:50
 msgid "E-mail"
-msgstr ""
+msgstr "E-Mail"
 
 #: www/login.i18n.html:44 www/register.i18n.html:51
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: www/login.i18n.html:54
 msgid "Forgot password?"
-msgstr ""
+msgstr "Passwort vergessen?"
 
 #: www/register.i18n.html:65
 msgid "Direct (personal, office, one-to-one)"
-msgstr ""
+msgstr "Direkt (persönlich, Büro, Einzelgespräche)"
 
 #: www/register.i18n.html:67
 msgid "Marketing (newsletters, adverts)"
-msgstr ""
+msgstr "Marketing (Rundbriefe, Anzeigen)"
 
 #: www/register.i18n.html:70
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr ""
+"Verschiedene Arten von Postsendungen verhalten sich unterschiedlich. Dies "
+"hilft, die relevantesten Informationen anzuzeigen."
 
 #: www/register.i18n.html:47 www/register.i18n.html:48
 msgid "Name"
