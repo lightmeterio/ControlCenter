@@ -1,11 +1,12 @@
 package i18n
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
-	"io"
 	"net/http"
+	"time"
 )
 
 type translators struct {
@@ -20,7 +21,7 @@ type translator struct {
 	printer *message.Printer
 }
 
-func newTranslator(tag language.Tag, c catalog.Catalog) *translator {
+func newTranslator(tag language.Tag, c catalog.Catalog, accessTime time.Time) *translator {
 	return &translator{printer: message.NewPrinter(tag, message.Catalog(c))}
 }
 
@@ -28,22 +29,45 @@ func (t *translator) Translate(s string, args ...interface{}) (string, error) {
 	return t.printer.Sprintf(message.Key(s, s), args), nil
 }
 
-func (t *translators) Translator(tag language.Tag) Translator {
-	return newTranslator(tag, t.catalog)
+func (t *translators) Translator(tag language.Tag, accessTime time.Time) Translator {
+	return newTranslator(tag, t.catalog, accessTime)
 }
 
 func (t *translators) Matcher() language.Matcher {
 	return t.catalog.Matcher()
 }
 
+type now struct {
+}
+
+func (*now) Now() time.Time {
+	return time.Now()
+}
+
 func DefaultWrap(h http.Handler, fs http.FileSystem, catalog catalog.Catalog) *Wrapper {
-	return Wrap(h, &FileSystemContents{fs: fs}, newTranslators(catalog))
+	return Wrap(h, &FileSystemContents{fs: fs}, newTranslators(catalog), &now{})
 }
 
 type FileSystemContents struct {
 	fs http.FileSystem
 }
 
-func (c *FileSystemContents) Reader(path string) (io.Reader, error) {
-	return c.fs.Open(path)
+type file struct {
+	http.File
+}
+
+func (f *file) ModificationTime() time.Time {
+	s, err := f.Stat()
+	util.MustSucceed(err, "")
+	return s.ModTime()
+}
+
+func (c *FileSystemContents) Reader(path string) (File, error) {
+	f, err := c.fs.Open(path)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	return &file{f}, nil
 }
