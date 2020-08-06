@@ -193,3 +193,11 @@ npm test
 ```
 
 After doing all this you should see a Chrome / Chromium browser open, and tests start to run.
+
+### Making user interfaces translatable (i18n)
+
+The following command will look for translatable words inside interface files (currently files within the `www` directory) and generate a `.po` file for the English language.
+
+```bash
+make code2po
+```

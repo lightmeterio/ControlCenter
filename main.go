@@ -15,10 +15,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
+	"gitlab.com/lightmeter/controlcenter/i18n"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -180,6 +182,8 @@ func startHTTPServer(ws *workspace.Workspace) {
 
 	mux := http.NewServeMux()
 
+	mux.Handle("/", i18n.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets, po.DefaultCatalog))
+
 	exposeApiExplorer(mux)
 
 	exposeProfiler(mux)
@@ -191,8 +195,6 @@ func startHTTPServer(ws *workspace.Workspace) {
 	}
 
 	api.HttpDashboard(mux, timezone, dashboard)
-
-	mux.Handle("/", http.FileServer(staticdata.HttpAssets))
 
 	mux.Handle("/settings/initialSetup", initialSetupHandler)
 
