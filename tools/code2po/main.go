@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	rootDir = flag.String("i", "", "root directory to look for files")
-	outfile = flag.String("o", "", "path for po file to write")
-	pattern = flag.String("p", `.i18n.html$`, "filename pattern to extract strings")
+	rootDir    = flag.String("i", "", "root directory to look for files")
+	outfile    = flag.String("o", "", "path for po file to write")
+	pattern    = flag.String("p", `.i18n.html$`, "filename pattern to extract strings")
+	isTemplate = flag.Bool("pot", false, "use if generating a pot file")
 )
 
 type messages map[string]*po.Message
@@ -54,21 +55,38 @@ func visitNode(node parse.Node, messages messages, filename string) {
 			panic("Wrong Translate call!")
 		}
 
-		msg, alreadyExists := messages[s.Text]
-
-		if alreadyExists {
+		if msg, alreadyExists := messages[s.Text]; alreadyExists {
 			msg.ReferenceLine = append(msg.ReferenceLine, n.Line)
 			msg.ReferenceFile = append(msg.ReferenceFile, filename)
 			continue
 		}
 
+		translatedMsg := func() string {
+			if *isTemplate {
+				// a empty string will make the `po` package omit it to the final po file
+				// so a one space will be the workaround we'll use :-(
+				return " "
+			}
+
+			return s.Text
+		}
+
+		flags := func() []string {
+			if *isTemplate {
+				return []string{"fuzzy"}
+			}
+
+			return []string{}
+		}
+
 		messages[s.Text] = &po.Message{
 			MsgId:  s.Text,
-			MsgStr: s.Text,
+			MsgStr: translatedMsg(),
 			Comment: po.Comment{
 				ReferenceLine: []int{n.Line},
 				ReferenceFile: []string{filename},
 				StartLine:     n.Line,
+				Flags:         flags(),
 			},
 		}
 	}
@@ -107,7 +125,11 @@ func main() {
 
 	f := po.File{}
 
-	f.MimeHeader.Language = "en"
+	if !*isTemplate {
+		f.MimeHeader.Language = "en"
+	}
+
+	f.MimeHeader.SetFuzzy(*isTemplate)
 
 	r := regexp.MustCompile(*pattern)
 

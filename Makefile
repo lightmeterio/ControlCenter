@@ -49,6 +49,7 @@ po2go:
 
 code2po:
 	go run tools/code2po/main.go -i www -o po/en/LC_MESSAGES/controlcenter.po
+	go run tools/code2po/main.go -i www -pot -o po/controlcenter.pot
 
 swag:
 	go run github.com/swaggo/swag/cmd/swag init --generalInfo api/http.go
