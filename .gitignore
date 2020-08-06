@@ -34,3 +34,5 @@ nb-configuration.xml
 # Kdevelop
 *.kdev4
 domainmapping/generated_list.go
+
+.glab-cli
