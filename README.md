@@ -19,6 +19,13 @@
 
 Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
 
+- [Quickstart](#quickstart)
+- [Install](#install)
+- [Upgrade](#upgrade)
+- [Usage](#usage)
+- [Feature details](#feature-details)
+- [Development](#development)
+
 ![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/screenshot-of-Lightmeter-dashboard-0.0.3.png "Lightmeter Control Center 0.0.2 screenshot")
 
 ## Quickstart
