@@ -1,3 +1,12 @@
+Summary: what does this agreement do?
+
+- Checks you only submit contributions which you have the right to (so we don't get sued by other people who's work you used)
+- Checks that you allow your contributions to be used in Lightmeter releases (otherwise we can't do anything with them)
+- Allows Lightmeter to update its license in future (eg to an improved version of the AGPL)
+- Ensures your contributions will always be published by Lightmeter under an Open Source license
+- Does all of the above while ensuring you keep your rights over your own contributions (assuming that is legal where you live)
+- A few other legal things, so read it all to cover everything  (ꙨပꙨ)
+
 Lightmeter Contributor agreement
 
 Thank you for your interest in the open source software project Lightmeter (defined as the GitLab repositories in the “Lightmeter/" namespace – the “Project”) maintained or managed by Lightmeter (“us” or “Lightmeter”).
