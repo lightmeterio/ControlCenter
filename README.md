@@ -1,16 +1,16 @@
-# Lightmeter ControlCenter (work in progress)
+# Lightmeter ControlCenter
 
-[![Download](https://api.bintray.com/packages/lightmeter/controlcenter/controlcenter/images/download.svg)](https://bintray.com/lightmeter/controlcenter/controlcenter/_latestVersion)
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
-[![coverage report](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
+[![Translation status](http://translate.lightmeter.io/widgets/controlcenter/-/html-pages/svg-badge.svg)](http://translate.lightmeter.io/engage/controlcenter/?utm_source=widget)
+<br/>
 [![report_card](https://goreportcard.com/badge/gitlab.com/lightmeter/controlcenter)](https://goreportcard.com/report/gitlab.com/lightmeter/controlcenter)
-[![scale_index](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=sqale_index)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
+[![sqale_rating](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
+[![coverage report](https://gitlab.com/lightmeter/controlcenter/badges/master/coverage.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
+[![ncloc](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=ncloc)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
+<br/>
 [![bugs](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=bugs)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![code_smells](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=code_smells)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
-[![coverage](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=coverage)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![duplicated_lines_density](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=duplicated_lines_density)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
-[![ncloc](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=ncloc)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
-[![sqale_rating](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![alert_status](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=alert_status)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![reliability_rating](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![security_rating](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=security_rating)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
@@ -18,6 +18,13 @@
 [![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 
 Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
+
+- [Quickstart](#quickstart)
+- [Install](#install)
+- [Upgrade](#upgrade)
+- [Usage](#usage)
+- [Feature details](#feature-details)
+- [Development](#development)
 
 ![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/screenshot-of-Lightmeter-dashboard-0.0.3.png "Lightmeter Control Center 0.0.2 screenshot")
 
@@ -31,10 +38,6 @@ Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and ma
 ## Supported Mail Transfer Agents
 
 Currently Postfix MTA is supported. Future support for additional MTAs is planned.
-
-## Status
-
-This is a next generation rewrite of the previous [prototype](https://gitlab.com/lightmeter/prototype), and is currently work in progress.
 
 ## Install
 
