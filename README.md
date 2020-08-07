@@ -32,10 +32,6 @@ Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and ma
 
 Currently Postfix MTA is supported. Future support for additional MTAs is planned.
 
-## Status
-
-This is a next generation rewrite of the previous [prototype](https://gitlab.com/lightmeter/prototype), and is currently work in progress.
-
 ## Install
 
 ### Install using Docker
