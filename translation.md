@@ -25,6 +25,12 @@ Lightmeter is being translated into several languages.
 1. If your desired language is not listed, then click "Start new translation" to create a new one
 1. Click "Translate" to start translating available words and sentences
 
+### Applying translations
+
+Translations which are stored in Weblate are automatically added to Lightmeter software repositories. Weblate commits changes to translation files via Git, and then those files are used by Lightmeter software components. Updated translations are included in each Lightmeter release -- translations are not updated between Lightmeter updates (you must wait until the next Lightmeter release to use the most recent translations with applications). 
+
+If you want to test the most recent translations between releases, then you can download a development version from GitLab and compile it.
+
 ## General Translation Guidelines
 
 Be sure to check the following guidelines before you translate any strings.
