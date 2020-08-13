@@ -71,7 +71,6 @@ func main() {
 package po
 
 import (
-	"log"
 	"golang.org/x/text/language"
 )
 
@@ -81,7 +80,6 @@ func init() {`)
 		fmt.Fprintln(outFile, `
 	{
 		lang := language.MustParse("`+lang+`")
-		log.Println("Now loading translations for", lang)
 	`)
 
 		for _, filename := range filenames {
