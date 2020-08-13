@@ -5,44 +5,70 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="icon" href="img/favicon.svg" sizes="any" type="image/svg+xml">
-        
+
         <!-- Boostrap CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
         <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
-        
+
         <!-- Fontawesome CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
-        
+
         <!-- App CSS -->
         <link rel="stylesheet" type="text/css" href="css/app.css">
-        
+
         <title>{{translate "Registration"}}</title>
+
+       <script>
+          function submitLoginForm() {
+              var form = document.getElementById("form")
+              const data = new URLSearchParams(new FormData(form))
+
+              fetch(window.location.href, {method: 'post', body: data})
+              .then(res => res.json())
+              .then(function(data) {
+                  if (data == null) {
+                      alert("{{translate `Server Error!`}}")
+                      return
+                  }
+
+                  if (data.Error.length > 0) {
+                      alert('{[ translate `Error` }}: ' + data.Error)
+                      return
+                  }
+
+                  window.location.href = "/"
+              }).catch(function(err) {
+                  alert("{{translate `Server Error!`}}")
+                  console.log(err)
+              })
+          }
+       </script>
     </head>
 
     <body class="panel-page">
-    
+
         <div class="container">
-        
+
         <div class="row row justify-content-center vh-93">
             <div class="col-sm-5 align-self-center">
                 <div class="panel panel-default mx-auto">
                     <div class="panel-body">
-                    
+
                             <div class="row justify-content-center">
                                 <div class="col-10">
                                     <img class="logo w-100" src="img/logo-color-120.png" alt="Lightmeter logo">
                                 </div>
                             </div>
-                            
+
                             <h2>{{translate "Login"}}</h2>
-                            
+
                             <div class="field-group">
                                 <form method="post" id="form">
                                     <div class="form-group">
-                                    
+
                                       <label for="email" class="sr-only">{{translate "E-mail"}}:</label>
                                       <input id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="{{translate `Email`}}" name="email" autoFocus />
-                                        
+
                                         <div class="input-group" id="show_hide_password">
                                           <label for="password" class="sr-only">{{translate "Password"}}:</label>
                                           <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="{{translate `Password`}}" name="password">
@@ -50,21 +76,21 @@
                                                 <a href=""><i class="fa fa-eye-slash" aria-hidden="true"></i></a>
                                             </div>
                                         </div>
-                                       
+
                                         <p class="align-right"><small><a target="_blank" href="https://gitlab.com/lightmeter/controlcenter#password-reset">{{translate "Forgot password?"}}</a></small></p>
- 
+
                                         <input type="button" class="btn-sm btn-primary w-100" onclick="submitLoginForm()" value="{{translate `Login`}}" id="submit" />
-                                    
+
                                     </div>
                                 </form>
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <footer>
             <div class="container">
                 Made with
@@ -74,15 +100,15 @@
                 by <a href="https://lightmeter.io" target="_blank" data-toggle="tooltip" data-placement="top" title="Lightmeter website">Open Source professionals</a>
             </div>
         </footer>
-        
+
         <!-- Boostrap dependencies -->
         <script src="3rd/js/jquery-3.4.1.slim.min.js"></script>
         <script src="3rd/js/popper.min.js"></script>
         <script src="3rd/js/bootstrap.min.js"></script>
-        
+
         <!-- App scripts -->
         <script src="js/app.js"></script>
-        
+
         <!-- Lightmeter-hosted Matomo analytics -->
         <script>
         var _paq = window._paq || [];
@@ -98,7 +124,7 @@
             g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
         })();
         </script>
-        
+
         <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
     </body>
 </html>

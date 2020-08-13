@@ -10,71 +10,91 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: www/login.i18n.html:37 www/login.i18n.html:56
-msgid "Login"
-msgstr "Login"
-
-#: www/login.i18n.html:43 www/register.i18n.html:50
-msgid "E-mail"
-msgstr "E-mail"
-
-#: www/login.i18n.html:44 www/register.i18n.html:51
-msgid "Email"
-msgstr "Email"
-
-#: www/login.i18n.html:54
-msgid "Forgot password?"
-msgstr "Forgot password?"
-
-#: www/register.i18n.html:65
-msgid "Direct (personal, office, one-to-one)"
-msgstr "Direct (personal, office, one-to-one)"
-
-#: www/register.i18n.html:67
-msgid "Marketing (newsletters, adverts)"
-msgstr "Marketing (newsletters, adverts)"
-
-#: www/register.i18n.html:70
+#: www/register.i18n.html:128
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr "Different types of mail perform differently. This helps show the most relevant information."
 
-#: www/register.i18n.html:47 www/register.i18n.html:48
+#: www/register.i18n.html:48 www/register.i18n.html:51
+msgid "Error"
+msgstr "Error"
+
+#: www/login.i18n.html:69 www/register.i18n.html:108
+msgid "E-mail"
+msgstr "E-mail"
+
+#: www/login.i18n.html:70 www/register.i18n.html:109
+msgid "Email"
+msgstr "Email"
+
+#: www/login.i18n.html:80
+msgid "Forgot password?"
+msgstr "Forgot password?"
+
+#: www/register.i18n.html:123
+msgid "Direct (personal, office, one-to-one)"
+msgstr "Direct (personal, office, one-to-one)"
+
+#: www/login.i18n.html:63 www/login.i18n.html:82
+msgid "Login"
+msgstr "Login"
+
+#: www/register.i18n.html:105 www/register.i18n.html:106
 msgid "Name"
 msgstr "Name"
 
-#: www/login.i18n.html:47 www/login.i18n.html:48 www/register.i18n.html:54 www/register.i18n.html:55
-msgid "Password"
-msgstr "Password"
-
-#: www/register.i18n.html:78
-msgid "Monthly newsletter"
-msgstr "Monthly newsletter"
-
-#: www/register.i18n.html:38
-msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
-msgstr "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
-
-#: www/register.i18n.html:62 www/register.i18n.html:64
+#: www/register.i18n.html:120 www/register.i18n.html:122
 msgid "Most of my mail is…"
 msgstr "Most of my mail is…"
 
-#: www/register.i18n.html:81
-msgid "Register"
-msgstr "Register"
+#: www/register.i18n.html:125
+msgid "Marketing (newsletters, adverts)"
+msgstr "Marketing (newsletters, adverts)"
+
+#: www/register.i18n.html:136
+msgid "Monthly newsletter"
+msgstr "Monthly newsletter"
+
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:112 www/register.i18n.html:113
+msgid "Password"
+msgstr "Password"
 
 #: www/login.i18n.html:19 www/register.i18n.html:19
 msgid "Registration"
 msgstr "Registration"
 
-#: www/register.i18n.html:37
+#: www/register.i18n.html:30
+msgid "Please select an option for 'Most of my mail is' - see help for details"
+msgstr "Please select an option for 'Most of my mail is' - see help for details"
+
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+msgid "Server Error!"
+msgstr "Server Error!"
+
+#: www/register.i18n.html:69
+msgid "Settings Error on initial setup!"
+msgstr "Settings Error on initial setup!"
+
+#: www/register.i18n.html:48
+msgid "Vulnerable to"
+msgstr "Vulnerable to"
+
+#: www/register.i18n.html:95
 msgid "Welcome"
 msgstr "Welcome"
 
-#: www/register.i18n.html:41
+#: www/register.i18n.html:96
+msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
+msgstr "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
+
+#: www/register.i18n.html:139
+msgid "Register"
+msgstr "Register"
+
+#: www/register.i18n.html:99
 msgid "User details"
 msgstr "User details"
 
-#: www/register.i18n.html:66
+#: www/register.i18n.html:124
 msgid "Transactional (notifications, apps)"
 msgstr "Transactional (notifications, apps)"
 
