@@ -10,69 +10,64 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: www/login.i18n.html:37 www/login.i18n.html:56
-#, fuzzy
-msgid "Login"
-msgstr " "
-
-#: www/login.i18n.html:43 www/register.i18n.html:50
-#, fuzzy
-msgid "E-mail"
-msgstr " "
-
-#: www/login.i18n.html:44 www/register.i18n.html:51
-#, fuzzy
-msgid "Email"
-msgstr " "
-
-#: www/login.i18n.html:54
-#, fuzzy
-msgid "Forgot password?"
-msgstr " "
-
-#: www/register.i18n.html:65
-#, fuzzy
-msgid "Direct (personal, office, one-to-one)"
-msgstr " "
-
-#: www/register.i18n.html:67
-#, fuzzy
-msgid "Marketing (newsletters, adverts)"
-msgstr " "
-
-#: www/register.i18n.html:70
+#: www/register.i18n.html:128
 #, fuzzy
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr " "
 
-#: www/register.i18n.html:47 www/register.i18n.html:48
+#: www/register.i18n.html:48 www/register.i18n.html:51
+#, fuzzy
+msgid "Error"
+msgstr " "
+
+#: www/login.i18n.html:69 www/register.i18n.html:108
+#, fuzzy
+msgid "E-mail"
+msgstr " "
+
+#: www/login.i18n.html:70 www/register.i18n.html:109
+#, fuzzy
+msgid "Email"
+msgstr " "
+
+#: www/login.i18n.html:80
+#, fuzzy
+msgid "Forgot password?"
+msgstr " "
+
+#: www/register.i18n.html:123
+#, fuzzy
+msgid "Direct (personal, office, one-to-one)"
+msgstr " "
+
+#: www/login.i18n.html:63 www/login.i18n.html:82
+#, fuzzy
+msgid "Login"
+msgstr " "
+
+#: www/register.i18n.html:105 www/register.i18n.html:106
 #, fuzzy
 msgid "Name"
 msgstr " "
 
-#: www/login.i18n.html:47 www/login.i18n.html:48 www/register.i18n.html:54 www/register.i18n.html:55
-#, fuzzy
-msgid "Password"
-msgstr " "
-
-#: www/register.i18n.html:78
-#, fuzzy
-msgid "Monthly newsletter"
-msgstr " "
-
-#: www/register.i18n.html:38
-#, fuzzy
-msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
-msgstr " "
-
-#: www/register.i18n.html:62 www/register.i18n.html:64
+#: www/register.i18n.html:120 www/register.i18n.html:122
 #, fuzzy
 msgid "Most of my mail is…"
 msgstr " "
 
-#: www/register.i18n.html:81
+#: www/register.i18n.html:125
 #, fuzzy
-msgid "Register"
+msgid "Marketing (newsletters, adverts)"
+msgstr " "
+
+#: www/register.i18n.html:136
+#, fuzzy
+msgid "Monthly newsletter"
+msgstr " "
+
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:112 www/register.i18n.html:113
+#, fuzzy
+msgid "Password"
 msgstr " "
 
 #: www/login.i18n.html:19 www/register.i18n.html:19
@@ -80,17 +75,47 @@ msgstr " "
 msgid "Registration"
 msgstr " "
 
-#: www/register.i18n.html:37
+#: www/register.i18n.html:30
+#, fuzzy
+msgid "Please select an option for 'Most of my mail is' - see help for details"
+msgstr " "
+
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+#, fuzzy
+msgid "Server Error!"
+msgstr " "
+
+#: www/register.i18n.html:69
+#, fuzzy
+msgid "Settings Error on initial setup!"
+msgstr " "
+
+#: www/register.i18n.html:48
+#, fuzzy
+msgid "Vulnerable to"
+msgstr " "
+
+#: www/register.i18n.html:95
 #, fuzzy
 msgid "Welcome"
 msgstr " "
 
-#: www/register.i18n.html:41
+#: www/register.i18n.html:96
+#, fuzzy
+msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
+msgstr " "
+
+#: www/register.i18n.html:139
+#, fuzzy
+msgid "Register"
+msgstr " "
+
+#: www/register.i18n.html:99
 #, fuzzy
 msgid "User details"
 msgstr " "
 
-#: www/register.i18n.html:66
+#: www/register.i18n.html:124
 #, fuzzy
 msgid "Transactional (notifications, apps)"
 msgstr " "
