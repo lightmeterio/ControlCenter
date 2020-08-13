@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 )
 
 var (
@@ -91,7 +92,10 @@ func init() {`)
 			}
 
 			for _, msg := range f.Messages {
-				fmt.Fprintf(outFile, "\n\t\tDefaultCatalog.SetString(lang, `%s`, `%s`);", msg.MsgId, msg.MsgStr)
+				// skip messages with no translation
+				if len(strings.TrimSpace(msg.MsgStr)) > 0 {
+					fmt.Fprintf(outFile, "\n\t\tDefaultCatalog.SetString(lang, `%s`, `%s`);", msg.MsgId, msg.MsgStr)
+				}
 			}
 		}
 
