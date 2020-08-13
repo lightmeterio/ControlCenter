@@ -71,13 +71,9 @@ func NewAuthenticator(h http.Handler, auth *auth.Auth, workspaceDirectory string
 }
 
 type handler struct {
-	auth *Authenticator
-}
-
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.auth.ServeHTTP(w, r)
+	*Authenticator
 }
 
 func Serve(h http.Handler, auth *auth.Auth, workspaceDirectory string, public []string) *handler {
-	return &handler{auth: NewAuthenticator(h, auth, workspaceDirectory, public)}
+	return &handler{NewAuthenticator(h, auth, workspaceDirectory, public)}
 }
