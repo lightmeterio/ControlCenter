@@ -16,6 +16,7 @@ func changeRequestURL(r *http.Request, path string) *http.Request {
 	*newReq = *r
 	newReq.URL = new(url.URL)
 	newReq.URL.Path = path
+	newReq.RequestURI = path
 	return newReq
 }
 
