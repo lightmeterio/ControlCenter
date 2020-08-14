@@ -17,7 +17,7 @@
         <!-- App CSS -->
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
-        <title>Lightmeter ControlCenter</title>
+        <title>{{translate "Lightmeter ControlCenter"}}</title>
     </head>
 
     <body onload="drawDashboard()">
@@ -40,27 +40,27 @@
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="settingsModalLabel">About</h5>
+                                    <h5 class="modal-title" id="settingsModalLabel">{{translate "About"}}</h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                     </button>
                                 </div>
                                 <div class="modal-body">
-                                    Lightmeter Control Center
+                                    {{translate "Lightmeter Control Center"}}
                                     <br/>
                                     <span id="release-info"></span>
                                     <br/>
                                     <br/>
                                     <ul>
-                                        <li><a href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui" target="_blank">Website</a></li>
+                                        <li><a href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui" target="_blank">{{translate "Website"}}</a></li>
                                         <li><a href="https://gitlab.com/lightmeter" target="_blank">GitLab</a></li>
-                                        <li><a href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1" target="_blank">Newsletter</a></li>
+                                        <li><a href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1" target="_blank">{{translate "Newsletter"}}</a></li>
                                         <li><a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a></li>
                                         <li><a href="https://mastodon.social/@lightmeter/" target="_blank">Mastodon</a></li>
                                     </ul>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate "Close"}}</button>
                                 </div>
                             </div>
                         </div>
@@ -72,7 +72,7 @@
         
             <div class="container main-content">
                 <div class="row justify-content-end align-items-center time-interval">
-                    <label for="time-interval-field" class="col-2 col-form-label">Time interval:</label>
+                    <label for="time-interval-field" class="col-2 col-form-label">{{translate "Time interval:"}}</label>
                     <div class="col-3">
                         <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
                             <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
@@ -81,7 +81,7 @@
                 </div>
                 <div class="row">
                     <div class="col-12">
-                        <h5 class="row-title">Status</h5>
+                        <h5 class="row-title">{{translate "Status"}}</h5>
                     </div>
                 </div>
                 <div class="row">
@@ -89,7 +89,7 @@
                     <div class="col-4">
                         <div class="card">
                             <div class="card-header">
-                                Delivery attempts
+                                {{translate "Delivery attempts"}}
                             </div>
                             <div class="card-body">
                                     <div class="dashboard-gadget" id='deliveryStatus'></div>
@@ -102,13 +102,13 @@
                             
                                 <ul class="nav nav-tabs card-header-tabs" id="overview-graphs" role="tablist">
                                     <li class="nav-item">
-                                        <a class="nav-link active" href="#busiest-domains" role="tab" aria-controls="busiest-domains" aria-selected="true">Busiest domains</a>
+                                        <a class="nav-link active" href="#busiest-domains" role="tab" aria-controls="busiest-domains" aria-selected="true">{{translate "Busiest domains"}}</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#bounced-domains" role="tab" aria-controls="bounced-domains" aria-selected="false">Bounced domains</a>
+                                        <a class="nav-link" href="#bounced-domains" role="tab" aria-controls="bounced-domains" aria-selected="false">{{translate "Bounced domains"}}</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#deferred-domains" role="tab" aria-controls="deferred-domains" aria-selected="false">Deferred domains</a>
+                                        <a class="nav-link" href="#deferred-domains" role="tab" aria-controls="deferred-domains" aria-selected="false">{{translate "Deferred domains"}}</a>
                                     </li>
                                 </ul>
                             </div>
@@ -134,7 +134,7 @@
                 </div>
                 <div class="row">
                     <div class="col-12">
-                        <h5 class="row-title">Insights</h5>
+                        <h5 class="row-title">{{translate "Insights"}}</h5>
                     </div>
                 </div>
                 <div class="row insights">
@@ -145,8 +145,8 @@
                                 </div>
                                 <div class="col-11">
                                     <div class="card-block">
-                                        <h6 class="card-title">Welcome to Lightmeter</h6>
-                                        <p class="card-text">Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay</p>
+                                        <h6 class="card-title">{{translate "Welcome to Lightmeter"}}</h6>
+                                        <p class="card-text">{{translate "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"}}</p>
                                     </div>
                                 </div>
                             </div>
@@ -159,8 +159,8 @@
                                 </div>
                                 <div class="col-11">
                                     <div class="card-block">
-                                        <h6 class="card-title">Inroduction to insights</h6>
-                                        <p class="card-text">Here you'll find useful information about your mail activity in future releases</p>
+                                        <h6 class="card-title">{{translate "Inroduction to insights"}}</h6>
+                                        <p class="card-text">{{translate "Here you'll find useful information about your mail activity in future releases"}}</p>
                                     </div>
                                 </div>
                             </div>
@@ -174,9 +174,9 @@
             <div class="container">
                 <p class="float-right">
                     &bull; 
-                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">Feedback</a>
+                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
                 </p>
-                <p>Thank you for using Lightmeter. &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">Privacy Policy</a></p>
+                <p>{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">{{translate "Privacy Policy"}}</a></p>
             </div>
         </footer>
         

@@ -10,6 +10,51 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
+#: www/index.i18n.html:43
+#, fuzzy
+msgid "About"
+msgstr " "
+
+#: www/index.i18n.html:63
+#, fuzzy
+msgid "Close"
+msgstr " "
+
+#: www/index.i18n.html:105
+#, fuzzy
+msgid "Busiest domains"
+msgstr " "
+
+#: www/index.i18n.html:20
+#, fuzzy
+msgid "Lightmeter ControlCenter"
+msgstr " "
+
+#: www/login.i18n.html:69 www/register.i18n.html:108
+#, fuzzy
+msgid "E-mail"
+msgstr " "
+
+#: www/index.i18n.html:108
+#, fuzzy
+msgid "Bounced domains"
+msgstr " "
+
+#: www/index.i18n.html:111
+#, fuzzy
+msgid "Deferred domains"
+msgstr " "
+
+#: www/index.i18n.html:92
+#, fuzzy
+msgid "Delivery attempts"
+msgstr " "
+
+#: www/register.i18n.html:123
+#, fuzzy
+msgid "Direct (personal, office, one-to-one)"
+msgstr " "
+
 #: www/register.i18n.html:128
 #, fuzzy
 msgid "Different types of mail perform differently. This helps show the most relevant information."
@@ -20,9 +65,9 @@ msgstr " "
 msgid "Error"
 msgstr " "
 
-#: www/login.i18n.html:69 www/register.i18n.html:108
+#: www/register.i18n.html:30
 #, fuzzy
-msgid "E-mail"
+msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
 #: www/login.i18n.html:70 www/register.i18n.html:109
@@ -30,29 +75,49 @@ msgstr " "
 msgid "Email"
 msgstr " "
 
+#: www/index.i18n.html:177
+#, fuzzy
+msgid "Feedback"
+msgstr " "
+
 #: www/login.i18n.html:80
 #, fuzzy
 msgid "Forgot password?"
 msgstr " "
 
-#: www/register.i18n.html:123
+#: www/index.i18n.html:137
 #, fuzzy
-msgid "Direct (personal, office, one-to-one)"
+msgid "Insights"
+msgstr " "
+
+#: www/index.i18n.html:162
+#, fuzzy
+msgid "Inroduction to insights"
+msgstr " "
+
+#: www/index.i18n.html:163
+#, fuzzy
+msgid "Here you'll find useful information about your mail activity in future releases"
+msgstr " "
+
+#: www/index.i18n.html:49
+#, fuzzy
+msgid "Lightmeter Control Center"
+msgstr " "
+
+#: www/index.i18n.html:57
+#, fuzzy
+msgid "Newsletter"
+msgstr " "
+
+#: www/login.i18n.html:19 www/register.i18n.html:19
+#, fuzzy
+msgid "Registration"
 msgstr " "
 
 #: www/login.i18n.html:63 www/login.i18n.html:82
 #, fuzzy
 msgid "Login"
-msgstr " "
-
-#: www/register.i18n.html:105 www/register.i18n.html:106
-#, fuzzy
-msgid "Name"
-msgstr " "
-
-#: www/register.i18n.html:120 www/register.i18n.html:122
-#, fuzzy
-msgid "Most of my mail is…"
 msgstr " "
 
 #: www/register.i18n.html:125
@@ -70,34 +135,14 @@ msgstr " "
 msgid "Password"
 msgstr " "
 
-#: www/login.i18n.html:19 www/register.i18n.html:19
+#: www/register.i18n.html:105 www/register.i18n.html:106
 #, fuzzy
-msgid "Registration"
+msgid "Name"
 msgstr " "
 
-#: www/register.i18n.html:30
+#: www/register.i18n.html:120 www/register.i18n.html:122
 #, fuzzy
-msgid "Please select an option for 'Most of my mail is' - see help for details"
-msgstr " "
-
-#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
-#, fuzzy
-msgid "Server Error!"
-msgstr " "
-
-#: www/register.i18n.html:69
-#, fuzzy
-msgid "Settings Error on initial setup!"
-msgstr " "
-
-#: www/register.i18n.html:48
-#, fuzzy
-msgid "Vulnerable to"
-msgstr " "
-
-#: www/register.i18n.html:95
-#, fuzzy
-msgid "Welcome"
+msgid "Most of my mail is…"
 msgstr " "
 
 #: www/register.i18n.html:96
@@ -110,13 +155,68 @@ msgstr " "
 msgid "Register"
 msgstr " "
 
-#: www/register.i18n.html:99
+#: www/index.i18n.html:179
 #, fuzzy
-msgid "User details"
+msgid "Privacy Policy"
+msgstr " "
+
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+#, fuzzy
+msgid "Server Error!"
+msgstr " "
+
+#: www/register.i18n.html:69
+#, fuzzy
+msgid "Settings Error on initial setup!"
+msgstr " "
+
+#: www/index.i18n.html:84
+#, fuzzy
+msgid "Status"
+msgstr " "
+
+#: www/index.i18n.html:149
+#, fuzzy
+msgid "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"
+msgstr " "
+
+#: www/index.i18n.html:179
+#, fuzzy
+msgid "Thank you for using Lightmeter."
+msgstr " "
+
+#: www/index.i18n.html:75
+#, fuzzy
+msgid "Time interval:"
 msgstr " "
 
 #: www/register.i18n.html:124
 #, fuzzy
 msgid "Transactional (notifications, apps)"
+msgstr " "
+
+#: www/register.i18n.html:48
+#, fuzzy
+msgid "Vulnerable to"
+msgstr " "
+
+#: www/index.i18n.html:55
+#, fuzzy
+msgid "Website"
+msgstr " "
+
+#: www/register.i18n.html:95
+#, fuzzy
+msgid "Welcome"
+msgstr " "
+
+#: www/register.i18n.html:99
+#, fuzzy
+msgid "User details"
+msgstr " "
+
+#: www/index.i18n.html:148
+#, fuzzy
+msgid "Welcome to Lightmeter"
 msgstr " "
 
