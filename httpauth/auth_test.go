@@ -1,8 +1,10 @@
 package httpauth
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -572,5 +574,72 @@ func TestHTTPAuth(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 		})
+	})
+}
+
+func TestUrlRewrite(t *testing.T) {
+	Convey("Keep headers and body and params and headers on rewriting url", t, func() {
+		dumb := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if err := r.ParseForm(); err != nil {
+				panic(err)
+			}
+
+			content, _ := ioutil.ReadAll(r.Body)
+			resp := map[string]interface{}{
+				"body":             content,
+				"method":           r.Method,
+				"url":              r.URL,
+				"proto":            r.Proto,
+				"protoMajor":       r.ProtoMajor,
+				"protoMinor":       r.ProtoMinor,
+				"header":           r.Header,
+				"contentLength":    r.ContentLength,
+				"transferEncoding": r.TransferEncoding,
+				"close":            r.Close,
+				"trailer":          r.Trailer,
+				"form":             r.Form,
+				"multipartForm":    r.MultipartForm,
+				"host":             r.Host,
+				"remoteAddr":       r.RemoteAddr,
+				"requestURI":       r.RequestURI,
+			}
+			j, _ := json.MarshalIndent(resp, "", "  ")
+			io.Copy(w, bytes.NewReader(j))
+		})
+
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			maybeRedirectedReq := func() *http.Request {
+				if r.URL.Path == "/index.html" {
+					return changeRequestURL(r, "/redir_index.html")
+				}
+
+				return r
+			}()
+
+			dumb.ServeHTTP(w, maybeRedirectedReq)
+		}))
+
+		jar, err := cookiejar.New(&cookiejar.Options{})
+		So(err, ShouldBeNil)
+
+		c := &http.Client{Jar: jar}
+		defer c.CloseIdleConnections()
+
+		u, _ := url.Parse(s.URL)
+		jar.SetCookies(u, []*http.Cookie{sessions.NewCookie("lang", "en", &sessions.Options{})})
+
+		getBody := func(r *http.Response, err error) map[string]interface{} {
+			So(err, ShouldBeNil)
+			body, err := ioutil.ReadAll(r.Body)
+			So(err, ShouldBeNil)
+			var v map[string]interface{}
+			So(json.Unmarshal(body, &v), ShouldBeNil)
+			return v
+		}
+
+		respNonRedirected := getBody(c.Post(s.URL+"/index.html", "application/text", strings.NewReader("post content")))
+		respRedirected := getBody(c.Post(s.URL+"/redir_index.html", "application/text", strings.NewReader("post content")))
+
+		So(respNonRedirected, ShouldResemble, respRedirected)
 	})
 }
