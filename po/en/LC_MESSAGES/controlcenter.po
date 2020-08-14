@@ -10,6 +10,42 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
+#: www/index.i18n.html:43
+msgid "About"
+msgstr "About"
+
+#: www/index.i18n.html:63
+msgid "Close"
+msgstr "Close"
+
+#: www/index.i18n.html:105
+msgid "Busiest domains"
+msgstr "Busiest domains"
+
+#: www/index.i18n.html:20
+msgid "Lightmeter ControlCenter"
+msgstr "Lightmeter ControlCenter"
+
+#: www/login.i18n.html:69 www/register.i18n.html:108
+msgid "E-mail"
+msgstr "E-mail"
+
+#: www/index.i18n.html:108
+msgid "Bounced domains"
+msgstr "Bounced domains"
+
+#: www/index.i18n.html:111
+msgid "Deferred domains"
+msgstr "Deferred domains"
+
+#: www/index.i18n.html:92
+msgid "Delivery attempts"
+msgstr "Delivery attempts"
+
+#: www/register.i18n.html:123
+msgid "Direct (personal, office, one-to-one)"
+msgstr "Direct (personal, office, one-to-one)"
+
 #: www/register.i18n.html:128
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr "Different types of mail perform differently. This helps show the most relevant information."
@@ -18,33 +54,49 @@ msgstr "Different types of mail perform differently. This helps show the most re
 msgid "Error"
 msgstr "Error"
 
-#: www/login.i18n.html:69 www/register.i18n.html:108
-msgid "E-mail"
-msgstr "E-mail"
+#: www/register.i18n.html:30
+msgid "Please select an option for 'Most of my mail is' - see help for details"
+msgstr "Please select an option for 'Most of my mail is' - see help for details"
 
 #: www/login.i18n.html:70 www/register.i18n.html:109
 msgid "Email"
 msgstr "Email"
 
+#: www/index.i18n.html:177
+msgid "Feedback"
+msgstr "Feedback"
+
 #: www/login.i18n.html:80
 msgid "Forgot password?"
 msgstr "Forgot password?"
 
-#: www/register.i18n.html:123
-msgid "Direct (personal, office, one-to-one)"
-msgstr "Direct (personal, office, one-to-one)"
+#: www/index.i18n.html:137
+msgid "Insights"
+msgstr "Insights"
+
+#: www/index.i18n.html:162
+msgid "Inroduction to insights"
+msgstr "Inroduction to insights"
+
+#: www/index.i18n.html:163
+msgid "Here you'll find useful information about your mail activity in future releases"
+msgstr "Here you'll find useful information about your mail activity in future releases"
+
+#: www/index.i18n.html:49
+msgid "Lightmeter Control Center"
+msgstr "Lightmeter Control Center"
+
+#: www/index.i18n.html:57
+msgid "Newsletter"
+msgstr "Newsletter"
+
+#: www/login.i18n.html:19 www/register.i18n.html:19
+msgid "Registration"
+msgstr "Registration"
 
 #: www/login.i18n.html:63 www/login.i18n.html:82
 msgid "Login"
 msgstr "Login"
-
-#: www/register.i18n.html:105 www/register.i18n.html:106
-msgid "Name"
-msgstr "Name"
-
-#: www/register.i18n.html:120 www/register.i18n.html:122
-msgid "Most of my mail is…"
-msgstr "Most of my mail is…"
 
 #: www/register.i18n.html:125
 msgid "Marketing (newsletters, adverts)"
@@ -58,29 +110,13 @@ msgstr "Monthly newsletter"
 msgid "Password"
 msgstr "Password"
 
-#: www/login.i18n.html:19 www/register.i18n.html:19
-msgid "Registration"
-msgstr "Registration"
+#: www/register.i18n.html:105 www/register.i18n.html:106
+msgid "Name"
+msgstr "Name"
 
-#: www/register.i18n.html:30
-msgid "Please select an option for 'Most of my mail is' - see help for details"
-msgstr "Please select an option for 'Most of my mail is' - see help for details"
-
-#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
-msgid "Server Error!"
-msgstr "Server Error!"
-
-#: www/register.i18n.html:69
-msgid "Settings Error on initial setup!"
-msgstr "Settings Error on initial setup!"
-
-#: www/register.i18n.html:48
-msgid "Vulnerable to"
-msgstr "Vulnerable to"
-
-#: www/register.i18n.html:95
-msgid "Welcome"
-msgstr "Welcome"
+#: www/register.i18n.html:120 www/register.i18n.html:122
+msgid "Most of my mail is…"
+msgstr "Most of my mail is…"
 
 #: www/register.i18n.html:96
 msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
@@ -90,11 +126,55 @@ msgstr "Please create a new administrator account - this is necessary to login. 
 msgid "Register"
 msgstr "Register"
 
-#: www/register.i18n.html:99
-msgid "User details"
-msgstr "User details"
+#: www/index.i18n.html:179
+msgid "Privacy Policy"
+msgstr "Privacy Policy"
+
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+msgid "Server Error!"
+msgstr "Server Error!"
+
+#: www/register.i18n.html:69
+msgid "Settings Error on initial setup!"
+msgstr "Settings Error on initial setup!"
+
+#: www/index.i18n.html:84
+msgid "Status"
+msgstr "Status"
+
+#: www/index.i18n.html:149
+msgid "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"
+msgstr "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"
+
+#: www/index.i18n.html:179
+msgid "Thank you for using Lightmeter."
+msgstr "Thank you for using Lightmeter."
+
+#: www/index.i18n.html:75
+msgid "Time interval:"
+msgstr "Time interval:"
 
 #: www/register.i18n.html:124
 msgid "Transactional (notifications, apps)"
 msgstr "Transactional (notifications, apps)"
+
+#: www/register.i18n.html:48
+msgid "Vulnerable to"
+msgstr "Vulnerable to"
+
+#: www/index.i18n.html:55
+msgid "Website"
+msgstr "Website"
+
+#: www/register.i18n.html:95
+msgid "Welcome"
+msgstr "Welcome"
+
+#: www/register.i18n.html:99
+msgid "User details"
+msgstr "User details"
+
+#: www/index.i18n.html:148
+msgid "Welcome to Lightmeter"
+msgstr "Welcome to Lightmeter"
 
