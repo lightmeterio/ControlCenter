@@ -30,6 +30,4 @@ COPY --from=builder /src/lightmeter /lightmeter
 
 VOLUME /logs
 
-USER 1000
-
 ENTRYPOINT ["/lightmeter"]
