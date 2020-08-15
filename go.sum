@@ -41,6 +41,8 @@ gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722145641-31a2b2b76796 h1:i
 gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722145641-31a2b2b76796/go.mod h1:zBuhWiJDPauiexqEaOcPu1bqM/UVYSeRusW/cxXp5JI=
 gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722164326-f274d5c51ec9 h1:iqLMQfK0rkIMgNeo7os6IHie5cliMLEiIIqJJzHTSi0=
 gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722164326-f274d5c51ec9/go.mod h1:zBuhWiJDPauiexqEaOcPu1bqM/UVYSeRusW/cxXp5JI=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3 h1:SlbfODofWJRPgsox6nUaptLY0qM6So2KLlhaKp3PVnY=
+gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3/go.mod h1:zBuhWiJDPauiexqEaOcPu1bqM/UVYSeRusW/cxXp5JI=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
