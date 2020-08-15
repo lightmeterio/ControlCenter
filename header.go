@@ -61,6 +61,8 @@ type Header struct {
 	Time      Time
 	Host      string
 	Process   string
+	Daemon    string
+	PID       int
 	ProcessIP net.IP
 }
 
@@ -89,9 +91,17 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
-	processIP := net.ParseIP(string(h.ProcessIP))
+	pid, err := func() (int, error) {
+		if len(h.ProcessID) == 0 {
+			return 0, nil
+		}
 
-	process := string(h.Process)
+		return atoi(h.ProcessID)
+	}()
+
+	if err != nil {
+		return Header{}, err
+	}
 
 	return Header{
 		Time: Time{
@@ -102,7 +112,9 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 			Second: uint8(second),
 		},
 		Host:      string(h.Host),
-		Process:   process,
-		ProcessIP: processIP,
+		Process:   string(h.Process),
+		Daemon:    string(h.Daemon),
+		PID:       pid,
+		ProcessIP: net.ParseIP(string(h.ProcessIP)),
 	}, nil
 }

@@ -48,5 +48,6 @@ func (this *TimeConverter) Convert(t Time) time.Time {
 	}
 
 	this.lastTime = t
+
 	return t.Time(this.year, this.timezone)
 }

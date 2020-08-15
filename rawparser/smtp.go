@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	registerHandler("smtp", parseSmtpPayload)
+	registerHandler("postfix", "smtp", parseSmtpPayload)
 }
 
 const (
