@@ -8,8 +8,25 @@ stages:
   - test
   - extra
 
+license_scanning:
+  stage: test
+  needs: []
+
+sast:
+  stage: test
+  needs: []
+
+dependency_scanning:
+  stage: test
+  needs: []
+
+code_quality:
+  stage: test
+  needs: []
+
 lint:
   image: golangci/golangci-lint:v1.26.0
+  needs: []
   stage: extra
   allow_failure: true
   script:
@@ -27,6 +44,7 @@ lint:
 test:
   extends: .go-builder
   stage: test
+  needs: []
   script:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -v 2>&1 | go run github.com/jstemmer/go-junit-report > report.xml
   artifacts:
@@ -36,6 +54,7 @@ test:
 cover:
   stage: test
   extends: .go-builder
+  needs: []
   script:
     - go test -coverpkg=gitlab.com/lightmeter/postfix-log-parser,gitlab.com/lightmeter/postfix-log-parser/rawparser -coverprofile=coverinfo.txt
     - go tool cover -func=coverinfo.txt
@@ -50,6 +69,8 @@ variables:
   GIT_DEPTH: "0"
 
 sonarcloud-check:
+  needs:
+    - cover
   dependencies:
     - cover
   stage: extra
