@@ -1,22 +1,18 @@
 package rawparser
 
 import (
+	"errors"
 	"regexp"
 )
 
 const (
-	possibleMonths = `Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec`
+	timeRegexpFormat = `(?P<Time>(?P<Month>([\w]{3}))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[\d]{2}):(?P<Second>[0-9]{2}))`
 
-	timeRegexpFormat = `(?P<Time>(?P<Month>(` + possibleMonths + `))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[0-9]{2}):(?P<Second>[0-9]{2}))`
+	hostRegexpFormat = `(?P<Host>[\w\.]+)`
 
-	hostRegexpFormat = `(?P<Host>[0-9A-Za-z\.]+)`
+	processRegexpFormat = `(?P<ProcessName>[\w]+)(-(?P<ProcessIP>[^/+]+))?(/(?P<DaemonName>[^[]+))?(\[(?P<ProcessID>\d+)\])?`
 
-	postfixProcessRegexpFormat = `^postfix(-(?P<PostfixSuffix>[^/]+))?/` + `(?P<ProcessName>.*)`
-
-	processRegexpFormat = `(?P<ProcessAndMaybePid>(?P<Process>[^[\s:]+)(\[(?P<ProcessId>[0-9]{1,5})\])?)`
-
-	headerRegexpFormat = `^` + timeRegexpFormat + `\s` + hostRegexpFormat +
-		` ` + processRegexpFormat + `:\s`
+	headerRegexpFormat = `^` + timeRegexpFormat + `\s` + hostRegexpFormat + ` ` + processRegexpFormat + `:\s`
 )
 
 type RawHeader struct {
@@ -28,7 +24,9 @@ type RawHeader struct {
 	Second    []byte
 	Host      []byte
 	Process   []byte
+	Daemon    []byte
 	ProcessIP []byte
+	ProcessID []byte
 }
 
 func indexForGroup(r *regexp.Regexp, name string) int {
@@ -43,8 +41,7 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 }
 
 var (
-	headerRegexp         *regexp.Regexp
-	postfixProcessRegexp *regexp.Regexp
+	headerRegexp *regexp.Regexp
 
 	timeIndex   int
 	monthIndex  int
@@ -54,15 +51,14 @@ var (
 	secondIndex int
 	hostIndex   int
 
-	processIndex              int
-	postfixProcessIndex       int
-	postfixProcessSuffixIndex int
+	processNameIndex   int
+	processDaemonIndex int
+	processIPIndex     int
+	processIDIndex     int
 )
 
 func init() {
 	headerRegexp = regexp.MustCompile(headerRegexpFormat)
-
-	postfixProcessRegexp = regexp.MustCompile(postfixProcessRegexpFormat)
 
 	timeIndex = indexForGroup(headerRegexp, "Time")
 	monthIndex = indexForGroup(headerRegexp, "Month")
@@ -72,10 +68,10 @@ func init() {
 	secondIndex = indexForGroup(headerRegexp, "Second")
 	hostIndex = indexForGroup(headerRegexp, "Host")
 
-	processIndex = indexForGroup(headerRegexp, "Process")
-
-	postfixProcessIndex = indexForGroup(postfixProcessRegexp, "ProcessName")
-	postfixProcessSuffixIndex = indexForGroup(postfixProcessRegexp, "PostfixSuffix")
+	processDaemonIndex = indexForGroup(headerRegexp, "DaemonName")
+	processIPIndex = indexForGroup(headerRegexp, "ProcessIP")
+	processNameIndex = indexForGroup(headerRegexp, "ProcessName")
+	processIDIndex = indexForGroup(headerRegexp, "ProcessID")
 }
 
 func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
@@ -85,55 +81,47 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
-	buildHeader := func(process, suffix []byte) RawHeader {
-		return RawHeader{
-			Time:      headerMatches[timeIndex],
-			Month:     headerMatches[monthIndex],
-			Day:       headerMatches[dayIndex],
-			Hour:      headerMatches[hourIndex],
-			Minute:    headerMatches[minuteIndex],
-			Second:    headerMatches[secondIndex],
-			Host:      headerMatches[hostIndex],
-			Process:   process,
-			ProcessIP: suffix,
-		}
-	}
-
 	payloadLine := logLine[len(headerMatches[0]):]
 
-	if len(headerMatches[processIndex]) == 0 {
-		return buildHeader(nil, nil), nil, ErrUnsupportedLogLine
-	}
+	return RawHeader{
+		Time:      headerMatches[timeIndex],
+		Month:     headerMatches[monthIndex],
+		Day:       headerMatches[dayIndex],
+		Hour:      headerMatches[hourIndex],
+		Minute:    headerMatches[minuteIndex],
+		Second:    headerMatches[secondIndex],
+		Host:      headerMatches[hostIndex],
+		Process:   headerMatches[processNameIndex],
+		ProcessIP: headerMatches[processIPIndex],
+		Daemon:    headerMatches[processDaemonIndex],
+		ProcessID: headerMatches[processIDIndex],
+	}, payloadLine, nil
+}
 
-	postfixProcessMatches := postfixProcessRegexp.FindSubmatch(headerMatches[processIndex])
-
-	if len(postfixProcessMatches) == 0 {
-		return buildHeader(nil, nil), nil, ErrUnsupportedLogLine
-	}
-
-	return buildHeader(postfixProcessMatches[postfixProcessIndex], postfixProcessMatches[postfixProcessSuffixIndex]), payloadLine, nil
+type payloadHandlerKey struct {
+	process string
+	daemon  string
 }
 
 var (
-	payloadHandlers = map[string]func(RawHeader, []byte) (RawPayload, error){}
+	payloadHandlers = map[payloadHandlerKey]func(RawHeader, []byte) (RawPayload, error){}
 )
 
-func registerHandler(process string, handler func(RawHeader, []byte) (RawPayload, error)) {
-	payloadHandlers[process] = handler
+func registerHandler(process, daemon string, handler func(RawHeader, []byte) (RawPayload, error)) {
+	payloadHandlers[payloadHandlerKey{process: process, daemon: daemon}] = handler
 }
 
 func Parse(logLine []byte) (RawHeader, RawPayload, error) {
 	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
-	if err == ErrInvalidHeaderLine {
+	if errors.Is(err, ErrInvalidHeaderLine) {
 		return RawHeader{}, RawPayload{}, err
 	}
 
-	if err != nil {
-		return header, RawPayload{}, err
-	}
-
-	handler, found := payloadHandlers[string(header.Process)]
+	handler, found := payloadHandlers[payloadHandlerKey{
+		daemon:  string(header.Daemon),
+		process: string(header.Process),
+	}]
 
 	if !found {
 		return header, RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine

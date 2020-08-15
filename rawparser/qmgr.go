@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	registerHandler("qmgr", parseQmgrPayload)
+	registerHandler("postfix", "qmgr", parseQmgrPayload)
 }
 
 const (
