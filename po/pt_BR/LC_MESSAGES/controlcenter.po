@@ -6,75 +6,205 @@ msgstr ""
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
-"Language: pt-BR\n"
-"Content-Type: \n"
-"Content-Transfer-Encoding: \n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.3\n"
 
-#: www/login.i18n.html:37 www/login.i18n.html:56
-msgid "Login"
-msgstr "Login"
+#: www/index.i18n.html:43
+msgid "About"
+msgstr ""
 
-#: www/login.i18n.html:43 www/register.i18n.html:50
+#: www/index.i18n.html:63
+msgid "Close"
+msgstr ""
+
+#: www/index.i18n.html:105
+msgid "Busiest domains"
+msgstr ""
+
+#: www/index.i18n.html:20
+msgid "Lightmeter ControlCenter"
+msgstr ""
+
+#: www/login.i18n.html:69 www/register.i18n.html:110
 msgid "E-mail"
 msgstr "E-mail"
 
-#: www/login.i18n.html:44 www/register.i18n.html:51
-msgid "Email"
-msgstr "Email"
+#: www/index.i18n.html:108
+msgid "Bounced domains"
+msgstr ""
 
-#: www/login.i18n.html:54
-msgid "Forgot password?"
-msgstr "Esqueceu a senha??"
+#: www/index.i18n.html:111
+msgid "Deferred domains"
+msgstr ""
 
-#: www/register.i18n.html:65
+#: www/index.i18n.html:92
+msgid "Delivery attempts"
+msgstr ""
+
+#: www/register.i18n.html:125
 msgid "Direct (personal, office, one-to-one)"
 msgstr "Direto (pessoal, escritório, one-to-one)"
 
-#: www/register.i18n.html:67
-msgid "Marketing (newsletters, adverts)"
-msgstr "Marketing (boletim de notícias, anúncios)"
+#: www/register.i18n.html:130
+msgid ""
+"Different types of mail perform differently. This helps show the most "
+"relevant information."
+msgstr ""
+"Diferentes tipos de correio eletrônico funcionam de forma diferente. Esta "
+"opção mostra as informações mais relevantes."
 
-#: www/register.i18n.html:70
-msgid "Different types of mail perform differently. This helps show the most relevant information."
-msgstr "Diferentes tipos de correio eletrônico funcionam de forma diferente. Esta opção mostra as informações mais relevantes."
+#: www/register.i18n.html:48 www/register.i18n.html:51
+msgid "Error"
+msgstr ""
 
-#: www/register.i18n.html:47 www/register.i18n.html:48
-msgid "Name"
-msgstr "Nome"
+#: www/login.i18n.html:70 www/register.i18n.html:111
+msgid "Email"
+msgstr "Email"
 
-#: www/login.i18n.html:47 www/login.i18n.html:48 www/register.i18n.html:54 www/register.i18n.html:55
-msgid "Password"
-msgstr "Senha"
+#: www/login.i18n.html:80
+msgid "Forgot password?"
+msgstr "Esqueceu a senha??"
 
-#: www/register.i18n.html:78
-msgid "Monthly newsletter"
+#: www/index.i18n.html:177
+msgid "Feedback"
+msgstr ""
+
+#: www/register.i18n.html:97
+msgid "Get help"
+msgstr ""
+
+#: www/index.i18n.html:137
+msgid "Insights"
+msgstr ""
+
+#: www/index.i18n.html:162
+msgid "Inroduction to insights"
+msgstr ""
+
+#: www/index.i18n.html:163
+msgid ""
+"Here you'll find useful information about your mail activity in future "
+"releases"
+msgstr ""
+
+#: www/register.i18n.html:30
+msgid "Please select an option for 'Most of my mail is' - see help for details"
+msgstr ""
+
+#: www/index.i18n.html:49
+msgid "Lightmeter Control Center"
+msgstr ""
+
+#: www/index.i18n.html:57
+#, fuzzy
+#| msgid "Monthly newsletter"
+msgid "Newsletter"
 msgstr "Receber boletim de notícias mensal"
-
-#: www/register.i18n.html:38
-msgid "Please create a new administrator account - this is necessary to login.  If you've done this before, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">get help</a> avoiding this step next time."
-msgstr "Por favor crie uma conta de adminstrador - necessário para o login. Se você ja o fez, <a href=\"https://gitlab.com/lightmeter/controlcenter#upgrade\">obtenha ajuda</a> para evitar cria-la novamente."
-
-#: www/register.i18n.html:62 www/register.i18n.html:64
-msgid "Most of my mail is…"
-msgstr "A maior parte to correio eletrônico é…"
-
-#: www/register.i18n.html:81
-msgid "Register"
-msgstr "Registrar"
 
 #: www/login.i18n.html:19 www/register.i18n.html:19
 msgid "Registration"
 msgstr "Registro"
 
-#: www/register.i18n.html:37
-msgid "Welcome"
-msgstr "Bem-vindo(a)"
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40
+#: www/register.i18n.html:73
+msgid "Server Error!"
+msgstr ""
 
-#: www/register.i18n.html:41
-msgid "User details"
-msgstr "Informações de usuário"
+#: www/login.i18n.html:63 www/login.i18n.html:82
+msgid "Login"
+msgstr "Login"
 
-#: www/register.i18n.html:66
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114
+#: www/register.i18n.html:115
+msgid "Password"
+msgstr "Senha"
+
+#: www/register.i18n.html:127
+msgid "Marketing (newsletters, adverts)"
+msgstr "Marketing (boletim de notícias, anúncios)"
+
+#: www/register.i18n.html:138
+msgid "Monthly newsletter"
+msgstr "Receber boletim de notícias mensal"
+
+#: www/register.i18n.html:107 www/register.i18n.html:108
+msgid "Name"
+msgstr "Nome"
+
+#: www/register.i18n.html:122 www/register.i18n.html:124
+msgid "Most of my mail is…"
+msgstr "A maior parte to correio eletrônico é…"
+
+#: www/register.i18n.html:96
+msgid "Please create a new administrator account - this is necessary to login."
+msgstr ""
+
+#: www/register.i18n.html:141
+msgid "Register"
+msgstr "Registrar"
+
+#: www/index.i18n.html:179
+msgid "Privacy Policy"
+msgstr ""
+
+#: www/register.i18n.html:69
+msgid "Settings Error on initial setup!"
+msgstr ""
+
+#: www/index.i18n.html:84
+msgid "Status"
+msgstr ""
+
+#: www/index.i18n.html:149
+msgid ""
+"Thanks for trying this Alpha release of Lightmeter Control Center - enjoy "
+"your stay"
+msgstr ""
+
+#: www/index.i18n.html:179
+msgid "Thank you for using Lightmeter."
+msgstr ""
+
+#: www/index.i18n.html:75
+msgid "Time interval:"
+msgstr ""
+
+#: www/register.i18n.html:126
 msgid "Transactional (notifications, apps)"
 msgstr "Transacional (notificações, apps)"
 
+#: www/register.i18n.html:101
+msgid "User details"
+msgstr "Informações de usuário"
+
+#: www/register.i18n.html:48
+msgid "Vulnerable to"
+msgstr ""
+
+#: www/index.i18n.html:55
+msgid "Website"
+msgstr ""
+
+#: www/register.i18n.html:95
+msgid "Welcome"
+msgstr "Bem-vindo(a)"
+
+#: www/index.i18n.html:148
+msgid "Welcome to Lightmeter"
+msgstr ""
+
+#: www/register.i18n.html:98
+msgid "to avoid repeating this step if you've done it before"
+msgstr ""
+
+#~ msgid ""
+#~ "Please create a new administrator account - this is necessary to login.  "
+#~ "If you've done this before, <a href=\"https://gitlab.com/lightmeter/"
+#~ "controlcenter#upgrade\">get help</a> avoiding this step next time."
+#~ msgstr ""
+#~ "Por favor crie uma conta de adminstrador - necessário para o login. Se "
+#~ "você ja o fez, <a href=\"https://gitlab.com/lightmeter/"
+#~ "controlcenter#upgrade\">obtenha ajuda</a> para evitar cria-la novamente."
