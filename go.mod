@@ -10,7 +10,7 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd // indirect
 	github.com/trustelem/zxcvbn v1.0.1 // indirect
-	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200722164326-f274d5c51ec9
+	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect

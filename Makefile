@@ -70,5 +70,5 @@ clean_swag:
 clean_mocks:
 	rm -f dashboard/mock/dashboard_mock.go
 
-dependencies.svg:
+dependencies.svg: go.sum go.mod
 	go mod graph | tools/gen_deps_graph.py | dot -Tsvg > dependencies.svg
