@@ -26,10 +26,10 @@ dev: mocks swag domain_mapping_list po2go
 release: static_www domain_mapping_list po2go
 	go build -tags="release" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-windows_release: static_www domain_mapping_list
+windows_release: static_www domain_mapping_list po2go
 	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
 
-static_release: static_www domain_mapping_list
+static_release: static_www domain_mapping_list po2go
 	go build -tags="release" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
