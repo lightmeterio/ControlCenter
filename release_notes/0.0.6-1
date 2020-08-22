@@ -1,0 +1,3 @@
+# ControlCenter 0.0.6-1
+
+Bugfix release enabling internationalization in the Docker image and distributed binary.
