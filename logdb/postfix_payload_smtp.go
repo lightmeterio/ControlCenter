@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -19,7 +20,7 @@ func init() {
 
 var ErrCouldNotObtainTimeFromDatabase = errors.New("Could not obtain time from database")
 
-func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
+func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 	// FIXME: this query is way too complicated for something so simple
 
 	var v int64
@@ -39,13 +40,13 @@ func lastTimeInTableReaderForSmtpSentStatus(db *sql.DB) (int64, error) {
 	return v, nil
 }
 
-func countLogsForSmtpSentStatus(db *sql.DB) int {
+func countLogsForSmtpSentStatus(db dbconn.RoConn) int {
 	value := 0
 	util.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
 	return value
 }
 
-func tableCreationForSmtpSentStatus(db *sql.DB) error {
+func tableCreationForSmtpSentStatus(db dbconn.RwConn) error {
 	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
 	read_ts_sec           integer,
 	process_ip            blob,

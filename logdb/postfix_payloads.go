@@ -10,6 +10,7 @@ package logdb
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -27,13 +28,13 @@ func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) e
 
 type payloadHandler struct {
 	// Create the database tables, indexes, etc.
-	creator func(*sql.DB) error
+	creator func(dbconn.RwConn) error
 
 	// Counts how many records are there in the respective table.
-	counter func(*sql.DB) int
+	counter func(dbconn.RoConn) int
 
 	// Finds the timestamp for the most recent inserted in the table.
-	lastTimeReader func(*sql.DB) (int64, error)
+	lastTimeReader func(dbconn.RoConn) (int64, error)
 }
 
 var (
