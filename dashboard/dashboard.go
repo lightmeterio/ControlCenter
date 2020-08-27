@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -40,7 +41,7 @@ type SqlDbDashboard struct {
 
 const removeSentToLocalhostSqlFragment = `((process_ip is not null and relay_ip != process_ip) or (process_ip is null and relay_name != "127.0.0.1"))`
 
-func New(db *sql.DB) (SqlDbDashboard, error) {
+func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
 		count(*)

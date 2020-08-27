@@ -7,9 +7,25 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util"
 )
 
+type RoConn struct {
+	*sql.DB
+}
+
+type RwConn struct {
+	*sql.DB
+}
+
+func Ro(db *sql.DB) RoConn {
+	return RoConn{db}
+}
+
+func Rw(db *sql.DB) RwConn {
+	return RwConn{db}
+}
+
 type ConnPair struct {
-	RoConn *sql.DB
-	RwConn *sql.DB
+	RoConn RoConn
+	RwConn RwConn
 }
 
 func (c *ConnPair) Close() error {
@@ -54,5 +70,5 @@ func NewConnPair(filename string) (ConnPair, error) {
 		return ConnPair{}, util.WrapError(err)
 	}
 
-	return ConnPair{RoConn: reader, RwConn: writer}, nil
+	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer)}, nil
 }

@@ -113,7 +113,7 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 	return results, nil
 }
 
-func ensureMetaTableExists(conn *sql.DB) error {
+func ensureMetaTableExists(conn dbconn.RwConn) error {
 	if _, err := conn.Exec(`create table if not exists meta(
 		key string,
 		value blob

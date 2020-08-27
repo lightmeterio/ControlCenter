@@ -44,7 +44,7 @@ type DB struct {
 	records  chan data.Record
 }
 
-func setupWriterConn(conn *sql.DB) error {
+func setupWriterConn(conn dbconn.RwConn) error {
 	if err := createTables(conn); err != nil {
 		log.Println("Error creating table or indexes:", err)
 		return util.WrapError(err)
@@ -53,7 +53,7 @@ func setupWriterConn(conn *sql.DB) error {
 	return nil
 }
 
-func createTables(db *sql.DB) error {
+func createTables(db dbconn.RwConn) error {
 	for _, handler := range payloadHandlers {
 		if err := handler.creator(db); err != nil {
 			return util.WrapError(err)
@@ -91,7 +91,7 @@ func Open(workspaceDirectory string, config Config) (DB, error) {
 	}, nil
 }
 
-func (db *DB) ReadConnection() *sql.DB {
+func (db *DB) ReadConnection() dbconn.RoConn {
 	return db.connPair.RoConn
 }
 
@@ -125,7 +125,7 @@ func (db *DB) HasLogs() bool {
 	return false
 }
 
-func fillDatabase(db *sql.DB, c <-chan data.Record,
+func fillDatabase(db dbconn.RwConn, c <-chan data.Record,
 	doneInsertingOnDatabase chan<- interface{}) {
 
 	lastTime := time.Time{}
@@ -149,7 +149,7 @@ func fillDatabase(db *sql.DB, c <-chan data.Record,
 	doneInsertingOnDatabase <- nil
 }
 
-func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
+func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 	c <-chan data.Record, timeout time.Duration,
 	insertCb func(*sql.Tx, data.Record) error) {
 
@@ -209,7 +209,7 @@ func performInsertsIntoDbGroupingInTransactions(db *sql.DB,
 	}
 }
 
-func buildInitialTime(db *sql.DB, timezone *time.Location) time.Time {
+func buildInitialTime(db dbconn.RoConn, timezone *time.Location) time.Time {
 	r := int64(0)
 
 	for _, handler := range payloadHandlers {

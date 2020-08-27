@@ -87,7 +87,7 @@ func (r *Auth) Register(email, name, password string) error {
 	return nil
 }
 
-func registerInDb(db *sql.DB, email, name, password string) error {
+func registerInDb(db dbconn.RwConn, email, name, password string) error {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -209,7 +209,7 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func setupWriterConnection(conn *sql.DB) error {
+func setupWriterConnection(conn dbconn.RwConn) error {
 	if _, err := conn.Exec(`create table if not exists users(
 		email string,
 		name string,
