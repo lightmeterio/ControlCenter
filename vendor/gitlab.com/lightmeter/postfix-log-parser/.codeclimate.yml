@@ -1,0 +1,23 @@
+# https://docs.codeclimate.com/docs/
+# Based on https://gitlab.com/gitlab-org/ci-cd/codequality/-/blob/master/codeclimate_defaults/.codeclimate.yml
+---
+version: "2"
+plugins:
+  gofmt:
+    enabled: true
+  golint:
+    enabled: true
+  govet:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - go
+  fixme:
+    enabled: true
+  rubocop:
+    enabled: true
+
+exclude_patterns:
+  - "**/*_test.go"
