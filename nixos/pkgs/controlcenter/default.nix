@@ -1,11 +1,11 @@
-{ stdenv, buildGoModule, fetchgit, fetchhg, fetchbzr, fetchsvn, lib }:
+{ buildGoModule, fetchgit, lib }:
 
 buildGoModule rec {
   pname = "lightmeter";
   version = "master";
   rev = "dad4451218d3fb99bc1d3240f66dac030ee8f246";
 
-  deleteVendor = true;
+  deleteVendor = false;
 
   goPackagePath = "gitlab.com/lightmeter/controlcenter";
 
@@ -15,7 +15,7 @@ buildGoModule rec {
      sha256 = "1pgkf9zlhkblzdjipp17zmpp9di19hizpkqav6bk9i6ajnmf6am8";
   };
 
-  vendorSha256= null;
+  vendorSha256 = null;
 
   checkPhase = ''
   '';
