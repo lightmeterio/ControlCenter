@@ -6,7 +6,6 @@ If we publish a new release then we need to update all nix deps and change the '
 
 * [docker](https://www.docker.com/) - Build, Manage and Secure Your Apps Anywhere. Your Way.
 * [nixos](https://nixos.org/) -  Nix is a powerful package manager for Linux and other Unix systems that makes package management reliable and reproducible
-* [vgo2nix](https://github.com/nix-community/vgo2nix) - Convert go.mod files to nixpkgs buildGoPackage compatible deps.nix files
 
 ## Versions requirements
 * Nix **>=2.3.7**
@@ -18,10 +17,9 @@ If we publish a new release then we need to update all nix deps and change the '
 From the root directory execute
 
 ```bash
-vgo2nix
+go mod tidy
+go mod vendor
 ```
-
-Move dep.nix to /gitlab.com/lightmeter/controlcenter/nixos/pkgs/controlcenter
 
 # Build pkg
 
