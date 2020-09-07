@@ -25,7 +25,7 @@ stages:
       when: always
     - if: '$CI_MERGE_REQUEST_EVENT_TYPE != null && $CI_MERGE_REQUEST_EVENT_TYPE != "detached"'
       when: always
-    
+
 lint:
   extends: .on-non-tag
   image: golangci/golangci-lint:v1.27
@@ -33,6 +33,7 @@ lint:
   allow_failure: true
   needs: []
   script:
+    - rm -r vendor
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
     - golangci-lint run --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
   artifacts:
@@ -150,7 +151,7 @@ license_scanning:
 
 sast:
   extends: .on-non-tag
-  stage: test 
+  stage: test
   needs: []
 
 dependency_scanning:
