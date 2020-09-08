@@ -194,7 +194,11 @@ func startHTTPServer(ws *workspace.Workspace) {
 		die(util.WrapError(err), "Error creating dashboard")
 	}
 
+	insightsFetcher := ws.InsightsFetcher()
+
 	api.HttpDashboard(mux, timezone, dashboard)
+
+	api.HttpInsights(mux, timezone, insightsFetcher)
 
 	mux.Handle("/settings/initialSetup", initialSetupHandler)
 
