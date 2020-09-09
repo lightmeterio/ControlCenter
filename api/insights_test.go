@@ -67,10 +67,10 @@ func TestInsights(t *testing.T) {
 			s := httptest.NewServer(fetchInsightsHandler{f: f, timezone: time.UTC})
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)
-			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
+			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 		})
 
-		Convey("Get zero insights", func() {
+		Convey("Get some insights", func() {
 			f.EXPECT().FetchInsights(core.FetchOptions{
 				Interval:   parseTimeInterval(`1999-01-01`, `1999-12-31`),
 				OrderBy:    core.OrderByCreationDesc,
@@ -84,7 +84,7 @@ func TestInsights(t *testing.T) {
 					content:     "content1",
 					contentType: "fake_content_1",
 					priority:    2,
-					time:        time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+					time:        time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 				&fakeFetchedInsight{
 					id:          2,
@@ -92,7 +92,7 @@ func TestInsights(t *testing.T) {
 					content:     "content2",
 					contentType: "fake_content_2",
 					priority:    4,
-					time:        time.Date(2000, 1, 1, 10, 0, 0, 0, time.UTC),
+					time:        time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
 				},
 			}, nil)
 
@@ -113,7 +113,7 @@ func TestInsights(t *testing.T) {
 					"ContentType": "fake_content_1",
 					"ID":          float64(1),
 					"Priority":    float64(2),
-					"Time":        "2000-01-01T00:00:00Z",
+					"Time":        "1999-01-01T00:00:00Z",
 				},
 				map[string]interface{}{
 					"Category":    "warning",
@@ -121,7 +121,7 @@ func TestInsights(t *testing.T) {
 					"ContentType": "fake_content_2",
 					"ID":          float64(2),
 					"Priority":    float64(4),
-					"Time":        "2000-01-01T10:00:00Z",
+					"Time":        "1999-12-31T00:00:00Z",
 				},
 			})
 		})

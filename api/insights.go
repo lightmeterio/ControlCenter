@@ -26,14 +26,14 @@ type fetchInsightsHandler struct {
 // @Router /api/v0/fetchInsights [get]
 func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.ParseForm() != nil {
-		http.Error(w, "Wrong input", http.StatusUnprocessableEntity)
+		http.Error(w, "Wrong input", http.StatusBadRequest)
 		return
 	}
 
 	interval, err := intervalFromForm(h.timezone, r.Form)
 
 	if err != nil {
-		http.Error(w, "Error parsing time interval:\""+err.Error()+"\"", http.StatusUnprocessableEntity)
+		http.Error(w, "Error parsing time interval:\" "+err.Error()+"\"", http.StatusBadRequest)
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	if err != nil {
-		http.Error(w, "Error parsing time interval:\""+err.Error()+"\"", http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid entries query value:\" "+err.Error()+"\"", http.StatusBadRequest)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	util.MustSucceed(err, "error fetching insights")
 
-	insights := fetchInsightsResult{}
+	insights := make(fetchInsightsResult, 0, entries)
 
 	for _, fi := range fetchedInsights {
 		i := fetchedInsight{
