@@ -3,6 +3,7 @@ package core
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util"
@@ -126,6 +127,21 @@ type fetcher struct {
 // the queries are closed in the Close() method, which for some reason the linter cannot detect
 //nolint:sqlclosecheck
 func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
+	buildSelectStmt := func(where, order string) string {
+		return fmt.Sprintf(`
+	select
+		rowid, time, category, priority, content_type, content
+	from
+		insights
+	where
+		%s
+	order by
+		%s
+	limit
+		?
+	`, where, order)
+	}
+
 	buildQuery := func(s string, p paramBuilder) queryValue {
 		q, err := conn.Prepare(s)
 		util.MustSucceed(err, "Preparing query "+s)
@@ -142,65 +158,25 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 
 	return &fetcher{
 		queries: map[queryKey]queryValue{
-			queryKey{order: OrderByCreationDesc, filter: NoFetchFilter}: buildQuery(`
-	select
-		rowid, time, category, priority, content_type, content
-	from
-		insights
-	where
-		time between ? and ?
-	order by
-		time desc
-	limit
-		?
-	`, func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-			}),
+			queryKey{order: OrderByCreationDesc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time desc`),
+				func(o FetchOptions) []interface{} {
+					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
+				}),
 
-			queryKey{order: OrderByCreationDesc, filter: FilterByCategory}: buildQuery(`
-	select
-		rowid, time, category, priority, content_type, content
-	from
-		insights
-	where
-		category = ? and time between ? and ?
-	order by
-		time desc
-	limit
-		?
-	`, func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-			}),
+			queryKey{order: OrderByCreationDesc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time desc`),
+				func(o FetchOptions) []interface{} {
+					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
+				}),
 
-			queryKey{order: OrderByCreationAsc, filter: FilterByCategory}: buildQuery(`
-	select
-		rowid, time, category, priority, content_type, content
-	from
-		insights
-	where
-		category = ? and time between ? and ?
-	order by
-		time asc
-	limit
-		?
-	`, func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-			}),
+			queryKey{order: OrderByCreationAsc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time asc`),
+				func(o FetchOptions) []interface{} {
+					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
+				}),
 
-			queryKey{order: OrderByCreationAsc, filter: NoFetchFilter}: buildQuery(`
-	select
-		rowid, time, category, priority, content_type, content
-	from
-		insights
-	where
-		time between ? and ?
-	order by
-		time asc
-	limit
-		?
-	`, func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-			}),
+			queryKey{order: OrderByCreationAsc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time asc`),
+				func(o FetchOptions) []interface{} {
+					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
+				}),
 		},
 	}, nil
 }
