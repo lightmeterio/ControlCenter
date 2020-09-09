@@ -80,17 +80,29 @@ func setupDetectors(detectors []core.Detector, conn dbconn.RwConn) error {
 		return util.WrapError(err)
 	}
 
-	if err := core.SetupAuxTables(tx); err != nil {
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "")
+		}
+	}()
+
+	err = core.SetupAuxTables(tx)
+
+	if err != nil {
 		return util.WrapError(err)
 	}
 
 	for _, d := range detectors {
-		if err := d.Setup(tx); err != nil {
+		err = d.Setup(tx)
+
+		if err != nil {
 			return util.WrapError(err)
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	err = tx.Commit()
+
+	if err != nil {
 		return util.WrapError(err)
 	}
 
@@ -133,10 +145,19 @@ func execOnSteppers(txActions chan<- txAction, steppers []core.Stepper, clock co
 	}
 }
 
+// whether a new cycle is possible or the execution should finish
 func engineCycle(e *Engine) (bool, error) {
 	tx, err := e.insightsStateConn.RwConn.Begin()
 
-	util.MustSucceed(err, "")
+	if err != nil {
+		return false, util.WrapError(err)
+	}
+
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "")
+		}
+	}()
 
 	action, ok := <-e.txActions
 
@@ -144,11 +165,15 @@ func engineCycle(e *Engine) (bool, error) {
 		return false, nil
 	}
 
-	if err := action(tx); err != nil {
+	err = action(tx)
+
+	if err != nil {
 		return false, util.WrapError(err)
 	}
 
-	if err := tx.Commit(); err != nil {
+	err = tx.Commit()
+
+	if err != nil {
 		return false, util.WrapError(err)
 	}
 

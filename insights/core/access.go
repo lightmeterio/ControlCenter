@@ -317,7 +317,19 @@ type DBCreator struct {
 }
 
 func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
-	if _, err := conn.Exec(`
+	tx, err := conn.Begin()
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "")
+		}
+	}()
+
+	_, err = tx.Exec(`
 		create table if not exists insights(
 			time integer not null,
 			category integer not null,
@@ -325,23 +337,39 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 			content_type integer not null,
 			content blob not null
 		)
-	`); err != nil {
+	`)
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
-	if _, err := conn.Exec(`create index if not exists insights_time_index on insights(time)`); err != nil {
+	_, err = tx.Exec(`create index if not exists insights_time_index on insights(time)`)
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
-	if _, err := conn.Exec(`create index if not exists insights_category_index on insights(category, time)`); err != nil {
+	_, err = tx.Exec(`create index if not exists insights_category_index on insights(category, time)`)
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
-	if _, err := conn.Exec(`create index if not exists insights_priority_index on insights(priority, time)`); err != nil {
+	_, err = tx.Exec(`create index if not exists insights_priority_index on insights(priority, time)`)
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
-	if _, err := conn.Exec(`create index if not exists insights_content_type_index on insights(content_type, time)`); err != nil {
+	_, err = tx.Exec(`create index if not exists insights_content_type_index on insights(content_type, time)`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
