@@ -56,6 +56,11 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if entries < 0 {
+		http.Error(w, "Invalid entries query value: negative value", http.StatusBadRequest)
+		return
+	}
+
 	fetchedInsights, err := h.f.FetchInsights(core.FetchOptions{
 		Interval:   interval,
 		Category:   category,

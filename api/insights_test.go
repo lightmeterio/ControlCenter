@@ -70,6 +70,13 @@ func TestInsights(t *testing.T) {
 			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 		})
 
+		Convey("Number of entries cannot be negative", func() {
+			s := httptest.NewServer(fetchInsightsHandler{f: f, timezone: time.UTC})
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&order=creationDesc&entries=-42", s.URL))
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+		})
+
 		Convey("Get some insights", func() {
 			f.EXPECT().FetchInsights(core.FetchOptions{
 				Interval:   parseTimeInterval(`1999-01-01`, `1999-12-31`),
