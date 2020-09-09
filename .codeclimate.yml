@@ -26,8 +26,7 @@ plugins:
     enabled: true
 
 exclude_patterns:
-- config/
-- db/
+- www/3rd
 - dist/
 - features/
 - "**/node_modules/"

@@ -2,6 +2,7 @@ run:
   tests: false
   skip-dirs:
     - examples
+    - vendor
 
 linters:
   enable-all: true

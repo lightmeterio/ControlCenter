@@ -33,7 +33,6 @@ lint:
   allow_failure: true
   needs: []
   script:
-    - rm -r vendor
     - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
     - golangci-lint run --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
   artifacts:
