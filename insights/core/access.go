@@ -320,9 +320,9 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 	if _, err := conn.Exec(`
 		create table if not exists insights(
 			time integer not null,
-			category int not null,
-			priority int not null,
-			content_type int not null,
+			category integer not null,
+			priority integer not null,
+			content_type integer not null,
 			content blob not null
 		)
 	`); err != nil {
