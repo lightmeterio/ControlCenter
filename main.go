@@ -136,6 +136,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 
 	go func() {
 		if err := watcher.Run(); err != nil {
+			fmt.Println(err)
 			die(util.WrapError(err), "Error watching directory:", dirToWatch)
 		}
 	}()
