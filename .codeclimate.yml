@@ -1,5 +1,5 @@
 # https://docs.codeclimate.com/docs/
-# Based on https://gitlab.com/gitlab-org/ci-cd/codequality/-/blob/master/codeclimate_defaults/.codeclimate.yml
+# overwrite values of https://gitlab.com/gitlab-org/ci-cd/codequality/-/blob/master/codeclimate_defaults/.codeclimate.yml
 ---
 version: "2"
 plugins:
@@ -15,9 +15,9 @@ plugins:
     enabled: true
     config:
       languages:
-      - javascript
-      - go
-      - python
+        - javascript
+        - go
+        - python
   eslint:
     enabled: true
   fixme:
@@ -26,5 +26,20 @@ plugins:
     enabled: true
 
 exclude_patterns:
-  - www/3rd
-  - "**/*_test.go"
+- www/3rd
+- dist/
+- features/
+- "**/node_modules/"
+- script/
+- "**/spec/"
+- "**/test/"
+- "**/tests/"
+- Tests/
+- "**/vendor/"
+- "**/*_test.go"
+- "**/*.d.ts"
+- "**/*.min.js"
+- "**/*.min.css"
+- "**/__tests__/"
+- "**/__mocks__/"
+- vendor/
