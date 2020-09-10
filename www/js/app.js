@@ -6,6 +6,23 @@ $('#overview-graphs a').on('click', function (e) {
     $(this).tab('show')
 })
 
+// TODO: maybe this is an async function?
+var apiCallGet = function(url) {
+    return fetch(url).then(function(res) {
+        if (res.ok) {
+            return res.json()
+        }
+
+        res.text().then(function(text) {
+          console.log("Error requesting url: " +
+            url + ", status:\"" + res.statusText + "\"" +
+            ", text: \"" + text + "\"")
+        })
+
+        return null
+    })
+}
+
 // Graph stuff
 var drawDashboard = function() {
     var dateFrom = ""
@@ -49,23 +66,6 @@ var drawDashboard = function() {
 
     var timeIntervalUrlParams = function() {
         return "from=" + dateFrom + "&to=" + dateTo
-    }
-
-    // TODO: maybe this is an async function?
-    var apiCallGet = function(url) {
-        return fetch(url).then(function(res) {
-            if (res.ok) {
-                return res.json()
-            }
-
-            res.text().then(function(text) {
-              console.log("Error requesting url: " +
-                url + ", status:\"" + res.statusText + "\"" +
-                ", text: \"" + text + "\"")
-            })
-
-            return null
-        })
     }
 
     var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {

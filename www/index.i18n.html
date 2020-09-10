@@ -18,6 +18,12 @@
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
         <title>{{translate "Lightmeter ControlCenter"}}</title>
+
+        <script>
+          insightsTitles = {
+            "mail_inactivity": "{{translate `Mail Inactivity`}}"
+          }
+        </script>
     </head>
 
     <body onload="drawDashboard()">
@@ -136,31 +142,31 @@
                     <div class="col-12">
                         <h5 class="row-title">{{translate "Insights"}}</h5>
                     </div>
+                    <form id="insights-form">
+                      <select id="insights-filter">
+                        <option value="nofilter">{{translate "No Filter"}}</option>
+                        <option value="category-info">{{translate "Only Info Insights"}}</option>
+                        <option value="category-warning">{{translate "Only Warning Insights"}}</option>
+                        <option value="category-urgent">{{translate "Only Urgent Insights"}}</option>
+                      </select>
+                      <select id="insights-sort" name="order">
+                        <option value="creationAsc">{{translate "Creation time (oldest first)"}}</option>
+                        <option value="creationDesc">{{translate "Creation time (more recent first)"}}</option>
+                      </select>
+                      <input type="button" id="insights-fetch" onclick="fetchInsights()" value="Fetch"></input>
+                    </form>
                 </div>
-                <div class="row insights">
-                    <div class="col-6">
+                <div id="insights" style="display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px">
+                    <div class="col-6" id="insight-template">
                         <div class="card">
                             <div class="row">
                                 <div class="col-1 gradient-bg">
                                 </div>
                                 <div class="col-11">
                                     <div class="card-block">
-                                        <h6 class="card-title">{{translate "Welcome to Lightmeter"}}</h6>
-                                        <p class="card-text">{{translate "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"}}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="row">
-                                <div class="col-1 gradient-bg">
-                                </div>
-                                <div class="col-11">
-                                    <div class="card-block">
-                                        <h6 class="card-title">{{translate "Inroduction to insights"}}</h6>
-                                        <p class="card-text">{{translate "Here you'll find useful information about your mail activity in future releases"}}</p>
+                                        <h6 class="card-title title">Title</h6>
+                                        <p class="card-text description">Description</p>
+                                        <p class="card-text time">Datetime</p>
                                     </div>
                                 </div>
                             </div>
@@ -192,6 +198,7 @@
         
         <!-- App scripts -->
         <script type="text/javascript" src='js/app.js'></script>
+        <script type="text/javascript" src='js/index.js'></script>
         
         <!-- Lightmeter-hosted Matomo analytics -->
         <script type="text/javascript">
