@@ -41,8 +41,13 @@ domain_mapping_list: domainmapping/generated_list.go
 domainmapping/generated_list.go: domainmapping/mapping.json
 	go generate gitlab.com/lightmeter/controlcenter/domainmapping
 
-mocks:
+mocks: dashboard_mock insights_mock
+
+dashboard_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
+
+insights_mock:
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/insights/core
 
 po2go:
 	go generate gitlab.com/lightmeter/controlcenter/po
@@ -52,7 +57,7 @@ code2po:
 	go run tools/code2po/main.go -i www -pot -o po/controlcenter.pot
 
 swag:
-	go run github.com/swaggo/swag/cmd/swag init --generalInfo api/http.go
+	go run github.com/swaggo/swag/cmd/swag init --generalInfo api/api.go
 	cp docs/swagger.json www/api.json
 
 clean: clean_binaries clean_swag clean_staticdata clean_mocks
