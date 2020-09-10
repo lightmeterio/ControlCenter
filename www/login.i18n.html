@@ -27,18 +27,18 @@
               .then(res => res.json())
               .then(function(data) {
                   if (data == null) {
-                      alert("{{translate `Server Error!`}}")
+                      alert("Server Error!")
                       return
                   }
 
                   if (data.Error.length > 0) {
-                      alert('{[ translate `Error` }}: ' + data.Error)
+                      alert('Error: ' + data.Error)
                       return
                   }
 
                   window.location.href = "/"
               }).catch(function(err) {
-                  alert("{{translate `Server Error!`}}")
+                  alert("Server Error!")
                   console.log(err)
               })
           }

@@ -45,10 +45,10 @@
                       var message = function() {
                         // add hints of pwd weakness
                         if (data.Detailed && data.Detailed.Sequence && data.Detailed.Sequence[0].pattern) {
-                          return "{{ translate `Error` }}: " + data.Error + ".\n" + "{{ translate `Vulnerable to` }}: " + data.Detailed.Sequence[0].pattern + '.'
+                          return "Error: " + data.Error + ".\n" + "Vulnerable to: " + data.Detailed.Sequence[0].pattern + '.'
                         }
 
-                        return "{{ translate `Error` }}:" + data.Error
+                        return "Error: " + data.Error
                       }()
 
                       alert(message)
@@ -66,11 +66,11 @@
                       }
                       window.location.href = "/"
                   }).catch(function(err) {
-                      alert('{{ translate `Settings Error on initial setup!` }}')
+                      alert('Settings Error on initial setup!')
                       console.log(err)
                   })
               }).catch(function(err) {
-                  alert("{{ translate `Server Error!` }}")
+                  alert("Server Error!")
                   console.log(err)
               })
           }
