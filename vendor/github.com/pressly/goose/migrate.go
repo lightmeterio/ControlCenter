@@ -238,9 +238,6 @@ func versionFilter(v, current, target int64) bool {
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
-
-	GetDialect()
-	
 	if err != nil {
 		return 0, createVersionTable(db)
 	}

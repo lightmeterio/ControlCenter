@@ -87,7 +87,7 @@ func TestInsights(t *testing.T) {
 			}).Return([]core.FetchedInsight{
 				&fakeFetchedInsight{
 					id:          1,
-					category:    core.InfoCategory,
+					category:    core.IntelCategory,
 					content:     "content1",
 					contentType: "fake_content_1",
 					priority:    2,
@@ -95,7 +95,7 @@ func TestInsights(t *testing.T) {
 				},
 				&fakeFetchedInsight{
 					id:          2,
-					category:    core.WarningCategory,
+					category:    core.LocalCategory,
 					content:     "content2",
 					contentType: "fake_content_2",
 					priority:    4,
@@ -115,7 +115,7 @@ func TestInsights(t *testing.T) {
 
 			So(body, ShouldResemble, []interface{}{
 				map[string]interface{}{
-					"Category":    "info",
+					"Category":    "intel",
 					"Content":     "content1",
 					"ContentType": "fake_content_1",
 					"ID":          float64(1),
@@ -123,7 +123,7 @@ func TestInsights(t *testing.T) {
 					"Time":        "1999-01-01T00:00:00Z",
 				},
 				map[string]interface{}{
-					"Category":    "warning",
+					"Category":    "local",
 					"Content":     "content2",
 					"ContentType": "fake_content_2",
 					"ID":          float64(2),

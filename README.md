@@ -1,4 +1,4 @@
-# Lightmeter ControlCenter
+# Lightmeter ControlCenter (Alpha)
 
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![Translation status](https://translate.lightmeter.io/widgets/controlcenter/-/html-pages/svg-badge.svg)](http://translate.lightmeter.io/engage/controlcenter/?utm_source=widget)

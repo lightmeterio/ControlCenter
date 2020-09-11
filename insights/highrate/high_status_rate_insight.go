@@ -35,7 +35,7 @@ func (g *weeklyBounceRateInsightsGenerator) Step(c core.Clock, tx *sql.Tx) error
 
 	properties := core.InsightProperties{
 		Time:        c.Now(),
-		Category:    core.WarningCategory,
+		Category:    core.LocalCategory,
 		Priority:    0,
 		ContentType: highWeeklyBounceRateContentType,
 		Content:     g.value,
