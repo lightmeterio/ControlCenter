@@ -2,6 +2,7 @@ package logdb
 
 import (
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"log"
 	"path"
 	"time"
@@ -55,12 +56,9 @@ func setupWriterConn(conn dbconn.RwConn) error {
 
 func createTables(db dbconn.RwConn) error {
 	for _, handler := range payloadHandlers {
-		if err := handler.creator(db); err != nil {
-			return util.WrapError(err)
-		}
+		migrator.AddMigration("logs", handler.Filename, handler.Up, handler.Down)
 	}
-
-	return nil
+	return migrator.Run( db.DB, "logs")
 }
 
 func Open(workspaceDirectory string, config Config) (DB, error) {

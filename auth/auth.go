@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migration"
+
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io"
@@ -217,7 +218,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, util.WrapError(err)
 	}
 
-	if err := migration.Run(connPair.RwConn.DB); err != nil {
+	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
 		return nil, util.WrapError(err)
 	}
 

@@ -1,4 +1,4 @@
-package migration
+package migrator
 
 import (
 	"database/sql"
@@ -13,17 +13,17 @@ import (
 	"sort"
 )
 
-func Run(database *sql.DB) error {
+func Run(database *sql.DB, databaseName string) error {
 
 	goose.SetDialect("sqlite3")
 
 	var err error
-	err = Status(database)
+	err = Status(database, databaseName)
 	if err != nil {
 		return fmt.Errorf("could not get database migration status: %w", err)
 	}
 
-	err = Up(database)
+	err = Up(database, databaseName)
 	if err != nil {
 		return fmt.Errorf("could not run goose up: %w", err)
 	}
@@ -32,7 +32,7 @@ func Run(database *sql.DB) error {
 }
 
 var (
-	registeredGoMigrations = map[int64]*goose.Migration{}
+	registeredGoMigrations = map[string]map[int64]*goose.Migration{}
 )
 
 // MaxVersion is the maximum allowed version.
@@ -40,8 +40,8 @@ const MaxVersion int64 = 9223372036854775807 // max(int64)
 const minVersion         = int64(0)
 
 // Up migrates up to a specific version.
-func Up(db *sql.DB) error {
-	migrations, err := CollectMigrations(minVersion, MaxVersion)
+func Up(db *sql.DB, databaseName string) error {
+	migrations, err := CollectMigrations(minVersion, MaxVersion, databaseName)
 	if err != nil {
 		return err
 	}
@@ -69,12 +69,12 @@ func Up(db *sql.DB) error {
 
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
-func CollectMigrations(current, target int64) (goose.Migrations, error) {
+func CollectMigrations(current, target int64, databaseName string) (goose.Migrations, error) {
 
 	var migrations goose.Migrations
 
 	// Go migrations registered via goose.AddMigration().
-	for _, migration := range registeredGoMigrations {
+	for _, migration := range registeredGoMigrations[databaseName] {
 		v, err := goose.NumericComponent(migration.Source)
 		if err != nil {
 			return nil, err
@@ -120,9 +120,9 @@ func versionFilter(v, current, target int64) bool {
 }
 
 // Status prints the status of all migrations.
-func Status(db *sql.DB) error {
+func Status(db *sql.DB, databaseName string) error {
 	// collect all migrations
-	migrations, err := CollectMigrations(minVersion, MaxVersion)
+	migrations, err := CollectMigrations(minVersion, MaxVersion, databaseName)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
@@ -132,6 +132,10 @@ func Status(db *sql.DB) error {
 		return errors.Wrap(err, "failed to ensure DB version")
 	}
 
+
+	log.Print("\n")
+
+	log.Println(fmt.Sprintf("    Database name               %v", databaseName))
 	log.Println("    Applied At                  Migration")
 	log.Println("    =======================================")
 	for _, migration := range migrations {
@@ -139,7 +143,6 @@ func Status(db *sql.DB) error {
 			return errors.Wrap(err, "failed to print status")
 		}
 	}
-
 	return nil
 }
 
@@ -164,14 +167,18 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 }
 
 // AddMigration : Add a migration.
-func AddMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
+func AddMigration(databaseName string, filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
 
 	v, _ := goose.NumericComponent(filename)
 	migration := &goose.Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
 
-	if existing, ok := registeredGoMigrations[v]; ok {
+	if _, ok := registeredGoMigrations[databaseName]; !ok {
+		registeredGoMigrations[databaseName] = map[int64]*goose.Migration{}
+	}
+
+	if existing, ok := registeredGoMigrations[databaseName][v]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
 	}
 
-	registeredGoMigrations[v] = migration
+	registeredGoMigrations[databaseName][v] = migration
 }

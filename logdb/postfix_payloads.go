@@ -27,8 +27,12 @@ func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) e
 }
 
 type payloadHandler struct {
-	// Create the database tables, indexes, etc.
-	creator func(dbconn.RwConn) error
+
+	Filename string
+	// Delete create the database tables, indexes, etc.
+	Up func(tx *sql.Tx) error
+	// Register Delete the database tables, indexes, etc.
+	Down func(tx *sql.Tx) error
 
 	// Counts how many records are there in the respective table.
 	counter func(dbconn.RoConn) int
