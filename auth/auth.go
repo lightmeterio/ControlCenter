@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"errors"
+	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"

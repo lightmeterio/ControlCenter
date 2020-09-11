@@ -175,6 +175,6 @@ func AddMigration(databaseName string, filename string, up func(*sql.Tx) error, 
 	if _, ok := registeredGoMigrations[databaseName]; !ok {
 		registeredGoMigrations[databaseName] = map[int64]*goose.Migration{}
 	}
-	
+
 	registeredGoMigrations[databaseName][v] = migration
 }
