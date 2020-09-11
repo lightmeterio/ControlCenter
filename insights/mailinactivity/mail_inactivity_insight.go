@@ -41,7 +41,7 @@ func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 
 	properties := core.InsightProperties{
 		Time:        c.Now(),
-		Category:    core.InfoCategory,
+		Category:    core.LocalCategory,
 		Priority:    0,
 		ContentType: ContentType,
 		Content: content{
