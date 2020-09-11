@@ -20,7 +20,7 @@ type fetchInsightsHandler struct {
 // @Param filter query string false "Filter by. Possible values: 'category'" Enums{"category"}
 // @Param order query string true "Order by. Possible values: 'creationAsc', 'creationDesc'" Enums{"creationAsc", "creationDesc"}
 // @Param entries query int false "Maximum number of insights to fetch"
-// @Param category query string false "If filter by category, the category name. Possible values: 'info', 'warning', 'urgent'" Enums{"info", "warning", "urgent"}
+// @Param category query string false "If filter by category, the category name. Possible values: 'local', 'comparative', 'news', 'intel'" Enums{"local", "comparative", "news", "intel"}
 // @Success 200 {object} fetchedInsight
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchInsights [get]
