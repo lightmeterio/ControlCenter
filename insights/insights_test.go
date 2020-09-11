@@ -164,12 +164,12 @@ func TestEngine(t *testing.T) {
 
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.InfoCategory, Content: "42", Priority: 3})
+			genInsight(fakeValue{Category: core.LocalCategory, Content: "42", Priority: 3})
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.WarningCategory, Content: "35", Priority: 5})
+			genInsight(fakeValue{Category: core.IntelCategory, Content: "35", Priority: 5})
 			nopStep()
-			genInsight(fakeValue{Category: core.UrgentCategory, Content: "13", Priority: 6})
+			genInsight(fakeValue{Category: core.ComparativeCategory, Content: "13", Priority: 6})
 
 			// stop main loop
 			close(e.txActions)
@@ -199,19 +199,19 @@ func TestEngine(t *testing.T) {
 
 				So(len(insights), ShouldEqual, 3)
 
-				So(insights[0].Category(), ShouldEqual, core.UrgentCategory)
+				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Priority(), ShouldEqual, 6)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 
-				So(insights[1].Category(), ShouldEqual, core.WarningCategory)
+				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Priority(), ShouldEqual, 5)
 				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 
-				So(insights[2].Category(), ShouldEqual, core.InfoCategory)
+				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
 				So(insights[2].Priority(), ShouldEqual, 3)
@@ -231,13 +231,13 @@ func TestEngine(t *testing.T) {
 
 				So(len(insights), ShouldEqual, 2)
 
-				So(insights[0].Category(), ShouldEqual, core.UrgentCategory)
+				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Priority(), ShouldEqual, 6)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 
-				So(insights[1].Category(), ShouldEqual, core.WarningCategory)
+				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Priority(), ShouldEqual, 5)
@@ -257,26 +257,26 @@ func TestEngine(t *testing.T) {
 
 				So(len(insights), ShouldEqual, 3)
 
-				So(insights[0].Category(), ShouldEqual, core.InfoCategory)
+				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "42")
 				So(insights[0].ID(), ShouldEqual, 1)
 				So(insights[0].Priority(), ShouldEqual, 3)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:02 +0000`))
 
-				So(insights[1].Category(), ShouldEqual, core.WarningCategory)
+				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Priority(), ShouldEqual, 5)
 				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 
-				So(insights[2].Category(), ShouldEqual, core.UrgentCategory)
+				So(insights[2].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "13")
 				So(insights[2].ID(), ShouldEqual, 3)
 				So(insights[2].Priority(), ShouldEqual, 6)
 				So(insights[2].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 			})
 
-			Convey("fetch warning category, asc order", func() {
+			Convey("fetch intel category, asc order", func() {
 				insights, err := fetcher.FetchInsights(core.FetchOptions{
 					Interval: data.TimeInterval{
 						From: parseTime(`2000-01-01 00:00:00 +0000`),
@@ -284,14 +284,14 @@ func TestEngine(t *testing.T) {
 					},
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
-					Category: core.WarningCategory,
+					Category: core.IntelCategory,
 				})
 
 				So(err, ShouldBeNil)
 
 				So(len(insights), ShouldEqual, 1)
 
-				So(insights[0].Category(), ShouldEqual, core.WarningCategory)
+				So(insights[0].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "35")
 				So(insights[0].ID(), ShouldEqual, 2)
 				So(insights[0].Priority(), ShouldEqual, 5)
@@ -312,7 +312,7 @@ func TestEngine(t *testing.T) {
 			}()
 
 			// Generate one insight, on the first cycle
-			detector.v = &fakeValue{Category: core.InfoCategory, Content: "content", Priority: 100}
+			detector.v = &fakeValue{Category: core.LocalCategory, Content: "content", Priority: 100}
 
 			done, cancel := e.Run()
 

@@ -16,12 +16,14 @@ type Category int
 
 func (c Category) String() string {
 	switch c {
-	case InfoCategory:
-		return "info"
-	case WarningCategory:
-		return "warning"
-	case UrgentCategory:
-		return "urgent"
+	case LocalCategory:
+		return "local"
+	case ComparativeCategory:
+		return "comparative"
+	case NewsCategory:
+		return "news"
+	case IntelCategory:
+		return "intel"
 	case NoCategory:
 		fallthrough
 	default:
@@ -31,20 +33,23 @@ func (c Category) String() string {
 }
 
 const (
-	NoCategory      Category = 0
-	InfoCategory    Category = 1
-	WarningCategory Category = 2
-	UrgentCategory  Category = 3
+	NoCategory          Category = 0
+	LocalCategory       Category = 1
+	NewsCategory        Category = 2
+	ComparativeCategory Category = 3
+	IntelCategory       Category = 4
 )
 
 func BuildCategoryByName(n string) Category {
 	switch n {
-	case "info":
-		return InfoCategory
-	case "warning":
-		return WarningCategory
-	case "urgent":
-		return UrgentCategory
+	case "local":
+		return LocalCategory
+	case "comparative":
+		return ComparativeCategory
+	case "news":
+		return NewsCategory
+	case "intel":
+		return IntelCategory
 	default:
 		return NoCategory
 	}
