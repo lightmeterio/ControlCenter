@@ -6,11 +6,14 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/mattn/go-sqlite3 v1.13.1-0.20200606034938-baaf8a978416
+	github.com/lib/pq v1.8.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/pressly/goose v2.6.0+incompatible
 	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
@@ -19,6 +22,7 @@ require (
 	github.com/swaggo/swag v1.6.7
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
+	github.com/ziutek/mymysql v1.5.4 // indirect
 	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/text v0.3.3

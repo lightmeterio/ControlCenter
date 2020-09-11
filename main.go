@@ -25,6 +25,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
+	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 )
 
 type watchableFilenames []string

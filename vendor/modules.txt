@@ -22,6 +22,8 @@ github.com/go-openapi/jsonreference
 github.com/go-openapi/spec
 # github.com/go-openapi/swag v0.19.5
 github.com/go-openapi/swag
+# github.com/go-sql-driver/mysql v1.5.0
+## explicit
 # github.com/golang/mock v1.4.4
 ## explicit
 github.com/golang/mock/gomock
@@ -43,13 +45,20 @@ github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
 # github.com/jtolds/gls v4.20.0+incompatible
 github.com/jtolds/gls
+# github.com/lib/pq v1.8.0
+## explicit
 # github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-sqlite3 v1.13.1-0.20200606034938-baaf8a978416
+# github.com/mattn/go-sqlite3 v1.14.2
 ## explicit
 github.com/mattn/go-sqlite3
+# github.com/pkg/errors v0.8.1
+github.com/pkg/errors
+# github.com/pressly/goose v2.6.0+incompatible
+## explicit
+github.com/pressly/goose
 # github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
 ## explicit
 github.com/robfig/gettext-go/gettext/po
@@ -87,6 +96,8 @@ github.com/trustelem/zxcvbn/internal/mathutils
 github.com/trustelem/zxcvbn/match
 github.com/trustelem/zxcvbn/matching
 github.com/trustelem/zxcvbn/scoring
+# github.com/ziutek/mymysql v1.5.4
+## explicit
 # gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3
 ## explicit
 gitlab.com/lightmeter/postfix-log-parser
