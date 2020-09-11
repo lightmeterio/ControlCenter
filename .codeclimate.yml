@@ -26,20 +26,20 @@ plugins:
     enabled: true
 
 exclude_patterns:
-- www/3rd
-- dist/
-- features/
-- "**/node_modules/"
-- script/
-- "**/spec/"
-- "**/test/"
-- "**/tests/"
-- Tests/
-- "**/vendor/"
-- "**/*_test.go"
-- "**/*.d.ts"
-- "**/*.min.js"
-- "**/*.min.css"
-- "**/__tests__/"
-- "**/__mocks__/"
-- vendor/
+  - www/3rd
+  - dist/
+  - features/
+  - "**/node_modules/"
+  - script/
+  - "**/spec/"
+  - "**/test/"
+  - "**/tests/"
+  - Tests/
+  - "**/vendor/"
+  - "**/*_test.go"
+  - "**/*.d.ts"
+  - "**/*.min.js"
+  - "**/*.min.css"
+  - "**/__tests__/"
+  - "**/__mocks__/"
+  - vendor/
