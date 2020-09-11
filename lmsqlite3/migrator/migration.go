@@ -175,10 +175,6 @@ func AddMigration(databaseName string, filename string, up func(*sql.Tx) error, 
 	if _, ok := registeredGoMigrations[databaseName]; !ok {
 		registeredGoMigrations[databaseName] = map[int64]*goose.Migration{}
 	}
-
-	if existing, ok := registeredGoMigrations[databaseName][v]; ok {
-		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
-	}
-
+	
 	registeredGoMigrations[databaseName][v] = migration
 }
