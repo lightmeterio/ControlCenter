@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"io/ioutil"
@@ -130,7 +131,7 @@ func TestEngine(t *testing.T) {
 				detector.creator = c
 				return []core.Detector{detector}
 			})
-
+			
 			So(err, ShouldBeNil)
 
 			defer func() {

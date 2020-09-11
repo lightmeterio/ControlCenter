@@ -11,21 +11,23 @@ import (
 
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/i18n"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 )
 
 type watchableFilenames []string

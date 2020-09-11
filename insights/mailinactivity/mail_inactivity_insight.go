@@ -142,10 +142,6 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return execChecksForMailInactivity(d, c, tx)
 }
 
-func (d *detector) Setup(tx *sql.Tx) error {
-	return nil
-}
-
 func (d *detector) Steppers() []core.Stepper {
 	return []core.Stepper{d, d.generator}
 }
