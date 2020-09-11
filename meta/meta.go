@@ -3,6 +3,8 @@ package meta
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/util"
 )
 
@@ -10,8 +12,8 @@ type MetadataHandler struct {
 	conn dbconn.ConnPair
 }
 
-func NewMetaDataHandler(conn dbconn.ConnPair) (*MetadataHandler, error) {
-	if err := ensureMetaTableExists(conn.RwConn); err != nil {
+func NewMetaDataHandler(conn dbconn.ConnPair, databaseName string) (*MetadataHandler, error) {
+	if err := ensureMetaTableExists(conn.RwConn, databaseName); err != nil {
 		return nil, util.WrapError(err)
 	}
 
@@ -113,13 +115,7 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 	return results, nil
 }
 
-func ensureMetaTableExists(conn dbconn.RwConn) error {
-	if _, err := conn.Exec(`create table if not exists meta(
-		key string,
-		value blob
-	)`); err != nil {
-		return util.WrapError(err)
-	}
-
-	return nil
+func ensureMetaTableExists(conn dbconn.RwConn, databaseName string) error {
+	migrator.AddMigration(databaseName, "1599823316_add_meta_table.go", migrations.UpMetaTable, migrations.DownMetaTable)
+	return migrator.Run(conn.DB, databaseName)
 }

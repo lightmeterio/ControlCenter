@@ -232,7 +232,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, util.WrapError(err)
 	}
 
-	m, err := meta.NewMetaDataHandler(connPair)
+	m, err := meta.NewMetaDataHandler(connPair, "auth")
 
 	if err != nil {
 		return nil, util.WrapError(err)
