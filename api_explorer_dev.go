@@ -1,4 +1,4 @@
-// +build !release
+// +build dev !release
 
 package main
 
