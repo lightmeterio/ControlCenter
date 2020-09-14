@@ -8,10 +8,8 @@ import (
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"io/ioutil"
 	"os"
 	"path"
@@ -80,10 +78,8 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 		d := mock_dashboard.NewMockDashboard(ctrl)
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
+		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights_state.db"))
 		So(err, ShouldBeNil)
-
-		migrator.Run(connPair.RwConn.DB, "insights")
 
 		defer func() {
 			So(connPair.Close(), ShouldBeNil)
@@ -113,6 +109,10 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
+
+			So(core.SetupAuxTables(tx), ShouldBeNil)
+
+			So(detector.Setup(tx), ShouldBeNil)
 
 			for _, s := range detector.Steppers() {
 				So(s.Step(clock, tx), ShouldBeNil)
@@ -150,6 +150,10 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
+
+			So(core.SetupAuxTables(tx), ShouldBeNil)
+
+			So(detector.Setup(tx), ShouldBeNil)
 
 			for _, s := range detector.Steppers() {
 				So(s.Step(clock, tx), ShouldBeNil)
@@ -195,6 +199,16 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{WeeklyBounceRateThreshold: 0.2}}) // threshold 20%
 
+			{
+				tx, err := connPair.RwConn.Begin()
+				So(err, ShouldBeNil)
+
+				So(core.SetupAuxTables(tx), ShouldBeNil)
+
+				So(detector.Setup(tx), ShouldBeNil)
+
+				So(tx.Commit(), ShouldBeNil)
+			}
 
 			cycle := func(c *fakeClock) {
 				tx, err := connPair.RwConn.Begin()

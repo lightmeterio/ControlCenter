@@ -3,9 +3,7 @@ package insights
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"path"
@@ -43,10 +41,6 @@ func NewCustomEngine(
 		return nil, util.WrapError(err)
 	}
 
-	if err := migrator.Run(stateConn.RwConn.DB, "insights"); err != nil {
-		return nil, util.WrapError(err)
-	}
-
 	creator, err := newCreator(stateConn.RwConn, notificationCenter)
 
 	if err != nil {
@@ -55,6 +49,10 @@ func NewCustomEngine(
 
 	detectors := buildDetectors(creator, options)
 
+	if err := setupDetectors(detectors, stateConn.RwConn); err != nil {
+		return nil, util.WrapError(err)
+	}
+
 	c, err := core.New(detectors)
 
 	if err != nil {
@@ -62,6 +60,7 @@ func NewCustomEngine(
 	}
 
 	fetcher, err := newFetcher(stateConn.RoConn)
+
 	if err != nil {
 		return nil, util.WrapError(err)
 	}
@@ -72,6 +71,42 @@ func NewCustomEngine(
 		txActions:         make(chan txAction, 1024),
 		fetcher:           fetcher,
 	}, nil
+}
+
+func setupDetectors(detectors []core.Detector, conn dbconn.RwConn) error {
+	tx, err := conn.Begin()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	defer func() {
+		if err != nil {
+			util.MustSucceed(tx.Rollback(), "")
+		}
+	}()
+
+	err = core.SetupAuxTables(tx)
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	for _, d := range detectors {
+		err = d.Setup(tx)
+
+		if err != nil {
+			return util.WrapError(err)
+		}
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
 }
 
 func (e *Engine) Close() error {

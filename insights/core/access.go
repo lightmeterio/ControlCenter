@@ -310,6 +310,46 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 		}
 	}()
 
+	_, err = tx.Exec(`
+		create table if not exists insights(
+			time integer not null,
+			category integer not null,
+			priority integer not null,
+			content_type integer not null,
+			content blob not null
+		)
+	`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	_, err = tx.Exec(`create index if not exists insights_time_index on insights(time)`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	_, err = tx.Exec(`create index if not exists insights_category_index on insights(category, time)`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	_, err = tx.Exec(`create index if not exists insights_priority_index on insights(priority, time)`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	_, err = tx.Exec(`create index if not exists insights_content_type_index on insights(content_type, time)`)
+
+	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	err = tx.Commit()
+
 	if err != nil {
 		return nil, util.WrapError(err)
 	}

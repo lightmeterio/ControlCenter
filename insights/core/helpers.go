@@ -41,3 +41,12 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 	return time.Unix(ts, 0), nil
 }
 
+func SetupAuxTables(tx *sql.Tx) error {
+	query := `create table if not exists last_detector_execution(ts integer, kind text)`
+
+	if _, err := tx.Exec(query); err != nil {
+		return util.WrapError(err)
+	}
+
+	return nil
+}

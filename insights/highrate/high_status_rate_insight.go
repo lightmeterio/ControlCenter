@@ -144,6 +144,10 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 	return execWeeklyChecks(d, c, tx)
 }
 
+func (d *highRateDetector) Setup(tx *sql.Tx) error {
+	return nil
+}
+
 func (d *highRateDetector) Steppers() []core.Stepper {
 	return []core.Stepper{d, d.weeklyBounceRateInsightsGenerator}
 }
