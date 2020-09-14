@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("auth", "1599813865_auth_migration_create_auth_table.go", Up, Down)
+	migrator.AddMigration("auth", "1_auth_migration_create_auth_table.go", Up, Down)
 }
 
 func Up(tx *sql.Tx) error {
