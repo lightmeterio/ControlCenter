@@ -3,6 +3,7 @@ package migrations
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 func init() {
@@ -19,7 +20,7 @@ func Up(tx *sql.Tx) error {
 
 	_, err := tx.Exec(sql)
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 	return nil
 }
@@ -30,7 +31,7 @@ func Down(tx *sql.Tx) error {
 
 	_, err := tx.Exec(sql)
 	if err != nil {
-		return err
+		return util.WrapError(err)
 	}
 	return nil
 }

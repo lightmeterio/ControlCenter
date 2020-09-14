@@ -1,3 +1,9 @@
+// This file contains some code from  https://github.com/pressly/goose:
+// Original work Copyright (c) 2012 Liam Staskawicz
+// Modified work Copyright (c) 2016 Vojtech Vitek
+// Modified work Copyright (c) 2020 Marcel Edmund Franke
+// LICENSE: https://github.com/pressly/goose/blob/master/LICENSE
+
 package migrator
 
 import (
@@ -6,6 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"log"
 	"math"
 	"path/filepath"
@@ -17,7 +24,7 @@ import (
 func Run(database *sql.DB, databaseName string) error {
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return err
+		return util.WrapError(err)
 	}
 
 	var err error
@@ -39,12 +46,12 @@ var (
 )
 
 // MaxVersion is the maximum allowed version.
-const MaxVersion int64 = math.MaxInt64
+const maxVersion int64 = math.MaxInt64
 const minVersion = int64(0)
 
 // Up migrates up to a specific version.
 func Up(db *sql.DB, databaseName string) error {
-	migrations, err := CollectMigrations(minVersion, MaxVersion, databaseName)
+	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
 	if err != nil {
 		return err
 	}
@@ -58,7 +65,7 @@ func Up(db *sql.DB, databaseName string) error {
 		next, err := migrations.Next(current)
 		if err != nil {
 			if err == goose.ErrNoNextVersion {
-				log.Printf("goose: no migrations to run. current version: %d\n", current)
+				log.Printf("no migrations to run. current version: %d\n", current)
 				return nil
 			}
 			return err
@@ -125,7 +132,7 @@ func versionFilter(v, current, target int64) bool {
 // Status prints the status of all migrations.
 func Status(db *sql.DB, databaseName string) error {
 	// collect all migrations
-	migrations, err := CollectMigrations(minVersion, MaxVersion, databaseName)
+	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
@@ -137,7 +144,7 @@ func Status(db *sql.DB, databaseName string) error {
 
 	log.Print("\n")
 
-	log.Println(fmt.Sprintf("    Database name               %v", databaseName))
+	log.Printf("    Database name               %v \n", databaseName)
 	log.Println("    Applied At                  Migration")
 	log.Println("    =======================================")
 	for _, migration := range migrations {
@@ -158,12 +165,12 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 		return errors.Wrap(err, "failed to query the latest migration")
 	}
 
-	var appliedAt string
-	if row.IsApplied {
-		appliedAt = row.TStamp.Format(time.ANSIC)
-	} else {
-		appliedAt = "Pending"
-	}
+	appliedAt := func() string {
+		if row.IsApplied {
+			return row.TStamp.Format(time.ANSIC)
+		}
+		return "Pending"
+	}()
 
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
 	return nil
