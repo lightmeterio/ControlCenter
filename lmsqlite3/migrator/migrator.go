@@ -16,7 +16,9 @@ import (
 
 func Run(database *sql.DB, databaseName string) error {
 
-	goose.SetDialect("sqlite3")
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
 
 	var err error
 	err = Status(database, databaseName)
