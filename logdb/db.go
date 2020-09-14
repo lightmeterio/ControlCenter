@@ -62,7 +62,6 @@ func createTables(db dbconn.RwConn) error {
 	return nil
 }
 
-
 func Open(workspaceDirectory string, config Config) (DB, error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
 

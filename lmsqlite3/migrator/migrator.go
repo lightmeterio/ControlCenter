@@ -38,7 +38,7 @@ var (
 
 // MaxVersion is the maximum allowed version.
 const MaxVersion int64 = math.MaxInt64
-const minVersion         = int64(0)
+const minVersion = int64(0)
 
 // Up migrates up to a specific version.
 func Up(db *sql.DB, databaseName string) error {
@@ -132,7 +132,6 @@ func Status(db *sql.DB, databaseName string) error {
 	if _, err := goose.EnsureDBVersion(db); err != nil {
 		return errors.Wrap(err, "failed to ensure DB version")
 	}
-
 
 	log.Print("\n")
 

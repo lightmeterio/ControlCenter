@@ -3,7 +3,6 @@ package migrations
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-
 )
 
 func init() {
