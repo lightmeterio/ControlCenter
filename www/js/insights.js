@@ -61,5 +61,11 @@ function buildInsightTitle(insight) {
 }
 
 function buildInsightDescription(insight) {
-  return "Some Description for " + insight.ContentType
+  var handler = insightsDescriptions[insight.ContentType]
+
+  if (handler == undefined) {
+    return "Description for " + insight.ContentType
+  }
+
+  return handler(insight.Content)
 }
