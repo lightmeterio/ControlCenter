@@ -90,11 +90,11 @@ func TestTemplates(t *testing.T) {
 	Convey("Test Templates", t, func() {
 		fs := &fakeContents{
 			contents: map[string]*fakeFileContent{
-				"/index.i18n.html": &fakeFileContent{
+				"/index.i18n.html": {
 					modificationTime: parseTime(`2000-01-01 00:00:03 +0000`),
 					content:          ">> {{translate `Root Index`}}",
 				},
-				"/some/random/page.i18n.html": &fakeFileContent{
+				"/some/random/page.i18n.html": {
 					modificationTime: parseTime(`2000-01-01 00:00:04 +0000`),
 					content:          "== {{translate `Some Random Page`}}",
 				},

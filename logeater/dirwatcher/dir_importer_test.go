@@ -501,7 +501,7 @@ func TestMultipleFiles(t *testing.T) {
 
 		Convey("One file only with no change in year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				fileDescriptor{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
+				{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Mar 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
@@ -513,7 +513,7 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 
 		Convey("One file only with a change in year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				fileDescriptor{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
+				{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Dec 22 06:28:55 mail dovecot: Useless Payload
 Dec 23 06:28:55 mail dovecot: Useless Payload
@@ -526,18 +526,18 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 
 		Convey("Multiple files, with one of them changing year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				fileDescriptor{modificationTime: parseTime(`2020-03-30 19:01:53 +0000`),
+				{modificationTime: parseTime(`2020-03-30 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Dec 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
-				fileDescriptor{modificationTime: parseTime(`2020-02-28 18:18:10 +0000`),
+				{modificationTime: parseTime(`2020-02-28 18:18:10 +0000`),
 					reader: plainDataReader(
 						`Nov  3 01:33:20 mail dovecot: Useless Payload
 Nov 23 06:28:55 mail dovecot: Useless Payload
 Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
-				fileDescriptor{modificationTime: parseTime(`2020-01-31 19:01:53 +0000`),
+				{modificationTime: parseTime(`2020-01-31 19:01:53 +0000`),
 					reader: plainDataReader(
 						`Jan 22 06:28:55 mail dovecot: Useless Payload
 Jan 23 06:28:55 mail dovecot: Useless Payload

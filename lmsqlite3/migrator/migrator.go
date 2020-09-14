@@ -149,6 +149,7 @@ func Status(db *sql.DB, databaseName string) error {
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
+	/* #nosec */
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", goose.TableName(), version)
 
 	var row goose.MigrationRecord

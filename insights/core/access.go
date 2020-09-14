@@ -163,22 +163,22 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 
 	return &fetcher{
 		queries: map[queryKey]queryValue{
-			queryKey{order: OrderByCreationDesc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time desc`),
+			{order: OrderByCreationDesc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time desc`),
 				func(o FetchOptions) []interface{} {
 					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
 				}),
 
-			queryKey{order: OrderByCreationDesc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time desc`),
+			{order: OrderByCreationDesc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time desc`),
 				func(o FetchOptions) []interface{} {
 					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
 				}),
 
-			queryKey{order: OrderByCreationAsc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time asc`),
+			{order: OrderByCreationAsc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time asc`),
 				func(o FetchOptions) []interface{} {
 					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
 				}),
 
-			queryKey{order: OrderByCreationAsc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time asc`),
+			{order: OrderByCreationAsc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time asc`),
 				func(o FetchOptions) []interface{} {
 					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
 				}),
