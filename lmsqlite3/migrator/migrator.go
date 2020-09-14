@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pressly/goose"
 	"log"
+	"math"
 	"path/filepath"
 	"time"
 
@@ -36,7 +37,7 @@ var (
 )
 
 // MaxVersion is the maximum allowed version.
-const MaxVersion int64 = 9223372036854775807 // max(int64)
+const MaxVersion int64 = math.MaxInt64
 const minVersion         = int64(0)
 
 // Up migrates up to a specific version.
