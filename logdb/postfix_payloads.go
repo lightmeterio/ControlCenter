@@ -1,10 +1,3 @@
-/**
- * This file describes how to add support for storing a new log type in the database
- * You'll need to add a new entry on the switch-case on FindInserterForPayload()
- * and register the other functions for the new log type with the function registerPayloadHandler()
- * in the respective init(). For an example, please check the file postfix_payload_smtp.go
- */
-
 package logdb
 
 import (
@@ -27,12 +20,8 @@ func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) e
 }
 
 type payloadHandler struct {
-
-	Filename string
-	// Delete create the database tables, indexes, etc.
-	Up func(tx *sql.Tx) error
-	// Register Delete the database tables, indexes, etc.
-	Down func(tx *sql.Tx) error
+	// Create the database tables, indexes, etc.
+	creator func(dbconn.RwConn) error
 
 	// Counts how many records are there in the respective table.
 	counter func(dbconn.RoConn) int
