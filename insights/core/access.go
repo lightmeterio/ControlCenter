@@ -75,13 +75,50 @@ func BuildOrderByName(n string) FetchOrder {
 	}
 }
 
-type Priority int
+type Rating int
+
+func (r Rating) String() string {
+	switch r {
+	case BadRating:
+		return "bad"
+	case OkRating:
+		return "ok"
+	case GoodRating:
+		return "good"
+	case Unrated:
+		fallthrough
+	default:
+		return "unrated"
+	}
+}
+
+const (
+	Unrated    Rating = 0
+	GoodRating Rating = 1
+	OkRating   Rating = 2
+	BadRating  Rating = 3
+)
+
+func BuildRatingByName(n string) Rating {
+	switch n {
+	case "bad":
+		return BadRating
+	case "ok":
+		return OkRating
+	case "good":
+		return GoodRating
+	case "unrated":
+		fallthrough
+	default:
+		return Unrated
+	}
+}
 
 type FetchedInsight interface {
 	ID() int
 	Time() time.Time
 	Category() Category
-	Priority() Priority
+	Rating() Rating
 	Content() Content
 	ContentType() string
 }
@@ -135,7 +172,7 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 	buildSelectStmt := func(where, order string) string {
 		return fmt.Sprintf(`
 	select
-		rowid, time, category, priority, content_type, content
+		rowid, time, category, rating, content_type, content
 	from
 		insights
 	where
@@ -199,7 +236,7 @@ func (f *fetcher) Close() error {
 type fetchedInsight struct {
 	id          int
 	time        time.Time
-	priority    Priority
+	rating      Rating
 	category    Category
 	contentType string
 	content     Content
@@ -217,8 +254,8 @@ func (f *fetchedInsight) Category() Category {
 	return f.category
 }
 
-func (f *fetchedInsight) Priority() Priority {
-	return f.priority
+func (f *fetchedInsight) Rating() Rating {
+	return f.rating
 }
 
 func (f *fetchedInsight) ContentType() string {
@@ -251,14 +288,14 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 	var id int
 	var ts int64
 	var category Category
-	var priority Priority
+	var rating Rating
 	var contentTypeValue int
 	var contentBytes []byte
 
 	result := []FetchedInsight{}
 
 	for rows.Next() {
-		err = rows.Scan(&id, &ts, &category, &priority, &contentTypeValue, &contentBytes)
+		err = rows.Scan(&id, &ts, &category, &rating, &contentTypeValue, &contentBytes)
 
 		if err != nil {
 			return []FetchedInsight{}, util.WrapError(err)
@@ -280,7 +317,7 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 			id:          id,
 			time:        time.Unix(ts, 0).In(time.UTC),
 			category:    category,
-			priority:    priority,
+			rating:      rating,
 			contentType: contentType,
 			content:     content,
 		})
@@ -314,7 +351,7 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 		create table if not exists insights(
 			time integer not null,
 			category integer not null,
-			priority integer not null,
+			rating integer not null,
 			content_type integer not null,
 			content blob not null
 		)
@@ -336,7 +373,7 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 		return nil, util.WrapError(err)
 	}
 
-	_, err = tx.Exec(`create index if not exists insights_priority_index on insights(priority, time)`)
+	_, err = tx.Exec(`create index if not exists insights_rating_index on insights(rating, time)`)
 
 	if err != nil {
 		return nil, util.WrapError(err)
@@ -360,7 +397,7 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 type InsightProperties struct {
 	Time        time.Time
 	Category    Category
-	Priority    Priority
+	Rating      Rating
 	ContentType string
 	Content     Content
 }
@@ -385,10 +422,10 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	}
 
 	result, err := tx.Exec(
-		`insert into insights(time, category, priority, content_type, content) values(?, ?, ?, ?, ?)`,
+		`insert into insights(time, category, rating, content_type, content) values(?, ?, ?, ?, ?)`,
 		properties.Time.Unix(),
 		properties.Category,
-		properties.Priority,
+		properties.Rating,
 		contentTypeValue,
 		contentBytes)
 
