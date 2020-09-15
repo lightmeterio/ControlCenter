@@ -99,21 +99,6 @@ const (
 	BadRating  Rating = 3
 )
 
-func BuildRatingByName(n string) Rating {
-	switch n {
-	case "bad":
-		return BadRating
-	case "ok":
-		return OkRating
-	case "good":
-		return GoodRating
-	case "unrated":
-		fallthrough
-	default:
-		return Unrated
-	}
-}
-
 type FetchedInsight interface {
 	ID() int
 	Time() time.Time
