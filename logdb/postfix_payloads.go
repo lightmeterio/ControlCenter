@@ -1,3 +1,10 @@
+/**
+ * This file describes how to add support for storing a new log type in the database
+ * You'll need to add a new entry on the switch-case on FindInserterForPayload()
+ * and register the other functions for the new log type with the function registerPayloadHandler()
+ * in the respective init(). For an example, please check the file postfix_payload_smtp.go
+ */
+
 package logdb
 
 import (

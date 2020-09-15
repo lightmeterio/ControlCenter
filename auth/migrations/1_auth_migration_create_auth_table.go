@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("auth", "1_auth_migration_create_auth_table.go", Up, Down)
+	migrator.AddMigration("auth", "1_auth_migration_create_auth_table.go", UpUsersTable, DownUsersTable)
 }
 
-func Up(tx *sql.Tx) error {
+func UpUsersTable(tx *sql.Tx) error {
 
 	sql := `create table if not exists users(
 		email string,
@@ -25,13 +25,6 @@ func Up(tx *sql.Tx) error {
 	return nil
 }
 
-func Down(tx *sql.Tx) error {
-
-	sql := `DROP TABLE users;`
-
-	_, err := tx.Exec(sql)
-	if err != nil {
-		return util.WrapError(err)
-	}
+func DownUsersTable(tx *sql.Tx) error {
 	return nil
 }
