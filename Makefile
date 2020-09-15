@@ -57,7 +57,7 @@ code2po:
 	go run tools/code2po/main.go -i www -pot -o po/controlcenter.pot
 
 swag:
-	go run github.com/swaggo/swag/cmd/swag init --generalInfo api/api.go
+	go run -mod vendor github.com/swaggo/swag/cmd/swag init --generalInfo api/api.go
 	cp docs/swagger.json www/api.json
 
 clean: clean_binaries clean_swag clean_staticdata clean_mocks
