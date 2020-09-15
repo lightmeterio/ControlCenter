@@ -59,7 +59,6 @@ func createTables(db dbconn.RwConn) error {
 			return util.WrapError(err)
 		}
 	}
-
 	return nil
 }
 

@@ -4,7 +4,9 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"errors"
+	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"
 	"io"
@@ -209,22 +211,14 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func setupWriterConnection(conn dbconn.RwConn) error {
-	if _, err := conn.Exec(`create table if not exists users(
-		email string,
-		name string,
-		password blob
-	)`); err != nil {
-		return util.WrapError(err)
-	}
-
-	return nil
-}
-
 func NewAuth(dirname string, options Options) (*Auth, error) {
 	connPair, err := dbconn.NewConnPair(path.Join(dirname, "auth.db"))
 
 	if err != nil {
+		return nil, util.WrapError(err)
+	}
+
+	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
 		return nil, util.WrapError(err)
 	}
 
@@ -233,8 +227,6 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 			util.MustSucceed(connPair.Close(), "Closing DB connection on error")
 		}
 	}()
-
-	err = setupWriterConnection(connPair.RwConn)
 
 	if err != nil {
 		return nil, util.WrapError(err)

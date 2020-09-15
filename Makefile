@@ -21,16 +21,16 @@ BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSI
 all: dev
 
 dev: mocks swag domain_mapping_list po2go
-	go build -tags="dev" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release: static_www domain_mapping_list po2go
-	go build -tags="release" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 windows_release: static_www domain_mapping_list po2go
-	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
+	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
 
 static_release: static_www domain_mapping_list po2go
-	go build -tags="release" -o "lightmeter" -ldflags \
+	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:

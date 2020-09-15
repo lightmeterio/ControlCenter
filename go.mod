@@ -10,7 +10,9 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/mattn/go-sqlite3 v1.13.1-0.20200606034938-baaf8a978416
+	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/pkg/errors v0.8.1
+	github.com/pressly/goose v2.6.0+incompatible
 	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
