@@ -1,7 +1,6 @@
 package logdb
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -21,7 +21,7 @@ func init() {
 	// NOTE: unfortunately the domain mapping code uses a singleton (to be accessed internally via sqlite)
 	// that outlives all the test cases, so it's more clear for it to be defined globally as well
 	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
-	errorutil.MustSucceed(err, "")
+	util.MustSucceed(err, "")
 
 	lmsqlite3.Initialize(lmsqlite3.Options{
 		"domain_mapping": &m,

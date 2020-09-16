@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	_ "gitlab.com/lightmeter/controlcenter/logdb/migrations"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	"log"
 	"path"
@@ -12,6 +11,7 @@ import (
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 var (
@@ -53,21 +53,21 @@ func Open(workspaceDirectory string, config Config) (DB, error) {
 	connPair, err := dbconn.NewConnPair(dbFilename)
 
 	if err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, util.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
+			util.MustSucceed(connPair.Close(), "Closing connection on error")
 		}
 	}()
 
 	if err := migrator.Run(connPair.RwConn.DB, "logs"); err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, util.WrapError(err)
 	}
 
 	if err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, util.WrapError(err)
 	}
 
 	return DB{
@@ -150,12 +150,12 @@ func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 
 	startTransaction := func() {
 		tx, err = db.Begin()
-		errorutil.MustSucceed(err, "Preparing transaction")
+		util.MustSucceed(err, "Preparing transaction")
 	}
 
 	closeTransaction := func() {
 		if countPerTransaction == 0 {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back empty transaction")
+			util.MustSucceed(tx.Rollback(), "Rolling back empty transaction")
 			return
 		}
 
@@ -164,7 +164,7 @@ func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 
 		countPerTransaction = 0
 
-		errorutil.MustSucceed(tx.Commit(), "Committing transaction")
+		util.MustSucceed(tx.Commit(), "Committing transaction")
 	}
 
 	restartTransaction := func() {
@@ -186,7 +186,7 @@ func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 				return
 			}
 
-			errorutil.MustSucceed(insertCb(tx, r), "Database insertion")
+			util.MustSucceed(insertCb(tx, r), "Database insertion")
 			countPerTransaction += 1
 			break
 		case <-ticker.C:

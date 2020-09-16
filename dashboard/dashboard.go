@@ -3,11 +3,11 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -51,12 +51,12 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(countByStatus.Close(), "Closing countByStatus")
+			util.MustSucceed(countByStatus.Close(), "Closing countByStatus")
 		}
 	}()
 
@@ -74,12 +74,12 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(deliveryStatus.Close(), "Closing deliveryStatus")
+			util.MustSucceed(deliveryStatus.Close(), "Closing deliveryStatus")
 		}
 	}()
 
@@ -97,12 +97,12 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
+			util.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
 		}
 	}()
 
@@ -120,12 +120,12 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, util.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(topBusiestDomains.Close(), "Closing topBusiestDomains")
+			util.MustSucceed(topBusiestDomains.Close(), "Closing topBusiestDomains")
 		}
 	}()
 
@@ -152,7 +152,7 @@ func (d SqlDbDashboard) Close() error {
 		errTopBusiestDomains != nil ||
 		errTopBouncedDomains != nil {
 
-		return errorutil.WrapError(ErrClosingDashboardQueries)
+		return util.WrapError(ErrClosingDashboardQueries)
 	}
 
 	return nil
@@ -180,7 +180,7 @@ func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
 
 func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) int {
 	countValue := 0
-	errorutil.MustSucceed(stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue), "")
+	util.MustSucceed(stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue), "")
 	return countValue
 }
 
@@ -192,15 +192,15 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 
 	query, err := stmt.Query(args...)
 
-	errorutil.MustSucceed(err, "ListDomainAndCount")
+	util.MustSucceed(err, "ListDomainAndCount")
 
-	defer func() { errorutil.MustSucceed(query.Close(), "") }()
+	defer func() { util.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
 		var domain string
 		var countValue int
 
-		errorutil.MustSucceed(query.Scan(&domain, &countValue), "scan")
+		util.MustSucceed(query.Scan(&domain, &countValue), "scan")
 
 		// If the relay info is not available, use a placeholder
 		if len(domain) == 0 {
@@ -210,7 +210,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 		r = append(r, Pair{strings.ToLower(domain), countValue})
 	}
 
-	errorutil.MustSucceed(query.Err(), "Error on rows")
+	util.MustSucceed(query.Err(), "Error on rows")
 
 	return r
 }
@@ -223,20 +223,20 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 
 	query, err := stmt.Query(interval.From.Unix(), interval.To.Unix())
 
-	errorutil.MustSucceed(err, "DeliveryStatus")
+	util.MustSucceed(err, "DeliveryStatus")
 
-	defer func() { errorutil.MustSucceed(query.Close(), "") }()
+	defer func() { util.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
 		var status parser.SmtpStatus
 		var value int
 
-		errorutil.MustSucceed(query.Scan(&status, &value), "scan")
+		util.MustSucceed(query.Scan(&status, &value), "scan")
 
 		r = append(r, Pair{status.String(), value})
 	}
 
-	errorutil.MustSucceed(query.Err(), "Error on rows")
+	util.MustSucceed(query.Err(), "Error on rows")
 
 	return r
 }

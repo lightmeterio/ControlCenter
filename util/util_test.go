@@ -1,4 +1,4 @@
-package errorutil
+package util
 
 import (
 	"errors"
