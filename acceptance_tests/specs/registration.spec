@@ -1,9 +1,7 @@
 # Registration
 
-Test the administrator registration process
-
 ## Registration fails
-Tags: fails
+Tags: failure
 
 * Go to registration page
 * Focus on field with placeholder "Name"
@@ -16,7 +14,7 @@ Tags: fails
 * Click on "Register"
 
 ## Registraton succeeds
-Tags: succeeds
+Tags: success
 
 * Go to registration page
 * Focus on field with placeholder "Name"

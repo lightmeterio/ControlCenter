@@ -1,6 +1,6 @@
 /* globals gauge*/
 "use strict";
-const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf, toLeftOf, dropDown } = require('taiko');
+const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, button, focus, textBox, toRightOf, toLeftOf, dropDown, waitFor, $ } = require('taiko');
 
 const assert = require("assert");
 const child_process = require("child_process")
@@ -39,7 +39,7 @@ gauge.screenshotFn = async function() {
     return await screenshot({ encoding: 'base64' });
 };
 
-step("Go to main page", async () => {
+step("Go to homepage", async () => {
     await goto('localhost:8080');
 });
 
@@ -47,12 +47,16 @@ step("Go to registration page", async () => {
     await goto('localhost:8080/register');
 });
 
+step("Go to login page", async () => {
+    await goto('localhost:8080/login');
+});
+
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {
     await focus(textBox({placeholder: placeholder}))
 });
 
 step("Click on <clickable>", async (clickable) => {
-    await click(clickable)
+    await click(button(clickable))
 });
 
 step("Type <content>", async (content) => {
@@ -61,4 +65,44 @@ step("Type <content>", async (content) => {
 
 step("Select <option> from menu <menuName>", async (option, menuName) => {
     await dropDown('Most of my mail is…').select('direct')
+});
+
+step("Open datepicker menu", async () => {
+    waitFor(3000)
+    click("Time interval:")
+    await click(text('18 August - 16 September'))
+    await click(text('Custom Range'))
+});
+
+step("Skip forward several months", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]"))
+});
+
+step("Set start date", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
+});
+
+step("Move forward some months", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]"))
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]"))
+});
+
+step("Set end date", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
+});
+
+step("Click apply", async () => {
+    await click(button("apply"))
 });
