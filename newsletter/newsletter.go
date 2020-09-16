@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,7 +28,7 @@ func encodeBody(reader io.Reader) (string, error) {
 	body, err := ioutil.ReadAll(reader)
 
 	if err != nil {
-		return "", util.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	var base64Writer bytes.Buffer
@@ -36,11 +36,11 @@ func encodeBody(reader io.Reader) (string, error) {
 	encoder := base64.NewEncoder(base64.StdEncoding, &base64Writer)
 
 	if _, err := encoder.Write(body); err != nil {
-		return "", util.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	if err := encoder.Close(); err != nil {
-		return "", util.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	return base64Writer.String(), nil
@@ -59,7 +59,7 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 	req, err := http.NewRequestWithContext(context, "POST", s.URL+"/lists/?p=asubscribe&id=2", content)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	req.Header.Set("Content-Type", `application/x-www-form-urlencoded; charset=UTF-8`)
@@ -69,22 +69,22 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 	res, err := client.Do(req)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
-	defer func() { util.MustSucceed(res.Body.Close(), "") }()
+	defer func() { errorutil.MustSucceed(res.Body.Close(), "") }()
 
 	body, err := encodeBody(res.Body)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	log.Println("Subscribe response:", body)
 
 	if res.StatusCode != http.StatusOK {
 		log.Println("Error subscribing email to newsletter!")
-		return util.WrapError(ErrSubscribingToNewsletter)
+		return errorutil.Wrap(ErrSubscribingToNewsletter)
 	}
 
 	log.Println("Successfully subscribed email to newsletter!")

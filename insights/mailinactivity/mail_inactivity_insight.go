@@ -7,7 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
@@ -50,7 +50,7 @@ func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 	}
 
 	if err := g.creator.GenerateInsight(tx, properties); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	g.interval = nil
@@ -76,13 +76,13 @@ func NewDetector(creator core.Creator, options core.Options) *detector {
 	d, ok := options["dashboard"].(dashboard.Dashboard)
 
 	if !ok {
-		util.MustSucceed(errors.New("Invalid dashboard!"), "")
+		errorutil.MustSucceed(errors.New("Invalid dashboard!"), "")
 	}
 
 	detectorOptions, ok := options["mailinactivity"].(Options)
 
 	if !ok {
-		util.MustSucceed(errors.New("Invalid detector options!"), "")
+		errorutil.MustSucceed(errors.New("Invalid detector options!"), "")
 	}
 
 	return &detector{
@@ -100,7 +100,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	interval := data.TimeInterval{
@@ -149,7 +149,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 	d.generator.generate(interval)
 
 	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func init() {
 		err := json.Unmarshal(b, &content)
 
 		if err != nil {
-			return nil, util.WrapError(err)
+			return nil, errorutil.Wrap(err)
 		}
 
 		return &content, nil

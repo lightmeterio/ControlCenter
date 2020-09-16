@@ -2,7 +2,7 @@ package i18n
 
 import (
 	"bytes"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/text/language"
 	"io"
 	"io/ioutil"
@@ -56,7 +56,7 @@ func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 		r := bytes.NewReader(b)
 
 		if _, err := io.Copy(w, r); err != nil {
-			return util.WrapError(err)
+			return errorutil.Wrap(err)
 		}
 
 		return nil
@@ -121,23 +121,23 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			content, err := ioutil.ReadAll(f)
 
-			util.MustSucceed(err, "")
+			errorutil.MustSucceed(err, "")
 
 			t, err := template.New("root").
 				Funcs(template.FuncMap{"translate": translator.Translate}).
 				Parse(string(content))
 
-			util.MustSucceed(err, "")
+			errorutil.MustSucceed(err, "")
 
 			buffer := bytes.Buffer{}
 
 			err = t.Execute(&buffer, []interface{}{})
 
-			util.MustSucceed(err, "")
+			errorutil.MustSucceed(err, "")
 
 			return buffer.Bytes()
 		})
 
 	// TODO: handle this error, as it might be caused by some issue with the connection with the client
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -38,10 +38,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.method = r.Method
 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 	h.mediaType = mediaType
 
-	util.MustSucceed(r.ParseForm(), "")
+	errorutil.MustSucceed(r.ParseForm(), "")
 
 	h.email = r.FormValue("email")
 	h.subscribe = r.FormValue("subscribe")

@@ -1,4 +1,4 @@
-package util
+package errorutil
 
 import (
 	"log"
@@ -54,7 +54,7 @@ func (e *customWrappingError) Unwrap() error {
 func TestErrorWrapping(t *testing.T) {
 	Convey("Empty message", t, func() {
 		err := errors.New("Boom")
-		w, line := WrapError(err), getLine()
+		w, line := Wrap(err), getLine()
 		So(errors.Is(w, err), ShouldBeTrue)
 		So(path.Base(w.Filename), ShouldEqual, "errors_test.go")
 		So(w.Line, ShouldEqual, line)
@@ -63,7 +63,7 @@ func TestErrorWrapping(t *testing.T) {
 
 	Convey("Non empty message", t, func() {
 		err := errors.New("Boom")
-		w, line := WrapError(err, "This is the ", "Answer: ", 42), getLine()
+		w, line := Wrap(err, "This is the ", "Answer: ", 42), getLine()
 		So(errors.Is(w, err), ShouldBeTrue)
 		So(path.Base(w.Filename), ShouldEqual, "errors_test.go")
 		So(w.Line, ShouldEqual, line)
@@ -77,11 +77,11 @@ func TestErrorWrapping(t *testing.T) {
 			return len(strings.Split(msg, "\n"))
 		}
 
-		Convey("Only WrapErrors", func() {
+		Convey("Only Wraps", func() {
 			e1 := errors.New("e1")
-			e2 := WrapError(e1, "wrapping e1")
-			e3 := WrapError(e2)
-			e4 := WrapError(e3)
+			e2 := Wrap(e1, "wrapping e1")
+			e3 := Wrap(e2)
+			e4 := Wrap(e3)
 
 			So(Chain(e2), ShouldResemble, ErrorChain{e2, e1})
 			So(Chain(e4), ShouldResemble, ErrorChain{e4, e3, e2, e1})
@@ -102,9 +102,9 @@ func TestErrorWrapping(t *testing.T) {
 
 		Convey("With custom error", func() {
 			e1 := errors.New("e1")
-			e2 := WrapError(e1, "wrapping e1")
+			e2 := Wrap(e1, "wrapping e1")
 			e3 := &customError{42, e2}
-			e4 := WrapError(e3)
+			e4 := Wrap(e3)
 
 			So(Chain(e4), ShouldResemble, ErrorChain{e4, e3, e2, e1})
 			So(errors.Is(e4, e1), ShouldBeTrue)

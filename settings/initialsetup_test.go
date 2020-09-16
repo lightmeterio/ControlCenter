@@ -7,7 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
@@ -42,17 +42,17 @@ func TestInitialSetup(t *testing.T) {
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)
-		defer func() { util.MustSucceed(conn.Close(), "") }()
+		defer func() { errorutil.MustSucceed(conn.Close(), "") }()
 
 		meta, err := meta.NewMetaDataHandler(conn)
 		So(err, ShouldBeNil)
-		defer func() { util.MustSucceed(meta.Close(), "") }()
+		defer func() { errorutil.MustSucceed(meta.Close(), "") }()
 
 		newsletterSubscriber := &fakeNewsletterSubscriber{}
 
 		m, err := NewMasterConf(meta, newsletterSubscriber)
 		So(err, ShouldBeNil)
-		defer func() { util.MustSucceed(m.Close(), "") }()
+		defer func() { errorutil.MustSucceed(m.Close(), "") }()
 
 		Convey("Invalid Mail Kind", func() {
 			So(errors.Is(m.SetInitialOptions(context, InitialSetupOptions{

@@ -1,4 +1,4 @@
-package util
+package errorutil
 
 import (
 	"errors"
@@ -17,6 +17,6 @@ func TestErrorAssertion(t *testing.T) {
 	Convey("Test MustSucceed", t, func() {
 		So(mustSucceed(nil, ""), ShouldNotPanic)
 		So(mustSucceed(errors.New("Basic Error"), ""), ShouldPanic)
-		So(mustSucceed(WrapError(errors.New("Inner Error")), ""), ShouldPanic)
+		So(mustSucceed(Wrap(errors.New("Inner Error")), ""), ShouldPanic)
 	})
 }

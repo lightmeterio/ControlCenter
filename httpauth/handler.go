@@ -3,7 +3,7 @@ package httpauth
 import (
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +29,7 @@ const SessionDuration = time.Hour * 24 * 7 // 1 week
 
 func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	sessionsDir := path.Join(r.workspaceDirectory, "http_sessions")
-	util.MustSucceed(os.MkdirAll(sessionsDir, os.ModePerm), "Creating http sessions directory")
+	errorutil.MustSucceed(os.MkdirAll(sessionsDir, os.ModePerm), "Creating http sessions directory")
 	store := sessions.NewFilesystemStore(sessionsDir, r.Auth.SessionKeys()...)
 	store.Options.HttpOnly = true
 	store.Options.MaxAge = int(SessionDuration.Seconds())

@@ -2,13 +2,13 @@ package logeater
 
 import (
 	"bufio"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"log"
 	"time"
 
 	"github.com/hpcloud/tail"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
@@ -58,7 +58,7 @@ func WatchFileCancelable(filename string,
 	})
 
 	if err != nil {
-		return util.WrapError(err), nil, nil
+		return errorutil.Wrap(err), nil, nil
 	}
 
 	cancel := make(chan struct{}, 1)
@@ -83,7 +83,7 @@ func WatchFileCancelable(filename string,
 			}
 		}
 
-		util.MustSucceed(t.Stop(), "stopping watcher")
+		errorutil.MustSucceed(t.Stop(), "stopping watcher")
 
 		done <- nil
 	}()
@@ -100,7 +100,7 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 	err, _, done := WatchFileCancelable(filename, location, publisher, ts)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	done()
