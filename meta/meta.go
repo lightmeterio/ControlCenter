@@ -116,4 +116,3 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 
 	return results, nil
 }
-
