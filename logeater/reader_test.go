@@ -3,6 +3,7 @@ package logeater
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"strings"
 	"testing"
 	"time"
@@ -19,21 +20,11 @@ func (f *FakePublisher) Publish(r data.Record) {
 func (FakePublisher) Close() {
 }
 
-func parseTime(s string) time.Time {
-	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
-
-	if err != nil {
-		panic("parsing time: " + err.Error())
-	}
-
-	return p
-}
-
 func TestReadingLogs(t *testing.T) {
 	Convey("Read From Reader", t, func() {
 		pub := FakePublisher{}
 
-		firstSecondInJanuary := parseTime(`2000-01-01 00:00:00 +0000`)
+		firstSecondInJanuary := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 
 		Convey("Read Nothing", func() {
 			reader := strings.NewReader(``)
@@ -57,7 +48,7 @@ func TestReadingLogs(t *testing.T) {
 			So(pub.logs[0].Header.Time.Hour, ShouldEqual, 7)
 			So(pub.logs[0].Header.Time.Minute, ShouldEqual, 42)
 			So(pub.logs[0].Header.Time.Second, ShouldEqual, 10)
-			So(pub.logs[0].Time, ShouldEqual, parseTime(`2000-03-01 07:42:10 +0000`))
+			So(pub.logs[0].Time, ShouldEqual, testutil.MustParseTime(`2000-03-01 07:42:10 +0000`))
 		})
 
 		Convey("Read three lines, one of them with invalid payload", func() {

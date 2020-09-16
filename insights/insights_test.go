@@ -15,16 +15,6 @@ import (
 	"time"
 )
 
-func parseTime(s string) time.Time {
-	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
-
-	if err != nil {
-		panic("parsing time: " + err.Error())
-	}
-
-	return p.In(time.UTC)
-}
-
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
@@ -135,7 +125,7 @@ func TestEngine(t *testing.T) {
 				errChan <- runDatabaseWriterLoop(e)
 			}()
 
-			clock := &fakeClock{Time: parseTime(`2000-01-01 00:00:00 +0000`)}
+			clock := &fakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)}
 
 			step := func(v *fakeValue) {
 				if v != nil {
@@ -182,8 +172,8 @@ func TestEngine(t *testing.T) {
 			Convey("fetch all insights with no filter, sorting by time, default (desc) order", func() {
 				insights, err := fetcher.FetchInsights(core.FetchOptions{
 					Interval: data.TimeInterval{
-						From: parseTime(`2000-01-01 00:00:00 +0000`),
-						To:   parseTime(`2000-01-01 22:00:00 +0000`),
+						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 				})
 
@@ -195,26 +185,26 @@ func TestEngine(t *testing.T) {
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.Unrated)
-				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
+				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
-				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
+				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
-				So(insights[2].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:02 +0000`))
+				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
 			})
 
 			Convey("fetch 2 most recent insights", func() {
 				insights, err := fetcher.FetchInsights(core.FetchOptions{
 					Interval: data.TimeInterval{
-						From: parseTime(`2000-01-01 00:00:00 +0000`),
-						To:   parseTime(`2000-01-01 22:00:00 +0000`),
+						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					MaxEntries: 2,
 				})
@@ -227,20 +217,20 @@ func TestEngine(t *testing.T) {
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.Unrated)
-				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
+				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
-				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
+				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 			})
 
 			Convey("fetch all insights with no filter, sorting by time, asc order", func() {
 				insights, err := fetcher.FetchInsights(core.FetchOptions{
 					Interval: data.TimeInterval{
-						From: parseTime(`2000-01-01 00:00:00 +0000`),
-						To:   parseTime(`2000-01-01 22:00:00 +0000`),
+						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					OrderBy: core.OrderByCreationAsc,
 				})
@@ -253,26 +243,26 @@ func TestEngine(t *testing.T) {
 				So(*insights[0].Content().(*string), ShouldEqual, "42")
 				So(insights[0].ID(), ShouldEqual, 1)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
-				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:02 +0000`))
+				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
-				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
+				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "13")
 				So(insights[2].ID(), ShouldEqual, 3)
 				So(insights[2].Rating(), ShouldEqual, core.Unrated)
-				So(insights[2].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
+				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 			})
 
 			Convey("fetch intel category, asc order", func() {
 				insights, err := fetcher.FetchInsights(core.FetchOptions{
 					Interval: data.TimeInterval{
-						From: parseTime(`2000-01-01 00:00:00 +0000`),
-						To:   parseTime(`2000-01-01 22:00:00 +0000`),
+						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
@@ -287,7 +277,7 @@ func TestEngine(t *testing.T) {
 				So(*insights[0].Content().(*string), ShouldEqual, "35")
 				So(insights[0].ID(), ShouldEqual, 2)
 				So(insights[0].Rating(), ShouldEqual, core.GoodRating)
-				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
+				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 			})
 		})
 

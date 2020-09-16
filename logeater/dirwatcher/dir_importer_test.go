@@ -12,6 +12,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -40,16 +41,6 @@ func (this *fakePublisher) Publish(r data.Record) {
 }
 
 func (fakePublisher) Close() {
-}
-
-func parseTime(s string) time.Time {
-	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
-
-	if err != nil {
-		panic("parsing time: " + err.Error())
-	}
-
-	return p
 }
 
 func compress(content []byte) []byte {
@@ -264,14 +255,14 @@ func (f FakeDirectoryContent) modificationTimeForEntry(filename string) (time.Ti
 func TestGuessingYearWhenFileStarts(t *testing.T) {
 	Convey("Guess Based on file content and modification date", t, func() {
 		Convey("Empty file uses modification date directly", func() {
-			date, err := guessInitialDateForFile(plainDataReader(``), parseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(plainDataReader(``), testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2020-04-03 19:01:53 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 		})
 
 		Convey("Fail to read single invalid line file", func() {
 			reader := plainDataReader(`Invalid Log Line`)
-			_, err := guessInitialDateForFile(reader, parseTime(`2020-04-03 19:01:53 +0000`))
+			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 			So(err, ShouldNotBeNil)
 		})
 
@@ -279,29 +270,29 @@ func TestGuessingYearWhenFileStarts(t *testing.T) {
 			reader := plainDataReader(
 				`Mar 22 06:28:55 mail dovecot: Useless Payload
 Invalid Line`)
-			_, err := guessInitialDateForFile(reader, parseTime(`2020-04-03 19:01:53 +0000`))
+			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Single line, no change in year", func() {
 			reader := plainDataReader(`Mar 22 06:28:55 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2020-03-22 06:28:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("Single line, no change in year, same second", func() {
 			reader := plainDataReader(`Mar 22 06:28:55 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-03-22 06:28:55 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2020-03-22 06:28:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("Single line, year changes", func() {
 			reader := plainDataReader(`Dec 31 23:59:58 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-01-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-01 00:00:01 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2019-12-31 23:59:58 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2019-12-31 23:59:58 +0000`))
 		})
 
 		// Calendar days (ignoring year):
@@ -313,9 +304,9 @@ Invalid Line`)
 			reader := gzipedDataReader(
 				`Mar 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-04-29 06:47:09 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-29 06:47:09 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2020-03-22 06:28:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("Multiple lines with no change in year, last line in the modification time", func() {
@@ -323,9 +314,9 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 				`Jan 22 06:28:55 mail dovecot: Useless Payload
 Jan 23 06:28:55 mail dovecot: Useless Payload
 Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-01-31 06:47:09 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-31 06:47:09 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2020-01-22 06:28:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 		})
 
 		Convey("Year changes", func() {
@@ -334,9 +325,9 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 Jan  1 00:00:01 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
 Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 Jan  1 00:00:02 mail postfix/postscreen[18660]: a`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-01-01 00:01:00 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:01:00 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-12-31 23:59:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
 		})
 
 		Convey("The whole file in the year before file modification", func() {
@@ -345,9 +336,9 @@ Jan  1 00:00:02 mail postfix/postscreen[18660]: a`)
 Dec 31 23:59:51 mail postfix/dnsblog[26740]: addr
 Dec 31 23:59:55 mail dovecot: imap-login:
 Dec 31 23:59:57 mail dovecot: imap-login:`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-01-01 00:00:02 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:02 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-12-31 23:59:50 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
 
 		Convey("Return last year as year changed in the middle of the log", func() {
@@ -355,9 +346,9 @@ Dec 31 23:59:57 mail dovecot: imap-login:`)
 				`Dec 22 06:28:55 mail dovecot: Useless Payload
 Dec 23 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2019-12-22 06:28:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
 		})
 
 		Convey("First log when file start, no change in year", func() {
@@ -365,9 +356,9 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 				`Dec 31 23:59:50 mail postfix/postscreen[26735]: CONNECT
 Dec 31 23:59:51 mail postfix/dnsblog[26740]: addr
 Dec 31 23:59:55 mail dovecot: imap-login:`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2000-12-31 23:59:55 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-12-31 23:59:50 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
 
 		Convey("First log when file start, year changes", func() {
@@ -375,36 +366,36 @@ Dec 31 23:59:55 mail dovecot: imap-login:`)
 				`Dec 31 23:59:55 mail dovecot: pop3-login:
 Jan  1 00:00:01 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
 Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-01-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:01 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-12-31 23:59:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
 		})
 
 		Convey("Calendar order: B, M, E", func() {
 			reader := plainDataReader(
 				`Feb 10 23:59:55 mail dovecot: pop3-login:
 Nov 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-05-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-05-01 00:00:01 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-02-10 23:59:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-02-10 23:59:55 +0000`))
 		})
 
 		Convey("Calendar order: E, B, M", func() {
 			reader := plainDataReader(
 				`Oct 11 23:59:55 mail dovecot: pop3-login:
 Jan 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-11-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-11-01 00:00:01 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-10-11 23:59:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-10-11 23:59:55 +0000`))
 		})
 
 		Convey("Calendar order: M, E, B", func() {
 			reader := plainDataReader(
 				`Oct 11 23:59:55 mail dovecot: pop3-login:
 Jul 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, parseTime(`2001-03-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-03-01 00:00:01 +0000`))
 			So(err, ShouldBeNil)
-			So(date, ShouldEqual, parseTime(`2000-10-11 23:59:55 +0000`))
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-10-11 23:59:55 +0000`))
 		})
 	})
 }
@@ -412,7 +403,7 @@ Jul 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 func TestBuildingfileQueues(t *testing.T) {
 	Convey("Build file Queues", t, func() {
 		Convey("No files at all", func() {
-			So(buildFilesToImport(fileEntryList{}, logPatterns{}, parseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{})
+			So(buildFilesToImport(fileEntryList{}, logPatterns{}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{})
 		})
 
 		Convey("No matching files", func() {
@@ -421,71 +412,71 @@ func TestBuildingfileQueues(t *testing.T) {
 				fileEntry{filename: "another_file.2"},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, parseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{"mail.log": {}})
+			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{"mail.log": {}})
 		})
 
 		Convey("One matching file in one queue", func() {
 			f := fileEntryList{
-				fileEntry{filename: "file.1", modificationTime: parseTime(`2020-02-15 11:35:44 +0200`)},
-				fileEntry{filename: "mail.log", modificationTime: parseTime(`2020-02-16 11:35:44 +0200`)},
-				fileEntry{filename: "not_mail.log", modificationTime: parseTime(`2020-02-17 11:35:44 +0200`)},
+				fileEntry{filename: "file.1", modificationTime: testutil.MustParseTime(`2020-02-15 11:35:44 +0200`)},
+				fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`)},
+				fileEntry{filename: "not_mail.log", modificationTime: testutil.MustParseTime(`2020-02-17 11:35:44 +0200`)},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, parseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
+			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
 				fileQueues{"mail.log": fileEntryList{
 					fileEntry{
-						filename: "mail.log", modificationTime: parseTime(`2020-02-16 11:35:44 +0200`),
+						filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`),
 					},
 				}})
 		})
 
 		Convey("No entry files", func() {
 			f := fileEntryList{}
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, parseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
+			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
 				fileQueues{"mail.log": fileEntryList{}})
 		})
 
 		Convey("Match Several files with several patterns", func() {
 			f := fileEntryList{
-				fileEntry{filename: "logs/mail.warn.4.gz", modificationTime: parseTime(`2020-03-08 07:43:48 +0200`)},
-				fileEntry{filename: "logs/mail.info.1", modificationTime: parseTime(`2020-03-29 08:51:33 +0200`)},
-				fileEntry{filename: "logs/mail.info.3.gz", modificationTime: parseTime(`2020-03-16 07:42:56 +0200`)},
-				fileEntry{filename: "logs/mail.log.1", modificationTime: parseTime(`2020-04-03 08:36:24 +0200`)},
-				fileEntry{filename: "logs/mail.warn", modificationTime: parseTime(`2020-04-03 18:42:48 +0200`)},
-				fileEntry{filename: "logs/mail.info.4.gz", modificationTime: parseTime(`2020-03-08 07:43:48 +0200`)},
-				fileEntry{filename: "logs/clamav.log", modificationTime: parseTime(`2020-02-14 11:35:44 +0200`)},
-				fileEntry{filename: "logs/mail.info", modificationTime: parseTime(`2020-04-03 18:58:34 +0200`)},
-				fileEntry{filename: "logs/mail.warn.2.gz", modificationTime: parseTime(`2020-03-22 07:25:05 +0200`)},
-				fileEntry{filename: "logs/freshclam.log", modificationTime: parseTime(`2020-02-14 11:35:44 +0200`)},
-				fileEntry{filename: "logs/mail.err", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
-				fileEntry{filename: "logs/mail.warn.3.gz", modificationTime: parseTime(`2020-03-16 07:42:56 +0200`)},
-				fileEntry{filename: "logs/mail.log", modificationTime: parseTime(`2020-04-03 18:58:34 +0200`)},
-				fileEntry{filename: "logs/mail.err.3.gz", modificationTime: parseTime(`2020-03-11 07:39:14 +0200`)},
-				fileEntry{filename: "logs/mail.err.4.gz", modificationTime: parseTime(`2020-02-16 07:54:10 +0200`)},
-				fileEntry{filename: "logs/mail.warn.1", modificationTime: parseTime(`2020-03-29 08:51:33 +0200`)},
-				fileEntry{filename: "logs/mail.info.2.gz", modificationTime: parseTime(`2020-03-22 07:25:05 +0200`)},
-				fileEntry{filename: "logs/mail.err.2.gz", modificationTime: parseTime(`2020-03-15 07:39:37 +0200`)},
-				fileEntry{filename: "logs/mail.err.1", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
+				fileEntry{filename: "logs/mail.warn.4.gz", modificationTime: testutil.MustParseTime(`2020-03-08 07:43:48 +0200`)},
+				fileEntry{filename: "logs/mail.info.1", modificationTime: testutil.MustParseTime(`2020-03-29 08:51:33 +0200`)},
+				fileEntry{filename: "logs/mail.info.3.gz", modificationTime: testutil.MustParseTime(`2020-03-16 07:42:56 +0200`)},
+				fileEntry{filename: "logs/mail.log.1", modificationTime: testutil.MustParseTime(`2020-04-03 08:36:24 +0200`)},
+				fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
+				fileEntry{filename: "logs/mail.info.4.gz", modificationTime: testutil.MustParseTime(`2020-03-08 07:43:48 +0200`)},
+				fileEntry{filename: "logs/clamav.log", modificationTime: testutil.MustParseTime(`2020-02-14 11:35:44 +0200`)},
+				fileEntry{filename: "logs/mail.info", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
+				fileEntry{filename: "logs/mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-03-22 07:25:05 +0200`)},
+				fileEntry{filename: "logs/freshclam.log", modificationTime: testutil.MustParseTime(`2020-02-14 11:35:44 +0200`)},
+				fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
+				fileEntry{filename: "logs/mail.warn.3.gz", modificationTime: testutil.MustParseTime(`2020-03-16 07:42:56 +0200`)},
+				fileEntry{filename: "logs/mail.log", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
+				fileEntry{filename: "logs/mail.err.3.gz", modificationTime: testutil.MustParseTime(`2020-03-11 07:39:14 +0200`)},
+				fileEntry{filename: "logs/mail.err.4.gz", modificationTime: testutil.MustParseTime(`2020-02-16 07:54:10 +0200`)},
+				fileEntry{filename: "logs/mail.warn.1", modificationTime: testutil.MustParseTime(`2020-03-29 08:51:33 +0200`)},
+				fileEntry{filename: "logs/mail.info.2.gz", modificationTime: testutil.MustParseTime(`2020-03-22 07:25:05 +0200`)},
+				fileEntry{filename: "logs/mail.err.2.gz", modificationTime: testutil.MustParseTime(`2020-03-15 07:39:37 +0200`)},
+				fileEntry{filename: "logs/mail.err.1", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
 			}
 
 			// select all files modified after Mar 10, 00:00:00
-			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, parseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
+			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, testutil.MustParseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
 				fileQueues{
 					"mail.log": fileEntryList{
-						fileEntry{filename: "logs/mail.log.1", modificationTime: parseTime(`2020-04-03 08:36:24 +0200`)},
-						fileEntry{filename: "logs/mail.log", modificationTime: parseTime(`2020-04-03 18:58:34 +0200`)},
+						fileEntry{filename: "logs/mail.log.1", modificationTime: testutil.MustParseTime(`2020-04-03 08:36:24 +0200`)},
+						fileEntry{filename: "logs/mail.log", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
 					},
 					"mail.err": fileEntryList{
-						fileEntry{filename: "logs/mail.err.3.gz", modificationTime: parseTime(`2020-03-11 07:39:14 +0200`)},
-						fileEntry{filename: "logs/mail.err.2.gz", modificationTime: parseTime(`2020-03-15 07:39:37 +0200`)},
-						fileEntry{filename: "logs/mail.err.1", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
-						fileEntry{filename: "logs/mail.err", modificationTime: parseTime(`2020-03-23 07:39:09 +0200`)},
+						fileEntry{filename: "logs/mail.err.3.gz", modificationTime: testutil.MustParseTime(`2020-03-11 07:39:14 +0200`)},
+						fileEntry{filename: "logs/mail.err.2.gz", modificationTime: testutil.MustParseTime(`2020-03-15 07:39:37 +0200`)},
+						fileEntry{filename: "logs/mail.err.1", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
+						fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
 					},
 					"mail.warn": fileEntryList{
-						fileEntry{filename: "logs/mail.warn.3.gz", modificationTime: parseTime(`2020-03-16 07:42:56 +0200`)},
-						fileEntry{filename: "logs/mail.warn.2.gz", modificationTime: parseTime(`2020-03-22 07:25:05 +0200`)},
-						fileEntry{filename: "logs/mail.warn.1", modificationTime: parseTime(`2020-03-29 08:51:33 +0200`)},
-						fileEntry{filename: "logs/mail.warn", modificationTime: parseTime(`2020-04-03 18:42:48 +0200`)},
+						fileEntry{filename: "logs/mail.warn.3.gz", modificationTime: testutil.MustParseTime(`2020-03-16 07:42:56 +0200`)},
+						fileEntry{filename: "logs/mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-03-22 07:25:05 +0200`)},
+						fileEntry{filename: "logs/mail.warn.1", modificationTime: testutil.MustParseTime(`2020-03-29 08:51:33 +0200`)},
+						fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
 					},
 				})
 		})
@@ -501,19 +492,19 @@ func TestMultipleFiles(t *testing.T) {
 
 		Convey("One file only with no change in year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
+				{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Mar 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			})
 			So(err, ShouldBeNil)
-			So(t, ShouldEqual, parseTime(`2020-03-22 06:28:55 +0000`))
+			So(t, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("One file only with a change in year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: parseTime(`2020-04-03 19:01:53 +0000`),
+				{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Dec 22 06:28:55 mail dovecot: Useless Payload
 Dec 23 06:28:55 mail dovecot: Useless Payload
@@ -521,23 +512,23 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			})
 			So(err, ShouldBeNil)
-			So(t, ShouldEqual, parseTime(`2019-12-22 06:28:55 +0000`))
+			So(t, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
 		})
 
 		Convey("Multiple files, with one of them changing year", func() {
 			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: parseTime(`2020-03-30 19:01:53 +0000`),
+				{modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`),
 					reader: gzipedDataReader(
 						`Dec 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
-				{modificationTime: parseTime(`2020-02-28 18:18:10 +0000`),
+				{modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`),
 					reader: plainDataReader(
 						`Nov  3 01:33:20 mail dovecot: Useless Payload
 Nov 23 06:28:55 mail dovecot: Useless Payload
 Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
-				{modificationTime: parseTime(`2020-01-31 19:01:53 +0000`),
+				{modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`),
 					reader: plainDataReader(
 						`Jan 22 06:28:55 mail dovecot: Useless Payload
 Jan 23 06:28:55 mail dovecot: Useless Payload
@@ -545,17 +536,17 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			})
 			So(err, ShouldBeNil)
-			So(t, ShouldEqual, parseTime(`2019-11-03 01:33:20 +0000`))
+			So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
 		})
 	})
 
 	Convey("Finds start time among several files from directory contents", t, func() {
 		dirContent := FakeDirectoryContent{
 			entries: fileEntryList{
-				fileEntry{filename: "log/mail.warn.2.gz", modificationTime: parseTime(`2020-03-29 19:01:53 +0000`)},
-				fileEntry{filename: "log/mail.warn", modificationTime: parseTime(`2020-03-30 19:01:53 +0000`)},
-				fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-02-28 18:18:10 +0000`)},
-				fileEntry{filename: "log/mail.err", modificationTime: parseTime(`2020-01-31 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-03-29 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.warn", modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`)},
+				fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`)},
+				fileEntry{filename: "log/mail.err", modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`)},
 			},
 			contents: map[string]fakeFileData{
 				"log/mail.warn.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
@@ -572,7 +563,7 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 
 		t, err := FindInitialLogTime(dirContent)
 		So(err, ShouldBeNil)
-		So(t, ShouldEqual, parseTime(`2019-11-03 01:33:20 +0000`))
+		So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
 	})
 }
 
@@ -581,7 +572,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -590,8 +581,8 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("One file returns its contents", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "mail.log.2.gz", modificationTime: parseTime(`2020-01-31 19:01:53 +0000`)},
-					fileEntry{filename: "mail.log", modificationTime: parseTime(`2020-03-31 00:00:00 +0000`)},
+					fileEntry{filename: "mail.log.2.gz", modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-03-31 00:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"mail.log.2.gz": gzippedDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
@@ -601,7 +592,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -613,11 +604,11 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 		Convey("Many files in the same queue, no new lines after import", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "log/mail.log.4.gz", modificationTime: parseTime(`2020-03-13 04:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.5.gz", modificationTime: parseTime(`2020-02-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.2.gz", modificationTime: parseTime(`2020-06-18 07:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log.4.gz", modificationTime: testutil.MustParseTime(`2020-03-13 04:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.5.gz", modificationTime: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.2.gz", modificationTime: testutil.MustParseTime(`2020-06-18 07:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"log/mail.log.5.gz": gzippedDataFile(`Feb  1 12:00:00 mail dovecot: Useless Payload
@@ -634,7 +625,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 11)
@@ -659,11 +650,11 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 		Convey("Get only logs after a point in time in the middle of a file", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "log/mail.log.4.gz", modificationTime: parseTime(`2020-03-13 04:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.5.gz", modificationTime: parseTime(`2020-02-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log.2.gz", modificationTime: parseTime(`2020-06-18 07:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log.4.gz", modificationTime: testutil.MustParseTime(`2020-03-13 04:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.5.gz", modificationTime: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.2.gz", modificationTime: testutil.MustParseTime(`2020-06-18 07:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"log/mail.log.5.gz": gzippedDataFile(`Feb  1 12:00:00 mail dovecot: Useless Payload
@@ -680,7 +671,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`2020-06-18 06:28:54 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -697,8 +688,8 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 		Convey("Import only, not watching new log entries", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"log/mail.log.1": plainDataFile(`Jun 18 08:29:33 mail dovecot: Useless Payload
@@ -708,7 +699,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -721,10 +712,10 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 		Convey("Multiple files in multiple queues, no new lines after files are open", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "mail.err", modificationTime: parseTime(`2001-01-01 00:00:03 +0000`)},
-					fileEntry{filename: "mail.err.1", modificationTime: parseTime(`2001-01-01 00:00:01 +0000`)},
-					fileEntry{filename: "mail.log", modificationTime: parseTime(`2001-01-01 00:00:30 +0000`)},
-					fileEntry{filename: "mail.log.1", modificationTime: parseTime(`2000-12-31 23:59:56 +0000`)},
+					fileEntry{filename: "mail.err", modificationTime: testutil.MustParseTime(`2001-01-01 00:00:03 +0000`)},
+					fileEntry{filename: "mail.err.1", modificationTime: testutil.MustParseTime(`2001-01-01 00:00:01 +0000`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2001-01-01 00:00:30 +0000`)},
+					fileEntry{filename: "mail.log.1", modificationTime: testutil.MustParseTime(`2000-12-31 23:59:56 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"mail.err": plainCurrentDataFile(`Jan  1 00:00:02 mail postfix/postscreen[18660]: a`, ``),
@@ -741,7 +732,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -758,20 +749,20 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 		Convey("Many files in many queues, long run, without new log lines added to the current files", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "clamav.log", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "freshclam.log", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.err", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.err.1", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.err.2.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.err.3.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.err.4.gz", modificationTime: parseTime(`2020-04-03 19:01:53 +0200`)},
-					fileEntry{filename: "mail.log", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.log.1", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.warn", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.warn.1", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.warn.2.gz", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.warn.3.gz", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
-					fileEntry{filename: "mail.warn.4.gz", modificationTime: parseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "clamav.log", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "freshclam.log", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.err", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.err.1", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.err.2.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.err.3.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.err.4.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0200`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.log.1", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.warn.1", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.warn.3.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
+					fileEntry{filename: "mail.warn.4.gz", modificationTime: testutil.MustParseTime(`2020-04-03 19:01:54 +0200`)},
 				},
 				contents: map[string]fakeFileData{
 					"clamav.log":    plainDataFile(``),
@@ -821,7 +812,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -834,8 +825,8 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 		Convey("Many files in the same queue, with new lines after the import starts, split happens on breakline", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"log/mail.log.1": plainDataFile(`Jun 18 08:29:33 mail dovecot: Useless Payload`),
@@ -846,7 +837,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -859,9 +850,9 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 		Convey("Multiple files in multiple queues", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
-					fileEntry{filename: "log/mail.log.1", modificationTime: parseTime(`2020-07-14 06:01:53 +0000`)},
-					fileEntry{filename: "log/mail.err", modificationTime: parseTime(`2020-08-19 00:00:00 +0000`)},
-					fileEntry{filename: "log/mail.log", modificationTime: parseTime(`2020-08-19 12:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.err", modificationTime: testutil.MustParseTime(`2020-08-19 00:00:00 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
 					"log/mail.err": plainCurrentDataFile(`Jul 12 00:00:00 mail dovecot: Useless Payload
@@ -876,23 +867,23 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, parseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
 
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
-			So(pub.logs[0].Time, ShouldEqual, parseTime(`2020-06-18 08:29:33 +0000`))
+			So(pub.logs[0].Time, ShouldEqual, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 12, Hour: 0, Minute: 0, Second: 0})
-			So(pub.logs[1].Time, ShouldEqual, parseTime(`2020-07-12 00:00:00 +0000`))
+			So(pub.logs[1].Time, ShouldEqual, testutil.MustParseTime(`2020-07-12 00:00:00 +0000`))
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
-			So(pub.logs[2].Time, ShouldEqual, parseTime(`2020-07-18 00:00:00 +0000`))
+			So(pub.logs[2].Time, ShouldEqual, testutil.MustParseTime(`2020-07-18 00:00:00 +0000`))
 			So(pub.logs[3].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 19, Hour: 0, Minute: 0, Second: 0})
-			So(pub.logs[3].Time, ShouldEqual, parseTime(`2020-07-19 00:00:00 +0000`))
+			So(pub.logs[3].Time, ShouldEqual, testutil.MustParseTime(`2020-07-19 00:00:00 +0000`))
 			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
-			So(pub.logs[4].Time, ShouldEqual, parseTime(`2020-08-10 00:00:40 +0000`))
+			So(pub.logs[4].Time, ShouldEqual, testutil.MustParseTime(`2020-08-10 00:00:40 +0000`))
 			So(pub.logs[5].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 12, Hour: 0, Minute: 0, Second: 0})
-			So(pub.logs[5].Time, ShouldEqual, parseTime(`2020-08-12 00:00:00 +0000`))
+			So(pub.logs[5].Time, ShouldEqual, testutil.MustParseTime(`2020-08-12 00:00:00 +0000`))
 		})
 	})
 }
