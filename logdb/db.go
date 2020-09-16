@@ -2,6 +2,9 @@ package logdb
 
 import (
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	_ "gitlab.com/lightmeter/controlcenter/logdb/migrations"
+
 	"log"
 	"path"
 	"time"
@@ -44,24 +47,6 @@ type DB struct {
 	records  chan data.Record
 }
 
-func setupWriterConn(conn dbconn.RwConn) error {
-	if err := createTables(conn); err != nil {
-		log.Println("Error creating table or indexes:", err)
-		return util.WrapError(err)
-	}
-
-	return nil
-}
-
-func createTables(db dbconn.RwConn) error {
-	for _, handler := range payloadHandlers {
-		if err := handler.creator(db); err != nil {
-			return util.WrapError(err)
-		}
-	}
-	return nil
-}
-
 func Open(workspaceDirectory string, config Config) (DB, error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
 
@@ -77,7 +62,9 @@ func Open(workspaceDirectory string, config Config) (DB, error) {
 		}
 	}()
 
-	err = setupWriterConn(connPair.RwConn)
+	if err := migrator.Run(connPair.RwConn.DB, "logs"); err != nil {
+		return DB{}, util.WrapError(err)
+	}
 
 	if err != nil {
 		return DB{}, util.WrapError(err)

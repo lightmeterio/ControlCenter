@@ -11,7 +11,9 @@ import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
+	"log"
 )
 
 func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) error {
@@ -27,8 +29,14 @@ func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) e
 }
 
 type payloadHandler struct {
-	// Create the database tables, indexes, etc.
-	creator func(dbconn.RwConn) error
+	// Apply changes on database with name x
+	database string
+	// Name of migration file
+	filename string
+	// Delete create the database tables, indexes, etc.
+	up func(tx *sql.Tx) error
+	// Register Delete the database tables, indexes, etc.
+	down func(tx *sql.Tx) error
 
 	// Counts how many records are there in the respective table.
 	counter func(dbconn.RoConn) int
@@ -42,5 +50,20 @@ var (
 )
 
 func registerPayloadHandler(handler payloadHandler) {
+	if handler.down == nil {
+		log.Panicln("Down func is nil")
+	}
+	if handler.up == nil {
+		log.Panicln("Down func is nil")
+	}
+	if handler.filename == "" {
+		log.Panicln("filename is empty")
+	}
+	if handler.database == "" {
+		log.Panicln("database name is empty")
+	}
+
+	migrator.AddMigration(handler.database, handler.filename, handler.up, handler.down)
+
 	payloadHandlers = append(payloadHandlers, handler)
 }
