@@ -14,16 +14,6 @@ import (
 	"time"
 )
 
-func parseTime(s string) time.Time {
-	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
-
-	if err != nil {
-		panic("parsing time: " + err.Error())
-	}
-
-	return p.In(time.UTC)
-}
-
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
@@ -80,7 +70,7 @@ func TestWelcomeInsights(t *testing.T) {
 		}()
 
 		Convey("Insight is generated only once", func() {
-			clock := &fakeClock{parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
+			clock := &fakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
 
 			detector := NewDetector(accessor)
 
@@ -115,8 +105,8 @@ func TestWelcomeInsights(t *testing.T) {
 			So(accessor.insights, ShouldResemble, []int64{1, 2})
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
-				From: parseTime(`2000-01-01 00:00:00 +0000`),
-				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 24),
+				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 24),
 			}, OrderBy: core.OrderByCreationAsc})
 
 			So(err, ShouldBeNil)
@@ -125,12 +115,12 @@ func TestWelcomeInsights(t *testing.T) {
 
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, "welcome_content")
-			So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
+			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
 			So(insights[0].Content(), ShouldResemble, &struct{}{})
 
 			So(insights[1].ID(), ShouldEqual, 2)
 			So(insights[1].ContentType(), ShouldEqual, "insights_introduction_content")
-			So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
+			So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
 			So(insights[1].Content(), ShouldResemble, &struct{}{})
 		})
 	})
