@@ -56,7 +56,7 @@ func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 		r := bytes.NewReader(b)
 
 		if _, err := io.Copy(w, r); err != nil {
-			return errorutil.WrapError(err)
+			return errorutil.Wrap(err)
 		}
 
 		return nil

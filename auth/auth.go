@@ -46,14 +46,14 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 	var count int
 
 	if err := tx.QueryRow(`select count(*) from users where email = ?`, email).Scan(&count); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if count > 0 {
 		log.Println("Failed Attempt to register with the email", email, "again")
 
 		// Here it's okay (privacy wise) and useful to inform that the user is already registred
-		return errorutil.WrapError(ErrUserAlreadyRegistred)
+		return errorutil.Wrap(ErrUserAlreadyRegistred)
 	}
 
 	return nil
@@ -63,7 +63,7 @@ func (r *Auth) Register(email, name, password string) error {
 	hasAnyUser, err := r.HasAnyUser()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if !r.options.AllowMultipleUsers && hasAnyUser {
@@ -71,19 +71,19 @@ func (r *Auth) Register(email, name, password string) error {
 	}
 
 	if err := validatePassword(email, name, password); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := validateEmail(email); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := validateName(name); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := registerInDb(r.connPair.RwConn, email, name, password); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -93,7 +93,7 @@ func registerInDb(db dbconn.RwConn, email, name, password string) error {
 	tx, err := db.Begin()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -105,25 +105,25 @@ func registerInDb(db dbconn.RwConn, email, name, password string) error {
 	err = userIsAlreadyRegistred(tx, email)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	result, err := tx.Exec(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`, email, name, password)
 
 	if err != nil {
-		return errorutil.WrapError(err, "executing user registration query")
+		return errorutil.Wrap(err, "executing user registration query")
 	}
 
 	id, err := result.LastInsertId()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	log.Println("Registering user", email, "with id", id)
@@ -143,7 +143,7 @@ func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
 	}
 
 	if err != nil {
-		return false, UserData{}, errorutil.WrapError(err)
+		return false, UserData{}, errorutil.Wrap(err)
 	}
 
 	return true, d, nil
@@ -153,7 +153,7 @@ func (r *Auth) HasAnyUser() (bool, error) {
 	var count int
 
 	if err := r.connPair.RoConn.QueryRow("select count(*) from users").Scan(&count); err != nil {
-		return false, errorutil.WrapError(err)
+		return false, errorutil.Wrap(err)
 	}
 
 	return count > 0, nil
@@ -165,7 +165,7 @@ func generateKeys() ([][]byte, error) {
 	n, err := io.ReadFull(rand.Reader, sessionKey)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	log.Println("Generated Session key with ", n, "bytes")
@@ -215,11 +215,11 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 	connPair, err := dbconn.NewConnPair(path.Join(dirname, "auth.db"))
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -229,13 +229,13 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 	}()
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	m, err := meta.NewMetaDataHandler(connPair)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &Auth{options: options, connPair: connPair, meta: m}, nil
@@ -255,7 +255,7 @@ func nameForEmail(tx *sql.Tx, email string) (string, error) {
 	}
 
 	if err != nil {
-		return "", errorutil.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	return name, nil
@@ -265,11 +265,11 @@ func updatePassword(tx *sql.Tx, email, password string) error {
 	_, err := tx.Exec(`update users set password = lm_bcrypt_sum(?) where email = ?`, password, email)
 
 	if err != nil {
-		return errorutil.WrapError(err, "executing password reset query")
+		return errorutil.Wrap(err, "executing password reset query")
 	}
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -279,7 +279,7 @@ func (r *Auth) ChangePassword(email, password string) error {
 	tx, err := r.connPair.RwConn.Begin()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -291,21 +291,21 @@ func (r *Auth) ChangePassword(email, password string) error {
 	name, err := nameForEmail(tx, email)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := validatePassword(email, name, password); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := updatePassword(tx, email, password); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

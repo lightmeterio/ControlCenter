@@ -20,7 +20,7 @@ func UpUsersTable(tx *sql.Tx) error {
 
 	_, err := tx.Exec(sql)
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 	return nil
 }

@@ -34,7 +34,7 @@ func (c *ConnPair) Close() error {
 
 	if writerError == nil {
 		if readerError != nil {
-			return errorutil.WrapError(readerError)
+			return errorutil.Wrap(readerError)
 		}
 
 		// no errors at all
@@ -44,7 +44,7 @@ func (c *ConnPair) Close() error {
 	// here we know that writeError != nil
 
 	if readerError == nil {
-		return errorutil.WrapError(writerError)
+		return errorutil.Wrap(writerError)
 	}
 
 	// Both errors exist. We lose the erorrs, keeping only the message, which is ok for now
@@ -55,7 +55,7 @@ func NewConnPair(filename string) (ConnPair, error) {
 	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return ConnPair{}, errorutil.WrapError(err)
+		return ConnPair{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -67,7 +67,7 @@ func NewConnPair(filename string) (ConnPair, error) {
 	reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return ConnPair{}, errorutil.WrapError(err)
+		return ConnPair{}, errorutil.Wrap(err)
 	}
 
 	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer)}, nil

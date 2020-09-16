@@ -12,7 +12,7 @@ type MetadataHandler struct {
 
 func NewMetaDataHandler(conn dbconn.ConnPair) (*MetadataHandler, error) {
 	if err := ensureMetaTableExists(conn.RwConn); err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &MetadataHandler{conn}, nil
@@ -34,7 +34,7 @@ func (h *MetadataHandler) Store(items []Item) (Result, error) {
 	tx, err := h.conn.RwConn.Begin()
 
 	if err != nil {
-		return Result{}, errorutil.WrapError(err)
+		return Result{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -52,7 +52,7 @@ func (h *MetadataHandler) Store(items []Item) (Result, error) {
 	err = tx.Commit()
 
 	if err != nil {
-		return Result{}, errorutil.WrapError(err)
+		return Result{}, errorutil.Wrap(err)
 	}
 
 	return r, nil
@@ -62,7 +62,7 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 	stmt, err := tx.Prepare(`insert into meta(key, value) values(?, ?)`)
 
 	if err != nil {
-		return Result{}, errorutil.WrapError(err)
+		return Result{}, errorutil.Wrap(err)
 	}
 
 	defer func() { errorutil.MustSucceed(stmt.Close(), "") }()
@@ -71,7 +71,7 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 		_, err := stmt.Exec(i.Key, i.Value)
 
 		if err != nil {
-			return Result{}, errorutil.WrapError(err)
+			return Result{}, errorutil.Wrap(err)
 		}
 	}
 
@@ -86,7 +86,7 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 	rows, err := h.conn.RoConn.Query(`select value from meta where key = ?`, key)
 
 	if err != nil {
-		return []interface{}{}, errorutil.WrapError(err)
+		return []interface{}{}, errorutil.Wrap(err)
 	}
 
 	defer func() { errorutil.MustSucceed(rows.Close(), "") }()
@@ -98,7 +98,7 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 		err = rows.Scan(&v)
 
 		if err != nil {
-			return []interface{}{}, errorutil.WrapError(err)
+			return []interface{}{}, errorutil.Wrap(err)
 		}
 
 		results = append(results, v)
@@ -107,7 +107,7 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 	err = rows.Err()
 
 	if err != nil {
-		return []interface{}{}, errorutil.WrapError(err)
+		return []interface{}{}, errorutil.Wrap(err)
 	}
 
 	return results, nil
@@ -118,7 +118,7 @@ func ensureMetaTableExists(conn dbconn.RwConn) error {
 		key string,
 		value blob
 	)`); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

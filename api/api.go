@@ -30,7 +30,7 @@ func intervalFromForm(timezone *time.Location, form url.Values) (data.TimeInterv
 	interval, err := data.ParseTimeInterval(form.Get("from"), form.Get("to"), timezone)
 
 	if err != nil {
-		return data.TimeInterval{}, errorutil.WrapError(err)
+		return data.TimeInterval{}, errorutil.Wrap(err)
 	}
 
 	return interval, nil

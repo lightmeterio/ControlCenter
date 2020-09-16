@@ -39,7 +39,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 		rowid = (select max(rowid) from postfix_smtp_message_status)`).Scan(&v)
 
 	if err != nil {
-		return 0, errorutil.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	return v, nil
@@ -74,7 +74,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
 		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer stmt.Close()
@@ -97,7 +97,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
 		status.Status)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

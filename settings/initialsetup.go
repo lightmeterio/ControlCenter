@@ -56,7 +56,7 @@ func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOp
 	if o.SubscribeToNewsletter {
 		if err := c.newsletterSubscriber.Subscribe(context, o.Email); err != nil {
 			log.Println("Failed to subscribe with error:", err)
-			return errorutil.WrapError(ErrFailedToSubscribeToNewsletter)
+			return errorutil.Wrap(ErrFailedToSubscribeToNewsletter)
 		}
 	}
 
@@ -66,7 +66,7 @@ func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOp
 	})
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

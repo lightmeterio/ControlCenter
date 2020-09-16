@@ -53,7 +53,7 @@ func Open(workspaceDirectory string, config Config) (DB, error) {
 	connPair, err := dbconn.NewConnPair(dbFilename)
 
 	if err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -63,11 +63,11 @@ func Open(workspaceDirectory string, config Config) (DB, error) {
 	}()
 
 	if err := migrator.Run(connPair.RwConn.DB, "logs"); err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, errorutil.Wrap(err)
 	}
 
 	if err != nil {
-		return DB{}, errorutil.WrapError(err)
+		return DB{}, errorutil.Wrap(err)
 	}
 
 	return DB{

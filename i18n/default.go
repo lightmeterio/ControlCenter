@@ -66,7 +66,7 @@ func (c *FileSystemContents) Reader(path string) (File, error) {
 	f, err := c.fs.Open(path)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &file{f}, nil

@@ -32,7 +32,7 @@ func Mapping(list RawList) (Mapper, error) {
 	r, err := invertMapping(list)
 
 	if err != nil {
-		return Mapper{}, errorutil.WrapError(err)
+		return Mapper{}, errorutil.Wrap(err)
 	}
 
 	return Mapper{l: list, r: r}, nil

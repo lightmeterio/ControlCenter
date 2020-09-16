@@ -24,7 +24,7 @@ import (
 func Run(database *sql.DB, databaseName string) error {
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	var err error

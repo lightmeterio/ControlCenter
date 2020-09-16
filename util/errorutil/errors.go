@@ -27,7 +27,7 @@ func (e *Error) Error() string {
 }
 
 // Wrap an error adding more context such as filename and line where wrapping happened
-func WrapError(err error, args ...interface{}) *Error {
+func Wrap(err error, args ...interface{}) *Error {
 	_, file, line, ok := runtime.Caller(1)
 
 	if !ok {

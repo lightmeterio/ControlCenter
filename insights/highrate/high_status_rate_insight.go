@@ -42,7 +42,7 @@ func (g *weeklyBounceRateInsightsGenerator) Step(c core.Clock, tx *sql.Tx) error
 	}
 
 	if err := g.creator.GenerateInsight(tx, properties); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	g.value = nil
@@ -92,14 +92,14 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	// a similar notification already exists in the past three days, an arbitrary time
 	// do not create an insight to it
 	if !lastExecTime.IsZero() && now.Sub(lastExecTime) < time.Hour*24*3 {
 		if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
-			return errorutil.WrapError(err)
+			return errorutil.Wrap(err)
 		}
 
 		return nil
@@ -134,7 +134,7 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 	}
 
 	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -162,7 +162,7 @@ func init() {
 		var v highWeeklyBounceRateInsightContent
 
 		if err := json.Unmarshal(b, &v); err != nil {
-			return nil, errorutil.WrapError(err)
+			return nil, errorutil.Wrap(err)
 		}
 
 		return &v, nil

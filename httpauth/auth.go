@@ -215,7 +215,7 @@ func saveSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, se
 	if err := session.Save(r, w); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -289,7 +289,7 @@ func defaultUnauthorisedRedirectUrl(auth *Authenticator, w http.ResponseWriter, 
 	ok, err := auth.auth.HasAnyUser()
 
 	if err != nil {
-		return "", errorutil.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	if ok {

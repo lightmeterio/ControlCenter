@@ -24,7 +24,7 @@ func tryToGenerateWelcomeInsight(d *detector, tx *sql.Tx, kind string, propertie
 	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if !lastExecTime.IsZero() {
@@ -32,11 +32,11 @@ func tryToGenerateWelcomeInsight(d *detector, tx *sql.Tx, kind string, propertie
 	}
 
 	if err := d.creator.GenerateInsight(tx, properties); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -52,7 +52,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		ContentType: "welcome_content",
 		Rating:      core.Unrated,
 	}, now); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := tryToGenerateWelcomeInsight(d, tx, "insights_introduction", core.InsightProperties{
@@ -62,7 +62,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		ContentType: "insights_introduction_content",
 		Rating:      core.Unrated,
 	}, now); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -82,7 +82,7 @@ func init() {
 		err := json.Unmarshal(b, &content)
 
 		if err != nil {
-			return nil, errorutil.WrapError(err)
+			return nil, errorutil.Wrap(err)
 		}
 
 		return &content, nil

@@ -50,7 +50,7 @@ func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 	}
 
 	if err := g.creator.GenerateInsight(tx, properties); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	g.interval = nil
@@ -100,7 +100,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	interval := data.TimeInterval{
@@ -149,7 +149,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 	d.generator.generate(interval)
 
 	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func init() {
 		err := json.Unmarshal(b, &content)
 
 		if err != nil {
-			return nil, errorutil.WrapError(err)
+			return nil, errorutil.Wrap(err)
 		}
 
 		return &content, nil

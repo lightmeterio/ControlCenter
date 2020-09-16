@@ -16,7 +16,7 @@ func newFetcher(conn dbconn.RoConn) (*fetcher, error) {
 	f, err := core.NewFetcher(conn)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &fetcher{Fetcher: f}, nil
@@ -31,7 +31,7 @@ func newCreator(conn dbconn.RwConn, notifier notification.Center) (*creator, err
 	c, err := core.NewCreator(conn)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &creator{DBCreator: c, notifier: notifier}, nil
@@ -45,7 +45,7 @@ func (c *creator) GenerateInsight(tx *sql.Tx, properties core.InsightProperties)
 	id, err := core.GenerateInsight(tx, properties)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	c.notifier.Notify(InsightNotification{ID: id})

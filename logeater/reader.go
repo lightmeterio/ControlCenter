@@ -58,7 +58,7 @@ func WatchFileCancelable(filename string,
 	})
 
 	if err != nil {
-		return errorutil.WrapError(err), nil, nil
+		return errorutil.Wrap(err), nil, nil
 	}
 
 	cancel := make(chan struct{}, 1)
@@ -100,7 +100,7 @@ func WatchFile(filename string, location tail.SeekInfo, publisher data.Publisher
 	err, _, done := WatchFileCancelable(filename, location, publisher, ts)
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	done()

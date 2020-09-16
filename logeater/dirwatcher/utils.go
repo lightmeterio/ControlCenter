@@ -14,7 +14,7 @@ type gzippedFileReader struct {
 
 func (r *gzippedFileReader) Close() error {
 	if err := r.gzipReader.Close(); err != nil {
-		return errorutil.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return r.fileReader.Close()
@@ -46,7 +46,7 @@ func ensureReaderIsDecompressed(plainReader fileReader, filename string) (fileRe
 		gzipReader, err := gzip.NewReader(reader)
 
 		if err != nil {
-			return nil, errorutil.WrapError(err)
+			return nil, errorutil.Wrap(err)
 		}
 
 		return &gzippedFileReader{fileReader: reader, gzipReader: gzipReader}, nil

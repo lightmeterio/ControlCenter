@@ -219,7 +219,7 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 func (f *fetcher) Close() error {
 	for _, query := range f.queries {
 		if err := query.q.Close(); err != nil {
-			return errorutil.WrapError(err)
+			return errorutil.Wrap(err)
 		}
 	}
 
@@ -271,7 +271,7 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 	rows, err := query.q.Query(query.p(options)...)
 
 	if err != nil {
-		return []FetchedInsight{}, errorutil.WrapError(err)
+		return []FetchedInsight{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -291,19 +291,19 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 		err = rows.Scan(&id, &ts, &category, &rating, &contentTypeValue, &contentBytes)
 
 		if err != nil {
-			return []FetchedInsight{}, errorutil.WrapError(err)
+			return []FetchedInsight{}, errorutil.Wrap(err)
 		}
 
 		contentType, err := ContentTypeForValue(contentTypeValue)
 
 		if err != nil {
-			return []FetchedInsight{}, errorutil.WrapError(err)
+			return []FetchedInsight{}, errorutil.Wrap(err)
 		}
 
 		content, err := decodeByContentType(contentType, contentBytes)
 
 		if err != nil {
-			return []FetchedInsight{}, errorutil.WrapError(err)
+			return []FetchedInsight{}, errorutil.Wrap(err)
 		}
 
 		result = append(result, &fetchedInsight{
@@ -317,7 +317,7 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 	}
 
 	if err := rows.Err(); err != nil {
-		return []FetchedInsight{}, errorutil.WrapError(err)
+		return []FetchedInsight{}, errorutil.Wrap(err)
 	}
 
 	return result, nil
@@ -331,7 +331,7 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 	tx, err := conn.Begin()
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -351,37 +351,37 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 	`)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	_, err = tx.Exec(`create index if not exists insights_time_index on insights(time)`)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	_, err = tx.Exec(`create index if not exists insights_category_index on insights(category, time)`)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	_, err = tx.Exec(`create index if not exists insights_rating_index on insights(rating, time)`)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	_, err = tx.Exec(`create index if not exists insights_content_type_index on insights(content_type, time)`)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &DBCreator{conn: conn}, nil
@@ -403,7 +403,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	contentBytes, err := json.Marshal(properties.Content)
 
 	if err != nil {
-		return 0, errorutil.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	log.Println("Generating an insight with the content: ", properties)
@@ -411,7 +411,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	contentTypeValue, err := ValueForContentType(properties.ContentType)
 
 	if err != nil {
-		return 0, errorutil.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	result, err := tx.Exec(
@@ -423,13 +423,13 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 		contentBytes)
 
 	if err != nil {
-		return 0, errorutil.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	id, err := result.LastInsertId()
 
 	if err != nil {
-		return 0, errorutil.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	return id, nil

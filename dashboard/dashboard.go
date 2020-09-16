@@ -51,7 +51,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -74,7 +74,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -97,7 +97,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -120,7 +120,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.WrapError(err)
+		return SqlDbDashboard{}, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -152,7 +152,7 @@ func (d SqlDbDashboard) Close() error {
 		errTopBusiestDomains != nil ||
 		errTopBouncedDomains != nil {
 
-		return errorutil.WrapError(ErrClosingDashboardQueries)
+		return errorutil.Wrap(ErrClosingDashboardQueries)
 	}
 
 	return nil
