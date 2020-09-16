@@ -191,8 +191,10 @@ ln -sf ../www
 npm install
 # set the path to necessary npm binaries
 export PATH=$PATH:$PWD/node_modules/.bin
-# execute tests
+# execute tests (all tests, for convenience)
 npm test
+# execute gauge directly (for access to all gauge options)
+npm run-script gauge run specs/
 ```
 
 After doing all this you should see a Chrome / Chromium browser open, and tests start to run.
