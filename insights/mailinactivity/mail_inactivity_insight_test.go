@@ -90,15 +90,75 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			So(err, ShouldBeNil)
 			fetcher, err := core.NewFetcher(connPair.RoConn)
 			So(err, ShouldBeNil)
-			return &fakeAcessor{DBCreator: creator, Fetcher: fetcher}
+			return &fakeAcessor{DBCreator: creator, Fetcher: fetcher, insights: []int64{}}
 		}()
 
-		Convey("Server stays inactive for one day", func() {
-			clock := &fakeClock{parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
+		lookupRange := time.Hour * 24
 
+		detector := NewDetector(accessor, core.Options{
+			"dashboard":      d,
+			"mailinactivity": Options{LookupRange: lookupRange, MinTimeGenerationInterval: time.Hour * 8},
+		})
+
+		{
+			tx, err := connPair.RwConn.Begin()
+			So(err, ShouldBeNil)
+
+			So(core.SetupAuxTables(tx), ShouldBeNil)
+
+			So(detector.Setup(tx), ShouldBeNil)
+
+			So(tx.Commit(), ShouldBeNil)
+		}
+
+		cycle := func(c *fakeClock) {
+			tx, err := connPair.RwConn.Begin()
+			So(err, ShouldBeNil)
+
+			for _, s := range detector.Steppers() {
+				So(s.Step(c, tx), ShouldBeNil)
+			}
+
+			So(tx.Commit(), ShouldBeNil)
+		}
+
+		Convey("Don't generate an insight when application starts with no log data", func() {
+			clock := &fakeClock{parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+
+			// there was no data available two days prior, not enough data to generate an insight
+			d.EXPECT().DeliveryStatus(data.TimeInterval{
+				From: parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange * -1),
+				To:   parseTime(`2000-01-01 00:00:00 +0000`),
+			}).Return(dashboard.Pairs{
+				dashboard.Pair{Key: "bounced", Value: 0},
+				dashboard.Pair{Key: "deferred", Value: 0},
+				dashboard.Pair{Key: "sent", Value: 0},
+			})
+
+			// no activity in the past day, no insight is to be generated, as it's caused by not data being available
+			// during such time
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
 				From: parseTime(`2000-01-01 00:00:00 +0000`),
-				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24),
+				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
+			}).Return(dashboard.Pairs{
+				dashboard.Pair{Key: "bounced", Value: 0},
+				dashboard.Pair{Key: "deferred", Value: 0},
+				dashboard.Pair{Key: "sent", Value: 0},
+			})
+
+			// do not generate insight
+			cycle(clock)
+
+			So(accessor.insights, ShouldResemble, []int64{})
+		})
+
+		Convey("Server stays inactive for one day", func() {
+			clock := &fakeClock{parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+
+			// some activity, no insights should be generated
+			d.EXPECT().DeliveryStatus(data.TimeInterval{
+				From: parseTime(`2000-01-01 00:00:00 +0000`),
+				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
 			}).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 1},
 				dashboard.Pair{Key: "deferred", Value: 2},
@@ -106,51 +166,37 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			})
 
 			// 8 hours later, check and realized there's been no activity for the past 24h
-			d.EXPECT().DeliveryStatus(data.TimeInterval{
-				From: parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
-				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 8),
-			}).Return(dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 0},
-				dashboard.Pair{Key: "deferred", Value: 0},
-				dashboard.Pair{Key: "sent", Value: 0},
-			})
+			{
+				// the required "previous range"
+				d.EXPECT().DeliveryStatus(data.TimeInterval{
+					From: parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8).Add(lookupRange * -1),
+					To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8).Add(lookupRange * -1),
+				}).Return(dashboard.Pairs{
+					dashboard.Pair{Key: "bounced", Value: 1},
+					dashboard.Pair{Key: "deferred", Value: 1},
+					dashboard.Pair{Key: "sent", Value: 1},
+				})
+
+				// actual check
+				d.EXPECT().DeliveryStatus(data.TimeInterval{
+					From: parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
+					To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
+				}).Return(dashboard.Pairs{
+					dashboard.Pair{Key: "bounced", Value: 0},
+					dashboard.Pair{Key: "deferred", Value: 0},
+					dashboard.Pair{Key: "sent", Value: 0},
+				})
+			}
 
 			// 8 hours later, there's activity again
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
 				From: parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 16),
-				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 16),
+				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 16),
 			}).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 0},
 				dashboard.Pair{Key: "deferred", Value: 0},
 				dashboard.Pair{Key: "sent", Value: 2},
 			})
-
-			detector := NewDetector(accessor, core.Options{
-				"dashboard":      d,
-				"mailinactivity": Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 8},
-			})
-
-			{
-				tx, err := connPair.RwConn.Begin()
-				So(err, ShouldBeNil)
-
-				So(core.SetupAuxTables(tx), ShouldBeNil)
-
-				So(detector.Setup(tx), ShouldBeNil)
-
-				So(tx.Commit(), ShouldBeNil)
-			}
-
-			cycle := func(c *fakeClock) {
-				tx, err := connPair.RwConn.Begin()
-				So(err, ShouldBeNil)
-
-				for _, s := range detector.Steppers() {
-					So(s.Step(c, tx), ShouldBeNil)
-				}
-
-				So(tx.Commit(), ShouldBeNil)
-			}
 
 			// do not generate insight
 			cycle(clock)
@@ -169,7 +215,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
 				From: parseTime(`2000-01-01 00:00:00 +0000`),
-				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 24),
+				To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(lookupRange),
 			}})
 
 			So(err, ShouldBeNil)
@@ -178,11 +224,11 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
-			So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24).Add(time.Hour*8))
+			So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour*8))
 			So(insights[0].Content(), ShouldResemble, &content{
 				Interval: data.TimeInterval{
 					From: parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
-					To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 8),
+					To:   parseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
 				}})
 		})
 

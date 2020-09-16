@@ -116,17 +116,34 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	pairs := d.dashboard.DeliveryStatus(interval)
+	activityTotalForPair := func(pairs dashboard.Pairs) int {
+		total := 0
 
-	total := 0
+		for _, pair := range pairs {
+			v := pair.Value.(int)
+			total += v
+		}
 
-	for _, pair := range pairs {
-		v := pair.Value.(int)
-		total += v
+		return total
 	}
 
-	if total != 0 {
+	totalCurrentInterval := activityTotalForPair(d.dashboard.DeliveryStatus(interval))
+
+	if totalCurrentInterval > 0 {
 		return nil
+	}
+
+	if lastExecTime.IsZero() {
+		// pottentially first insight generation
+
+		totalPreviousInterval := activityTotalForPair(d.dashboard.DeliveryStatus(data.TimeInterval{
+			From: interval.From.Add(d.options.LookupRange * -1),
+			To:   interval.To.Add(d.options.LookupRange * -1),
+		}))
+
+		if totalCurrentInterval == 0 && totalPreviousInterval == 0 {
+			return nil
+		}
 	}
 
 	d.generator.generate(interval)
