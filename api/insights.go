@@ -77,7 +77,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		i := fetchedInsight{
 			ID:          fi.ID(),
 			Time:        fi.Time(),
-			Priority:    int(fi.Priority()),
+			Rating:      fi.Rating().String(),
 			Category:    fi.Category().String(),
 			ContentType: fi.ContentType(),
 			Content:     fi.Content(),
@@ -92,7 +92,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 type fetchedInsight struct {
 	ID          int
 	Time        time.Time
-	Priority    int
+	Rating      string
 	Category    string
 	ContentType string
 	Content     interface{}

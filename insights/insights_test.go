@@ -59,7 +59,7 @@ func (t *fakeClock) Sleep(d time.Duration) {
 
 type fakeValue struct {
 	Category core.Category
-	Priority core.Priority
+	Rating   core.Rating
 	Content  string
 }
 
@@ -106,7 +106,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 		Category:    v.Category,
 		ContentType: "fake_insight_type",
 		Content:     v.Content,
-		Priority:    v.Priority,
+		Rating:      v.Rating,
 	}); err != nil {
 		return err
 	}
@@ -164,12 +164,12 @@ func TestEngine(t *testing.T) {
 
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.LocalCategory, Content: "42", Priority: 3})
+			genInsight(fakeValue{Category: core.LocalCategory, Content: "42", Rating: core.BadRating})
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.IntelCategory, Content: "35", Priority: 5})
+			genInsight(fakeValue{Category: core.IntelCategory, Content: "35", Rating: core.GoodRating})
 			nopStep()
-			genInsight(fakeValue{Category: core.ComparativeCategory, Content: "13", Priority: 6})
+			genInsight(fakeValue{Category: core.ComparativeCategory, Content: "13", Rating: core.Unrated})
 
 			// stop main loop
 			close(e.txActions)
@@ -202,19 +202,19 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
-				So(insights[0].Priority(), ShouldEqual, 6)
+				So(insights[0].Rating(), ShouldEqual, core.Unrated)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Priority(), ShouldEqual, 5)
+				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
 				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
-				So(insights[2].Priority(), ShouldEqual, 3)
+				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:02 +0000`))
 			})
 
@@ -234,13 +234,13 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
-				So(insights[0].Priority(), ShouldEqual, 6)
+				So(insights[0].Rating(), ShouldEqual, core.Unrated)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Priority(), ShouldEqual, 5)
+				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
 				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 			})
 
@@ -260,19 +260,19 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "42")
 				So(insights[0].ID(), ShouldEqual, 1)
-				So(insights[0].Priority(), ShouldEqual, 3)
+				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:02 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[1].Content().(*string), ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Priority(), ShouldEqual, 5)
+				So(insights[1].Rating(), ShouldEqual, core.GoodRating)
 				So(insights[1].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.ComparativeCategory)
 				So(*insights[2].Content().(*string), ShouldEqual, "13")
 				So(insights[2].ID(), ShouldEqual, 3)
-				So(insights[2].Priority(), ShouldEqual, 6)
+				So(insights[2].Rating(), ShouldEqual, core.Unrated)
 				So(insights[2].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:07 +0000`))
 			})
 
@@ -294,7 +294,7 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Category(), ShouldEqual, core.IntelCategory)
 				So(*insights[0].Content().(*string), ShouldEqual, "35")
 				So(insights[0].ID(), ShouldEqual, 2)
-				So(insights[0].Priority(), ShouldEqual, 5)
+				So(insights[0].Rating(), ShouldEqual, core.GoodRating)
 				So(insights[0].Time(), ShouldEqual, parseTime(`2000-01-01 00:00:05 +0000`))
 			})
 		})
@@ -312,7 +312,7 @@ func TestEngine(t *testing.T) {
 			}()
 
 			// Generate one insight, on the first cycle
-			detector.v = &fakeValue{Category: core.LocalCategory, Content: "content", Priority: 100}
+			detector.v = &fakeValue{Category: core.LocalCategory, Content: "content", Rating: core.BadRating}
 
 			done, cancel := e.Run()
 

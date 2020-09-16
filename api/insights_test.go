@@ -17,7 +17,7 @@ import (
 type fakeFetchedInsight struct {
 	id          int
 	time        time.Time
-	priority    core.Priority
+	rating      core.Rating
 	category    core.Category
 	contentType string
 	content     core.Content
@@ -35,8 +35,8 @@ func (f *fakeFetchedInsight) Category() core.Category {
 	return f.category
 }
 
-func (f *fakeFetchedInsight) Priority() core.Priority {
-	return f.priority
+func (f *fakeFetchedInsight) Rating() core.Rating {
+	return f.rating
 }
 
 func (f *fakeFetchedInsight) ContentType() string {
@@ -90,7 +90,7 @@ func TestInsights(t *testing.T) {
 					category:    core.IntelCategory,
 					content:     "content1",
 					contentType: "fake_content_1",
-					priority:    2,
+					rating:      core.BadRating,
 					time:        time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 				&fakeFetchedInsight{
@@ -98,7 +98,7 @@ func TestInsights(t *testing.T) {
 					category:    core.LocalCategory,
 					content:     "content2",
 					contentType: "fake_content_2",
-					priority:    4,
+					rating:      core.OkRating,
 					time:        time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
 				},
 			}, nil)
@@ -119,7 +119,7 @@ func TestInsights(t *testing.T) {
 					"Content":     "content1",
 					"ContentType": "fake_content_1",
 					"ID":          float64(1),
-					"Priority":    float64(2),
+					"Rating":      "bad",
 					"Time":        "1999-01-01T00:00:00Z",
 				},
 				map[string]interface{}{
@@ -127,7 +127,7 @@ func TestInsights(t *testing.T) {
 					"Content":     "content2",
 					"ContentType": "fake_content_2",
 					"ID":          float64(2),
-					"Priority":    float64(4),
+					"Rating":      "ok",
 					"Time":        "1999-12-31T00:00:00Z",
 				},
 			})

@@ -225,7 +225,7 @@ func (e *Engine) Run() (func(), func()) {
 	}()
 
 	// TODO: start user actions thread
-	// something that reads user actions (resolve insights, change their priorities, etc.)
+	// something that reads user actions (resolve insights, etc.)
 
 	go func() {
 		util.MustSucceed(runDatabaseWriterLoop(e), "")

@@ -6,7 +6,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"path"
 	"testing"
 )
@@ -15,20 +15,11 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-migrations-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
-
 func TestDatabaseMigrationUp(t *testing.T) {
 
 	Convey("Migration succeeds", t, func() {
 		Convey("Run migrations", func() {
-			connPair, err := dbconn.NewConnPair(path.Join(tempDir(), "auth.db"))
+			connPair, err := dbconn.NewConnPair(path.Join(testutil.TempDir(), "auth.db"))
 			So(err, ShouldBeNil)
 
 			err = migrator.Run(connPair.RwConn.DB, "auth")
