@@ -5,7 +5,7 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"log"
 )
 
@@ -56,7 +56,7 @@ func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOp
 	if o.SubscribeToNewsletter {
 		if err := c.newsletterSubscriber.Subscribe(context, o.Email); err != nil {
 			log.Println("Failed to subscribe with error:", err)
-			return errorutil.WrapError(ErrFailedToSubscribeToNewsletter)
+			return util.WrapError(ErrFailedToSubscribeToNewsletter)
 		}
 	}
 
@@ -66,7 +66,7 @@ func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOp
 	})
 
 	if err != nil {
-		return errorutil.WrapError(err)
+		return util.WrapError(err)
 	}
 
 	return nil

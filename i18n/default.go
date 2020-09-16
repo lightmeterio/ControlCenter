@@ -1,7 +1,7 @@
 package i18n
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
@@ -58,7 +58,7 @@ type file struct {
 
 func (f *file) ModificationTime() time.Time {
 	s, err := f.Stat()
-	errorutil.MustSucceed(err, "")
+	util.MustSucceed(err, "")
 	return s.ModTime()
 }
 
@@ -66,7 +66,7 @@ func (c *FileSystemContents) Reader(path string) (File, error) {
 	f, err := c.fs.Open(path)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, util.WrapError(err)
 	}
 
 	return &file{f}, nil

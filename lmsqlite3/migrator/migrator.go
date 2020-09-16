@@ -12,7 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"log"
 	"math"
 	"path/filepath"
@@ -24,7 +24,7 @@ import (
 func Run(database *sql.DB, databaseName string) error {
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return errorutil.WrapError(err)
+		return util.WrapError(err)
 	}
 
 	var err error

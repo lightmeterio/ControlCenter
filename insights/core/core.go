@@ -2,7 +2,7 @@ package core
 
 import (
 	"database/sql"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"time"
 )
 
@@ -50,7 +50,7 @@ func (c *Core) Close() error {
 	// close steppers in reverse order, as the detectors always come before any object it owns
 	for i := len(c.Steppers) - 1; i >= 0; i-- {
 		if err := c.Steppers[i].Close(); err != nil {
-			return errorutil.WrapError(err)
+			return util.WrapError(err)
 		}
 	}
 

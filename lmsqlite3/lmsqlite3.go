@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	sqlite "github.com/mattn/go-sqlite3"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util"
 	"golang.org/x/crypto/bcrypt"
 	"net"
 	"sync"
@@ -33,7 +33,7 @@ const bcryptCost = 12
 
 func computeBcryptSum(b []byte) []byte {
 	r, err := bcrypt.GenerateFromPassword(b, bcryptCost)
-	errorutil.MustSucceed(err, "computing bcrypt")
+	util.MustSucceed(err, "computing bcrypt")
 	return r
 }
 
@@ -50,14 +50,14 @@ func registerDomainMapping(conn *sqlite.SQLiteConn, options Options) error {
 		m, err := domainmapping.Mapping(domainmapping.RawList{})
 
 		if err != nil {
-			return errorutil.WrapError(err)
+			return util.WrapError(err)
 		}
 
 		mapper = &m
 	}
 
 	if err := conn.RegisterFunc("lm_resolve_domain_mapping", mapper.Resolve, true); err != nil {
-		return errorutil.WrapError(err)
+		return util.WrapError(err)
 	}
 
 	return nil
@@ -69,10 +69,10 @@ func Initialize(options Options) {
 	once.Do(func() {
 		sql.Register("lm_sqlite3", &sqlite.SQLiteDriver{
 			ConnectHook: func(conn *sqlite.SQLiteConn) error {
-				errorutil.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true), "")
-				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true), "")
-				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true), "")
-				errorutil.MustSucceed(registerDomainMapping(conn, options), "")
+				util.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true), "")
+				util.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true), "")
+				util.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true), "")
+				util.MustSucceed(registerDomainMapping(conn, options), "")
 
 				return nil
 			},

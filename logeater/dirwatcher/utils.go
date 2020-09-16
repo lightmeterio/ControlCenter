@@ -3,8 +3,9 @@ package dirwatcher
 import (
 	"bufio"
 	"compress/gzip"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
+
+	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 type gzippedFileReader struct {
@@ -14,7 +15,7 @@ type gzippedFileReader struct {
 
 func (r *gzippedFileReader) Close() error {
 	if err := r.gzipReader.Close(); err != nil {
-		return errorutil.WrapError(err)
+		return util.WrapError(err)
 	}
 
 	return r.fileReader.Close()
@@ -46,7 +47,7 @@ func ensureReaderIsDecompressed(plainReader fileReader, filename string) (fileRe
 		gzipReader, err := gzip.NewReader(reader)
 
 		if err != nil {
-			return nil, errorutil.WrapError(err)
+			return nil, util.WrapError(err)
 		}
 
 		return &gzippedFileReader{fileReader: reader, gzipReader: gzipReader}, nil

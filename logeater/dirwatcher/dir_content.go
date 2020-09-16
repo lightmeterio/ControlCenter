@@ -2,7 +2,6 @@ package dirwatcher
 
 import (
 	"fmt"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
+	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -22,7 +22,7 @@ func NewDirectoryContent(dir string) (DirectoryContent, error) {
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, util.WrapError(err)
 	}
 
 	entries := fileEntryList{}
@@ -43,7 +43,7 @@ func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, err
 	reader, err := os.Open(filename)
 
 	if err != nil {
-		return nil, errorutil.WrapError(err)
+		return nil, util.WrapError(err)
 	}
 
 	return ensureReaderIsDecompressed(reader, filename)
@@ -83,7 +83,7 @@ func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (
 	})
 
 	if err != nil {
-		return &localFileWatcher{}, errorutil.WrapError(err)
+		return &localFileWatcher{}, util.WrapError(err)
 	}
 
 	return &localFileWatcher{t, filename}, nil
@@ -96,5 +96,5 @@ func (f *localDirectoryContent) modificationTimeForEntry(filename string) (time.
 		}
 	}
 
-	return time.Time{}, errorutil.WrapError(fmt.Errorf("File not found: %v", filename))
+	return time.Time{}, util.WrapError(fmt.Errorf("File not found: %v", filename))
 }
