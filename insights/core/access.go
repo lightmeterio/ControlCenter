@@ -86,9 +86,10 @@ func (r Rating) String() string {
 	case GoodRating:
 		return "good"
 	case Unrated:
-		fallthrough
-	default:
 		return "unrated"
+	default:
+		log.Panicln("Invalid/Unknown rating value:", int(r))
+		return ""
 	}
 }
 
