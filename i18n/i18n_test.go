@@ -3,6 +3,7 @@ package i18n
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/language"
 	"io/ioutil"
 	"net/http"
@@ -76,26 +77,16 @@ func (n *fakeNow) Now() time.Time {
 	return n.now
 }
 
-func parseTime(s string) time.Time {
-	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
-
-	if err != nil {
-		panic("parsing time: " + err.Error())
-	}
-
-	return p
-}
-
 func TestTemplates(t *testing.T) {
 	Convey("Test Templates", t, func() {
 		fs := &fakeContents{
 			contents: map[string]*fakeFileContent{
 				"/index.i18n.html": {
-					modificationTime: parseTime(`2000-01-01 00:00:03 +0000`),
+					modificationTime: testutil.MustParseTime(`2000-01-01 00:00:03 +0000`),
 					content:          ">> {{translate `Root Index`}}",
 				},
 				"/some/random/page.i18n.html": {
-					modificationTime: parseTime(`2000-01-01 00:00:04 +0000`),
+					modificationTime: testutil.MustParseTime(`2000-01-01 00:00:04 +0000`),
 					content:          "== {{translate `Some Random Page`}}",
 				},
 			},
@@ -103,7 +94,7 @@ func TestTemplates(t *testing.T) {
 
 		fh := &fallbackHandler{}
 		translators := &fakeTranslators{}
-		now := fakeNow{now: parseTime(`2000-01-01 00:00:10 +0000`)}
+		now := fakeNow{now: testutil.MustParseTime(`2000-01-01 00:00:10 +0000`)}
 
 		s := httptest.NewServer(Wrap(fh, fs, translators, &now))
 		c := &http.Client{}
@@ -150,7 +141,7 @@ func TestTemplates(t *testing.T) {
 			})
 
 			Convey("Page needs to be re-rendered as the source file changes", func() {
-				fs.contents["/index.i18n.html"].modificationTime = parseTime(`2000-01-01 00:42:30 +0000`)
+				fs.contents["/index.i18n.html"].modificationTime = testutil.MustParseTime(`2000-01-01 00:42:30 +0000`)
 				now.now = now.now.Add(1 * time.Second)
 				r, err := c.Get(s.URL + "/index.i18n.html")
 				So(err, ShouldBeNil)

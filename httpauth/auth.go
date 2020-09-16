@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"mime"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 type SessionData struct {
@@ -215,7 +215,7 @@ func saveSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, se
 	if err := session.Save(r, w); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil
@@ -228,10 +228,10 @@ type registrationResponse struct {
 
 func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request) {
 	response := registrationResponse{
-		Error: util.TryToUnwrap(err).Error(),
+		Error: errorutil.TryToUnwrap(err).Error(),
 
 		Detailed: func() interface{} {
-			if e, ok := util.ErrorAs(err, &auth.PasswordValidationError{}); ok {
+			if e, ok := errorutil.ErrorAs(err, &auth.PasswordValidationError{}); ok {
 				d, _ := e.(*auth.PasswordValidationError)
 				return &d.Result
 			}
@@ -289,7 +289,7 @@ func defaultUnauthorisedRedirectUrl(auth *Authenticator, w http.ResponseWriter, 
 	ok, err := auth.auth.HasAnyUser()
 
 	if err != nil {
-		return "", util.WrapError(err)
+		return "", errorutil.Wrap(err)
 	}
 
 	if ok {

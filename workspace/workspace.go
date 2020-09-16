@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
-	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 type Workspace struct {
@@ -31,43 +31,43 @@ type Workspace struct {
 
 func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
-		return Workspace{}, util.WrapError(err, "Error creating working directory ", workspaceDirectory)
+		return Workspace{}, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
 	logDb, err := logdb.Open(workspaceDirectory, config)
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	metadataConnPair, err := dbconn.NewConnPair(path.Join(workspaceDirectory, "master.db"))
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	m, err := meta.NewMetaDataHandler(metadataConnPair, "master")
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	settings, err := settings.NewMasterConf(m, newsletter.NewSubscriber("https://phplist.lightmeter.io/"))
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	dashboard, err := dashboard.New(logDb.ReadConnection())
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	// TODO: use an actual notification center!
@@ -76,7 +76,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 	insightsEngine, err := insights.NewEngine(workspaceDirectory, notificationCenter, insightsOptions(dashboard))
 
 	if err != nil {
-		return Workspace{}, util.WrapError(err)
+		return Workspace{}, errorutil.Wrap(err)
 	}
 
 	return Workspace{
@@ -132,27 +132,27 @@ func (ws *Workspace) Run() <-chan struct{} {
 
 func (ws *Workspace) Close() error {
 	if err := ws.settings.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := ws.meta.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := ws.metaConnPair.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := ws.auth.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := ws.logs.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	if err := ws.insightsEngine.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

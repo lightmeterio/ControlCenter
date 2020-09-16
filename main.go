@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
-	"gitlab.com/lightmeter/controlcenter/util"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
@@ -80,7 +80,7 @@ func init() {
 
 func die(err error, msg ...interface{}) {
 	expandError := func(err error) error {
-		if e, ok := err.(*util.Error); ok {
+		if e, ok := err.(*errorutil.Error); ok {
 			return e.Chain()
 		}
 
@@ -100,15 +100,15 @@ func performPasswordReset() {
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		die(util.WrapError(err), "Error opening auth database:", err)
+		die(errorutil.Wrap(err), "Error opening auth database:", err)
 	}
 
 	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
-		die(util.WrapError(err), "Error resetting password:", err)
+		die(errorutil.Wrap(err), "Error resetting password:", err)
 	}
 
 	if err := auth.Close(); err != nil {
-		die(util.WrapError(err), "Error closing auth database:", err)
+		die(errorutil.Wrap(err), "Error closing auth database:", err)
 	}
 
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
@@ -118,7 +118,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
 	if err != nil {
-		die(util.WrapError(err), "Error opening directory:", dirToWatch)
+		die(errorutil.Wrap(err), "Error opening directory:", dirToWatch)
 	}
 
 	initialTime := ws.MostRecentLogTime()
@@ -137,7 +137,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 	go func() {
 		if err := watcher.Run(); err != nil {
 			fmt.Println(err)
-			die(util.WrapError(err), "Error watching directory:", dirToWatch)
+			die(errorutil.Wrap(err), "Error watching directory:", dirToWatch)
 		}
 	}()
 }
@@ -156,7 +156,7 @@ func runWatchingFiles(ws *workspace.Workspace) {
 
 		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, ws.NewPublisher(), buildInitialLogsTime(ws)); err != nil {
-				die(util.WrapError(err), "Error watching file:", filename)
+				die(errorutil.Wrap(err), "Error watching file:", filename)
 			}
 		}(filename)
 	}
@@ -192,7 +192,7 @@ func startHTTPServer(ws *workspace.Workspace) {
 	dashboard, err := ws.Dashboard()
 
 	if err != nil {
-		die(util.WrapError(err), "Error creating dashboard")
+		die(errorutil.Wrap(err), "Error creating dashboard")
 	}
 
 	insightsFetcher := ws.InsightsFetcher()
@@ -239,7 +239,7 @@ func main() {
 	})
 
 	if err != nil {
-		die(util.WrapError(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
+		die(errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
 	}
 
 	doneWithDatabase := ws.Run()

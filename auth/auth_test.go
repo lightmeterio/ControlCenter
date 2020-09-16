@@ -4,19 +4,12 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
 	"testing"
 )
 
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
@@ -24,7 +17,7 @@ func init() {
 
 func TestSessionKey(t *testing.T) {
 	Convey("Test Session Key", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 		var generatedKey, recoveredKey [][]byte
 
@@ -53,7 +46,7 @@ func TestAuth(t *testing.T) {
 	strongPassword := `ghjzfpailduifiapdq9um6ysuubvtjywAqbnadq+aUerxrqhfp`
 
 	Convey("Test Auth", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 		auth, err := NewAuth(path.Join(dir), Options{})
 		So(err, ShouldBeNil)
@@ -194,7 +187,7 @@ func TestAuth(t *testing.T) {
 
 func TestResetPassword(t *testing.T) {
 	Convey("Reset Password", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		{

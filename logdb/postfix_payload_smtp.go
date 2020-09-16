@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/logdb/migrations"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -39,7 +39,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 		rowid = (select max(rowid) from postfix_smtp_message_status)`).Scan(&v)
 
 	if err != nil {
-		return 0, util.WrapError(err)
+		return 0, errorutil.Wrap(err)
 	}
 
 	return v, nil
@@ -47,7 +47,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 
 func countLogsForSmtpSentStatus(db dbconn.RoConn) int {
 	value := 0
-	util.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
+	errorutil.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
 	return value
 }
 
@@ -74,7 +74,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
 		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer stmt.Close()
@@ -97,7 +97,7 @@ func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
 		status.Status)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

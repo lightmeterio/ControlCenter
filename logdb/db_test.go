@@ -1,6 +1,8 @@
 package logdb
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,23 +14,14 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
-
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
 
 func init() {
 	// NOTE: unfortunately the domain mapping code uses a singleton (to be accessed internally via sqlite)
 	// that outlives all the test cases, so it's more clear for it to be defined globally as well
 	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 
 	lmsqlite3.Initialize(lmsqlite3.Options{
 		"domain_mapping": &m,
@@ -44,7 +37,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Db is a directory instead of a file", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldBeNil)
 			_, err := Open(dir, Config{Location: time.UTC})
@@ -52,7 +45,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Db is not a sqlite file", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
 			_, err := Open(dir, Config{Location: time.UTC})
@@ -62,7 +55,7 @@ func TestDatabaseCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create DB", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -72,7 +65,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -81,7 +74,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 
 			ws1, err := Open(dir, Config{Location: time.UTC})
@@ -104,7 +97,7 @@ func parseTimeInterval(from, to string) data.TimeInterval {
 
 func TestLogsInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		buildWs := func() (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {

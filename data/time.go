@@ -2,9 +2,8 @@ package data
 
 import (
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
-
-	"gitlab.com/lightmeter/controlcenter/util"
 )
 
 var (
@@ -20,13 +19,13 @@ func ParseTimeInterval(fromStr string, toStr string, location *time.Location) (T
 	from, err := time.ParseInLocation("2006-01-02", fromStr, location)
 
 	if err != nil {
-		return TimeInterval{}, util.WrapError(err)
+		return TimeInterval{}, errorutil.Wrap(err)
 	}
 
 	to, err := time.ParseInLocation("2006-01-02", toStr, location)
 
 	if err != nil {
-		return TimeInterval{}, util.WrapError(err)
+		return TimeInterval{}, errorutil.Wrap(err)
 	}
 
 	to = to.Add(23 * time.Hour).Add(59 * time.Minute).Add(59 * time.Second)
