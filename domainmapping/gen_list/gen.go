@@ -29,7 +29,7 @@ func main() {
 func fileContent(l domainmapping.RawList) []byte {
 	return []byte(`package domainmapping
 
-import "gitlab.com/lightmeter/controlcenter/util"
+import "gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 func init() {
 	DefaultMapping = mustBeValidList()
@@ -37,7 +37,7 @@ func init() {
 
 func mustBeValidList() *Mapper {
 	m, err := Mapping(mustParse())
-	util.MustSucceed(err, "Invalid Domain List")
+	errorutil.MustSucceed(err, "Invalid Domain List")
 	return &m
 }
 
