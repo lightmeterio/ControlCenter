@@ -1,6 +1,7 @@
 package logeater
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
 	"io/ioutil"
 	"os"
@@ -36,7 +37,7 @@ func appendToFile(filename string, lines []string) {
 func TestWatchingFiles(t *testing.T) {
 	Convey("Watch Files", t, func() {
 		firstSecondInJanuary := parseTime(`2000-01-01 00:00:00 +0000`)
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		startOfFileLocation := tail.SeekInfo{Offset: 0, Whence: io.SeekStart}

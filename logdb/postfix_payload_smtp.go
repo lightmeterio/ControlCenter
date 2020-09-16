@@ -3,6 +3,7 @@ package logdb
 import (
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/logdb/migrations"
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -11,8 +12,12 @@ import (
 )
 
 func init() {
+	// todo if we need to register many payload handler then add support for []payloadHandler to registerPayloadHandler
 	registerPayloadHandler(payloadHandler{
-		creator:        tableCreationForSmtpSentStatus,
+		filename:       "1_postfix_payload_smtp.go",
+		up:             migrations.UpTableCreationForSmtpSentStatus,
+		down:           migrations.DownTableCreationForSmtpSentStatus,
+		database:       "logs",
 		counter:        countLogsForSmtpSentStatus,
 		lastTimeReader: lastTimeInTableReaderForSmtpSentStatus,
 	})
@@ -44,35 +49,6 @@ func countLogsForSmtpSentStatus(db dbconn.RoConn) int {
 	value := 0
 	util.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
 	return value
-}
-
-func tableCreationForSmtpSentStatus(db dbconn.RwConn) error {
-	if _, err := db.Exec(`create table if not exists postfix_smtp_message_status(
-	read_ts_sec           integer,
-	process_ip            blob,
-	queue                 string,
-	recipient_local_part  text,
-	recipient_domain_part text,
-	relay_name            text,
-	relay_ip              blob,
-	relay_port            uint16,
-	delay                 double,
-	delay_smtpd           double,
-	delay_cleanup         double,
-	delay_qmgr            double,
-	delay_smtp            double,
-	dsn                   text,
-	status                integer
-		)`); err != nil {
-		return util.WrapError(err)
-	}
-
-	if _, err := db.Exec(`create index if not exists postfix_smtp_message_time_index
-		on postfix_smtp_message_status (read_ts_sec)`); err != nil {
-		return util.WrapError(err)
-	}
-
-	return nil
 }
 
 func inserterForSmtpSentStatus(tx *sql.Tx, r data.Record) error {
