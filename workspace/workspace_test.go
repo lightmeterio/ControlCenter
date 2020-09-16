@@ -4,7 +4,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"testing"
 	"time"
@@ -14,13 +14,6 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
 
 func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
@@ -33,7 +26,7 @@ func TestWorkspaceCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -43,7 +36,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -52,7 +45,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir := tempDir()
+			dir := testutil.TempDir()
 			defer os.RemoveAll(dir)
 
 			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})

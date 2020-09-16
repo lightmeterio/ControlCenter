@@ -7,20 +7,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
 	"testing"
 	"time"
 )
-
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
 
 func parseTime(s string) time.Time {
 	p, err := time.Parse(`2006-01-02 15:04:05 -0700`, s)
@@ -69,7 +61,7 @@ func (c *fakeAcessor) GenerateInsight(tx *sql.Tx, properties core.InsightPropert
 
 func TestWelcomeInsights(t *testing.T) {
 	Convey("Test Welcome Generator", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))

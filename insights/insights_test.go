@@ -8,7 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
 	"os"
 	"testing"
@@ -27,14 +27,6 @@ func parseTime(s string) time.Time {
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
 }
 
 type fakeNotificationCenter struct {
@@ -118,7 +110,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		nc := &fakeNotificationCenter{}
