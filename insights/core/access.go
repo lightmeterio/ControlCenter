@@ -93,11 +93,18 @@ func (r Rating) String() string {
 	}
 }
 
+// The rating values are spaced in order to allow newer values to be added between existing ones
+// without requiring data migration, as such values are stored in the insights database.
 const (
-	Unrated    Rating = 0
-	GoodRating Rating = 1
-	OkRating   Rating = 2
-	BadRating  Rating = 3
+	// NOTE: the Unrated value is a bit peculiar/special and don't really fit any order.
+	// For instance, should listing "all insights with are ok or lower" return insights with no rating?
+	// If yes, the query should explicitly remove Unrated insights.
+	// In "non sql" code, rating is an optional value, and the "empty" value corresponds to Unrated.
+	Unrated Rating = 0
+
+	BadRating  Rating = 100
+	OkRating   Rating = 200
+	GoodRating Rating = 300
 )
 
 type FetchedInsight interface {
