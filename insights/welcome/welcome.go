@@ -50,7 +50,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		Category:    core.NewsCategory,
 		Content:     struct{}{},
 		ContentType: "welcome_content",
-		Priority:    0,
+		Rating:      core.Unrated,
 	}, now); err != nil {
 		return util.WrapError(err)
 	}
@@ -60,7 +60,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		Category:    core.NewsCategory,
 		Content:     struct{}{},
 		ContentType: "insights_introduction_content",
-		Priority:    0,
+		Rating:      core.Unrated,
 	}, now); err != nil {
 		return util.WrapError(err)
 	}
