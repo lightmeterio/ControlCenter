@@ -5,7 +5,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/notification"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
 	"time"
 )
@@ -28,19 +28,19 @@ func NewCustomEngine(
 	stateConn, err := dbconn.NewConnPair(path.Join(workspaceDir, "insights.db"))
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(stateConn.Close(), "")
+			errorutil.MustSucceed(stateConn.Close(), "")
 		}
 	}()
 
 	creator, err := newCreator(stateConn.RwConn, notificationCenter)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	detectors := buildDetectors(creator, options)
@@ -48,19 +48,19 @@ func NewCustomEngine(
 	err = setupDetectors(detectors, stateConn.RwConn)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	c, err := core.New(detectors)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	fetcher, err := newFetcher(stateConn.RoConn)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	return &Engine{
@@ -75,33 +75,33 @@ func setupDetectors(detectors []core.Detector, conn dbconn.RwConn) error {
 	tx, err := conn.Begin()
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback(), "")
 		}
 	}()
 
 	err = core.SetupAuxTables(tx)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	for _, d := range detectors {
 		err = d.Setup(tx)
 
 		if err != nil {
-			return util.WrapError(err)
+			return errorutil.WrapError(err)
 		}
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	return nil
@@ -109,11 +109,11 @@ func setupDetectors(detectors []core.Detector, conn dbconn.RwConn) error {
 
 func (e *Engine) Close() error {
 	if err := e.core.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	if err := e.fetcher.Close(); err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	return nil
@@ -135,7 +135,7 @@ func execOnSteppers(txActions chan<- txAction, steppers []core.Stepper, clock co
 	txActions <- func(tx *sql.Tx) error {
 		for _, s := range steppers {
 			if err := s.Step(clock, tx); err != nil {
-				return util.WrapError(err)
+				return errorutil.WrapError(err)
 			}
 		}
 
@@ -148,12 +148,12 @@ func engineCycle(e *Engine) (bool, error) {
 	tx, err := e.insightsStateConn.RwConn.Begin()
 
 	if err != nil {
-		return false, util.WrapError(err)
+		return false, errorutil.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback(), "")
 		}
 	}()
 
@@ -166,13 +166,13 @@ func engineCycle(e *Engine) (bool, error) {
 	err = action(tx)
 
 	if err != nil {
-		return false, util.WrapError(err)
+		return false, errorutil.WrapError(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return false, util.WrapError(err)
+		return false, errorutil.WrapError(err)
 	}
 
 	return true, nil
@@ -196,7 +196,7 @@ func runDatabaseWriterLoop(e *Engine) error {
 		shouldContinue, err := engineCycle(e)
 
 		if err != nil {
-			return util.WrapError(err)
+			return errorutil.WrapError(err)
 		}
 
 		if !shouldContinue {
@@ -226,7 +226,7 @@ func (e *Engine) Run() (func(), func()) {
 	// something that reads user actions (resolve insights, etc.)
 
 	go func() {
-		util.MustSucceed(runDatabaseWriterLoop(e), "")
+		errorutil.MustSucceed(runDatabaseWriterLoop(e), "")
 		doneRun <- struct{}{}
 	}()
 
