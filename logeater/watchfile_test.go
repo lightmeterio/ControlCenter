@@ -3,7 +3,6 @@ package logeater
 import (
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -11,16 +10,6 @@ import (
 	"github.com/hpcloud/tail"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-// FIXME: copied from workspace_test.go
-// It should be moved to some common place
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
-}
 
 func appendToFile(filename string, lines []string) {
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

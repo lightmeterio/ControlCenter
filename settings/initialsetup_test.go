@@ -8,7 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util"
-	"io/ioutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
 	"testing"
@@ -17,14 +17,6 @@ import (
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-func tempDir() string {
-	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
-	if e != nil {
-		panic("error creating temp dir")
-	}
-	return dir
 }
 
 type fakeNewsletterSubscriber struct {
@@ -45,7 +37,7 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		dir := tempDir()
+		dir := testutil.TempDir()
 		defer os.RemoveAll(dir)
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
