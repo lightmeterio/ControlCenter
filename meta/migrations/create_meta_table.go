@@ -8,15 +8,14 @@ import (
 
 func init() {
 	migrator.AddMigration("auth", "2_create_meta_table.go", UpMetaTable, DownMetaTable)
-	migrator.AddMigration("master", "2_create_meta_table.go", UpMetaTable, DownMetaTable)
+	migrator.AddMigration("master", "1_create_meta_table.go", UpMetaTable, DownMetaTable)
 }
 
 func UpMetaTable(tx *sql.Tx) error {
 
-	sql := `create table if not exists users(
-		email string,
-		name string,
-		password blob
+	sql := `create table if not exists meta(
+		key string,
+		value blob
 	)`
 
 	_, err := tx.Exec(sql)
