@@ -1,6 +1,7 @@
 /* globals gauge*/
 "use strict";
-const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf } = require('taiko');
+const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf, toLeftOf, dropDown } = require('taiko');
+
 const assert = require("assert");
 const child_process = require("child_process")
 const tmp = require("tmp")
@@ -42,6 +43,10 @@ step("Go to main page", async () => {
     await goto('localhost:8080');
 });
 
+step("Go to registration page", async () => {
+    await goto('localhost:8080/register');
+});
+
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {
     await focus(textBox({placeholder: placeholder}))
 });
@@ -54,3 +59,6 @@ step("Type <content>", async (content) => {
     await write(content)
 });
 
+step("Select <option> from menu <menuName>", async (option, menuName) => {
+    await dropDown('Most of my mail is…').select('direct')
+});
