@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -25,18 +26,6 @@ type fakeNotificationCenter struct {
 
 func (f *fakeNotificationCenter) Notify(n notification.Content) {
 	f.notifications = append(f.notifications, n)
-}
-
-type fakeClock struct {
-	time.Time
-}
-
-func (t *fakeClock) Now() time.Time {
-	return t.Time
-}
-
-func (t *fakeClock) Sleep(d time.Duration) {
-	t.Time = t.Time.Add(d)
 }
 
 type fakeValue struct {
@@ -125,7 +114,7 @@ func TestEngine(t *testing.T) {
 				errChan <- runDatabaseWriterLoop(e)
 			}()
 
-			clock := &fakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)}
+			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)}
 
 			step := func(v *fakeValue) {
 				if v != nil {

@@ -1,13 +1,13 @@
 package mailinactivity
 
 import (
-	"database/sql"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -19,36 +19,6 @@ import (
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-type fakeClock struct {
-	time.Time
-}
-
-func (t *fakeClock) Now() time.Time {
-	return time.Time(t.Time)
-}
-
-func (t *fakeClock) Sleep(d time.Duration) {
-	t.Time = t.Time.Add(d)
-}
-
-type fakeAcessor struct {
-	*core.DBCreator
-	core.Fetcher
-	insights []int64
-}
-
-func (c *fakeAcessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
-	id, err := core.GenerateInsight(tx, properties)
-
-	if err != nil {
-		return err
-	}
-
-	c.insights = append(c.insights, id)
-
-	return nil
 }
 
 func TestMailInactivityDetectorInsight(t *testing.T) {
@@ -67,12 +37,12 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			So(connPair.Close(), ShouldBeNil)
 		}()
 
-		accessor := func() *fakeAcessor {
+		accessor := func() *insighttestsutil.FakeAcessor {
 			creator, err := core.NewCreator(connPair.RwConn)
 			So(err, ShouldBeNil)
 			fetcher, err := core.NewFetcher(connPair.RoConn)
 			So(err, ShouldBeNil)
-			return &fakeAcessor{DBCreator: creator, Fetcher: fetcher, insights: []int64{}}
+			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}}
 		}()
 
 		lookupRange := time.Hour * 24
@@ -93,7 +63,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			So(tx.Commit(), ShouldBeNil)
 		}
 
-		cycle := func(c *fakeClock) {
+		cycle := func(c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
 
@@ -105,7 +75,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		}
 
 		Convey("Don't generate an insight when application starts with no log data", func() {
-			clock := &fakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// there was no data available two days prior, not enough data to generate an insight
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
@@ -131,11 +101,11 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			// do not generate insight
 			cycle(clock)
 
-			So(accessor.insights, ShouldResemble, []int64{})
+			So(accessor.Insights, ShouldResemble, []int64{})
 		})
 
 		Convey("Server stays inactive for one day", func() {
-			clock := &fakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// some activity, no insights should be generated
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
@@ -191,9 +161,9 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			clock.Sleep(time.Hour * 8)
 			cycle(clock)
 
-			So(accessor.insights, ShouldResemble, []int64{1})
+			So(accessor.Insights, ShouldResemble, []int64{1})
 
-			So(len(accessor.insights), ShouldEqual, 1)
+			So(len(accessor.Insights), ShouldEqual, 1)
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),

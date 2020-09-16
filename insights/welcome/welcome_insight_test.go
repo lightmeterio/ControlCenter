@@ -1,10 +1,10 @@
 package welcome
 
 import (
-	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -16,37 +16,6 @@ import (
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-type fakeClock struct {
-	time.Time
-}
-
-func (t *fakeClock) Now() time.Time {
-	return time.Time(t.Time)
-}
-
-func (t *fakeClock) Sleep(d time.Duration) {
-	t.Time = t.Time.Add(d)
-}
-
-// TODO: move this struct to a common place to be reused by other tests instead of copy&pasting it everywhere
-type fakeAcessor struct {
-	*core.DBCreator
-	core.Fetcher
-	insights []int64
-}
-
-func (c *fakeAcessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
-	id, err := core.GenerateInsight(tx, properties)
-
-	if err != nil {
-		return err
-	}
-
-	c.insights = append(c.insights, id)
-
-	return nil
 }
 
 func TestWelcomeInsights(t *testing.T) {
@@ -61,16 +30,16 @@ func TestWelcomeInsights(t *testing.T) {
 			So(connPair.Close(), ShouldBeNil)
 		}()
 
-		accessor := func() *fakeAcessor {
+		accessor := func() *insighttestsutil.FakeAcessor {
 			creator, err := core.NewCreator(connPair.RwConn)
 			So(err, ShouldBeNil)
 			fetcher, err := core.NewFetcher(connPair.RoConn)
 			So(err, ShouldBeNil)
-			return &fakeAcessor{DBCreator: creator, Fetcher: fetcher}
+			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher}
 		}()
 
 		Convey("Insight is generated only once", func() {
-			clock := &fakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
+			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
 
 			detector := NewDetector(accessor)
 
@@ -85,7 +54,7 @@ func TestWelcomeInsights(t *testing.T) {
 				So(tx.Commit(), ShouldBeNil)
 			}
 
-			cycle := func(c *fakeClock) {
+			cycle := func(c *insighttestsutil.FakeClock) {
 				tx, err := connPair.RwConn.Begin()
 				So(err, ShouldBeNil)
 
@@ -102,7 +71,7 @@ func TestWelcomeInsights(t *testing.T) {
 				clock.Sleep(time.Hour * 8)
 			}
 
-			So(accessor.insights, ShouldResemble, []int64{1, 2})
+			So(accessor.Insights, ShouldResemble, []int64{1, 2})
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
