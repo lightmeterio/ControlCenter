@@ -5,6 +5,7 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"log"
 	"path"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/util"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -34,7 +34,7 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pat
 	// http://man7.org/linux/man-pages/man5/logrotate.conf.5.html
 	reg, err := regexp.Compile(`^(` + pattern + `)(\.(\d+)(\.gz)?)?$`)
 
-	util.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
+	errorutil.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
 
 	entries := make(fileEntryList, 0, len(list))
 
@@ -59,7 +59,7 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pat
 			}
 
 			index, err := strconv.Atoi(string(matches[3]))
-			util.MustSucceed(err, "Atoi")
+			errorutil.MustSucceed(err, "Atoi")
 
 			return index
 		}()
@@ -117,7 +117,7 @@ func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 			return nil
 		}
 
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}()
 }
 
@@ -143,7 +143,7 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 			return nil
 		}
 
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}()
 }
 
@@ -159,7 +159,7 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 
 	if !parser.IsRecoverableError(err) {
 		// failed to read first line
-		return time.Time{}, util.WrapError(err)
+		return time.Time{}, errorutil.WrapError(err)
 	}
 
 	secondsInYearFirstLine := secondInTheYear(timeFirstLine)
@@ -192,7 +192,7 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 
 	if !parser.IsRecoverableError(err) {
 		// failed reading last line
-		return time.Time{}, util.WrapError(err)
+		return time.Time{}, errorutil.WrapError(err)
 	}
 
 	secondsInYearLastLine := secondInTheYear(timeLastLine)
@@ -240,7 +240,7 @@ var ErrEmptyFileList = errors.New(`Empty list!`)
 
 func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	if len(files) == 0 {
-		return time.Time{}, util.WrapError(ErrEmptyFileList)
+		return time.Time{}, errorutil.WrapError(ErrEmptyFileList)
 	}
 
 	var t time.Time
@@ -250,7 +250,7 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 		ft, err := guessInitialDateForFile(file.reader, file.modificationTime)
 
 		if err != nil {
-			return time.Time{}, util.WrapError(err)
+			return time.Time{}, errorutil.WrapError(err)
 		}
 
 		if (ft.Before(t) || t == time.Time{}) {
@@ -265,7 +265,7 @@ func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
 	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
 
 	if err != nil {
-		return time.Time{}, util.WrapError(err)
+		return time.Time{}, errorutil.WrapError(err)
 	}
 
 	descriptors := []fileDescriptor{}
@@ -290,11 +290,11 @@ func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
 		reader, err := content.readerForEntry(filename)
 
 		if err != nil {
-			return time.Time{}, util.WrapError(err)
+			return time.Time{}, errorutil.WrapError(err)
 		}
 
 		fileClosers = append(fileClosers, func() {
-			util.MustSucceed(reader.Close(), "Closing file: "+filename)
+			errorutil.MustSucceed(reader.Close(), "Closing file: "+filename)
 		})
 
 		d := fileDescriptor{modificationTime: entry.modificationTime, reader: reader}
@@ -347,13 +347,13 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 	entries := content.fileEntries()
 
 	if len(entries) == 0 {
-		return fileQueues{}, util.WrapError(ErrEmptyDirectory)
+		return fileQueues{}, errorutil.WrapError(ErrEmptyDirectory)
 	}
 
 	queues := buildFilesToImport(entries, patterns, initialTime)
 
 	if len(queues) == 0 {
-		return fileQueues{}, util.WrapError(ErrEmptyDirectory)
+		return fileQueues{}, errorutil.WrapError(ErrEmptyDirectory)
 	}
 
 	for _, q := range queues {
@@ -362,7 +362,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 		}
 	}
 
-	return fileQueues{}, util.WrapError(ErrEmptyDirectory)
+	return fileQueues{}, errorutil.WrapError(ErrEmptyDirectory)
 }
 
 var (
@@ -411,25 +411,25 @@ func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (file
 	readSeeker, err := content.readSeekerForEntry(entry.filename)
 
 	if err != nil {
-		return nil, 0, util.WrapError(err)
+		return nil, 0, errorutil.WrapError(err)
 	}
 
 	offset, err := readSeeker.Seek(0, io.SeekEnd)
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
+			errorutil.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
 		}
 	}()
 
 	if err != nil {
-		return nil, 0, util.WrapError(err)
+		return nil, 0, errorutil.WrapError(err)
 	}
 
 	_, err = readSeeker.Seek(0, io.SeekStart)
 
 	if err != nil {
-		return nil, 0, util.WrapError(err)
+		return nil, 0, errorutil.WrapError(err)
 	}
 
 	reader := buildLimitedFileReader(readSeeker, offset)
@@ -448,7 +448,7 @@ func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryConte
 		reader, offset, err := buildReaderForCurrentEntry(content, entry)
 
 		if err != nil {
-			return nil, nil, util.WrapError(err)
+			return nil, nil, errorutil.WrapError(err)
 		}
 
 		// inform the "watch current log file" thread about the offset
@@ -461,7 +461,7 @@ func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryConte
 	reader, err := content.readerForEntry(entry.filename)
 
 	if err != nil {
-		return nil, nil, util.WrapError(err)
+		return nil, nil, errorutil.WrapError(err)
 	}
 
 	return reader, bufio.NewScanner(reader), nil
@@ -475,7 +475,7 @@ func processorForQueue(offsetChan chan int64, converterChan timeConverterChan, c
 		reader, scanner, err := buildReaderAndScannerForEntry(offsetChan, content, pattern, entry)
 
 		if err != nil {
-			return queueProcessor{}, util.WrapError(err)
+			return queueProcessor{}, errorutil.WrapError(err)
 		}
 
 		scanners = append(scanners, scanner)
@@ -512,7 +512,7 @@ func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[
 		processor, err := processorForQueue(offsetChan, converterChan, content, k, v)
 
 		if err != nil {
-			return []*queueProcessor{}, util.WrapError(err)
+			return []*queueProcessor{}, errorutil.WrapError(err)
 		}
 
 		index := patternIndexes[k]
@@ -527,23 +527,23 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	reader, err := content.readerForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	defer func() {
-		util.MustSucceed(reader.Close(), "Closing first file in queue")
+		errorutil.MustSucceed(reader.Close(), "Closing first file in queue")
 	}()
 
 	initialTime, err := guessInitialDateForFile(reader, modificationTime)
 
 	if err != nil {
-		return nil, util.WrapError(err)
+		return nil, errorutil.WrapError(err)
 	}
 
 	// Copy the pattern string so it can be moved into the log lambda below
@@ -585,7 +585,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 		if !scanner.Scan() {
 			// file ended, use next one
 			if err := p.readers[p.currentIndex].Close(); err != nil {
-				return false, util.WrapError(err)
+				return false, errorutil.WrapError(err)
 			}
 
 			log.Println("Finished importing log file:", p.entries[p.currentIndex].filename)
@@ -600,14 +600,14 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 		header, payload, err := parser.Parse(scanner.Bytes())
 
 		if !parser.IsRecoverableError(err) {
-			return false, util.WrapError(err)
+			return false, errorutil.WrapError(err)
 		}
 
 		if p.converter == nil {
 			converter, err := createConverterForQueueProcessor(p, content, header)
 
 			if err != nil {
-				return false, util.WrapError(err)
+				return false, errorutil.WrapError(err)
 			}
 
 			p.converter = converter
@@ -635,7 +635,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 		shouldKeepProcessor, err := updateQueueProcessor(p, content)
 
 		if err != nil {
-			return []*queueProcessor{}, util.WrapError(err)
+			return []*queueProcessor{}, errorutil.WrapError(err)
 		}
 
 		if shouldKeepProcessor {
@@ -682,7 +682,7 @@ func importExistingLogs(
 	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	toBeUpdated := -1
@@ -691,7 +691,7 @@ func importExistingLogs(
 		updatedQueueProcessors, err := updateQueueProcessors(content, queueProcessors, toBeUpdated)
 
 		if err != nil {
-			return util.WrapError(err)
+			return errorutil.WrapError(err)
 		}
 
 		queueProcessors = updatedQueueProcessors
@@ -807,7 +807,7 @@ func startWatchingOnQueue(
 
 	watcher, err := content.watcherForEntry(entry.filename, offset)
 
-	util.MustSucceed(err, "File watcher for: "+entry.filename)
+	errorutil.MustSucceed(err, "File watcher for: "+entry.filename)
 
 	sequence := uint64(0)
 
@@ -867,7 +867,7 @@ func startFileWatchers(
 		entry := queue[len(queue)-1]
 
 		if path.Base(entry.filename) != pattern {
-			return util.WrapError(fmt.Errorf("Missing file: %s. Instead found: %s", pattern, entry.filename))
+			return errorutil.WrapError(fmt.Errorf("Missing file: %s. Instead found: %s", pattern, entry.filename))
 		}
 
 		converterChan, ok := converterChans[pattern]
@@ -979,7 +979,7 @@ func watchCurrentFilesForNewLogs(
 	sortableRecordsChan := make(chan sortableRecord)
 
 	if err := startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher); err != nil {
-		return func() {}, func() {}, util.WrapError(err)
+		return func() {}, func() {}, errorutil.WrapError(err)
 	}
 
 	donePublishing := publishNewLogsSorted(sortableRecordsChan, pub)
@@ -1044,7 +1044,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.initialTime)
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	newLogsPublisher := newLogsPublisher{records: make(chan data.Record)}
@@ -1062,7 +1062,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 	}()
 
 	if err != nil {
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	interruptWatching := func() {
@@ -1072,7 +1072,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime); err != nil {
 		interruptWatching()
-		return util.WrapError(err)
+		return errorutil.WrapError(err)
 	}
 
 	if !watch {

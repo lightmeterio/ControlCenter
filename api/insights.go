@@ -2,7 +2,7 @@ package api
 
 import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -69,7 +69,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		MaxEntries: entries,
 	})
 
-	util.MustSucceed(err, "error fetching insights")
+	errorutil.MustSucceed(err, "error fetching insights")
 
 	insights := make(fetchInsightsResult, 0, entries)
 

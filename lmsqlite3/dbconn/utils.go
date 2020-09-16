@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 type RoConn struct {
@@ -34,7 +34,7 @@ func (c *ConnPair) Close() error {
 
 	if writerError == nil {
 		if readerError != nil {
-			return util.WrapError(readerError)
+			return errorutil.WrapError(readerError)
 		}
 
 		// no errors at all
@@ -44,7 +44,7 @@ func (c *ConnPair) Close() error {
 	// here we know that writeError != nil
 
 	if readerError == nil {
-		return util.WrapError(writerError)
+		return errorutil.WrapError(writerError)
 	}
 
 	// Both errors exist. We lose the erorrs, keeping only the message, which is ok for now
@@ -55,19 +55,19 @@ func NewConnPair(filename string) (ConnPair, error) {
 	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return ConnPair{}, util.WrapError(err)
+		return ConnPair{}, errorutil.WrapError(err)
 	}
 
 	defer func() {
 		if err != nil {
-			util.MustSucceed(writer.Close(), "Closing RW connection on error")
+			errorutil.MustSucceed(writer.Close(), "Closing RW connection on error")
 		}
 	}()
 
 	reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
 
 	if err != nil {
-		return ConnPair{}, util.WrapError(err)
+		return ConnPair{}, errorutil.WrapError(err)
 	}
 
 	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer)}, nil

@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -21,16 +21,16 @@ import (
 func serveJson(w http.ResponseWriter, r *http.Request, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	encoded, err := json.Marshal(v)
-	util.MustSucceed(err, "Encoding as JSON in the http API")
+	errorutil.MustSucceed(err, "Encoding as JSON in the http API")
 	_, err = w.Write(encoded)
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 }
 
 func intervalFromForm(timezone *time.Location, form url.Values) (data.TimeInterval, error) {
 	interval, err := data.ParseTimeInterval(form.Get("from"), form.Get("to"), timezone)
 
 	if err != nil {
-		return data.TimeInterval{}, util.WrapError(err)
+		return data.TimeInterval{}, errorutil.WrapError(err)
 	}
 
 	return interval, nil

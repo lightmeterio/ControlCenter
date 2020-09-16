@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
-	"gitlab.com/lightmeter/controlcenter/util"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,16 +14,16 @@ import (
 
 func main() {
 	f, err := os.Open("mapping.json")
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 	b, err := ioutil.ReadAll(f)
-	util.MustSucceed(err, "")
+	errorutil.MustSucceed(err, "")
 	l := domainmapping.RawList{}
-	util.MustSucceed(json.Unmarshal(b, &l), "Invalid domain mapping file")
+	errorutil.MustSucceed(json.Unmarshal(b, &l), "Invalid domain mapping file")
 	_, err = domainmapping.Mapping(l)
-	util.MustSucceed(err, "Malformed domain mapping file")
+	errorutil.MustSucceed(err, "Malformed domain mapping file")
 	_, err = json.Marshal(l)
-	util.MustSucceed(err, "")
-	util.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(l), 0600), "")
+	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(l), 0600), "")
 }
 
 func fileContent(l domainmapping.RawList) []byte {
