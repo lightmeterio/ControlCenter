@@ -37,10 +37,6 @@ func NewCustomEngine(
 		}
 	}()
 
-	if err != nil {
-		return nil, util.WrapError(err)
-	}
-
 	creator, err := newCreator(stateConn.RwConn, notificationCenter)
 
 	if err != nil {
@@ -49,7 +45,9 @@ func NewCustomEngine(
 
 	detectors := buildDetectors(creator, options)
 
-	if err := setupDetectors(detectors, stateConn.RwConn); err != nil {
+	err = setupDetectors(detectors, stateConn.RwConn)
+
+	if err != nil {
 		return nil, util.WrapError(err)
 	}
 
