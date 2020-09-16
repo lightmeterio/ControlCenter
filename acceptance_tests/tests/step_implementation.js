@@ -63,8 +63,8 @@ step("Type <content>", async (content) => {
     await write(content)
 });
 
-step("Select <option> from menu <menuName>", async (option, menuName) => {
-    await dropDown('Most of my mail is…').select('direct')
+step("Select option <option> from menu <menuName>", async (option, menuName) => {
+    await dropDown(menuName).select(option)
 });
 
 step("Open datepicker menu", async () => {

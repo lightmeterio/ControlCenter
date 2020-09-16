@@ -23,6 +23,5 @@ Tags: success
 * Type "user@example.com"
 * Focus on field with placeholder "Password"
 * Type "54353%#%#54354353gffgdgdfg"
-* Select "Most of my mail is…" from menu "direct"
-* Expect registration to fail
+* Select option "direct" from menu "Most of my mail is…"
 * Click on "Register"
