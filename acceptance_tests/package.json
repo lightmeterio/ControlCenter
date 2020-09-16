@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "Lightmeter ControlCenter Acceptance Tests",
   "scripts": {
-    "test": "gauge run specs/"
+    "test": "gauge run specs/",
+    "gauge": "gauge"
   },
   "dependencies": {
     "@getgauge/cli": "^1.1.1",
