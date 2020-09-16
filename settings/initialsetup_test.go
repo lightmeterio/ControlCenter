@@ -52,7 +52,7 @@ func TestInitialSetup(t *testing.T) {
 		So(err, ShouldBeNil)
 		defer func() { util.MustSucceed(conn.Close(), "") }()
 
-		meta, err := meta.NewMetaDataHandler(conn)
+		meta, err := meta.NewMetaDataHandler(conn, "master")
 		So(err, ShouldBeNil)
 		defer func() { util.MustSucceed(meta.Close(), "") }()
 
