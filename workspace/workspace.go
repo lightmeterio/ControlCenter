@@ -52,7 +52,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewMetaDataHandler(metadataConnPair)
+	m, err := meta.NewMetaDataHandler(metadataConnPair, "master")
 
 	if err != nil {
 		return Workspace{}, errorutil.Wrap(err)
