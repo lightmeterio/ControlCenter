@@ -75,7 +75,7 @@ func init() {
 	flag.Usage = func() {
 		printVersion()
 		fmt.Fprintf(os.Stdout, "\n Example call: \n")
-		fmt.Fprintf(os.Stdout, "\n lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log \n")
+		fmt.Fprintf(os.Stdout, "\n %s -workspace ~/lightmeter_workspace -watch_dir /var/log \n", os.Args[0])
 		fmt.Fprintf(os.Stdout, "\n Flag set: \n\n")
 		flag.PrintDefaults()
 	}
