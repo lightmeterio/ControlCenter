@@ -138,6 +138,10 @@ Then open your browser on http://localhost:8080 to access the web based user int
 
 You can find all released images in the [registry page](https://gitlab.com/lightmeter/controlcenter/container_registry).
 
+### NixOS Package and Module
+
+You can find the released  pkg, module, testbed and an instruction for "How to build & install it?" on [Github](https://github.com/ngi-nix/lightmeter).
+
 ### API
 
 Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
