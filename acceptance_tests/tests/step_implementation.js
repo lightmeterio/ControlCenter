@@ -69,8 +69,8 @@ step("Select option <option> from menu <menuName>", async (option, menuName) => 
 
 step("Open datepicker menu", async () => {
     waitFor(3000)
-    click("Time interval:")
-    await click(text('18 August - 16 September'))
+    await click(text('19 August - 17 September'))
+    waitFor(3000)
     await click(text('Custom Range'))
 });
 
@@ -105,4 +105,12 @@ step("Set end date", async () => {
 
 step("Click apply", async () => {
     await click(button("apply"))
+});
+
+step("Click logout", async () => {
+    await click($("//*[contains(@class,'fa-sign-out-alt')]"))
+});
+
+step("Expect to see <pageText>", async (pageText) => {
+    await text(pageText).exists()
 });
