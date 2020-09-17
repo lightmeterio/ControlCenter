@@ -55,7 +55,7 @@ var (
 )
 
 func printVersion() {
-	fmt.Fprintf(os.Stderr, "\n Lightmeter ControlCenter %s\n", version.Version)
+	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
 }
 
 func init() {
