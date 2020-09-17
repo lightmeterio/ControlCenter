@@ -180,6 +180,7 @@ span.buttons i {
 
 .time-interval {
     margin: 0.6rem 0 0.3rem 0;
+    border-radius: 10px;
 }
 
 #time-interval-field {
@@ -223,6 +224,12 @@ footer a {
 
 footer p {
     margin: 0;
+}
+
+h1.row-title {
+    font-size: 32px;
+    font-weight: bold;
+    margin: 0.8em 0;
 }
 
 h5.row-title {
@@ -282,17 +289,46 @@ h5.row-title {
     padding: 0 0.2rem 0.2rem 0.2rem;
 }
 
+.insights .card {
+    background: #FFFFFF 0% 0% no-repeat padding-box;
+    box-shadow: 0px 0px 6px #0000001A;
+    border: 1px solid #E6E7E7;
+    border-radius: 5px;
+}
+
 .insights .card-block {
-    padding: 1rem 1rem 1.5rem 0.5rem;
+    padding: 0.5rem 0.4rem 0.5rem 0rem;
 }
 
 .insights .card-title {
     margin: 0 0 0.3rem 0;
-    font: 15px/25px Inter;
+    font: 18px Inter;
+    font-weight: bold;
+    color: color: #202324;
 }
 
 .insights .card-text {
     font: 12px/18px 'Open Sans', sans-serif;
+}
+
+.insights .card-text.category
+, .insights .card-text.time {
+    color: #414445;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.insights .card-text.category {
+    background-color: #F2F2F2;
+    border-radius: 18px;
+    padding: 0.4em 1.5em;
+    width: min-content;
+}
+
+.insights .card-text.time {
+    background: #F0F8FC 0% 0% no-repeat padding-box;
+    border-radius: 5px;
+    padding: 1.5em;
 }
 
 .insights .gradient-bg {
@@ -523,4 +559,48 @@ input-group-addon a {
 
 .form-group small a {
     color: inherit;
+}
+
+.card-section-heading {
+    background-color: #F9F9F9;
+}
+
+.card-section-heading h2 {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.card-section-heading strong {
+    font-size: 12px;
+}
+
+.greeting {
+    background: transparent linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% no-repeat padding-box;
+    color: white;
+    padding: 0.5rem;
+    height: 150px;
+    border-radius: 7px;
+}
+
+.greeting h3 {
+    font: 22px/32px Inter;
+    font-weight: bold;
+}
+
+.greeting p {
+    font-size: 15px;
+}
+
+.greeting .panel.status {
+    background-color: #E3FFFE;
+    color: #064D4B;
+}
+
+.greeting .panel.status h5 {
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.greeting .panel.status h5 {
+    font-size: 16px;
 }

@@ -36,7 +36,7 @@ function fetchInsights() {
       return
     }
 
-    insights.style.display = "grid"
+    insights.style.display = "flex"
 
     while (insights.firstChild) {
       insights.removeChild(insights.firstChild);
