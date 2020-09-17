@@ -34,12 +34,13 @@ func encodeBody(reader io.Reader) (string, error) {
 	var base64Writer bytes.Buffer
 
 	encoder := base64.NewEncoder(base64.StdEncoding, &base64Writer)
+	defer func() {
+		if err := encoder.Close(); err != nil {
+			log.Println("could not close base64 encoder ", errorutil.Wrap(err))
+		}
+	}()
 
 	if _, err := encoder.Write(body); err != nil {
-		return "", errorutil.Wrap(err)
-	}
-
-	if err := encoder.Close(); err != nil {
 		return "", errorutil.Wrap(err)
 	}
 
