@@ -1,5 +1,7 @@
 /* globals gauge*/
 "use strict";
+
+// add Gauge functions here in order to use them, otherwise you'll get `ReferenceError: foobar is not defined`
 const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, button, focus, textBox, toRightOf, toLeftOf, dropDown, waitFor, $ } = require('taiko');
 
 const assert = require("assert");
