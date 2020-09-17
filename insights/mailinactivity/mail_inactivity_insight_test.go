@@ -7,9 +7,11 @@ import (
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
@@ -30,12 +32,14 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 		d := mock_dashboard.NewMockDashboard(ctrl)
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights_state.db"))
+		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
 		So(err, ShouldBeNil)
 
 		defer func() {
 			So(connPair.Close(), ShouldBeNil)
 		}()
+
+		migrator.Run(connPair.RwConn.DB, "insights")
 
 		accessor := func() *insighttestsutil.FakeAcessor {
 			creator, err := core.NewCreator(connPair.RwConn)
@@ -51,17 +55,6 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			"dashboard":      d,
 			"mailinactivity": Options{LookupRange: lookupRange, MinTimeGenerationInterval: time.Hour * 8},
 		})
-
-		{
-			tx, err := connPair.RwConn.Begin()
-			So(err, ShouldBeNil)
-
-			So(core.SetupAuxTables(tx), ShouldBeNil)
-
-			So(detector.Setup(tx), ShouldBeNil)
-
-			So(tx.Commit(), ShouldBeNil)
-		}
 
 		cycle := func(c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()

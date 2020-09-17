@@ -328,62 +328,6 @@ type DBCreator struct {
 }
 
 func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
-	tx, err := conn.Begin()
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
-		}
-	}()
-
-	_, err = tx.Exec(`
-		create table if not exists insights(
-			time integer not null,
-			category integer not null,
-			rating integer not null,
-			content_type integer not null,
-			content blob not null
-		)
-	`)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	_, err = tx.Exec(`create index if not exists insights_time_index on insights(time)`)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	_, err = tx.Exec(`create index if not exists insights_category_index on insights(category, time)`)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	_, err = tx.Exec(`create index if not exists insights_rating_index on insights(rating, time)`)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	_, err = tx.Exec(`create index if not exists insights_content_type_index on insights(content_type, time)`)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
 	return &DBCreator{conn: conn}, nil
 }
 

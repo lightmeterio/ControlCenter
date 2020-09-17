@@ -4,9 +4,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
@@ -30,6 +32,8 @@ func TestWelcomeInsights(t *testing.T) {
 			So(connPair.Close(), ShouldBeNil)
 		}()
 
+		migrator.Run(connPair.RwConn.DB, "insights")
+
 		accessor := func() *insighttestsutil.FakeAcessor {
 			creator, err := core.NewCreator(connPair.RwConn)
 			So(err, ShouldBeNil)
@@ -42,17 +46,6 @@ func TestWelcomeInsights(t *testing.T) {
 			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
 
 			detector := NewDetector(accessor)
-
-			{
-				tx, err := connPair.RwConn.Begin()
-				So(err, ShouldBeNil)
-
-				So(core.SetupAuxTables(tx), ShouldBeNil)
-
-				So(detector.Setup(tx), ShouldBeNil)
-
-				So(tx.Commit(), ShouldBeNil)
-			}
 
 			cycle := func(c *insighttestsutil.FakeClock) {
 				tx, err := connPair.RwConn.Begin()
