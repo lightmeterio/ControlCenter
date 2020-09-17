@@ -55,7 +55,7 @@ var (
 )
 
 func printVersion() {
-	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
+	fmt.Fprintf(os.Stderr, "\n Lightmeter ControlCenter %s\n", version.Version)
 }
 
 func init() {
@@ -74,6 +74,9 @@ func init() {
 
 	flag.Usage = func() {
 		printVersion()
+		fmt.Fprintf(os.Stdout, "\n Example call: \n")
+		fmt.Fprintf(os.Stdout, "\n lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log \n")
+		fmt.Fprintf(os.Stdout, "\n Flag set: \n\n")
 		flag.PrintDefaults()
 	}
 }
