@@ -44,11 +44,22 @@ lint:
 
 .go-builder:
   extends: .on-non-tag
-  image: alpine:3.11
+  image: golang:1.15.2-alpine3.12
   before_script:
     - apk update
-    - apk add go git make curl
+    - apk add git make curl
     - go get -u github.com/jstemmer/go-junit-report
+
+depencencies_graph:
+  extends: .go-builder
+  stage: build
+  needs: []
+  script:
+    - apk add python3
+    - make dependencies.svg
+  artifacts:
+    paths:
+      - dependencies.svg
 
 build:
   extends: .go-builder
@@ -60,6 +71,15 @@ build:
     paths:
       - ./lightmeter
     expire_in: 7 days
+
+
+
+dev-build:
+  extends: .go-builder
+  stage: test
+  needs: []
+  script:
+    - make dev
 
 test:
   extends: .go-builder
