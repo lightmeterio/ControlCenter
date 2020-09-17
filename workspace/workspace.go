@@ -131,31 +131,28 @@ func (ws *Workspace) Run() <-chan struct{} {
 }
 
 func (ws *Workspace) Close() error {
-	if err := ws.settings.Close(); err != nil {
-		return errorutil.Wrap(err)
+
+	closes := []func() error{
+		ws.settings.Close,
+		ws.meta.Close,
+		ws.metaConnPair.Close,
+		ws.auth.Close,
+		ws.logs.Close,
+		ws.insightsEngine.Close,
 	}
 
-	if err := ws.meta.Close(); err != nil {
-		return errorutil.Wrap(err)
+	var err error
+	for _, closeFunc := range closes {
+		if nestedErr := closeFunc(); nestedErr != nil {
+			if err == nil {
+				err = nestedErr
+			} else {
+				err = errorutil.BuildChain(nestedErr, err)
+			}
+		}
 	}
 
-	if err := ws.metaConnPair.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.auth.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.logs.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.insightsEngine.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return err
 }
 
 func (ws *Workspace) HasLogs() bool {
