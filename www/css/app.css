@@ -160,10 +160,11 @@ header .navbar {
     background: #FFFFFF 0% 0% no-repeat padding-box;
     box-shadow: 0px 6px 20px #2C9CD61A;
     opacity: 1;
+    padding: 0;
 }
 
 header .logo img {
-    height: 30px;
+    height: 36px;
 }
 
 header .buttons {
@@ -603,4 +604,8 @@ input-group-addon a {
 
 .greeting .panel.status h5 {
     font-size: 16px;
+}
+
+#insights-form {
+    font-size: 6px;
 }

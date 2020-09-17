@@ -166,35 +166,33 @@
                     </div>
                 </div>
                 
-                <div class="row align-items-center time-interval card-section-heading">
-                    <div class="col-2">
+                <div class="row container d-flex justify-content-between time-interval card-section-heading">
+                    <div class="col-5 d-flex align-items-center">
                         <h2>Insights</h2>
-                    </div>
-                    <label for="time-interval-field" class="col-2 col-form-label sr-only">{{translate "Time interval:"}}</label>
-                    <div class="col-3">
-                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
-                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+                        <label for="time-interval-field" class="col-2 col-form-label sr-only">{{translate "Time interval:"}}</label>
+                            <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
+                                <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+                            </div>
                         </div>
-                    </div>
                     
                     <form id="insights-form">
-                    <div class="col-2">
-                        <select id="insights-filter">
-                            <option value="nofilter">{{translate "No Filter"}}</option>
-                            <option value="category-local">{{translate "Only Local Insights"}}</option>
-                            <option value="category-comparative">{{translate "Only Comparative Insights"}}</option>
-                            <option value="category-news">{{translate "Only News Insights"}}</option>
-                            <option value="category-intel">{{translate "Only Intel Insights"}}</option>
-                        </select>
-                    </div>
-                    
-                    <div class="col-2">
-                        <select id="insights-sort" name="order">
-                            <option value="creationAsc">{{translate "Creation time (oldest first)"}}</option>
-                            <option value="creationDesc">{{translate "Creation time (more recent first)"}}</option>
-                        </select>
-                        <input type="button" id="insights-fetch" onclick="fetchInsights()" value="Fetch"></input>                    
-                    </div>
+                        <div class="col-3 d-flex align-items-center">
+                            <select id="insights-filter">
+                                <option value="nofilter">{{translate "No Filter"}}</option>
+                                <option value="category-local">{{translate "Only Local Insights"}}</option>
+                                <option value="category-comparative">{{translate "Only Comparative Insights"}}</option>
+                                <option value="category-news">{{translate "Only News Insights"}}</option>
+                                <option value="category-intel">{{translate "Only Intel Insights"}}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-3 d-flex align-items-center">
+                            <select id="insights-sort" name="order">
+                                <option value="creationAsc">{{translate "Creation time (oldest first)"}}</option>
+                                <option value="creationDesc">{{translate "Creation time (more recent first)"}}</option>
+                            </select>
+                            <input type="button" id="insights-fetch" onclick="fetchInsights()" value="Fetch"></input>                    
+                        </div>
                     </form>
                     
                 </div>
