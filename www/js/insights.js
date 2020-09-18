@@ -43,8 +43,8 @@ function fetchInsights() {
 
     data.forEach(i => {
       var c = insightTemplate.cloneNode(true)
-      c.querySelector(".category").innerHTML = buildInsightTime(i)
-      c.querySelector(".title").innerHTML = buildInsightTitle(i)
+      c.querySelector(".category").innerHTML = buildInsightCategory(i)
+      c.querySelector(".time").innerHTML = buildInsightTime(i)
       c.querySelector(".title").innerHTML = buildInsightTitle(i)
       c.querySelector(".description").innerHTML = buildInsightDescription(i)
       insights.appendChild(c)
@@ -56,7 +56,7 @@ function buildInsightTime(insight) {
   return insight.Time
 }
 
-function buildInsightTime(insight) {
+function buildInsightCategory(insight) {
   // FIXME We shouldn't capitalise in the code -- leave that for the i18n workflow to decide
   return insight.Category.charAt(0).toUpperCase() + insight.Category.slice(1)
 }
