@@ -5,6 +5,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"testing"
@@ -66,13 +67,13 @@ func TestWorkspaceCreation(t *testing.T) {
 
 			ws1.closes = []func() error {
 				func() error {
-					return errors.New("closes 1")
+					return errorutil.Wrap(errors.New("closes 1"))
 				},
 				func() error {
-					return errors.New("closes 2")
+					return errorutil.Wrap(errors.New("closes 2"))
 				},
 				func() error {
-					return errors.New("closes 3")
+					return errorutil.Wrap(errors.New("closes 3"))
 				},
 			}
 

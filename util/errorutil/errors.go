@@ -116,10 +116,10 @@ func errInChain(err error) string {
 	}
 
 	if len(e.Msg) > 0 {
-		return fmt.Sprintf("%s:%d: \"%s\"", e.Filename, e.Line, e.Msg)
+		return fmt.Sprintf("%s:%d: \"%s\" \"%s\"", e.Filename, e.Line, e.Msg, err.Error())
 	}
 
-	return fmt.Sprintf("%s:%d", e.Filename, e.Line)
+	return fmt.Sprintf("%s:%d \"%s\"", e.Filename, e.Line, err.Error())
 }
 
 func (chain ErrorChain) Error() string {
