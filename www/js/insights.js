@@ -7,9 +7,8 @@ function fetchInsights() {
 
   var formData = new FormData()
 
-  // TODO: use reasonable time interval :-)
-  formData.append("from", "0000-01-01")
-  formData.append("to", "3000-01-01")
+  formData.append("from", selectedDateFrom)
+  formData.append("to", selectedDateTo)
 
   var filter = document.getElementById("insights-filter")
 

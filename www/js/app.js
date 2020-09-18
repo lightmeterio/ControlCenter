@@ -23,14 +23,14 @@ var apiCallGet = function(url) {
     })
 }
 
+var selectedDateFrom = ""
+var selectedDateTo = ""
+
 // Graph stuff
 var drawDashboard = function() {
-    var dateFrom = ""
-    var dateTo = ""
-
     var updateInterval = function(start, end) {
-        dateFrom = start
-        dateTo = end
+        selectedDateFrom = start
+        selectedDateTo = end
         updateDashboard()
     }
 
@@ -65,7 +65,7 @@ var drawDashboard = function() {
     }
 
     var timeIntervalUrlParams = function() {
-        return "from=" + dateFrom + "&to=" + dateTo
+        return "from=" + selectedDateFrom + "&to=" + selectedDateTo
     }
 
     var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
