@@ -613,10 +613,10 @@ input-group-addon a {
     font-size: 16px;
 }
 
-#insights-form select
-, #insights-form [type="button"] {
+#insights-form select {
     font-size: 12px;
     border-radius: 5px;
+    margin-right: 0.2rem;
 }
 
 #insights-form [type="button"] {
