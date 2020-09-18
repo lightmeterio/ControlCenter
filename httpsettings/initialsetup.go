@@ -2,6 +2,7 @@ package httpsettings
 
 import (
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"log"
 	"mime"
@@ -18,6 +19,7 @@ func NewInitialSetupHandler(s settings.SystemSetup) *InitialSetupHandler {
 
 func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
+		log.Println("Error http method mismatch: ", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -25,16 +27,19 @@ func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 
 	if err != nil {
+		log.Println("Error parse media type: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if mediaType != "application/x-www-form-urlencoded" {
+		log.Println("Error media type mismatch: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
+		log.Println("Error parse form: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -47,11 +52,11 @@ func (h *InitialSetupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 
 		if len(v) != 1 {
-			return false, errors.New("Invalid multiple subscribe form values!")
+			return false, fmt.Errorf("Invalid multiple subscribe form values, count:%v", len(v))
 		}
 
 		if v[0] != "on" {
-			return false, errors.New("Invalid subscribe form value!")
+			return false, fmt.Errorf("Invalid subscribe form value!, value: %v", v[0])
 		}
 
 		return true, nil
