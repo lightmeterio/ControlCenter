@@ -37,7 +37,7 @@ var drawDashboard = function() {
     // Enable range datepicker
     $(function() {
         function cb(start, end) {
-            $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
+            $('#time-interval-field span').html(start.format('D MMM') + ' - ' + end.format('D MMM'));
             updateInterval(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'))
         }
 
