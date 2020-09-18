@@ -219,12 +219,9 @@ func main() {
 		return
 	}
 
-	func() {
-		if len(dirToWatch) > 0 || shouldWatchFromStdin || len(filesToWatch) > 0 || importOnly {
-			return
-		}
+	if len(dirToWatch) == 0 && !shouldWatchFromStdin && len(filesToWatch) == 0 && !importOnly {
 		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
-	}()
+	}
 
 	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
