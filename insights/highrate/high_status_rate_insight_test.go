@@ -7,9 +7,11 @@ import (
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
 	"path"
@@ -37,6 +39,8 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			So(connPair.Close(), ShouldBeNil)
 		}()
 
+		migrator.Run(connPair.RwConn.DB, "insights")
+
 		accessor := func() *insighttestsutil.FakeAcessor {
 			creator, err := core.NewCreator(connPair.RwConn)
 			So(err, ShouldBeNil)
@@ -61,11 +65,6 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-
-			So(core.SetupAuxTables(tx), ShouldBeNil)
-
-			So(detector.Setup(tx), ShouldBeNil)
-
 			for _, s := range detector.Steppers() {
 				So(s.Step(clock, tx), ShouldBeNil)
 			}
@@ -102,10 +101,6 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-
-			So(core.SetupAuxTables(tx), ShouldBeNil)
-
-			So(detector.Setup(tx), ShouldBeNil)
 
 			for _, s := range detector.Steppers() {
 				So(s.Step(clock, tx), ShouldBeNil)
@@ -154,10 +149,6 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			{
 				tx, err := connPair.RwConn.Begin()
 				So(err, ShouldBeNil)
-
-				So(core.SetupAuxTables(tx), ShouldBeNil)
-
-				So(detector.Setup(tx), ShouldBeNil)
 
 				So(tx.Commit(), ShouldBeNil)
 			}

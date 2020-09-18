@@ -3,7 +3,9 @@ package insights
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
@@ -37,6 +39,10 @@ func NewCustomEngine(
 		}
 	}()
 
+	if err := migrator.Run(stateConn.RwConn.DB, "insights"); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	creator, err := newCreator(stateConn.RwConn, notificationCenter)
 
 	if err != nil {
@@ -44,8 +50,6 @@ func NewCustomEngine(
 	}
 
 	detectors := buildDetectors(creator, options)
-
-	err = setupDetectors(detectors, stateConn.RwConn)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -69,42 +73,6 @@ func NewCustomEngine(
 		txActions:         make(chan txAction, 1024),
 		fetcher:           fetcher,
 	}, nil
-}
-
-func setupDetectors(detectors []core.Detector, conn dbconn.RwConn) error {
-	tx, err := conn.Begin()
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
-		}
-	}()
-
-	err = core.SetupAuxTables(tx)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	for _, d := range detectors {
-		err = d.Setup(tx)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
 }
 
 func (e *Engine) Close() error {

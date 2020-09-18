@@ -11,17 +11,11 @@ type Clock interface {
 	Sleep(time.Duration)
 }
 
-type Setterup interface {
-	Setup(*sql.Tx) error
-}
-
 type StepperWithSetup interface {
 	Stepper
-	Setterup
 }
 
 type Detector interface {
-	Setterup
 	Steppers() []Stepper
 }
 
