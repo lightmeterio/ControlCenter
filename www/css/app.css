@@ -614,6 +614,25 @@ input-group-addon a {
 }
 
 #insights-form select
-, #insights-form [type="button"]{
+, #insights-form [type="button"] {
     font-size: 12px;
+    border-radius: 5px;
+}
+
+#insights-form [type="button"] {
+    color: #00689D;
+    background-color: #DAEBF4;
+    box-shadow: none;
+    border: 0;
+    line-height: inherit;
+    line-height: 0.8rem;
+}
+
+.time-interval .form-group {
+    margin: 0;
+    padding: 0;
+}
+
+.time-interval h2 {
+    margin: 0;
 }
