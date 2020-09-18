@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"net/http"
@@ -13,11 +15,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/i18n"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
@@ -219,6 +219,13 @@ func main() {
 		return
 	}
 
+	func() {
+		if len(dirToWatch) > 0 || shouldWatchFromStdin || len(filesToWatch) > 0 || importOnly {
+			return
+		}
+		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
+	}()
+
 	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
 	})
@@ -251,8 +258,6 @@ func main() {
 			runWatchingFiles(&ws)
 			return
 		}
-
-		errorutil.Die(verbose, nil, "No logs sources specified! Use -help to more info.")
 	}()
 
 	startHTTPServer(&ws)
