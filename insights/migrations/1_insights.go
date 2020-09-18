@@ -3,13 +3,14 @@ package migrations
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 func init() {
-	migrator.AddMigration("insights", "1_insights.go", UpInsights, DownInsights)
+	migrator.AddMigration("insights", "1_insights.go", upInsights, downInsights)
 }
 
-func UpInsights(tx *sql.Tx) error {
+func upInsights(tx *sql.Tx) error {
 
 	sql := `create table if not exists insights(
 			time integer not null,
@@ -32,25 +33,11 @@ func UpInsights(tx *sql.Tx) error {
 
 	_, err := tx.Exec(sql)
 	if err != nil {
-		return err
+		return errorutil.Wrap(err)
 	}
 	return nil
 }
 
-func DownInsights(tx *sql.Tx) error {
-
-	sql := `
-		drop index insights_time_index; 
-		drop index insights_category_index;
-        drop index insights_rating_index;
-        drop index insights_content_type_index;
-        drop table insights;
-		drop table last_detector_execution;
-        `
-
-	_, err := tx.Exec(sql)
-	if err != nil {
-		return err
-	}
+func downInsights(tx *sql.Tx) error {
 	return nil
 }
