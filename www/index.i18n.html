@@ -102,6 +102,7 @@
                                 <div class="col-3">
                                     <img class="hero" src="img/greeting-observatory.svg" alt="Observatory illustration" />
                                 </div>
+                                
                                 <div class="col-9 d-flex align-items-center">
                                     <div class="row">
                                         <div class="container">
@@ -167,34 +168,37 @@
                 </div>
                 
                 <div class="row container d-flex justify-content-between time-interval card-section-heading">
-                    <div class="col-5 d-flex align-items-center">
+                    <div class="col-2 d-flex align-items-center">
                         <h2>Insights</h2>
+                    </div>
+                    <div class="col-3 d-flex align-items-center">
                         <label for="time-interval-field" class="col-2 col-form-label sr-only">{{translate "Time interval:"}}</label>
                             <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
                                 <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
                             </div>
                         </div>
                     
-                    <form id="insights-form">
-                        <div class="col-3 d-flex align-items-center">
-                            <select id="insights-filter">
-                                <option value="nofilter">{{translate "No Filter"}}</option>
-                                <option value="category-local">{{translate "Only Local Insights"}}</option>
-                                <option value="category-comparative">{{translate "Only Comparative Insights"}}</option>
-                                <option value="category-news">{{translate "Only News Insights"}}</option>
-                                <option value="category-intel">{{translate "Only Intel Insights"}}</option>
-                            </select>
+                        <div class="col-4 d-flex align-items-center">
+                            <form id="insights-form">
+                                <div class="form-group">
+                                    <label for="filter" class="sr-only">{{translate "Filter"}}:</label>
+                                    <select id="insights-filter" class="form-control custom-select custom-select-sm w-50" name="filter" form="insights-form">
+                                        <option selected value="nofilter">{{translate "All"}}</option>
+                                        <option value="category-local">{{translate "Only Local Insights"}}</option>
+                                        <option value="category-comparative">{{translate "Only Comparative Insights"}}</option>
+                                        <option value="category-news">{{translate "Only News Insights"}}</option>
+                                        <option value="category-intel">{{translate "Only Intel Insights"}}</option>
+                                    </select>
+                                    <select id="insights-sort" class="form-control custom-select custom-select-sm w-50" name="order" form="insights-form">
+                                        <option selected value="creationDesc">{{translate "Most recent"}}</option>
+                                        <option value="creationAsc">{{translate "Oldest"}}</option>
+                                    </select>
+                                    <input type="button" id="insights-fetch" class="btn-sm btn-primary" onclick="fetchInsights()" value="Fetch"></input>
+                                </div>
+                            </form>
                         </div>
-                        
-                        <div class="col-3 d-flex align-items-center">
-                            <select id="insights-sort" name="order">
-                                <option value="creationAsc">{{translate "Creation time (oldest first)"}}</option>
-                                <option value="creationDesc">{{translate "Creation time (more recent first)"}}</option>
-                            </select>
-                            <input type="button" id="insights-fetch" onclick="fetchInsights()" value="Fetch"></input>                    
-                        </div>
-                    </form>
-                    
+                    </div>
+  
                 </div>
                 
                 <div class="row insights" id="insights">

@@ -613,6 +613,7 @@ input-group-addon a {
     font-size: 16px;
 }
 
-#insights-form {
-    font-size: 6px;
+#insights-form select
+, #insights-form [type="button"]{
+    font-size: 12px;
 }
