@@ -53,7 +53,7 @@ function fetchInsights() {
 }
 
 function buildInsightTime(insight) {
-  return insight.Time
+  return moment(insight.Time).format('DD MMM YYYY | h:mmA')
 }
 
 function buildInsightCategory(insight) {
