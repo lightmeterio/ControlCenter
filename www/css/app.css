@@ -323,6 +323,7 @@ h5.row-title {
     background-color: #F2F2F2;
     border-radius: 18px;
     padding: 0.4em 1.5em;
+    margin-bottom: 0.6rem;
     width: min-content;
 }
 
