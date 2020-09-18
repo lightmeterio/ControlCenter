@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
-	_ "gitlab.com/lightmeter/controlcenter/docs"
+	_ "gitlab.com/lightmeter/controlcenter/api/docs"
 )
 
 func exposeApiExplorer(mux *http.ServeMux) {

@@ -13,6 +13,7 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-sqlite3 v1.14.2
 	github.com/pkg/errors v0.8.1
@@ -23,6 +24,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
 	github.com/swaggo/swag v1.6.7
+	github.com/t-yuki/gocover-cobertura v0.0.0-20180217150009-aaee18c8195c
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	github.com/urfave/cli/v2 v2.2.0 // indirect
@@ -30,7 +32,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
 	golang.org/x/text v0.3.3
-	golang.org/x/tools v0.0.0-20200915031644-64986481280e // indirect
+	golang.org/x/tools v0.0.0-20200917221617-d56e4e40bc9d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
