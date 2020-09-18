@@ -71,7 +71,7 @@ step("Select option <option> from menu <menuName>", async (option, menuName) => 
 
 step("Open datepicker menu", async () => {
     waitFor(3000)
-    await click(text('19 August - 17 September'))
+    await click($("div#time-interval-field > span"))
     waitFor(3000)
     await click(text('Custom Range'))
 });
