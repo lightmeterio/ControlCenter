@@ -581,6 +581,7 @@ input-group-addon a {
     padding: 0.5rem;
     height: 150px;
     border-radius: 7px;
+    margin-bottom: 35px;
 }
 
 .greeting h3 {
@@ -590,6 +591,11 @@ input-group-addon a {
 
 .greeting p {
     font-size: 15px;
+}
+
+.greeting img.hero {
+    width: 149.5px;
+    margin-top: 10px;
 }
 
 .greeting .panel.status {
