@@ -587,6 +587,7 @@ input-group-addon a {
 .greeting h3 {
     font: 22px/32px Inter;
     font-weight: bold;
+    margin: 0;
 }
 
 .greeting p {
