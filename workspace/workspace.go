@@ -27,6 +27,7 @@ type Workspace struct {
 	metaConnPair dbconn.ConnPair
 	meta         *meta.MetadataHandler
 	settings     *settings.MasterConf
+	closes       []func() error
 }
 
 func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
@@ -79,14 +80,26 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	return Workspace{
+	w := Workspace{
 		logs:           logDb,
 		insightsEngine: insightsEngine,
 		auth:           auth,
 		metaConnPair:   metadataConnPair,
 		meta:           m,
 		settings:       settings,
-	}, nil
+	}
+
+	// closes can be mocked or stubbed out
+	w.closes = []func() error{
+		w.settings.Close,
+		w.meta.Close,
+		w.metaConnPair.Close,
+		w.auth.Close,
+		w.logs.Close,
+		w.insightsEngine.Close,
+	}
+
+	return w, nil
 }
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
@@ -132,17 +145,12 @@ func (ws *Workspace) Run() <-chan struct{} {
 
 func (ws *Workspace) Close() error {
 
-	closes := []func() error{
-		ws.settings.Close,
-		ws.meta.Close,
-		ws.metaConnPair.Close,
-		ws.auth.Close,
-		ws.logs.Close,
-		ws.insightsEngine.Close,
+	if ws.closes == nil || len(ws.closes) == 0 {
+		panic("close funcs are missing")
 	}
 
 	var err error
-	for _, closeFunc := range closes {
+	for _, closeFunc := range ws.closes {
 		if nestedErr := closeFunc(); nestedErr != nil {
 			if err == nil {
 				err = nestedErr

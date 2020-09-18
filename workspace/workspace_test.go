@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
@@ -54,6 +55,29 @@ func TestWorkspaceCreation(t *testing.T) {
 			ws2, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			ws2.Close()
+		})
+
+		Convey("Close workspace failed", func() {
+			dir := testutil.TempDir()
+			defer os.RemoveAll(dir)
+
+			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			So(err, ShouldBeNil)
+
+			ws1.closes = []func() error {
+				func() error {
+					return errors.New("closes 1")
+				},
+				func() error {
+					return errors.New("closes 2")
+				},
+				func() error {
+					return errors.New("closes 3")
+				},
+			}
+
+			err = ws1.Close()
+			So(err, ShouldNotBeNil)
 		})
 	})
 }
