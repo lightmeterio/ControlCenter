@@ -145,7 +145,7 @@
 }
 
 body {
-    background: #F4FAFD;
+    background: #fffff!important;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -153,12 +153,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .main-content {
+    margin-top: 0.6rem;
 }
 
 header .navbar {
     height: 70px;
     background: #FFFFFF 0% 0% no-repeat padding-box;
-    box-shadow: 0px 6px 20px #2C9CD61A;
+    box-shadow: 0px 6px 8px #00000029;
     opacity: 1;
     padding: 0;
 }
@@ -180,7 +181,7 @@ span.buttons i {
 }
 
 .time-interval {
-    margin: 0.6rem 0 0.3rem 0;
+    margin: 0.6rem 0 0.9rem 0;
     border-radius: 10px;
 }
 
@@ -230,7 +231,7 @@ footer p {
 h1.row-title {
     font-size: 32px;
     font-weight: bold;
-    margin: 0.8em 0;
+    margin: 0.7em 0 0.8em 0;
 }
 
 h5.row-title {
@@ -596,7 +597,7 @@ input-group-addon a {
     padding: 0.5rem;
     height: 150px;
     border-radius: 7px;
-    margin-bottom: 35px;
+    margin-bottom: 30px;
 }
 
 .greeting h3 {
