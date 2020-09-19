@@ -333,10 +333,24 @@ h5.row-title {
     padding: 1.5em;
 }
 
-.insights .gradient-bg {
-    background: rgb(0,212,255);
-    background: linear-gradient(342deg, rgba(0,212,255,1) 18%, rgba(42,149,214,1) 100%);
+.insights .card .rating {
     background-clip: content-box;
+    background-color: #F0F8FC;
+}
+
+.insights .card .rating.bad {
+    background-color: #FF5C6F;
+}
+
+
+.insights .card .rating.ok {
+    background: rgb(255,220,0);
+    background: linear-gradient(0deg, rgba(255,220,0,1) 50%, rgba(230,231,231,1) 50%) content-box;
+}
+
+.insights .card .rating.good {
+    background: rgb(135,197,40);
+    background: linear-gradient(0deg, rgba(135,197,40,1) 15%, rgba(230,231,231,1) 15%) content-box;
 }
 
 .modal-dialog .modal-content {
