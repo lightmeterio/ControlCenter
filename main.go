@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/util/dbutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"net/http"
@@ -39,16 +40,19 @@ func (this *watchableFilenames) Set(value string) error {
 }
 
 var (
-	filesToWatch         watchableFilenames
-	shouldWatchFromStdin bool
-	workspaceDirectory   string
-	importOnly           bool
-	showVersion          bool
-	dirToWatch           string
-	address              string
-	verbose              bool
-	emailToPasswdReset   string
-	passwordToReset      string
+	filesToWatch              watchableFilenames
+	shouldWatchFromStdin      bool
+	workspaceDirectory        string
+	importOnly                bool
+	migrateDownToOnly         bool
+	migrateDownToVersion      int
+	migrateDownToDatabaseName string
+	showVersion               bool
+	dirToWatch                string
+	address                   string
+	verbose                   bool
+	emailToPasswdReset        string
+	passwordToReset           string
 
 	timezone *time.Location = time.UTC
 	logYear  int
@@ -64,6 +68,10 @@ func init() {
 	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin")
+	flag.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
+		"Only migrates down")
+	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
+	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
 	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
@@ -97,6 +105,25 @@ func performPasswordReset() {
 	}
 
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
+}
+
+// The downgrade of multiple database is disallowed to prevent to many failures
+func performMigrateDownTo(workspaceDirectory, databaseName string, version int64) {
+	if workspaceDirectory == "" {
+		errorutil.Die(verbose, nil, "No workspace dir specified! Use -help to more info.")
+	}
+	if migrateDownToDatabaseName == "" {
+		errorutil.Die(verbose, nil, "No database name specified! Use -help to more info.")
+	}
+	if version == -1 {
+		errorutil.Die(verbose, nil, "No migration version specified! Use -help to more info.")
+	}
+
+	err := dbutil.MigratorRunDown(workspaceDirectory, databaseName, version)
+	if err != nil {
+		errorutil.Die(verbose, errorutil.Wrap(err), fmt.Sprintf("Error %s migrate down to version", databaseName))
+	}
+	log.Println("migrated database down to version for ", databaseName, " successfully")
 }
 
 func runWatchingDirectory(ws *workspace.Workspace) {
@@ -213,6 +240,11 @@ func main() {
 	}
 
 	lmsqlite3.Initialize(lmsqlite3.Options{"domain_mapping": domainmapping.DefaultMapping})
+
+	if migrateDownToOnly {
+		performMigrateDownTo(workspaceDirectory, migrateDownToDatabaseName, int64(migrateDownToVersion))
+		return
+	}
 
 	if len(emailToPasswdReset) > 0 {
 		performPasswordReset()
