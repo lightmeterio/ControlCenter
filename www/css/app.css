@@ -119,6 +119,10 @@
     text-align: left;
 }
 
+.align-center {
+    text-align: center;
+}
+
 .vh-93 {
     min-height: 93vh;
 }
@@ -595,8 +599,7 @@ input-group-addon a {
 .greeting {
     background: transparent linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% no-repeat padding-box;
     color: white;
-    padding: 0.5rem;
-    height: 150px;
+    padding: 0.5rem;x
     border-radius: 7px;
     margin-bottom: 30px;
 }
@@ -609,6 +612,7 @@ input-group-addon a {
 
 .greeting p {
     font-size: 15px;
+    margin: 0;
 }
 
 .greeting img.hero {
@@ -652,4 +656,14 @@ input-group-addon a {
 
 .time-interval h2 {
     margin: 0;
+}
+
+/* large screens only */
+@media (min-width: 768px){
+
+    /*make observatory image overflow container*/
+    .greeting {
+        height: 150px;
+    }
+ 
 }
