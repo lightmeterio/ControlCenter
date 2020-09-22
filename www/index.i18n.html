@@ -192,18 +192,17 @@
                         <form id="insights-form">
                             <div class="form-group d-flex justify-content-end align-items-center">
                                 <label for="filter" class="sr-only">{{translate "Filter"}}:</label>
-                                <select id="insights-filter" class="form-control custom-select custom-select-sm" name="filter" form="insights-form" style="width: 30%">
+                                <select onchange="fetchInsights()" id="insights-filter" class="form-control custom-select custom-select-sm" name="filter" form="insights-form" style="width: 30%">
                                     <option selected value="nofilter">{{translate "All"}}</option>
                                     <option value="category-local">{{translate "Only Local Insights"}}</option>
                                     <option value="category-comparative">{{translate "Only Comparative Insights"}}</option>
                                     <option value="category-news">{{translate "Only News Insights"}}</option>
                                     <option value="category-intel">{{translate "Only Intel Insights"}}</option>
                                 </select>
-                                <select id="insights-sort" class="form-control custom-select custom-select-sm" name="order" form="insights-form" style="width: 38%">
+                                <select onchange="fetchInsights()" id="insights-sort" class="form-control custom-select custom-select-sm" name="order" form="insights-form" style="width: 38%">
                                     <option selected value="creationDesc">{{translate "Newest"}}</option>
                                     <option value="creationAsc">{{translate "Oldest"}}</option>
                                 </select>
-                                <input type="button" id="insights-fetch" class="btn-sm btn-primary" onclick="fetchInsights()" value="Fetch"></input>
                             </div>
                         </form>
                     </div>

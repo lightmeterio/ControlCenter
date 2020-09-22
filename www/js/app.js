@@ -32,6 +32,7 @@ var drawDashboard = function() {
         selectedDateFrom = start
         selectedDateTo = end
         updateDashboard()
+        fetchInsights()
     }
 
     // Enable range datepicker
