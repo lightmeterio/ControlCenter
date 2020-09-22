@@ -2,6 +2,10 @@ var insights = document.getElementById("insights")
 
 insights.style.display = "none"
 
+function formatInsightDateTime(d) {
+  return moment(d).format('DD MMM YYYY | h:mmA')
+}
+
 function fetchInsights() {
   var insightTemplate = document.getElementById("insight-template")
 

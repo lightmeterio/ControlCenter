@@ -17,17 +17,27 @@
         <!-- App CSS -->
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
+        <script type="text/javascript" src='3rd/js/sprintf.min.js'></script>
+
         <title>{{translate "Lightmeter ControlCenter"}}</title>
 
         <script>
           insightsTitles = {
+            "high_bounce_rate": "{{translate `High Bounce Rate` }}",
             "mail_inactivity": "{{translate `Mail Inactivity`}}",
             "welcome_content": "{{translate `Welcome to Lightmeter`}}",
             "insights_introduction_content": "{{translate `Introduction to insights`}}",
           }
 
           insightsDescriptions = {
-            "mail_inactivity": function(c) { return c },
+            "high_bounce_rate": function(c) {
+              return sprintf("{{ translate `Bounce rate: <b>%%i%%%%</b> from <b>%%s</b> to <b>%%s</b>`}}", c.Value * 100, formatInsightDateTime(c.Interval.From), formatInsightDateTime(c.Interval.To))
+            },
+
+            "mail_inactivity": function(c) {
+              return sprintf("{{ translate `No emails have been sent between <b>%%s</b> and <b>%%s</b>` }}", formatInsightDateTime(c.Interval.From), formatInsightDateTime(c.Interval.To))
+            },
+
             "welcome_content": function(c) { return "{{ translate `Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay` }}" },
             "insights_introduction_content": function(c) { return "{{ translate `Here you'll find useful information about your mail activity in future releases` }}" },
           }
