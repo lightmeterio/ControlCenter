@@ -3,26 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gitlab.com/lightmeter/controlcenter/domainmapping"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/httpauth"
-	"gitlab.com/lightmeter/controlcenter/httpsettings"
-	"gitlab.com/lightmeter/controlcenter/i18n"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
-	"gitlab.com/lightmeter/controlcenter/po"
-	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
@@ -161,49 +155,6 @@ func buildInitialLogsTime(ws *workspace.Workspace) time.Time {
 	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, timezone)
 }
 
-func startHTTPServer(ws *workspace.Workspace) {
-	settings := ws.Settings()
-
-	initialSetupHandler := httpsettings.NewInitialSetupHandler(settings)
-
-	mux := http.NewServeMux()
-
-	mux.Handle("/", i18n.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets, po.DefaultCatalog))
-
-	exposeApiExplorer(mux)
-
-	exposeProfiler(mux)
-
-	dashboard, err := ws.Dashboard()
-
-	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error creating dashboard")
-	}
-
-	insightsFetcher := ws.InsightsFetcher()
-
-	api.HttpDashboard(mux, timezone, dashboard)
-
-	api.HttpInsights(mux, timezone, insightsFetcher)
-
-	mux.Handle("/settings/initialSetup", initialSetupHandler)
-
-	// Some paths that don't require authentication
-	// That's what people nowadays call a "allow list".
-	publicPaths := []string{
-		"/img",
-		"/css",
-		"/fonts",
-		"/js",
-		"/3rd",
-		"/debug",
-	}
-
-	authWrapper := httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)
-
-	log.Fatal(http.ListenAndServe(address, authWrapper))
-}
-
 func main() {
 	flag.Parse()
 
@@ -257,7 +208,14 @@ func main() {
 		}
 	}()
 
-	startHTTPServer(&ws)
+	httpServer := server.HttpServer{
+		Workspace:          &ws,
+		WorkspaceDirectory: workspaceDirectory,
+		Timezone:           timezone,
+		Address:            address,
+	}
+
+	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
 func parseLogsFromStdin(publisher data.Publisher, ts time.Time) {
