@@ -6,6 +6,10 @@ function formatInsightDateTime(d) {
   return moment(d).format('DD MMM YYYY | h:mmA')
 }
 
+function formatInsightDescriptionDateTime(d) {
+  return moment(d).format('DD MMM. (h:mmA)')
+}
+
 function fetchInsights() {
   var insightTemplate = document.getElementById("insight-template")
 

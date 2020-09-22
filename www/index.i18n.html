@@ -31,11 +31,11 @@
 
           insightsDescriptions = {
             "high_bounce_rate": function(c) {
-              return sprintf("{{ translate `Bounce rate: <b>%%i%%%%</b> from <b>%%s</b> to <b>%%s</b>`}}", c.Value * 100, formatInsightDateTime(c.Interval.From), formatInsightDateTime(c.Interval.To))
+              return sprintf("{{ translate `<b>%%i%%%%</b> bounce rate between %%s and %%s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
             "mail_inactivity": function(c) {
-              return sprintf("{{ translate `No emails have been sent between <b>%%s</b> and <b>%%s</b>` }}", formatInsightDateTime(c.Interval.From), formatInsightDateTime(c.Interval.To))
+              return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
             "welcome_content": function(c) { return "{{ translate `Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay` }}" },
