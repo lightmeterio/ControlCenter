@@ -1,6 +1,6 @@
 // +build dev !release
 
-package main
+package server
 
 import (
 	"net/http"
