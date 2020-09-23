@@ -71,7 +71,7 @@ function buildInsightCategory(insight) {
 }
 
 function buildInsightRating(insight) {
-  return "unrated"
+  return insight.Rating
 }
 
 function buildInsightTitle(insight) {

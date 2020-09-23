@@ -465,7 +465,8 @@ h5.row-title {
 }
 
 .insights .card .rating.bad {
-    background-color: #FF5C6F;
+    background: rgb(255,92,111);
+    background: linear-gradient(0deg, rgba(255,92,111,1) 85%, rgba(230,231,231,1) 85%) content-box; 
 }
 
 
