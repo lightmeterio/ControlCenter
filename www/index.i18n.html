@@ -25,8 +25,8 @@
           insightsTitles = {
             "high_bounce_rate": "{{translate `High Bounce Rate` }}",
             "mail_inactivity": "{{translate `Mail Inactivity`}}",
-            "welcome_content": "{{translate `Welcome to Lightmeter`}}",
-            "insights_introduction_content": "{{translate `Introduction to insights`}}",
+            "welcome_content": "{{translate `Your first Insight`}}",
+            "insights_introduction_content": "{{translate `Breaking new ground`}}",
           }
 
           insightsDescriptions = {
@@ -38,8 +38,8 @@
               return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
-            "welcome_content": function(c) { return "{{ translate `Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay` }}" },
-            "insights_introduction_content": function(c) { return "{{ translate `Here you'll find useful information about your mail activity in future releases` }}" },
+            "welcome_content": function(c) { return "{{ translate `Insights are time-based analyses relating to your mailserver` }}" },
+            "insights_introduction_content": function(c) { return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" },
           }
 
           function greetingText() {
