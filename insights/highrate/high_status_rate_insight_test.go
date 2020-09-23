@@ -49,19 +49,24 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher}
 		}()
 
+		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+
+		threeHours := time.Hour * 3
+		baseInsightRange := time.Hour * 6
+
 		Convey("Bounce rate is lower than threshhold", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24)}
+			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
 
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24),
+				From: baseTime,
+				To:   baseTime.Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
 			})
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{WeeklyBounceRateThreshold: 0.4}}) // threshold 40%
+			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.4}}) // threshold 40%
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
@@ -74,8 +79,8 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			So(len(accessor.Insights), ShouldEqual, 0)
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24),
+				From: baseTime,
+				To:   baseTime.Add(baseInsightRange),
 			}})
 
 			So(err, ShouldBeNil)
@@ -84,11 +89,11 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Bounce rate is higher than threshhold", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24)}
+			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
 
 			interval := data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24),
+				From: baseTime,
+				To:   baseTime.Add(baseInsightRange),
 			}
 
 			d.EXPECT().DeliveryStatus(interval).Return(dashboard.Pairs{
@@ -97,7 +102,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
 			})
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{WeeklyBounceRateThreshold: 0.2}}) // threshold 20%
+			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
@@ -117,17 +122,17 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			So(len(insights), ShouldEqual, 1)
 
 			So(insights[0].ID(), ShouldEqual, 1)
-			So(insights[0].ContentType(), ShouldEqual, highWeeklyBounceRateContentType)
-			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*7*24))
-			So(insights[0].Content(), ShouldResemble, &highWeeklyBounceRateInsightContent{Value: 0.3, Interval: interval})
+			So(insights[0].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+			So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
+			So(insights[0].Content(), ShouldResemble, &bounceRateContent{Value: 0.3, Interval: interval})
 		})
 
-		Convey("Generate a new weekly high bounced rate insight after three day not to spam the user", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24)}
+		Convey("Generate a new high bounced rate insight for the past 6 hours after 3 hours not to spam the user", func() {
+			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
 
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24),
+				From: baseTime,
+				To:   baseTime.Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
@@ -136,15 +141,15 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			// after three days, all good
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24 * 3).Add(time.Second * 1),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24 * 3).Add(time.Second * 1).Add(time.Hour * 7 * 24),
+				From: baseTime.Add(threeHours * 3).Add(time.Second * 1),
+				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 5},  // 50%
 				dashboard.Pair{Key: "deferred", Value: 2}, // 20%
 				dashboard.Pair{Key: "sent", Value: 3},     // 30%
 			})
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{WeeklyBounceRateThreshold: 0.2}}) // threshold 20%
+			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
 
 			{
 				tx, err := connPair.RwConn.Begin()
@@ -172,14 +177,14 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			cycle(clock)
 
 			// generate an insight
-			clock.Sleep(time.Hour * 24 * 3)
+			clock.Sleep(threeHours * 3)
 			cycle(clock)
 
 			So(len(accessor.Insights), ShouldEqual, 2)
 
 			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24 * 3).Add(time.Second * 1).Add(time.Hour * 7 * 24),
+				From: baseTime,
+				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 			}})
 
 			So(err, ShouldBeNil)
@@ -189,25 +194,25 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			// more recent insights first
 			{
 				So(insights[0].ID(), ShouldEqual, 2)
-				So(insights[0].ContentType(), ShouldEqual, highWeeklyBounceRateContentType)
-				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*7*24).Add(time.Hour*24*3).Add(time.Second*1))
-				So(insights[0].Content(), ShouldResemble, &highWeeklyBounceRateInsightContent{
+				So(insights[0].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+				So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange).Add(threeHours*3).Add(time.Second*1))
+				So(insights[0].Content(), ShouldResemble, &bounceRateContent{
 					Value: 0.5,
 					Interval: data.TimeInterval{
-						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24 * 3).Add(time.Second * 1),
-						To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24 * 3).Add(time.Second * 1).Add(time.Hour * 7 * 24),
+						From: baseTime.Add(threeHours * 3).Add(time.Second * 1),
+						To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 					}})
 			}
 
 			{
 				So(insights[1].ID(), ShouldEqual, 1)
-				So(insights[1].ContentType(), ShouldEqual, highWeeklyBounceRateContentType)
-				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*7*24))
-				So(insights[1].Content(), ShouldResemble, &highWeeklyBounceRateInsightContent{
+				So(insights[1].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+				So(insights[1].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
+				So(insights[1].Content(), ShouldResemble, &bounceRateContent{
 					Value: 0.3,
 					Interval: data.TimeInterval{
-						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-						To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 7 * 24),
+						From: baseTime,
+						To:   baseTime.Add(baseInsightRange),
 					}})
 			}
 		})
