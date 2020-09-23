@@ -58,7 +58,7 @@ func TestNewsletterSubscription(t *testing.T) {
 		Convey("Succeeds", func() {
 			h := &handler{}
 			s := httptest.NewServer(h)
-			subscriber := HTTPSubscriber{URL: s.URL}
+			subscriber := HTTPSubscriber{URL: s.URL, HTTPClient: new(http.Client)}
 
 			So(subscriber.Subscribe(context, "user@example.com"), ShouldBeNil)
 			So(h.count, ShouldEqual, 1)
@@ -76,7 +76,7 @@ func TestNewsletterSubscription(t *testing.T) {
 		Convey("Fails due server error", func() {
 			h := &handler{shouldFail: true}
 			s := httptest.NewServer(h)
-			subscriber := HTTPSubscriber{URL: s.URL}
+			subscriber := HTTPSubscriber{URL: s.URL, HTTPClient: new(http.Client)}
 
 			So(errors.Is(subscriber.Subscribe(context, "user@example.com"), ErrSubscribingToNewsletter), ShouldBeTrue)
 			So(h.count, ShouldEqual, 1)
