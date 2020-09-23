@@ -3,26 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
-	"gitlab.com/lightmeter/controlcenter/httpauth"
-	"gitlab.com/lightmeter/controlcenter/httpsettings"
-	"gitlab.com/lightmeter/controlcenter/i18n"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
-	"gitlab.com/lightmeter/controlcenter/po"
-	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
@@ -81,37 +75,19 @@ func init() {
 	}
 }
 
-func die(err error, msg ...interface{}) {
-	expandError := func(err error) error {
-		if e, ok := err.(*errorutil.Error); ok {
-			return e.Chain()
-		}
-
-		return err
-	}
-
-	log.Println(msg...)
-
-	if verbose {
-		log.Println("Detailed Error:\n", expandError(err).Error())
-	}
-
-	os.Exit(1)
-}
-
 func performPasswordReset() {
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		die(errorutil.Wrap(err), "Error opening auth database:", err)
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening auth database:", err)
 	}
 
 	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
-		die(errorutil.Wrap(err), "Error resetting password:", err)
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error resetting password:", err)
 	}
 
 	if err := auth.Close(); err != nil {
-		die(errorutil.Wrap(err), "Error closing auth database:", err)
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error closing auth database:", err)
 	}
 
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
@@ -121,7 +97,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
 	if err != nil {
-		die(errorutil.Wrap(err), "Error opening directory:", dirToWatch)
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening directory:", dirToWatch)
 	}
 
 	initialTime := ws.MostRecentLogTime()
@@ -140,7 +116,7 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 	go func() {
 		if err := watcher.Run(); err != nil {
 			fmt.Println(err)
-			die(errorutil.Wrap(err), "Error watching directory:", dirToWatch)
+			errorutil.Die(verbose, errorutil.Wrap(err), "Error watching directory:", dirToWatch)
 		}
 	}()
 }
@@ -159,7 +135,7 @@ func runWatchingFiles(ws *workspace.Workspace) {
 
 		go func(filename string) {
 			if err := logeater.WatchFile(filename, logFilesWatchLocation, ws.NewPublisher(), buildInitialLogsTime(ws)); err != nil {
-				die(errorutil.Wrap(err), "Error watching file:", filename)
+				errorutil.Die(verbose, errorutil.Wrap(err), "Error watching file:", filename)
 			}
 		}(filename)
 	}
@@ -179,49 +155,6 @@ func buildInitialLogsTime(ws *workspace.Workspace) time.Time {
 	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, timezone)
 }
 
-func startHTTPServer(ws *workspace.Workspace) {
-	settings := ws.Settings()
-
-	initialSetupHandler := httpsettings.NewInitialSetupHandler(settings)
-
-	mux := http.NewServeMux()
-
-	mux.Handle("/", i18n.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets, po.DefaultCatalog))
-
-	exposeApiExplorer(mux)
-
-	exposeProfiler(mux)
-
-	dashboard, err := ws.Dashboard()
-
-	if err != nil {
-		die(errorutil.Wrap(err), "Error creating dashboard")
-	}
-
-	insightsFetcher := ws.InsightsFetcher()
-
-	api.HttpDashboard(mux, timezone, dashboard)
-
-	api.HttpInsights(mux, timezone, insightsFetcher)
-
-	mux.Handle("/settings/initialSetup", initialSetupHandler)
-
-	// Some paths that don't require authentication
-	// That's what people nowadays call a "allow list".
-	publicPaths := []string{
-		"/img",
-		"/css",
-		"/fonts",
-		"/js",
-		"/3rd",
-		"/debug",
-	}
-
-	authWrapper := httpauth.Serve(mux, ws.Auth(), workspaceDirectory, publicPaths)
-
-	log.Fatal(http.ListenAndServe(address, authWrapper))
-}
-
 func main() {
 	flag.Parse()
 
@@ -237,12 +170,16 @@ func main() {
 		return
 	}
 
+	if len(dirToWatch) == 0 && !shouldWatchFromStdin && len(filesToWatch) == 0 && !importOnly {
+		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
+	}
+
 	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
 	})
 
 	if err != nil {
-		die(errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
 	}
 
 	doneWithDatabase := ws.Run()
@@ -269,11 +206,16 @@ func main() {
 			runWatchingFiles(&ws)
 			return
 		}
-
-		die(nil, "No logs sources specified! Use -help to more info.")
 	}()
 
-	startHTTPServer(&ws)
+	httpServer := server.HttpServer{
+		Workspace:          &ws,
+		WorkspaceDirectory: workspaceDirectory,
+		Timezone:           timezone,
+		Address:            address,
+	}
+
+	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
 func parseLogsFromStdin(publisher data.Publisher, ts time.Time) {

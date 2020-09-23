@@ -2,6 +2,7 @@ package errorutil
 
 import (
 	"log"
+	"os"
 	"runtime"
 )
 
@@ -23,4 +24,22 @@ func MustSucceed(err error, msg string) {
 	}
 
 	panic(err)
+}
+
+func Die(verbose bool, err error, msg ...interface{}) {
+	expandError := func(err error) error {
+		if e, ok := err.(*Error); ok {
+			return e.Chain()
+		}
+
+		return err
+	}
+
+	log.Println(msg...)
+
+	if verbose {
+		log.Println("Detailed Error:\n", expandError(err).Error())
+	}
+
+	os.Exit(1)
 }

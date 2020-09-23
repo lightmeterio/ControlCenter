@@ -21,7 +21,8 @@ type Subscriber interface {
 }
 
 type HTTPSubscriber struct {
-	URL string
+	URL        string
+	HTTPClient *http.Client
 }
 
 func encodeBody(reader io.Reader) (string, error) {
@@ -65,9 +66,7 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 
 	req.Header.Set("Content-Type", `application/x-www-form-urlencoded; charset=UTF-8`)
 
-	client := &http.Client{}
-
-	res, err := client.Do(req)
+	res, err := s.HTTPClient.Do(req)
 
 	if err != nil {
 		return errorutil.Wrap(err)

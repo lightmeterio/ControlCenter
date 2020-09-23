@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/trustelem/zxcvbn"
-	"gitlab.com/lightmeter/controlcenter/helpers"
+	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"log"
 	"strings"
 )
@@ -16,7 +16,7 @@ var (
 )
 
 func validateEmail(email string) error {
-	if !helpers.IsValidEmailAddress(email) {
+	if !emailutil.IsValidEmailAddress(email) {
 		return ErrInvalidEmail
 	}
 
