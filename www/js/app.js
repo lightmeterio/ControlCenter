@@ -6,21 +6,39 @@ $('#overview-graphs a').on('click', function (e) {
     $(this).tab('show')
 })
 
+// TODO: maybe this is an async function?
+var apiCallGet = function(url) {
+    return fetch(url).then(function(res) {
+        if (res.ok) {
+            return res.json()
+        }
+
+        res.text().then(function(text) {
+          console.log("Error requesting url: " +
+            url + ", status:\"" + res.statusText + "\"" +
+            ", text: \"" + text + "\"")
+        })
+
+        return null
+    })
+}
+
+var selectedDateFrom = ""
+var selectedDateTo = ""
+
 // Graph stuff
 var drawDashboard = function() {
-    var dateFrom = ""
-    var dateTo = ""
-
     var updateInterval = function(start, end) {
-        dateFrom = start
-        dateTo = end
+        selectedDateFrom = start
+        selectedDateTo = end
         updateDashboard()
+        fetchInsights()
     }
 
     // Enable range datepicker
     $(function() {
         function cb(start, end) {
-            $('#time-interval-field span').html(start.format('D MMMM') + ' - ' + end.format('D MMMM'));
+            $('#time-interval-field span').html(start.format('D MMM') + ' - ' + end.format('D MMM'));
             updateInterval(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'))
         }
 
@@ -48,24 +66,7 @@ var drawDashboard = function() {
     }
 
     var timeIntervalUrlParams = function() {
-        return "from=" + dateFrom + "&to=" + dateTo
-    }
-
-    // TODO: maybe this is an async function?
-    var apiCallGet = function(url) {
-        return fetch(url).then(function(res) {
-            if (res.ok) {
-                return res.json()
-            }
-
-            res.text().then(function(text) {
-              console.log("Error requesting url: " +
-                url + ", status:\"" + res.statusText + "\"" +
-                ", text: \"" + text + "\"")
-            })
-
-            return null
-        })
+        return "from=" + selectedDateFrom + "&to=" + selectedDateTo
     }
 
     var fetchGraphDataAsJsonWithTimeInterval = function(methodName) {
@@ -249,4 +250,11 @@ $(document).ready(function() {
             $('#show_hide_password i').addClass( "fa-eye" );
         }
     });
+});
+
+// create welcome text for homepage
+$(document).ready(function() {
+    if($(".greeting h3").length){
+        $(".greeting h3").html(greetingText());
+    }
 });

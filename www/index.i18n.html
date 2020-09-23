@@ -17,7 +17,38 @@
         <!-- App CSS -->
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
+        <script type="text/javascript" src='3rd/js/sprintf.min.js'></script>
+
         <title>{{translate "Lightmeter ControlCenter"}}</title>
+
+        <script>
+          insightsTitles = {
+            "high_bounce_rate": "{{translate `High Bounce Rate` }}",
+            "mail_inactivity": "{{translate `Mail Inactivity`}}",
+            "welcome_content": "{{translate `Your first Insight`}}",
+            "insights_introduction_content": "{{translate `Breaking new ground`}}",
+          }
+
+          insightsDescriptions = {
+            "high_bounce_rate": function(c) {
+              return sprintf("{{ translate `<b>%%i%%%%</b> bounce rate between %%s and %%s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+            },
+
+            "mail_inactivity": function(c) {
+              return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+            },
+
+            "welcome_content": function(c) { return "{{ translate `Insights are time-based analyses relating to your mailserver` }}" },
+            "insights_introduction_content": function(c) { return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" },
+          }
+
+          function greetingText() {
+            var dateObj = new Date()
+            var weekday = dateObj.toLocaleString("default", { weekday: "long" })
+            return sprintf("{{ translate `Happy %%s,` }}", weekday)
+          }
+
+        </script>
     </head>
 
     <body onload="drawDashboard()">
@@ -71,22 +102,41 @@
         </header>
         
             <div class="container main-content">
-                <div class="row justify-content-end align-items-center time-interval">
-                    <label for="time-interval-field" class="col-2 col-form-label">{{translate "Time interval:"}}</label>
-                    <div class="col-3">
-                        <div id="time-interval-field" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; text-align: right;" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
-                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+            
+                <div class="row">
+                    <div class="col-md-12">
+                        <h1 class="row-title">{{translate "Control Center"}}</h1>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="panel panel-default greeting">
+                        
+                            <div class="row">
+                            
+                                <div class="col-md-3 align-center">
+                                    <img class="hero" src="img/greeting-observatory.svg" alt="Observatory illustration" />
+                                </div>
+                                
+                                <div class="col-md-9 d-flex align-items-center">
+                                    <div class="row">
+                                        <div class="container">
+                                            <h3></h3>
+                                            <p>{{translate "and welcome back"}}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                            
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <h5 class="row-title">{{translate "Status"}}</h5>
-                    </div>
-                </div>
+
                 <div class="row">
                     
-                    <div class="col-4">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
                                 {{translate "Delivery attempts"}}
@@ -96,7 +146,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-8">
+                    <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
                             
@@ -132,41 +182,60 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <h5 class="row-title">{{translate "Insights"}}</h5>
+                
+                <div class="row container d-flex time-interval card-section-heading">
+                    <div class="col-lg-2 col-md-6 col-6 p-2">
+                        <h2>{{translate "Insights"}}</h2>
                     </div>
+                    <div class="col-lg-3 col-md-6 col-6 p-2">
+                        <label for="time-interval-field" class="col-md-2 col-form-label sr-only">{{translate "Time interval:"}}</label>
+                        <div id="time-interval-field" class="w-lg-75 w-md-100 w-sm-100" onclick="_paq.push(['trackEvent', 'TimeIntervalHomepage', 'click']);">
+                            <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                
+                    <div class="col-lg-4 col-md-6 col-12 ml-auto p-2">
+                        <form id="insights-form">
+                            <div class="form-group d-flex justify-content-end align-items-center">
+                                <label for="filter" class="sr-only">{{translate "Filter"}}:</label>
+                                <select onchange="fetchInsights()" id="insights-filter" class="form-control custom-select custom-select-sm" name="filter" form="insights-form" style="width: 33%">
+                                    <option selected value="nofilter" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "All"}}</option>
+                                    <option value="category-local" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "Local"}}</option>
+                                    <option value="category-news" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "News"}}</option>
+                                    <!--
+                                    <option value="category-intel">{{translate "Intel"}}</option>
+                                    <option value="category-comparative">{{translate "Comparative"}}</option>
+                                    -->
+                                </select>
+                                <select onchange="fetchInsights()" id="insights-sort" class="form-control custom-select custom-select-sm" name="order" form="insights-form" style="width: 38%">
+                                    <option selected value="creationDesc" onclick="_paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);">{{translate "Newest"}}</option>
+                                    <option value="creationAsc" onclick="_paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);">{{translate "Oldest"}}</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    
                 </div>
-                <div class="row insights">
-                    <div class="col-6">
+                
+                <div class="row insights" id="insights">
+                    <div class="col-md-6" id="insight-template">
                         <div class="card">
                             <div class="row">
-                                <div class="col-1 gradient-bg">
+                                <div class="col-lg-1 col-md-2 col-sm-1 col-2 rating">
                                 </div>
-                                <div class="col-11">
+                                <div class="col-lg-11 col-md-10 col-10">
                                     <div class="card-block">
-                                        <h6 class="card-title">{{translate "Welcome to Lightmeter"}}</h6>
-                                        <p class="card-text">{{translate "Thanks for trying this Alpha release of Lightmeter Control Center - enjoy your stay"}}</p>
+                                        <p class="card-text category">Category</p>
+                                        <h6 class="card-title title">Title</h6>
+                                        <p class="card-text description">Description</p>
+                                        <p class="card-text time">Datetime</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="row">
-                                <div class="col-1 gradient-bg">
-                                </div>
-                                <div class="col-11">
-                                    <div class="card-block">
-                                        <h6 class="card-title">{{translate "Inroduction to insights"}}</h6>
-                                        <p class="card-text">{{translate "Here you'll find useful information about your mail activity in future releases"}}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+                
             </div>
         </div>
         
@@ -192,6 +261,7 @@
         
         <!-- App scripts -->
         <script type="text/javascript" src='js/app.js'></script>
+        <script type="text/javascript" src='js/insights.js'></script>
         
         <!-- Lightmeter-hosted Matomo analytics -->
         <script type="text/javascript">
