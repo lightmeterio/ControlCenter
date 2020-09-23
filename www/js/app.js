@@ -255,9 +255,6 @@ $(document).ready(function() {
 // create welcome text for homepage
 $(document).ready(function() {
     if($(".greeting h3").length){
-        var dateObj = new Date()
-        // FIXME not translated
-        var weekday = dateObj.toLocaleString("default", { weekday: "long" })
-        $(".greeting h3").html("Happy "+weekday+",");
+        $(".greeting h3").html(greetingText());
     }
 });

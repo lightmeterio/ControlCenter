@@ -42,6 +42,12 @@
             "insights_introduction_content": function(c) { return "{{ translate `Here you'll find useful information about your mail activity in future releases` }}" },
           }
 
+          function greetingText() {
+            var dateObj = new Date()
+            var weekday = dateObj.toLocaleString("default", { weekday: "long" })
+            return sprintf("{{ translate `Happy %%s,` }}", weekday)
+          }
+
         </script>
     </head>
 
