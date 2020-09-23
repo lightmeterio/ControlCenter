@@ -718,7 +718,7 @@ input-group-addon a {
 }
 
 .greeting {
-    background: transparent linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% no-repeat padding-box;
+    background: url("../img/greeting-lensflare.svg") no-repeat right top, linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% padding-box;
     color: white;
     padding: 0.5rem;x
     border-radius: 7px;
@@ -738,7 +738,6 @@ input-group-addon a {
 
 .greeting img.hero {
     width: 149.5px;
-    margin-top: 10px;
 }
 
 .greeting .panel.status {

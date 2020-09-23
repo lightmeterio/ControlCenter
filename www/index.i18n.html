@@ -199,17 +199,17 @@
                             <div class="form-group d-flex justify-content-end align-items-center">
                                 <label for="filter" class="sr-only">{{translate "Filter"}}:</label>
                                 <select onchange="fetchInsights()" id="insights-filter" class="form-control custom-select custom-select-sm" name="filter" form="insights-form" style="width: 33%">
-                                    <option selected value="nofilter">{{translate "All"}}</option>
-                                    <option value="category-local">{{translate "Local"}}</option>
-                                    <option value="category-news">{{translate "News"}}</option>
+                                    <option selected value="nofilter" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "All"}}</option>
+                                    <option value="category-local" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "Local"}}</option>
+                                    <option value="category-news" onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);">{{translate "News"}}</option>
                                     <!--
                                     <option value="category-intel">{{translate "Intel"}}</option>
                                     <option value="category-comparative">{{translate "Comparative"}}</option>
                                     -->
                                 </select>
                                 <select onchange="fetchInsights()" id="insights-sort" class="form-control custom-select custom-select-sm" name="order" form="insights-form" style="width: 38%">
-                                    <option selected value="creationDesc">{{translate "Newest"}}</option>
-                                    <option value="creationAsc">{{translate "Oldest"}}</option>
+                                    <option selected value="creationDesc" onclick="_paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);">{{translate "Newest"}}</option>
+                                    <option value="creationAsc" onclick="_paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);">{{translate "Oldest"}}</option>
                                 </select>
                             </div>
                         </form>
