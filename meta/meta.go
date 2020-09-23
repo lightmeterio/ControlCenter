@@ -23,7 +23,7 @@ func NewMetaDataHandler(conn dbconn.ConnPair, databaseName string) (*MetadataHan
 }
 
 func (h *MetadataHandler) Close() error {
-	return nil
+	return h.conn.Close()
 }
 
 type Item struct {

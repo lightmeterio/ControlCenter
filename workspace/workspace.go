@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
@@ -20,14 +21,12 @@ import (
 )
 
 type Workspace struct {
-	logs           logdb.DB
+	logs           *logdb.DB
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
 
-	metaConnPair dbconn.ConnPair
-	meta         *meta.MetadataHandler
-	settings     *settings.MasterConf
-	closes       []func() error
+	settings *settings.MasterConf
+	closes   closeutil.Closers
 }
 
 func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
@@ -80,23 +79,18 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
+	// closes can be mocked or stubbed out
 	w := Workspace{
-		logs:           logDb,
+		logs:           &logDb,
 		insightsEngine: insightsEngine,
 		auth:           auth,
-		metaConnPair:   metadataConnPair,
-		meta:           m,
 		settings:       settings,
-	}
-
-	// closes can be mocked or stubbed out
-	w.closes = []func() error{
-		w.settings.Close,
-		w.meta.Close,
-		w.metaConnPair.Close,
-		w.auth.Close,
-		w.logs.Close,
-		w.insightsEngine.Close,
+		closes: closeutil.New(
+			settings,
+			auth,
+			&logDb,
+			insightsEngine,
+		),
 	}
 
 	return w, nil
@@ -144,23 +138,7 @@ func (ws *Workspace) Run() <-chan struct{} {
 }
 
 func (ws *Workspace) Close() error {
-
-	if ws.closes == nil || len(ws.closes) == 0 {
-		panic("close funcs are missing")
-	}
-
-	var err error
-	for _, closeFunc := range ws.closes {
-		if nestedErr := closeFunc(); nestedErr != nil {
-			if err == nil {
-				err = nestedErr
-			} else {
-				err = errorutil.BuildChain(nestedErr, err)
-			}
-		}
-	}
-
-	return err
+	return ws.closes.Close()
 }
 
 func (ws *Workspace) HasLogs() bool {
