@@ -30,12 +30,32 @@ func Run(database *sql.DB, databaseName string) error {
 	var err error
 	err = Status(database, databaseName)
 	if err != nil {
-		return fmt.Errorf("could not get database migration status: %w", err)
+		return errorutil.Wrap(err, "could not get database migration status")
 	}
 
 	err = Up(database, databaseName)
 	if err != nil {
 		return fmt.Errorf("could not run goose up: %w", err)
+	}
+
+	return nil
+}
+
+func RunDownTo(database *sql.DB, databaseName string, version int64) error {
+
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	var err error
+	err = Status(database, databaseName)
+	if err != nil {
+		return errorutil.Wrap(err, "could not get database migration status")
+	}
+
+	err = DownTo(database, version, databaseName)
+	if err != nil {
+		return errorutil.Wrap(err, fmt.Errorf("could not run down to"))
 	}
 
 	return nil
@@ -72,6 +92,36 @@ func Up(db *sql.DB, databaseName string) error {
 		}
 
 		if err = next.Up(db); err != nil {
+			return err
+		}
+	}
+}
+
+// DownTo rolls back migrations to a specific version.
+func DownTo(db *sql.DB, version int64, databaseName string) error {
+	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
+	if err != nil {
+		return err
+	}
+
+	for {
+		currentVersion, err := goose.GetDBVersion(db)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		current, err := migrations.Current(currentVersion)
+		if err != nil {
+			log.Printf("no migrations to run. current version: %d\n", currentVersion)
+			return nil
+		}
+
+		if current.Version <= version {
+			log.Printf("no migrations to run. current version: %d\n", currentVersion)
+			return nil
+		}
+
+		if err = current.Down(db); err != nil {
 			return err
 		}
 	}
