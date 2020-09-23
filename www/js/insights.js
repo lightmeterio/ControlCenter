@@ -10,9 +10,9 @@ function formatInsightDescriptionDateTime(d) {
   return moment(d).format('DD MMM. (h:mmA)')
 }
 
-function fetchInsights() {
-  var insightTemplate = document.getElementById("insight-template")
+var insightTemplate = document.getElementById("insight-template").cloneNode(true)
 
+function fetchInsights() {
   var formData = new FormData()
 
   formData.append("from", selectedDateFrom)
