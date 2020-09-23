@@ -30,7 +30,7 @@ func Run(database *sql.DB, databaseName string) error {
 	var err error
 	err = Status(database, databaseName)
 	if err != nil {
-		return fmt.Errorf("could not get database migration status: %w", err)
+		return errorutil.Wrap(err, "could not get database migration status")
 	}
 
 	err = Up(database, databaseName)
@@ -50,12 +50,12 @@ func RunDownTo(database *sql.DB, databaseName string, version int64) error {
 	var err error
 	err = Status(database, databaseName)
 	if err != nil {
-		return fmt.Errorf("could not get database migration status: %w", err)
+		return errorutil.Wrap(err, "could not get database migration status")
 	}
 
 	err = DownTo(database, version, databaseName)
 	if err != nil {
-		return fmt.Errorf("could not run down to: %w", err)
+		return errorutil.Wrap(err, fmt.Errorf("could not run down to"))
 	}
 
 	return nil
@@ -107,7 +107,7 @@ func DownTo(db *sql.DB, version int64, databaseName string) error {
 	for {
 		currentVersion, err := goose.GetDBVersion(db)
 		if err != nil {
-			return err
+			return errorutil.Wrap(err)
 		}
 
 		current, err := migrations.Current(currentVersion)

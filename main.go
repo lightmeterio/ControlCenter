@@ -4,8 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/server"
-	"gitlab.com/lightmeter/controlcenter/util/dbutil"
-
+	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"os"
@@ -102,25 +101,6 @@ func performPasswordReset() {
 	log.Println("Password for user", emailToPasswdReset, "reset successfully")
 }
 
-// The downgrade of multiple database is disallowed to prevent to many failures
-func performMigrateDownTo(workspaceDirectory, databaseName string, version int64) {
-	if workspaceDirectory == "" {
-		errorutil.Die(verbose, nil, "No workspace dir specified! Use -help to more info.")
-	}
-	if migrateDownToDatabaseName == "" {
-		errorutil.Die(verbose, nil, "No database name specified! Use -help to more info.")
-	}
-	if version == -1 {
-		errorutil.Die(verbose, nil, "No migration version specified! Use -help to more info.")
-	}
-
-	err := dbutil.MigratorRunDown(workspaceDirectory, databaseName, version)
-	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), fmt.Sprintf("Error %s migrate down to version", databaseName))
-	}
-	log.Println("migrated database down to version for ", databaseName, " successfully")
-}
-
 func runWatchingDirectory(ws *workspace.Workspace) {
 	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
@@ -194,7 +174,7 @@ func main() {
 	lmsqlite3.Initialize(lmsqlite3.Options{"domain_mapping": domainmapping.DefaultMapping})
 
 	if migrateDownToOnly {
-		performMigrateDownTo(workspaceDirectory, migrateDownToDatabaseName, int64(migrateDownToVersion))
+		subcommand.PerformMigrateDownTo(verbose, workspaceDirectory, migrateDownToDatabaseName, int64(migrateDownToVersion))
 		return
 	}
 

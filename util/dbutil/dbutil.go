@@ -15,9 +15,7 @@ func InitConnPair(workspaceDirectory, filename string) (dbconn.ConnPair, func(),
 	}
 
 	f := func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
-		}
+		errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
 	}
 
 	return connPair, f, nil
