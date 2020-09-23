@@ -12,6 +12,6 @@ func insightsOptions(dashboard dashboard.Dashboard) insightscore.Options {
 	return insightscore.Options{
 		"dashboard":      dashboard,
 		"highrate":       highrateinsight.Options{BaseBounceRateThreshold: 0.3},
-		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 12, MinTimeGenerationInterval: time.Hour * 8},
+		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
 	}
 }
