@@ -1,6 +1,9 @@
 /* globals gauge*/
 "use strict";
-const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, focus, textBox, toRightOf } = require('taiko');
+
+// add Gauge functions here in order to use them, otherwise you'll get `ReferenceError: foobar is not defined`
+const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, button, focus, textBox, toRightOf, toLeftOf, dropDown, waitFor, $ } = require('taiko');
+
 const assert = require("assert");
 const child_process = require("child_process")
 const tmp = require("tmp")
@@ -38,8 +41,16 @@ gauge.screenshotFn = async function() {
     return await screenshot({ encoding: 'base64' });
 };
 
-step("Go to main page", async () => {
+step("Go to homepage", async () => {
     await goto('localhost:8080');
+});
+
+step("Go to registration page", async () => {
+    await goto('localhost:8080/register');
+});
+
+step("Go to login page", async () => {
+    await goto('localhost:8080/login');
 });
 
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {
@@ -47,10 +58,56 @@ step("Focus on field with placeholder <placeholder>", async (placeholder) => {
 });
 
 step("Click on <clickable>", async (clickable) => {
-    await click(clickable)
+    await click(button(clickable))
 });
 
 step("Type <content>", async (content) => {
     await write(content)
 });
 
+step("Select option <option> from menu <menuName>", async (option, menuName) => {
+    await dropDown(menuName).select(option)
+});
+
+step("Open datepicker menu", async () => {
+    waitFor(3000)
+    await click($("div#time-interval-field > span"))
+    waitFor(4000)
+    await click(text('Custom Range'))
+});
+
+step("Skip forward several months", async () => {
+    var button = $("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]")
+
+    for var i = 0; i < 12 ; i++ {
+        await click(button)
+    }
+});
+
+step("Set start date", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
+});
+
+step("Move forward some months", async () => {
+    var button = $("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]")
+
+    for var i = 0; i < 3; i++ {
+        await click(button)
+    }
+});
+
+step("Set end date", async () => {
+    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
+});
+
+step("Click apply", async () => {
+    await click(button("apply"))
+});
+
+step("Click logout", async () => {
+    await click($("//*[contains(@class,'fa-sign-out-alt')]"))
+});
+
+step("Expect to see <pageText>", async (pageText) => {
+    await text(pageText).exists()
+});
