@@ -73,5 +73,5 @@ func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOp
 }
 
 func (c *MasterConf) Close() error {
-	return nil
+	return c.meta.Close()
 }

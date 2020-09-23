@@ -242,7 +242,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 }
 
 func (r *Auth) Close() error {
-	return r.connPair.Close()
+	return r.meta.Close()
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {

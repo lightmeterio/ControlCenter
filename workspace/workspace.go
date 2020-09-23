@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
@@ -20,13 +21,12 @@ import (
 )
 
 type Workspace struct {
-	logs           logdb.DB
+	logs           *logdb.DB
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
 
-	metaConnPair dbconn.ConnPair
-	meta         *meta.MetadataHandler
-	settings     *settings.MasterConf
+	settings *settings.MasterConf
+	closes   closeutil.Closers
 }
 
 func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
@@ -79,14 +79,21 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	return Workspace{
-		logs:           logDb,
+	// closes can be mocked or stubbed out
+	w := Workspace{
+		logs:           &logDb,
 		insightsEngine: insightsEngine,
 		auth:           auth,
-		metaConnPair:   metadataConnPair,
-		meta:           m,
 		settings:       settings,
-	}, nil
+		closes: closeutil.New(
+			settings,
+			auth,
+			&logDb,
+			insightsEngine,
+		),
+	}
+
+	return w, nil
 }
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
@@ -131,31 +138,7 @@ func (ws *Workspace) Run() <-chan struct{} {
 }
 
 func (ws *Workspace) Close() error {
-	if err := ws.settings.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.meta.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.metaConnPair.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.auth.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.logs.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := ws.insightsEngine.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return ws.closes.Close()
 }
 
 func (ws *Workspace) HasLogs() bool {
