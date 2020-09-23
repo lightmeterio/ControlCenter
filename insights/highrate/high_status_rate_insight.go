@@ -12,23 +12,26 @@ import (
 )
 
 var (
-	highWeeklyBounceRateContentType = "high_bounce_rate"
+	highBaseBounceRateContentType = "base_high_bounce_rate"
 )
 
 type Options struct {
-	WeeklyBounceRateThreshold float32
+	BaseBounceRateThreshold float32
 }
 
-type weeklyBounceRateInsightsGenerator struct {
-	creator core.Creator
-	value   *highWeeklyBounceRateInsightContent
+type bounceRateGenerator struct {
+	creator                     core.Creator
+	value                       *bounceRateContent
+	minimalNotiticationInterval time.Duration
+	checkTimespan               time.Duration
+	kind                        string
 }
 
-func (*weeklyBounceRateInsightsGenerator) Close() error {
+func (*bounceRateGenerator) Close() error {
 	return nil
 }
 
-func (g *weeklyBounceRateInsightsGenerator) Step(c core.Clock, tx *sql.Tx) error {
+func (g *bounceRateGenerator) Step(c core.Clock, tx *sql.Tx) error {
 	if g.value == nil {
 		return nil
 	}
@@ -37,7 +40,7 @@ func (g *weeklyBounceRateInsightsGenerator) Step(c core.Clock, tx *sql.Tx) error
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
 		Rating:      core.BadRating,
-		ContentType: highWeeklyBounceRateContentType,
+		ContentType: highBaseBounceRateContentType,
 		Content:     g.value,
 	}
 
@@ -50,14 +53,14 @@ func (g *weeklyBounceRateInsightsGenerator) Step(c core.Clock, tx *sql.Tx) error
 	return nil
 }
 
-func (g *weeklyBounceRateInsightsGenerator) generate(interval data.TimeInterval, value float32) {
-	g.value = &highWeeklyBounceRateInsightContent{Value: value, Interval: interval}
+func (g *bounceRateGenerator) generate(interval data.TimeInterval, value float32) {
+	g.value = &bounceRateContent{Value: value, Interval: interval}
 }
 
 type highRateDetector struct {
-	bounceRateThreshold               float32
-	dashboard                         dashboard.Dashboard
-	weeklyBounceRateInsightsGenerator *weeklyBounceRateInsightsGenerator
+	bounceRateThreshold float32
+	dashboard           dashboard.Dashboard
+	generators          []*bounceRateGenerator
 }
 
 func (*highRateDetector) Close() error {
@@ -78,16 +81,24 @@ func NewDetector(creator core.Creator, options core.Options) *highRateDetector {
 	}
 
 	return &highRateDetector{
-		dashboard:                         d,
-		bounceRateThreshold:               detectorOptions.WeeklyBounceRateThreshold,
-		weeklyBounceRateInsightsGenerator: &weeklyBounceRateInsightsGenerator{creator: creator},
+		dashboard:           d,
+		bounceRateThreshold: detectorOptions.BaseBounceRateThreshold,
+		generators: []*bounceRateGenerator{
+			{
+				creator:                     creator,
+				checkTimespan:               time.Hour * 6,
+				minimalNotiticationInterval: time.Hour * 2,
+				value:                       nil,
+				kind:                        "high_base_bounce_rate",
+			},
+		},
 	}
 }
 
-func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
+func tryToDetectAndGenerateInsight(gen *bounceRateGenerator, threshold float32, d dashboard.Dashboard, c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
-	kind := "high_weekly_bounce_rate"
+	kind := gen.kind
 
 	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
 
@@ -97,7 +108,7 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 
 	// a similar notification already exists in the past three days, an arbitrary time
 	// do not create an insight to it
-	if !lastExecTime.IsZero() && now.Sub(lastExecTime) < time.Hour*24*3 {
+	if !lastExecTime.IsZero() && now.Sub(lastExecTime) < gen.minimalNotiticationInterval {
 		if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -105,9 +116,9 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	interval := data.TimeInterval{From: now.Add(time.Hour * 24 * 7 * -1), To: now}
+	interval := data.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
 
-	pairs := d.dashboard.DeliveryStatus(interval)
+	pairs := d.DeliveryStatus(interval)
 
 	total := 0
 	bounced := 0
@@ -129,8 +140,8 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 		return float32(bounced) / float32(total)
 	}()
 
-	if value > d.bounceRateThreshold {
-		d.weeklyBounceRateInsightsGenerator.generate(interval, value)
+	if value > threshold {
+		gen.generate(interval, value)
 	}
 
 	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
@@ -141,21 +152,27 @@ func execWeeklyChecks(d *highRateDetector, c core.Clock, tx *sql.Tx) error {
 }
 
 func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
-	return execWeeklyChecks(d, c, tx)
+	for _, g := range d.generators {
+		if err := tryToDetectAndGenerateInsight(g, d.bounceRateThreshold, d.dashboard, c, tx); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
 }
 
 func (d *highRateDetector) Steppers() []core.Stepper {
-	return []core.Stepper{d, d.weeklyBounceRateInsightsGenerator}
+	return []core.Stepper{d, d.generators[0]}
 }
 
-type highWeeklyBounceRateInsightContent struct {
+type bounceRateContent struct {
 	Value    float32
 	Interval data.TimeInterval
 }
 
 func init() {
-	core.RegisterContentType(highWeeklyBounceRateContentType, 1, func(b []byte) (interface{}, error) {
-		var v highWeeklyBounceRateInsightContent
+	core.RegisterContentType(highBaseBounceRateContentType, 1, func(b []byte) (interface{}, error) {
+		var v bounceRateContent
 
 		if err := json.Unmarshal(b, &v); err != nil {
 			return nil, errorutil.Wrap(err)
