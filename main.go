@@ -8,7 +8,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/auth"
@@ -22,19 +21,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
-type watchableFilenames []string
-
-func (this watchableFilenames) String() string {
-	return strings.Join(this, ", ")
-}
-
-func (this *watchableFilenames) Set(value string) error {
-	*this = append(*this, value)
-	return nil
-}
-
 var (
-	filesToWatch              watchableFilenames
 	shouldWatchFromStdin      bool
 	workspaceDirectory        string
 	importOnly                bool
@@ -57,7 +44,6 @@ func printVersion() {
 }
 
 func init() {
-	flag.Var(&filesToWatch, "watch_file", "File to watch (can be used multiple times)")
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
@@ -129,26 +115,6 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 	}()
 }
 
-func runWatchingFiles(ws *workspace.Workspace) {
-	logFilesWatchLocation := logeater.FindWatchingLocationForWorkspace(ws)
-
-	for _, filename := range filesToWatch {
-		log.Println("Now watching file", filename, "for changes from the", func() string {
-			if logFilesWatchLocation.Whence == os.SEEK_END {
-				return "end"
-			}
-
-			return "beginning"
-		}())
-
-		go func(filename string) {
-			if err := logeater.WatchFile(filename, logFilesWatchLocation, ws.NewPublisher(), buildInitialLogsTime(ws)); err != nil {
-				errorutil.Die(verbose, errorutil.Wrap(err), "Error watching file:", filename)
-			}
-		}(filename)
-	}
-}
-
 func watchFromStdin(ws *workspace.Workspace) {
 	go parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(ws))
 }
@@ -183,7 +149,7 @@ func main() {
 		return
 	}
 
-	if len(dirToWatch) == 0 && !shouldWatchFromStdin && len(filesToWatch) == 0 && !importOnly {
+	if len(dirToWatch) == 0 && !shouldWatchFromStdin && !importOnly {
 		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
 	}
 
@@ -212,11 +178,6 @@ func main() {
 
 		if shouldWatchFromStdin {
 			watchFromStdin(&ws)
-			return
-		}
-
-		if len(filesToWatch) > 0 {
-			runWatchingFiles(&ws)
 			return
 		}
 	}()
