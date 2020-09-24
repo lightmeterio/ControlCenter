@@ -3,6 +3,7 @@ package i18n
 import (
 	"bytes"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/version"
 	"golang.org/x/text/language"
 	"io"
 	"io/ioutil"
@@ -124,7 +125,10 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			errorutil.MustSucceed(err, "")
 
 			t, err := template.New("root").
-				Funcs(template.FuncMap{"translate": translator.Translate}).
+				Funcs(template.FuncMap{
+					"translate":  translator.Translate,
+					"appVersion": func() string { return version.Version },
+				}).
 				Parse(string(content))
 
 			errorutil.MustSucceed(err, "")
