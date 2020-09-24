@@ -64,7 +64,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
-			})
+			}, nil)
 
 			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.4}}) // threshold 40%
 
@@ -100,7 +100,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
-			})
+			}, nil)
 
 			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
 
@@ -137,7 +137,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
-			})
+			}, nil)
 
 			// after three days, all good
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
@@ -147,7 +147,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 5},  // 50%
 				dashboard.Pair{Key: "deferred", Value: 2}, // 20%
 				dashboard.Pair{Key: "sent", Value: 3},     // 30%
-			})
+			}, nil)
 
 			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
 

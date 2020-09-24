@@ -40,9 +40,9 @@ func TestDashboard(t *testing.T) {
 			interval, err := data.ParseTimeInterval("1999-01-01", "1999-12-31", time.UTC)
 			So(err, ShouldBeNil)
 
-			m.EXPECT().CountByStatus(parser.SentStatus, interval).Return(4)
-			m.EXPECT().CountByStatus(parser.DeferredStatus, interval).Return(3)
-			m.EXPECT().CountByStatus(parser.BouncedStatus, interval).Return(2)
+			m.EXPECT().CountByStatus(parser.SentStatus, interval).Return(4, nil)
+			m.EXPECT().CountByStatus(parser.DeferredStatus, interval).Return(3, nil)
+			m.EXPECT().CountByStatus(parser.BouncedStatus, interval).Return(2, nil)
 
 			s := httptest.NewServer(countByStatusHandler{dashboard: m, timezone: time.UTC})
 			// "from" comes after "to"

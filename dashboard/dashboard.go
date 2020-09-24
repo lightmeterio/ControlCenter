@@ -28,11 +28,11 @@ type Pairs []Pair
 type Dashboard interface {
 	Close() error
 
-	CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) int
-	TopBusiestDomains(interval data.TimeInterval) Pairs
-	TopBouncedDomains(interval data.TimeInterval) Pairs
-	TopDeferredDomains(interval data.TimeInterval) Pairs
-	DeliveryStatus(interval data.TimeInterval) Pairs
+	CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) (int, error)
+	TopBusiestDomains(interval data.TimeInterval) (Pairs, error)
+	TopBouncedDomains(interval data.TimeInterval) (Pairs, error)
+	TopDeferredDomains(interval data.TimeInterval) (Pairs, error)
+	DeliveryStatus(interval data.TimeInterval) (Pairs, error)
 }
 
 type SqlDbDashboard struct {
@@ -157,42 +157,47 @@ func (d SqlDbDashboard) Close() error {
 	return nil
 }
 
-func (d SqlDbDashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) int {
+func (d SqlDbDashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
 	return countByStatus(d.queries.countByStatus, status, interval)
 }
 
-func (d SqlDbDashboard) TopBusiestDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopBusiestDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) TopBouncedDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopBouncedDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topDomainsByStatus, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) TopDeferredDomains(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) TopDeferredDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topDomainsByStatus, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
+func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) (Pairs, error) {
 	return deliveryStatus(d.queries.deliveryStatus, interval)
 }
 
-func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) int {
+func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
 	countValue := 0
-	errorutil.MustSucceed(stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue), "")
 
-	return countValue
+	if err := stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue); err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return countValue, nil
 }
 
 // rowserrcheck is buggy and unable to see that the query errors are being checked
 // when query.Close() is inside a closure
 //nolint:rowserrcheck
-func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
+func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) (Pairs, error) {
 	r := Pairs{}
 
 	query, err := stmt.Query(args...)
 
-	errorutil.MustSucceed(err, "ListDomainAndCount")
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer func() { errorutil.MustSucceed(query.Close(), "") }()
 
@@ -202,7 +207,11 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 			countValue int
 		)
 
-		errorutil.MustSucceed(query.Scan(&domain, &countValue), "scan")
+		err = query.Scan(&domain, &countValue)
+
+		if err != nil {
+			return Pairs{}, errorutil.Wrap(err)
+		}
 
 		// If the relay info is not available, use a placeholder
 		if len(domain) == 0 {
@@ -212,20 +221,24 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 		r = append(r, Pair{strings.ToLower(domain), countValue})
 	}
 
-	errorutil.MustSucceed(query.Err(), "Error on rows")
+	if err := query.Err(); err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
-	return r
+	return r, nil
 }
 
 // rowserrcheck is buggy and unable to see that the query errors are being checked
 // when query.Close() is inside a closure
 //nolint:rowserrcheck
-func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
+func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) (Pairs, error) {
 	r := Pairs{}
 
 	query, err := stmt.Query(interval.From.Unix(), interval.To.Unix())
 
-	errorutil.MustSucceed(err, "DeliveryStatus")
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer func() { errorutil.MustSucceed(query.Close(), "") }()
 
@@ -235,12 +248,18 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 			value  int
 		)
 
-		errorutil.MustSucceed(query.Scan(&status, &value), "scan")
+		err = query.Scan(&status, &value)
+
+		if err != nil {
+			return Pairs{}, errorutil.Wrap(err)
+		}
 
 		r = append(r, Pair{status.String(), value})
 	}
 
-	errorutil.MustSucceed(query.Err(), "Error on rows")
+	if err := query.Err(); err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
-	return r
+	return r, nil
 }

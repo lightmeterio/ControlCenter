@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 
 	parser "gitlab.com/lightmeter/postfix-log-parser"
@@ -31,10 +32,19 @@ type countByStatusResult map[string]int
 // @Router /api/v0/countByStatus [get]
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
+		sent, err := h.dashboard.CountByStatus(parser.SentStatus, interval)
+		errorutil.MustSucceed(err, "")
+
+		deferred, err := h.dashboard.CountByStatus(parser.DeferredStatus, interval)
+		errorutil.MustSucceed(err, "")
+
+		bounced, err := h.dashboard.CountByStatus(parser.BouncedStatus, interval)
+		errorutil.MustSucceed(err, "")
+
 		serveJson(w, r, countByStatusResult{
-			"sent":     h.dashboard.CountByStatus(parser.SentStatus, interval),
-			"deferred": h.dashboard.CountByStatus(parser.DeferredStatus, interval),
-			"bounced":  h.dashboard.CountByStatus(parser.BouncedStatus, interval),
+			"sent":     sent,
+			"deferred": deferred,
+			"bounced":  bounced,
 		})
 	})
 }
@@ -50,7 +60,9 @@ type topBusiestDomainsHandler handler
 // @Router /api/v0/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
+		pairs, err := h.dashboard.TopBusiestDomains(interval)
+		errorutil.MustSucceed(err, "")
+		serveJson(w, r, pairs)
 	})
 }
 
@@ -65,7 +77,9 @@ type topBouncedDomainsHandler handler
 // @Router /api/v0/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
+		pairs, err := h.dashboard.TopBouncedDomains(interval)
+		errorutil.MustSucceed(err, "")
+		serveJson(w, r, pairs)
 	})
 }
 
@@ -80,7 +94,9 @@ type topDeferredDomainsHandler handler
 // @Router /api/v0/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
+		pairs, err := h.dashboard.TopDeferredDomains(interval)
+		errorutil.MustSucceed(err, "")
+		serveJson(w, r, pairs)
 	})
 }
 
@@ -95,7 +111,9 @@ type deliveryStatusHandler handler
 // @Router /api/v0/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.DeliveryStatus(interval))
+		pairs, err := h.dashboard.DeliveryStatus(interval)
+		errorutil.MustSucceed(err, "")
+		serveJson(w, r, pairs)
 	})
 }
 
