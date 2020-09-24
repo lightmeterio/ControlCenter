@@ -106,9 +106,14 @@ func buildTemplateFromFile(filename string) *template.Template {
 	}
 
 	t, err := template.New("root").
-		Funcs(template.FuncMap{"translate": func(s string, args ...interface{}) string {
-			return s
-		}}).
+		Funcs(template.FuncMap{
+			"translate": func(s string, args ...interface{}) string {
+				return s
+			},
+			"appVersion": func() string {
+				return ""
+			},
+		}).
 		Parse(string(content))
 
 	if err != nil {
