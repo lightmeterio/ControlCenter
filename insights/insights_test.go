@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
@@ -45,6 +46,16 @@ func (*fakeDetector) Close() error {
 
 func (d *fakeDetector) Setup(*sql.Tx) error {
 	return nil
+}
+
+func (d *fakeDetector) GenerateSampleInsight(tx *sql.Tx, clock core.Clock) error {
+	return d.creator.GenerateInsight(tx, core.InsightProperties{
+		Time:        clock.Now(),
+		Category:    core.IntelCategory,
+		ContentType: "fake_insight_type",
+		Content:     "hi",
+		Rating:      core.BadRating,
+	})
 }
 
 func init() {
@@ -96,11 +107,13 @@ func TestEngine(t *testing.T) {
 
 		detector := &fakeDetector{}
 
+		noAdditionalActions := func([]core.Detector, dbconn.RwConn) error { return nil }
+
 		Convey("Test Insights Generation", func() {
 			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
-			})
+			}, noAdditionalActions)
 
 			So(err, ShouldBeNil)
 
@@ -270,11 +283,37 @@ func TestEngine(t *testing.T) {
 			})
 		})
 
+		Convey("Test Insights Samples generated when the application starts", func() {
+			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+				detector.creator = c
+				return []core.Detector{detector}
+			},
+				addInsightsSamples,
+			)
+
+			So(err, ShouldBeNil)
+
+			fetcher := e.Fetcher()
+
+			sampleInsights, err := fetcher.FetchInsights(core.FetchOptions{
+				Interval: data.TimeInterval{
+					From: testutil.MustParseTime("0000-01-01 00:00:00 +0000"),
+					To:   testutil.MustParseTime("4000-01-01 00:00:00 +0000"),
+				},
+			})
+
+			So(err, ShouldBeNil)
+
+			So(len(sampleInsights), ShouldEqual, 1)
+		})
+
 		Convey("Test engine loop", func() {
 			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
-			})
+			},
+				noAdditionalActions,
+			)
 
 			So(err, ShouldBeNil)
 
@@ -295,7 +334,6 @@ func TestEngine(t *testing.T) {
 			So(nc.notifications, ShouldResemble, []notification.Content{
 				InsightNotification{ID: 1},
 			})
-
 		})
 	})
 }

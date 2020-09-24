@@ -36,15 +36,7 @@ func (g *bounceRateGenerator) Step(c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	properties := core.InsightProperties{
-		Time:        c.Now(),
-		Category:    core.LocalCategory,
-		Rating:      core.BadRating,
-		ContentType: highBaseBounceRateContentType,
-		Content:     g.value,
-	}
-
-	if err := g.creator.GenerateInsight(tx, properties); err != nil {
+	if err := generateInsight(tx, c, g.creator, *g.value); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -168,6 +160,41 @@ func (d *highRateDetector) Steppers() []core.Stepper {
 type bounceRateContent struct {
 	Value    float32
 	Interval data.TimeInterval
+}
+
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
+	properties := core.InsightProperties{
+		Time:        c.Now(),
+		Category:    core.LocalCategory,
+		Rating:      core.BadRating,
+		ContentType: highBaseBounceRateContentType,
+		Content:     content,
+	}
+
+	if err := creator.GenerateInsight(tx, properties); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+// Executed only on development builds, for better developer experience
+func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
+	for _, g := range d.generators {
+		now := c.Now()
+
+		content := bounceRateContent{
+			Value:    0.9,
+			Interval: data.TimeInterval{From: now.Add(g.checkTimespan * -1), To: now},
+		}
+
+		if err := generateInsight(tx, c, g.creator, content); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+	}
+
+	return nil
 }
 
 func init() {

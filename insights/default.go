@@ -8,16 +8,18 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 )
 
+func defaultDetectors(creator *creator, options core.Options) []core.Detector {
+	return []core.Detector{
+		highrate.NewDetector(creator, options),
+		mailinactivity.NewDetector(creator, options),
+		welcome.NewDetector(creator),
+	}
+}
+
 func NewEngine(
 	workspaceDir string,
 	notificationCenter notification.Center,
 	options core.Options,
 ) (*Engine, error) {
-	return NewCustomEngine(workspaceDir, notificationCenter, options, func(creator *creator, options core.Options) []core.Detector {
-		return []core.Detector{
-			highrate.NewDetector(creator, options),
-			mailinactivity.NewDetector(creator, options),
-			welcome.NewDetector(creator),
-		}
-	})
+	return NewCustomEngine(workspaceDir, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)
 }
