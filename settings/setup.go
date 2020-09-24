@@ -3,6 +3,7 @@ package settings
 import (
 	"context"
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -10,7 +11,7 @@ import (
 )
 
 type SystemSetup interface {
-	SetInitialOptions(context.Context, InitialSetupOptions) error
+	SetOptions(context.Context, interface{}) error
 }
 
 type SetupMailKind string
@@ -27,7 +28,13 @@ var (
 	ErrInvalidMailKindOption         = errors.New(`Invalid Mail Kind`)
 )
 
-type InitialSetupOptions struct {
+type SlackNotificationsSettings struct {
+	BearerToken string `json:"bearer_token"`
+	Kind        string `json:"-"`
+	Channel     string `json:"channel"`
+}
+
+type InitialOptions struct {
 	SubscribeToNewsletter bool
 	MailKind              SetupMailKind
 	Email                 string
@@ -48,27 +55,52 @@ func validMailKind(k SetupMailKind) bool {
 		k == MailKindTransactional
 }
 
-func (c *MasterConf) SetInitialOptions(context context.Context, o InitialSetupOptions) error {
-	if !validMailKind(o.MailKind) {
+func (c *MasterConf) SetOptions(context context.Context, o interface{}) error {
+
+	switch v := o.(type) {
+	case InitialOptions:
+		return c.setInitialOptions(context, v)
+	case SlackNotificationsSettings:
+		return c.setSlackNotificationsSettings(v)
+	}
+
+	return errorutil.Wrap(errors.New("options is not supported"))
+}
+
+func (c *MasterConf) setInitialOptions(context context.Context, initialOptions InitialOptions) error {
+	if !validMailKind(initialOptions.MailKind) {
 		return ErrInvalidMailKindOption
 	}
 
-	if o.SubscribeToNewsletter {
-		if err := c.newsletterSubscriber.Subscribe(context, o.Email); err != nil {
+	if initialOptions.SubscribeToNewsletter {
+		if err := c.newsletterSubscriber.Subscribe(context, initialOptions.Email); err != nil {
 			log.Println("Failed to subscribe with error:", err)
 			return errorutil.Wrap(ErrFailedToSubscribeToNewsletter)
 		}
 	}
 
 	_, err := c.meta.Store([]meta.Item{
-		{Key: "mail_kind", Value: o.MailKind},
-		{Key: "subscribe_newsletter", Value: o.SubscribeToNewsletter},
+		{Key: "mail_kind", Value: initialOptions.MailKind},
+		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
 	})
 
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	return nil
+}
+
+func (c *MasterConf) setSlackNotificationsSettings(slackNotificationsSettings SlackNotificationsSettings) error {
+	_, err := c.meta.StoreJson(fmt.Sprintf("messenger_"+slackNotificationsSettings.Kind),
+		SlackNotificationsSettings{
+			BearerToken: slackNotificationsSettings.BearerToken,
+			Channel:     slackNotificationsSettings.Channel,
+		})
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 	return nil
 }
 

@@ -34,7 +34,36 @@ func (s *fakeNewsletterSubscriber) Subscribe(context context.Context, email stri
 }
 
 func TestInitialSetup(t *testing.T) {
-	Convey("Initial Setup", t, func() {
+
+	Convey("messenger settings", t, func() {
+		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
+
+		dir := testutil.TempDir()
+		defer os.RemoveAll(dir)
+
+		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(conn.Close(), "") }()
+
+		meta, err := meta.NewMetaDataHandler(conn, "master")
+		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(meta.Close(), "") }()
+
+		newsletterSubscriber := &fakeNewsletterSubscriber{}
+
+		m, err := NewMasterConf(meta, newsletterSubscriber)
+		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close(), "") }()
+
+		Convey("valid messenger settings", func() {
+			So(m.SetOptions(context, SlackNotificationsSettings{
+				Channel:     "donutloop",
+				BearerToken: "fjslfjjsdfljlskjfkdjs"},
+			), ShouldBeNil)
+		})
+	})
+
+	Convey("Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
 		dir := testutil.TempDir()
@@ -55,7 +84,7 @@ func TestInitialSetup(t *testing.T) {
 		defer func() { errorutil.MustSucceed(m.Close(), "") }()
 
 		Convey("Invalid Mail Kind", func() {
-			So(errors.Is(m.SetInitialOptions(context, InitialSetupOptions{
+			So(errors.Is(m.SetOptions(context, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              "Lalala"},
 			), ErrInvalidMailKindOption), ShouldBeTrue)
@@ -64,7 +93,7 @@ func TestInitialSetup(t *testing.T) {
 		Convey("Fails to Subscribe", func() {
 			newsletterSubscriber.shouldFailToSubscribe = true
 
-			So(errors.Is(m.SetInitialOptions(context, InitialSetupOptions{
+			So(errors.Is(m.SetOptions(context, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
@@ -72,7 +101,7 @@ func TestInitialSetup(t *testing.T) {
 		})
 
 		Convey("Succeeds subscribing", func() {
-			err := m.SetInitialOptions(context, InitialSetupOptions{
+			err := m.SetOptions(context, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
@@ -93,7 +122,7 @@ func TestInitialSetup(t *testing.T) {
 		})
 
 		Convey("Succeeds not subscribing", func() {
-			err := m.SetInitialOptions(context, InitialSetupOptions{
+			err := m.SetOptions(context, InitialOptions{
 				SubscribeToNewsletter: false,
 				MailKind:              MailKindTransactional,
 				Email:                 "user@example.com"},

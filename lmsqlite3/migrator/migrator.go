@@ -182,6 +182,7 @@ func versionFilter(v, current, target int64) bool {
 // Status prints the status of all migrations.
 func Status(db *sql.DB, databaseName string) error {
 	// collect all migrations
+
 	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
