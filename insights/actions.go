@@ -32,9 +32,10 @@ func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn) error {
 	}
 
 	for _, d := range detectors {
-		g, ok := d.(sampleInsightGenerator)
+		g, canGenerateInsight := d.(sampleInsightGenerator)
 
-		if !ok {
+		if !canGenerateInsight {
+			// it's ok if a generator is not able to generate samples, as it's an optional behaviour
 			continue
 		}
 
