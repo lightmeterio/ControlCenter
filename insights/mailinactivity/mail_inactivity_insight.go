@@ -39,17 +39,7 @@ func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	properties := core.InsightProperties{
-		Time:        c.Now(),
-		Category:    core.LocalCategory,
-		Rating:      core.BadRating,
-		ContentType: ContentType,
-		Content: content{
-			Interval: *g.interval,
-		},
-	}
-
-	if err := g.creator.GenerateInsight(tx, properties); err != nil {
+	if err := generateInsight(tx, c, g.creator, *g.interval); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -65,6 +55,7 @@ func (g *generator) generate(interval data.TimeInterval) {
 type detector struct {
 	dashboard dashboard.Dashboard
 	options   Options
+	creator   core.Creator
 	generator *generator
 }
 
@@ -88,6 +79,7 @@ func NewDetector(creator core.Creator, options core.Options) *detector {
 	return &detector{
 		dashboard: d,
 		options:   detectorOptions,
+		creator:   creator,
 		generator: &generator{creator: creator, interval: nil},
 	}
 }
@@ -161,6 +153,33 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 
 func (d *detector) Steppers() []core.Stepper {
 	return []core.Stepper{d, d.generator}
+}
+
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval data.TimeInterval) error {
+	properties := core.InsightProperties{
+		Time:        c.Now(),
+		Category:    core.LocalCategory,
+		Rating:      core.BadRating,
+		ContentType: ContentType,
+		Content: content{
+			Interval: interval,
+		},
+	}
+
+	if err := creator.GenerateInsight(tx, properties); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+// Executed only on development builds, for better developer experience
+func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
+	if err := generateInsight(tx, c, d.creator, data.TimeInterval{From: c.Now().Add(-d.options.LookupRange), To: c.Now()}); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
 }
 
 func init() {

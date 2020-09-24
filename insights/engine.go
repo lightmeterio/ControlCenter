@@ -26,6 +26,7 @@ func NewCustomEngine(
 	notificationCenter notification.Center,
 	options core.Options,
 	buildDetectors func(*creator, core.Options) []core.Detector,
+	additionalActions func([]core.Detector, dbconn.RwConn) error,
 ) (*Engine, error) {
 	stateConn, err := dbconn.NewConnPair(path.Join(workspaceDir, "insights.db"))
 
@@ -50,6 +51,8 @@ func NewCustomEngine(
 	}
 
 	detectors := buildDetectors(creator, options)
+
+	err = additionalActions(detectors, stateConn.RwConn)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
