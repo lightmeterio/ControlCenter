@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -81,24 +80,6 @@ func init() {
 		fmt.Fprintf(os.Stdout, "\n Flag set: \n\n")
 		flag.PrintDefaults()
 	}
-}
-
-func performPasswordReset() {
-	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
-
-	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening auth database:", err)
-	}
-
-	if err := auth.ChangePassword(emailToPasswdReset, passwordToReset); err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error resetting password:", err)
-	}
-
-	if err := auth.Close(); err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error closing auth database:", err)
-	}
-
-	log.Println("Password for user", emailToPasswdReset, "reset successfully")
 }
 
 func runWatchingDirectory(ws *workspace.Workspace) {
@@ -179,7 +160,7 @@ func main() {
 	}
 
 	if len(emailToPasswdReset) > 0 {
-		performPasswordReset()
+		subcommand.PerformPasswordReset(verbose, workspaceDirectory, emailToPasswdReset, passwordToReset)
 		return
 	}
 
