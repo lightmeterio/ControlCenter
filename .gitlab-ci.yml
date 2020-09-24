@@ -71,7 +71,12 @@ build:
       - ./lightmeter
     expire_in: 7 days
 
-
+code2po:
+  extends: .go-builder
+  stage: test
+  needs: []
+  script:
+    - make code2po
 
 dev-build:
   extends: .go-builder
