@@ -167,8 +167,7 @@
         <!-- Lightmeter-hosted Matomo analytics -->
         <script>
         var _paq = window._paq || [];
-        // TODO: make version dynamic from JS
-        _paq.push(['setCustomDimension', 1, '0.0.6-1']);
+        _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
         _paq.push(['trackPageView']);
         _paq.push(['enableLinkTracking']);
         (function() {
