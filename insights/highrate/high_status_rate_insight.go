@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	highBaseBounceRateContentType = "base_high_bounce_rate"
+	highBaseBounceRateContentType = "high_bounce_rate"
 )
 
 type Options struct {
