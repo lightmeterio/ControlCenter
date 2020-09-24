@@ -40,7 +40,7 @@ func (s *HttpServer) Start() error {
 
 	settings := s.Workspace.Settings()
 
-	initialSetupHandler := httpsettings.NewInitialSetupHandler(settings)
+	setup := httpsettings.NewSettings(settings)
 
 	mux := http.NewServeMux()
 
@@ -62,7 +62,8 @@ func (s *HttpServer) Start() error {
 
 	api.HttpInsights(mux, s.Timezone, insightsFetcher)
 
-	mux.Handle("/settings/initialSetup", initialSetupHandler)
+	mux.Handle("/settings/initialSetup", http.HandlerFunc(setup.InitialSetupHandler))
+	mux.Handle("/settings/notificationSettings", http.HandlerFunc(setup.NotificationSettingsHandler))
 
 	// Some paths that don't require authentication
 	// That's what people nowadays call a "allow list".

@@ -2,9 +2,11 @@ package meta
 
 import (
 	"database/sql"
+	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	"reflect"
 
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -115,4 +117,51 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 	}
 
 	return results, nil
+}
+
+func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result, error) {
+
+	stmt, err := h.conn.RwConn.Prepare(`insert into meta(key, value) values(?, ?)`)
+
+	if err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	defer func() { errorutil.MustSucceed(stmt.Close(), "") }()
+
+	jsonBlob, err := json.Marshal(value)
+	if err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	_, err = stmt.Exec(key, string(jsonBlob))
+
+	if err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return Result{}, nil
+}
+
+func (h *MetadataHandler) RetrieveJson(key string, values interface{}) error {
+
+	reflectValues := reflect.ValueOf(values)
+
+	if reflectValues.Kind() != reflect.Ptr {
+		panic("values isn't a pointer")
+	}
+
+	row := h.conn.RoConn.QueryRow(`select value from meta where key = ?`, key)
+
+	var v string
+	err := row.Scan(&v)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := json.Unmarshal([]byte(v), values); err != nil {
+		return errorutil.Wrap(err, "could not Unmarshal values")
+	}
+
+	return nil
 }
