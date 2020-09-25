@@ -44,17 +44,13 @@ lint:
 
 .go-builder:
   extends: .on-non-tag
-  image: golang:1.15.2-alpine3.12
-  before_script:
-    - apk update
-    - apk add git make gcc curl libc-dev
+  image: registry.gitlab.com/lightmeter/golang-builder-docker-image:latest
 
 depencencies_graph:
   extends: .go-builder
   stage: build
   needs: []
   script:
-    - apk add python3 graphviz
     - make dependencies.svg
   artifacts:
     paths:

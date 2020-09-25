@@ -1,6 +1,4 @@
-FROM golang:1.15.2-alpine3.12 AS builder
-
-RUN apk update && apk add gcc libc-dev git make
+FROM registry.gitlab.com/lightmeter/golang-builder-docker-image:latest AS builder
 
 ADD . /src
 
