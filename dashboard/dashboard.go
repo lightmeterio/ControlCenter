@@ -3,6 +3,7 @@ package dashboard
 import (
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
 
@@ -37,11 +38,12 @@ type Dashboard interface {
 
 type SqlDbDashboard struct {
 	queries queries
+	closers closeutil.Closers
 }
 
 const removeSentToLocalhostSqlFragment = `((process_ip is not null and relay_ip != process_ip) or (process_ip is null and relay_name != "127.0.0.1"))`
 
-func New(db dbconn.RoConn) (SqlDbDashboard, error) {
+func New(db dbconn.RoConn) (*SqlDbDashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
 		count(*)
@@ -51,7 +53,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -74,7 +76,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -97,7 +99,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -120,7 +122,7 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 	limit 20`)
 
 	if err != nil {
-		return SqlDbDashboard{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -129,29 +131,27 @@ func New(db dbconn.RoConn) (SqlDbDashboard, error) {
 		}
 	}()
 
-	return SqlDbDashboard{
+	return &SqlDbDashboard{
 		queries: queries{
 			countByStatus:      countByStatus,
 			deliveryStatus:     deliveryStatus,
 			topBusiestDomains:  topBusiestDomains,
 			topDomainsByStatus: topDomainsByStatus,
 		},
+		closers: closeutil.New(
+			countByStatus,
+			deliveryStatus,
+			topBusiestDomains,
+			topDomainsByStatus,
+		),
 	}, nil
 }
 
 var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries!")
 
-func (d SqlDbDashboard) Close() error {
-	errCountByStatus := d.queries.countByStatus.Close()
-	errDeliveryStatus := d.queries.deliveryStatus.Close()
-	errTopBusiestDomains := d.queries.topBusiestDomains.Close()
-	errTopBouncedDomains := d.queries.topDomainsByStatus.Close()
-
-	if errCountByStatus != nil ||
-		errDeliveryStatus != nil ||
-		errTopBusiestDomains != nil ||
-		errTopBouncedDomains != nil {
-		return errorutil.Wrap(ErrClosingDashboardQueries)
+func (d *SqlDbDashboard) Close() error {
+	if err := d.closers.Close(); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	return nil
