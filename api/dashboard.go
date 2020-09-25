@@ -49,6 +49,12 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+func servePairsFromTimeInterval(w http.ResponseWriter, r *http.Request, f func(data.TimeInterval) (dashboard.Pairs, error), interval data.TimeInterval) {
+	pairs, err := f(interval)
+	errorutil.MustSucceed(err, "")
+	serveJson(w, r, pairs)
+}
+
 type topBusiestDomainsHandler handler
 
 // @Summary Top Busiest Domains
@@ -60,9 +66,7 @@ type topBusiestDomainsHandler handler
 // @Router /api/v0/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		pairs, err := h.dashboard.TopBusiestDomains(interval)
-		errorutil.MustSucceed(err, "")
-		serveJson(w, r, pairs)
+		servePairsFromTimeInterval(w, r, h.dashboard.TopBusiestDomains, interval)
 	})
 }
 
@@ -77,9 +81,7 @@ type topBouncedDomainsHandler handler
 // @Router /api/v0/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		pairs, err := h.dashboard.TopBouncedDomains(interval)
-		errorutil.MustSucceed(err, "")
-		serveJson(w, r, pairs)
+		servePairsFromTimeInterval(w, r, h.dashboard.TopBouncedDomains, interval)
 	})
 }
 
@@ -94,9 +96,7 @@ type topDeferredDomainsHandler handler
 // @Router /api/v0/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		pairs, err := h.dashboard.TopDeferredDomains(interval)
-		errorutil.MustSucceed(err, "")
-		serveJson(w, r, pairs)
+		servePairsFromTimeInterval(w, r, h.dashboard.TopDeferredDomains, interval)
 	})
 }
 
@@ -111,9 +111,7 @@ type deliveryStatusHandler handler
 // @Router /api/v0/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		pairs, err := h.dashboard.DeliveryStatus(interval)
-		errorutil.MustSucceed(err, "")
-		serveJson(w, r, pairs)
+		servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 	})
 }
 
