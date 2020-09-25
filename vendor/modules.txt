@@ -67,6 +67,9 @@ github.com/mailru/easyjson/jwriter
 # github.com/mattn/go-sqlite3 v1.14.2
 ## explicit
 github.com/mattn/go-sqlite3
+# github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
+## explicit
+github.com/mrichman/godnsbl
 # github.com/pkg/errors v0.8.1
 ## explicit
 github.com/pkg/errors
