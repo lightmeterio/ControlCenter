@@ -36,14 +36,14 @@ type Dashboard interface {
 	DeliveryStatus(interval data.TimeInterval) (Pairs, error)
 }
 
-type SqlDbDashboard struct {
+type sqlDashboard struct {
 	queries queries
 	closers closeutil.Closers
 }
 
 const removeSentToLocalhostSqlFragment = `((process_ip is not null and relay_ip != process_ip) or (process_ip is null and relay_name != "127.0.0.1"))`
 
-func New(db dbconn.RoConn) (*SqlDbDashboard, error) {
+func New(db dbconn.RoConn) (Dashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
 		count(*)
@@ -131,7 +131,7 @@ func New(db dbconn.RoConn) (*SqlDbDashboard, error) {
 		}
 	}()
 
-	return &SqlDbDashboard{
+	return &sqlDashboard{
 		queries: queries{
 			countByStatus:      countByStatus,
 			deliveryStatus:     deliveryStatus,
@@ -149,7 +149,7 @@ func New(db dbconn.RoConn) (*SqlDbDashboard, error) {
 
 var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries!")
 
-func (d *SqlDbDashboard) Close() error {
+func (d *sqlDashboard) Close() error {
 	if err := d.closers.Close(); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -157,23 +157,23 @@ func (d *SqlDbDashboard) Close() error {
 	return nil
 }
 
-func (d SqlDbDashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
+func (d sqlDashboard) CountByStatus(status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
 	return countByStatus(d.queries.countByStatus, status, interval)
 }
 
-func (d SqlDbDashboard) TopBusiestDomains(interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopBusiestDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) TopBouncedDomains(interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopBouncedDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topDomainsByStatus, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) TopDeferredDomains(interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopDeferredDomains(interval data.TimeInterval) (Pairs, error) {
 	return listDomainAndCount(d.queries.topDomainsByStatus, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
 }
 
-func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) DeliveryStatus(interval data.TimeInterval) (Pairs, error) {
 	return deliveryStatus(d.queries.deliveryStatus, interval)
 }
 
