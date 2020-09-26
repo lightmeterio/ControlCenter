@@ -13,7 +13,6 @@ linters:
     - lll
     - gochecknoglobals
     - funlen
-    - wsl
     - stylecheck
     - whitespace
     - godot
@@ -22,6 +21,20 @@ linters:
     - unparam 
     - golint
     - gomnd
+
+linters-settings:
+  # see all options at https://github.com/bombsimon/wsl/blob/master/doc/configuration.md
+  # Even the default values have been copied here to give us control and fine tunning on them
+  wsl:
+    strict-append: false
+    allow-assign-and-call: true
+    allow-assign-and-anything: false
+    allow-multiline-assign: true
+    force-case-trailing-whitespace: 0
+    allow-cuddle-declarations: false
+    allow-case-trailing-whitespace: false
+    allow-trailing-comment: false
+    enforce-err-cuddling: false
 
 issues:
   exclude:
