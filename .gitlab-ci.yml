@@ -28,7 +28,7 @@ stages:
 
 lint:
   extends: .on-non-tag
-  image: golangci/golangci-lint:v1.27
+  image: golangci/golangci-lint:v1.31-alpine
   stage: test
   allow_failure: true
   needs: []
