@@ -21,6 +21,9 @@ linters:
     - unparam 
     - golint
     - gomnd
+    - nlreturn
+    - gci
+    - gofumpt
 
 linters-settings:
   # see all options at https://github.com/bombsimon/wsl/blob/master/doc/configuration.md
