@@ -17,8 +17,9 @@
 [![sqale_index](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=sqale_index)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 
-Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
+## Contents
 
+- [Introduction](#introduction)
 - [Quickstart](#quickstart)
 - [Install](#install)
 - [Upgrade](#upgrade)
@@ -26,7 +27,11 @@ Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and ma
 - [Feature details](#feature-details)
 - [Development](#development)
 
-![Lightmeter Control Center 0.0.2 screenshot](https://lightmeter.io/wp-content/uploads/2020/06/screenshot-of-Lightmeter-dashboard-0.0.3.png "Lightmeter Control Center 0.0.2 screenshot")
+## Introduction
+
+Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
+
+<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/screenshot.png"  width="600"/>
 
 ## Quickstart
 
