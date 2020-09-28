@@ -108,7 +108,11 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	activityTotalForPair := func(pairs dashboard.Pairs) int {
+	activityTotalForPair := func(pairs dashboard.Pairs, err error) (int, error) {
+		if err != nil {
+			return 0, errorutil.Wrap(err)
+		}
+
 		total := 0
 
 		for _, pair := range pairs {
@@ -116,10 +120,14 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 			total += v
 		}
 
-		return total
+		return total, nil
 	}
 
-	totalCurrentInterval := activityTotalForPair(d.dashboard.DeliveryStatus(interval))
+	totalCurrentInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(interval))
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	if totalCurrentInterval > 0 {
 		return nil
@@ -127,10 +135,14 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 
 	if lastExecTime.IsZero() {
 		// pottentially first insight generation
-		totalPreviousInterval := activityTotalForPair(d.dashboard.DeliveryStatus(data.TimeInterval{
+		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(data.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),
 		}))
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
 
 		if totalCurrentInterval == 0 && totalPreviousInterval == 0 {
 			return nil

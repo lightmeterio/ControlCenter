@@ -78,7 +78,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 0},
 				dashboard.Pair{Key: "deferred", Value: 0},
 				dashboard.Pair{Key: "sent", Value: 0},
-			})
+			}, nil)
 
 			// no activity in the past day, no insight is to be generated, as it's caused by not data being available
 			// during such time
@@ -89,7 +89,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 0},
 				dashboard.Pair{Key: "deferred", Value: 0},
 				dashboard.Pair{Key: "sent", Value: 0},
-			})
+			}, nil)
 
 			// do not generate insight
 			cycle(clock)
@@ -108,7 +108,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 1},
 				dashboard.Pair{Key: "deferred", Value: 2},
 				dashboard.Pair{Key: "sent", Value: 3},
-			})
+			}, nil)
 
 			// 8 hours later, check and realized there's been no activity for the past 24h
 			{
@@ -120,7 +120,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 					dashboard.Pair{Key: "bounced", Value: 1},
 					dashboard.Pair{Key: "deferred", Value: 1},
 					dashboard.Pair{Key: "sent", Value: 1},
-				})
+				}, nil)
 
 				// actual check
 				d.EXPECT().DeliveryStatus(data.TimeInterval{
@@ -130,7 +130,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 					dashboard.Pair{Key: "bounced", Value: 0},
 					dashboard.Pair{Key: "deferred", Value: 0},
 					dashboard.Pair{Key: "sent", Value: 0},
-				})
+				}, nil)
 			}
 
 			// 8 hours later, there's activity again
@@ -141,7 +141,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "bounced", Value: 0},
 				dashboard.Pair{Key: "deferred", Value: 0},
 				dashboard.Pair{Key: "sent", Value: 2},
-			})
+			}, nil)
 
 			// do not generate insight
 			cycle(clock)

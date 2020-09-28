@@ -1,11 +1,13 @@
 package api
 
 import (
-	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"log"
 	"net/http"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/version"
 
 	parser "gitlab.com/lightmeter/postfix-log-parser"
@@ -20,6 +22,11 @@ type countByStatusHandler handler
 
 type countByStatusResult map[string]int
 
+func serveError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Println(err)
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
 // @Summary Count By Status
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
@@ -29,11 +36,44 @@ type countByStatusResult map[string]int
 // @Router /api/v0/countByStatus [get]
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
+
+	sent, err := h.dashboard.CountByStatus(parser.SentStatus, interval)
+	if err != nil {
+		serveError(w, r, err)
+		return
+	}
+
+	deferred, err := h.dashboard.CountByStatus(parser.DeferredStatus, interval)
+	if err != nil {
+		serveError(w, r, err)
+		return
+	}
+
+	bounced, err := h.dashboard.CountByStatus(parser.BouncedStatus, interval)
+	if err != nil {
+		serveError(w, r, err)
+		return
+	}
+
 	serveJson(w, r, countByStatusResult{
-		"sent":     h.dashboard.CountByStatus(parser.SentStatus, interval),
-		"deferred": h.dashboard.CountByStatus(parser.DeferredStatus, interval),
-		"bounced":  h.dashboard.CountByStatus(parser.BouncedStatus, interval),
+		"sent":     sent,
+		"deferred": deferred,
+		"bounced":  bounced,
 	})
+}
+
+func servePairsFromTimeInterval(
+	w http.ResponseWriter,
+	r *http.Request,
+	f func(data.TimeInterval) (dashboard.Pairs, error),
+	interval data.TimeInterval) {
+	pairs, err := f(interval)
+	if err != nil {
+		serveError(w, r, err)
+		return
+	}
+
+	serveJson(w, r, pairs)
 }
 
 type topBusiestDomainsHandler handler
@@ -47,7 +87,7 @@ type topBusiestDomainsHandler handler
 // @Router /api/v0/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
+	servePairsFromTimeInterval(w, r, h.dashboard.TopBusiestDomains, interval)
 }
 
 type topBouncedDomainsHandler handler
@@ -61,7 +101,7 @@ type topBouncedDomainsHandler handler
 // @Router /api/v0/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
+	servePairsFromTimeInterval(w, r, h.dashboard.TopBouncedDomains, interval)
 }
 
 type topDeferredDomainsHandler handler
@@ -75,7 +115,7 @@ type topDeferredDomainsHandler handler
 // @Router /api/v0/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
+	servePairsFromTimeInterval(w, r, h.dashboard.TopDeferredDomains, interval)
 }
 
 type deliveryStatusHandler handler
@@ -89,7 +129,7 @@ type deliveryStatusHandler handler
 // @Router /api/v0/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	serveJson(w, r, h.dashboard.DeliveryStatus(interval))
+	servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
 type appVersionHandler struct{}

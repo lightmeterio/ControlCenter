@@ -95,6 +95,36 @@ func parseTimeInterval(from, to string) data.TimeInterval {
 	return interval
 }
 
+func countByStatus(dashboard dashboard.Dashboard, status parser.SmtpStatus, interval data.TimeInterval) int {
+	v, err := dashboard.CountByStatus(status, interval)
+	So(err, ShouldBeNil)
+	return v
+}
+
+func topBusiestDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+	pairs, err := dashboard.TopBusiestDomains(interval)
+	So(err, ShouldBeNil)
+	return pairs
+}
+
+func topBouncedDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+	pairs, err := dashboard.TopBouncedDomains(interval)
+	So(err, ShouldBeNil)
+	return pairs
+}
+
+func topDeferredDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+	pairs, err := dashboard.TopDeferredDomains(interval)
+	So(err, ShouldBeNil)
+	return pairs
+}
+
+func deliveryStatus(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+	pairs, err := dashboard.DeliveryStatus(interval)
+	So(err, ShouldBeNil)
+	return pairs
+}
+
 func TestLogsInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
 		dir := testutil.TempDir()
@@ -188,9 +218,9 @@ func TestLogsInsertion(t *testing.T) {
 				interval := parseTimeInterval("1999-12-02", "2000-01-03")
 
 				So(db.HasLogs(), ShouldBeFalse)
-				So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
-				So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
-				So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
 			})
 
 			Convey("Inserts one log entry", func() {
@@ -206,9 +236,9 @@ func TestLogsInsertion(t *testing.T) {
 				interval := parseTimeInterval("1999-12-01", "2000-01-03")
 
 				So(db.HasLogs(), ShouldBeTrue)
-				So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 0)
-				So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
-				So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 1)
+				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 1)
 			})
 
 			Convey("Insert, reopen, insert", func() {
@@ -248,9 +278,9 @@ func TestLogsInsertion(t *testing.T) {
 
 				So(db.HasLogs(), ShouldBeTrue)
 
-				So(dashboard.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
-				So(dashboard.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 1)
-				So(dashboard.CountByStatus(parser.SentStatus, interval), ShouldEqual, 2)
+				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 1)
+				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 1)
+				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 2)
 			})
 
 			Convey("Many different smtp status", func() {
@@ -289,7 +319,7 @@ func TestLogsInsertion(t *testing.T) {
 				<-done
 
 				Convey("Busiest: used domain, regardless of the status", func() {
-					So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+					So(topBusiestDomains(d, interval), ShouldResemble, dashboard.Pairs{
 						dashboard.Pair{Key: "alalala.com", Value: 3},
 						dashboard.Pair{Key: "abcdf.com", Value: 2},
 						dashboard.Pair{Key: "email2.com", Value: 2},
@@ -300,7 +330,7 @@ func TestLogsInsertion(t *testing.T) {
 				})
 
 				Convey("Bounced: status = bounced", func() {
-					So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+					So(topBouncedDomains(d, interval), ShouldResemble, dashboard.Pairs{
 						dashboard.Pair{Key: "abcdf.com", Value: 2},
 						dashboard.Pair{Key: "alalala.com", Value: 2},
 						dashboard.Pair{Key: "email2.com", Value: 1},
@@ -308,7 +338,7 @@ func TestLogsInsertion(t *testing.T) {
 				})
 
 				Convey("Deferred: status = deferred", func() {
-					So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{
+					So(topDeferredDomains(d, interval), ShouldResemble, dashboard.Pairs{
 						dashboard.Pair{Key: "email1.com", Value: 1},
 						dashboard.Pair{Key: "email2.com", Value: 1},
 						dashboard.Pair{Key: "email3.com", Value: 1},
@@ -316,7 +346,7 @@ func TestLogsInsertion(t *testing.T) {
 				})
 
 				Convey("Delivery Status", func() {
-					So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+					So(deliveryStatus(d, interval), ShouldResemble, dashboard.Pairs{
 						dashboard.Pair{Key: "sent", Value: 3},
 						dashboard.Pair{Key: "bounced", Value: 5},
 						dashboard.Pair{Key: "deferred", Value: 3},
@@ -372,17 +402,17 @@ func TestLogsInsertion(t *testing.T) {
 
 			interval := parseTimeInterval(`2020-01-01`, `2020-12-31`)
 
-			So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+			So(topBusiestDomains(d, interval), ShouldResemble, dashboard.Pairs{
 				dashboard.Pair{Key: "grouped", Value: 6},
 				dashboard.Pair{Key: "another.de", Value: 2},
 			})
 
-			So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+			So(topBouncedDomains(d, interval), ShouldResemble, dashboard.Pairs{
 				dashboard.Pair{Key: "grouped", Value: 3},
 				dashboard.Pair{Key: "another.de", Value: 1},
 			})
 
-			So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{
+			So(topDeferredDomains(d, interval), ShouldResemble, dashboard.Pairs{
 				dashboard.Pair{Key: "grouped", Value: 2},
 				dashboard.Pair{Key: "another.de", Value: 1},
 			})
@@ -410,23 +440,23 @@ func TestLogsInsertion(t *testing.T) {
 
 				interval := parseTimeInterval(`2020-06-03`, `2020-06-03`)
 
-				So(d.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
-				So(d.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
-				So(d.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
+				So(countByStatus(d, parser.SentStatus, interval), ShouldEqual, 0)
+				So(countByStatus(d, parser.BouncedStatus, interval), ShouldEqual, 1)
+				So(countByStatus(d, parser.DeferredStatus, interval), ShouldEqual, 0)
 
-				So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+				So(deliveryStatus(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "bounced", Value: 1},
 				})
 
-				So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+				So(topBusiestDomains(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "example.com", Value: 1},
 				})
 
-				So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+				So(topBouncedDomains(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "example.com", Value: 1},
 				})
 
-				So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{})
+				So(topDeferredDomains(d, interval), ShouldResemble, dashboard.Pairs{})
 			})
 
 			Convey("Explicit IP", func() {
@@ -450,23 +480,23 @@ func TestLogsInsertion(t *testing.T) {
 
 				interval := parseTimeInterval(`2020-06-03`, `2020-06-03`)
 
-				So(d.CountByStatus(parser.SentStatus, interval), ShouldEqual, 0)
-				So(d.CountByStatus(parser.BouncedStatus, interval), ShouldEqual, 1)
-				So(d.CountByStatus(parser.DeferredStatus, interval), ShouldEqual, 0)
+				So(countByStatus(d, parser.SentStatus, interval), ShouldEqual, 0)
+				So(countByStatus(d, parser.BouncedStatus, interval), ShouldEqual, 1)
+				So(countByStatus(d, parser.DeferredStatus, interval), ShouldEqual, 0)
 
-				So(d.DeliveryStatus(interval), ShouldResemble, dashboard.Pairs{
+				So(deliveryStatus(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "bounced", Value: 1},
 				})
 
-				So(d.TopBusiestDomains(interval), ShouldResemble, dashboard.Pairs{
+				So(topBusiestDomains(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "example.com", Value: 1},
 				})
 
-				So(d.TopBouncedDomains(interval), ShouldResemble, dashboard.Pairs{
+				So(topBouncedDomains(d, interval), ShouldResemble, dashboard.Pairs{
 					dashboard.Pair{Key: "example.com", Value: 1},
 				})
 
-				So(d.TopDeferredDomains(interval), ShouldResemble, dashboard.Pairs{})
+				So(topDeferredDomains(d, interval), ShouldResemble, dashboard.Pairs{})
 			})
 		})
 	})

@@ -110,7 +110,11 @@ func tryToDetectAndGenerateInsight(gen *bounceRateGenerator, threshold float32, 
 
 	interval := data.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
 
-	pairs := d.DeliveryStatus(interval)
+	pairs, err := d.DeliveryStatus(interval)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	total := 0
 	bounced := 0
