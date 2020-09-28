@@ -96,7 +96,8 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 }
 
 func watchFromStdin(ws *workspace.Workspace) {
-	go logeater.ParseLogsFromStdin(ws.NewPublisher(), logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone))
+	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
+	go logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, os.Stdin)
 }
 
 func main() {
@@ -124,7 +125,7 @@ func main() {
 	}
 
 	if importOnly {
-		subcommand.OnlyImportLogs(workspaceDirectory, timezone, logYear, verbose)
+		subcommand.OnlyImportLogs(workspaceDirectory, timezone, logYear, verbose, os.Stdin)
 		return
 	}
 

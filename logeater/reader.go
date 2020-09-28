@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"log"
-	"os"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -36,14 +35,13 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *pars
 	publisher.Publish(data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p})
 }
 
-func ParseLogsFromStdin(publisher data.Publisher, ts time.Time) {
-	ReadFromReader(os.Stdin, publisher, ts)
+func ParseLogsFromReader(publisher data.Publisher, ts time.Time, reader io.Reader) {
+	ReadFromReader(reader, publisher, ts)
 	publisher.Close()
-	log.Println("STDIN has just closed!")
+	log.Println("log reader has just closed!")
 }
 
 func BuildInitialLogsTime(mostRecentLogTime time.Time, logYear int, timezone *time.Location) time.Time {
-
 	if !mostRecentLogTime.IsZero() {
 		return mostRecentLogTime
 	}

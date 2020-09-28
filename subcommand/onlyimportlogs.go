@@ -5,12 +5,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
+	"io"
 	"log"
 	"time"
 )
 
-func OnlyImportLogs(workspaceDirectory string, timezone *time.Location, logYear int, verbose bool) {
-
+func OnlyImportLogs(workspaceDirectory string, timezone *time.Location, logYear int, verbose bool, reader io.Reader) {
 	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
 	})
@@ -21,7 +21,7 @@ func OnlyImportLogs(workspaceDirectory string, timezone *time.Location, logYear 
 
 	doneWithDatabase := ws.Run()
 	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
-	logeater.ParseLogsFromStdin(ws.NewPublisher(), initialLogsTime)
+	logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, reader)
 	<-doneWithDatabase
 	log.Println("Importing has finished. Bye!")
 }
