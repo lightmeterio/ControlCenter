@@ -51,7 +51,6 @@ func TestDashboard(t *testing.T) {
 			m.EXPECT().CountByStatus(parser.BouncedStatus, interval).Return(2, nil)
 
 			s := httptest.NewServer(mw(countByStatusHandler{dashboard: m}))
-			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -80,7 +79,6 @@ func TestDashboard(t *testing.T) {
 				dashboard.Pair{Key: "sent", Value: 9},
 			}, nil)
 
-			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?from=2000-01-01&to=2000-01-02", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -105,7 +103,6 @@ func TestDashboard(t *testing.T) {
 				To:   testutil.MustParseTime(`2000-01-02 23:59:59 +0000`),
 			}).Return(dashboard.Pairs{}, errors.New("Some Internal Dashboard Error"))
 
-			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?from=2000-01-01&to=2000-01-02", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
