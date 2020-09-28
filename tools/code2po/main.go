@@ -58,6 +58,7 @@ func visitNode(node parse.Node, messages messages, filename string) {
 		if msg, alreadyExists := messages[s.Text]; alreadyExists {
 			msg.ReferenceLine = append(msg.ReferenceLine, n.Line)
 			msg.ReferenceFile = append(msg.ReferenceFile, filename)
+
 			continue
 		}
 

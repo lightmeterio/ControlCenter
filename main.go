@@ -148,6 +148,7 @@ func main() {
 		parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(&ws))
 		<-doneWithDatabase
 		log.Println("Importing has finished. Bye!")
+
 		return
 	}
 

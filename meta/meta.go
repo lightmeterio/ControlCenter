@@ -16,7 +16,6 @@ type MetadataHandler struct {
 }
 
 func NewMetaDataHandler(conn dbconn.ConnPair, databaseName string) (*MetadataHandler, error) {
-
 	if err := migrator.Run(conn.RwConn.DB, databaseName); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -120,7 +119,6 @@ func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
 }
 
 func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result, error) {
-
 	stmt, err := h.conn.RwConn.Prepare(`insert into meta(key, value) values(?, ?)`)
 
 	if err != nil {
@@ -144,7 +142,6 @@ func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result,
 }
 
 func (h *MetadataHandler) RetrieveJson(key string, values interface{}) error {
-
 	reflectValues := reflect.ValueOf(values)
 
 	if reflectValues.Kind() != reflect.Ptr {
@@ -155,6 +152,7 @@ func (h *MetadataHandler) RetrieveJson(key string, values interface{}) error {
 
 	var v string
 	err := row.Scan(&v)
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

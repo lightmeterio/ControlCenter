@@ -128,6 +128,7 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 
 	for scanner.Scan() {
 		linesRead++
+
 		lastLine = string(scanner.Bytes())
 	}
 
@@ -201,11 +202,11 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 		return a <= b && b <= c
 	}
 
-	offset := func(B, E, M float64) int {
-		// B = Begin
-		// E = End
-		// M = Modified
+	// B = Begin
+	// E = End
+	// M = Modified
 
+	offset := func(B, E, M float64) int {
 		// NOTE: This code can be simplified, but enumerating all possible combinations
 		// makes it clear we are not missing any case
 		switch {
@@ -662,6 +663,10 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	return chosenIndex
 }
 
+// Open all log files, including archived (compressed or not, but logrotate)
+// and read them line by line, publishing them in the right order they were generated (or
+// close enough, as the lines have only precision of second, so it's not a "stable sort"),
+// so the order among different lines on the same second is not deterministic.
 func importExistingLogs(
 	offsetChans map[string]chan int64,
 	converterChans map[string]timeConverterChan,
@@ -670,13 +675,6 @@ func importExistingLogs(
 	pub data.Publisher,
 	initialTime time.Time,
 ) error {
-	/*
-	 * Open all log files, including archived (compressed or not, but logrotate)
-	 * and read them line by line, publishing them in the right order they were generated (or
-	 * close enough, as the lines have only precision of second, so it's not a "stable sort"),
-	 * so the order among different lines on the same second is not deterministic.
-	 */
-
 	initialImportTime := time.Now()
 
 	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues)
@@ -699,6 +697,7 @@ func importExistingLogs(
 		if len(queueProcessors) == 0 {
 			elapsedTime := time.Since(initialImportTime)
 			log.Println("Finished importing postfix log directory in:", elapsedTime)
+
 			return nil
 		}
 
@@ -731,12 +730,8 @@ type sortableRecord struct {
 	time   time.Time
 }
 
+// Compare lexicographically
 func (r sortableRecord) Less(other sortableRecord) bool {
-	// Compare lexicographically
-	// NOTE: I wish go had something like C++ std::tuple, which would simplify
-	// this to one line:
-	// `return make_tuple(r.timedRecord, r.queueIndex, r.sequence) < make_tuple(other.timedRecord, other.queueIndex, other.sequence)`
-
 	if r.time.Before(other.time) {
 		return true
 	}
@@ -780,6 +775,7 @@ func (t *sortableRecordHeap) Pop() interface{} {
 	n := len(old)
 	x := old[n-1]
 	*t = old[0 : n-1]
+
 	return x
 }
 
@@ -802,7 +798,6 @@ func startWatchingOnQueue(
 	offsetChan <-chan int64,
 	content DirectoryContent,
 	outChan chan<- parsedRecord) {
-
 	offset := <-offsetChan
 
 	watcher, err := content.watcherForEntry(entry.filename, offset)
@@ -828,19 +823,19 @@ func startWatchingOnQueue(
 }
 
 // given the (bufferized) logs received by startWatchingOnQueue() via a channel,
-// wait until the initial import is finished, obtaining the time converter from it
+// wait until the initial import is finished, obtaining the time converter from it.
+//
+// While the initial import happens,
+// the time converter is not available,
+// being owned by the import process.
+// once it's finished, we take ownership
+// over the converter and start using it from
+// the exact point in time the import stopped.
 func startTimestampingParsedLogs(
 	converterChan timeConverterChan,
 	sortableRecordsChan chan<- sortableRecord,
 	parsedRecordsChan <-chan parsedRecord,
 	done chan<- struct{}) {
-
-	// While the initial import happens,
-	// the time converter is not available,
-	// being owned by the import process.
-	// once it's finished, we take ownership
-	// over the converter and start using it from
-	// the exact point in time the import stopped.
 	converter := <-converterChan
 
 	for p := range parsedRecordsChan {
@@ -859,7 +854,6 @@ func startFileWatchers(
 	queues fileQueues,
 	sortableRecordsChan chan<- sortableRecord,
 	done chan<- struct{}) error {
-
 	actions := []func(){}
 
 	for pattern, queue := range queues {
@@ -969,7 +963,6 @@ func watchCurrentFilesForNewLogs(
 	content DirectoryContent,
 	queues fileQueues,
 	pub newLogsPublisher) (waitForDone func(), cancelCall func(), returnError error) {
-
 	nonEmptyQueues := filterNonEmptyQueues(queues)
 
 	doneOnEveryWatcher := make(chan struct{}, len(nonEmptyQueues))

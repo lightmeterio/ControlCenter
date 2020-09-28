@@ -17,6 +17,7 @@ func changeRequestURL(r *http.Request, path string) *http.Request {
 	newReq.URL = new(url.URL)
 	newReq.URL.Path = path
 	newReq.RequestURI = path
+
 	return newReq
 }
 
@@ -34,6 +35,7 @@ func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	store.Options.HttpOnly = true
 	store.Options.MaxAge = int(SessionDuration.Seconds())
 	store.Options.SameSite = http.SameSiteStrictMode
+
 	return store
 }
 

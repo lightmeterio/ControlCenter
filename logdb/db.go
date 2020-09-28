@@ -94,6 +94,7 @@ func (db *DB) MostRecentLogTime() time.Time {
 func (db *DB) Run() <-chan interface{} {
 	doneInsertingOnDatabase := make(chan interface{})
 	go fillDatabase(db.connPair.RwConn, db.records, doneInsertingOnDatabase)
+
 	return doneInsertingOnDatabase
 }
 
@@ -113,7 +114,6 @@ func (db *DB) HasLogs() bool {
 
 func fillDatabase(db dbconn.RwConn, c <-chan data.Record,
 	doneInsertingOnDatabase chan<- interface{}) {
-
 	lastTime := time.Time{}
 
 	performInsertsIntoDbGroupingInTransactions(db, c, TransactionTime, func(tx *sql.Tx, r data.Record) error {
@@ -135,16 +135,16 @@ func fillDatabase(db dbconn.RwConn, c <-chan data.Record,
 	doneInsertingOnDatabase <- nil
 }
 
+// This is the loop for the thread that inserts stuff in the logs database
+// It should be blocked only by writing to filesystem
+// It's executing during the entire program lifetime
 func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 	c <-chan data.Record, timeout time.Duration,
 	insertCb func(*sql.Tx, data.Record) error) {
-
-	// This is the loop for the thread that inserts stuff in the logs database
-	// It should be blocked only by writing to filesystem
-	// It's executing during the entire program lifetime
-
-	var tx *sql.Tx = nil
-	var err error = nil
+	var (
+		tx  *sql.Tx = nil
+		err error   = nil
+	)
 
 	countPerTransaction := 0
 
@@ -187,7 +187,9 @@ func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 			}
 
 			errorutil.MustSucceed(insertCb(tx, r), "Database insertion")
-			countPerTransaction += 1
+
+			countPerTransaction++
+
 			break
 		case <-ticker.C:
 			restartTransaction()

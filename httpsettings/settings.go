@@ -42,6 +42,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if err := h.handleForm(w, r); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -66,6 +67,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error parsing subscribe option:", err)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -92,6 +94,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error getting email address:", err)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -104,6 +107,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("Error setting initial options:", err)
+
 		return
 	}
 }
@@ -112,12 +116,14 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	if err := h.handleForm(w, r); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
 	if len(r.Form) != 3 {
 		log.Println("Error to many values in form")
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -125,6 +131,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	if messengerKind != "slack" {
 		log.Println("Error messenger kind option is bad ", messengerKind)
 		w.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
@@ -132,6 +139,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	if messengerToken == "" {
 		log.Println("Error messenger token option is bad ", messengerToken)
 		w.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
@@ -139,6 +147,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	if messengerChannel == "" {
 		log.Println("Error messenger channel option is bad ", messengerChannel)
 		w.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
@@ -149,6 +158,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("Error notification setting options:", err)
+
 		return
 	}
 }

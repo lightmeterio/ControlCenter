@@ -56,7 +56,6 @@ func validMailKind(k SetupMailKind) bool {
 }
 
 func (c *MasterConf) SetOptions(context context.Context, o interface{}) error {
-
 	switch v := o.(type) {
 	case InitialOptions:
 		return c.setInitialOptions(context, v)
@@ -101,6 +100,7 @@ func (c *MasterConf) setSlackNotificationsSettings(slackNotificationsSettings Sl
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
 	return nil
 }
 

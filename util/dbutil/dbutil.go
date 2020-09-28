@@ -9,6 +9,7 @@ import (
 
 func InitConnPair(workspaceDirectory, filename string) (dbconn.ConnPair, func(), error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
+
 	connPair, err := dbconn.NewConnPair(dbFilename)
 	if err != nil {
 		return dbconn.ConnPair{}, nil, errorutil.Wrap(err)
@@ -32,5 +33,6 @@ func MigratorRunDown(workspaceDirectory string, databaseName string, version int
 	if err := migrator.RunDownTo(connPair.RwConn.DB, databaseName, version); err != nil {
 		return errorutil.Wrap(err)
 	}
+
 	return nil
 }

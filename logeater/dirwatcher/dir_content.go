@@ -69,8 +69,6 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 
 		onNewRecord(h, p)
 	}
-
-	// It never reaches here, actually
 }
 
 func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {

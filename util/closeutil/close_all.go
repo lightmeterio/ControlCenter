@@ -9,6 +9,7 @@ func ConvertToCloser(close func() error) *closer {
 	if close == nil {
 		panic("close is nil")
 	}
+
 	return &closer{CloseFunc: close}
 }
 
@@ -32,10 +33,12 @@ func (c *Closers) Close() error {
 	}
 
 	var err error
+
 	for _, typ := range *c {
 		if typ == nil {
 			panic("closer is nil")
 		}
+
 		err = func() error {
 			nestedErr := typ.Close()
 
@@ -50,5 +53,6 @@ func (c *Closers) Close() error {
 			return errorutil.BuildChain(nestedErr, err)
 		}()
 	}
+
 	return err
 }

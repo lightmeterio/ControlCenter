@@ -124,8 +124,10 @@ func errInChain(err error) string {
 
 func (chain ErrorChain) Error() string {
 	s := ""
+
 	for _, e := range chain {
 		s += "> " + errInChain(e) + "\n"
 	}
+
 	return s
 }

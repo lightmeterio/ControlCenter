@@ -151,7 +151,6 @@ func (d SqlDbDashboard) Close() error {
 		errDeliveryStatus != nil ||
 		errTopBusiestDomains != nil ||
 		errTopBouncedDomains != nil {
-
 		return errorutil.Wrap(ErrClosingDashboardQueries)
 	}
 
@@ -181,6 +180,7 @@ func (d SqlDbDashboard) DeliveryStatus(interval data.TimeInterval) Pairs {
 func countByStatus(stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) int {
 	countValue := 0
 	errorutil.MustSucceed(stmt.QueryRow(status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue), "")
+
 	return countValue
 }
 
@@ -197,8 +197,10 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) Pairs {
 	defer func() { errorutil.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
-		var domain string
-		var countValue int
+		var (
+			domain     string
+			countValue int
+		)
 
 		errorutil.MustSucceed(query.Scan(&domain, &countValue), "scan")
 
@@ -228,8 +230,10 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) Pairs {
 	defer func() { errorutil.MustSucceed(query.Close(), "") }()
 
 	for query.Next() {
-		var status parser.SmtpStatus
-		var value int
+		var (
+			status parser.SmtpStatus
+			value  int
+		)
 
 		errorutil.MustSucceed(query.Scan(&status, &value), "scan")
 

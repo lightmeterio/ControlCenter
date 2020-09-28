@@ -11,7 +11,6 @@ func init() {
 }
 
 func UpUsersTable(tx *sql.Tx) error {
-
 	sql := `create table if not exists users(
 		email string,
 		name string,
@@ -22,6 +21,7 @@ func UpUsersTable(tx *sql.Tx) error {
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
 	return nil
 }
 

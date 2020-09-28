@@ -10,6 +10,7 @@ func MustSucceed(err error, msg string) {
 	if err == nil {
 		return
 	}
+
 	_, file, line, ok := runtime.Caller(1)
 
 	if !ok {

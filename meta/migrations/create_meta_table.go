@@ -12,7 +12,6 @@ func init() {
 }
 
 func UpMetaTable(tx *sql.Tx) error {
-
 	sql := `create table if not exists meta(
 		key string,
 		value blob
@@ -22,6 +21,7 @@ func UpMetaTable(tx *sql.Tx) error {
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
 	return nil
 }
 

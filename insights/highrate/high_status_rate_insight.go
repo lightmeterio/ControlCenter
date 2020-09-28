@@ -191,7 +191,6 @@ func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error
 		if err := generateInsight(tx, c, g.creator, content); err != nil {
 			return errorutil.Wrap(err)
 		}
-
 	}
 
 	return nil

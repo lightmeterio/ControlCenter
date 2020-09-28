@@ -70,6 +70,7 @@ func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Req
 		log.Println("Invalid HTTP method")
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -79,6 +80,7 @@ func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Req
 		log.Println("Error parsing form mime type:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -86,6 +88,7 @@ func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Req
 		log.Println("Invalid mime type")
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -93,6 +96,7 @@ func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Req
 		log.Println("Failed parsing form")
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -117,6 +121,7 @@ func handleFailureOnObtainingSession(auth *Authenticator, w http.ResponseWriter,
 		log.Println("Error getting session:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -131,6 +136,7 @@ func withSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, cb
 	if err != nil {
 		log.Println("Error getting session. Force session expiration:", err)
 		handleFailureOnObtainingSession(auth, w, r)
+
 		return
 	}
 
@@ -147,6 +153,7 @@ func writeJsonResponse(w http.ResponseWriter, response interface{}, status int) 
 	if err != nil {
 		log.Println("Error encoding registration error json response", err)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -167,12 +174,14 @@ func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.R
 		log.Println("Error on authentication:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
 	if !authOk {
 		writeJsonResponse(w, loginResponse{Error: "Invalid email address or password"}, http.StatusUnauthorized)
 		auth.handlers.LoginFailure(w, r)
+
 		return
 	}
 
@@ -215,6 +224,7 @@ func saveSession(auth *Authenticator, w http.ResponseWriter, r *http.Request, se
 	if err := session.Save(r, w); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return errorutil.Wrap(err)
 	}
 
@@ -262,6 +272,7 @@ func handleRegistrationSubmission(auth *Authenticator, w http.ResponseWriter, r 
 		log.Println("Registration error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -308,6 +319,7 @@ func handleUnauthorized(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 		log.Println("Error Checking whether any user is already registred:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
+
 		return
 	}
 
@@ -360,15 +372,14 @@ func withBasicHTTPAuth(auth *Authenticator, user, password string, w http.Respon
 	auth.handlers.SecretArea(sessionData, w, r)
 }
 
+// NOTE: I am quite sure this algorithm for checking url prefixes has
+// already implementing somewhere in some routing libraries
+// but that's okay for now, and I don't believe it'll be bad performance-wise
+// as the list of public paths is usually small and no dynamic memory allocation
+// is being performed.
+// It behaves differntly from the standard http routing in the way that wont't
+// match the longest route, which can make our life a bit harder in the future
 func pathIsPublic(auth *Authenticator, url *url.URL) bool {
-	// NOTE: I am quite sure this algorithm for checking url prefixes has
-	// already implementing somewhere in some routing libraries
-	// but that's okay for now, and I don't believe it'll be bad performance-wise
-	// as the list of public paths is usually small and no dynamic memory allocation
-	// is being performed.
-	// It behaves differntly from the standard http routing in the way that wont't
-	// match the longest route, which can make our life a bit harder in the future
-
 	for _, p := range auth.public {
 		if !strings.HasPrefix(url.Path, p) {
 			continue

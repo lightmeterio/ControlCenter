@@ -11,7 +11,6 @@ func init() {
 }
 
 func upInsights(tx *sql.Tx) error {
-
 	sql := `create table if not exists insights(
 			time integer not null,
 			category integer not null,
@@ -35,6 +34,7 @@ func upInsights(tx *sql.Tx) error {
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
 	return nil
 }
 

@@ -190,6 +190,7 @@ func (e *Engine) Run() (func(), func()) {
 	go func() {
 		<-cancelRun
 		cancelInsightsJob <- struct{}{}
+
 		close(e.txActions)
 	}()
 
