@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +11,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/dashboard"
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
@@ -47,7 +50,6 @@ func TestDashboard(t *testing.T) {
 			s := httptest.NewServer(countByStatusHandler{dashboard: m, timezone: time.UTC})
 			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31", s.URL))
-			ctrl.Finish()
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
@@ -61,4 +63,51 @@ func TestDashboard(t *testing.T) {
 			So(body, ShouldResemble, expected)
 		})
 	})
+
+	Convey("DeliveryStatus", t, func() {
+		s := httptest.NewServer(deliveryStatusHandler{dashboard: m, timezone: time.UTC})
+
+		Convey("Success", func() {
+			m.EXPECT().DeliveryStatus(data.TimeInterval{
+				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   testutil.MustParseTime(`2000-01-02 23:59:59 +0000`),
+			}).Return(dashboard.Pairs{
+				dashboard.Pair{Key: "bounced", Value: 4},
+				dashboard.Pair{Key: "deferred", Value: 5},
+				dashboard.Pair{Key: "sent", Value: 9},
+			}, nil)
+
+			// "from" comes after "to"
+			r, err := http.Get(fmt.Sprintf("%s?from=2000-01-01&to=2000-01-02", s.URL))
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			var body []interface{}
+			dec := json.NewDecoder(r.Body)
+			err = dec.Decode(&body)
+			So(err, ShouldBeNil)
+
+			expected := []interface{}{
+				map[string]interface{}{"Key": "bounced", "Value": float64(4)},
+				map[string]interface{}{"Key": "deferred", "Value": float64(5)},
+				map[string]interface{}{"Key": "sent", "Value": float64(9)},
+			}
+
+			So(body, ShouldResemble, expected)
+		})
+
+		Convey("Internal error", func() {
+			m.EXPECT().DeliveryStatus(data.TimeInterval{
+				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   testutil.MustParseTime(`2000-01-02 23:59:59 +0000`),
+			}).Return(dashboard.Pairs{}, errors.New("Some Internal Dashboard Error"))
+
+			// "from" comes after "to"
+			r, err := http.Get(fmt.Sprintf("%s?from=2000-01-01&to=2000-01-02", s.URL))
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+		})
+	})
+
+	ctrl.Finish()
 }
