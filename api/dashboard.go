@@ -1,11 +1,11 @@
 package api
 
 import (
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"net/http"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/version"
 
 	parser "gitlab.com/lightmeter/postfix-log-parser"
@@ -14,8 +14,6 @@ import (
 type handler struct {
 	//nolint:structcheck
 	dashboard dashboard.Dashboard
-	//nolint:structcheck
-	timezone *time.Location
 }
 
 type countByStatusHandler handler
@@ -30,12 +28,11 @@ type countByStatusResult map[string]int
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/countByStatus [get]
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, countByStatusResult{
-			"sent":     h.dashboard.CountByStatus(parser.SentStatus, interval),
-			"deferred": h.dashboard.CountByStatus(parser.DeferredStatus, interval),
-			"bounced":  h.dashboard.CountByStatus(parser.BouncedStatus, interval),
-		})
+	interval := httpmiddleware.GetIntervalFromContext(r)
+	serveJson(w, r, countByStatusResult{
+		"sent":     h.dashboard.CountByStatus(parser.SentStatus, interval),
+		"deferred": h.dashboard.CountByStatus(parser.DeferredStatus, interval),
+		"bounced":  h.dashboard.CountByStatus(parser.BouncedStatus, interval),
 	})
 }
 
@@ -49,9 +46,8 @@ type topBusiestDomainsHandler handler
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topBusiestDomains [get]
 func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
-	})
+	interval := httpmiddleware.GetIntervalFromContext(r)
+	serveJson(w, r, h.dashboard.TopBusiestDomains(interval))
 }
 
 type topBouncedDomainsHandler handler
@@ -64,9 +60,8 @@ type topBouncedDomainsHandler handler
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topBouncedDomains [get]
 func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
-	})
+	interval := httpmiddleware.GetIntervalFromContext(r)
+	serveJson(w, r, h.dashboard.TopBouncedDomains(interval))
 }
 
 type topDeferredDomainsHandler handler
@@ -79,9 +74,8 @@ type topDeferredDomainsHandler handler
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topDeferredDomains [get]
 func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
-	})
+	interval := httpmiddleware.GetIntervalFromContext(r)
+	serveJson(w, r, h.dashboard.TopDeferredDomains(interval))
 }
 
 type deliveryStatusHandler handler
@@ -94,9 +88,8 @@ type deliveryStatusHandler handler
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/deliveryStatus [get]
 func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
-		serveJson(w, r, h.dashboard.DeliveryStatus(interval))
-	})
+	interval := httpmiddleware.GetIntervalFromContext(r)
+	serveJson(w, r, h.dashboard.DeliveryStatus(interval))
 }
 
 type appVersionHandler struct{}
@@ -116,10 +109,10 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	mux.Handle("/api/v0/countByStatus", countByStatusHandler{dashboard, timezone})
-	mux.Handle("/api/v0/topBusiestDomains", topBusiestDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/v0/topBouncedDomains", topBouncedDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/v0/topDeferredDomains", topDeferredDomainsHandler{dashboard, timezone})
-	mux.Handle("/api/v0/deliveryStatus", deliveryStatusHandler{dashboard, timezone})
+	mux.Handle("/api/v0/countByStatus", httpmiddleware.RequestWithInterval(timezone)(countByStatusHandler{dashboard}))
+	mux.Handle("/api/v0/topBusiestDomains", httpmiddleware.RequestWithInterval(timezone)(topBusiestDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topBouncedDomains", httpmiddleware.RequestWithInterval(timezone)(topBouncedDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topDeferredDomains", httpmiddleware.RequestWithInterval(timezone)(topDeferredDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/deliveryStatus", httpmiddleware.RequestWithInterval(timezone)(deliveryStatusHandler{dashboard}))
 	mux.Handle("/api/v0/appVersion", appVersionHandler{})
 }
