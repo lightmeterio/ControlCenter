@@ -1,12 +1,12 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 
 	parser "gitlab.com/lightmeter/postfix-log-parser"
@@ -23,6 +23,11 @@ type countByStatusHandler handler
 
 type countByStatusResult map[string]int
 
+func serveError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Println(err)
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
 // @Summary Count By Status
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
@@ -33,13 +38,22 @@ type countByStatusResult map[string]int
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestWithInterval(h.timezone, w, r, func(interval data.TimeInterval) {
 		sent, err := h.dashboard.CountByStatus(parser.SentStatus, interval)
-		errorutil.MustSucceed(err, "")
+		if err != nil {
+			serveError(w, r, err)
+			return
+		}
 
 		deferred, err := h.dashboard.CountByStatus(parser.DeferredStatus, interval)
-		errorutil.MustSucceed(err, "")
+		if err != nil {
+			serveError(w, r, err)
+			return
+		}
 
 		bounced, err := h.dashboard.CountByStatus(parser.BouncedStatus, interval)
-		errorutil.MustSucceed(err, "")
+		if err != nil {
+			serveError(w, r, err)
+			return
+		}
 
 		serveJson(w, r, countByStatusResult{
 			"sent":     sent,
@@ -49,9 +63,17 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func servePairsFromTimeInterval(w http.ResponseWriter, r *http.Request, f func(data.TimeInterval) (dashboard.Pairs, error), interval data.TimeInterval) {
+func servePairsFromTimeInterval(
+	w http.ResponseWriter,
+	r *http.Request,
+	f func(data.TimeInterval) (dashboard.Pairs, error),
+	interval data.TimeInterval) {
 	pairs, err := f(interval)
-	errorutil.MustSucceed(err, "")
+	if err != nil {
+		serveError(w, r, err)
+		return
+	}
+
 	serveJson(w, r, pairs)
 }
 
