@@ -59,6 +59,7 @@ type file struct {
 func (f *file) ModificationTime() time.Time {
 	s, err := f.Stat()
 	errorutil.MustSucceed(err, "")
+
 	return s.ModTime()
 }
 

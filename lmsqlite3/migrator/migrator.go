@@ -22,12 +22,12 @@ import (
 )
 
 func Run(database *sql.DB, databaseName string) error {
-
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	var err error
+
 	err = Status(database, databaseName)
 	if err != nil {
 		return errorutil.Wrap(err, "could not get database migration status")
@@ -42,13 +42,11 @@ func Run(database *sql.DB, databaseName string) error {
 }
 
 func RunDownTo(database *sql.DB, databaseName string, version int64) error {
-
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	var err error
-	err = Status(database, databaseName)
+	err := Status(database, databaseName)
 	if err != nil {
 		return errorutil.Wrap(err, "could not get database migration status")
 	}
@@ -88,6 +86,7 @@ func Up(db *sql.DB, databaseName string) error {
 				log.Printf("no migrations to run. current version: %d\n", current)
 				return nil
 			}
+
 			return err
 		}
 
@@ -130,15 +129,16 @@ func DownTo(db *sql.DB, version int64, databaseName string) error {
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(current, target int64, databaseName string) (goose.Migrations, error) {
-
 	var migrations goose.Migrations
 
 	// Go migrations registered via goose.AddMigration().
 	for _, migration := range registeredGoMigrations[databaseName] {
 		v, err := goose.NumericComponent(migration.Source)
+
 		if err != nil {
 			return nil, err
 		}
+
 		if versionFilter(v, current, target) {
 			migrations = append(migrations, migration)
 		}
@@ -156,10 +156,12 @@ func sortAndConnectMigrations(migrations goose.Migrations) goose.Migrations {
 	// populate next and previous for each migration
 	for i, m := range migrations {
 		prev := int64(-1)
+
 		if i > 0 {
 			prev = migrations[i-1].Version
 			migrations[i-1].Next = m.Version
 		}
+
 		migrations[i].Previous = prev
 	}
 
@@ -167,7 +169,6 @@ func sortAndConnectMigrations(migrations goose.Migrations) goose.Migrations {
 }
 
 func versionFilter(v, current, target int64) bool {
-
 	if target > current {
 		return v > current && v <= target
 	}
@@ -182,7 +183,6 @@ func versionFilter(v, current, target int64) bool {
 // Status prints the status of all migrations.
 func Status(db *sql.DB, databaseName string) error {
 	// collect all migrations
-
 	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
@@ -194,15 +194,16 @@ func Status(db *sql.DB, databaseName string) error {
 	}
 
 	log.Print("\n")
-
 	log.Printf("    Database name               %v \n", databaseName)
 	log.Println("    Applied At                  Migration")
 	log.Println("    =======================================")
+
 	for _, migration := range migrations {
 		if err := printMigrationStatus(db, migration.Version, filepath.Base(migration.Source)); err != nil {
 			return errors.Wrap(err, "failed to print status")
 		}
 	}
+
 	return nil
 }
 
@@ -211,6 +212,7 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", goose.TableName(), version)
 
 	var row goose.MigrationRecord
+
 	err := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 	if err != nil && err != sql.ErrNoRows {
 		return errors.Wrap(err, "failed to query the latest migration")
@@ -220,16 +222,17 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 		if row.IsApplied {
 			return row.TStamp.Format(time.ANSIC)
 		}
+
 		return "Pending"
 	}()
 
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
+
 	return nil
 }
 
 // AddMigration : Add a migration.
 func AddMigration(databaseName string, filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
-
 	v, _ := goose.NumericComponent(filename)
 	migration := &goose.Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
 

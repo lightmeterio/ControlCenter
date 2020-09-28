@@ -53,12 +53,15 @@ func registerPayloadHandler(handler payloadHandler) {
 	if handler.down == nil {
 		log.Panicln("Down func is nil")
 	}
+
 	if handler.up == nil {
 		log.Panicln("Down func is nil")
 	}
+
 	if handler.filename == "" {
 		log.Panicln("filename is empty")
 	}
+
 	if handler.database == "" {
 		log.Panicln("database name is empty")
 	}

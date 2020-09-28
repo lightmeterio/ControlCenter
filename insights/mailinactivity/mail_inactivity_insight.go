@@ -31,10 +31,10 @@ type Options struct {
 	MinTimeGenerationInterval time.Duration
 }
 
-func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
-	// TODO: get the value inserted by the detector from the db, if there's any,
-	// and use it to generate a new insight
+// TODO: get the value inserted by the detector from the db, if there's any,
+// and use it to generate a new insight
 
+func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 	if g.interval == nil {
 		return nil
 	}
@@ -127,7 +127,6 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 
 	if lastExecTime.IsZero() {
 		// pottentially first insight generation
-
 		totalPreviousInterval := activityTotalForPair(d.dashboard.DeliveryStatus(data.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),

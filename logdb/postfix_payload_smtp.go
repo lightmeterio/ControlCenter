@@ -26,10 +26,9 @@ func init() {
 var ErrCouldNotObtainTimeFromDatabase = errors.New("Could not obtain time from database")
 
 func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
-	// FIXME: this query is way too complicated for something so simple
-
 	var v int64
 
+	// FIXME: this query is way too complicated for something so simple
 	err := db.QueryRow(`
 	select
 		read_ts_sec
@@ -48,6 +47,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 func countLogsForSmtpSentStatus(db dbconn.RoConn) int {
 	value := 0
 	errorutil.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
+
 	return value
 }
 

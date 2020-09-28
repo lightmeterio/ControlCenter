@@ -20,8 +20,10 @@ import (
 
 func serveJson(w http.ResponseWriter, r *http.Request, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+
 	encoded, err := json.Marshal(v)
 	errorutil.MustSucceed(err, "Encoding as JSON in the http API")
+
 	_, err = w.Write(encoded)
 	errorutil.MustSucceed(err, "")
 }
@@ -39,8 +41,7 @@ func intervalFromForm(timezone *time.Location, form url.Values) (data.TimeInterv
 func requestWithInterval(timezone *time.Location,
 	w http.ResponseWriter,
 	r *http.Request,
-	onParserSuccess func(interval data.TimeInterval)) {
-
+	onParserSuccess func(data.TimeInterval)) {
 	if r.ParseForm() != nil {
 		http.Error(w, "Wrong input", http.StatusUnprocessableEntity)
 		return

@@ -3,7 +3,6 @@ package migrations
 import "database/sql"
 
 func UpTableCreationForSmtpSentStatus(tx *sql.Tx) error {
-
 	sql := `
 	create table if not exists postfix_smtp_message_status(
 		read_ts_sec           integer,
@@ -30,6 +29,7 @@ func UpTableCreationForSmtpSentStatus(tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

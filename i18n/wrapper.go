@@ -43,16 +43,15 @@ type cacheKey struct {
 }
 
 type cache struct {
-	m sync.Map
-}
-
-func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 	// NOTE: this cache is not atomic. It's possible that the same page is rendered
 	// many times if more than one request is done in between a Load() and a Store() call
 	// but this is good enough as no race conditions will exist and the contents will always
 	// be the same in production, as the source files don't change over the application lifetime,
 	// as they are static data.
+	m sync.Map
+}
 
+func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 	reply := func(b []byte) error {
 		r := bytes.NewReader(b)
 

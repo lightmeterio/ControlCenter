@@ -7,8 +7,11 @@ import (
 )
 
 func StoreLastDetectorExecution(tx *sql.Tx, kind string, time time.Time) error {
-	var id int64
-	var ts int64
+	var (
+		id int64
+		ts int64
+	)
+
 	err := tx.QueryRow(`select rowid, ts from last_detector_execution where kind = ?`, kind).Scan(&id, &ts)
 
 	query, args := func() (string, []interface{}) {

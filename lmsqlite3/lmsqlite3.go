@@ -34,6 +34,7 @@ const bcryptCost = 12
 func computeBcryptSum(b []byte) []byte {
 	r, err := bcrypt.GenerateFromPassword(b, bcryptCost)
 	errorutil.MustSucceed(err, "computing bcrypt")
+
 	return r
 }
 

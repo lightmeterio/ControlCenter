@@ -180,6 +180,7 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 	buildQuery := func(s string, p paramBuilder) queryValue {
 		q, err := conn.Prepare(s)
 		errorutil.MustSucceed(err, "Preparing query "+s)
+
 		return queryValue{q: q, p: p}
 	}
 
@@ -278,12 +279,14 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 		errorutil.MustSucceed(rows.Close(), "")
 	}()
 
-	var id int
-	var ts int64
-	var category Category
-	var rating Rating
-	var contentTypeValue int
-	var contentBytes []byte
+	var (
+		id               int
+		ts               int64
+		category         Category
+		rating           Rating
+		contentTypeValue int
+		contentBytes     []byte
+	)
 
 	result := []FetchedInsight{}
 

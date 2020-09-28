@@ -11,9 +11,11 @@ func PerformMigrateDownTo(verbose bool, workspaceDirectory, databaseName string,
 	if workspaceDirectory == "" {
 		errorutil.Die(verbose, nil, "No workspace dir specified! Use -help to more info.")
 	}
+
 	if databaseName == "" {
 		errorutil.Die(verbose, nil, "No database name specified! Use -help to more info.")
 	}
+
 	if version == -1 {
 		errorutil.Die(verbose, nil, "No migration version specified! Use -help to more info.")
 	}
@@ -22,5 +24,6 @@ func PerformMigrateDownTo(verbose bool, workspaceDirectory, databaseName string,
 	if err != nil {
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error ", databaseName, " migrate down to version")
 	}
+
 	log.Println("migrated database down to version for ", databaseName, " successfully")
 }
