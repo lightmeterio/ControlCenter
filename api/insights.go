@@ -1,6 +1,7 @@
 package api
 
 import (
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
@@ -9,8 +10,7 @@ import (
 )
 
 type fetchInsightsHandler struct {
-	f        core.Fetcher
-	timezone *time.Location
+	f core.Fetcher
 }
 
 // @Summary Fetch Insights
@@ -25,17 +25,7 @@ type fetchInsightsHandler struct {
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchInsights [get]
 func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.ParseForm() != nil {
-		http.Error(w, "Wrong input", http.StatusBadRequest)
-		return
-	}
-
-	interval, err := intervalFromForm(h.timezone, r.Form)
-
-	if err != nil {
-		http.Error(w, "Error parsing time interval:\" "+err.Error()+"\"", http.StatusBadRequest)
-		return
-	}
+	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	filter := core.BuildFilterByName(r.Form.Get("filter"))
 	order := core.BuildOrderByName(r.Form.Get("order"))
@@ -101,5 +91,5 @@ type fetchedInsight struct {
 type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
-	mux.Handle("/api/v0/fetchInsights", fetchInsightsHandler{f: f, timezone: timezone})
+	mux.Handle("/api/v0/fetchInsights", httpmiddleware.RequestWithInterval(timezone)(fetchInsightsHandler{f: f}))
 }

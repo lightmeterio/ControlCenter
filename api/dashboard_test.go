@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,16 +24,18 @@ func TestDashboard(t *testing.T) {
 
 	m := mock_dashboard.NewMockDashboard(ctrl)
 
+	mw := httpmiddleware.RequestWithInterval(time.UTC)
+
 	Convey("CountByStatus", t, func() {
 		Convey("No Time Interval", func() {
-			s := httptest.NewServer(countByStatusHandler{dashboard: m, timezone: time.UTC})
+			s := httptest.NewServer(mw(countByStatusHandler{dashboard: m}))
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("Dates out of order", func() {
-			s := httptest.NewServer(countByStatusHandler{dashboard: m, timezone: time.UTC})
+			s := httptest.NewServer(mw(countByStatusHandler{dashboard: m}))
 			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?to=1999-01-01&from=1999-12-31", s.URL))
 			So(err, ShouldBeNil)
@@ -47,7 +50,7 @@ func TestDashboard(t *testing.T) {
 			m.EXPECT().CountByStatus(parser.DeferredStatus, interval).Return(3, nil)
 			m.EXPECT().CountByStatus(parser.BouncedStatus, interval).Return(2, nil)
 
-			s := httptest.NewServer(countByStatusHandler{dashboard: m, timezone: time.UTC})
+			s := httptest.NewServer(mw(countByStatusHandler{dashboard: m}))
 			// "from" comes after "to"
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31", s.URL))
 			So(err, ShouldBeNil)
@@ -65,7 +68,7 @@ func TestDashboard(t *testing.T) {
 	})
 
 	Convey("DeliveryStatus", t, func() {
-		s := httptest.NewServer(deliveryStatusHandler{dashboard: m, timezone: time.UTC})
+		s := httptest.NewServer(mw(deliveryStatusHandler{dashboard: m}))
 
 		Convey("Success", func() {
 			m.EXPECT().DeliveryStatus(data.TimeInterval{

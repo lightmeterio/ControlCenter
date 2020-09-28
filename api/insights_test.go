@@ -6,6 +6,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	mock_insights_fetcher "gitlab.com/lightmeter/controlcenter/insights/core/mock"
 	"net/http"
@@ -62,16 +63,19 @@ func TestInsights(t *testing.T) {
 		return i
 	}
 
+	mw := httpmiddleware.RequestWithInterval(time.UTC)
+
+
 	Convey("Test Insights", t, func() {
 		Convey("Missing mandatory arguments", func() {
-			s := httptest.NewServer(fetchInsightsHandler{f: f, timezone: time.UTC})
+			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)
-			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("Number of entries cannot be negative", func() {
-			s := httptest.NewServer(fetchInsightsHandler{f: f, timezone: time.UTC})
+			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&order=creationDesc&entries=-42", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
@@ -103,7 +107,7 @@ func TestInsights(t *testing.T) {
 				},
 			}, nil)
 
-			s := httptest.NewServer(fetchInsightsHandler{f: f, timezone: time.UTC})
+			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&order=creationDesc", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
