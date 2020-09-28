@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
@@ -97,17 +96,8 @@ func runWatchingDirectory(ws *workspace.Workspace) {
 }
 
 func watchFromStdin(ws *workspace.Workspace) {
-	go parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(ws))
-}
-
-func buildInitialLogsTime(ws *workspace.Workspace) time.Time {
-	ts := ws.MostRecentLogTime()
-
-	if !ts.IsZero() {
-		return ts
-	}
-
-	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, timezone)
+	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
+	go logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, os.Stdin)
 }
 
 func main() {
@@ -134,6 +124,11 @@ func main() {
 		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
 	}
 
+	if importOnly {
+		subcommand.OnlyImportLogs(workspaceDirectory, timezone, logYear, verbose, os.Stdin)
+		return
+	}
+
 	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
 		Location: timezone,
 	})
@@ -142,15 +137,7 @@ func main() {
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
 	}
 
-	doneWithDatabase := ws.Run()
-
-	if importOnly {
-		parseLogsFromStdin(ws.NewPublisher(), buildInitialLogsTime(&ws))
-		<-doneWithDatabase
-		log.Println("Importing has finished. Bye!")
-
-		return
-	}
+	ws.Run()
 
 	func() {
 		if len(dirToWatch) > 0 {
@@ -172,10 +159,4 @@ func main() {
 	}
 
 	errorutil.MustSucceed(httpServer.Start(), "server died")
-}
-
-func parseLogsFromStdin(publisher data.Publisher, ts time.Time) {
-	logeater.ReadFromReader(os.Stdin, publisher, ts)
-	publisher.Close()
-	log.Println("STDIN has just closed!")
 }
