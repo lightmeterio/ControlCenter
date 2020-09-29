@@ -10,7 +10,7 @@ func init() {
 	migrator.AddMigration("auth", "3_auth_migration_clear_old_keys.go", upClearSessionKeys, downClearSessionKeys)
 }
 
-// We changed the whey the sesssion keys are stored, from plain to json,
+// We changed the way the sesssion keys are stored, from plain to json,
 // so we need to clean them. All users will be delogged, and new keys
 // will automatically be generated
 func upClearSessionKeys(tx *sql.Tx) error {
