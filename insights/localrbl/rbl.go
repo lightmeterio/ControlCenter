@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
@@ -17,8 +18,9 @@ type contentElem struct {
 }
 
 type content struct {
-	Address string        `json:"address"`
-	RBLs    []contentElem `json:"rbls"`
+	ScanInterval data.TimeInterval `json:"scan_interval"`
+	Address      string            `json:"address"`
+	RBLs         []contentElem     `json:"rbls"`
 }
 
 const ContentType = "local_rbl_check"
@@ -30,7 +32,8 @@ type Options struct {
 }
 
 type checkResults struct {
-	rbls []contentElem
+	interval data.TimeInterval
+	rbls     []contentElem
 }
 
 type detector struct {
@@ -81,8 +84,9 @@ func NewDetector(creator core.Creator, options core.Options) *detector {
 
 func createInsightForResults(d *detector, r checkResults, c core.Clock, tx *sql.Tx) error {
 	return generateInsight(tx, c, d.creator, content{
-		Address: d.options.CheckedAddress.String(),
-		RBLs:    r.rbls,
+		ScanInterval: r.interval,
+		Address:      d.options.CheckedAddress.String(),
+		RBLs:         r.rbls,
 	})
 }
 
@@ -142,7 +146,8 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 // Executed only on development builds, for better developer experience
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, content{
-		Address: d.options.CheckedAddress.String(),
+		ScanInterval: data.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
+		Address:      d.options.CheckedAddress.String(),
 		RBLs: []contentElem{
 			{RBL: "rbl.com", Text: "Funny reason"},
 			{RBL: "anotherrbl.de", Text: "Another funny reason"},

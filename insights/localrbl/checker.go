@@ -2,6 +2,7 @@ package localrbl
 
 import (
 	"github.com/mrichman/godnsbl"
+	"gitlab.com/lightmeter/controlcenter/data"
 	"log"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ var (
 )
 
 type dnsChecker struct {
-	checkerStartChan   chan struct{}
+	checkerStartChan   chan time.Time
 	checkerResultsChan chan checkResults
 	options            Options
 	lookup             func(string, string) godnsbl.RBLResults
@@ -24,7 +25,7 @@ type dnsChecker struct {
 
 func newDnsChecker(lookup func(string, string) godnsbl.RBLResults, options Options) *dnsChecker {
 	return &dnsChecker{
-		checkerStartChan:   make(chan struct{}, 32),
+		checkerStartChan:   make(chan time.Time, 32),
 		checkerResultsChan: make(chan checkResults),
 		options:            options,
 		lookup:             lookup,
@@ -40,10 +41,10 @@ func (c *dnsChecker) startListening() {
 	go spawnChecker(c)
 }
 
-func (c *dnsChecker) notifyNewScan(time.Time) {
+func (c *dnsChecker) notifyNewScan(t time.Time) {
 	// signal a new scan
 	log.Println("Started notifying a new scan from the insights main loop!")
-	c.checkerStartChan <- struct{}{}
+	c.checkerStartChan <- t
 	log.Println("Finished notifying a new scan from the insights main loop!")
 }
 
@@ -56,7 +57,7 @@ func (c *dnsChecker) step(_ time.Time, withResults func(checkResults) error, wit
 	}
 }
 
-func startNewScan(checker *dnsChecker) {
+func startNewScan(checker *dnsChecker, t time.Time) {
 	wg := &sync.WaitGroup{}
 
 	type queryResult = godnsbl.Result
@@ -66,6 +67,8 @@ func startNewScan(checker *dnsChecker) {
 	ip := checker.options.CheckedAddress.String()
 
 	log.Println("Starting a new RBL scan on IP", ip)
+
+	scanStartTime := time.Now()
 
 	for i, rbl := range checker.options.RBLProvidersURLs {
 		wg.Add(1)
@@ -83,6 +86,8 @@ func startNewScan(checker *dnsChecker) {
 
 	wg.Wait()
 
+	scanEndTime := time.Now()
+
 	rbls := make([]contentElem, 0, len(checker.options.RBLProvidersURLs))
 
 	for _, r := range results {
@@ -99,14 +104,15 @@ func startNewScan(checker *dnsChecker) {
 	log.Println("RBL scan finished with", len(rbls), "lists blocking me!")
 
 	checker.checkerResultsChan <- checkResults{
-		rbls: rbls,
+		interval: data.TimeInterval{From: t, To: t.Add(scanEndTime.Sub(scanStartTime))},
+		rbls:     rbls,
 	}
 }
 
 func spawnChecker(checker *dnsChecker) {
-	for range checker.checkerStartChan {
+	for t := range checker.checkerStartChan {
 		log.Println("RBL Checker goroutine received notification for a new scan!")
-		go startNewScan(checker)
+		go startNewScan(checker, t)
 	}
 
 	log.Println("RBL Checker goroutine asked to stop!")

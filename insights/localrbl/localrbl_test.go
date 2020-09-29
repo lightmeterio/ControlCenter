@@ -47,7 +47,8 @@ func (c *fakeChecker) notifyNewScan(now time.Time) {
 func (c *fakeChecker) step(now time.Time, withResults func(checkResults) error, withoutResults func() error) error {
 	if !c.scanStartTime.IsZero() && now.After(c.scanStartTime.Add(c.timeToCompleteScan)) && c.shouldGenerateOnScanCompletion {
 		return withResults(checkResults{
-			rbls: []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+			interval: data.TimeInterval{From: c.scanStartTime, To: now},
+			rbls:     []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 		})
 	}
 
@@ -157,10 +158,11 @@ func TestLocalRBL(t *testing.T) {
 
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
-			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:11 +0000`))
+			So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
 			So(insights[0].Content(), ShouldResemble, &content{
-				Address: "11.22.33.44",
-				RBLs:    []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+				ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
+				Address:      "11.22.33.44",
+				RBLs:         []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 			})
 		})
 	})
@@ -169,6 +171,8 @@ func TestLocalRBL(t *testing.T) {
 func TestDnsRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
 		lookup := func(rblList string, targetHost string) godnsbl.RBLResults {
+			time.Sleep(200 * time.Millisecond)
+
 			if !strings.HasSuffix(rblList, "-blocked") {
 				return godnsbl.RBLResults{}
 			}
@@ -194,7 +198,7 @@ func TestDnsRBL(t *testing.T) {
 
 			checker.notifyNewScan(baseTime)
 
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(600 * time.Millisecond)
 
 			select {
 			case <-checker.checkerResultsChan:
@@ -217,7 +221,7 @@ func TestDnsRBL(t *testing.T) {
 
 			checker.notifyNewScan(baseTime)
 
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(600 * time.Millisecond)
 
 			select {
 			case r := <-checker.checkerResultsChan:
@@ -226,6 +230,9 @@ func TestDnsRBL(t *testing.T) {
 					{RBL: "rbl3-blocked", Text: "Some Error"},
 					{RBL: "rbl4-blocked", Text: "Some Error"},
 				})
+
+				So(r.interval.From, ShouldResemble, baseTime)
+				So(r.interval.To.After(r.interval.From), ShouldBeTrue)
 			default:
 				So(false, ShouldBeTrue)
 			}
