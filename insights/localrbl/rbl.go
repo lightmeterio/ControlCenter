@@ -1,4 +1,4 @@
-package localrbl
+package localrblinsight
 
 import (
 	"database/sql"
@@ -6,53 +6,32 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"io"
 	"net"
 	"time"
 )
 
-type contentElem struct {
-	RBL  string `json:"rbl"`
-	Text string `json:"text"`
+type Options struct {
+	Checker       localrbl.Checker
+	CheckInterval time.Duration
 }
 
 type content struct {
-	ScanInterval data.TimeInterval `json:"scan_interval"`
-	Address      string            `json:"address"`
-	RBLs         []contentElem     `json:"rbls"`
+	ScanInterval data.TimeInterval         `json:"scan_interval"`
+	Address      net.IP                    `json:"address"`
+	RBLs         []localrbl.ContentElement `json:"rbls"`
 }
 
 const ContentType = "local_rbl_check"
 
-type Options struct {
-	NumberOfWorkers  int
-	CheckedAddress   net.IP
-	CheckInterval    time.Duration
-	RBLProvidersURLs []string
-}
-
-type checkResults struct {
-	interval data.TimeInterval
-	rbls     []contentElem
-}
-
 type detector struct {
 	options Options
 	creator core.Creator
-	checker checker
 }
 
 func (d *detector) Close() error {
-	return d.checker.Close()
-}
-
-type checker interface {
-	io.Closer
-
-	startListening()
-	notifyNewScan(time.Time)
-	step(time.Time, func(checkResults) error, func() error) error
+	return d.options.Checker.Close()
 }
 
 func getDetectorOptions(options core.Options) Options {
@@ -65,29 +44,20 @@ func getDetectorOptions(options core.Options) Options {
 	return detectorOptions
 }
 
-func newDetector(creator core.Creator, options core.Options, checker checker) *detector {
+func NewDetector(creator core.Creator, options core.Options) *detector {
 	detectorOptions := getDetectorOptions(options)
 
 	return &detector{
 		options: detectorOptions,
 		creator: creator,
-		checker: checker,
 	}
 }
 
-func NewDetector(creator core.Creator, options core.Options) *detector {
-	checker := newDnsChecker(defaultLookup, getDetectorOptions(options))
-
-	checker.startListening()
-
-	return newDetector(creator, options, checker)
-}
-
-func createInsightForResults(d *detector, r checkResults, c core.Clock, tx *sql.Tx) error {
+func createInsightForResults(d *detector, r localrbl.Results, c core.Clock, tx *sql.Tx) error {
 	return generateInsight(tx, c, d.creator, content{
-		ScanInterval: r.interval,
-		Address:      d.options.CheckedAddress.String(),
-		RBLs:         r.rbls,
+		ScanInterval: r.Interval,
+		Address:      d.options.Checker.CheckedIP(),
+		RBLs:         r.RBLs,
 	})
 }
 
@@ -105,7 +75,7 @@ func maybeStartANewScan(d *detector, c core.Clock, tx *sql.Tx) error {
 		return nil
 	}
 
-	d.checker.notifyNewScan(now)
+	d.options.Checker.NotifyNewScan(now)
 
 	if err := core.StoreLastDetectorExecution(tx, "local_rbl_scan_start", now); err != nil {
 		return errorutil.Wrap(err)
@@ -115,7 +85,7 @@ func maybeStartANewScan(d *detector, c core.Clock, tx *sql.Tx) error {
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
-	return d.checker.step(c.Now(), func(r checkResults) error {
+	return d.options.Checker.Step(c.Now(), func(r localrbl.Results) error {
 		// a scan result is available
 		return createInsightForResults(d, r, c, tx)
 	}, func() error {
@@ -148,8 +118,8 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, content{
 		ScanInterval: data.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
-		Address:      d.options.CheckedAddress.String(),
-		RBLs: []contentElem{
+		Address:      d.options.Checker.CheckedIP(),
+		RBLs: []localrbl.ContentElement{
 			{RBL: "rbl.com", Text: "Funny reason"},
 			{RBL: "anotherrbl.de", Text: "Another funny reason"},
 		},

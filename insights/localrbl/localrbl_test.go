@@ -1,7 +1,6 @@
-package localrbl
+package localrblinsight
 
 import (
-	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -10,11 +9,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 )
@@ -28,31 +27,36 @@ type fakeChecker struct {
 	shouldGenerateOnScanCompletion bool
 	timeToCompleteScan             time.Duration
 	scanStartTime                  time.Time
+	checkedIP                      net.IP
 }
 
 func (c *fakeChecker) Close() error {
 	return nil
 }
 
-func (c *fakeChecker) startListening() {
+func (c *fakeChecker) StartListening() {
 	So(c.listening, ShouldBeFalse)
 	c.listening = true
 }
 
-func (c *fakeChecker) notifyNewScan(now time.Time) {
+func (c *fakeChecker) NotifyNewScan(now time.Time) {
 	c.scanStartTime = now
 	So(c.listening, ShouldBeTrue)
 }
 
-func (c *fakeChecker) step(now time.Time, withResults func(checkResults) error, withoutResults func() error) error {
+func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) error, withoutResults func() error) error {
 	if !c.scanStartTime.IsZero() && now.After(c.scanStartTime.Add(c.timeToCompleteScan)) && c.shouldGenerateOnScanCompletion {
-		return withResults(checkResults{
-			interval: data.TimeInterval{From: c.scanStartTime, To: now},
-			rbls:     []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+		return withResults(localrbl.Results{
+			Interval: data.TimeInterval{From: c.scanStartTime, To: now},
+			RBLs:     []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 		})
 	}
 
 	return withoutResults()
+}
+
+func (c *fakeChecker) CheckedIP() net.IP {
+	return c.checkedIP
 }
 
 func TestLocalRBL(t *testing.T) {
@@ -79,13 +83,17 @@ func TestLocalRBL(t *testing.T) {
 
 		checker := &fakeChecker{
 			timeToCompleteScan: time.Second * 10,
+			checkedIP:          net.ParseIP("11.22.33.44"),
 		}
 
-		detector := newDetector(accessor, core.Options{
-			"localrbl": Options{CheckedAddress: net.ParseIP("11.22.33.44"), CheckInterval: time.Second * 10},
-		}, checker)
+		detector := NewDetector(accessor, core.Options{
+			"localrbl": Options{
+				CheckInterval: time.Second * 10,
+				Checker:       checker,
+			},
+		})
 
-		checker.startListening()
+		checker.StartListening()
 
 		defer detector.Close()
 
@@ -161,93 +169,9 @@ func TestLocalRBL(t *testing.T) {
 			So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
 			So(insights[0].Content(), ShouldResemble, &content{
 				ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
-				Address:      "11.22.33.44",
-				RBLs:         []contentElem{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+				Address:      net.ParseIP("11.22.33.44"),
+				RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 			})
-		})
-	})
-}
-
-func TestDnsRBL(t *testing.T) {
-	Convey("Test Local RBL", t, func() {
-		lookup := func(rblList string, targetHost string) godnsbl.RBLResults {
-			time.Sleep(200 * time.Millisecond)
-
-			if !strings.HasSuffix(rblList, "-blocked") {
-				return godnsbl.RBLResults{}
-			}
-
-			return godnsbl.RBLResults{
-				Host:    targetHost,
-				List:    rblList,
-				Results: []godnsbl.Result{{Listed: true, Address: targetHost, Text: "Some Error", Rbl: rblList}},
-			}
-		}
-
-		Convey("Panic on invalid number of workers", func() {
-			So(func() {
-				newDnsChecker(lookup, Options{
-					NumberOfWorkers:  0, // cannot have less than 1 worker!
-					CheckedAddress:   net.ParseIP("11.22.33.44"),
-					RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
-				})
-			}, ShouldPanic)
-		})
-
-		Convey("Not blocked in any lists", func() {
-			checker := newDnsChecker(lookup, Options{
-				NumberOfWorkers:  2,
-				CheckedAddress:   net.ParseIP("11.22.33.44"),
-				RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
-			})
-
-			defer checker.Close()
-
-			checker.startListening()
-
-			baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-
-			checker.notifyNewScan(baseTime)
-
-			time.Sleep(700 * time.Millisecond)
-
-			select {
-			case <-checker.checkerResultsChan:
-				So(false, ShouldBeTrue)
-			default:
-			}
-		})
-
-		Convey("Blocked in some RBLs", func() {
-			checker := newDnsChecker(lookup, Options{
-				NumberOfWorkers:  2,
-				CheckedAddress:   net.ParseIP("11.22.33.44"),
-				RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
-			})
-
-			defer checker.Close()
-
-			checker.startListening()
-
-			baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-
-			checker.notifyNewScan(baseTime)
-
-			time.Sleep(700 * time.Millisecond)
-
-			select {
-			case r := <-checker.checkerResultsChan:
-				So(r.rbls, ShouldResemble, []contentElem{
-					{RBL: "rbl1-blocked", Text: "Some Error"},
-					{RBL: "rbl3-blocked", Text: "Some Error"},
-					{RBL: "rbl4-blocked", Text: "Some Error"},
-				})
-
-				So(r.interval.From, ShouldResemble, baseTime)
-				So(r.interval.To.After(r.interval.From), ShouldBeTrue)
-			default:
-				So(false, ShouldBeTrue)
-			}
 		})
 	})
 }

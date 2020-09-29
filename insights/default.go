@@ -14,7 +14,7 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 		highrate.NewDetector(creator, options),
 		mailinactivity.NewDetector(creator, options),
 		welcome.NewDetector(creator),
-		localrbl.NewDetector(creator, options),
+		localrblinsight.NewDetector(creator, options),
 	}
 }
 
