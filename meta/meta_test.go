@@ -100,6 +100,16 @@ func TestJsonValues(t *testing.T) {
 				err := handler.RetrieveJson("key1", &readValue)
 				So(err, ShouldNotBeNil)
 			})
+
+			Convey("Update value", func() {
+				_, err = handler.StoreJson("key1", []string{"one", "two"})
+				So(err, ShouldBeNil)
+
+				var retrieved []string
+				err := handler.RetrieveJson("key1", &retrieved)
+				So(err, ShouldBeNil)
+				So(retrieved, ShouldResemble, []string{"one", "two"})
+			})
 		})
 	})
 }

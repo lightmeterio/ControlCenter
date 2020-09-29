@@ -32,7 +32,7 @@ func (h *MetadataHandler) Close() error {
 }
 
 type Item struct {
-	Key   string
+	Key   interface{}
 	Value interface{}
 }
 
@@ -88,7 +88,7 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 	return Result{}, nil
 }
 
-func retrieve(h *MetadataHandler, key string, value interface{}) error {
+func retrieve(h *MetadataHandler, key interface{}, value interface{}) error {
 	err := h.conn.RoConn.QueryRow(`select value from meta where key = ?`, key).Scan(value)
 
 	if err == nil {
@@ -102,7 +102,7 @@ func retrieve(h *MetadataHandler, key string, value interface{}) error {
 	return errorutil.Wrap(err)
 }
 
-func (h *MetadataHandler) Retrieve(key string) (interface{}, error) {
+func (h *MetadataHandler) Retrieve(key interface{}) (interface{}, error) {
 	var v interface{}
 
 	if err := retrieve(h, key, &v); err != nil {
@@ -113,29 +113,39 @@ func (h *MetadataHandler) Retrieve(key string) (interface{}, error) {
 }
 
 func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result, error) {
-	stmt, err := h.conn.RwConn.Prepare(`insert into meta(key, value) values(?, ?)`)
+	tx, err := h.conn.RwConn.Begin()
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(stmt.Close(), "") }()
+	defer func() {
+		if err != nil {
+			errorutil.MustSucceed(tx.Rollback(), "")
+		}
+	}()
 
 	jsonBlob, err := json.Marshal(value)
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	_, err = stmt.Exec(key, string(jsonBlob))
+	r, err := Store(tx, []Item{{Key: key, Value: string(jsonBlob)}})
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	return Result{}, nil
+	err = tx.Commit()
+
+	if err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return r, nil
 }
 
-func (h *MetadataHandler) RetrieveJson(key string, values interface{}) error {
+func (h *MetadataHandler) RetrieveJson(key interface{}, values interface{}) error {
 	reflectValues := reflect.ValueOf(values)
 
 	if reflectValues.Kind() != reflect.Ptr {
