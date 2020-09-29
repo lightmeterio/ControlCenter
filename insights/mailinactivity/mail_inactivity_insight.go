@@ -159,11 +159,15 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
-	return execChecksForMailInactivity(d, c, tx)
-}
+	if err := execChecksForMailInactivity(d, c, tx); err != nil {
+		return errorutil.Wrap(err)
+	}
 
-func (d *detector) Steppers() []core.Stepper {
-	return []core.Stepper{d, d.generator}
+	if err := d.generator.Step(c, tx); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
 }
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval data.TimeInterval) error {
