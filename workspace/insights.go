@@ -17,7 +17,8 @@ func insightsOptions(dashboard dashboard.Dashboard) insightscore.Options {
 		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
 
 		"localrbl": localrblinsight.Options{
-			CheckInterval:    time.Second * 30,
+			NumberOfWorkers:  10,
+			CheckInterval:    time.Hour * 3,
 			RBLProvidersURLs: localrblinsight.DefaultRBLs,
 			CheckedAddress:   net.ParseIP("127.0.0.2"),
 		},
