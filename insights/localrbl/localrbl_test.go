@@ -184,8 +184,19 @@ func TestDnsRBL(t *testing.T) {
 			}
 		}
 
+		Convey("Panic on invalid number of workers", func() {
+			So(func() {
+				newDnsChecker(lookup, Options{
+					NumberOfWorkers:  0, // cannot have less than 1 worker!
+					CheckedAddress:   net.ParseIP("11.22.33.44"),
+					RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
+				})
+			}, ShouldPanic)
+		})
+
 		Convey("Not blocked in any lists", func() {
 			checker := newDnsChecker(lookup, Options{
+				NumberOfWorkers:  2,
 				CheckedAddress:   net.ParseIP("11.22.33.44"),
 				RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
 			})
@@ -198,7 +209,7 @@ func TestDnsRBL(t *testing.T) {
 
 			checker.notifyNewScan(baseTime)
 
-			time.Sleep(600 * time.Millisecond)
+			time.Sleep(700 * time.Millisecond)
 
 			select {
 			case <-checker.checkerResultsChan:
@@ -209,6 +220,7 @@ func TestDnsRBL(t *testing.T) {
 
 		Convey("Blocked in some RBLs", func() {
 			checker := newDnsChecker(lookup, Options{
+				NumberOfWorkers:  2,
 				CheckedAddress:   net.ParseIP("11.22.33.44"),
 				RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
 			})
@@ -221,7 +233,7 @@ func TestDnsRBL(t *testing.T) {
 
 			checker.notifyNewScan(baseTime)
 
-			time.Sleep(600 * time.Millisecond)
+			time.Sleep(700 * time.Millisecond)
 
 			select {
 			case r := <-checker.checkerResultsChan:

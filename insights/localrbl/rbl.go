@@ -26,6 +26,7 @@ type content struct {
 const ContentType = "local_rbl_check"
 
 type Options struct {
+	NumberOfWorkers  int
 	CheckedAddress   net.IP
 	CheckInterval    time.Duration
 	RBLProvidersURLs []string

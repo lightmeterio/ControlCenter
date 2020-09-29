@@ -4,7 +4,6 @@ import (
 	"github.com/mrichman/godnsbl"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"log"
-	"sync"
 	"time"
 )
 
@@ -24,6 +23,10 @@ type dnsChecker struct {
 }
 
 func newDnsChecker(lookup func(string, string) godnsbl.RBLResults, options Options) *dnsChecker {
+	if options.NumberOfWorkers < 1 {
+		log.Panicln("DnsChecker should have a number of workers greater than 1 and not", options.NumberOfWorkers, "!")
+	}
+
 	return &dnsChecker{
 		checkerStartChan:   make(chan time.Time, 32),
 		checkerResultsChan: make(chan checkResults),
@@ -42,10 +45,7 @@ func (c *dnsChecker) startListening() {
 }
 
 func (c *dnsChecker) notifyNewScan(t time.Time) {
-	// signal a new scan
-	log.Println("Started notifying a new scan from the insights main loop!")
 	c.checkerStartChan <- t
-	log.Println("Finished notifying a new scan from the insights main loop!")
 }
 
 func (c *dnsChecker) step(_ time.Time, withResults func(checkResults) error, withoutResults func() error) error {
@@ -57,9 +57,15 @@ func (c *dnsChecker) step(_ time.Time, withResults func(checkResults) error, wit
 	}
 }
 
-func startNewScan(checker *dnsChecker, t time.Time) {
-	wg := &sync.WaitGroup{}
+// Honestly, this is almost copy&paste of https://gobyexample.com/worker-pools
+func worker(jobs <-chan func(), results chan<- struct{}) {
+	for job := range jobs {
+		job()
+		results <- struct{}{}
+	}
+}
 
+func startNewScan(checker *dnsChecker, t time.Time) {
 	type queryResult = godnsbl.Result
 
 	results := make([]queryResult, len(checker.options.RBLProvidersURLs))
@@ -70,21 +76,30 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	scanStartTime := time.Now()
 
+	jobsChan := make(chan func(), len(checker.options.RBLProvidersURLs))
+	resultsChan := make(chan struct{}, len(checker.options.RBLProvidersURLs))
+
+	for w := 0; w < checker.options.NumberOfWorkers; w++ {
+		go worker(jobsChan, resultsChan)
+	}
+
 	for i, rbl := range checker.options.RBLProvidersURLs {
-		wg.Add(1)
+		jobsChan <- func(i int, rbl string) func() {
+			return func() {
+				r := checker.lookup(rbl, ip)
 
-		go func(i int, rbl string) {
-			defer wg.Done()
-
-			r := checker.lookup(rbl, ip)
-
-			if len(r.Results) > 0 {
-				results[i] = r.Results[0]
+				if len(r.Results) > 0 {
+					results[i] = r.Results[0]
+				}
 			}
 		}(i, rbl)
 	}
 
-	wg.Wait()
+	close(jobsChan)
+
+	for range checker.options.RBLProvidersURLs {
+		<-resultsChan
+	}
 
 	scanEndTime := time.Now()
 
@@ -111,9 +126,6 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 func spawnChecker(checker *dnsChecker) {
 	for t := range checker.checkerStartChan {
-		log.Println("RBL Checker goroutine received notification for a new scan!")
 		go startNewScan(checker, t)
 	}
-
-	log.Println("RBL Checker goroutine asked to stop!")
 }
