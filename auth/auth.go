@@ -178,7 +178,9 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	err := r.meta.RetrieveJson("session_key", &keys)
 
-	errorutil.MustSucceed(err, "Obtaining session keys from database")
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		errorutil.MustSucceed(err, "Obtaining session keys from database")
+	}
 
 	if len(keys) > 0 {
 		return keys
