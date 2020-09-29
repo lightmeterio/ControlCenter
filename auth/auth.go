@@ -174,39 +174,23 @@ func generateKeys() ([][]byte, error) {
 }
 
 func (r *Auth) SessionKeys() [][]byte {
-	values, err := r.meta.Retrieve("session_key")
+	keys := [][]byte{}
+
+	err := r.meta.RetrieveJson("session_key", &keys)
 
 	errorutil.MustSucceed(err, "Obtaining session keys from database")
 
-	if len(values) > 0 {
-		keys := [][]byte{}
-
-		for _, v := range values {
-			k, ok := v.([]byte)
-
-			if !ok {
-				panic("Wrong value for session_key!")
-			}
-
-			keys = append(keys, k)
-		}
-
+	if len(keys) > 0 {
 		return keys
 	}
 
-	keys, err := generateKeys()
+	keys, err = generateKeys()
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	items := []meta.Item{}
+	_, err = r.meta.StoreJson("session_key", keys)
 
-	for _, k := range keys {
-		items = append(items, meta.Item{Key: "session_key", Value: k})
-	}
-
-	_, err = r.meta.Store(items)
-
-	errorutil.MustSucceed(err, "Storing session keys")
+	errorutil.MustSucceed(err, "Generating session keys")
 
 	return keys
 }
