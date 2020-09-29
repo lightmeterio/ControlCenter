@@ -72,11 +72,7 @@ func newDetector(creator core.Creator, options core.Options, checker checker) *d
 }
 
 func NewDetector(creator core.Creator, options core.Options) *detector {
-	checker := &dnsChecker{
-		checkerStartChan:   make(chan struct{}, 32),
-		checkerResultsChan: make(chan checkResults),
-		options:            getDetectorOptions(options),
-	}
+	checker := newDnsChecker(defaultLookup, getDetectorOptions(options))
 
 	checker.startListening()
 

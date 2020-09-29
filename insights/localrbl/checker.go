@@ -11,10 +11,24 @@ var (
 	DefaultRBLs = godnsbl.Blacklists
 )
 
+var (
+	defaultLookup = godnsbl.Lookup
+)
+
 type dnsChecker struct {
 	checkerStartChan   chan struct{}
 	checkerResultsChan chan checkResults
 	options            Options
+	lookup             func(string, string) godnsbl.RBLResults
+}
+
+func newDnsChecker(lookup func(string, string) godnsbl.RBLResults, options Options) *dnsChecker {
+	return &dnsChecker{
+		checkerStartChan:   make(chan struct{}, 32),
+		checkerResultsChan: make(chan checkResults),
+		options:            options,
+		lookup:             lookup,
+	}
 }
 
 func (c *dnsChecker) Close() error {
@@ -59,7 +73,7 @@ func startNewScan(checker *dnsChecker) {
 		go func(i int, rbl string) {
 			defer wg.Done()
 
-			r := godnsbl.Lookup(rbl, ip)
+			r := checker.lookup(rbl, ip)
 
 			if len(r.Results) > 0 {
 				results[i] = r.Results[0]
