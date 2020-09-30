@@ -3,12 +3,16 @@ package meta
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
-	"reflect"
-
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"reflect"
+)
+
+var (
+	ErrNoSuchKey = errors.New("No Such Key")
 )
 
 type MetadataHandler struct {
@@ -28,7 +32,7 @@ func (h *MetadataHandler) Close() error {
 }
 
 type Item struct {
-	Key   string
+	Key   interface{}
 	Value interface{}
 }
 
@@ -64,18 +68,19 @@ func (h *MetadataHandler) Store(items []Item) (Result, error) {
 }
 
 func Store(tx *sql.Tx, items []Item) (Result, error) {
-	stmt, err := tx.Prepare(`insert into meta(key, value) values(?, ?)`)
-
-	if err != nil {
-		return Result{}, errorutil.Wrap(err)
-	}
-
-	defer func() { errorutil.MustSucceed(stmt.Close(), "") }()
-
 	for _, i := range items {
-		_, err := stmt.Exec(i.Key, i.Value)
+		var id int
+		err := tx.QueryRow(`select rowid from meta where key = ?`, i.Key).Scan(&id)
 
-		if err != nil {
+		query, args := func() (string, []interface{}) {
+			if errors.Is(err, sql.ErrNoRows) {
+				return `insert into meta(key, value) values(?, ?)`, []interface{}{i.Key, i.Value}
+			}
+
+			return `update meta set value = ? where rowid = ?`, []interface{}{i.Value, id}
+		}()
+
+		if _, err := tx.Exec(query, args...); err != nil {
 			return Result{}, errorutil.Wrap(err)
 		}
 	}
@@ -83,77 +88,72 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 	return Result{}, nil
 }
 
-// NOTE: For some reason, rowserrcheck is not able to see that q.Err() is being called,
-// so we disable the check here until the linter is fixed or someone finds the bug in this
-// code.
-//nolint:rowserrcheck
-func (h *MetadataHandler) Retrieve(key string) ([]interface{}, error) {
-	rows, err := h.conn.RoConn.Query(`select value from meta where key = ?`, key)
+func retrieve(h *MetadataHandler, key interface{}, value interface{}) error {
+	err := h.conn.RoConn.QueryRow(`select value from meta where key = ?`, key).Scan(value)
 
-	if err != nil {
-		return []interface{}{}, errorutil.Wrap(err)
+	if err == nil {
+		return nil
 	}
 
-	defer func() { errorutil.MustSucceed(rows.Close(), "") }()
-
-	results := []interface{}{}
-
-	for rows.Next() {
-		var v interface{}
-		err = rows.Scan(&v)
-
-		if err != nil {
-			return []interface{}{}, errorutil.Wrap(err)
-		}
-
-		results = append(results, v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNoSuchKey
 	}
 
-	err = rows.Err()
+	return errorutil.Wrap(err)
+}
 
-	if err != nil {
-		return []interface{}{}, errorutil.Wrap(err)
+func (h *MetadataHandler) Retrieve(key interface{}) (interface{}, error) {
+	var v interface{}
+
+	if err := retrieve(h, key, &v); err != nil {
+		return nil, errorutil.Wrap(err)
 	}
 
-	return results, nil
+	return v, nil
 }
 
 func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result, error) {
-	stmt, err := h.conn.RwConn.Prepare(`insert into meta(key, value) values(?, ?)`)
+	tx, err := h.conn.RwConn.Begin()
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(stmt.Close(), "") }()
+	defer func() {
+		if err != nil {
+			errorutil.MustSucceed(tx.Rollback(), "")
+		}
+	}()
 
 	jsonBlob, err := json.Marshal(value)
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	_, err = stmt.Exec(key, string(jsonBlob))
+	r, err := Store(tx, []Item{{Key: key, Value: string(jsonBlob)}})
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
-	return Result{}, nil
+	err = tx.Commit()
+
+	if err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return r, nil
 }
 
-func (h *MetadataHandler) RetrieveJson(key string, values interface{}) error {
+func (h *MetadataHandler) RetrieveJson(key interface{}, values interface{}) error {
 	reflectValues := reflect.ValueOf(values)
 
 	if reflectValues.Kind() != reflect.Ptr {
 		panic("values isn't a pointer")
 	}
 
-	row := h.conn.RoConn.QueryRow(`select value from meta where key = ?`, key)
-
 	var v string
-	err := row.Scan(&v)
-
-	if err != nil {
+	if err := retrieve(h, key, &v); err != nil {
 		return errorutil.Wrap(err)
 	}
 

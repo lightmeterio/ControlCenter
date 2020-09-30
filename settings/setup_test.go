@@ -112,13 +112,11 @@ func TestInitialSetup(t *testing.T) {
 
 			r, err := meta.Retrieve("mail_kind")
 			So(err, ShouldBeNil)
-			So(len(r), ShouldEqual, 1)
-			So(r[0], ShouldEqual, MailKindMarketing)
+			So(r, ShouldEqual, MailKindMarketing)
 
 			r, err = meta.Retrieve("subscribe_newsletter")
 			So(err, ShouldBeNil)
-			So(len(r), ShouldEqual, 1)
-			So(r[0], ShouldEqual, 1)
+			So(r, ShouldEqual, 1)
 		})
 
 		Convey("Succeeds not subscribing", func() {
@@ -133,13 +131,11 @@ func TestInitialSetup(t *testing.T) {
 
 			r, err := meta.Retrieve("mail_kind")
 			So(err, ShouldBeNil)
-			So(len(r), ShouldEqual, 1)
-			So(r[0], ShouldEqual, MailKindTransactional)
+			So(r, ShouldEqual, MailKindTransactional)
 
 			r, err = meta.Retrieve("subscribe_newsletter")
 			So(err, ShouldBeNil)
-			So(len(r), ShouldEqual, 1)
-			So(r[0], ShouldEqual, 0)
+			So(r, ShouldEqual, 0)
 		})
 	})
 }
