@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -22,11 +21,6 @@ type countByStatusHandler handler
 
 type countByStatusResult map[string]int
 
-func serveError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Println(err)
-	w.WriteHeader(http.StatusInternalServerError)
-}
-
 // @Summary Count By Status
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
@@ -34,28 +28,25 @@ func serveError(w http.ResponseWriter, r *http.Request, err error) {
 // @Success 200 {object} countByStatusResult "desc"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/countByStatus [get]
-func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	sent, err := h.dashboard.CountByStatus(parser.SentStatus, interval)
 	if err != nil {
-		serveError(w, r, err)
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	deferred, err := h.dashboard.CountByStatus(parser.DeferredStatus, interval)
 	if err != nil {
-		serveError(w, r, err)
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	bounced, err := h.dashboard.CountByStatus(parser.BouncedStatus, interval)
 	if err != nil {
-		serveError(w, r, err)
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	serveJson(w, r, countByStatusResult{
+	return serveJson(w, r, countByStatusResult{
 		"sent":     sent,
 		"deferred": deferred,
 		"bounced":  bounced,
@@ -66,14 +57,13 @@ func servePairsFromTimeInterval(
 	w http.ResponseWriter,
 	r *http.Request,
 	f func(data.TimeInterval) (dashboard.Pairs, error),
-	interval data.TimeInterval) {
+	interval data.TimeInterval) error {
 	pairs, err := f(interval)
 	if err != nil {
-		serveError(w, r, err)
-		return
+		return err
 	}
 
-	serveJson(w, r, pairs)
+	return serveJson(w, r, pairs)
 }
 
 type topBusiestDomainsHandler handler
@@ -85,9 +75,9 @@ type topBusiestDomainsHandler handler
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topBusiestDomains [get]
-func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h topBusiestDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	servePairsFromTimeInterval(w, r, h.dashboard.TopBusiestDomains, interval)
+	return servePairsFromTimeInterval(w, r, h.dashboard.TopBusiestDomains, interval)
 }
 
 type topBouncedDomainsHandler handler
@@ -99,9 +89,9 @@ type topBouncedDomainsHandler handler
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topBouncedDomains [get]
-func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h topBouncedDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	servePairsFromTimeInterval(w, r, h.dashboard.TopBouncedDomains, interval)
+	return servePairsFromTimeInterval(w, r, h.dashboard.TopBouncedDomains, interval)
 }
 
 type topDeferredDomainsHandler handler
@@ -113,9 +103,9 @@ type topDeferredDomainsHandler handler
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/topDeferredDomains [get]
-func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h topDeferredDomainsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	servePairsFromTimeInterval(w, r, h.dashboard.TopDeferredDomains, interval)
+	return servePairsFromTimeInterval(w, r, h.dashboard.TopDeferredDomains, interval)
 }
 
 type deliveryStatusHandler handler
@@ -127,9 +117,9 @@ type deliveryStatusHandler handler
 // @Success 200 {object} dashboard.Pairs
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/deliveryStatus [get]
-func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
-	servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
+	return servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
 type appVersionHandler struct{}
@@ -144,15 +134,16 @@ type appVersion struct {
 // @Produce json
 // @Success 200 {object} appVersion
 // @Router /api/v0/appVersion [get]
-func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	serveJson(w, r, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch})
+func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	return serveJson(w, r, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch})
 }
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	mux.Handle("/api/v0/countByStatus", httpmiddleware.RequestWithInterval(timezone)(countByStatusHandler{dashboard}))
-	mux.Handle("/api/v0/topBusiestDomains", httpmiddleware.RequestWithInterval(timezone)(topBusiestDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topBouncedDomains", httpmiddleware.RequestWithInterval(timezone)(topBouncedDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topDeferredDomains", httpmiddleware.RequestWithInterval(timezone)(topDeferredDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/deliveryStatus", httpmiddleware.RequestWithInterval(timezone)(deliveryStatusHandler{dashboard}))
-	mux.Handle("/api/v0/appVersion", appVersionHandler{})
+	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(timezone))
+	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
+	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topDeferredDomains", chain.WithEndpoint(topDeferredDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/deliveryStatus", chain.WithEndpoint(deliveryStatusHandler{dashboard}))
+	mux.Handle("/api/v0/appVersion", chain.WithError(appVersionHandler{}))
 }

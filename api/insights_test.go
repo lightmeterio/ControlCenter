@@ -63,19 +63,19 @@ func TestInsights(t *testing.T) {
 		return i
 	}
 
-	mw := httpmiddleware.RequestWithInterval(time.UTC)
+	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
 
 
 	Convey("Test Insights", t, func() {
 		Convey("Missing mandatory arguments", func() {
-			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
+			s := httptest.NewServer(chain.WithEndpoint(fetchInsightsHandler{f: f}))
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("Number of entries cannot be negative", func() {
-			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
+			s := httptest.NewServer(chain.WithEndpoint(fetchInsightsHandler{f: f}))
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&order=creationDesc&entries=-42", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
@@ -107,7 +107,7 @@ func TestInsights(t *testing.T) {
 				},
 			}, nil)
 
-			s := httptest.NewServer(mw(fetchInsightsHandler{f: f}))
+			s := httptest.NewServer(chain.WithEndpoint(fetchInsightsHandler{f: f}))
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&order=creationDesc", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
