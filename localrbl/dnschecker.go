@@ -3,10 +3,19 @@ package localrbl
 import (
 	"github.com/mrichman/godnsbl"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"log"
 	"net"
 	"time"
 )
+
+const (
+	SettingsKey = "localrbl"
+)
+
+type Settings struct {
+	LocalIP net.IP `json:"local_ip"`
+}
 
 var (
 	DefaultRBLs = godnsbl.Blacklists
@@ -22,27 +31,40 @@ type dnsChecker struct {
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
+	meta               *meta.MetadataHandler
 }
 
-func newDnsChecker(options Options) *dnsChecker {
+func newDnsChecker(meta *meta.MetadataHandler, options Options) *dnsChecker {
 	if options.NumberOfWorkers < 1 {
 		log.Panicln("DnsChecker should have a number of workers greater than 1 and not", options.NumberOfWorkers, "!")
+	}
+
+	if options.Lookup == nil {
+		log.Panicln("Lookup function not defined!")
 	}
 
 	return &dnsChecker{
 		checkerStartChan:   make(chan time.Time, 32),
 		checkerResultsChan: make(chan Results),
 		options:            options,
+		meta:               meta,
 	}
 }
 
-func NewChecker(options Options) Checker {
-	return newDnsChecker(options)
+func NewChecker(meta *meta.MetadataHandler, options Options) Checker {
+	return newDnsChecker(meta, options)
 }
 
 func (c *dnsChecker) CheckedIP() net.IP {
-	// TODO: obtain such value from the application settings!
-	return c.options.CheckedAddress
+	var settings Settings
+	err := c.meta.RetrieveJson(SettingsKey, &settings)
+
+	if err != nil {
+		// If we cannot obtain the ip address, just chicken out
+		return nil
+	}
+
+	return settings.LocalIP
 }
 
 func (c *dnsChecker) Close() error {
@@ -80,7 +102,12 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	results := make([]queryResult, len(checker.options.RBLProvidersURLs))
 
-	ip := checker.options.CheckedAddress.String()
+	ip := checker.CheckedIP()
+
+	if ip == nil {
+		// Do not perform a scan if the user has not configured an IP
+		return
+	}
 
 	log.Println("Starting a new RBL scan on IP", ip)
 
@@ -96,7 +123,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 	for i, rbl := range checker.options.RBLProvidersURLs {
 		jobsChan <- func(i int, rbl string) func() {
 			return func() {
-				r := checker.options.Lookup(rbl, ip)
+				r := checker.options.Lookup(rbl, ip.String())
 
 				if len(r.Results) > 0 {
 					results[i] = r.Results[0]

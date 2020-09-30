@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"net"
 	"os"
 	"path"
 	"time"
@@ -74,10 +73,8 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 	// TODO: use an actual notification center!
 	notificationCenter := &dummyNotificationCenter{}
 
-	rblChecker := localrbl.NewChecker(localrbl.Options{
-		NumberOfWorkers: 10,
-		// TODO: obtain IP from settings!
-		CheckedAddress:   net.ParseIP("127.0.0.2"),
+	rblChecker := localrbl.NewChecker(m, localrbl.Options{
+		NumberOfWorkers:  10,
 		Lookup:           localrbl.RealLookup,
 		RBLProvidersURLs: localrbl.DefaultRBLs,
 	})

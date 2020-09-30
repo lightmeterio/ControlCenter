@@ -9,7 +9,6 @@ import (
 
 type Options struct {
 	NumberOfWorkers  int
-	CheckedAddress   net.IP
 	RBLProvidersURLs []string
 	Lookup           DNSLookupFunction
 }
