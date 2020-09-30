@@ -13,7 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -25,8 +24,8 @@ func init() {
 
 func TestMailInactivityDetectorInsight(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		ctrl := gomock.NewController(t)
 

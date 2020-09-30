@@ -2,23 +2,21 @@ package subcommand
 
 import (
 	"database/sql"
+	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"path"
 	"testing"
 )
-
 
 func init() {
 	migrator.AddMigration("dummy", "1_dummy_table.go", UpTable, DownTable)
 }
 
 func UpTable(tx *sql.Tx) error {
-
 	sql := `create table if not exists dummy(
 		key string,
 		value blob
@@ -35,19 +33,17 @@ func DownTable(tx *sql.Tx) error {
 	return nil
 }
 
-
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
 func TestDatabaseMigrationUp(t *testing.T) {
-
 	Convey("Migration succeeds", t, func() {
-
 		Convey("Run dummy migrations", func() {
-			workspace := testutil.TempDir()
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
 
-			dbPath := path.Join(workspace, "dummy.db")
+			dbPath := path.Join(dir, "dummy.db")
 
 			connPair, err := dbconn.NewConnPair(dbPath)
 			So(err, ShouldBeNil)
@@ -55,7 +51,7 @@ func TestDatabaseMigrationUp(t *testing.T) {
 			err = migrator.Run(connPair.RwConn.DB, "dummy")
 			So(err, ShouldBeNil)
 
-			PerformMigrateDownTo(true, workspace, "dummy", 0)
+			PerformMigrateDownTo(true, dir, "dummy", 0)
 		})
 	})
 }

@@ -9,7 +9,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -34,12 +33,11 @@ func (s *fakeNewsletterSubscriber) Subscribe(context context.Context, email stri
 }
 
 func TestInitialSetup(t *testing.T) {
-
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)
@@ -66,8 +64,8 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)

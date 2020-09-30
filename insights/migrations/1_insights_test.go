@@ -16,10 +16,12 @@ func init() {
 }
 
 func TestDatabaseMigrationUp(t *testing.T) {
-
 	Convey("Migration succeeds", t, func() {
 		Convey("Run migrations", func() {
-			connPair, err := dbconn.NewConnPair(path.Join(testutil.TempDir(), "insights.db"))
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
+
+			connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
 			So(err, ShouldBeNil)
 
 			err = migrator.Run(connPair.RwConn.DB, "insights")
