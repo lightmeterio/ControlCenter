@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -24,7 +25,7 @@ type fetchInsightsHandler struct {
 // @Success 200 {object} fetchedInsight
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchInsights [get]
-func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	filter := core.BuildFilterByName(r.Form.Get("filter"))
@@ -42,13 +43,11 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	if err != nil {
-		http.Error(w, "Invalid entries query value:\" "+err.Error()+"\"", http.StatusBadRequest)
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value:\" "+err.Error()+"\""))
 	}
 
 	if entries < 0 {
-		http.Error(w, "Invalid entries query value: negative value", http.StatusBadRequest)
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value: negative value"))
 	}
 
 	fetchedInsights, err := h.f.FetchInsights(core.FetchOptions{
@@ -76,7 +75,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		insights = append(insights, i)
 	}
 
-	serveJson(w, r, insights)
+	return serveJson(w, r, insights)
 }
 
 type fetchedInsight struct {
@@ -91,5 +90,6 @@ type fetchedInsight struct {
 type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
-	mux.Handle("/api/v0/fetchInsights", httpmiddleware.RequestWithInterval(timezone)(fetchInsightsHandler{f: f}))
+	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(timezone))
+	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f}))
 }

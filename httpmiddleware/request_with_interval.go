@@ -30,26 +30,23 @@ func getIntervalFromContext(ctx context.Context) (data.TimeInterval, error) {
 	return interval, nil
 }
 
-func RequestWithInterval(timezone *time.Location) func(h http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func RequestWithInterval(timezone *time.Location) Middleware {
+	return func(h CustomHTTPHandler) CustomHTTPHandler {
+		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 			if r.ParseForm() != nil {
-				http.Error(w, "Wrong input", http.StatusUnprocessableEntity)
-				return
+				return NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Wrong Input"))
 			}
 
 			interval, err := intervalFromForm(timezone, r.Form)
 
 			if err != nil {
-				http.Error(w, "Error parsing time interval:\""+err.Error()+"\"", http.StatusUnprocessableEntity)
-				return
+				return NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Error parsing time interval:\""+err.Error()+"\""))
 			}
-
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, Interval("interval"), interval)
 			r = r.WithContext(ctx)
 
-			h.ServeHTTP(w, r)
+			return h.ServeHTTP(w, r)
 		})
 	}
 }
