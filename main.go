@@ -3,9 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/version"
 	"log"
 	"os"
 	"time"
@@ -13,35 +16,28 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logdb"
-	"gitlab.com/lightmeter/controlcenter/logeater"
-	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
-	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
-var (
-	shouldWatchFromStdin      bool
-	workspaceDirectory        string
-	importOnly                bool
-	migrateDownToOnly         bool
-	migrateDownToVersion      int
-	migrateDownToDatabaseName string
-	showVersion               bool
-	dirToWatch                string
-	address                   string
-	verbose                   bool
-	emailToPasswdReset        string
-	passwordToReset           string
+func main() {
+	var (
+		shouldWatchFromStdin      bool
+		workspaceDirectory        string
+		importOnly                bool
+		migrateDownToOnly         bool
+		migrateDownToVersion      int
+		migrateDownToDatabaseName string
+		showVersion               bool
+		dirToWatch                string
+		address                   string
+		verbose                   bool
+		emailToPasswdReset        string
+		passwordToReset           string
 
-	timezone *time.Location = time.UTC
-	logYear  int
-)
+		timezone *time.Location = time.UTC
+		logYear  int
+	)
 
-func printVersion() {
-	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
-}
-
-func init() {
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
@@ -65,42 +61,7 @@ func init() {
 		fmt.Fprintf(os.Stdout, "\n Flag set: \n\n")
 		flag.PrintDefaults()
 	}
-}
 
-func runWatchingDirectory(ws *workspace.Workspace) {
-	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
-
-	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening directory:", dirToWatch)
-	}
-
-	initialTime := ws.MostRecentLogTime()
-
-	func() {
-		if initialTime.IsZero() {
-			log.Println("Start importing Postfix logs directory into a new workspace")
-			return
-		}
-
-		log.Println("Importing Postfix logs directory from time", initialTime)
-	}()
-
-	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
-
-	go func() {
-		if err := watcher.Run(); err != nil {
-			fmt.Println(err)
-			errorutil.Die(verbose, errorutil.Wrap(err), "Error watching directory:", dirToWatch)
-		}
-	}()
-}
-
-func watchFromStdin(ws *workspace.Workspace) {
-	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
-	go logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, os.Stdin)
-}
-
-func main() {
 	flag.Parse()
 
 	if showVersion {
@@ -141,12 +102,12 @@ func main() {
 
 	func() {
 		if len(dirToWatch) > 0 {
-			runWatchingDirectory(&ws)
+			runWatchingDirectory(&ws, dirToWatch, verbose)
 			return
 		}
 
 		if shouldWatchFromStdin {
-			watchFromStdin(&ws)
+			watchFromStdin(&ws, logYear, timezone)
 			return
 		}
 	}()
@@ -159,4 +120,41 @@ func main() {
 	}
 
 	errorutil.MustSucceed(httpServer.Start(), "server died")
+}
+
+func printVersion() {
+	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
+}
+
+func runWatchingDirectory(ws *workspace.Workspace, dirToWatch string, verbose bool) {
+	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
+
+	if err != nil {
+		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening directory:", dirToWatch)
+	}
+
+	initialTime := ws.MostRecentLogTime()
+
+	func() {
+		if initialTime.IsZero() {
+			log.Println("Start importing Postfix logs directory into a new workspace")
+			return
+		}
+
+		log.Println("Importing Postfix logs directory from time", initialTime)
+	}()
+
+	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
+
+	go func() {
+		if err := watcher.Run(); err != nil {
+			fmt.Println(err)
+			errorutil.Die(verbose, errorutil.Wrap(err), "Error watching directory:", dirToWatch)
+		}
+	}()
+}
+
+func watchFromStdin(ws *workspace.Workspace, logYear int, timezone *time.Location) {
+	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
+	go logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, os.Stdin)
 }
