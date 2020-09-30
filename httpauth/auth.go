@@ -2,9 +2,9 @@ package httpauth
 
 import (
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"log"
 	"mime"
 	"net/http"
@@ -147,23 +147,6 @@ type loginResponse struct {
 	Error string
 }
 
-func writeJsonResponse(w http.ResponseWriter, response interface{}, status int) {
-	encodedJson, err := json.Marshal(response)
-
-	if err != nil {
-		log.Println("Error encoding registration error json response", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
-	}
-
-	w.Header()["Content-Type"] = []string{"application/json"}
-
-	w.WriteHeader(status)
-
-	_, _ = w.Write(encodedJson)
-}
-
 func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.Request, session *sessions.Session) {
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
@@ -179,7 +162,13 @@ func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.R
 	}
 
 	if !authOk {
-		writeJsonResponse(w, loginResponse{Error: "Invalid email address or password"}, http.StatusUnauthorized)
+		if err := httputil.WriteJson(w, loginResponse{Error: "Invalid email address or password"}, http.StatusUnauthorized); err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
 		auth.handlers.LoginFailure(w, r)
 
 		return
@@ -192,7 +181,12 @@ func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	writeJsonResponse(w, loginResponse{Error: ""}, http.StatusOK)
+	if err := httputil.WriteJson(w, loginResponse{Error: ""}, http.StatusOK); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }
 
 func handleFormSubmissionOnSession(
@@ -250,7 +244,12 @@ func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request
 		}(),
 	}
 
-	writeJsonResponse(w, response, http.StatusUnauthorized)
+	if err := httputil.WriteJson(w, response, http.StatusUnauthorized); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }
 
 func extractRegistrationFormInfo(r *http.Request) (string, string, string, error) {
@@ -289,7 +288,12 @@ func handleRegistrationSubmission(auth *Authenticator, w http.ResponseWriter, r 
 		return
 	}
 
-	writeJsonResponse(w, registrationResponse{}, http.StatusOK)
+	if err := httputil.WriteJson(w, registrationResponse{}, http.StatusOK); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }
 
 func handleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
 	"strconv"
 	"time"
@@ -75,7 +76,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		insights = append(insights, i)
 	}
 
-	return serveJson(w, r, insights)
+	return httputil.WriteJson(w, insights, http.StatusOK)
 }
 
 type fetchedInsight struct {
