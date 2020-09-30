@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+// ConvertToCloser is exported to some tests
+// nolint:golint
 func ConvertToCloser(close func() error) *closer {
 	if close == nil {
 		panic("close is nil")

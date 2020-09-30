@@ -16,7 +16,7 @@ func (*detector) Close() error {
 	return nil
 }
 
-func NewDetector(creator core.Creator) *detector {
+func NewDetector(creator core.Creator) core.Detector {
 	return &detector{creator}
 }
 

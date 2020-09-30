@@ -1,5 +1,7 @@
 package version
 
 var (
-	Version, TagOrBranch, Commit string
+	Version     string
+	TagOrBranch string
+	Commit      string
 )

@@ -63,6 +63,7 @@ func TryToUnwrap(err error) error {
 
 // Dive into wrapped errors from src until return an error that casts to
 // the target error or such error is not found
+// nolint:golint
 func ErrorAs(src error, target error) (error, bool) {
 	if target == nil {
 		return nil, false
