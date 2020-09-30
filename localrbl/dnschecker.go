@@ -149,7 +149,6 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 	}
 
 	if len(rbls) == 0 {
-		log.Println("I am not in any lists!")
 		return
 	}
 

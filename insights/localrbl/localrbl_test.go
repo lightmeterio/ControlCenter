@@ -86,7 +86,7 @@ func TestLocalRBL(t *testing.T) {
 			checkedIP:          net.ParseIP("11.22.33.44"),
 		}
 
-		detector := NewDetector(accessor, core.Options{
+		d := NewDetector(accessor, core.Options{
 			"localrbl": Options{
 				CheckInterval: time.Second * 10,
 				Checker:       checker,
@@ -95,13 +95,15 @@ func TestLocalRBL(t *testing.T) {
 
 		checker.StartListening()
 
-		defer detector.Close()
+		defer func() {
+			d.(*detector).Close()
+		}()
 
 		cycle := func(c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
 
-			for _, s := range detector.Steppers() {
+			for _, s := range d.Steppers() {
 				So(s.Step(c, tx), ShouldBeNil)
 			}
 
