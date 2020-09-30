@@ -38,13 +38,13 @@ func getDetectorOptions(options core.Options) Options {
 	detectorOptions, ok := options["localrbl"].(Options)
 
 	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid detector options!"), "")
+		errorutil.MustSucceed(errors.New("Invalid detector options"), "")
 	}
 
 	return detectorOptions
 }
 
-func NewDetector(creator core.Creator, options core.Options) *detector {
+func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions := getDetectorOptions(options)
 
 	return &detector{
