@@ -19,7 +19,6 @@ linters:
     - goimports
     - gochecknoinits
     - unparam 
-    - golint
     - gomnd
     - nlreturn
     - gci
@@ -42,3 +41,9 @@ linters-settings:
 issues:
   exclude:
     - '^singleCaseSwitch'
+    - "^don't use an underscore in package name$"
+    - '^a blank import should be only in a main or test package, or have a comment justifying it$'
+    - '^func.*should be'
+    - '^comment on.*should be of the form'
+    - '^(type|var|const|struct field) `\w+` should be `\w+`$'
+    - '^method \w+ should be \w+$'

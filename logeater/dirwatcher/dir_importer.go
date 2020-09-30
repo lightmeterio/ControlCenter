@@ -237,7 +237,7 @@ type fileDescriptor struct {
 	reader           fileReader
 }
 
-var ErrEmptyFileList = errors.New(`Empty list!`)
+var ErrEmptyFileList = errors.New(`No valid log files found`)
 
 func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	if len(files) == 0 {

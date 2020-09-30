@@ -147,7 +147,7 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 	}, nil
 }
 
-var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries!")
+var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries")
 
 func (d *sqlDashboard) Close() error {
 	if err := d.closers.Close(); err != nil {
