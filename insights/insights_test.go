@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
-	"os"
 	"testing"
 	"time"
 )
@@ -100,8 +99,8 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		nc := &fakeNotificationCenter{}
 

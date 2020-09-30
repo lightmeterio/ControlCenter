@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -22,8 +21,8 @@ func init() {
 
 func TestWelcomeInsights(t *testing.T) {
 	Convey("Test Welcome Generator", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
 		So(err, ShouldBeNil)

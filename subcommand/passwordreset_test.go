@@ -13,12 +13,12 @@ func init() {
 }
 
 func TestDatabaseRegisterUsername(t *testing.T) {
-
 	Convey("Password reset", t, func() {
 		Convey("Do password reset", func() {
-			workspace := testutil.TempDir()
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
 
-			auth, err := auth.NewAuth(workspace, auth.Options{})
+			auth, err := auth.NewAuth(dir, auth.Options{})
 			ShouldBeNil(err)
 
 			email := "marcel@lightmeter.com"
@@ -26,7 +26,7 @@ func TestDatabaseRegisterUsername(t *testing.T) {
 			err = auth.Register(email, "donutloop", "l;sdkfl;s;ldfkkl")
 			ShouldBeNil(err)
 
-			PerformPasswordReset(true, workspace, email, "kshjdkljdfklsjfljsdjkf")
+			PerformPasswordReset(true, dir, email, "kshjdkljdfklsjfljsdjkf")
 		})
 	})
 }

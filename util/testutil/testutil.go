@@ -2,17 +2,18 @@ package testutil
 
 import (
 	"io/ioutil"
+	"os"
 	"time"
 )
 
-func TempDir() string {
+func TempDir() (string, func()) {
 	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
 
 	if e != nil {
 		panic("error creating temp dir")
 	}
 
-	return dir
+	return dir, func() { os.RemoveAll(dir) }
 }
 
 // MustParseTime parses a time in the format `2006-01-02 15:04:05 -0700`

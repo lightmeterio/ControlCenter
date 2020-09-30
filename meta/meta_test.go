@@ -7,7 +7,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"path"
 	"testing"
 )
@@ -18,8 +17,8 @@ func init() {
 
 func TestSimpleValues(t *testing.T) {
 	Convey("Test Meta", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 
@@ -67,8 +66,8 @@ func TestSimpleValues(t *testing.T) {
 
 func TestJsonValues(t *testing.T) {
 	Convey("Test Json Values", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 
