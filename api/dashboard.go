@@ -1,16 +1,15 @@
 package api
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/httputil"
-	"net/http"
-	"time"
-
+	"context"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/version"
-
 	parser "gitlab.com/lightmeter/postfix-log-parser"
+	"net/http"
+	"time"
 )
 
 type handler struct {
@@ -32,17 +31,17 @@ type countByStatusResult map[string]int
 func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
-	sent, err := h.dashboard.CountByStatus(parser.SentStatus, interval)
+	sent, err := h.dashboard.CountByStatus(r.Context(), parser.SentStatus, interval)
 	if err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	deferred, err := h.dashboard.CountByStatus(parser.DeferredStatus, interval)
+	deferred, err := h.dashboard.CountByStatus(r.Context(), parser.DeferredStatus, interval)
 	if err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	bounced, err := h.dashboard.CountByStatus(parser.BouncedStatus, interval)
+	bounced, err := h.dashboard.CountByStatus(r.Context(), parser.BouncedStatus, interval)
 	if err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
@@ -57,9 +56,9 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 func servePairsFromTimeInterval(
 	w http.ResponseWriter,
 	r *http.Request,
-	f func(data.TimeInterval) (dashboard.Pairs, error),
+	f func(context.Context, data.TimeInterval) (dashboard.Pairs, error),
 	interval data.TimeInterval) error {
-	pairs, err := f(interval)
+	pairs, err := f(r.Context(), interval)
 	if err != nil {
 		return err
 	}

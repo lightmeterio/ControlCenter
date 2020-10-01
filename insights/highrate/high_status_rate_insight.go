@@ -1,6 +1,7 @@
 package highrate
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -88,7 +89,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 }
 
-func tryToDetectAndGenerateInsight(gen *bounceRateGenerator, threshold float32, d dashboard.Dashboard, c core.Clock, tx *sql.Tx) error {
+func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator, threshold float32, d dashboard.Dashboard, c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
 	kind := gen.kind
@@ -111,7 +112,7 @@ func tryToDetectAndGenerateInsight(gen *bounceRateGenerator, threshold float32, 
 
 	interval := data.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
 
-	pairs, err := d.DeliveryStatus(interval)
+	pairs, err := d.DeliveryStatus(ctx, interval)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -149,8 +150,10 @@ func tryToDetectAndGenerateInsight(gen *bounceRateGenerator, threshold float32, 
 }
 
 func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
+	ctx := context.Background()
+
 	for _, g := range d.generators {
-		if err := tryToDetectAndGenerateInsight(g, d.bounceRateThreshold, d.dashboard, c, tx); err != nil {
+		if err := tryToDetectAndGenerateInsight(ctx, g, d.bounceRateThreshold, d.dashboard, c, tx); err != nil {
 			return errorutil.Wrap(err)
 		}
 
