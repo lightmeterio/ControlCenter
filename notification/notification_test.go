@@ -112,7 +112,7 @@ func TestSendNotificationMissingConf(t *testing.T) {
 		Convey("Success", func() {
 			Convey("Do subscribe", func() {
 				err := center.Notify(notification)
-				So(err, ShouldNotBeNil)
+				So(err, ShouldBeNil)
 			})
 		})
 	})

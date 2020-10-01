@@ -32,11 +32,13 @@ func New() Interface {
 	}
 }
 
+var ErrNoListeners = errors.New("listeners aren't registered")
+
 // Publish sends an msg to all registered listeners that were declared
 // to accept values of a msg
 func (b *bus) Publish(msg Msg) error {
 	if !b.isInit {
-		return errorutil.Wrap(errors.New("listeners aren't registered"))
+		return errorutil.Wrap(ErrNoListeners)
 	}
 
 	nameOfMsg := reflect.TypeOf(msg)
