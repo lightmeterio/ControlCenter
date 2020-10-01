@@ -73,12 +73,12 @@ func TestWelcomeInsights(t *testing.T) {
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, "welcome_content")
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
-			So(insights[0].Content(), ShouldResemble, &struct{}{})
+			So(insights[0].Content(), ShouldResemble, &content{})
 
 			So(insights[1].ID(), ShouldEqual, 2)
 			So(insights[1].ContentType(), ShouldEqual, "insights_introduction_content")
 			So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
-			So(insights[1].Content(), ShouldResemble, &struct{}{})
+			So(insights[1].Content(), ShouldResemble, &content{})
 		})
 	})
 }

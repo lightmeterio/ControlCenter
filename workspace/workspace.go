@@ -70,8 +70,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	// TODO: use an actual notification center!
-	notificationCenter := &dummyNotificationCenter{}
+	notificationCenter := notification.New(settings)
 
 	insightsEngine, err := insights.NewEngine(workspaceDirectory, notificationCenter, insightsOptions(dashboard))
 
@@ -143,11 +142,4 @@ func (ws *Workspace) Close() error {
 
 func (ws *Workspace) HasLogs() bool {
 	return ws.logs.HasLogs()
-}
-
-type dummyNotificationCenter struct {
-}
-
-func (*dummyNotificationCenter) Notify(notification.Content) {
-	// implement notification.Center
 }

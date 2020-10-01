@@ -2,6 +2,7 @@ package core
 
 import (
 	"database/sql"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -45,4 +46,6 @@ func (c *Core) Close() error {
 	return nil
 }
 
-type Content interface{}
+type Content interface {
+	fmt.Stringer
+}
