@@ -1,23 +1,23 @@
 package workspace
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
-	"path"
-	"time"
-
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"os"
+	"path"
+	"time"
 )
 
 type Workspace struct {
@@ -72,7 +72,17 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 
 	notificationCenter := notification.New(settings)
 
-	insightsEngine, err := insights.NewEngine(workspaceDirectory, notificationCenter, insightsOptions(dashboard))
+	rblChecker := localrbl.NewChecker(m, localrbl.Options{
+		NumberOfWorkers:  10,
+		Lookup:           localrbl.RealLookup,
+		RBLProvidersURLs: localrbl.DefaultRBLs,
+	})
+
+	rblChecker.StartListening()
+
+	insightsEngine, err := insights.NewEngine(
+		workspaceDirectory,
+		notificationCenter, insightsOptions(dashboard, rblChecker))
 
 	if err != nil {
 		return Workspace{}, errorutil.Wrap(err)

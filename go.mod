@@ -16,6 +16,7 @@ require (
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
 	github.com/pkg/errors v0.8.1
 	github.com/pressly/goose v2.6.0+incompatible
 	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
