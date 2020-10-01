@@ -63,7 +63,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		}
 
 		Convey("Don't generate an insight when application starts with no log data", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// there was no data available two days prior, not enough data to generate an insight
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
@@ -93,7 +93,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Server stays inactive for one day", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// some activity, no insights should be generated
 			d.EXPECT().DeliveryStatus(data.TimeInterval{
