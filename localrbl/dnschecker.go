@@ -6,6 +6,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"log"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -16,10 +17,6 @@ const (
 type Settings struct {
 	LocalIP net.IP `json:"local_ip"`
 }
-
-var (
-	DefaultRBLs = godnsbl.Blacklists
-)
 
 type DNSLookupFunction func(string, string) godnsbl.RBLResults
 
@@ -73,7 +70,11 @@ func (c *dnsChecker) Close() error {
 }
 
 func (c *dnsChecker) StartListening() {
-	go spawnChecker(c)
+	go func() {
+		for t := range c.checkerStartChan {
+			go startNewScan(c, t)
+		}
+	}()
 }
 
 func (c *dnsChecker) NotifyNewScan(t time.Time) {
@@ -90,10 +91,10 @@ func (c *dnsChecker) Step(_ time.Time, withResults func(Results) error, withoutR
 }
 
 // Honestly, this is almost copy&paste of https://gobyexample.com/worker-pools
-func worker(jobs <-chan func(), results chan<- struct{}) {
+func worker(jobs <-chan func(), wg *sync.WaitGroup) {
 	for job := range jobs {
 		job()
-		results <- struct{}{}
+		wg.Done()
 	}
 }
 
@@ -113,11 +114,15 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	scanStartTime := time.Now()
 
-	jobsChan := make(chan func(), len(checker.options.RBLProvidersURLs))
-	resultsChan := make(chan struct{}, len(checker.options.RBLProvidersURLs))
+	numberOfURLs := len(checker.options.RBLProvidersURLs)
+
+	jobsChan := make(chan func(), numberOfURLs)
+
+	wg := sync.WaitGroup{}
+	wg.Add(numberOfURLs)
 
 	for w := 0; w < checker.options.NumberOfWorkers; w++ {
-		go worker(jobsChan, resultsChan)
+		go worker(jobsChan, &wg)
 	}
 
 	for i, rbl := range checker.options.RBLProvidersURLs {
@@ -134,13 +139,15 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	close(jobsChan)
 
-	for range checker.options.RBLProvidersURLs {
-		<-resultsChan
-	}
+	wg.Wait()
 
 	scanEndTime := time.Now()
 
-	rbls := make([]ContentElement, 0, len(checker.options.RBLProvidersURLs))
+	scanElapsedTime := scanEndTime.Sub(scanStartTime)
+
+	log.Println("RBL scan finished in", scanElapsedTime)
+
+	rbls := make([]ContentElement, 0, numberOfURLs)
 
 	for _, r := range results {
 		if r.Listed {
@@ -152,16 +159,10 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 		return
 	}
 
-	log.Println("RBL scan finished with", len(rbls), "lists blocking me!")
+	log.Println("RBL scan finished with", len(rbls), "list blockings")
 
 	checker.checkerResultsChan <- Results{
-		Interval: data.TimeInterval{From: t, To: t.Add(scanEndTime.Sub(scanStartTime))},
+		Interval: data.TimeInterval{From: t, To: t.Add(scanElapsedTime)},
 		RBLs:     rbls,
-	}
-}
-
-func spawnChecker(checker *dnsChecker) {
-	for t := range checker.checkerStartChan {
-		go startNewScan(checker, t)
 	}
 }

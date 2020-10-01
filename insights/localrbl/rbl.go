@@ -25,6 +25,19 @@ type content struct {
 
 const ContentType = "local_rbl_check"
 
+func init() {
+	core.RegisterContentType(ContentType, 4, func(b []byte) (interface{}, error) {
+		content := content{}
+		err := json.Unmarshal(b, &content)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return &content, nil
+	})
+}
+
 type detector struct {
 	options Options
 	creator core.Creator
@@ -124,17 +137,4 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	}
 
 	return nil
-}
-
-func init() {
-	core.RegisterContentType(ContentType, 4, func(b []byte) (interface{}, error) {
-		content := content{}
-		err := json.Unmarshal(b, &content)
-
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return &content, nil
-	})
 }
