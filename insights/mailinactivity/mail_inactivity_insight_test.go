@@ -58,11 +58,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		cycle := func(c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-
-			for _, s := range detector.Steppers() {
-				So(s.Step(c, tx), ShouldBeNil)
-			}
-
+			So(detector.Step(c, tx), ShouldBeNil)
 			So(tx.Commit(), ShouldBeNil)
 		}
 

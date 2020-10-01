@@ -2,6 +2,7 @@ package core
 
 import (
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -11,41 +12,34 @@ type Clock interface {
 	Sleep(time.Duration)
 }
 
-type StepperWithSetup interface {
-	Stepper
-}
-
 type Detector interface {
-	Steppers() []Stepper
-}
-
-type Stepper interface {
 	Step(Clock, *sql.Tx) error
 	Close() error
 }
 
 type Core struct {
-	Steppers []Stepper
+	Detectors []Detector
+	closers   closeutil.Closers
 }
 
 func New(detectors []Detector) (*Core, error) {
-	Steppers := []Stepper{}
+	Detectors := []Detector{}
+	closers := closeutil.Closers{}
 
 	for _, d := range detectors {
-		Steppers = append(Steppers, d.Steppers()...)
+		Detectors = append(Detectors, d)
+		closers = append(closers, d)
 	}
 
 	return &Core{
-		Steppers: Steppers,
+		Detectors: Detectors,
+		closers:   closers,
 	}, nil
 }
 
 func (c *Core) Close() error {
-	// close steppers in reverse order, as the detectors always come before any object it owns
-	for i := len(c.Steppers) - 1; i >= 0; i-- {
-		if err := c.Steppers[i].Close(); err != nil {
-			return errorutil.Wrap(err)
-		}
+	if err := c.closers.Close(); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	return nil

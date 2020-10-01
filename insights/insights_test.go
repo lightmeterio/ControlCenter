@@ -69,10 +69,6 @@ func init() {
 	})
 }
 
-func (d *fakeDetector) Steppers() []core.Stepper {
-	return []core.Stepper{d}
-}
-
 func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 	if d.v == nil {
 		return nil
@@ -132,7 +128,8 @@ func TestEngine(t *testing.T) {
 				if v != nil {
 					detector.v = v
 				}
-				execOnSteppers(e.txActions, e.core.Steppers, clock)
+
+				execOnDetectors(e.txActions, e.core.Detectors, clock)
 				time.Sleep(time.Millisecond * 100)
 				clock.Sleep(time.Second * 1)
 			}
