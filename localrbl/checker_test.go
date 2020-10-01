@@ -8,7 +8,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -21,8 +20,8 @@ func init() {
 
 func TestDnsRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)

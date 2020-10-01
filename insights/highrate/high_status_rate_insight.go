@@ -152,13 +152,13 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 		if err := tryToDetectAndGenerateInsight(g, d.bounceRateThreshold, d.dashboard, c, tx); err != nil {
 			return errorutil.Wrap(err)
 		}
+
+		if err := g.Step(c, tx); err != nil {
+			return errorutil.Wrap(err)
+		}
 	}
 
 	return nil
-}
-
-func (d *highRateDetector) Steppers() []core.Stepper {
-	return []core.Stepper{d, d.generators[0]}
 }
 
 type bounceRateContent struct {

@@ -94,10 +94,6 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	})
 }
 
-func (d *detector) Steppers() []core.Stepper {
-	return []core.Stepper{d}
-}
-
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content content) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),

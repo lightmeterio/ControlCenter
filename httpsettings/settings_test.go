@@ -43,10 +43,11 @@ func init() {
 }
 
 func TestInitialSetup(t *testing.T) {
-
 	Convey("Initial Setup", t, func() {
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
-		connPair, err := dbconn.NewConnPair(path.Join(testutil.TempDir(), "master.db"))
+		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)
 
 		defer func() {
@@ -159,8 +160,10 @@ func TestFakeInitialSetup(t *testing.T) {
 
 func TestSettingsSetup(t *testing.T) {
 	Convey("Settings Setup", t, func() {
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
-		connPair, err := dbconn.NewConnPair(path.Join(testutil.TempDir(), "master.db"))
+		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
 		So(err, ShouldBeNil)
 
 		defer func() {

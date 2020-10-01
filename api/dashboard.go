@@ -1,6 +1,7 @@
 package api
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
 	"time"
 
@@ -46,11 +47,11 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	return serveJson(w, r, countByStatusResult{
+	return httputil.WriteJson(w, countByStatusResult{
 		"sent":     sent,
 		"deferred": deferred,
 		"bounced":  bounced,
-	})
+	}, http.StatusOK)
 }
 
 func servePairsFromTimeInterval(
@@ -63,7 +64,7 @@ func servePairsFromTimeInterval(
 		return err
 	}
 
-	return serveJson(w, r, pairs)
+	return httputil.WriteJson(w, pairs, http.StatusOK)
 }
 
 type topBusiestDomainsHandler handler
@@ -135,7 +136,7 @@ type appVersion struct {
 // @Success 200 {object} appVersion
 // @Router /api/v0/appVersion [get]
 func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
-	return serveJson(w, r, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch})
+	return httputil.WriteJson(w, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch}, http.StatusOK)
 }
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {

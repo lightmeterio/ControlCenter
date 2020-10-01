@@ -96,13 +96,13 @@ func spawnInsightsJob(clock core.Clock, e *Engine, cancel <-chan struct{}) {
 		case <-cancel:
 			return
 		default:
-			execOnSteppers(e.txActions, e.core.Steppers, clock)
+			execOnDetectors(e.txActions, e.core.Detectors, clock)
 			clock.Sleep(time.Second * 2)
 		}
 	}
 }
 
-func execOnSteppers(txActions chan<- txAction, steppers []core.Stepper, clock core.Clock) {
+func execOnDetectors(txActions chan<- txAction, steppers []core.Detector, clock core.Clock) {
 	txActions <- func(tx *sql.Tx) error {
 		for _, s := range steppers {
 			if err := s.Step(clock, tx); err != nil {

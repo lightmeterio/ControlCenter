@@ -13,7 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -25,8 +24,8 @@ func init() {
 
 func TestHighRateDetectorInsight(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		ctrl := gomock.NewController(t)
 
@@ -70,10 +69,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-			for _, s := range detector.Steppers() {
-				So(s.Step(clock, tx), ShouldBeNil)
-			}
-
+			So(detector.Step(clock, tx), ShouldBeNil)
 			So(tx.Commit(), ShouldBeNil)
 
 			So(len(accessor.Insights), ShouldEqual, 0)
@@ -106,11 +102,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-
-			for _, s := range detector.Steppers() {
-				So(s.Step(clock, tx), ShouldBeNil)
-			}
-
+			So(detector.Step(clock, tx), ShouldBeNil)
 			So(tx.Commit(), ShouldBeNil)
 
 			So(len(accessor.Insights), ShouldEqual, 1)
@@ -161,11 +153,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			cycle := func(c *insighttestsutil.FakeClock) {
 				tx, err := connPair.RwConn.Begin()
 				So(err, ShouldBeNil)
-
-				for _, s := range detector.Steppers() {
-					So(s.Step(c, tx), ShouldBeNil)
-				}
-
+				So(detector.Step(c, tx), ShouldBeNil)
 				So(tx.Commit(), ShouldBeNil)
 			}
 

@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
-	"os"
 	"testing"
 	"time"
 )
@@ -70,10 +69,6 @@ func init() {
 	})
 }
 
-func (d *fakeDetector) Steppers() []core.Stepper {
-	return []core.Stepper{d}
-}
-
 func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 	if d.v == nil {
 		return nil
@@ -100,8 +95,8 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		nc := &fakeNotificationCenter{}
 
@@ -133,7 +128,8 @@ func TestEngine(t *testing.T) {
 				if v != nil {
 					detector.v = v
 				}
-				execOnSteppers(e.txActions, e.core.Steppers, clock)
+
+				execOnDetectors(e.txActions, e.core.Detectors, clock)
 				time.Sleep(time.Millisecond * 100)
 				clock.Sleep(time.Second * 1)
 			}

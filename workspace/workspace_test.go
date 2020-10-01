@@ -9,7 +9,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
-	"os"
 	"testing"
 	"time"
 )
@@ -17,7 +16,6 @@ import (
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
-
 
 func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
@@ -30,8 +28,10 @@ func TestWorkspaceCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
-			dir := testutil.TempDir()
-			defer os.RemoveAll(dir)
+
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
+
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 
@@ -40,8 +40,9 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir := testutil.TempDir()
-			defer os.RemoveAll(dir)
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
+
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)
 			So(ws.HasLogs(), ShouldBeFalse)
@@ -49,8 +50,8 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir := testutil.TempDir()
-			defer os.RemoveAll(dir)
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
 
 			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			ws1.Close()
@@ -61,8 +62,8 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Close workspace failed", func() {
-			dir := testutil.TempDir()
-			defer os.RemoveAll(dir)
+			dir, clearDir := testutil.TempDir()
+			defer clearDir()
 
 			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
 			So(err, ShouldBeNil)

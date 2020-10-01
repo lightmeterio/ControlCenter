@@ -14,7 +14,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -64,8 +63,8 @@ func (c *fakeChecker) CheckedIP() net.IP {
 
 func TestLocalRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
 		So(err, ShouldBeNil)
@@ -73,11 +72,7 @@ func TestLocalRBL(t *testing.T) {
 		cycleOnDetector := func(d core.Detector, c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
-
-			for _, s := range d.Steppers() {
-				So(s.Step(c, tx), ShouldBeNil)
-			}
-
+			So(d.Step(c, tx), ShouldBeNil)
 			So(tx.Commit(), ShouldBeNil)
 		}
 

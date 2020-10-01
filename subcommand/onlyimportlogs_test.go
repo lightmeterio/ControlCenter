@@ -3,7 +3,6 @@ package subcommand
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -11,9 +10,8 @@ import (
 
 func TestOnlyImportLogs(t *testing.T) {
 	Convey("Only Import Logs", t, func() {
-
-		dir := testutil.TempDir()
-		defer os.RemoveAll(dir)
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
 
 		Convey("Read three lines", func() {
 			reader := strings.NewReader(`
@@ -23,7 +21,6 @@ Nov  1 07:42:10 mail opendkim[225]: C11EA2C620C7: not authenticated
 			`)
 
 			OnlyImportLogs(dir, time.UTC, 2020, true, reader)
-
 		})
 	})
 }
