@@ -38,10 +38,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.method = r.Method
 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(err)
 	h.mediaType = mediaType
 
-	errorutil.MustSucceed(r.ParseForm(), "")
+	errorutil.MustSucceed(r.ParseForm())
 
 	h.email = r.FormValue("email")
 	h.subscribe = r.FormValue("subscribe")

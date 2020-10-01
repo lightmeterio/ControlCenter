@@ -121,7 +121,7 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			content, err := ioutil.ReadAll(f)
 
-			errorutil.MustSucceed(err, "")
+			errorutil.MustSucceed(err)
 
 			t, err := template.New("root").
 				Funcs(template.FuncMap{
@@ -130,17 +130,17 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}).
 				Parse(string(content))
 
-			errorutil.MustSucceed(err, "")
+			errorutil.MustSucceed(err)
 
 			buffer := bytes.Buffer{}
 
 			err = t.Execute(&buffer, []interface{}{})
 
-			errorutil.MustSucceed(err, "")
+			errorutil.MustSucceed(err)
 
 			return buffer.Bytes()
 		})
 
 	// TODO: handle this error, as it might be caused by some issue with the connection with the client
-	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(err)
 }

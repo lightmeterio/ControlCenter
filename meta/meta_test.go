@@ -24,7 +24,7 @@ func TestSimpleValues(t *testing.T) {
 
 		handler, err := NewMetaDataHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(handler.Close(), "") }()
+		defer func() { errorutil.MustSucceed(handler.Close()) }()
 
 		Convey("Key not found", func() {
 			_, err := handler.Retrieve("key1")
@@ -73,7 +73,7 @@ func TestJsonValues(t *testing.T) {
 
 		handler, err := NewMetaDataHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(handler.Close(), "") }()
+		defer func() { errorutil.MustSucceed(handler.Close()) }()
 
 		Convey("Key not found", func() {
 			var value []int

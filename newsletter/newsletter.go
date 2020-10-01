@@ -73,7 +73,7 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 		return errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(res.Body.Close(), "") }()
+	defer func() { errorutil.MustSucceed(res.Body.Close()) }()
 
 	body, err := encodeBody(res.Body)
 

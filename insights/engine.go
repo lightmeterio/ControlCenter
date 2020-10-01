@@ -36,7 +36,7 @@ func NewCustomEngine(
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(stateConn.Close(), "")
+			errorutil.MustSucceed(stateConn.Close())
 		}
 	}()
 
@@ -124,7 +124,7 @@ func engineCycle(e *Engine) (bool, error) {
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback())
 		}
 	}()
 
@@ -198,7 +198,7 @@ func (e *Engine) Run() (func(), func()) {
 	// something that reads user actions (resolve insights, etc.)
 
 	go func() {
-		errorutil.MustSucceed(runDatabaseWriterLoop(e), "")
+		errorutil.MustSucceed(runDatabaseWriterLoop(e))
 		doneRun <- struct{}{}
 	}()
 

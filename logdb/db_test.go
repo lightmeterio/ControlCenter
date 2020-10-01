@@ -21,7 +21,7 @@ func init() {
 	// NOTE: unfortunately the domain mapping code uses a singleton (to be accessed internally via sqlite)
 	// that outlives all the test cases, so it's more clear for it to be defined globally as well
 	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
-	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(err)
 
 	lmsqlite3.Initialize(lmsqlite3.Options{
 		"domain_mapping": &m,

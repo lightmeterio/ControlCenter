@@ -20,7 +20,7 @@ func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn) error {
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback())
 		}
 	}()
 

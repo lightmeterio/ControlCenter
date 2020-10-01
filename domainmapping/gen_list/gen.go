@@ -14,16 +14,16 @@ import (
 
 func main() {
 	f, err := os.Open("mapping.json")
-	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(err)
 	b, err := ioutil.ReadAll(f)
-	errorutil.MustSucceed(err, "")
+	errorutil.MustSucceed(err)
 	l := domainmapping.RawList{}
 	errorutil.MustSucceed(json.Unmarshal(b, &l), "Invalid domain mapping file")
 	_, err = domainmapping.Mapping(l)
 	errorutil.MustSucceed(err, "Malformed domain mapping file")
 	_, err = json.Marshal(l)
-	errorutil.MustSucceed(err, "")
-	errorutil.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(l), 0600), "")
+	errorutil.MustSucceed(err)
+	errorutil.MustSucceed(ioutil.WriteFile("generated_list.go", fileContent(l), 0600))
 }
 
 func fileContent(l domainmapping.RawList) []byte {

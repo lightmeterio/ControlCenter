@@ -1,12 +1,17 @@
 package errorutil
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"runtime"
 )
 
-func MustSucceed(err error, msg string) {
+func MustSucceed(err error, msg ...string) {
+	if len(msg) > 1 {
+		panic("please provide only message for each MustSucceed")
+	}
+
 	if err == nil {
 		return
 	}
@@ -18,7 +23,12 @@ func MustSucceed(err error, msg string) {
 		file = `<unknown file>`
 	}
 
-	log.Printf("FAILED: %s:%d, message:\"%s\", errors:\b", file, line, msg)
+	errorMsg := fmt.Sprintf("FAILED: %s:%d, message:none, errors:\b", file, line)
+	if len(msg) == 1 && msg[0] != "" {
+		errorMsg = fmt.Sprintf("FAILED: %s:%d, message:\"%s\", errors:\b", file, line, msg[0])
+	}
+
+	log.Println(errorMsg)
 
 	if wrappedErr, ok := err.(*Error); ok {
 		panic("\n" + wrappedErr.Chain().Error())

@@ -276,7 +276,7 @@ func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) 
 	}
 
 	defer func() {
-		errorutil.MustSucceed(rows.Close(), "")
+		errorutil.MustSucceed(rows.Close())
 	}()
 
 	var (
