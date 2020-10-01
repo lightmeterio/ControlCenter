@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"mime"
 	"net/http"
 )
@@ -45,7 +46,7 @@ func (h *Settings) HttpInitialSetup(mux *http.ServeMux) {
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := h.handleForm(w, r); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	subscribe, err := func() (bool, error) {
@@ -67,7 +68,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	}()
 
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error parsing subscribe option: %w", err))
+		err = errorutil.Wrap(err, "Error parsing subscribe option")
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	email, err := func() (string, error) {
@@ -91,7 +93,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	}()
 
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error getting email address: %w", err))
+		err = errorutil.Wrap(err, "Error getting email address")
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	mailKind := r.Form.Get("email_kind")
@@ -101,7 +104,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,
 	}); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Error setting initial options: %w", err))
+		err = errorutil.Wrap(err, "Error setting initial options")
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	return nil
@@ -118,22 +122,26 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if len(r.Form) != 3 {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errors.New("Error to many values in form"))
+		err := errorutil.Wrap(errors.New("Error to many values in form"))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	messengerKind := r.Form.Get("messenger_kind")
 	if messengerKind != "slack" {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
+		err := errorutil.Wrap(fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerToken := r.Form.Get("messenger_token")
 	if messengerToken == "" {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger token option is bad %v", messengerToken))
+		err := errorutil.Wrap(fmt.Errorf("Error messenger token option is bad %v", messengerToken))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerChannel := r.Form.Get("messenger_channel")
 	if messengerChannel == "" {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
+		err := errorutil.Wrap(fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	if err := h.s.SetOptions(r.Context(), settings.SlackNotificationsSettings{
@@ -141,7 +149,8 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
 	}); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Error notification setting options: %w", err))
+		err = fmt.Errorf("Error notification setting options: %w", err)
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	return nil
