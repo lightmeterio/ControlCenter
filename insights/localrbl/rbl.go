@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
@@ -23,10 +24,14 @@ type content struct {
 	RBLs         []localrbl.ContentElement `json:"rbls"`
 }
 
+func (c content) String() string {
+	return fmt.Sprintf("The local IP %v has been blocked by %d RBLs", c.Address, len(c.RBLs))
+}
+
 const ContentType = "local_rbl_check"
 
 func init() {
-	core.RegisterContentType(ContentType, 4, func(b []byte) (interface{}, error) {
+	core.RegisterContentType(ContentType, 4, func(b []byte) (core.Content, error) {
 		content := content{}
 		err := json.Unmarshal(b, &content)
 

@@ -42,13 +42,19 @@ func tryToGenerateWelcomeInsight(d *detector, tx *sql.Tx, kind string, propertie
 	return nil
 }
 
+type content struct{}
+
+func (c content) String() string {
+	return ""
+}
+
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
 	if err := tryToGenerateWelcomeInsight(d, tx, "welcome", core.InsightProperties{
 		Time:        now,
 		Category:    core.NewsCategory,
-		Content:     struct{}{},
+		Content:     content{},
 		ContentType: "welcome_content",
 		Rating:      core.Unrated,
 	}, now); err != nil {
@@ -58,7 +64,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	if err := tryToGenerateWelcomeInsight(d, tx, "insights_introduction", core.InsightProperties{
 		Time:        now,
 		Category:    core.NewsCategory,
-		Content:     struct{}{},
+		Content:     content{},
 		ContentType: "insights_introduction_content",
 		Rating:      core.Unrated,
 	}, now); err != nil {
@@ -69,8 +75,8 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 func init() {
-	handler := func(b []byte) (interface{}, error) {
-		content := struct{}{}
+	handler := func(b []byte) (core.Content, error) {
+		content := content{}
 		err := json.Unmarshal(b, &content)
 
 		if err != nil {

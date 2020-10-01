@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -166,6 +167,10 @@ type bounceRateContent struct {
 	Interval data.TimeInterval
 }
 
+func (c bounceRateContent) String() string {
+	return fmt.Sprintf("%v bounce rate between %v and %s", c.Value, c.Interval.From, c.Interval.To)
+}
+
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),
@@ -201,7 +206,7 @@ func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error
 }
 
 func init() {
-	core.RegisterContentType(highBaseBounceRateContentType, 1, func(b []byte) (interface{}, error) {
+	core.RegisterContentType(highBaseBounceRateContentType, 1, func(b []byte) (core.Content, error) {
 		var v bounceRateContent
 
 		if err := json.Unmarshal(b, &v); err != nil {

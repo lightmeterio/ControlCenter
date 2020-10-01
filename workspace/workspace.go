@@ -70,8 +70,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	// TODO: use an actual notification center!
-	notificationCenter := &dummyNotificationCenter{}
+	notificationCenter := notification.New(settings)
 
 	rblChecker := localrbl.NewChecker(m, localrbl.Options{
 		NumberOfWorkers:  10,
@@ -153,11 +152,4 @@ func (ws *Workspace) Close() error {
 
 func (ws *Workspace) HasLogs() bool {
 	return ws.logs.HasLogs()
-}
-
-type dummyNotificationCenter struct {
-}
-
-func (*dummyNotificationCenter) Notify(notification.Content) {
-	// implement notification.Center
 }

@@ -9,7 +9,7 @@ var (
 	ErrInvalidContentType = errors.New("Unknown Insight Content Type")
 )
 
-type decoderHandler func([]byte) (interface{}, error)
+type decoderHandler func([]byte) (Content, error)
 
 type converterHandler struct {
 	value   int
@@ -57,7 +57,7 @@ func RegisterContentType(contentType string, value int, handler decoderHandler) 
 	reverseConverters[value] = contentType
 }
 
-func decodeByContentType(contentType string, content []byte) (interface{}, error) {
+func decodeByContentType(contentType string, content []byte) (Content, error) {
 	v, ok := converters[contentType]
 
 	if !ok {

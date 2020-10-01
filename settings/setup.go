@@ -60,7 +60,7 @@ func (c *MasterConf) SetOptions(context context.Context, o interface{}) error {
 	case InitialOptions:
 		return c.setInitialOptions(context, v)
 	case SlackNotificationsSettings:
-		return c.setSlackNotificationsSettings(v)
+		return c.SetSlackNotificationsSettings(v)
 	}
 
 	return errorutil.Wrap(errors.New("options is not supported"))
@@ -90,7 +90,7 @@ func (c *MasterConf) setInitialOptions(context context.Context, initialOptions I
 	return nil
 }
 
-func (c *MasterConf) setSlackNotificationsSettings(slackNotificationsSettings SlackNotificationsSettings) error {
+func (c *MasterConf) SetSlackNotificationsSettings(slackNotificationsSettings SlackNotificationsSettings) error {
 	_, err := c.meta.StoreJson(fmt.Sprintf("messenger_"+slackNotificationsSettings.Kind),
 		SlackNotificationsSettings{
 			BearerToken: slackNotificationsSettings.BearerToken,
@@ -102,6 +102,17 @@ func (c *MasterConf) setSlackNotificationsSettings(slackNotificationsSettings Sl
 	}
 
 	return nil
+}
+
+func (c *MasterConf) GetSlackNotificationsSettings() (*SlackNotificationsSettings, error) {
+	slackSettings := &SlackNotificationsSettings{}
+
+	err := c.meta.RetrieveJson("messenger_slack", slackSettings)
+	if err != nil {
+		return nil, errorutil.Wrap(err, "could get slack settings")
+	}
+
+	return slackSettings, nil
 }
 
 func (c *MasterConf) Close() error {

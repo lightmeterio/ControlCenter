@@ -22,6 +22,7 @@ require (
 	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
+	github.com/slack-go/slack v0.6.6
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
 	github.com/swaggo/swag v1.6.7

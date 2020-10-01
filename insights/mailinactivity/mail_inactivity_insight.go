@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -13,6 +14,10 @@ import (
 
 type content struct {
 	Interval data.TimeInterval
+}
+
+func (c content) String() string {
+	return fmt.Sprintf("No emails were sent between %v and %v", c.Interval.From, c.Interval.To)
 }
 
 type generator struct {
@@ -198,7 +203,7 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 }
 
 func init() {
-	core.RegisterContentType(ContentType, 0, func(b []byte) (interface{}, error) {
+	core.RegisterContentType(ContentType, 0, func(b []byte) (core.Content, error) {
 		content := content{}
 		err := json.Unmarshal(b, &content)
 

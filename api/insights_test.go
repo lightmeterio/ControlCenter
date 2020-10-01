@@ -48,6 +48,14 @@ func (f *fakeFetchedInsight) Content() core.Content {
 	return f.content
 }
 
+type content struct {
+	V string `json:"v"`
+}
+
+func (c content) String() string {
+	return c.V
+}
+
 func TestInsights(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -92,7 +100,7 @@ func TestInsights(t *testing.T) {
 				&fakeFetchedInsight{
 					id:          1,
 					category:    core.IntelCategory,
-					content:     "content1",
+					content:     content{"content1"},
 					contentType: "fake_content_1",
 					rating:      core.BadRating,
 					time:        time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -100,7 +108,7 @@ func TestInsights(t *testing.T) {
 				&fakeFetchedInsight{
 					id:          2,
 					category:    core.LocalCategory,
-					content:     "content2",
+					content:     content{"content2"},
 					contentType: "fake_content_2",
 					rating:      core.OkRating,
 					time:        time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
@@ -120,7 +128,7 @@ func TestInsights(t *testing.T) {
 			So(body, ShouldResemble, []interface{}{
 				map[string]interface{}{
 					"Category":    "intel",
-					"Content":     "content1",
+					"Content":     map[string]interface{}{"v":"content1"},
 					"ContentType": "fake_content_1",
 					"ID":          float64(1),
 					"Rating":      "bad",
@@ -128,7 +136,7 @@ func TestInsights(t *testing.T) {
 				},
 				map[string]interface{}{
 					"Category":    "local",
-					"Content":     "content2",
+					"Content":     map[string]interface{}{"v":"content2"},
 					"ContentType": "fake_content_2",
 					"ID":          float64(2),
 					"Rating":      "ok",
