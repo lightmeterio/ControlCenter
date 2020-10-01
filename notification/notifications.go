@@ -65,6 +65,10 @@ func (cp *center) init() error {
 func (cp *center) Notify(notification Notification) error {
 	err := cp.bus.Publish(notification)
 	if err != nil {
+		if errors.Is(err, bus.ErrNoListeners) {
+			return nil
+		}
+
 		return errorutil.Wrap(err)
 	}
 
