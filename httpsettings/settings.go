@@ -3,8 +3,8 @@ package httpsettings
 import (
 	"errors"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/settings"
-	"log"
 	"mime"
 	"net/http"
 )
@@ -38,12 +38,14 @@ func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
-	if err := h.handleForm(w, r); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+func (h *Settings) HttpInitialSetup(mux *http.ServeMux) {
+	chain := httpmiddleware.New()
+	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
+}
 
-		return
+func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := h.handleForm(w, r); err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	subscribe, err := func() (bool, error) {
@@ -65,10 +67,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		log.Println("Error parsing subscribe option:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error parsing subscribe option: %w", err))
 	}
 
 	email, err := func() (string, error) {
@@ -92,10 +91,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		log.Println("Error getting email address:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error getting email address: %w", err))
 	}
 
 	mailKind := r.Form.Get("email_kind")
@@ -105,50 +101,39 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) {
 		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,
 	}); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("Error setting initial options:", err)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Error setting initial options: %w", err))
 	}
+
+	return nil
 }
 
-func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	if err := h.handleForm(w, r); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+func (h *Settings) HttpNotificationSettings(mux *http.ServeMux) {
+	chain := httpmiddleware.New()
+	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
+}
 
-		return
+func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := h.handleForm(w, r); err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	if len(r.Form) != 3 {
-		log.Println("Error to many values in form")
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errors.New("Error to many values in form"))
 	}
 
 	messengerKind := r.Form.Get("messenger_kind")
 	if messengerKind != "slack" {
-		log.Println("Error messenger kind option is bad ", messengerKind)
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
 	}
 
 	messengerToken := r.Form.Get("messenger_token")
 	if messengerToken == "" {
-		log.Println("Error messenger token option is bad ", messengerToken)
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger token option is bad %v", messengerToken))
 	}
 
 	messengerChannel := r.Form.Get("messenger_channel")
 	if messengerChannel == "" {
-		log.Println("Error messenger channel option is bad ", messengerChannel)
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
 	}
 
 	if err := h.s.SetOptions(r.Context(), settings.SlackNotificationsSettings{
@@ -156,9 +141,8 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
 	}); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("Error notification setting options:", err)
-
-		return
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Error notification setting options: %w", err))
 	}
+
+	return nil
 }
