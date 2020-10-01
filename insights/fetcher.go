@@ -37,10 +37,6 @@ func newCreator(conn dbconn.RwConn, notifier notification.Center) (*creator, err
 	return &creator{DBCreator: c, notifier: notifier}, nil
 }
 
-type InsightNotification struct {
-	ID int64
-}
-
 func (c *creator) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
 	id, err := core.GenerateInsight(tx, properties)
 
@@ -48,7 +44,11 @@ func (c *creator) GenerateInsight(tx *sql.Tx, properties core.InsightProperties)
 		return errorutil.Wrap(err)
 	}
 
-	c.notifier.Notify(InsightNotification{ID: id})
+	if properties.Rating == core.BadRating {
+		if err := c.notifier.Notify(notification.Notification{ID: id, Content: properties.Content}); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
 
 	return nil
 }
