@@ -44,7 +44,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value:\" "+err.Error()+"\""))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Invalid entries query value"))
 	}
 
 	if entries < 0 {
@@ -59,7 +59,9 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		MaxEntries: entries,
 	})
 
-	errorutil.MustSucceed(err, "error fetching insights")
+	if err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
 
 	insights := make(fetchInsightsResult, 0, entries)
 
