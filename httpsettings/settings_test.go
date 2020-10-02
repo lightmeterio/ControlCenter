@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
@@ -62,7 +63,10 @@ func TestInitialSetup(t *testing.T) {
 
 		setup := NewSettings(mc)
 
-		s := httptest.NewServer(http.HandlerFunc(setup.InitialSetupHandler))
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.InitialSetupHandler))
+
+		s := httptest.NewServer(handler)
 		c := &http.Client{}
 
 		Convey("Fails", func() {
@@ -81,13 +85,13 @@ func TestInitialSetup(t *testing.T) {
 			Convey("Subscribe is not a boolean", func() {
 				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"Falsch"}})
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Unsupported multiple subscribe options", func() {
 				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"on", "on"}})
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Incompatible mime type", func() {
@@ -105,13 +109,13 @@ func TestInitialSetup(t *testing.T) {
 			Convey("Subscribe without email", func() {
 				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Subscribe with zero email", func() {
 				r, err := c.PostForm(s.URL, url.Values{"email": {}, "email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 		})
 
@@ -144,7 +148,10 @@ func TestFakeInitialSetup(t *testing.T) {
 		f := &fakeSystemSetup{}
 
 		testSettings := NewSettings(f)
-		s := httptest.NewServer(http.HandlerFunc(testSettings.NotificationSettingsHandler))
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(testSettings.InitialSetupHandler))
+
+		s := httptest.NewServer(handler)
 		c := &http.Client{}
 
 		Convey("Fails", func() {
@@ -152,7 +159,7 @@ func TestFakeInitialSetup(t *testing.T) {
 				f.shouldFailToSetup = true
 				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 		})
 	})
@@ -178,7 +185,9 @@ func TestSettingsSetup(t *testing.T) {
 
 		setup := NewSettings(mc)
 
-		s := httptest.NewServer(http.HandlerFunc(setup.NotificationSettingsHandler))
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler))
+		s := httptest.NewServer(handler)
 		c := &http.Client{}
 
 		Convey("Fails", func() {
