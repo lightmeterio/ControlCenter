@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+var (
+	dummyContext = context.Background()
+)
+
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
@@ -108,11 +112,11 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
 
-			r, err := meta.Retrieve("mail_kind")
+			r, err := meta.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindMarketing)
 
-			r, err = meta.Retrieve("subscribe_newsletter")
+			r, err = meta.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 1)
 		})
@@ -127,11 +131,11 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
 
-			r, err := meta.Retrieve("mail_kind")
+			r, err := meta.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindTransactional)
 
-			r, err = meta.Retrieve("subscribe_newsletter")
+			r, err = meta.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 0)
 		})

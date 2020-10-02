@@ -177,7 +177,9 @@ func generateKeys() ([][]byte, error) {
 func (r *Auth) SessionKeys() [][]byte {
 	keys := [][]byte{}
 
-	err := r.meta.RetrieveJson("session_key", &keys)
+	ctx := context.Background()
+
+	err := r.meta.RetrieveJson(ctx, "session_key", &keys)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
@@ -191,7 +193,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	_, err = r.meta.StoreJson("session_key", keys)
+	_, err = r.meta.StoreJson(ctx, "session_key", keys)
 
 	errorutil.MustSucceed(err, "Generating session keys")
 

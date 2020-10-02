@@ -1,6 +1,7 @@
 package localrbl
 
 import (
+	"context"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"io"
 	"net"
@@ -28,5 +29,5 @@ type Checker interface {
 	StartListening()
 	NotifyNewScan(time.Time)
 	Step(time.Time, func(Results) error, func() error) error
-	CheckedIP() net.IP
+	CheckedIP(context.Context) net.IP
 }

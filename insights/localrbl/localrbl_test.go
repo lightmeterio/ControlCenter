@@ -1,6 +1,7 @@
 package localrblinsight
 
 import (
+	"context"
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -18,6 +19,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -57,7 +62,7 @@ func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) err
 	return withoutResults()
 }
 
-func (c *fakeChecker) CheckedIP() net.IP {
+func (c *fakeChecker) CheckedIP(context.Context) net.IP {
 	return c.checkedIP
 }
 
@@ -160,7 +165,7 @@ func TestLocalRBL(t *testing.T) {
 
 				So(accessor.Insights, ShouldResemble, []int64{1})
 
-				insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 				}})
@@ -191,7 +196,7 @@ func TestLocalRBL(t *testing.T) {
 						LocalIP: net.ParseIP("11.22.33.44"),
 					}
 
-					_, err := meta.StoreJson(localrbl.SettingsKey, &settings)
+					_, err := meta.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
 
 					So(err, ShouldBeNil)
 				}
@@ -235,7 +240,7 @@ func TestLocalRBL(t *testing.T) {
 
 				So(accessor.Insights, ShouldResemble, []int64{1})
 
-				insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 				}})

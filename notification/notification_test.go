@@ -13,11 +13,15 @@ import (
 	"testing"
 )
 
+var (
+	dummyContext = context.Background()
+)
+
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-type fakeContent struct {}
+type fakeContent struct{}
 
 func (c *fakeContent) String() string {
 	return "Hell world!, Mister Donutloop"
@@ -54,12 +58,12 @@ func TestSendNotification(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		slackSettings := settings.SlackNotificationsSettings{
-			Channel: "general",
-			Kind: "slack",
+			Channel:     "general",
+			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 		}
 
-		err = master.SetSlackNotificationsSettings(slackSettings)
+		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
 		So(err, ShouldBeNil)
 
 		center := New(master)
@@ -67,7 +71,7 @@ func TestSendNotification(t *testing.T) {
 
 		content := new(fakeContent)
 		notification := Notification{
-			ID: 0,
+			ID:      0,
 			Content: content,
 		}
 
@@ -105,7 +109,7 @@ func TestSendNotificationMissingConf(t *testing.T) {
 
 		content := new(fakeContent)
 		notification := Notification{
-			ID: 0,
+			ID:      0,
 			Content: content,
 		}
 
@@ -118,7 +122,7 @@ func TestSendNotificationMissingConf(t *testing.T) {
 	})
 }
 
-type fakeapi struct {}
+type fakeapi struct{}
 
 func (s *fakeapi) PostMessage(stringer fmt.Stringer) error {
 	fmt.Println(stringer)
@@ -128,7 +132,7 @@ func (s *fakeapi) PostMessage(stringer fmt.Stringer) error {
 func TestFakeSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
-		
+
 		tempDir, removeAll := testutil.TempDir()
 		defer removeAll()
 
@@ -146,12 +150,12 @@ func TestFakeSendNotification(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		slackSettings := settings.SlackNotificationsSettings{
-			Channel: "general",
-			Kind: "slack",
+			Channel:     "general",
+			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 		}
 
-		err = master.SetSlackNotificationsSettings(slackSettings)
+		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
 		So(err, ShouldBeNil)
 
 		centerInterface := New(master)
@@ -160,7 +164,7 @@ func TestFakeSendNotification(t *testing.T) {
 
 		content := new(fakeContent)
 		Notification := Notification{
-			ID: 0,
+			ID:      0,
 			Content: content,
 		}
 

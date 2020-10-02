@@ -20,6 +20,10 @@ import (
 	"testing"
 )
 
+var (
+	dummyContext = context.Background()
+)
+
 type dummySubscriber struct{}
 
 func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
@@ -229,7 +233,7 @@ func TestSettingsSetup(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				mo := new(settings.SlackNotificationsSettings)
-				err = m.RetrieveJson("messenger_slack", mo)
+				err = m.RetrieveJson(dummyContext, "messenger_slack", mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "donutloop")

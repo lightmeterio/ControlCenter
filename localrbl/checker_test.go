@@ -1,6 +1,7 @@
 package localrbl
 
 import (
+	"context"
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -12,6 +13,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -51,7 +56,7 @@ func TestDnsRBL(t *testing.T) {
 					LocalIP: net.ParseIP("11.22.33.44"),
 				}
 
-				meta.StoreJson(SettingsKey, &settings)
+				meta.StoreJson(dummyContext, SettingsKey, &settings)
 			}
 
 			Convey("Panic on invalid number of workers", func() {

@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/slack-go/slack"
@@ -44,7 +45,9 @@ type center struct {
 }
 
 func (cp *center) init() error {
-	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings()
+	ctx := context.Background()
+
+	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings(ctx)
 	if err != nil {
 		if errors.Is(err, meta.ErrNoSuchKey) {
 			return nil
