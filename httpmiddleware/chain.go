@@ -1,8 +1,10 @@
 package httpmiddleware
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 )
 
 type CustomHTTPHandlerInterface interface {
@@ -51,8 +53,11 @@ func (c Chain) WithError(endpoint CustomHTTPHandlerInterface) http.Handler {
 
 func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
 
-		err := endpoint.ServeHTTP(w, r)
+		defer cancel()
+
+		err := endpoint.ServeHTTP(w, r.WithContext(ctx))
 		switch errType := err.(type) {
 		case *HttpCodeError:
 			if errType.statusCode >= 500 {
@@ -60,6 +65,7 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 				w.WriteHeader(errType.statusCode)
 				return
 			}
+
 			http.Error(w, errType.err.Error(), errType.statusCode)
 		case error:
 			log.Println(err)
