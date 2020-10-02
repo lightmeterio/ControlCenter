@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -139,7 +140,7 @@ type FetchOptions struct {
 }
 
 type Fetcher interface {
-	FetchInsights(FetchOptions) ([]FetchedInsight, error)
+	FetchInsights(context.Context, FetchOptions) ([]FetchedInsight, error)
 	Close() error
 }
 
@@ -262,14 +263,14 @@ func (f *fetchedInsight) Content() Content {
 
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
-func (f *fetcher) FetchInsights(options FetchOptions) ([]FetchedInsight, error) {
+func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]FetchedInsight, error) {
 	query, ok := f.queries[queryKey{order: options.OrderBy, filter: options.FilterBy}]
 
 	if !ok {
 		log.Panicln("Sql query for options", options, "not implemented!!!!")
 	}
 
-	rows, err := query.q.Query(query.p(options)...)
+	rows, err := query.q.QueryContext(ctx, query.p(options)...)
 
 	if err != nil {
 		return []FetchedInsight{}, errorutil.Wrap(err)

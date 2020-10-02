@@ -1,6 +1,7 @@
 package highrate
 
 import (
+	"context"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
@@ -16,6 +17,10 @@ import (
 	"path"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -74,7 +79,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 0)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(baseInsightRange),
 			}})
@@ -107,7 +112,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 1)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: interval})
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: interval})
 
 			So(err, ShouldBeNil)
 
@@ -170,7 +175,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 2)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 			}})

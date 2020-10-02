@@ -1,6 +1,7 @@
 package mailinactivity
 
 import (
+	"context"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
@@ -16,6 +17,10 @@ import (
 	"path"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -153,7 +158,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 1)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(lookupRange),
 			}})

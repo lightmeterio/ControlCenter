@@ -51,7 +51,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value: negative value"))
 	}
 
-	fetchedInsights, err := h.f.FetchInsights(core.FetchOptions{
+	fetchedInsights, err := h.f.FetchInsights(r.Context(), core.FetchOptions{
 		Interval:   interval,
 		Category:   category,
 		FilterBy:   filter,

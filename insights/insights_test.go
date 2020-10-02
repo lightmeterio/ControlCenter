@@ -1,6 +1,7 @@
 package insights
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -14,6 +15,10 @@ import (
 	"log"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -177,7 +182,7 @@ func TestEngine(t *testing.T) {
 			fetcher := e.Fetcher()
 
 			Convey("fetch all insights with no filter, sorting by time, default (desc) order", func() {
-				insights, err := fetcher.FetchInsights(core.FetchOptions{
+				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 					Interval: data.TimeInterval{
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
@@ -208,7 +213,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("fetch 2 most recent insights", func() {
-				insights, err := fetcher.FetchInsights(core.FetchOptions{
+				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 					Interval: data.TimeInterval{
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
@@ -234,7 +239,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("fetch all insights with no filter, sorting by time, asc order", func() {
-				insights, err := fetcher.FetchInsights(core.FetchOptions{
+				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 					Interval: data.TimeInterval{
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
@@ -266,7 +271,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("fetch intel category, asc order", func() {
-				insights, err := fetcher.FetchInsights(core.FetchOptions{
+				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 					Interval: data.TimeInterval{
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
@@ -300,7 +305,7 @@ func TestEngine(t *testing.T) {
 
 			fetcher := e.Fetcher()
 
-			sampleInsights, err := fetcher.FetchInsights(core.FetchOptions{
+			sampleInsights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 				Interval: data.TimeInterval{
 					From: testutil.MustParseTime("0000-01-01 00:00:00 +0000"),
 					To:   testutil.MustParseTime("4000-01-01 00:00:00 +0000"),
