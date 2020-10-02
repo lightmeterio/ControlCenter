@@ -21,10 +21,15 @@ type Middleware func(CustomHTTPHandler) CustomHTTPHandler
 
 type Chain struct {
 	middleware []Middleware
+	timeout    time.Duration
 }
 
 func New(middleware ...Middleware) Chain {
-	return Chain{middleware: middleware}
+	return NewWithTimeout(time.Second*30, middleware...)
+}
+
+func NewWithTimeout(timeout time.Duration, middleware ...Middleware) Chain {
+	return Chain{middleware: middleware, timeout: timeout}
 }
 
 func (c Chain) WithEndpoint(endpoint CustomHTTPHandlerInterface) http.Handler {
@@ -40,7 +45,7 @@ func (c Chain) WithEndpoint(endpoint CustomHTTPHandlerInterface) http.Handler {
 		endpoint = c.middleware[len(c.middleware)-1-i](endpoint.ServeHTTP)
 	}
 
-	return wrapWithErrorHandler(endpoint)
+	return wrapWithErrorHandler(c.timeout, endpoint)
 }
 
 func (c Chain) WithError(endpoint CustomHTTPHandlerInterface) http.Handler {
@@ -48,16 +53,27 @@ func (c Chain) WithError(endpoint CustomHTTPHandlerInterface) http.Handler {
 		panic("endpoint is nil")
 	}
 
-	return wrapWithErrorHandler(endpoint)
+	return wrapWithErrorHandler(c.timeout, endpoint)
 }
 
-func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
+func wrapWithErrorHandler(timeout time.Duration, endpoint CustomHTTPHandlerInterface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), time.Second*30)
+		now := time.Now()
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 
 		defer cancel()
 
 		err := endpoint.ServeHTTP(w, r.WithContext(ctx))
+
+		if deadline, ok := ctx.Deadline(); ok && ctx.Err() != nil {
+			elapsedTime := deadline.Sub(now)
+			log.Println("HTTP request", r.URL.Redacted(), "with timeout of", elapsedTime)
+			w.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
 		switch errType := err.(type) {
 		case *HttpCodeError:
 			if errType.statusCode >= 500 {
