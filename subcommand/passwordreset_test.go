@@ -1,6 +1,7 @@
 package subcommand
 
 import (
+	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -23,7 +24,7 @@ func TestDatabaseRegisterUsername(t *testing.T) {
 
 			email := "marcel@lightmeter.com"
 
-			err = auth.Register(email, "donutloop", "l;sdkfl;s;ldfkkl")
+			err = auth.Register(context.Background(), email, "donutloop", "l;sdkfl;s;ldfkkl")
 			ShouldBeNil(err)
 
 			PerformPasswordReset(true, dir, email, "kshjdkljdfklsjfljsdjkf")

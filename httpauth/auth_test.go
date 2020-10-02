@@ -2,6 +2,7 @@ package httpauth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -30,7 +31,7 @@ type fakeRegistrar struct {
 	shouldFailToCheckIfThereIsAnyUser bool
 }
 
-func (f *fakeRegistrar) Register(email, name, password string) error {
+func (f *fakeRegistrar) Register(ctx context.Context, email, name, password string) error {
 	if f.shouldFailToRegister {
 		return errors.New("Weak Password")
 	}
@@ -42,7 +43,7 @@ func (f *fakeRegistrar) Register(email, name, password string) error {
 	return nil
 }
 
-func (f *fakeRegistrar) HasAnyUser() (bool, error) {
+func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
 	if f.shouldFailToCheckIfThereIsAnyUser {
 		return false, errors.New("Some very severe error. Really")
 	}
@@ -50,7 +51,7 @@ func (f *fakeRegistrar) HasAnyUser() (bool, error) {
 	return len(f.email) > 0, nil
 }
 
-func (f *fakeRegistrar) Authenticate(email, password string) (bool, auth.UserData, error) {
+func (f *fakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, auth.UserData, error) {
 	if f.authenticateYieldsError {
 		return false, auth.UserData{}, errors.New("Fail On Authentication")
 	}
