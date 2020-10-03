@@ -93,6 +93,7 @@ type fetchedInsight struct {
 type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
-	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(timezone))
+	chain := httpmiddleware.NewWithTimeout(time.Second*5, httpmiddleware.RequestWithInterval(timezone))
+
 	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f}))
 }

@@ -58,6 +58,7 @@ func (s *HttpServer) Start() error {
 
 	api.HttpDashboard(mux, s.Timezone, dashboard)
 	api.HttpInsights(mux, s.Timezone, insightsFetcher)
+	api.HttpMisc(mux)
 
 	setup := httpsettings.NewSettings(settings)
 
