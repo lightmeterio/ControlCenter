@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Lightmeter ControlCenter Acceptance Tests",
   "scripts": {
-    "test": "gauge run specs/",
+    "test": "node -c tests/*.js && gauge run specs/",
     "gauge": "gauge"
   },
   "dependencies": {
