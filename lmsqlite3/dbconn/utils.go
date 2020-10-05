@@ -2,8 +2,8 @@ package dbconn
 
 import (
 	"database/sql"
-	"fmt"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
@@ -24,31 +24,17 @@ func Rw(db *sql.DB) RwConn {
 }
 
 type ConnPair struct {
-	RoConn RoConn
-	RwConn RwConn
+	RoConn  RoConn
+	RwConn  RwConn
+	closers closeutil.Closers
 }
 
 func (c *ConnPair) Close() error {
-	readerError := c.RoConn.Close()
-	writerError := c.RwConn.Close()
-
-	if writerError == nil {
-		if readerError != nil {
-			return errorutil.Wrap(readerError)
-		}
-
-		// no errors at all
-		return nil
+	if err := c.closers.Close(); err != nil {
+		return errorutil.Wrap(err)
 	}
 
-	// here we know that writeError != nil
-
-	if readerError == nil {
-		return errorutil.Wrap(writerError)
-	}
-
-	// Both errors exist. We lose the erorrs, keeping only the message, which is ok for now
-	return fmt.Errorf("RW: %v, RO: %v", writerError, readerError)
+	return nil
 }
 
 func NewConnPair(filename string) (ConnPair, error) {
@@ -70,5 +56,5 @@ func NewConnPair(filename string) (ConnPair, error) {
 		return ConnPair{}, errorutil.Wrap(err)
 	}
 
-	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer)}, nil
+	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer), closers: closeutil.New(reader, writer)}, nil
 }
