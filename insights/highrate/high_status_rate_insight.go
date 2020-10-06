@@ -64,13 +64,13 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	d, ok := options["dashboard"].(dashboard.Dashboard)
 
 	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid dashboard"), "")
+		errorutil.MustSucceed(errors.New("Invalid dashboard"))
 	}
 
 	detectorOptions, ok := options["highrate"].(Options)
 
 	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid Options"), "")
+		errorutil.MustSucceed(errors.New("Invalid Options"))
 	}
 
 	return &highRateDetector{

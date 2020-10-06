@@ -199,7 +199,7 @@ func listDomainAndCount(stmt *sql.Stmt, args ...interface{}) (Pairs, error) {
 		return Pairs{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(query.Close(), "") }()
+	defer func() { errorutil.MustSucceed(query.Close()) }()
 
 	for query.Next() {
 		var (
@@ -240,7 +240,7 @@ func deliveryStatus(stmt *sql.Stmt, interval data.TimeInterval) (Pairs, error) {
 		return Pairs{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(query.Close(), "") }()
+	defer func() { errorutil.MustSucceed(query.Close()) }()
 
 	for query.Next() {
 		var (
