@@ -20,6 +20,9 @@ BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSI
 
 all: dev
 
+race:
+	./tools/go_test.sh -race
+
 dev: mocks swag domain_mapping_list po2go
 	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
+	"sync"
 	"testing"
 	"time"
 )
@@ -44,8 +45,22 @@ type fakeValue struct {
 }
 
 type fakeDetector struct {
-	creator *creator
-	v       *fakeValue
+	// added just to silent the race detector during tests
+	sync.Mutex
+	creator   *creator
+	fakeValue *fakeValue
+}
+
+func (d *fakeDetector) value() *fakeValue {
+	d.Lock()
+	defer d.Unlock()
+	return d.fakeValue
+}
+
+func (d *fakeDetector) setValue(v *fakeValue) {
+	d.Lock()
+	defer d.Unlock()
+	d.fakeValue = v
 }
 
 func (*fakeDetector) Close() error {
@@ -79,11 +94,13 @@ func init() {
 }
 
 func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
-	if d.v == nil {
+	p := d.value()
+
+	if p == nil {
 		return nil
 	}
 
-	v := *d.v
+	v := *p
 
 	log.Println("New Fake Insight at time", clock.Now())
 
@@ -97,7 +114,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 		return err
 	}
 
-	d.v = nil
+	d.setValue(nil)
 
 	return nil
 }
@@ -135,7 +152,7 @@ func TestEngine(t *testing.T) {
 
 			step := func(v *fakeValue) {
 				if v != nil {
-					detector.v = v
+					detector.setValue(v)
 				}
 
 				execOnDetectors(e.txActions, e.core.Detectors, clock)
@@ -327,7 +344,7 @@ func TestEngine(t *testing.T) {
 			}()
 
 			// Generate one insight, on the first cycle
-			detector.v = &fakeValue{Category: core.LocalCategory, Content: content{"content"}, Rating: core.BadRating}
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: content{"content"}, Rating: core.BadRating})
 
 			done, cancel := e.Run()
 
