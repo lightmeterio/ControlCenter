@@ -70,16 +70,16 @@ step("Select option <option> from menu <menuName>", async (option, menuName) => 
 });
 
 step("Open datepicker menu", async () => {
-    waitFor(3000)
+    await waitFor(3000)
     await click($("div#time-interval-field > span"))
-    waitFor(4000)
+    await waitFor(4000)
     await click(text('Custom Range'))
 });
 
 step("Skip forward several months", async () => {
     var button = $("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]")
 
-    for var i = 0; i < 12 ; i++ {
+    for (var i = 0; i < 12 ; i++) {
         await click(button)
     }
 });
@@ -91,7 +91,7 @@ step("Set start date", async () => {
 step("Move forward some months", async () => {
     var button = $("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]")
 
-    for var i = 0; i < 3; i++ {
+    for (var i = 0; i < 3; i++) {
         await click(button)
     }
 });
