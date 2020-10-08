@@ -27,7 +27,7 @@ func WithTimeout(timeout time.Duration, middleware ...Middleware) Chain {
 var (
 	// NOTE: this is not an exhaustive parser for Keep-Alive. It's just good enough for our needs
 	// More information about Keep-Alive at https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
-	keepAliveRegexp = regexp.MustCompile(`^timeout=(\d+)(, max=.*)?`)
+	keepAliveRegexp = regexp.MustCompile(`^timeout=(\d+)(, max=\d+)?$`)
 
 	ErrInvalidKeepAliveHeader = errors.New("Could not parse Keep-Alive Header")
 )
