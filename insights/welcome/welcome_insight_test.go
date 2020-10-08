@@ -47,7 +47,7 @@ func TestWelcomeInsights(t *testing.T) {
 		}()
 
 		Convey("Insight is generated only once", func() {
-			clock := &insighttestsutil.FakeClock{testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
+			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}
 
 			detector := NewDetector(accessor)
 

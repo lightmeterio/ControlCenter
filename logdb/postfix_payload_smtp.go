@@ -46,7 +46,7 @@ func lastTimeInTableReaderForSmtpSentStatus(db dbconn.RoConn) (int64, error) {
 
 func countLogsForSmtpSentStatus(db dbconn.RoConn) int {
 	value := 0
-	errorutil.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value), "")
+	errorutil.MustSucceed(db.QueryRow(`select count(*) from postfix_smtp_message_status`).Scan(&value))
 
 	return value
 }

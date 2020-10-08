@@ -3,18 +3,26 @@ package testutil
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"sync"
 	"time"
 )
 
 type FakeClock struct {
+	// Locking used just to prevent the race detector of triggering errors during tests
+	sync.Mutex
 	time.Time
 }
 
 func (t *FakeClock) Now() time.Time {
+	t.Lock()
+	defer t.Unlock()
+
 	return t.Time
 }
 
 func (t *FakeClock) Sleep(d time.Duration) {
+	t.Lock()
+	defer t.Unlock()
 	t.Time = t.Time.Add(d)
 }
 

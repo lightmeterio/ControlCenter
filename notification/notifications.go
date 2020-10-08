@@ -24,6 +24,7 @@ type Notification struct {
 
 type Center interface {
 	Notify(Notification) error
+	AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error
 }
 
 func New(masterConf *settings.MasterConf) Center {
@@ -61,7 +62,17 @@ func (cp *center) init() error {
 
 	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
 
-	cp.bus.AddEventListener(func(notification Notification) error {
+	cp.bus.AddEventListener("slack", func(notification Notification) error {
+		return cp.slackapi.PostMessage(notification.Content)
+	})
+
+	return nil
+}
+
+func (cp *center) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
+	cp.slackapi = newSlack(notificationsSettings.BearerToken, notificationsSettings.Channel)
+
+	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
 		return cp.slackapi.PostMessage(notification.Content)
 	})
 

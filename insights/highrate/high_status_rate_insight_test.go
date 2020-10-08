@@ -59,7 +59,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		baseInsightRange := time.Hour * 6
 
 		Convey("Bounce rate is lower than threshhold", func() {
-			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(baseInsightRange)}
 
 			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
 				From: baseTime,
@@ -90,7 +90,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Bounce rate is higher than threshhold", func() {
-			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(baseInsightRange)}
 
 			interval := data.TimeInterval{
 				From: baseTime,
@@ -125,7 +125,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Generate a new high bounced rate insight for the past 6 hours after 3 hours not to spam the user", func() {
-			clock := &insighttestsutil.FakeClock{baseTime.Add(baseInsightRange)}
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(baseInsightRange)}
 
 			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
 				From: baseTime,

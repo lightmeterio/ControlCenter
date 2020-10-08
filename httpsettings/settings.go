@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"mime"
@@ -11,11 +12,12 @@ import (
 )
 
 type Settings struct {
-	s settings.SystemSetup
+	s                  settings.SystemSetup
+	notificationCenter notification.Center
 }
 
-func NewSettings(s settings.SystemSetup) *Settings {
-	return &Settings{s}
+func NewSettings(s settings.SystemSetup, notificationCenter notification.Center) *Settings {
+	return &Settings{s, notificationCenter}
 }
 
 func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
@@ -144,12 +146,19 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	if err := h.s.SetOptions(r.Context(), settings.SlackNotificationsSettings{
+	slackNotificationsSettings := settings.SlackNotificationsSettings{
 		Kind:        messengerKind,
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
-	}); err != nil {
-		err = fmt.Errorf("Error notification setting options: %w", err)
+	}
+
+	if err := h.s.SetOptions(r.Context(), slackNotificationsSettings); err != nil {
+		err := errorutil.Wrap(err, "Error notification setting options")
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+	}
+
+	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
+		err := errorutil.Wrap(err, "Error register slack notifier ")
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 

@@ -70,10 +70,10 @@ func Initialize(options Options) {
 	once.Do(func() {
 		sql.Register("lm_sqlite3", &sqlite.SQLiteDriver{
 			ConnectHook: func(conn *sqlite.SQLiteConn) error {
-				errorutil.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true), "")
-				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true), "")
-				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true), "")
-				errorutil.MustSucceed(registerDomainMapping(conn, options), "")
+				errorutil.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true))
+				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true))
+				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true))
+				errorutil.MustSucceed(registerDomainMapping(conn, options))
 
 				return nil
 			},

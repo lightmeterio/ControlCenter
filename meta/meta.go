@@ -49,7 +49,7 @@ func (h *MetadataHandler) Store(ctx context.Context, items []Item) (Result, erro
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback())
 		}
 	}()
 
@@ -122,7 +122,7 @@ func (h *MetadataHandler) StoreJson(ctx context.Context, key interface{}, value 
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "")
+			errorutil.MustSucceed(tx.Rollback())
 		}
 	}()
 

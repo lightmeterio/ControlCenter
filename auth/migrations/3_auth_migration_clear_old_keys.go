@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+
+	// The meta table is defined in the meta package
+	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 )
 
 func init() {

@@ -277,7 +277,7 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]Fe
 	}
 
 	defer func() {
-		errorutil.MustSucceed(rows.Close(), "")
+		errorutil.MustSucceed(rows.Close())
 	}()
 
 	var (
