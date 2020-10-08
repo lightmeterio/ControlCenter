@@ -1,6 +1,7 @@
 package mailinactivity
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -89,7 +90,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 }
 
-func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
+func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
 	kind := "mail_inactivity"
@@ -128,7 +129,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 		return total, nil
 	}
 
-	totalCurrentInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(interval))
+	totalCurrentInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, interval))
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -140,7 +141,7 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 
 	if lastExecTime.IsZero() {
 		// pottentially first insight generation
-		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(data.TimeInterval{
+		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, data.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),
 		}))
@@ -164,7 +165,9 @@ func execChecksForMailInactivity(d *detector, c core.Clock, tx *sql.Tx) error {
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
-	if err := execChecksForMailInactivity(d, c, tx); err != nil {
+	ctx := context.Background()
+
+	if err := execChecksForMailInactivity(ctx, d, c, tx); err != nil {
 		return errorutil.Wrap(err)
 	}
 

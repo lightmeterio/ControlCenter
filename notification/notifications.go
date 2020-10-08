@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/slack-go/slack"
@@ -8,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/bus"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"time"
 )
 
 type Content interface {
@@ -45,7 +47,11 @@ type center struct {
 }
 
 func (cp *center) init() error {
-	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+
+	defer cancel()
+
+	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings(ctx)
 	if err != nil {
 		if errors.Is(err, meta.ErrNoSuchKey) {
 			return nil

@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -39,8 +40,8 @@ type Item struct {
 type Result struct {
 }
 
-func (h *MetadataHandler) Store(items []Item) (Result, error) {
-	tx, err := h.conn.RwConn.Begin()
+func (h *MetadataHandler) Store(ctx context.Context, items []Item) (Result, error) {
+	tx, err := h.conn.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
@@ -88,8 +89,8 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 	return Result{}, nil
 }
 
-func retrieve(h *MetadataHandler, key interface{}, value interface{}) error {
-	err := h.conn.RoConn.QueryRow(`select value from meta where key = ?`, key).Scan(value)
+func retrieve(ctx context.Context, h *MetadataHandler, key interface{}, value interface{}) error {
+	err := h.conn.RoConn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
 
 	if err == nil {
 		return nil
@@ -102,18 +103,18 @@ func retrieve(h *MetadataHandler, key interface{}, value interface{}) error {
 	return errorutil.Wrap(err)
 }
 
-func (h *MetadataHandler) Retrieve(key interface{}) (interface{}, error) {
+func (h *MetadataHandler) Retrieve(ctx context.Context, key interface{}) (interface{}, error) {
 	var v interface{}
 
-	if err := retrieve(h, key, &v); err != nil {
+	if err := retrieve(ctx, h, key, &v); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return v, nil
 }
 
-func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result, error) {
-	tx, err := h.conn.RwConn.Begin()
+func (h *MetadataHandler) StoreJson(ctx context.Context, key interface{}, value interface{}) (Result, error) {
+	tx, err := h.conn.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
@@ -145,7 +146,7 @@ func (h *MetadataHandler) StoreJson(key interface{}, value interface{}) (Result,
 	return r, nil
 }
 
-func (h *MetadataHandler) RetrieveJson(key interface{}, values interface{}) error {
+func (h *MetadataHandler) RetrieveJson(ctx context.Context, key interface{}, values interface{}) error {
 	reflectValues := reflect.ValueOf(values)
 
 	if reflectValues.Kind() != reflect.Ptr {
@@ -153,7 +154,7 @@ func (h *MetadataHandler) RetrieveJson(key interface{}, values interface{}) erro
 	}
 
 	var v string
-	if err := retrieve(h, key, &v); err != nil {
+	if err := retrieve(ctx, h, key, &v); err != nil {
 		return errorutil.Wrap(err)
 	}
 

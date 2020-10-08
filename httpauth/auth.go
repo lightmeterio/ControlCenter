@@ -151,7 +151,7 @@ func handleLoginSubmission(auth *Authenticator, w http.ResponseWriter, r *http.R
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 
-	authOk, userData, err := auth.auth.Authenticate(email, password)
+	authOk, userData, err := auth.auth.Authenticate(r.Context(), email, password)
 
 	if err != nil {
 		log.Println("Error on authentication:", err)
@@ -275,7 +275,7 @@ func handleRegistrationSubmission(auth *Authenticator, w http.ResponseWriter, r 
 		return
 	}
 
-	if err := auth.auth.Register(email, name, password); err != nil {
+	if err := auth.auth.Register(r.Context(), email, name, password); err != nil {
 		handleRegistrationFailure(err, w, r)
 		return
 	}
@@ -301,7 +301,7 @@ func handleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 }
 
 func defaultUnauthorisedRedirectUrl(auth *Authenticator, w http.ResponseWriter, r *http.Request) (string, error) {
-	ok, err := auth.auth.HasAnyUser()
+	ok, err := auth.auth.HasAnyUser(r.Context())
 
 	if err != nil {
 		return "", errorutil.Wrap(err)
@@ -359,7 +359,7 @@ func handleLogout(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 }
 
 func withBasicHTTPAuth(auth *Authenticator, user, password string, w http.ResponseWriter, r *http.Request) {
-	ok, userData, err := auth.auth.Authenticate(user, password)
+	ok, userData, err := auth.auth.Authenticate(r.Context(), user, password)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

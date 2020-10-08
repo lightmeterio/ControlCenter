@@ -42,7 +42,7 @@ func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *Settings) HttpInitialSetup(mux *http.ServeMux) {
-	chain := httpmiddleware.New()
+	chain := httpmiddleware.WithDefaultTimeout()
 	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
 }
 
@@ -114,7 +114,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *Settings) HttpNotificationSettings(mux *http.ServeMux) {
-	chain := httpmiddleware.New()
+	chain := httpmiddleware.WithDefaultTimeout()
 	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
 }
 

@@ -1,6 +1,7 @@
 package highrate
 
 import (
+	"context"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
@@ -16,6 +17,10 @@ import (
 	"path"
 	"testing"
 	"time"
+)
+
+var (
+	dummyContext = context.Background()
 )
 
 func init() {
@@ -56,7 +61,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		Convey("Bounce rate is lower than threshhold", func() {
 			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(baseInsightRange)}
 
-			d.EXPECT().DeliveryStatus(data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
@@ -74,7 +79,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 0)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(baseInsightRange),
 			}})
@@ -92,7 +97,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				To:   baseTime.Add(baseInsightRange),
 			}
 
-			d.EXPECT().DeliveryStatus(interval).Return(dashboard.Pairs{
+			d.EXPECT().DeliveryStatus(gomock.Any(), interval).Return(dashboard.Pairs{
 				dashboard.Pair{Key: "bounced", Value: 6},  // 30%
 				dashboard.Pair{Key: "deferred", Value: 4}, // 20%
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
@@ -107,7 +112,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 1)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: interval})
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: interval})
 
 			So(err, ShouldBeNil)
 
@@ -122,7 +127,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 		Convey("Generate a new high bounced rate insight for the past 6 hours after 3 hours not to spam the user", func() {
 			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(baseInsightRange)}
 
-			d.EXPECT().DeliveryStatus(data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
@@ -132,7 +137,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			}, nil)
 
 			// after three days, all good
-			d.EXPECT().DeliveryStatus(data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
 				From: baseTime.Add(threeHours * 3).Add(time.Second * 1),
 				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 			}).Return(dashboard.Pairs{
@@ -170,7 +175,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 2)
 
-			insights, err := accessor.FetchInsights(core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
 			}})

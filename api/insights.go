@@ -44,14 +44,14 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value:\" "+err.Error()+"\""))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Invalid entries query value"))
 	}
 
 	if entries < 0 {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Invalid entries query value: negative value"))
 	}
 
-	fetchedInsights, err := h.f.FetchInsights(core.FetchOptions{
+	fetchedInsights, err := h.f.FetchInsights(r.Context(), core.FetchOptions{
 		Interval:   interval,
 		Category:   category,
 		FilterBy:   filter,
@@ -59,7 +59,9 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		MaxEntries: entries,
 	})
 
-	errorutil.MustSucceed(err, "error fetching insights")
+	if err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
 
 	insights := make(fetchInsightsResult, 0, entries)
 
@@ -91,6 +93,6 @@ type fetchedInsight struct {
 type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
-	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(timezone))
+	chain := httpmiddleware.WithDefaultTimeout(httpmiddleware.RequestWithInterval(timezone))
 	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f}))
 }

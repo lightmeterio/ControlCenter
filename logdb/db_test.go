@@ -1,6 +1,7 @@
 package logdb
 
 import (
+	"context"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
@@ -95,32 +96,36 @@ func parseTimeInterval(from, to string) data.TimeInterval {
 	return interval
 }
 
+var (
+	dummyContext = context.Background()
+)
+
 func countByStatus(dashboard dashboard.Dashboard, status parser.SmtpStatus, interval data.TimeInterval) int {
-	v, err := dashboard.CountByStatus(status, interval)
+	v, err := dashboard.CountByStatus(dummyContext, status, interval)
 	So(err, ShouldBeNil)
 	return v
 }
 
 func topBusiestDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
-	pairs, err := dashboard.TopBusiestDomains(interval)
+	pairs, err := dashboard.TopBusiestDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
 func topBouncedDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
-	pairs, err := dashboard.TopBouncedDomains(interval)
+	pairs, err := dashboard.TopBouncedDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
 func topDeferredDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
-	pairs, err := dashboard.TopDeferredDomains(interval)
+	pairs, err := dashboard.TopDeferredDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
 func deliveryStatus(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
-	pairs, err := dashboard.DeliveryStatus(interval)
+	pairs, err := dashboard.DeliveryStatus(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }

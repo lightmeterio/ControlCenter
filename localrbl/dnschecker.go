@@ -1,6 +1,7 @@
 package localrbl
 
 import (
+	"context"
 	"github.com/mrichman/godnsbl"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/meta"
@@ -52,9 +53,9 @@ func NewChecker(meta *meta.MetadataHandler, options Options) Checker {
 	return newDnsChecker(meta, options)
 }
 
-func (c *dnsChecker) CheckedIP() net.IP {
+func (c *dnsChecker) CheckedIP(ctx context.Context) net.IP {
 	var settings Settings
-	err := c.meta.RetrieveJson(SettingsKey, &settings)
+	err := c.meta.RetrieveJson(ctx, SettingsKey, &settings)
 
 	if err != nil {
 		// If we cannot obtain the ip address, just chicken out
@@ -99,11 +100,18 @@ func worker(jobs <-chan func(), wg *sync.WaitGroup) {
 }
 
 func startNewScan(checker *dnsChecker, t time.Time) {
-	type queryResult = godnsbl.Result
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 
-	results := make([]queryResult, len(checker.options.RBLProvidersURLs))
+	defer cancel()
 
-	ip := checker.CheckedIP()
+	results := make([]godnsbl.Result, len(checker.options.RBLProvidersURLs))
+
+	ip := checker.CheckedIP(ctx)
+
+	if err := ctx.Err(); err != nil {
+		log.Println("Error obtaining IP address from settings on RBL Check:", err)
+		return
+	}
 
 	if ip == nil {
 		// Do not perform a scan if the user has not configured an IP

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"errors"
@@ -21,9 +22,9 @@ type UserData struct {
 }
 
 type Registrar interface {
-	Register(email, name, password string) error
-	Authenticate(email, password string) (bool, UserData, error)
-	HasAnyUser() (bool, error)
+	Register(ctx context.Context, email, name, password string) error
+	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
+	HasAnyUser(ctx context.Context) (bool, error)
 }
 
 type Options struct {
@@ -59,8 +60,8 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 	return nil
 }
 
-func (r *Auth) Register(email, name, password string) error {
-	hasAnyUser, err := r.HasAnyUser()
+func (r *Auth) Register(ctx context.Context, email, name, password string) error {
+	hasAnyUser, err := r.HasAnyUser(ctx)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -82,15 +83,15 @@ func (r *Auth) Register(email, name, password string) error {
 		return errorutil.Wrap(err)
 	}
 
-	if err := registerInDb(r.connPair.RwConn, email, name, password); err != nil {
+	if err := registerInDb(ctx, r.connPair.RwConn, email, name, password); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func registerInDb(db dbconn.RwConn, email, name, password string) error {
-	tx, err := db.Begin()
+func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) error {
+	tx, err := db.BeginTx(ctx, nil)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -131,11 +132,11 @@ func registerInDb(db dbconn.RwConn, email, name, password string) error {
 	return nil
 }
 
-func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
+func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
 	d := UserData{}
 
 	err := r.connPair.RoConn.
-		QueryRow("select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
+		QueryRowContext(ctx, "select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
 		Scan(&d.Id, &d.Email, &d.Name)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -149,10 +150,10 @@ func (r *Auth) Authenticate(email, password string) (bool, UserData, error) {
 	return true, d, nil
 }
 
-func (r *Auth) HasAnyUser() (bool, error) {
+func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 	var count int
 
-	if err := r.connPair.RoConn.QueryRow("select count(*) from users").Scan(&count); err != nil {
+	if err := r.connPair.RoConn.QueryRowContext(ctx, "select count(*) from users").Scan(&count); err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
@@ -176,7 +177,9 @@ func generateKeys() ([][]byte, error) {
 func (r *Auth) SessionKeys() [][]byte {
 	keys := [][]byte{}
 
-	err := r.meta.RetrieveJson("session_key", &keys)
+	ctx := context.Background()
+
+	err := r.meta.RetrieveJson(ctx, "session_key", &keys)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
@@ -190,7 +193,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	_, err = r.meta.StoreJson("session_key", keys)
+	_, err = r.meta.StoreJson(ctx, "session_key", keys)
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
@@ -261,8 +264,8 @@ func updatePassword(tx *sql.Tx, email, password string) error {
 	return nil
 }
 
-func (r *Auth) ChangePassword(email, password string) error {
-	tx, err := r.connPair.RwConn.Begin()
+func (r *Auth) ChangePassword(ctx context.Context, email, password string) error {
+	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
 		return errorutil.Wrap(err)

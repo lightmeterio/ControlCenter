@@ -73,7 +73,6 @@ func TestInsights(t *testing.T) {
 
 	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
 
-
 	Convey("Test Insights", t, func() {
 		Convey("Missing mandatory arguments", func() {
 			s := httptest.NewServer(chain.WithEndpoint(fetchInsightsHandler{f: f}))
@@ -90,7 +89,7 @@ func TestInsights(t *testing.T) {
 		})
 
 		Convey("Get some insights", func() {
-			f.EXPECT().FetchInsights(core.FetchOptions{
+			f.EXPECT().FetchInsights(gomock.Any(), core.FetchOptions{
 				Interval:   parseTimeInterval(`1999-01-01`, `1999-12-31`),
 				OrderBy:    core.OrderByCreationDesc,
 				FilterBy:   core.NoFetchFilter,
@@ -128,7 +127,7 @@ func TestInsights(t *testing.T) {
 			So(body, ShouldResemble, []interface{}{
 				map[string]interface{}{
 					"Category":    "intel",
-					"Content":     map[string]interface{}{"v":"content1"},
+					"Content":     map[string]interface{}{"v": "content1"},
 					"ContentType": "fake_content_1",
 					"ID":          float64(1),
 					"Rating":      "bad",
@@ -136,7 +135,7 @@ func TestInsights(t *testing.T) {
 				},
 				map[string]interface{}{
 					"Category":    "local",
-					"Content":     map[string]interface{}{"v":"content2"},
+					"Content":     map[string]interface{}{"v": "content2"},
 					"ContentType": "fake_content_2",
 					"ID":          float64(2),
 					"Rating":      "ok",

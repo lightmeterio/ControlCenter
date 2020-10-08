@@ -1,6 +1,7 @@
 package localrblinsight
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -74,7 +75,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 func createInsightForResults(d *detector, r localrbl.Results, c core.Clock, tx *sql.Tx) error {
 	return generateInsight(tx, c, d.creator, content{
 		ScanInterval: r.Interval,
-		Address:      d.options.Checker.CheckedIP(),
+		Address:      d.options.Checker.CheckedIP(context.Background()),
 		RBLs:         r.RBLs,
 	})
 }
@@ -132,7 +133,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, content{
 		ScanInterval: data.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
-		Address:      d.options.Checker.CheckedIP(),
+		Address:      d.options.Checker.CheckedIP(context.Background()),
 		RBLs: []localrbl.ContentElement{
 			{RBL: "rbl.com", Text: "Funny reason"},
 			{RBL: "anotherrbl.de", Text: "Another funny reason"},
