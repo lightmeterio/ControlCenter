@@ -208,7 +208,7 @@ func TestHTTPAuth(t *testing.T) {
 			})
 
 			Convey("Login will fail on invalid method", func() {
-				req, err := http.NewRequest("DELETE", s.URL+"/login", nil)
+				req, err := http.NewRequest(http.MethodDelete, s.URL+"/login", nil)
 				So(err, ShouldBeNil)
 				r, err := c.Do(req)
 				So(err, ShouldBeNil)
@@ -268,7 +268,7 @@ func TestHTTPAuth(t *testing.T) {
 
 			Convey("User registrations fails", func() {
 				Convey("Invalid HTTP method", func() {
-					req, err := http.NewRequest("DELETE", s.URL+"/register", nil)
+					req, err := http.NewRequest(http.MethodDelete, s.URL+"/register", nil)
 					So(err, ShouldBeNil)
 					r, err := c.Do(req)
 					So(err, ShouldBeNil)
@@ -457,7 +457,7 @@ func TestHTTPAuth(t *testing.T) {
 			defer c.CloseIdleConnections()
 
 			Convey("Unregistred User fails to connect", func() {
-				req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
+				req, err := http.NewRequest(http.MethodGet, s.URL+"/secret/area", nil)
 				So(err, ShouldBeNil)
 				req.SetBasicAuth("user@example.com", "123456")
 				r, err := c.Do(req)
@@ -471,7 +471,7 @@ func TestHTTPAuth(t *testing.T) {
 				registrar.name = "Sakura"
 
 				Convey("Auth fails due wrong credentials", func() {
-					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
+					req, err := http.NewRequest(http.MethodGet, s.URL+"/secret/area", nil)
 					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "wrong_password")
 					r, err := c.Do(req)
@@ -481,7 +481,7 @@ func TestHTTPAuth(t *testing.T) {
 
 				Convey("Auth fails due internal error", func() {
 					registrar.authenticateYieldsError = true
-					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
+					req, err := http.NewRequest(http.MethodGet, s.URL+"/secret/area", nil)
 					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "654321")
 					r, err := c.Do(req)
@@ -490,7 +490,7 @@ func TestHTTPAuth(t *testing.T) {
 				})
 
 				Convey("Auth succeeds on correct credentials", func() {
-					req, err := http.NewRequest("GET", s.URL+"/secret/area", nil)
+					req, err := http.NewRequest(http.MethodGet, s.URL+"/secret/area", nil)
 					So(err, ShouldBeNil)
 					req.SetBasicAuth("user@example.com", "654321")
 					r, err := c.Do(req)

@@ -61,12 +61,12 @@ func NewAuthenticatorWithOptions(
 }
 
 func acceptOnlyGetOrPost(auth *Authenticator, w http.ResponseWriter, r *http.Request, getCb, postCb func()) {
-	if r.Method == "GET" {
+	if r.Method == http.MethodGet {
 		getCb()
 		return
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		log.Println("Invalid HTTP method")
 		w.WriteHeader(http.StatusInternalServerError)
 		auth.handlers.ServerError(w, r)
