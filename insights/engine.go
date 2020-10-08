@@ -7,6 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
 	"time"
@@ -19,6 +20,7 @@ type Engine struct {
 	insightsStateConn dbconn.ConnPair
 	txActions         chan txAction
 	fetcher           core.Fetcher
+	closers           closeutil.Closers
 }
 
 func NewCustomEngine(
@@ -70,24 +72,22 @@ func NewCustomEngine(
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &Engine{
+	e := &Engine{
 		core:              c,
 		insightsStateConn: stateConn,
 		txActions:         make(chan txAction, 1024),
 		fetcher:           fetcher,
-	}, nil
+		closers: closeutil.New(
+			c,
+			fetcher,
+		),
+	}
+
+	return e, nil
 }
 
 func (e *Engine) Close() error {
-	if err := e.core.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := e.fetcher.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return e.closers.Close()
 }
 
 func spawnInsightsJob(clock core.Clock, e *Engine, cancel <-chan struct{}) {
