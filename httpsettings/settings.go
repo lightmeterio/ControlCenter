@@ -21,7 +21,7 @@ func NewSettings(s settings.SystemSetup, notificationCenter notification.Center)
 }
 
 func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
 	}
 

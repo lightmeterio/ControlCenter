@@ -59,7 +59,7 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 
 	content := strings.NewReader(data.Encode())
 
-	req, err := http.NewRequestWithContext(context, "POST", s.URL+"/lists/?p=asubscribe&id=2", content)
+	req, err := http.NewRequestWithContext(context, http.MethodPost, s.URL+"/lists/?p=asubscribe&id=2", content)
 
 	if err != nil {
 		return errorutil.Wrap(err)
