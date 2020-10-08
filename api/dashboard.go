@@ -6,6 +6,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
+	"gitlab.com/lightmeter/controlcenter/version"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"net/http"
 	"time"
@@ -121,12 +122,28 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	return servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
-func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	chain := httpmiddleware.NewWithTimeout(time.Second*30, httpmiddleware.RequestWithInterval(timezone))
+type appVersionHandler struct{}
 
+type appVersion struct {
+	Version     string
+	Commit      string
+	TagOrBranch string
+}
+
+// @Summary Control Center Version
+// @Produce json
+// @Success 200 {object} appVersion
+// @Router /api/v0/appVersion [get]
+func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	return httputil.WriteJson(w, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch}, http.StatusOK)
+}
+
+func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
+	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(timezone))
 	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
 	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/topDeferredDomains", chain.WithEndpoint(topDeferredDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/deliveryStatus", chain.WithEndpoint(deliveryStatusHandler{dashboard}))
+	mux.Handle("/api/v0/appVersion", chain.WithError(appVersionHandler{}))
 }
