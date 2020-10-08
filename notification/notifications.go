@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/bus"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"time"
 )
 
 type Content interface {
@@ -45,7 +46,9 @@ type center struct {
 }
 
 func (cp *center) init() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+
+	defer cancel()
 
 	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings(ctx)
 	if err != nil {

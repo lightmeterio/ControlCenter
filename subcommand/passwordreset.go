@@ -5,6 +5,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
+	"time"
 )
 
 func PerformPasswordReset(verbose bool, workspaceDirectory, emailToReset, passwordToReset string) {
@@ -14,7 +15,11 @@ func PerformPasswordReset(verbose bool, workspaceDirectory, emailToReset, passwo
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening auth database:", err)
 	}
 
-	if err := auth.ChangePassword(context.Background(), emailToReset, passwordToReset); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+
+	defer cancel()
+
+	if err := auth.ChangePassword(ctx, emailToReset, passwordToReset); err != nil {
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error resetting password:", err)
 	}
 
