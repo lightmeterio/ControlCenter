@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -68,6 +69,7 @@ func RequestWithTimeout(defaultTimeout time.Duration) Middleware {
 			timeout, err := timeoutForRequest(r, defaultTimeout, MaxCustomTimeout)
 
 			if err != nil {
+				log.Println("Error reading Keep-Alive header", err)
 				return NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error reading Keep-Alive header"))
 			}
 
