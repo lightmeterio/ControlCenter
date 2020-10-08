@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
@@ -39,6 +40,18 @@ func (f *fakeSystemSetup) SetOptions(context.Context, interface{}) error {
 	return nil
 }
 
+type fakeNotificationCenter struct {}
+
+func (c *fakeNotificationCenter) Notify(center notification.Notification) error {
+	log.Println("send notification")
+	return nil
+}
+
+func (c *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
+	log.Println("Add slack")
+	return nil
+}
+
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
@@ -61,7 +74,8 @@ func TestInitialSetup(t *testing.T) {
 		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
 		So(err, ShouldBeNil)
 
-		setup := NewSettings(mc)
+		fakeCenter := &fakeNotificationCenter{}
+		setup := NewSettings(mc, fakeCenter)
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.InitialSetupHandler))
@@ -147,12 +161,14 @@ func TestFakeInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
 		f := &fakeSystemSetup{}
 
-		testSettings := NewSettings(f)
+		fakeCenter := &fakeNotificationCenter{}
 		chain := httpmiddleware.New()
+		testSettings := NewSettings(f, fakeCenter)
+
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(testSettings.InitialSetupHandler))
 
-		s := httptest.NewServer(handler)
 		c := &http.Client{}
+		s := httptest.NewServer(handler)
 
 		Convey("Fails", func() {
 			Convey("Unknown setup failure", func() {
@@ -183,7 +199,8 @@ func TestSettingsSetup(t *testing.T) {
 		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
 		So(err, ShouldBeNil)
 
-		setup := NewSettings(mc)
+		fakeCenter := &fakeNotificationCenter{}
+		setup := NewSettings(mc, fakeCenter)
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler))
@@ -234,6 +251,80 @@ func TestSettingsSetup(t *testing.T) {
 
 				So(mo.Channel, ShouldEqual, "donutloop")
 				So(mo.BearerToken, ShouldEqual, "sjdfklsjdfkljfs")
+			})
+		})
+	})
+}
+
+type fakeContent struct {}
+
+func (c *fakeContent) String() string {
+	return "Hell world!, Mister Donutloop 2"
+}
+
+// todo(marcel) before we create a release stub out the slack api
+func TestIntegrationSettingsSetup(t *testing.T) {
+	Convey("Integration Settings Setup", t, func() {
+		dir, clearDir := testutil.TempDir()
+		defer clearDir()
+
+		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		So(err, ShouldBeNil)
+
+		defer func() {
+			So(connPair.Close(), ShouldBeNil)
+		}()
+
+		m, err := meta.NewMetaDataHandler(connPair, "master")
+		So(err, ShouldBeNil)
+
+		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
+		So(err, ShouldBeNil)
+
+		center := notification.New(mc)
+
+		setup := NewSettings(mc, center)
+
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler))
+		s := httptest.NewServer(handler)
+		c := &http.Client{}
+
+		Convey("Success", func() {
+			Convey("send valid values", func() {
+				r, err := c.PostForm(s.URL, url.Values{
+					"messenger_kind":    {"slack"},
+					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
+					"messenger_channel": {"general"},
+				})
+
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+				r, err = c.PostForm(s.URL, url.Values{
+					"messenger_kind":    {"slack"},
+					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
+					"messenger_channel": {"general"},
+				})
+
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+				mo := new(settings.SlackNotificationsSettings)
+				err = m.RetrieveJson("messenger_slack", mo)
+				So(err, ShouldBeNil)
+
+				So(mo.Channel, ShouldEqual, "general")
+				So(mo.BearerToken, ShouldEqual, "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz")
+
+				content := new(fakeContent)
+				notification := notification.Notification{
+					ID: 0,
+					Content: content,
+				}
+
+				err = center.Notify(notification)
+				So(err, ShouldBeNil)
 			})
 		})
 	})

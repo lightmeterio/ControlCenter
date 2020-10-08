@@ -10,6 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
 	"sync"
@@ -35,6 +36,10 @@ type fakeNotificationCenter struct {
 
 func (f *fakeNotificationCenter) Notify(n notification.Notification) error {
 	f.notifications = append(f.notifications, n)
+	return nil
+}
+
+func (f *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
 	return nil
 }
 
