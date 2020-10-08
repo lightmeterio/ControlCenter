@@ -15,7 +15,7 @@ func PerformPasswordReset(verbose bool, workspaceDirectory, emailToReset, passwo
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening auth database:", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 
 	defer cancel()
 
