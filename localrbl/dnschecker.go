@@ -13,7 +13,6 @@ import (
 
 const (
 	SettingsKey = "localrbl"
-	ScanTimeout = time.Minute * 5
 )
 
 type Settings struct {
@@ -101,13 +100,18 @@ func worker(jobs <-chan func(), wg *sync.WaitGroup) {
 }
 
 func startNewScan(checker *dnsChecker, t time.Time) {
-	ctx, cancel := context.WithTimeout(context.Background(), ScanTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 
 	defer cancel()
 
 	results := make([]godnsbl.Result, len(checker.options.RBLProvidersURLs))
 
 	ip := checker.CheckedIP(ctx)
+
+	if err := ctx.Err(); err != nil {
+		log.Println("Error obtaining IP address from settings on RBL Check:", err)
+		return
+	}
 
 	if ip == nil {
 		// Do not perform a scan if the user has not configured an IP
