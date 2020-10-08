@@ -25,6 +25,8 @@ type Workspace struct {
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
 
+	NotificationCenter notification.Center
+
 	settings *settings.MasterConf
 	closes   closeutil.Closers
 }
@@ -100,6 +102,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 			&logDb,
 			insightsEngine,
 		),
+		NotificationCenter: notificationCenter,
 	}
 
 	return w, nil

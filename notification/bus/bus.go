@@ -17,18 +17,21 @@ type Msg interface{}
 // It is a simple but powerful publish-subscribe event system. It requires object to
 // register themselves with the event bus to receive events.
 type Interface interface {
-	AddEventListener(handler HandlerFunc)
+	AddEventListener(typ interface{}, handler HandlerFunc)
+	UpdateEventListener(typ interface{}, handler HandlerFunc)
 	Publish(msg Msg) error
 }
 
 type bus struct {
 	listeners *sync.Map
+	indexies  *sync.Map
 	isInit    bool
 }
 
 func New() Interface {
 	return &bus{
 		listeners: new(sync.Map),
+		indexies:  new(sync.Map),
 	}
 }
 
@@ -67,8 +70,14 @@ func (b *bus) Publish(msg Msg) error {
 
 // AddListener registers a listener function that will be called when a matching
 // msg is dispatched.
-func (b *bus) AddEventListener(handler HandlerFunc) {
+// it isn't allowed to register two handlers with same typ
+func (b *bus) AddEventListener(typ interface{}, handler HandlerFunc) {
 	b.isInit = true
+
+	_, ok := b.indexies.Load(typ)
+	if ok {
+		panic("handler of typ is registered")
+	}
 
 	handlerType := reflect.TypeOf(handler)
 	validateHandlerFunc(handlerType)
@@ -83,6 +92,33 @@ func (b *bus) AddEventListener(handler HandlerFunc) {
 	}
 
 	listeners = append(listeners, reflect.ValueOf(handler))
+	b.listeners.Store(typOfMsg.String(), listeners)
+	b.indexies.Store(typ, len(listeners)-1)
+}
+
+// UpdateEventListener updates a listener function that will be called when a matching
+// msg is dispatched.
+func (b *bus) UpdateEventListener(typ interface{}, handler HandlerFunc) {
+	b.isInit = true
+
+	handlerType := reflect.TypeOf(handler)
+	validateHandlerFunc(handlerType)
+	// the first input parameter is the msg
+	typOfMsg := handlerType.In(0)
+
+	val, ok := b.indexies.Load(typ)
+	if !ok {
+		listeners := []reflect.Value{reflect.ValueOf(handler)}
+		b.listeners.Store(typOfMsg.String(), listeners)
+		b.indexies.Store(typ, len(listeners)-1)
+
+		return
+	}
+
+	index := val.(int)
+	val, _ = b.listeners.Load(typOfMsg.String())
+	listeners := val.([]reflect.Value)
+	listeners[index] = reflect.ValueOf(handler)
 	b.listeners.Store(typOfMsg.String(), listeners)
 }
 

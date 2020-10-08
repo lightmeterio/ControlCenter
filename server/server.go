@@ -40,6 +40,8 @@ func (s *HttpServer) Start() error {
 
 	settings := s.Workspace.Settings()
 
+	setup := httpsettings.NewSettings(settings, s.Workspace.NotificationCenter)
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/", i18n.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets, po.DefaultCatalog))
@@ -58,8 +60,6 @@ func (s *HttpServer) Start() error {
 
 	api.HttpDashboard(mux, s.Timezone, dashboard)
 	api.HttpInsights(mux, s.Timezone, insightsFetcher)
-
-	setup := httpsettings.NewSettings(settings)
 
 	setup.HttpInitialSetup(mux)
 	setup.HttpNotificationSettings(mux)
