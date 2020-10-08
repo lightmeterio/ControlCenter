@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const DefaultTimeout = time.Second * 30
+const (
+	DefaultTimeout   = time.Second * 30
+	MaxCustomTimeout = time.Minute * 1
+)
 
 func WithDefaultTimeout(middleware ...Middleware) Chain {
 	return WithTimeout(DefaultTimeout, middleware...)
@@ -29,7 +32,7 @@ var (
 	ErrInvalidKeepAliveHeader = errors.New("Could not parse Keep-Alive Header")
 )
 
-func timeoutForRequest(r *http.Request, defaultTimeout time.Duration) (time.Duration, error) {
+func timeoutForRequest(r *http.Request, defaultTimeout, maxTimeout time.Duration) (time.Duration, error) {
 	keepAlive := r.Header.Get("Keep-Alive")
 
 	if len(keepAlive) == 0 {
@@ -42,13 +45,19 @@ func timeoutForRequest(r *http.Request, defaultTimeout time.Duration) (time.Dura
 		return 0, ErrInvalidKeepAliveHeader
 	}
 
-	timeout, err := strconv.Atoi(string(matches[1]))
+	seconds, err := strconv.Atoi(string(matches[1]))
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 
-	return time.Second * time.Duration(timeout), nil
+	timeout := time.Second * time.Duration(seconds)
+
+	if timeout > maxTimeout {
+		return maxTimeout, nil
+	}
+
+	return timeout, nil
 }
 
 func RequestWithTimeout(defaultTimeout time.Duration) Middleware {
@@ -56,7 +65,7 @@ func RequestWithTimeout(defaultTimeout time.Duration) Middleware {
 		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 			now := time.Now()
 
-			timeout, err := timeoutForRequest(r, defaultTimeout)
+			timeout, err := timeoutForRequest(r, defaultTimeout, MaxCustomTimeout)
 
 			if err != nil {
 				return NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error reading Keep-Alive header"))
