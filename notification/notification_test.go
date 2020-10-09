@@ -10,6 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"path"
+	"sync/atomic"
 	"testing"
 )
 
@@ -61,6 +62,7 @@ func TestSendNotification(t *testing.T) {
 			Channel:     "general",
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+			Enabled: true,
 		}
 
 		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
@@ -122,10 +124,13 @@ func TestSendNotificationMissingConf(t *testing.T) {
 	})
 }
 
-type fakeapi struct{}
+type fakeapi struct{
+	Counter int32
+}
 
 func (s *fakeapi) PostMessage(stringer fmt.Stringer) error {
 	fmt.Println(stringer)
+	atomic.AddInt32(&s.Counter, 1)
 	return nil
 }
 
@@ -153,14 +158,17 @@ func TestFakeSendNotification(t *testing.T) {
 			Channel:     "general",
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+			Enabled: true,
 		}
 
 		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
 		So(err, ShouldBeNil)
 
+		fakeapi := &fakeapi{}
+
 		centerInterface := New(master)
 		c := centerInterface.(*center)
-		c.slackapi = &fakeapi{}
+		c.slackapi = fakeapi
 
 		content := new(fakeContent)
 		Notification := Notification{
@@ -172,6 +180,59 @@ func TestFakeSendNotification(t *testing.T) {
 			Convey("Do subscribe", func() {
 				err := c.Notify(Notification)
 				So(err, ShouldBeNil)
+				So(fakeapi.Counter, ShouldEqual, 1)
+			})
+		})
+	})
+}
+
+func TestFakeSendNotificationDisabled(t *testing.T) {
+
+	Convey("Notification", t, func() {
+
+		tempDir, removeAll := testutil.TempDir()
+		defer removeAll()
+
+		connPair, err := dbconn.NewConnPair(path.Join(tempDir, ".db"))
+		So(err, ShouldBeNil)
+
+		defer func() {
+			So(connPair.Close(), ShouldBeNil)
+		}()
+
+		m, err := meta.NewMetaDataHandler(connPair, "master")
+		So(err, ShouldBeNil)
+
+		master, err := settings.NewMasterConf(m, newSubscriber())
+		So(err, ShouldBeNil)
+
+		slackSettings := settings.SlackNotificationsSettings{
+			Channel:     "general",
+			Kind:        "slack",
+			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+			Enabled: false,
+		}
+
+		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
+		So(err, ShouldBeNil)
+
+		fakeapi := &fakeapi{}
+
+		centerInterface := New(master)
+		c := centerInterface.(*center)
+		c.slackapi = fakeapi
+
+		content := new(fakeContent)
+		Notification := Notification{
+			ID:      0,
+			Content: content,
+		}
+
+		Convey("Success", func() {
+			Convey("Do subscribe", func() {
+				err := c.Notify(Notification)
+				So(err, ShouldBeNil)
+				So(fakeapi.Counter, ShouldEqual, 0)
 			})
 		})
 	})

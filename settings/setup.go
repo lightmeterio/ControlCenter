@@ -32,6 +32,7 @@ type SlackNotificationsSettings struct {
 	BearerToken string `json:"bearer_token"`
 	Kind        string `json:"-"`
 	Channel     string `json:"channel"`
+	Enabled     bool   `json:"enabled"`
 }
 
 type InitialOptions struct {
@@ -95,6 +96,7 @@ func (c *MasterConf) SetSlackNotificationsSettings(ctx context.Context, slackNot
 		SlackNotificationsSettings{
 			BearerToken: slackNotificationsSettings.BearerToken,
 			Channel:     slackNotificationsSettings.Channel,
+			Enabled:     slackNotificationsSettings.Enabled,
 		})
 
 	if err != nil {

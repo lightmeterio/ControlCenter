@@ -60,6 +60,10 @@ func (cp *center) init() error {
 		return err
 	}
 
+	if !slackSettings.Enabled {
+		return nil
+	}
+
 	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
 
 	cp.bus.AddEventListener("slack", func(notification Notification) error {
@@ -69,10 +73,15 @@ func (cp *center) init() error {
 	return nil
 }
 
-func (cp *center) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
-	cp.slackapi = newSlack(notificationsSettings.BearerToken, notificationsSettings.Channel)
+func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSettings) error {
+	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
 
 	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
+
+		if !slackSettings.Enabled {
+			return nil
+		}
+
 		return cp.slackapi.PostMessage(notification.Content)
 	})
 
