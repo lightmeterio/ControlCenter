@@ -123,11 +123,6 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	if len(r.Form) != 3 {
-		err := errorutil.Wrap(errors.New("Error to many values in form"))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
-	}
-
 	messengerKind := r.Form.Get("messenger_kind")
 	if messengerKind != "slack" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
@@ -146,10 +141,17 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
+	messengerEnabled := r.Form.Get("messenger_enabled")
+	if messengerEnabled != "false" && messengerEnabled != "true" {
+		err := errorutil.Wrap(fmt.Errorf("Error messenger enabled option is bad %v", messengerEnabled))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
 	slackNotificationsSettings := settings.SlackNotificationsSettings{
 		Kind:        messengerKind,
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
+		Enabled:     messengerEnabled == "true",
 	}
 
 	if err := h.s.SetOptions(r.Context(), slackNotificationsSettings); err != nil {

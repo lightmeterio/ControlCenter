@@ -229,13 +229,6 @@ func TestSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
-
-			Convey("To many values", func() {
-				r, err := c.PostForm(s.URL, url.Values{"value_1": {""}, "value_2": {""}, "value_3": {""}, "value_4": {""}})
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
-			})
-
 		})
 
 		Convey("Success", func() {
@@ -244,6 +237,7 @@ func TestSettingsSetup(t *testing.T) {
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"sjdfklsjdfkljfs"},
 					"messenger_channel": {"donutloop"},
+					"messenger_enabled": {"true"},
 				})
 
 				So(err, ShouldBeNil)
@@ -300,6 +294,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
+					"messenger_enabled": {"true"},
 				})
 
 				So(err, ShouldBeNil)
@@ -309,6 +304,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
+					"messenger_enabled": {"true"},
 				})
 
 				So(err, ShouldBeNil)
