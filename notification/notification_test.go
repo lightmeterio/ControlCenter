@@ -5,11 +5,10 @@ import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"sync/atomic"
 	"testing"
 )
@@ -41,19 +40,13 @@ func newSubscriber() *dummySubscriber {
 func TestSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		tempDir, removeAll := testutil.TempDir()
-		defer removeAll()
-
-		connPair, err := dbconn.NewConnPair(path.Join(tempDir, ".db"))
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		master, err := settings.NewMasterConf(m, newSubscriber())
 		So(err, ShouldBeNil)
@@ -62,7 +55,7 @@ func TestSendNotification(t *testing.T) {
 			Channel:     "general",
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
-			Enabled: true,
+			Enabled:     true,
 		}
 
 		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
@@ -89,19 +82,13 @@ func TestSendNotification(t *testing.T) {
 func TestSendNotificationMissingConf(t *testing.T) {
 
 	Convey("Notification", t, func() {
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		tempDir, removeAll := testutil.TempDir()
-		defer removeAll()
-
-		connPair, err := dbconn.NewConnPair(path.Join(tempDir, ".db"))
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		master, err := settings.NewMasterConf(m, newSubscriber())
 		So(err, ShouldBeNil)
@@ -124,7 +111,7 @@ func TestSendNotificationMissingConf(t *testing.T) {
 	})
 }
 
-type fakeapi struct{
+type fakeapi struct {
 	Counter int32
 }
 
@@ -137,19 +124,13 @@ func (s *fakeapi) PostMessage(stringer fmt.Stringer) error {
 func TestFakeSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		tempDir, removeAll := testutil.TempDir()
-		defer removeAll()
-
-		connPair, err := dbconn.NewConnPair(path.Join(tempDir, ".db"))
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		master, err := settings.NewMasterConf(m, newSubscriber())
 		So(err, ShouldBeNil)
@@ -158,7 +139,7 @@ func TestFakeSendNotification(t *testing.T) {
 			Channel:     "general",
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
-			Enabled: true,
+			Enabled:     true,
 		}
 
 		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
@@ -189,19 +170,13 @@ func TestFakeSendNotification(t *testing.T) {
 func TestFakeSendNotificationDisabled(t *testing.T) {
 
 	Convey("Notification", t, func() {
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		tempDir, removeAll := testutil.TempDir()
-		defer removeAll()
-
-		connPair, err := dbconn.NewConnPair(path.Join(tempDir, ".db"))
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		master, err := settings.NewMasterConf(m, newSubscriber())
 		So(err, ShouldBeNil)
@@ -210,7 +185,7 @@ func TestFakeSendNotificationDisabled(t *testing.T) {
 			Channel:     "general",
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
-			Enabled: false,
+			Enabled:     false,
 		}
 
 		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)

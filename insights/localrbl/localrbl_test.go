@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
 	"path"
@@ -185,23 +186,25 @@ func TestLocalRBL(t *testing.T) {
 			})
 
 			Convey("Use real DNS checker", func() {
-				connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+				conn, closeConn := testutil.TempDBConnection()
+				defer closeConn()
+
+				m, err := meta.NewHandler(conn, "master")
 				So(err, ShouldBeNil)
 
-				meta, err := meta.NewMetaDataHandler(connPair, "master")
-				So(err, ShouldBeNil)
+				defer func() { errorutil.MustSucceed(m.Close()) }()
 
 				{
 					settings := localrbl.Settings{
 						LocalIP: net.ParseIP("11.22.33.44"),
 					}
 
-					_, err := meta.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
+					_, err := m.Writer.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
 
 					So(err, ShouldBeNil)
 				}
 
-				checker := localrbl.NewChecker(meta, localrbl.Options{
+				checker := localrbl.NewChecker(m.Reader, localrbl.Options{
 					NumberOfWorkers:  2,
 					Lookup:           fakeLookup,
 					RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
