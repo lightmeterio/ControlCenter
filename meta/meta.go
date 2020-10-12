@@ -68,14 +68,11 @@ type Item struct {
 	Value interface{}
 }
 
-type Result struct {
-}
-
-func (writer *Writer) Store(ctx context.Context, items []Item) (Result, error) {
+func (writer *Writer) Store(ctx context.Context, items []Item) error {
 	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -84,22 +81,22 @@ func (writer *Writer) Store(ctx context.Context, items []Item) (Result, error) {
 		}
 	}()
 
-	r, err := Store(tx, items)
+	err = Store(tx, items)
 
 	if err != nil {
-		return Result{}, err
+		return err
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
-	return r, nil
+	return nil
 }
 
-func Store(tx *sql.Tx, items []Item) (Result, error) {
+func Store(tx *sql.Tx, items []Item) error {
 	for _, i := range items {
 		var id int
 		err := tx.QueryRow(`select rowid from meta where key = ?`, i.Key).Scan(&id)
@@ -113,11 +110,11 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 		}()
 
 		if _, err := tx.Exec(query, args...); err != nil {
-			return Result{}, errorutil.Wrap(err)
+			return errorutil.Wrap(err)
 		}
 	}
 
-	return Result{}, nil
+	return nil
 }
 
 func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
@@ -144,11 +141,11 @@ func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{
 	return v, nil
 }
 
-func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value interface{}) (Result, error) {
+func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value interface{}) error {
 	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -159,22 +156,22 @@ func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value inte
 
 	jsonBlob, err := json.Marshal(value)
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
-	r, err := Store(tx, []Item{{Key: key, Value: string(jsonBlob)}})
+	err = Store(tx, []Item{{Key: key, Value: string(jsonBlob)}})
 
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return Result{}, errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
-	return r, nil
+	return nil
 }
 
 func (reader *Reader) RetrieveJson(ctx context.Context, key interface{}, values interface{}) error {
