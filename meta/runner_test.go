@@ -1,7 +1,6 @@
 package meta
 
 import (
-	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -31,11 +30,6 @@ func TestRunner(t *testing.T) {
 
 		done, cancel := runner.Run()
 
-		Convey("Key not found", func() {
-			_, err := reader.Retrieve(dummyContext, "key1")
-			So(errors.Is(err, ErrNoSuchKey), ShouldBeTrue)
-		})
-
 		Convey("Insert multiple values", func() {
 			err := runner.Store([]Item{
 				{Key: "key1", Value: "value1"},
@@ -64,6 +58,30 @@ func TestRunner(t *testing.T) {
 				v, err = reader.Retrieve(dummyContext, "key2")
 				So(err, ShouldBeNil)
 				So(v, ShouldEqual, "value2")
+			})
+
+			Convey("Insert array", func() {
+				origValue := []int{1, 2, 3, 4}
+
+				err := runner.StoreJson("key1", origValue).Wait()
+				So(err, ShouldBeNil)
+
+				Convey("Successful read value", func() {
+					var readValue []int
+					err := reader.RetrieveJson(dummyContext, "key1", &readValue)
+					So(err, ShouldBeNil)
+					So(readValue, ShouldResemble, origValue)
+				})
+
+				Convey("Update value", func() {
+					err := runner.StoreJson("key1", []string{"one", "two"}).Wait()
+					So(err, ShouldBeNil)
+
+					var retrieved []string
+					err = reader.RetrieveJson(dummyContext, "key1", &retrieved)
+					So(err, ShouldBeNil)
+					So(retrieved, ShouldResemble, []string{"one", "two"})
+				})
 			})
 
 			cancel()
