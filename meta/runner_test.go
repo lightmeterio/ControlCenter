@@ -30,8 +30,12 @@ func TestRunner(t *testing.T) {
 
 		done, cancel := runner.Run()
 
+		defer func() { cancel(); done() }()
+
+		writer := runner.Writer()
+
 		Convey("Insert multiple values", func() {
-			err := runner.Store([]Item{
+			err := writer.Store([]Item{
 				{Key: "key1", Value: "value1"},
 				{Key: "key2", Value: "value2"},
 			}).Wait()
@@ -47,7 +51,7 @@ func TestRunner(t *testing.T) {
 			So(v, ShouldEqual, "value2")
 
 			Convey("Update value", func() {
-				err := runner.Store([]Item{{Key: "key1", Value: "another_value1"}}).Wait()
+				err := writer.Store([]Item{{Key: "key1", Value: "another_value1"}}).Wait()
 				So(err, ShouldBeNil)
 
 				v, err := reader.Retrieve(dummyContext, "key1")
@@ -63,7 +67,7 @@ func TestRunner(t *testing.T) {
 			Convey("Insert array", func() {
 				origValue := []int{1, 2, 3, 4}
 
-				err := runner.StoreJson("key1", origValue).Wait()
+				err := writer.StoreJson("key1", origValue).Wait()
 				So(err, ShouldBeNil)
 
 				Convey("Successful read value", func() {
@@ -74,7 +78,7 @@ func TestRunner(t *testing.T) {
 				})
 
 				Convey("Update value", func() {
-					err := runner.StoreJson("key1", []string{"one", "two"}).Wait()
+					err := writer.StoreJson("key1", []string{"one", "two"}).Wait()
 					So(err, ShouldBeNil)
 
 					var retrieved []string
@@ -83,9 +87,6 @@ func TestRunner(t *testing.T) {
 					So(retrieved, ShouldResemble, []string{"one", "two"})
 				})
 			})
-
-			cancel()
-			done()
 		})
 	})
 }

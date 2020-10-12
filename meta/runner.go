@@ -5,50 +5,63 @@ import (
 )
 
 // Runner aims to serialize all requests to write in a single goroutine,
-// wich effectivelly owns writing access to the connection
+// which effectively owns writing access to the connection
 type Runner struct {
 	writer       *Writer
-	requestsChan chan setRequest
+	requestsChan chan storeRequest
 }
 
 func NewRunner(h *Handler) *Runner {
-	return &Runner{writer: h.Writer, requestsChan: make(chan setRequest, 64)}
+	return &Runner{writer: h.Writer, requestsChan: make(chan storeRequest, 64)}
 }
 
-type setRequest struct {
+// AsyncWriter allows callers to schedule values to be stored, but in a non-blocking way
+type AsyncWriter struct {
+	runner *Runner
+}
+
+type storeRequest struct {
 	items     []Item
 	jsonKey   interface{}
 	jsonValue interface{}
 	errChan   chan<- error
 }
 
-type Result struct {
+type AsyncWriteResult struct {
 	errChan <-chan error
+}
+
+func (r *AsyncWriteResult) Done() <-chan error {
+	return r.errChan
 }
 
 // Wait forces the caller to wait until the underlying store call ends,
 // either successfully or not
-func (r *Result) Wait() error {
-	return <-r.errChan
+func (r *AsyncWriteResult) Wait() error {
+	return <-r.Done()
 }
 
-func (runner *Runner) Store(items []Item) *Result {
+func (runner *Runner) Writer() *AsyncWriter {
+	return &AsyncWriter{runner: runner}
+}
+
+func (w *AsyncWriter) Store(items []Item) *AsyncWriteResult {
 	c := make(chan error, 1)
 
-	runner.requestsChan <- setRequest{items: items, errChan: c}
+	w.runner.requestsChan <- storeRequest{items: items, errChan: c}
 
-	return &Result{errChan: c}
+	return &AsyncWriteResult{errChan: c}
 }
 
-func (runner *Runner) StoreJson(key, value interface{}) *Result {
+func (w *AsyncWriter) StoreJson(key, value interface{}) *AsyncWriteResult {
 	c := make(chan error, 1)
 
-	runner.requestsChan <- setRequest{jsonKey: key, jsonValue: value, errChan: c}
+	w.runner.requestsChan <- storeRequest{jsonKey: key, jsonValue: value, errChan: c}
 
-	return &Result{errChan: c}
+	return &AsyncWriteResult{errChan: c}
 }
 
-func runnerLoop(writer *Writer, requestsChan chan setRequest) {
+func runnerLoop(writer *Writer, requestsChan chan storeRequest) {
 	ctx := context.Background()
 
 	for req := range requestsChan {
