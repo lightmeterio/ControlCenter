@@ -10,9 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/meta"
-	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification"
-	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
@@ -27,8 +25,10 @@ type Workspace struct {
 
 	NotificationCenter notification.Center
 
-	settings *settings.MasterConf
-	closes   closeutil.Closers
+	settingsMetaHandler *meta.Handler
+	settingsRunner      *meta.Runner
+
+	closes closeutil.Closers
 }
 
 func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
@@ -60,7 +60,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	settings, err := settings.NewMasterConf(m, newsletter.NewSubscriber("https://phplist.lightmeter.io/"))
+	settingsRunner := meta.NewRunner(m)
 
 	if err != nil {
 		return Workspace{}, errorutil.Wrap(err)
@@ -72,7 +72,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	notificationCenter := notification.New(settings)
+	notificationCenter := notification.New(m.Reader)
 
 	rblChecker := localrbl.NewChecker(m.Reader, localrbl.Options{
 		NumberOfWorkers:  10,
@@ -80,6 +80,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		RBLProvidersURLs: localrbl.DefaultRBLs,
 	})
 
+	// FIXME: rblChecker should start on Run()!!!
 	rblChecker.StartListening()
 
 	insightsEngine, err := insights.NewEngine(
@@ -92,15 +93,16 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 
 	// closes can be mocked or stubbed out
 	w := Workspace{
-		logs:           &logDb,
-		insightsEngine: insightsEngine,
-		auth:           auth,
-		settings:       settings,
+		logs:                &logDb,
+		insightsEngine:      insightsEngine,
+		auth:                auth,
+		settingsMetaHandler: m,
+		settingsRunner:      settingsRunner,
 		closes: closeutil.New(
-			settings,
 			auth,
 			&logDb,
 			insightsEngine,
+			m,
 		),
 		NotificationCenter: notificationCenter,
 	}
@@ -108,12 +110,12 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 	return w, nil
 }
 
-func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
-	return ws.insightsEngine.Fetcher()
+func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
+	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 
-func (ws *Workspace) Settings() *settings.MasterConf {
-	return ws.settings
+func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
+	return ws.insightsEngine.Fetcher()
 }
 
 func (ws *Workspace) Dashboard() (dashboard.Dashboard, error) {
@@ -136,13 +138,23 @@ func (ws *Workspace) NewPublisher() data.Publisher {
 
 func (ws *Workspace) Run() <-chan struct{} {
 	doneInsights, cancelInsights := ws.insightsEngine.Run()
+	doneSettings, cancelSettings := ws.settingsRunner.Run()
 
 	done := make(chan struct{})
 
 	go func() {
+		// NOTE: for now the workspace execution can be stoped by simply stopping
+		// feeding it with log lines, by closing the log publisher.
+		// TODO: this is a very unclear operation mode and needs to be changed
+		// or better documented
 		<-ws.logs.Run()
+
 		cancelInsights()
+		cancelSettings()
+
 		doneInsights()
+		doneSettings()
+
 		done <- struct{}{}
 	}()
 
