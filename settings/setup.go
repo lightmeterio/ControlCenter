@@ -50,49 +50,55 @@ func validMailKind(k SetupMailKind) bool {
 		k == MailKindTransactional
 }
 
-// TODO: check if context time-outs
-func (c *InitialSetupSettings) Set(context context.Context, writer *meta.AsyncWriter, initialOptions InitialOptions) error {
+func (c *InitialSetupSettings) Set(ctx context.Context, writer *meta.AsyncWriter, initialOptions InitialOptions) error {
 	if !validMailKind(initialOptions.MailKind) {
 		return ErrInvalidMailKindOption
 	}
 
 	if initialOptions.SubscribeToNewsletter {
-		if err := c.newsletterSubscriber.Subscribe(context, initialOptions.Email); err != nil {
+		if err := c.newsletterSubscriber.Subscribe(ctx, initialOptions.Email); err != nil {
 			log.Println("Failed to subscribe with error:", err)
 			return errorutil.Wrap(ErrFailedToSubscribeToNewsletter)
 		}
 	}
 
-	err := writer.Store([]meta.Item{
+	result := writer.Store([]meta.Item{
 		{Key: "mail_kind", Value: initialOptions.MailKind},
 		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
-	}).Wait()
+	})
 
-	if err != nil {
-		return errorutil.Wrap(err)
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	case <-ctx.Done():
+		return errorutil.Wrap(ctx.Err())
 	}
-
-	return nil
 }
 
-// TODO: investigate if this method should be moved to httpsettings
-// TODO: check if context time-outs
 func SetSlackNotificationsSettings(ctx context.Context, writer *meta.AsyncWriter, slackNotificationsSettings SlackNotificationsSettings) error {
-	err := writer.StoreJson("messenger_slack",
+	result := writer.StoreJson("messenger_slack",
 		SlackNotificationsSettings{
 			BearerToken: slackNotificationsSettings.BearerToken,
 			Channel:     slackNotificationsSettings.Channel,
 			Enabled:     slackNotificationsSettings.Enabled,
-		}).Wait()
+		})
 
-	if err != nil {
-		return errorutil.Wrap(err)
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	case <-ctx.Done():
+		return errorutil.Wrap(ctx.Err())
 	}
-
-	return nil
 }
 
-// TODO: investigate if this method should be moved to httpsettings
 func GetSlackNotificationsSettings(ctx context.Context, reader *meta.Reader) (*SlackNotificationsSettings, error) {
 	slackSettings := &SlackNotificationsSettings{}
 
