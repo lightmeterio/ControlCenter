@@ -193,7 +193,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	_, err = r.meta.Writer.StoreJson(ctx, "session_key", keys)
+	err = r.meta.Writer.StoreJson(ctx, "session_key", keys)
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
