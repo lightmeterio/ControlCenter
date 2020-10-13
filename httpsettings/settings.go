@@ -58,7 +58,7 @@ func (h *Settings) SetupMux(mux *http.ServeMux) {
 	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
 	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
 	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
-	mux.Handle("/settings/localrblSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.LocalRBLSettingsHandler)))
+	mux.Handle("/settings/generalSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.GeneralSettingsHandler)))
 }
 
 func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error {
@@ -73,7 +73,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
 	// also supporting optional settings
 	allCurrentSettings := struct {
-		SlackNotificationSettings *settings.SlackNotificationsSettings `json:"slackNotifications"`
+		SlackNotificationSettings *settings.SlackNotificationsSettings `json:"slack_notifications"`
 		GeneralSettings           struct {
 			PostfixPublicIP net.IP `json:"local_ip"`
 		} `json:"general"`
@@ -104,7 +104,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
 }
 
-func (h *Settings) LocalRBLSettingsHandler(w http.ResponseWriter, r *http.Request) error {
+func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
