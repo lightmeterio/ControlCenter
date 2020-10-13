@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"mime"
+	"net"
 	"net/http"
 )
 
@@ -52,8 +54,38 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 func (h *Settings) SetupMux(mux *http.ServeMux) {
 	chain := httpmiddleware.WithDefaultTimeout()
 
+	//mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
 	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
 	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
+	mux.Handle("/settings/localrblSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.LocalRBLSettingsHandler)))
+}
+
+func (h *Settings) LocalRBLSettingsHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := handleForm(w, r); err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	localIP := net.ParseIP(r.Form.Get("postfixPublicIP"))
+
+	if localIP == nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+	}
+
+	s := localrbl.Settings{LocalIP: localIP}
+
+	result := h.writer.StoreJson(localrbl.SettingsKey, &s)
+
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			err = errorutil.Wrap(err)
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		}
+
+		return nil
+	case <-r.Context().Done():
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store local rbl settings"))
+	}
 }
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
