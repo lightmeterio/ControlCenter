@@ -5,11 +5,9 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 	"time"
 )
@@ -43,22 +41,30 @@ func TestMessengerSettings(t *testing.T) {
 		conn, closeConn := testutil.TempDBConnection()
 		defer closeConn()
 
-		meta, err := meta.NewHandler(conn, "master")
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(meta.Close()) }()
-
-		newsletterSubscriber := &fakeNewsletterSubscriber{}
-
-		m, err := NewMasterConf(meta, newsletterSubscriber)
-		So(err, ShouldBeNil)
 		defer func() { errorutil.MustSucceed(m.Close()) }()
 
+		runner := meta.NewRunner(m)
+		writer := runner.Writer()
+		done, cancel := runner.Run()
+
+		defer func() { cancel(); done() }()
+
 		Convey("valid messenger settings", func() {
-			So(m.SetOptions(context, SlackNotificationsSettings{
+			s := SlackNotificationsSettings{
 				Channel:     "donutloop",
-				BearerToken: "fjslfjjsdfljlskjfkdjs"},
-			), ShouldBeNil)
+				BearerToken: "fjslfjjsdfljlskjfkdjs",
+			}
+
+			err := SetSlackNotificationsSettings(context, writer, s)
+			So(err, ShouldBeNil)
+
+			retrievedSetting, err := GetSlackNotificationsSettings(dummyContext, m.Reader)
+			So(err, ShouldBeNil)
+
+			So(retrievedSetting, ShouldResemble, &s)
 		})
 	})
 }
@@ -67,25 +73,25 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
-		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(conn.Close()) }()
-
-		meta, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(meta.Close()) }()
-
-		newsletterSubscriber := &fakeNewsletterSubscriber{}
-
-		m, err := NewMasterConf(meta, newsletterSubscriber)
+		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 		defer func() { errorutil.MustSucceed(m.Close()) }()
 
+		runner := meta.NewRunner(m)
+		writer := runner.Writer()
+		done, cancel := runner.Run()
+
+		defer func() { cancel(); done() }()
+
+		newsletterSubscriber := &fakeNewsletterSubscriber{}
+
+		s := NewInitialSetupSettings(newsletterSubscriber)
+
 		Convey("Invalid Mail Kind", func() {
-			So(errors.Is(m.SetOptions(context, InitialOptions{
+			So(errors.Is(s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              "Lalala"},
 			), ErrInvalidMailKindOption), ShouldBeTrue)
@@ -94,7 +100,7 @@ func TestInitialSetup(t *testing.T) {
 		Convey("Fails to Subscribe", func() {
 			newsletterSubscriber.shouldFailToSubscribe = true
 
-			So(errors.Is(m.SetOptions(context, InitialOptions{
+			So(errors.Is(s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
@@ -102,7 +108,7 @@ func TestInitialSetup(t *testing.T) {
 		})
 
 		Convey("Succeeds subscribing", func() {
-			err := m.SetOptions(context, InitialOptions{
+			err := s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
 				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
@@ -111,17 +117,17 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
 
-			r, err := meta.Reader.Retrieve(dummyContext, "mail_kind")
+			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindMarketing)
 
-			r, err = meta.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 1)
 		})
 
 		Convey("Succeeds not subscribing", func() {
-			err := m.SetOptions(context, InitialOptions{
+			err := s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: false,
 				MailKind:              MailKindTransactional,
 				Email:                 "user@example.com"},
@@ -130,11 +136,11 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
 
-			r, err := meta.Reader.Retrieve(dummyContext, "mail_kind")
+			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindTransactional)
 
-			r, err = meta.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 0)
 		})

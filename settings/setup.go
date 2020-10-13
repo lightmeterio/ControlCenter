@@ -3,16 +3,11 @@ package settings
 import (
 	"context"
 	"errors"
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 )
-
-type SystemSetup interface {
-	SetOptions(context.Context, interface{}) error
-}
 
 type SetupMailKind string
 
@@ -41,13 +36,12 @@ type InitialOptions struct {
 	Email                 string
 }
 
-type MasterConf struct {
-	meta                 *meta.Handler
+type InitialSetupSettings struct {
 	newsletterSubscriber newsletter.Subscriber
 }
 
-func NewMasterConf(meta *meta.Handler, newsletterSubscriber newsletter.Subscriber) (*MasterConf, error) {
-	return &MasterConf{meta, newsletterSubscriber}, nil
+func NewInitialSetupSettings(newsletterSubscriber newsletter.Subscriber) *InitialSetupSettings {
+	return &InitialSetupSettings{newsletterSubscriber}
 }
 
 func validMailKind(k SetupMailKind) bool {
@@ -56,18 +50,8 @@ func validMailKind(k SetupMailKind) bool {
 		k == MailKindTransactional
 }
 
-func (c *MasterConf) SetOptions(context context.Context, o interface{}) error {
-	switch v := o.(type) {
-	case InitialOptions:
-		return c.setInitialOptions(context, v)
-	case SlackNotificationsSettings:
-		return c.SetSlackNotificationsSettings(context, v)
-	}
-
-	return errorutil.Wrap(errors.New("options is not supported"))
-}
-
-func (c *MasterConf) setInitialOptions(context context.Context, initialOptions InitialOptions) error {
+// TODO: check if context time-outs
+func (c *InitialSetupSettings) Set(context context.Context, writer *meta.AsyncWriter, initialOptions InitialOptions) error {
 	if !validMailKind(initialOptions.MailKind) {
 		return ErrInvalidMailKindOption
 	}
@@ -79,10 +63,10 @@ func (c *MasterConf) setInitialOptions(context context.Context, initialOptions I
 		}
 	}
 
-	_, err := c.meta.Writer.Store(context, []meta.Item{
+	err := writer.Store([]meta.Item{
 		{Key: "mail_kind", Value: initialOptions.MailKind},
 		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
-	})
+	}).Wait()
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -91,13 +75,15 @@ func (c *MasterConf) setInitialOptions(context context.Context, initialOptions I
 	return nil
 }
 
-func (c *MasterConf) SetSlackNotificationsSettings(ctx context.Context, slackNotificationsSettings SlackNotificationsSettings) error {
-	_, err := c.meta.Writer.StoreJson(ctx, fmt.Sprintf("messenger_"+slackNotificationsSettings.Kind),
+// TODO: investigate if this method should be moved to httpsettings
+// TODO: check if context time-outs
+func SetSlackNotificationsSettings(ctx context.Context, writer *meta.AsyncWriter, slackNotificationsSettings SlackNotificationsSettings) error {
+	err := writer.StoreJson("messenger_slack",
 		SlackNotificationsSettings{
 			BearerToken: slackNotificationsSettings.BearerToken,
 			Channel:     slackNotificationsSettings.Channel,
 			Enabled:     slackNotificationsSettings.Enabled,
-		})
+		}).Wait()
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -106,17 +92,14 @@ func (c *MasterConf) SetSlackNotificationsSettings(ctx context.Context, slackNot
 	return nil
 }
 
-func (c *MasterConf) GetSlackNotificationsSettings(ctx context.Context) (*SlackNotificationsSettings, error) {
+// TODO: investigate if this method should be moved to httpsettings
+func GetSlackNotificationsSettings(ctx context.Context, reader *meta.Reader) (*SlackNotificationsSettings, error) {
 	slackSettings := &SlackNotificationsSettings{}
 
-	err := c.meta.Reader.RetrieveJson(ctx, "messenger_slack", slackSettings)
+	err := reader.RetrieveJson(ctx, "messenger_slack", slackSettings)
 	if err != nil {
 		return nil, errorutil.Wrap(err, "could get slack settings")
 	}
 
 	return slackSettings, nil
-}
-
-func (c *MasterConf) Close() error {
-	return c.meta.Close()
 }
