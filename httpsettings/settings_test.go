@@ -2,7 +2,6 @@ package httpsettings
 
 import (
 	"context"
-	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -28,18 +27,6 @@ type dummySubscriber struct{}
 
 func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	log.Println("A dummy call that would otherwise subscribe email", email, "to Lightmeter newsletter :-)")
-	return nil
-}
-
-type fakeSystemSetup struct {
-	options           *settings.InitialOptions
-	shouldFailToSetup bool
-}
-
-func (f *fakeSystemSetup) SetOptions(context.Context, interface{}) error {
-	if f.shouldFailToSetup {
-		return errors.New(`Some Unknwon Failure!`)
-	}
 	return nil
 }
 
@@ -160,30 +147,6 @@ func TestInitialSetup(t *testing.T) {
 		})
 	})
 }
-
-//func TestFakeInitialSetup(t *testing.T) {
-//	Convey("Initial Setup", t, func() {
-//		f := &fakeSystemSetup{}
-//
-//		fakeCenter := &fakeNotificationCenter{}
-//		chain := httpmiddleware.New()
-//		testSettings := NewSettings(f, fakeCenter)
-//
-//		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(testSettings.InitialSetupHandler))
-//
-//		c := &http.Client{}
-//		s := httptest.NewServer(handler)
-//
-//		Convey("Fails", func() {
-//			Convey("Unknown setup failure", func() {
-//				f.shouldFailToSetup = true
-//				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
-//				So(err, ShouldBeNil)
-//				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
-//			})
-//		})
-//	})
-//}
 
 func TestSettingsSetup(t *testing.T) {
 	Convey("Settings Setup", t, func() {
