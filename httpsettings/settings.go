@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"mime"
 	"net"
 	"net/http"
@@ -54,10 +55,53 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 func (h *Settings) SetupMux(mux *http.ServeMux) {
 	chain := httpmiddleware.WithDefaultTimeout()
 
-	//mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
+	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
 	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
 	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
 	mux.Handle("/settings/localrblSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.LocalRBLSettingsHandler)))
+}
+
+func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error {
+	// For now we only allow fetching settings
+	// TODO: use this endpoint as a generic way to set settings, making the other specialized endpoints obsolete.
+	// so that /settings?setting=initialSetup does the job of /settings/initialSetup, and so on...
+	// TODO: make this endpoint part of the API, on /api/v0/settings
+	if r.Method != http.MethodGet {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusUnauthorized, fmt.Errorf("Error http method mismatch: %v", r.Method))
+	}
+
+	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
+	// also supporting optional settings
+	allCurrentSettings := struct {
+		SlackNotificationSettings *settings.SlackNotificationsSettings `json:"slackNotifications"`
+		GeneralSettings           struct {
+			PostfixPublicIP net.IP `json:"local_ip"`
+		} `json:"general"`
+	}{}
+
+	ctx := r.Context()
+
+	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, h.reader)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	allCurrentSettings.SlackNotificationSettings = slackSettings
+
+	var localRBLSettings localrbl.Settings
+
+	err = h.reader.RetrieveJson(ctx, localrbl.SettingsKey, &localRBLSettings)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	if err == nil {
+		allCurrentSettings.GeneralSettings.PostfixPublicIP = localRBLSettings.LocalIP
+	}
+
+	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
 }
 
 func (h *Settings) LocalRBLSettingsHandler(w http.ResponseWriter, r *http.Request) error {
@@ -78,8 +122,7 @@ func (h *Settings) LocalRBLSettingsHandler(w http.ResponseWriter, r *http.Reques
 	select {
 	case err := <-result.Done():
 		if err != nil {
-			err = errorutil.Wrap(err)
-			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
 
 		return nil
