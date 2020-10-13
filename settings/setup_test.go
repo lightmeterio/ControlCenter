@@ -36,19 +36,16 @@ func (s *fakeNewsletterSubscriber) Subscribe(context context.Context, email stri
 	return nil
 }
 
-func TestInitialSetup(t *testing.T) {
+func TestMessengerSettings(t *testing.T) {
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(conn.Close()) }()
 
-		meta, err := meta.NewMetaDataHandler(conn, "master")
-		So(err, ShouldBeNil)
 		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
 		newsletterSubscriber := &fakeNewsletterSubscriber{}
@@ -64,8 +61,10 @@ func TestInitialSetup(t *testing.T) {
 			), ShouldBeNil)
 		})
 	})
+}
 
-	Convey("Setup", t, func() {
+func TestInitialSetup(t *testing.T) {
+	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
 		dir, clearDir := testutil.TempDir()
@@ -75,9 +74,9 @@ func TestInitialSetup(t *testing.T) {
 		So(err, ShouldBeNil)
 		defer func() { errorutil.MustSucceed(conn.Close()) }()
 
-		meta, err := meta.NewMetaDataHandler(conn, "master")
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(meta.Close(),) }()
+		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
 		newsletterSubscriber := &fakeNewsletterSubscriber{}
 
@@ -112,11 +111,11 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
 
-			r, err := meta.Retrieve(dummyContext, "mail_kind")
+			r, err := meta.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindMarketing)
 
-			r, err = meta.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err = meta.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 1)
 		})
@@ -131,11 +130,11 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
 
-			r, err := meta.Retrieve(dummyContext, "mail_kind")
+			r, err := meta.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindTransactional)
 
-			r, err = meta.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err = meta.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 0)
 		})

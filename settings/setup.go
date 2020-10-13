@@ -42,11 +42,11 @@ type InitialOptions struct {
 }
 
 type MasterConf struct {
-	meta                 *meta.MetadataHandler
+	meta                 *meta.Handler
 	newsletterSubscriber newsletter.Subscriber
 }
 
-func NewMasterConf(meta *meta.MetadataHandler, newsletterSubscriber newsletter.Subscriber) (*MasterConf, error) {
+func NewMasterConf(meta *meta.Handler, newsletterSubscriber newsletter.Subscriber) (*MasterConf, error) {
 	return &MasterConf{meta, newsletterSubscriber}, nil
 }
 
@@ -79,7 +79,7 @@ func (c *MasterConf) setInitialOptions(context context.Context, initialOptions I
 		}
 	}
 
-	_, err := c.meta.Store(context, []meta.Item{
+	_, err := c.meta.Writer.Store(context, []meta.Item{
 		{Key: "mail_kind", Value: initialOptions.MailKind},
 		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
 	})
@@ -92,7 +92,7 @@ func (c *MasterConf) setInitialOptions(context context.Context, initialOptions I
 }
 
 func (c *MasterConf) SetSlackNotificationsSettings(ctx context.Context, slackNotificationsSettings SlackNotificationsSettings) error {
-	_, err := c.meta.StoreJson(ctx, fmt.Sprintf("messenger_"+slackNotificationsSettings.Kind),
+	_, err := c.meta.Writer.StoreJson(ctx, fmt.Sprintf("messenger_"+slackNotificationsSettings.Kind),
 		SlackNotificationsSettings{
 			BearerToken: slackNotificationsSettings.BearerToken,
 			Channel:     slackNotificationsSettings.Channel,
@@ -109,7 +109,7 @@ func (c *MasterConf) SetSlackNotificationsSettings(ctx context.Context, slackNot
 func (c *MasterConf) GetSlackNotificationsSettings(ctx context.Context) (*SlackNotificationsSettings, error) {
 	slackSettings := &SlackNotificationsSettings{}
 
-	err := c.meta.RetrieveJson(ctx, "messenger_slack", slackSettings)
+	err := c.meta.Reader.RetrieveJson(ctx, "messenger_slack", slackSettings)
 	if err != nil {
 		return nil, errorutil.Wrap(err, "could get slack settings")
 	}

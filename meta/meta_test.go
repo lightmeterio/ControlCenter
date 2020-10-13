@@ -5,10 +5,8 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 )
 
@@ -22,46 +20,50 @@ func init() {
 
 func TestSimpleValues(t *testing.T) {
 	Convey("Test Meta", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
-
-		handler, err := NewMetaDataHandler(conn, "master")
+		handler, err := NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(handler.Close()) }()
+
+		reader := handler.Reader
+		writer := handler.Writer
+
+		defer func() {
+			errorutil.MustSucceed(handler.Close())
+		}()
 
 		Convey("Key not found", func() {
-			_, err := handler.Retrieve(dummyContext, "key1")
+			_, err := reader.Retrieve(dummyContext, "key1")
 			So(errors.Is(err, ErrNoSuchKey), ShouldBeTrue)
 		})
 
 		Convey("Insert multiple values", func() {
-			_, err = handler.Store(dummyContext, []Item{
+			_, err = writer.Store(dummyContext, []Item{
 				{Key: "key1", Value: "value1"},
 				{Key: "key2", Value: "value2"},
 			})
 
 			So(err, ShouldBeNil)
 
-			v, err := handler.Retrieve(dummyContext, "key1")
+			v, err := reader.Retrieve(dummyContext, "key1")
 			So(err, ShouldBeNil)
 			So(v, ShouldEqual, "value1")
 
-			v, err = handler.Retrieve(dummyContext, "key2")
+			v, err = reader.Retrieve(dummyContext, "key2")
 			So(err, ShouldBeNil)
 			So(v, ShouldEqual, "value2")
 
 			Convey("Update value", func() {
-				_, err := handler.Store(dummyContext, []Item{{Key: "key1", Value: "another_value1"}})
+				_, err := writer.Store(dummyContext, []Item{{Key: "key1", Value: "another_value1"}})
 				So(err, ShouldBeNil)
 
-				v, err := handler.Retrieve(dummyContext, "key1")
+				v, err := reader.Retrieve(dummyContext, "key1")
 				So(err, ShouldBeNil)
 				So(v, ShouldEqual, "another_value1")
 
 				// key2 keeps the same value
-				v, err = handler.Retrieve(dummyContext, "key2")
+				v, err = reader.Retrieve(dummyContext, "key2")
 				So(err, ShouldBeNil)
 				So(v, ShouldEqual, "value2")
 			})
@@ -71,46 +73,48 @@ func TestSimpleValues(t *testing.T) {
 
 func TestJsonValues(t *testing.T) {
 	Convey("Test Json Values", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		conn, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
-
-		handler, err := NewMetaDataHandler(conn, "master")
+		handler, err := NewHandler(conn, "master")
 		So(err, ShouldBeNil)
+
 		defer func() { errorutil.MustSucceed(handler.Close()) }()
+
+		reader := handler.Reader
+		writer := handler.Writer
 
 		Convey("Key not found", func() {
 			var value []int
-			err := handler.RetrieveJson(dummyContext, "key1", &value)
+			err := reader.RetrieveJson(dummyContext, "key1", &value)
 			So(errors.Is(err, ErrNoSuchKey), ShouldBeTrue)
 		})
 
 		Convey("Insert array", func() {
 			origValue := []int{1, 2, 3, 4}
 
-			_, err = handler.StoreJson(dummyContext, "key1", origValue)
+			_, err = writer.StoreJson(dummyContext, "key1", origValue)
 			So(err, ShouldBeNil)
 
 			Convey("Successful read value", func() {
 				var readValue []int
-				err := handler.RetrieveJson(dummyContext, "key1", &readValue)
+				err := reader.RetrieveJson(dummyContext, "key1", &readValue)
 				So(err, ShouldBeNil)
 				So(readValue, ShouldResemble, origValue)
 			})
 
 			Convey("Fail due wrong type", func() {
 				var readValue []string
-				err := handler.RetrieveJson(dummyContext, "key1", &readValue)
+				err := reader.RetrieveJson(dummyContext, "key1", &readValue)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Update value", func() {
-				_, err = handler.StoreJson(dummyContext, "key1", []string{"one", "two"})
+				_, err = writer.StoreJson(dummyContext, "key1", []string{"one", "two"})
 				So(err, ShouldBeNil)
 
 				var retrieved []string
-				err := handler.RetrieveJson(dummyContext, "key1", &retrieved)
+				err := reader.RetrieveJson(dummyContext, "key1", &retrieved)
 				So(err, ShouldBeNil)
 				So(retrieved, ShouldResemble, []string{"one", "two"})
 			})

@@ -54,7 +54,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewMetaDataHandler(metadataConnPair, "master")
+	m, err := meta.NewHandler(metadataConnPair, "master")
 
 	if err != nil {
 		return Workspace{}, errorutil.Wrap(err)
@@ -74,7 +74,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 
 	notificationCenter := notification.New(settings)
 
-	rblChecker := localrbl.NewChecker(m, localrbl.Options{
+	rblChecker := localrbl.NewChecker(m.Reader, localrbl.Options{
 		NumberOfWorkers:  10,
 		Lookup:           localrbl.RealLookup,
 		RBLProvidersURLs: localrbl.DefaultRBLs,

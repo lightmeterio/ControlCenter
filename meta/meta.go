@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 )
@@ -16,20 +17,50 @@ var (
 	ErrNoSuchKey = errors.New("No Such Key")
 )
 
-type MetadataHandler struct {
-	conn dbconn.ConnPair
+type Reader struct {
+	db dbconn.RoConn
 }
 
-func NewMetaDataHandler(conn dbconn.ConnPair, databaseName string) (*MetadataHandler, error) {
+func (reader *Reader) Close() error {
+	return reader.db.Close()
+}
+
+func (writer *Writer) Close() error {
+	return writer.db.Close()
+}
+
+type Writer struct {
+	db dbconn.RwConn
+}
+
+type Handler struct {
+	Reader *Reader
+	Writer *Writer
+
+	closers closeutil.Closers
+}
+
+func (h *Handler) Close() error {
+	if err := h.closers.Close(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func NewHandler(conn dbconn.ConnPair, databaseName string) (*Handler, error) {
 	if err := migrator.Run(conn.RwConn.DB, databaseName); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &MetadataHandler{conn}, nil
-}
+	reader := &Reader{conn.RoConn}
+	writer := &Writer{conn.RwConn}
 
-func (h *MetadataHandler) Close() error {
-	return h.conn.Close()
+	return &Handler{
+		Reader:  reader,
+		Writer:  writer,
+		closers: closeutil.New(reader, writer),
+	}, nil
 }
 
 type Item struct {
@@ -40,8 +71,8 @@ type Item struct {
 type Result struct {
 }
 
-func (h *MetadataHandler) Store(ctx context.Context, items []Item) (Result, error) {
-	tx, err := h.conn.RwConn.BeginTx(ctx, nil)
+func (writer *Writer) Store(ctx context.Context, items []Item) (Result, error) {
+	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
@@ -89,8 +120,8 @@ func Store(tx *sql.Tx, items []Item) (Result, error) {
 	return Result{}, nil
 }
 
-func retrieve(ctx context.Context, h *MetadataHandler, key interface{}, value interface{}) error {
-	err := h.conn.RoConn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
+func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
+	err := reader.db.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
 
 	if err == nil {
 		return nil
@@ -103,18 +134,18 @@ func retrieve(ctx context.Context, h *MetadataHandler, key interface{}, value in
 	return errorutil.Wrap(err)
 }
 
-func (h *MetadataHandler) Retrieve(ctx context.Context, key interface{}) (interface{}, error) {
+func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{}, error) {
 	var v interface{}
 
-	if err := retrieve(ctx, h, key, &v); err != nil {
+	if err := retrieve(ctx, reader, key, &v); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return v, nil
 }
 
-func (h *MetadataHandler) StoreJson(ctx context.Context, key interface{}, value interface{}) (Result, error) {
-	tx, err := h.conn.RwConn.BeginTx(ctx, nil)
+func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value interface{}) (Result, error) {
+	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
 		return Result{}, errorutil.Wrap(err)
@@ -146,7 +177,7 @@ func (h *MetadataHandler) StoreJson(ctx context.Context, key interface{}, value 
 	return r, nil
 }
 
-func (h *MetadataHandler) RetrieveJson(ctx context.Context, key interface{}, values interface{}) error {
+func (reader *Reader) RetrieveJson(ctx context.Context, key interface{}, values interface{}) error {
 	reflectValues := reflect.ValueOf(values)
 
 	if reflectValues.Kind() != reflect.Ptr {
@@ -154,7 +185,7 @@ func (h *MetadataHandler) RetrieveJson(ctx context.Context, key interface{}, val
 	}
 
 	var v string
-	if err := retrieve(ctx, h, key, &v); err != nil {
+	if err := retrieve(ctx, reader, key, &v); err != nil {
 		return errorutil.Wrap(err)
 	}
 

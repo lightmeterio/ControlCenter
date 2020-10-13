@@ -6,17 +6,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"path"
 	"strings"
 	"testing"
 )
@@ -62,20 +61,15 @@ func init() {
 
 func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
+		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
-
-		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
+		mc, err := settings.NewMasterConf(meta, &dummySubscriber{})
 		So(err, ShouldBeNil)
 
 		fakeCenter := &fakeNotificationCenter{}
@@ -187,20 +181,15 @@ func TestFakeInitialSetup(t *testing.T) {
 
 func TestSettingsSetup(t *testing.T) {
 	Convey("Settings Setup", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
+		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
-
-		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
+		mc, err := settings.NewMasterConf(meta, &dummySubscriber{})
 		So(err, ShouldBeNil)
 
 		fakeCenter := &fakeNotificationCenter{}
@@ -244,7 +233,7 @@ func TestSettingsSetup(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				mo := new(settings.SlackNotificationsSettings)
-				err = m.RetrieveJson(dummyContext, "messenger_slack", mo)
+				err = meta.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "donutloop")
@@ -263,20 +252,15 @@ func (c *fakeContent) String() string {
 // todo(marcel) before we create a release stub out the slack api
 func TestIntegrationSettingsSetup(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
+		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
-		m, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
-
-		mc, err := settings.NewMasterConf(m, &dummySubscriber{})
+		mc, err := settings.NewMasterConf(meta, &dummySubscriber{})
 		So(err, ShouldBeNil)
 
 		center := notification.New(mc)
@@ -311,7 +295,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				mo := new(settings.SlackNotificationsSettings)
-				err = m.RetrieveJson(dummyContext, "messenger_slack", mo)
+				err = meta.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")

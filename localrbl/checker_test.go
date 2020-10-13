@@ -5,11 +5,10 @@ import (
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -25,14 +24,13 @@ func init() {
 
 func TestDnsRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "master.db"))
+		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		meta, err := meta.NewMetaDataHandler(connPair, "master")
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
 		lookup := func(rblList string, targetHost string) godnsbl.RBLResults {
 			// the sleep here is just to "simulate" an actual call,
@@ -56,12 +54,12 @@ func TestDnsRBL(t *testing.T) {
 					LocalIP: net.ParseIP("11.22.33.44"),
 				}
 
-				meta.StoreJson(dummyContext, SettingsKey, &settings)
+				meta.Writer.StoreJson(dummyContext, SettingsKey, &settings)
 			}
 
 			Convey("Panic on invalid number of workers", func() {
 				So(func() {
-					newDnsChecker(meta, Options{
+					newDnsChecker(meta.Reader, Options{
 						Lookup:           lookup,
 						NumberOfWorkers:  0, // cannot have less than 1 worker!
 						RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
@@ -71,7 +69,7 @@ func TestDnsRBL(t *testing.T) {
 
 			Convey("Panic if lookup function is not defined", func() {
 				So(func() {
-					newDnsChecker(meta, Options{
+					newDnsChecker(meta.Reader, Options{
 						NumberOfWorkers:  2,
 						RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
 					})
@@ -79,7 +77,7 @@ func TestDnsRBL(t *testing.T) {
 			})
 
 			Convey("Not blocked in any lists", func() {
-				checker := newDnsChecker(meta, Options{
+				checker := newDnsChecker(meta.Reader, Options{
 					Lookup:           lookup,
 					NumberOfWorkers:  2,
 					RBLProvidersURLs: []string{"rbl1", "rbl2", "rbl3", "rbl4", "rbl5"},
@@ -103,7 +101,7 @@ func TestDnsRBL(t *testing.T) {
 			})
 
 			Convey("Blocked in some RBLs", func() {
-				checker := newDnsChecker(meta, Options{
+				checker := newDnsChecker(meta.Reader, Options{
 					Lookup:           lookup,
 					NumberOfWorkers:  2,
 					RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
@@ -136,7 +134,7 @@ func TestDnsRBL(t *testing.T) {
 		})
 
 		Convey("Do not scan if IP address is not defined", func() {
-			checker := newDnsChecker(meta, Options{
+			checker := newDnsChecker(meta.Reader, Options{
 				Lookup:           lookup,
 				NumberOfWorkers:  2,
 				RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},

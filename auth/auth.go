@@ -34,7 +34,7 @@ type Options struct {
 type Auth struct {
 	options  Options
 	connPair dbconn.ConnPair
-	meta     *meta.MetadataHandler
+	meta     *meta.Handler
 }
 
 var (
@@ -179,7 +179,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	ctx := context.Background()
 
-	err := r.meta.RetrieveJson(ctx, "session_key", &keys)
+	err := r.meta.Reader.RetrieveJson(ctx, "session_key", &keys)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
@@ -193,7 +193,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	_, err = r.meta.StoreJson(ctx, "session_key", keys)
+	_, err = r.meta.Writer.StoreJson(ctx, "session_key", keys)
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
@@ -221,7 +221,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewMetaDataHandler(connPair, "auth")
+	m, err := meta.NewHandler(connPair, "auth")
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
