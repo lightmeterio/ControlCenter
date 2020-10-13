@@ -6,7 +6,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/i18n"
+	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -38,9 +40,11 @@ func (s *HttpServer) Start() error {
 		return errorutil.Wrap(errors.New("Address is empty string"))
 	}
 
-	settings := s.Workspace.Settings()
+	initialSetupSettings := settings.NewInitialSetupSettings(newsletter.NewSubscriber("https://phplist.lightmeter.io/"))
 
-	setup := httpsettings.NewSettings(settings, s.Workspace.NotificationCenter)
+	writer, reader := s.Workspace.SettingsAcessors()
+
+	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter)
 
 	mux := http.NewServeMux()
 
