@@ -2,6 +2,7 @@ package meta
 
 import (
 	"context"
+	"time"
 )
 
 // Runner aims to serialize all requests to write in a single goroutine,
@@ -20,6 +21,7 @@ type AsyncWriter struct {
 	runner *Runner
 }
 
+// A request to store something, done asynchronously
 type storeRequest struct {
 	items     []Item
 	jsonKey   interface{}
@@ -61,20 +63,28 @@ func (w *AsyncWriter) StoreJson(key, value interface{}) *AsyncWriteResult {
 	return &AsyncWriteResult{errChan: c}
 }
 
+func handleRequest(ctx context.Context, writer *Writer, req storeRequest) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+
+	defer cancel()
+
+	err := func() error {
+		if req.jsonKey != nil {
+			return writer.StoreJson(ctx, req.jsonKey, req.jsonValue)
+		}
+
+		return writer.Store(ctx, req.items)
+	}()
+
+	req.errChan <- err
+	close(req.errChan)
+}
+
 func runnerLoop(writer *Writer, requestsChan chan storeRequest) {
-	ctx := context.Background()
+	loopContext := context.Background()
 
 	for req := range requestsChan {
-		err := func() error {
-			if req.jsonKey != nil {
-				return writer.StoreJson(ctx, req.jsonKey, req.jsonValue)
-			}
-
-			return writer.Store(ctx, req.items)
-		}()
-
-		req.errChan <- err
-		close(req.errChan)
+		handleRequest(loopContext, writer, req)
 	}
 }
 
