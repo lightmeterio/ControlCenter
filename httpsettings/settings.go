@@ -28,7 +28,7 @@ func NewSettings(writer *meta.AsyncWriter,
 	return &Settings{writer, reader, initialSetupSettings, notificationCenter}
 }
 
-func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
+func handleForm(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
 	}
@@ -55,7 +55,7 @@ func (h *Settings) HttpInitialSetup(mux *http.ServeMux) {
 }
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
-	if err := h.handleForm(w, r); err != nil {
+	if err := handleForm(w, r); err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
@@ -129,7 +129,7 @@ func (h *Settings) HttpNotificationSettings(mux *http.ServeMux) {
 }
 
 func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {
-	if err := h.handleForm(w, r); err != nil {
+	if err := handleForm(w, r); err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
