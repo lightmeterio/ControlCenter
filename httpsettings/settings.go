@@ -75,7 +75,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	allCurrentSettings := struct {
 		SlackNotificationSettings *settings.SlackNotificationsSettings `json:"slack_notifications"`
 		GeneralSettings           struct {
-			PostfixPublicIP net.IP `json:"local_ip"`
+			PostfixPublicIP net.IP `json:"postfix_public_ip"`
 		} `json:"general"`
 	}{}
 

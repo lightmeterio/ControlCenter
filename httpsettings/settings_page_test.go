@@ -64,7 +64,7 @@ func TestSettingsPage(t *testing.T) {
 			expected := map[string]interface{}{
 				"slack_notifications": nil,
 				"general": map[string]interface{}{
-					"local_ip": "",
+					"postfix_public_ip": "",
 				},
 			}
 
@@ -92,7 +92,7 @@ func TestSettingsPage(t *testing.T) {
 			expected := map[string]interface{}{
 				"slack_notifications": nil,
 				"general": map[string]interface{}{
-					"local_ip": "11.22.33.44",
+					"postfix_public_ip": "11.22.33.44",
 				},
 			}
 
