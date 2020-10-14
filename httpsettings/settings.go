@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"mime"
+	"net"
 	"net/http"
 )
 
@@ -28,7 +31,7 @@ func NewSettings(writer *meta.AsyncWriter,
 	return &Settings{writer, reader, initialSetupSettings, notificationCenter}
 }
 
-func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
+func handleForm(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
 	}
@@ -49,13 +52,95 @@ func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *Settings) HttpInitialSetup(mux *http.ServeMux) {
+func (h *Settings) SetupMux(mux *http.ServeMux) {
 	chain := httpmiddleware.WithDefaultTimeout()
+
+	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
 	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
+	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
+	mux.Handle("/settings/generalSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.GeneralSettingsHandler)))
+}
+
+func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error {
+	// For now we only allow fetching settings
+	// TODO: use this endpoint as a generic way to set settings, making the other specialized endpoints obsolete.
+	// so that /settings?setting=initialSetup does the job of /settings/initialSetup, and so on...
+	// TODO: make this endpoint part of the API, on /api/v0/settings
+	if r.Method != http.MethodGet {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+	}
+
+	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
+	// also supporting optional settings
+	allCurrentSettings := struct {
+		SlackNotificationSettings struct {
+			BearerToken string `json:"bearer_token"`
+			Channel     string `json:"channel"`
+			Enabled     *bool  `json:"enabled"`
+		} `json:"slack_notifications"`
+		GeneralSettings struct {
+			PostfixPublicIP net.IP `json:"postfix_public_ip"`
+		} `json:"general"`
+	}{}
+
+	ctx := r.Context()
+
+	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, h.reader)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	if slackSettings != nil {
+		allCurrentSettings.SlackNotificationSettings.BearerToken = slackSettings.BearerToken
+		allCurrentSettings.SlackNotificationSettings.Channel = slackSettings.Channel
+		allCurrentSettings.SlackNotificationSettings.Enabled = &slackSettings.Enabled
+	}
+
+	var localRBLSettings localrbl.Settings
+
+	err = h.reader.RetrieveJson(ctx, localrbl.SettingsKey, &localRBLSettings)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	if err == nil {
+		allCurrentSettings.GeneralSettings.PostfixPublicIP = localRBLSettings.LocalIP
+	}
+
+	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
+}
+
+func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := handleForm(w, r); err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	localIP := net.ParseIP(r.Form.Get("postfixPublicIP"))
+
+	if localIP == nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+	}
+
+	s := localrbl.Settings{LocalIP: localIP}
+
+	result := h.writer.StoreJson(localrbl.SettingsKey, &s)
+
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		return nil
+	case <-r.Context().Done():
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store local rbl settings"))
+	}
 }
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
-	if err := h.handleForm(w, r); err != nil {
+	if err := handleForm(w, r); err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
@@ -123,13 +208,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
-func (h *Settings) HttpNotificationSettings(mux *http.ServeMux) {
-	chain := httpmiddleware.WithDefaultTimeout()
-	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
-}
-
 func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {
-	if err := h.handleForm(w, r); err != nil {
+	if err := handleForm(w, r); err != nil {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
