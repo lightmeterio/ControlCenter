@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="icon" href="img/favicon.svg" sizes="any" type="image/svg+xml">
+
+    <!-- Boostrap CSS -->
+    <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
+
+    <!-- Fontawesome CSS -->
+    <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" type="text/css" href="css/app.css">
+
+    <script type="text/javascript" src='3rd/js/sprintf.min.js'></script>
+
+    <title>{{translate "Lightmeter ControlCenter"}}</title>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+<header>
+    <div class="navbar">
+        <div class="container d-flex justify-content-between">
+            <a class="logo navbar-brand d-flex align-items-center" href="/" title="Home">
+                <img src="img/logo-color-120.png" alt="Lightmeter logo" />
+            </a>
+            <span class="buttons">
+                        <span data-toggle="modal" data-target="#settingsModal">
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Information" onclick="_paq.push(['trackEvent', 'About', 'clickHeaderButton']);"></i>
+                        </span>
+                        <i class="fas fa-cog" onclick="window.location.href='/settingspage';" data-toggle="tooltip" data-placement="bottom" title="Settings" onclick="_paq.push(['trackEvent', 'Settings', 'clickHeaderButton']);"></i>
+                        <i class="fas fa-sign-out-alt" onclick="window.location.href='/logout';" data-toggle="tooltip" data-placement="bottom" title="Log out" onclick="_paq.push(['trackEvent', 'Logout', 'clickHeaderButton']);"></i>
+            </span>
+
+            <!-- Settings modal -->
+            <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="settingsModalLabel">{{translate "About"}}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            {{translate "Lightmeter Control Center"}}
+                            <br/>
+                            <span id="release-info"></span>
+                            <br/>
+                            <br/>
+                            <ul>
+                                <li><a href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui" target="_blank">{{translate "Website"}}</a></li>
+                                <li><a href="https://gitlab.com/lightmeter" target="_blank">GitLab</a></li>
+                                <li><a href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1" target="_blank">{{translate "Newsletter"}}</a></li>
+                                <li><a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a></li>
+                                <li><a href="https://mastodon.social/@lightmeter/" target="_blank">Mastodon</a></li>
+                            </ul>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate "Close"}}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</header>
+
+<div id="settings" class="container main-content">
+    <h2 class="form-heading">{{ translate "Settings" }}</h2>
+    <div class="form-container">
+        <h6 class="form-heading">{{ translate "Notifications" }}</h6>
+        <form id="notifications-form-container">
+            <div class="slack-disabler form-group">
+                <label class="form-label">Slack notifications</label><br>
+                <div class="form-check form-check-inline">
+                    <input class="messenger_enabled form-check-input" type="radio" name="messenger_enabled" id="messenger_enabled_1" value="true" required>
+                    <label class="form-check-label" for="messenger_enabled_1">{{ translate "Yes" }}</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="messenger_enabled form-check-input" type="radio" name="messenger_enabled" id="messenger_enabled_2" value="false" required>
+                    <label class="form-check-label" for="messenger_enabled_2">{{ translate "No" }}</label>
+                </div>
+            </div>
+            <div class="slack-channel form-group">
+                <label for="slackChannel">Slack channel</label>
+                <input class="form-control" id="slackChannel" name="messenger_channel" placeholder="{{ translate "Please enter slack channel name" }}"  maxlength="255" required>
+            </div>
+            <div class="slack-token form-group">
+                <label for="slackApiToken">Slack api token</label>
+                <input class="form-control" id="slackApiToken" name="messenger_token" placeholder="{{ translate "Please enter api token" }}" maxlength="255" required>
+            </div>
+            <input type="hidden" class="form-kind" name="messenger_kind" value="slack">
+            <div class="button-group">
+                <button class="slack-save btn" type="submit" ><span>{{ translate "Save" }}</span></button>
+                <button class="slack-cancel btn btn-cancel" ><span>{{ translate "Cancel" }}</span></button>
+            </div>
+        </form>
+        <h6 class="form-heading">{{ translate "General" }}</h6>
+        <form id="general-form-container">
+            <div class="form-group">
+                <label for="postfixPublicIP">Postfix public IP</label>
+                <input class="form-control" id="postfixPublicIP" name="postfixPublicIP" aria-describedby="ipHelp" placeholder="Enter ip address" maxlength="255" required>
+                <small id="ipHelp" class="form-text text-muted">{{ translate "Please extract from your config file the ip address of postfix" }}</small>
+            </div>
+            <div class="button-group">
+                <button class="general-save btn" type="submit" ><span>{{ translate "Save" }}</span></button>
+                <button class="general-cancel btn btn-cancel" ><span>{{ translate "Cancel" }}</span></button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<footer  class="mt-auto">
+    <div class="container">
+        <p class="float-right">
+            &bull;
+            <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
+        </p>
+        <p>{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">{{translate "Privacy Policy"}}</a></p>
+    </div>
+</footer>
+
+<!-- Boostrap dependencies -->
+<script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
+<script type="text/javascript" src="3rd/js/popper.min.js"></script>
+<script type="text/javascript" src="3rd/js/bootstrap.min.js"></script>
+
+<!-- Other 3rd party dependencies -->
+<script type="text/javascript" src='3rd/js/plotly.min.js'></script>
+<script type="text/javascript" src="3rd/js/moment.min.js"></script>
+<script type="text/javascript" src="3rd/js/daterangepicker.min.js"></script>
+
+<!-- App scripts -->
+<script type="text/javascript" src='js/app.js'></script>
+
+<!-- Lightmeter-hosted Matomo analytics -->
+<script type="text/javascript">
+
+    $(document).ready(function() {
+
+        function submitNotificationsSettingsForm() {
+            var notificationsSettingsFormData = new FormData(document.getElementById("notifications-form-container"))
+            fetch("/settings/notificationSettings", {method: 'post', body: new URLSearchParams(notificationsSettingsFormData)}).then(function(response) {
+                if (!response.ok) {
+                    var err = new Error("HTTP status code: " + response.status);
+                    err.response = response;
+                    err.status = response.status;
+                    throw err;
+                }
+                alert('{{ translate `Saved notification settings` }}')
+                _paq.push(['trackEvent', 'SaveNotificationSettings', 'success'])
+            }).catch(function(err) {
+                alert('{{ translate `Settings Error on saving notification settings!` }}')
+                console.log(err)
+            })
+        }
+
+        function submitGeneralForm() {
+            var generalFormContainer = new FormData(document.getElementById("general-form-container"))
+            fetch("/settings/generalSettings", {method: 'post', body: new URLSearchParams(generalFormContainer)}).then(function(response) {
+                if (!response.ok) {
+                    var err = new Error("HTTP status code: " + response.status);
+                    err.response = response;
+                    err.status = response.status;
+                    throw err;
+                }
+                alert('{{ translate `Saved rbl settings` }}')
+                _paq.push(['trackEvent', 'SaveRBLSettings', 'success'])
+            }).catch(function(err) {
+                alert('{{ translate `Settings Error on saving rbl settings!` }}')
+                console.log(err)
+            })
+        }
+
+        function autoNotificationsFormFill(data) {
+            document.getElementById('slackChannel').value = data["channel"];
+            document.getElementById('slackApiToken').value = data["bearer_token"];
+            var radioElements = document.getElementsByClassName("messenger_enabled");
+            for (var i=0; i<radioElements.length; i++) {
+
+                if (radioElements[i].getAttribute('value') === "true" && data["enabled"] === true) {
+                    radioElements[i].checked = true;
+                    break
+                }
+
+                if (radioElements[i].getAttribute('value') === "false" && data["enabled"] === false) {
+                    radioElements[i].checked = true;
+                    break
+                }
+            }
+        }
+
+        function autoGeneralFormFill(data) {
+            document.getElementById('postfixPublicIP').value = data["postfix_public_ip"];
+        }
+
+        let slackNotificationsData = null
+        let generalData = null
+
+        fetch('/settings')
+            .then(response => response.json())
+            .then(function (data) {
+                slackNotificationsData = data["slack_notifications"]
+                autoNotificationsFormFill(slackNotificationsData)
+                generalData = data["general"]
+                autoGeneralFormFill(generalData)
+            });
+
+        $('#notifications-form-container .slack-save').on('click', function (e) {
+            var ele = document.getElementById("notifications-form-container");
+            var chk_status = ele.checkValidity();
+            ele.reportValidity();
+            if (chk_status) {
+                e.preventDefault();
+
+                submitNotificationsSettingsForm();
+
+                fetch('/settings')
+                    .then(response => response.json())
+                    .then(function (data) {
+                        slackNotificationsData = data["slack_notifications"]
+                        autoNotificationsFormFill(slackNotificationsData)
+                        generalData = data["general"]
+                        autoGeneralFormFill(generalData)
+                    });
+            }
+        })
+
+        $('#general-form-container .general-save').on('click', function (e) {
+            var ele = document.getElementById("general-form-container");
+            var chk_status = ele.checkValidity();
+            ele.reportValidity();
+            if (chk_status) {
+                e.preventDefault();
+
+                submitGeneralForm();
+
+                fetch('/settings')
+                    .then(response => response.json())
+                    .then(function (data) {
+                        slackNotificationsData = data["slack_notifications"]
+                        autoNotificationsFormFill(slackNotificationsData)
+                        generalData = data["general"]
+                        autoGeneralFormFill(generalData)
+                    });
+            }
+        })
+
+        $('#notifications-form-container .slack-cancel').on('click', function (e) {
+            e.preventDefault();
+            autoNotificationsFormFill(slackNotificationsData);
+        })
+
+        $('#general-form-container .general-cancel').on('click', function (e) {
+            e.preventDefault();
+            autoGeneralFormFill(generalData);
+        })
+    });
+
+    var _paq = window._paq || [];
+    _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+        var u="https://matomo.lightmeter.io/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '3']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+    })();
+</script>
+<noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+
+</body>
+</html>

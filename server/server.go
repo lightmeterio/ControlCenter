@@ -78,6 +78,8 @@ func (s *HttpServer) Start() error {
 		"/debug",
 	}
 
+	setup.HttpSettingsPage(mux)
+
 	authWrapper := httpauth.Serve(mux, s.Workspace.Auth(), s.WorkspaceDirectory, publicPaths)
 
 	return http.ListenAndServe(s.Address, authWrapper)

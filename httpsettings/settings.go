@@ -256,3 +256,9 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 
 	return nil
 }
+
+func (h *Settings) HttpSettingsPage(mux *http.ServeMux) {
+	mux.Handle("/settingspage", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/settingspage.i18n.html", http.StatusSeeOther)
+	}))
+}
