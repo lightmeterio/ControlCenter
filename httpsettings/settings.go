@@ -67,7 +67,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// so that /settings?setting=initialSetup does the job of /settings/initialSetup, and so on...
 	// TODO: make this endpoint part of the API, on /api/v0/settings
 	if r.Method != http.MethodGet {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusUnauthorized, fmt.Errorf("Error http method mismatch: %v", r.Method))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
 	}
 
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
