@@ -654,11 +654,12 @@ input-group-addon a {
     margin: 0;
 }
 
-.form-check {
+.custom-form-check {
     display: flex;
     align-items: center;
     margin: 0.8rem 0 0.8rem 0.1rem;
 }
+
 .form-check-input {
     margin-top: 0px;
 }
@@ -786,4 +787,67 @@ input-group-addon a {
         height: 150px;
     }
  
+}
+
+/* settings page */
+#settings [type="submit"] {
+    background: #1D8CAF33 0% 0% no-repeat padding-box;
+    border: 1px solid #1D8CAF;
+    border-radius: 2px;
+    opacity: 0.8;
+    text-align: center;
+    font: normal normal bold 14px/24px Open Sans;
+    letter-spacing: 0px;
+    color: #1D8CAF;
+}
+
+/* settings page */
+#settings .btn-cancel {
+    background: #FF5C6F33 0% 0% no-repeat padding-box;
+    border: 1px solid #FF5C6F;
+    border-radius: 2px;
+    opacity: 0.8;
+    text-align: center;
+    font: normal normal bold 14px/24px Open Sans;
+    letter-spacing: 0px;
+    color: #820D1B;;
+}
+
+#settings [type="input"] {
+    border: 1px solid #E6E7E7;
+    border-radius: 5px;
+    opacity: 1;
+}
+
+#notifications-form-container {
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+#general-form-container {
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+.form-heading {
+    margin-bottom: 0.5em;
+    margin-top: 0.5em;
+    font-weight: bold;
+}
+
+.button-group {
+    display: flex;
+    flex-flow: row-reverse;
+}
+
+.button-group button {
+    width: 10%;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.button-group .btn-cancel {
+    width: 10%;
+    margin-left: 1em;
+    margin-right: 1em;
 }
