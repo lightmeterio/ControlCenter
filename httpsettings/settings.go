@@ -73,8 +73,12 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
 	// also supporting optional settings
 	allCurrentSettings := struct {
-		SlackNotificationSettings settings.SlackNotificationsSettings `json:"slack_notifications"`
-		GeneralSettings           struct {
+		SlackNotificationSettings struct {
+			BearerToken string `json:"bearer_token"`
+			Channel     string `json:"channel"`
+			Enabled     *bool  `json:"enabled"`
+		} `json:"slack_notifications"`
+		GeneralSettings struct {
 			PostfixPublicIP net.IP `json:"postfix_public_ip"`
 		} `json:"general"`
 	}{}
@@ -88,7 +92,9 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	}
 
 	if slackSettings != nil {
-		allCurrentSettings.SlackNotificationSettings = *slackSettings
+		allCurrentSettings.SlackNotificationSettings.BearerToken = slackSettings.BearerToken
+		allCurrentSettings.SlackNotificationSettings.Channel = slackSettings.Channel
+		allCurrentSettings.SlackNotificationSettings.Enabled = &slackSettings.Enabled
 	}
 
 	var localRBLSettings localrbl.Settings

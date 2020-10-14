@@ -62,7 +62,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": false},
+				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": nil},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
 				},
@@ -106,6 +106,39 @@ func TestSettingsPage(t *testing.T) {
 				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": true},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "11.22.33.44",
+				},
+			}
+
+			So(body, ShouldResemble, expected)
+		})
+
+		Convey("Slack notifications are disabled if the requests explicitely requests it", func() {
+			// set slack settings
+			{
+				r, err := c.PostForm(notificationsSettingsServer.URL,
+					url.Values{
+						"messenger_kind":    {"slack"},
+						"messenger_token":   {"some_token"},
+						"messenger_channel": {"some_channel"},
+						"messenger_enabled": {"false"},
+					})
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+			}
+
+			r, err := c.Get(allSettingsServer.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			var body map[string]interface{}
+			dec := json.NewDecoder(r.Body)
+			err = dec.Decode(&body)
+			So(err, ShouldBeNil)
+
+			expected := map[string]interface{}{
+				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": false},
+				"general": map[string]interface{}{
+					"postfix_public_ip": "",
 				},
 			}
 
