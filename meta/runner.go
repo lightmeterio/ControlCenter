@@ -13,7 +13,7 @@ type Runner struct {
 }
 
 func NewRunner(h *Handler) *Runner {
-	return &Runner{writer: h.Writer, requestsChan: make(chan storeRequest, 64)}
+	return &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
 }
 
 // AsyncWriter allows callers to schedule values to be stored, but in a non-blocking way
