@@ -27,16 +27,6 @@ func (c *fakeContent) String() string {
 	return "Hell world!, Mister Donutloop"
 }
 
-type dummySubscriber struct{}
-
-func (*dummySubscriber) Subscribe(context context.Context, email string) error {
-	return nil
-}
-
-func newSubscriber() *dummySubscriber {
-	return &dummySubscriber{}
-}
-
 func TestSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
@@ -46,10 +36,12 @@ func TestSendNotification(t *testing.T) {
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(m.Close()) }()
+		runner := meta.NewRunner(m)
+		done, cancel := runner.Run()
+		defer func() { cancel(); done() }()
+		writer := runner.Writer()
 
-		master, err := settings.NewMasterConf(m, newSubscriber())
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		slackSettings := settings.SlackNotificationsSettings{
 			Channel:     "general",
@@ -58,10 +50,10 @@ func TestSendNotification(t *testing.T) {
 			Enabled:     true,
 		}
 
-		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
+		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
 		So(err, ShouldBeNil)
 
-		center := New(master)
+		center := New(m.Reader)
 		So(err, ShouldBeNil)
 
 		content := new(fakeContent)
@@ -90,10 +82,7 @@ func TestSendNotificationMissingConf(t *testing.T) {
 
 		defer func() { errorutil.MustSucceed(m.Close()) }()
 
-		master, err := settings.NewMasterConf(m, newSubscriber())
-		So(err, ShouldBeNil)
-
-		center := New(master)
+		center := New(m.Reader)
 		So(err, ShouldBeNil)
 
 		content := new(fakeContent)
@@ -130,10 +119,12 @@ func TestFakeSendNotification(t *testing.T) {
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(m.Close()) }()
+		runner := meta.NewRunner(m)
+		done, cancel := runner.Run()
+		defer func() { cancel(); done() }()
+		writer := runner.Writer()
 
-		master, err := settings.NewMasterConf(m, newSubscriber())
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		slackSettings := settings.SlackNotificationsSettings{
 			Channel:     "general",
@@ -142,12 +133,12 @@ func TestFakeSendNotification(t *testing.T) {
 			Enabled:     true,
 		}
 
-		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
+		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
 		So(err, ShouldBeNil)
 
 		fakeapi := &fakeapi{}
 
-		centerInterface := New(master)
+		centerInterface := New(m.Reader)
 		c := centerInterface.(*center)
 		c.slackapi = fakeapi
 
@@ -176,10 +167,12 @@ func TestFakeSendNotificationDisabled(t *testing.T) {
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(m.Close()) }()
+		runner := meta.NewRunner(m)
+		done, cancel := runner.Run()
+		defer func() { cancel(); done() }()
+		writer := runner.Writer()
 
-		master, err := settings.NewMasterConf(m, newSubscriber())
-		So(err, ShouldBeNil)
+		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		slackSettings := settings.SlackNotificationsSettings{
 			Channel:     "general",
@@ -188,12 +181,12 @@ func TestFakeSendNotificationDisabled(t *testing.T) {
 			Enabled:     false,
 		}
 
-		err = master.SetSlackNotificationsSettings(dummyContext, slackSettings)
+		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
 		So(err, ShouldBeNil)
 
 		fakeapi := &fakeapi{}
 
-		centerInterface := New(master)
+		centerInterface := New(m.Reader)
 		c := centerInterface.(*center)
 		c.slackapi = fakeapi
 

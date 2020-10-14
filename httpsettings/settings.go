@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -12,12 +13,19 @@ import (
 )
 
 type Settings struct {
-	s                  settings.SystemSetup
-	notificationCenter notification.Center
+	writer *meta.AsyncWriter
+	reader *meta.Reader
+
+	initialSetupSettings *settings.InitialSetupSettings
+	notificationCenter   notification.Center
 }
 
-func NewSettings(s settings.SystemSetup, notificationCenter notification.Center) *Settings {
-	return &Settings{s, notificationCenter}
+func NewSettings(writer *meta.AsyncWriter,
+	reader *meta.Reader,
+	initialSetupSettings *settings.InitialSetupSettings,
+	notificationCenter notification.Center,
+) *Settings {
+	return &Settings{writer, reader, initialSetupSettings, notificationCenter}
 }
 
 func (h *Settings) handleForm(w http.ResponseWriter, r *http.Request) error {
@@ -101,11 +109,13 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 
 	mailKind := r.Form.Get("email_kind")
 
-	if err := h.s.SetOptions(r.Context(), settings.InitialOptions{
+	err = h.initialSetupSettings.Set(r.Context(), h.writer, settings.InitialOptions{
 		SubscribeToNewsletter: subscribe,
 		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,
-	}); err != nil {
+	})
+
+	if err != nil {
 		err = errorutil.Wrap(err, "Error setting initial options")
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
@@ -154,7 +164,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		Enabled:     messengerEnabled == "true",
 	}
 
-	if err := h.s.SetOptions(r.Context(), slackNotificationsSettings); err != nil {
+	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
 		err := errorutil.Wrap(err, "Error notification setting options")
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}

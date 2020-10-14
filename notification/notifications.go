@@ -27,10 +27,10 @@ type Center interface {
 	AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error
 }
 
-func New(masterConf *settings.MasterConf) Center {
+func New(settingsReader *meta.Reader) Center {
 	cp := &center{
-		bus:        bus.New(),
-		masterConf: masterConf,
+		bus:            bus.New(),
+		settingsReader: settingsReader,
 	}
 
 	if err := cp.init(); err != nil {
@@ -41,9 +41,9 @@ func New(masterConf *settings.MasterConf) Center {
 }
 
 type center struct {
-	bus        bus.Interface
-	masterConf *settings.MasterConf
-	slackapi   Messenger
+	bus            bus.Interface
+	settingsReader *meta.Reader
+	slackapi       Messenger
 }
 
 func (cp *center) init() error {
@@ -51,7 +51,7 @@ func (cp *center) init() error {
 
 	defer cancel()
 
-	slackSettings, err := cp.masterConf.GetSlackNotificationsSettings(ctx)
+	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, cp.settingsReader)
 	if err != nil {
 		if errors.Is(err, meta.ErrNoSuchKey) {
 			return nil

@@ -39,7 +39,7 @@ func TestSimpleValues(t *testing.T) {
 		})
 
 		Convey("Insert multiple values", func() {
-			_, err = writer.Store(dummyContext, []Item{
+			err = writer.Store(dummyContext, []Item{
 				{Key: "key1", Value: "value1"},
 				{Key: "key2", Value: "value2"},
 			})
@@ -55,7 +55,7 @@ func TestSimpleValues(t *testing.T) {
 			So(v, ShouldEqual, "value2")
 
 			Convey("Update value", func() {
-				_, err := writer.Store(dummyContext, []Item{{Key: "key1", Value: "another_value1"}})
+				err := writer.Store(dummyContext, []Item{{Key: "key1", Value: "another_value1"}})
 				So(err, ShouldBeNil)
 
 				v, err := reader.Retrieve(dummyContext, "key1")
@@ -93,7 +93,7 @@ func TestJsonValues(t *testing.T) {
 		Convey("Insert array", func() {
 			origValue := []int{1, 2, 3, 4}
 
-			_, err = writer.StoreJson(dummyContext, "key1", origValue)
+			err := writer.StoreJson(dummyContext, "key1", origValue)
 			So(err, ShouldBeNil)
 
 			Convey("Successful read value", func() {
@@ -110,11 +110,11 @@ func TestJsonValues(t *testing.T) {
 			})
 
 			Convey("Update value", func() {
-				_, err = writer.StoreJson(dummyContext, "key1", []string{"one", "two"})
+				err := writer.StoreJson(dummyContext, "key1", []string{"one", "two"})
 				So(err, ShouldBeNil)
 
 				var retrieved []string
-				err := reader.RetrieveJson(dummyContext, "key1", &retrieved)
+				err = reader.RetrieveJson(dummyContext, "key1", &retrieved)
 				So(err, ShouldBeNil)
 				So(retrieved, ShouldResemble, []string{"one", "two"})
 			})
