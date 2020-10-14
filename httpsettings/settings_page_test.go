@@ -47,7 +47,7 @@ func TestSettingsPage(t *testing.T) {
 
 		allSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsHandler)))
 		generalSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.GeneralSettingsHandler)))
-		//notificationsSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler)))
+		notificationsSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler)))
 
 		c := &http.Client{}
 
@@ -62,7 +62,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": nil,
+				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": false},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
 				},
@@ -80,6 +80,19 @@ func TestSettingsPage(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			}
 
+			// set slack settings
+			{
+				r, err := c.PostForm(notificationsSettingsServer.URL,
+					url.Values{
+						"messenger_kind":    {"slack"},
+						"messenger_token":   {"some_token"},
+						"messenger_channel": {"some_channel"},
+						"messenger_enabled": {"true"},
+					})
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+			}
+
 			r, err := c.Get(allSettingsServer.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -90,7 +103,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": nil,
+				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": true},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "11.22.33.44",
 				},
