@@ -17,6 +17,13 @@ func NewRunner(h *Handler) *Runner {
 }
 
 // AsyncWriter allows callers to schedule values to be stored, but in a non-blocking way
+// TODO: at the moment AsyncWriter serializes and doesn't bufferize the store requests,
+// making them behave as if they were blocking for all the requesters.
+// It can be a problem in case of "high pressure" with many simultaneous requests,
+// which can be a bit slow.
+// In such scenarios, one possibility to be verified is to accumulate many requests in a single transaction
+// as SQLite can be slow on storing multiple independent pieces of data, but is quite efficient
+// when grouping them into a single transaction.
 type AsyncWriter struct {
 	runner *Runner
 }
