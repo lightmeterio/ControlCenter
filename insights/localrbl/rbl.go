@@ -26,7 +26,7 @@ type content struct {
 }
 
 func (c content) String() string {
-	return fmt.Sprintf("The local IP %v has been blocked by %d RBLs", c.Address, len(c.RBLs))
+	return fmt.Sprintf("The IP address %s is listed by %d RBLs", c.Address, len(c.RBLs))
 }
 
 const ContentType = "local_rbl_check"
@@ -57,7 +57,7 @@ func getDetectorOptions(options core.Options) Options {
 	detectorOptions, ok := options["localrbl"].(Options)
 
 	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid detector options"), "")
+		errorutil.MustSucceed(errors.New("Invalid detector options"))
 	}
 
 	return detectorOptions
