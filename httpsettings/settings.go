@@ -250,8 +250,8 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
-		err := errorutil.Wrap(err, "Error register slack notifier ")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	return nil

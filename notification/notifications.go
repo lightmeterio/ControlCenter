@@ -66,6 +66,11 @@ func (cp *center) init() error {
 
 	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
 
+	err = cp.slackapi.PostMessage(newConnectContent())
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	cp.bus.AddEventListener("slack", func(notification Notification) error {
 		return cp.slackapi.PostMessage(notification.Content)
 	})
@@ -73,8 +78,29 @@ func (cp *center) init() error {
 	return nil
 }
 
+func newConnectContent() *connectContent {
+	return &connectContent{
+		msg: "Lightmeter ControlCenter successfully connected to Slack!",
+	}
+}
+
+type connectContent struct {
+	msg string
+}
+
+func (hc *connectContent) String() string {
+	return hc.msg
+}
+
 func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSettings) error {
 	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
+
+	if slackSettings.Enabled {
+		err := cp.slackapi.PostMessage(newConnectContent())
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
 
 	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
 

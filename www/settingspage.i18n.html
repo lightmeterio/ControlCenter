@@ -147,38 +147,32 @@
 
     $(document).ready(function() {
 
-        function submitNotificationsSettingsForm() {
-            var notificationsSettingsFormData = new FormData(document.getElementById("notifications-form-container"))
-            fetch("/settings/notificationSettings", {method: 'post', body: new URLSearchParams(notificationsSettingsFormData)}).then(function(response) {
-                if (!response.ok) {
-                    var err = new Error("HTTP status code: " + response.status);
-                    err.response = response;
-                    err.status = response.status;
-                    throw err;
-                }
-                alert('{{ translate `Saved notification settings` }}')
-                _paq.push(['trackEvent', 'SaveNotificationSettings', 'success'])
-            }).catch(function(err) {
-                alert('{{ translate `Settings Error on saving notification settings!` }}')
-                console.log(err)
-            })
+        async function submitNotificationsSettingsForm() {
+            let notificationsSettingsFormData = new FormData(document.getElementById("notifications-form-container"))
+            const response = await fetch("/settings/notificationSettings", {method: 'post', body: new URLSearchParams(notificationsSettingsFormData)})
+            const text = await response.text()
+
+            if (!response.ok) {
+                alert('{{ translate `Error on saving notification settings!` }}' + ' ' + text)
+                return
+            }
+
+            alert('{{ translate `Saved notification settings` }}')
+            _paq.push(['trackEvent', 'SaveNotificationSettings', 'success'])
         }
 
-        function submitGeneralForm() {
+        async function submitGeneralForm() {
             var generalFormContainer = new FormData(document.getElementById("general-form-container"))
-            fetch("/settings/generalSettings", {method: 'post', body: new URLSearchParams(generalFormContainer)}).then(function(response) {
-                if (!response.ok) {
-                    var err = new Error("HTTP status code: " + response.status);
-                    err.response = response;
-                    err.status = response.status;
-                    throw err;
-                }
-                alert('{{ translate `Saved rbl settings` }}')
-                _paq.push(['trackEvent', 'SaveRBLSettings', 'success'])
-            }).catch(function(err) {
-                alert('{{ translate `Settings Error on saving rbl settings!` }}')
-                console.log(err)
-            })
+            const response = await fetch("/settings/generalSettings", {method: 'post', body: new URLSearchParams(generalFormContainer)})
+            const text = await response.text()
+
+            if (!response.ok) {
+                alert('{{ translate `Error on saving rbl settings!` }}' + ' ' + text)
+                return
+            }
+
+            alert('{{ translate `Saved rbl settings` }}')
+            _paq.push(['trackEvent', 'SaveRBLSettings', 'success'])
         }
 
         function autoNotificationsFormFill(data) {
