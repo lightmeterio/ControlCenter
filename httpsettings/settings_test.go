@@ -2,6 +2,7 @@ package httpsettings
 
 import (
 	"context"
+	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -30,7 +31,9 @@ func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	return nil
 }
 
-type fakeNotificationCenter struct{}
+type fakeNotificationCenter struct{
+	shouldFailToAddSlackNotifier bool
+}
 
 func (c *fakeNotificationCenter) Notify(center notification.Notification) error {
 	log.Println("send notification")
@@ -39,6 +42,10 @@ func (c *fakeNotificationCenter) Notify(center notification.Notification) error 
 
 func (c *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
 	log.Println("Add slack")
+	if c.shouldFailToAddSlackNotifier {
+		return errors.New("Invalid slack notifier")
+	}
+
 	return nil
 }
 
@@ -287,6 +294,25 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				err = center.Notify(notification)
 				So(err, ShouldBeNil)
 			})
+
+			Convey("Fails if slack validations fail", func() {
+				fakeCenter.shouldFailToAddSlackNotifier = true
+
+				r, err := c.PostForm(s.URL, url.Values{
+					"messenger_kind":    {"slack"},
+					"messenger_token":   {"sjdfklsjdfkljfs"},
+					"messenger_channel": {"donutloop"},
+					"messenger_enabled": {"true"},
+				})
+
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+				mo := new(settings.SlackNotificationsSettings)
+				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
+			})
+
 		})
 	})
 }

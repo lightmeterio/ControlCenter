@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/bus"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"log"
 	"time"
 )
 
@@ -34,7 +35,7 @@ func New(settingsReader *meta.Reader) Center {
 	}
 
 	if err := cp.init(); err != nil {
-		panic(err)
+		log.Println("Error notifications ", err)
 	}
 
 	return cp
