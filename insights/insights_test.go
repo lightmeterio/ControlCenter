@@ -152,10 +152,11 @@ func TestEngine(t *testing.T) {
 				So(e.Close(), ShouldBeNil)
 			}()
 
-			errChan := make(chan error)
+			doneWithRun := make(chan struct{})
 
 			go func() {
-				errChan <- runDatabaseWriterLoop(e)
+				runDatabaseWriterLoop(e)
+				doneWithRun <- struct{}{}
 			}()
 
 			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)}
@@ -190,10 +191,9 @@ func TestEngine(t *testing.T) {
 			// stop main loop
 			close(e.txActions)
 
-			err, ok := <-errChan
+			_, ok := <-doneWithRun
 
 			So(ok, ShouldBeTrue)
-			So(err, ShouldBeNil)
 
 			So(nc.notifications, ShouldResemble, []notification.Notification{
 				{ID: 1, Content: content{"42"}},

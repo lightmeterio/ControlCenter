@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"log"
 	"path"
 	"time"
 )
@@ -159,7 +160,7 @@ func (realClock) Sleep(d time.Duration) {
 	time.Sleep(d)
 }
 
-func runDatabaseWriterLoop(e *Engine) error {
+func runDatabaseWriterLoop(e *Engine) {
 	// one thread, owning access to the database
 	// waits for write actions, like new insights or actions for the user
 	// those actions act on a transaction
@@ -167,11 +168,12 @@ func runDatabaseWriterLoop(e *Engine) error {
 		shouldContinue, err := engineCycle(e)
 
 		if err != nil {
-			return errorutil.Wrap(err)
+			log.Println("Could not not run Insights Engine cycle:", err)
+			continue
 		}
 
 		if !shouldContinue {
-			return nil
+			return
 		}
 	}
 }
@@ -198,7 +200,7 @@ func (e *Engine) Run() (func(), func()) {
 	// something that reads user actions (resolve insights, etc.)
 
 	go func() {
-		errorutil.MustSucceed(runDatabaseWriterLoop(e))
+		runDatabaseWriterLoop(e)
 		doneRun <- struct{}{}
 	}()
 
