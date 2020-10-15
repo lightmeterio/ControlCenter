@@ -18,7 +18,8 @@ endif
 
 BUILD_INFO_FLAGS = -X ${PACKAGE_VERSION}.Commit=${GIT_COMMIT} -X ${PACKAGE_VERSION}.TagOrBranch=${GIT_BRANCH} -X ${PACKAGE_VERSION}.Version=${APP_VERSION}
 
-all: dev
+all:
+	$(error Use make (dev|release|static_release) instead)
 
 race:
 	./tools/go_test.sh -race
