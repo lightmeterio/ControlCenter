@@ -167,12 +167,12 @@
             const text = await response.text()
 
             if (!response.ok) {
-                alert('{{ translate `Error on saving rbl settings!` }}' + ' ' + text)
+                alert('{{ translate `Error on saving general settings!` }}' + ' ' + text)
                 return
             }
 
-            alert('{{ translate `Saved rbl settings` }}')
-            _paq.push(['trackEvent', 'SaveRBLSettings', 'success'])
+            alert('{{ translate `Saved general settings` }}')
+            _paq.push(['trackEvent', 'SaveGeneralSettings', 'success'])
         }
 
         function autoNotificationsFormFill(data) {
