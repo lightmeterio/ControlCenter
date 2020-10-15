@@ -244,14 +244,14 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		Enabled:     messengerEnabled == "true",
 	}
 
-	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
-		err := errorutil.Wrap(err, "Error notification setting options")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
-	}
-
 	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
 		err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
+		err := errorutil.Wrap(err, "Error notification setting options")
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	return nil
