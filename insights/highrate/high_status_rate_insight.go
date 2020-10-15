@@ -171,7 +171,7 @@ type bounceRateContent struct {
 }
 
 func (c bounceRateContent) String() string {
-	return fmt.Sprintf("%v bounce rate between %v and %s", c.Value, c.Interval.From, c.Interval.To)
+	return fmt.Sprintf("%d%% bounce rate between %v and %v", int(c.Value*100), core.PrettyFormatTime(c.Interval.From), core.PrettyFormatTime(c.Interval.To))
 }
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {

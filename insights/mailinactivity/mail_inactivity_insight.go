@@ -18,7 +18,7 @@ type content struct {
 }
 
 func (c content) String() string {
-	return fmt.Sprintf("No emails were sent between %v and %v", c.Interval.From, c.Interval.To)
+	return fmt.Sprintf("No emails were sent between %v and %v", core.PrettyFormatTime(c.Interval.From), core.PrettyFormatTime(c.Interval.To))
 }
 
 type generator struct {
