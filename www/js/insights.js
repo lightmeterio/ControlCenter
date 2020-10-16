@@ -12,6 +12,8 @@ function formatInsightDescriptionDateTime(d) {
 
 var insightTemplate = document.getElementById("insight-template").cloneNode(true)
 
+var allCurrentInsightsData = null
+
 function fetchInsights() {
   var formData = new FormData()
 
@@ -49,6 +51,8 @@ function fetchInsights() {
       insights.removeChild(insights.firstChild);
     }
 
+    allCurrentInsightsData = data
+
     data.forEach(i => {
       var c = insightTemplate.cloneNode(true)
       c.querySelector(".category").innerHTML = buildInsightCategory(i)
@@ -85,15 +89,23 @@ function buildInsightDescription(insight) {
     return "Description for " + insight.ContentType
   }
 
-  return handler(insight.Content)
+  return handler(insight)
 }
 
-function buildInsightRblList(insight) {
-    if (insight.Content.rbls.length == 0) {
-      alert("no rbls")
-      return
-    } else {
-        alert("some rbls")
-    }
-//   return html list of rbls
+function buildInsightRblList(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight == undefined) {
+    return
+  }
+
+  var content = ""
+
+  content += "<h2>Scan results for IP " + insight.Content.address + "</h2>"
+
+  insight.Content.rbls.forEach(r => {
+    content += "<div><b>" + r.rbl + "</b>: " + r.text + "</div>"
+  })
+
+  $('#rbl-list-content').html(content)
 }
