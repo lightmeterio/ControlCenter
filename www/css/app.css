@@ -802,7 +802,7 @@ input-group-addon a {
 }
 
 /* settings page */
-#settings .btn-cancel {
+.btn-cancel {
     background: #FF5C6F33 0% 0% no-repeat padding-box;
     border: 1px solid #FF5C6F;
     border-radius: 2px;
