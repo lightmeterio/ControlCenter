@@ -99,11 +99,13 @@ function buildInsightRblList(insightId) {
     return
   }
 
-  var content = ""
+  var content = "<ul>"
 
   insight.Content.rbls.forEach(r => {
-    content += "<div><b>" + r.rbl + "</b>: " + r.text + "</div>"
+    content += "<li><b>" + r.rbl + "</b>: " + r.text + "</li>"
   })
+  
+  content += "</ul>"
 
   $('#rbl-list-content').html(content)
 }
