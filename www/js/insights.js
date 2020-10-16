@@ -12,6 +12,8 @@ function formatInsightDescriptionDateTime(d) {
 
 var insightTemplate = document.getElementById("insight-template").cloneNode(true)
 
+var allCurrentInsightsData = null
+
 function fetchInsights() {
   var formData = new FormData()
 
@@ -49,6 +51,8 @@ function fetchInsights() {
       insights.removeChild(insights.firstChild);
     }
 
+    allCurrentInsightsData = data
+
     data.forEach(i => {
       var c = insightTemplate.cloneNode(true)
       c.querySelector(".category").innerHTML = buildInsightCategory(i)
@@ -85,5 +89,33 @@ function buildInsightDescription(insight) {
     return "Description for " + insight.ContentType
   }
 
-  return handler(insight.Content)
+  return handler(insight)
+}
+
+function buildInsightRblList(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight == undefined) {
+    return
+  }
+
+  var content = "<ul>"
+
+  insight.Content.rbls.forEach(r => {
+    content += "<li><b>" + r.rbl + "</b>: " + r.text + "</li>"
+  })
+  
+  content += "</ul>"
+
+  $('#rbl-list-content').html(content)
+}
+
+function buildInsightRblCheckedIp(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight == undefined) {
+    return
+  }
+
+  return insight.Content.address
 }

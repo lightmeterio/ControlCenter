@@ -22,6 +22,8 @@
         <title>{{translate "Lightmeter ControlCenter"}}</title>
 
         <script>
+          var rblModalWindowId = null
+
           insightsTitles = {
             "high_bounce_rate": "{{translate `High Bounce Rate` }}",
             "mail_inactivity": "{{translate `Mail Inactivity`}}",
@@ -31,20 +33,31 @@
           }
 
           insightsDescriptions = {
-            "high_bounce_rate": function(c) {
+            "high_bounce_rate": function(i) {
+              var c = i.Content
               return sprintf("{{ translate `<b>%%i%%%%</b> bounce rate between %%s and %%s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
-            "mail_inactivity": function(c) {
+            "mail_inactivity": function(i) {
+              var c = i.Content
               return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
-            "welcome_content": function(c) { return "{{ translate `Insights are time-based analyses relating to your mailserver` }}" },
+            "welcome_content": function(i) { 
+              var c = i.Content
+              return "{{ translate `Insights are time-based analyses relating to your mailserver` }}"
+            },
 
-            "insights_introduction_content": function(c) { return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" },
+            "insights_introduction_content": function(i) { 
+              var c = i.Content
+              return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" 
+            },
 
-            "local_rbl_check": function(c) { 
-                return sprintf("{{ translate `The IP address %%s is listed by %%d RBLs` }}", c.address, c.rbls.length)
+            "local_rbl_check": function(i) { 
+              var c = i.Content
+              var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
+              var linkPart = "<a href='#rblListModal' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal'>{{ translate `View list` }}</a>."
+              return msgPart + linkPart
             },
           }
 
@@ -96,6 +109,26 @@
                                         <li><a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a></li>
                                         <li><a href="https://mastodon.social/@lightmeter/" target="_blank">Mastodon</a></li>
                                     </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-cancel" data-dismiss="modal">{{translate "Close"}}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RBL list modal -->
+                    <div class="modal fade" id="rblListModal" tabindex="-1" role="dialog" aria-labelledby="rblListLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="rblListLabel">{{translate "RBLs for"}}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                  <span id="rbl-list-content"></span>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-cancel" data-dismiss="modal">{{translate "Close"}}</button>
@@ -286,5 +319,13 @@
         </script>
         <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
 
+        <script>
+           $('#rblListModal').on('shown.bs.modal', function(e) {
+              var rblId = $(e.relatedTarget).data('rbl-id')
+              var modal = $(this)
+              modal.find('.modal-title').text('{{translate "RBLs for "}}'+buildInsightRblCheckedIp(rblId))
+              buildInsightRblList(rblId)
+          })
+        </script>
     </body>
 </html>
