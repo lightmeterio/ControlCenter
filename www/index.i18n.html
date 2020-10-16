@@ -44,7 +44,7 @@
             "insights_introduction_content": function(c) { return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" },
 
             "local_rbl_check": function(c) { 
-                return sprintf("{{ translate `The IP address %%s is listed by %%d RBLs` }}", c.address, c.rbls.length)
+                return sprintf("{{ translate `The IP address %%s is listed by %%d <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}", c.address, c.rbls.length)
             },
           }
 
