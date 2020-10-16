@@ -2,6 +2,7 @@ package localrbl
 
 import (
 	"context"
+	"errors"
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -150,11 +151,9 @@ func TestDnsRBL(t *testing.T) {
 
 			time.Sleep(700 * time.Millisecond)
 
-			select {
-			case <-checker.checkerResultsChan:
-				So(false, ShouldBeTrue)
-			default:
-			}
+			result := <-checker.checkerResultsChan
+
+			So(errors.Is(result.Err, ErrIPNotConfigured), ShouldBeTrue)
 		})
 	})
 }

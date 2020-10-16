@@ -20,6 +20,7 @@ type ContentElement struct {
 }
 
 type Results struct {
+	Err      error
 	Interval data.TimeInterval
 	RBLs     []ContentElement
 }
