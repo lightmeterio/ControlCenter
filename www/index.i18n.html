@@ -44,7 +44,7 @@
             "insights_introduction_content": function(c) { return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" },
 
             "local_rbl_check": function(c) { 
-                return sprintf("{{ translate `The IP address %%s is listed by %%d <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}", c.address, c.rbls.length)
+                return sprintf("{{ translate `The IP address %%s is listed by %%d <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. <a href='#rblListModal' data-toggle='modal' data-target='#rblListModal'>{{ translate `View list` }}</a>.", c.address, c.rbls.length)
             },
           }
 
@@ -96,6 +96,26 @@
                                         <li><a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a></li>
                                         <li><a href="https://mastodon.social/@lightmeter/" target="_blank">Mastodon</a></li>
                                     </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate "Close"}}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RBL list modal -->
+                    <div class="modal fade" id="rblListModal" tabindex="-1" role="dialog" aria-labelledby="rblListLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="rblListLabel">{{translate "List of RBLs"}}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <script>buildInsightRblList(insight)</script>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate "Close"}}</button>

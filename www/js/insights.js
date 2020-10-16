@@ -87,3 +87,13 @@ function buildInsightDescription(insight) {
 
   return handler(insight.Content)
 }
+
+function buildInsightRblList(insight) {
+    if (insight.Content.rbls.length == 0) {
+      alert("no rbls")
+      return
+    } else {
+        alert("some rbls")
+    }
+//   return html list of rbls
+}
