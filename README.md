@@ -210,3 +210,35 @@ After doing all this you should see a Chrome / Chromium browser open, and tests 
 ### Making user interfaces translatable (i18n)
 
 The following command will look for translatable words inside interface files (currently files within the `www` directory) and generate a `.po` file for the English language: `make code2po`
+
+### Notifications 
+
+## Integrate slack 
+
+Create a app on your slack account go to https://api.slack.com/
+
+Click on "Create New APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
+
+![alt text](./images/create_app.png)
+
+Choose a "Development Slack Workspace" and give your app a name.
+
+![alt text](./images/app_config.png)
+
+Create a oauth token for your app (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
+
+![alt text](./images/create_token.png) 
+
+Add "write to channel" permission to your previously created token (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
+
+![alt text](./images/add_permission.png)
+
+Invite the bot into your channel
+
+![alt text](./images/invite_bot.png)
+
+Add the token and channel details to lightmeter go to the settings page
+
+![alt text](./images/add_token_control.png)
+
+Congrats you successfully configured the slack notifications
