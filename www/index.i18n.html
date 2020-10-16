@@ -66,21 +66,21 @@
                         <img src="img/logo-color-120.png" alt="Lightmeter logo" />
                     </a>
                     <span class="buttons">
-                        <span data-toggle="modal" data-target="#settingsModal">
+                        <span data-toggle="modal" data-target="#aboutModal">
                             <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Information" onclick="_paq.push(['trackEvent', 'About', 'clickHeaderButton']);"></i>
                         </span>
                         <i class="fas fa-cog" onclick="window.location.href='/settingspage';" data-toggle="tooltip" data-placement="bottom" title="Settings" onclick="_paq.push(['trackEvent', 'Settings', 'clickHeaderButton']);"></i>
                         <i class="fas fa-sign-out-alt" onclick="window.location.href='/logout';" data-toggle="tooltip" data-placement="bottom" title="Log out" onclick="_paq.push(['trackEvent', 'Logout', 'clickHeaderButton']);"></i>
                     </span>
                         
-                    <!-- Settings modal -->
-                    <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                    <!-- About modal -->
+                    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="settingsModalLabel">{{translate "About"}}</h5>
+                                    <h5 class="modal-title" id="aboutModalLabel">{{translate "About"}}</h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
+                                        <span aria-hidden="true">&times;</span>
                                     </button>
                                 </div>
                                 <div class="modal-body">
@@ -98,7 +98,7 @@
                                     </ul>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate "Close"}}</button>
+                                    <button type="button" class="btn btn-cancel" data-dismiss="modal">{{translate "Close"}}</button>
                                 </div>
                             </div>
                         </div>
