@@ -2,9 +2,11 @@ package localrbl
 
 import (
 	"context"
+	"errors"
 	"github.com/mrichman/godnsbl"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"net"
 	"sync"
@@ -99,6 +101,11 @@ func worker(jobs <-chan func(), wg *sync.WaitGroup) {
 	}
 }
 
+var (
+	ErrIPNotConfigured = errors.New(`IP not configured`)
+)
+
+// TODO: refactor this function into smaller pieces, as it's quite trivial
 func startNewScan(checker *dnsChecker, t time.Time) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 
@@ -110,11 +117,16 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	if err := ctx.Err(); err != nil {
 		log.Println("Error obtaining IP address from settings on RBL Check:", err)
+		checker.checkerResultsChan <- Results{Err: errorutil.Wrap(err)}
+
 		return
 	}
 
 	if ip == nil {
 		// Do not perform a scan if the user has not configured an IP
+		log.Println("Ignoring RBL scan as IP is not configured")
+		checker.checkerResultsChan <- Results{Err: ErrIPNotConfigured}
+
 		return
 	}
 

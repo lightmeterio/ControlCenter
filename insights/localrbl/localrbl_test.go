@@ -36,6 +36,7 @@ type fakeChecker struct {
 	timeToCompleteScan             time.Duration
 	scanStartTime                  time.Time
 	checkedIP                      net.IP
+	scanFailed                     bool
 }
 
 func (c *fakeChecker) Close() error {
@@ -49,14 +50,32 @@ func (c *fakeChecker) StartListening() {
 
 func (c *fakeChecker) NotifyNewScan(now time.Time) {
 	c.scanStartTime = now
+	c.scanFailed = c.checkedIP == nil
 	So(c.listening, ShouldBeTrue)
 }
 
 func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) error, withoutResults func() error) error {
-	if !c.scanStartTime.IsZero() && now.After(c.scanStartTime.Add(c.timeToCompleteScan)) && c.shouldGenerateOnScanCompletion {
+	hasResultsOfASuccessfulScan := !c.scanFailed &&
+		!c.scanStartTime.IsZero() &&
+		now.After(c.scanStartTime.Add(c.timeToCompleteScan)) &&
+		c.shouldGenerateOnScanCompletion
+
+	hasResultsOfAFailedScan := c.scanFailed && !c.scanStartTime.IsZero()
+
+	if hasResultsOfASuccessfulScan {
+		c.scanFailed = false
+
 		return withResults(localrbl.Results{
 			Interval: data.TimeInterval{From: c.scanStartTime, To: now},
 			RBLs:     []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+		})
+	}
+
+	if hasResultsOfAFailedScan {
+		c.scanFailed = false
+
+		return withResults(localrbl.Results{
+			Err: localrbl.ErrIPNotConfigured,
 		})
 	}
 
@@ -96,16 +115,18 @@ func TestLocalRBL(t *testing.T) {
 			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}}
 		}()
 
+		ip := net.ParseIP("11.22.33.44")
+
 		Convey("Use Fake Checker", func() {
 			checker := &fakeChecker{
 				timeToCompleteScan: time.Second * 10,
-				checkedIP:          net.ParseIP("11.22.33.44"),
 			}
 
 			d := NewDetector(accessor, core.Options{
 				"localrbl": Options{
-					CheckInterval: time.Second * 10,
-					Checker:       checker,
+					CheckInterval:            time.Second * 10,
+					Checker:                  checker,
+					RetryOnScanErrorInterval: time.Second * 3,
 				},
 			})
 
@@ -119,51 +140,46 @@ func TestLocalRBL(t *testing.T) {
 				cycleOnDetector(d, c)
 			}
 
-			Convey("Scan host, but generates no insight", func() {
-				baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+			baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+			clock := &insighttestsutil.FakeClock{Time: baseTime}
 
-				clock := &insighttestsutil.FakeClock{Time: baseTime}
-
-				// do not generate insight, but trigger it to start
-				cycle(clock)
-
-				// After 5s, the scan has't finished yet
-				clock.Sleep(time.Second * 5)
-				cycle(clock)
-
-				// After 9s, the scan has't finished yet
-				clock.Sleep(time.Second * 4)
-				cycle(clock)
-
-				// After 10s, the scan is finished, but no insight'll have been created
-				clock.Sleep(time.Second * 4)
-				cycle(clock)
-
-				So(accessor.Insights, ShouldResemble, []int64{})
-			})
-
-			Convey("Scan host, and generate an insight after 10s", func() {
+			Convey("Missing IP address", func() {
+				// when application starts without a configured IP and a scan fails, the next scan will be scheduled
+				// sooner, so that the user does not need to wait a long time to see a scan being executed
+				checker.checkedIP = nil
 				checker.shouldGenerateOnScanCompletion = true
 
-				baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-
-				clock := &insighttestsutil.FakeClock{Time: baseTime}
-
-				// do not generate insight, but trigger it to start
+				// trigger a scan, but it fails as IP is not yet configured
 				cycle(clock)
 
-				// After 5s, the scan has't finished yet
-				clock.Sleep(time.Second * 5)
-				cycle(clock)
-
-				// After 9s, the scan has't finished yet
-				clock.Sleep(time.Second * 4)
-				cycle(clock)
-
-				// After 11s, the scan is finished, resulting in an insight generated
+				// After two seconds, nothing really happens
 				clock.Sleep(time.Second * 2)
 				cycle(clock)
 
+				// The user configures the IP address
+				checker.checkedIP = ip
+
+				clock.Sleep(time.Second * 1)
+				cycle(clock)
+
+				// With a correct IP address, a new scan starts shortly after the previous one failed
+				clock.Sleep(time.Second * 1)
+				cycle(clock)
+
+				// scan in progress
+				clock.Sleep(time.Second * 3)
+				cycle(clock)
+
+				clock.Sleep(time.Second * 5)
+				cycle(clock)
+
+				clock.Sleep(time.Second * 5)
+				cycle(clock)
+
+				// scan finished, insight created
+				clock.Sleep(time.Second * 1)
+				cycle(clock)
+
 				So(accessor.Insights, ShouldResemble, []int64{1})
 
 				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
@@ -175,97 +191,149 @@ func TestLocalRBL(t *testing.T) {
 
 				So(len(insights), ShouldEqual, 1)
 
-				So(insights[0].ID(), ShouldEqual, 1)
 				So(insights[0].ContentType(), ShouldEqual, ContentType)
-				So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
-				So(insights[0].Content(), ShouldResemble, &content{
-					ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
-					Address:      net.ParseIP("11.22.33.44"),
-					RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
-				})
+				So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*18))
 			})
 
-			Convey("Use real DNS checker", func() {
-				conn, closeConn := testutil.TempDBConnection()
-				defer closeConn()
+			Convey("IP Configured", func() {
+				checker.checkedIP = ip
 
-				m, err := meta.NewHandler(conn, "master")
-				So(err, ShouldBeNil)
+				Convey("Scan host, but generates no insight", func() {
+					// do not generate insight, but trigger it to start
+					cycle(clock)
 
-				defer func() { errorutil.MustSucceed(m.Close()) }()
+					// After 5s, the scan has't finished yet
+					clock.Sleep(time.Second * 5)
+					cycle(clock)
 
-				{
-					settings := localrbl.Settings{
-						LocalIP: net.ParseIP("11.22.33.44"),
-					}
+					// After 9s, the scan has't finished yet
+					clock.Sleep(time.Second * 4)
+					cycle(clock)
 
-					err := m.Writer.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
+					// After 10s, the scan is finished, but no insight'll have been created
+					clock.Sleep(time.Second * 4)
+					cycle(clock)
+
+					So(accessor.Insights, ShouldResemble, []int64{})
+				})
+
+				Convey("Scan host, and generate an insight after 10s", func() {
+					checker.shouldGenerateOnScanCompletion = true
+
+					// do not generate insight, but trigger it to start
+					cycle(clock)
+
+					// After 5s, the scan has't finished yet
+					clock.Sleep(time.Second * 5)
+					cycle(clock)
+
+					// After 9s, the scan has't finished yet
+					clock.Sleep(time.Second * 4)
+					cycle(clock)
+
+					// After 11s, the scan is finished, resulting in an insight generated
+					clock.Sleep(time.Second * 2)
+					cycle(clock)
+
+					So(accessor.Insights, ShouldResemble, []int64{1})
+
+					insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+					}})
 
 					So(err, ShouldBeNil)
-				}
 
-				checker := localrbl.NewChecker(m.Reader, localrbl.Options{
-					NumberOfWorkers:  2,
-					Lookup:           fakeLookup,
-					RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
+					So(len(insights), ShouldEqual, 1)
+
+					So(insights[0].ID(), ShouldEqual, 1)
+					So(insights[0].ContentType(), ShouldEqual, ContentType)
+					So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
+					So(insights[0].Content(), ShouldResemble, &content{
+						ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
+						Address:      net.ParseIP("11.22.33.44"),
+						RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+					})
 				})
 
-				checker.StartListening()
+				Convey("Use real DNS checker", func() {
+					conn, closeConn := testutil.TempDBConnection()
+					defer closeConn()
 
-				d := NewDetector(accessor, core.Options{
-					"localrbl": Options{
-						CheckInterval: time.Millisecond * 300,
-						Checker:       checker,
-					},
+					m, err := meta.NewHandler(conn, "master")
+					So(err, ShouldBeNil)
+
+					defer func() { errorutil.MustSucceed(m.Close()) }()
+
+					{
+						settings := localrbl.Settings{
+							LocalIP: net.ParseIP("11.22.33.44"),
+						}
+
+						err := m.Writer.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
+
+						So(err, ShouldBeNil)
+					}
+
+					checker := localrbl.NewChecker(m.Reader, localrbl.Options{
+						NumberOfWorkers:  2,
+						Lookup:           fakeLookup,
+						RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},
+					})
+
+					checker.StartListening()
+
+					d := NewDetector(accessor, core.Options{
+						"localrbl": Options{
+							CheckInterval: time.Millisecond * 300,
+							Checker:       checker,
+						},
+					})
+
+					sleep := func(d time.Duration) {
+						clock.Sleep(d)
+						// we sleep a little bit more in the real world
+						// to give time to things synchronize
+						time.Sleep(d * 3)
+					}
+
+					cycle := func(c *insighttestsutil.FakeClock) {
+						cycleOnDetector(d, c)
+					}
+
+					// do not generate insight, but trigger it to start
+					cycle(clock)
+
+					// After almost one second we should have something
+					sleep(time.Millisecond * 700)
+					cycle(clock)
+
+					So(accessor.Insights, ShouldResemble, []int64{1})
+
+					insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+					}})
+
+					So(err, ShouldBeNil)
+
+					So(len(insights), ShouldEqual, 1)
+
+					So(insights[0].ID(), ShouldEqual, 1)
+					So(insights[0].ContentType(), ShouldEqual, ContentType)
+					So(insights[0].Time(), ShouldEqual, baseTime)
+
+					c, ok := insights[0].Content().(*content)
+					So(ok, ShouldBeTrue)
+
+					// We cannot know for sure when the scan finished, just when it started
+					So(c.ScanInterval.From, ShouldResemble, baseTime)
+					So(c.Address, ShouldResemble, net.ParseIP("11.22.33.44"))
+					So(c.RBLs, ShouldResemble, []localrbl.ContentElement{
+						localrbl.ContentElement{RBL: "rbl1-blocked", Text: "Some Error"},
+						localrbl.ContentElement{RBL: "rbl3-blocked", Text: "Some Error"},
+						localrbl.ContentElement{RBL: "rbl4-blocked", Text: "Some Error"}})
 				})
-
-				baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-
-				clock := &insighttestsutil.FakeClock{Time: baseTime}
-
-				sleep := func(d time.Duration) {
-					clock.Sleep(d)
-					// we sleep a little bit more in the real world
-					// to give time to things synchronize
-					time.Sleep(d * 3)
-				}
-
-				cycle := func(c *insighttestsutil.FakeClock) {
-					cycleOnDetector(d, c)
-				}
-
-				// do not generate insight, but trigger it to start
-				cycle(clock)
-
-				// After almost one second we should have something
-				sleep(time.Millisecond * 700)
-				cycle(clock)
-
-				So(accessor.Insights, ShouldResemble, []int64{1})
-
-				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
-					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
-					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-				}})
-
-				So(err, ShouldBeNil)
-
-				So(len(insights), ShouldEqual, 1)
-
-				So(insights[0].ID(), ShouldEqual, 1)
-				So(insights[0].ContentType(), ShouldEqual, ContentType)
-				So(insights[0].Time(), ShouldEqual, baseTime)
-
-				c, ok := insights[0].Content().(*content)
-				So(ok, ShouldBeTrue)
-
-				// We cannot know for sure when the scan finished, just when it started
-				So(c.ScanInterval.From, ShouldResemble, baseTime)
-				So(c.Address, ShouldResemble, net.ParseIP("11.22.33.44"))
-				So(c.RBLs, ShouldResemble, []localrbl.ContentElement{
-					localrbl.ContentElement{RBL: "rbl1-blocked", Text: "Some Error"},
-					localrbl.ContentElement{RBL: "rbl3-blocked", Text: "Some Error"},
-					localrbl.ContentElement{RBL: "rbl4-blocked", Text: "Some Error"}})
 			})
 		})
 	})

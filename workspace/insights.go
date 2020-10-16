@@ -17,8 +17,9 @@ func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker)
 		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
 
 		"localrbl": localrblinsight.Options{
-			CheckInterval: time.Hour * 3,
-			Checker:       rblChecker,
+			CheckInterval:            time.Hour * 3,
+			Checker:                  rblChecker,
+			RetryOnScanErrorInterval: time.Second * 30,
 		},
 	}
 }
