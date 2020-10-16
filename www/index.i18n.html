@@ -56,7 +56,7 @@
             "local_rbl_check": function(i) { 
               var c = i.Content
               var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
-              var linkPart = "<a href='#rblListModal' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal'>{{ translate `View list` }}</a>."
+              var linkPart = "<button class='btn btn-sm' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal'>{{ translate `View list` }}</a>"
               return msgPart + linkPart
             },
           }

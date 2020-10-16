@@ -453,6 +453,24 @@ h5.row-title {
     width: min-content;
 }
 
+.insights .card-text.description button {
+    padding: 0.4em 1.5em;
+    margin-bottom: 0;
+    background: #f9f9f9 0% 0% no-repeat padding-box;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #1d8caf;
+    line-height: 1;
+    border: 1px solid #e6e7e7;
+    margin-left: 0.2em;
+}
+
+.insights .card-text.description button:hover {
+    background-color: silver;
+    color: white;
+}
+
 .insights .card-text.time {
     background: #F0F8FC 0% 0% no-repeat padding-box;
     border-radius: 5px;
