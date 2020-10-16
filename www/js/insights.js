@@ -101,11 +101,19 @@ function buildInsightRblList(insightId) {
 
   var content = ""
 
-  content += "<h2>Scan results for IP " + insight.Content.address + "</h2>"
-
   insight.Content.rbls.forEach(r => {
     content += "<div><b>" + r.rbl + "</b>: " + r.text + "</div>"
   })
 
   $('#rbl-list-content').html(content)
+}
+
+function buildInsightRblCheckedIp(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight == undefined) {
+    return
+  }
+
+  return insight.Content.address
 }

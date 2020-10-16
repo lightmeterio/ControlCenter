@@ -55,7 +55,7 @@
 
             "local_rbl_check": function(i) { 
               var c = i.Content
-              var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}.", c.address, c.rbls.length)
+              var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
               var linkPart = "<a href='#rblListModal' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal'>{{ translate `View list` }}</a>."
               return msgPart + linkPart
             },
@@ -122,7 +122,7 @@
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="rblListLabel">{{translate "List of RBLs"}}</h5>
+                                    <h5 class="modal-title" id="rblListLabel">{{translate "RBLs for"}}</h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                     </button>
@@ -322,6 +322,8 @@
         <script>
            $('#rblListModal').on('shown.bs.modal', function(e) {
               var rblId = $(e.relatedTarget).data('rbl-id')
+              var modal = $(this)
+              modal.find('.modal-title').text('{{translate "RBLs for "}}'+buildInsightRblCheckedIp(rblId))
               buildInsightRblList(rblId)
           })
         </script>
