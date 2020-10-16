@@ -15,8 +15,9 @@ import (
 )
 
 type Options struct {
-	Checker       localrbl.Checker
-	CheckInterval time.Duration
+	Checker                  localrbl.Checker
+	CheckInterval            time.Duration
+	RetryOnScanErrorInterval time.Duration
 }
 
 type content struct {
@@ -103,10 +104,25 @@ func maybeStartANewScan(d *detector, c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
+func scheduleANewScanShortly(d *detector, c core.Clock, tx *sql.Tx) error {
+	lastExecutedTime := c.Now().Add(d.options.RetryOnScanErrorInterval).Add(-d.options.CheckInterval)
+
+	if err := core.StoreLastDetectorExecution(tx, "local_rbl_scan_start", lastExecutedTime); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return d.options.Checker.Step(c.Now(), func(r localrbl.Results) error {
-		// a scan result is available
-		return createInsightForResults(d, r, c, tx)
+		if r.Err == nil {
+			// a scan result is available
+			return createInsightForResults(d, r, c, tx)
+		}
+
+		// A scan just ended with an error, schedule a new scan shortly after the current failure
+		return scheduleANewScanShortly(d, c, tx)
 	}, func() error {
 		// no scan result available
 		return maybeStartANewScan(d, c, tx)
