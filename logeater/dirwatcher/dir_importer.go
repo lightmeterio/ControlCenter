@@ -5,6 +5,7 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"log"
@@ -271,12 +272,10 @@ func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
 
 	descriptors := []fileDescriptor{}
 
-	fileClosers := []func(){}
+	closers := closeutil.New()
 
 	defer func() {
-		for _, f := range fileClosers {
-			f()
-		}
+		errorutil.MustSucceed(closers.Close())
 	}()
 
 	for _, queue := range queues {
@@ -294,9 +293,14 @@ func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
 			return time.Time{}, errorutil.Wrap(err)
 		}
 
-		fileClosers = append(fileClosers, func() {
-			errorutil.MustSucceed(reader.Close(), "Closing file: "+filename)
+		closer := closeutil.ConvertToCloser(func() error {
+			err := reader.Close()
+			if err != nil {
+				return fmt.Errorf("could not close file: %v, %w", filename, err)
+			}
+			return nil
 		})
+		closers.Add(closer)
 
 		d := fileDescriptor{modificationTime: entry.modificationTime, reader: reader}
 

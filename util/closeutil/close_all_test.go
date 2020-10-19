@@ -28,3 +28,29 @@ func TestCloseAll(t *testing.T) {
 		})
 	})
 }
+
+func TestCloseAllAdd(t *testing.T) {
+	Convey("CloseAll", t, func() {
+		closers := New()
+		close := ConvertToCloser(func() error {
+			return errorutil.Wrap(errors.New("closes 3"))
+		})
+		closers.Add(close)
+
+		close = ConvertToCloser(func() error {
+			return errorutil.Wrap(errors.New("closes 1"))
+		})
+		closers.Add(close)
+
+		close = ConvertToCloser(func() error {
+			return errorutil.Wrap(errors.New("closes 2"))
+		})
+		closers.Add(close)
+
+		So(len(closers), ShouldEqual, 3)
+
+		Convey("close return errors", func() {
+			So(closers.Close(), ShouldNotBeNil)
+		})
+	})
+}
