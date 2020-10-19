@@ -58,3 +58,11 @@ func (c *Closers) Close() error {
 
 	return err
 }
+
+func (c *Closers) Add(cs ...io.Closer) {
+	if len(cs) == 0 {
+		panic("close funcs are missing")
+	}
+
+	*c = append(*c, cs...)
+}
