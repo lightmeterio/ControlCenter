@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"flag"
+	"fmt"
 	"github.com/robfig/gettext-go/gettext/po"
 	"io/ioutil"
 	"log"
@@ -135,8 +137,6 @@ func main() {
 		f.MimeHeader.Language = "en"
 	}
 
-	f.MimeHeader.SetFuzzy(*isTemplate)
-
 	r := regexp.MustCompile(*pattern)
 
 	messages := messages{}
@@ -165,13 +165,38 @@ func main() {
 		f.Messages = append(f.Messages, *m)
 	}
 
-	sort.Slice(f.Messages, func(i, j int) bool {
-		return strings.Compare(f.Messages[i].MsgId, f.Messages[j].MsgId) < 0
-	})
-
-	err = f.Save(*outfile)
-
+	// use custom save and pre process
+	err = Save(*outfile, Data(f.Messages, f.MimeHeader.String()))
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Save returns a po file format data.
+func Data(messages []po.Message, mimeHeader string) []byte {
+	sort.Slice(messages, func(i, j int) bool {
+		si := messages[i].MsgId
+		sj := messages[j].MsgId
+		siLower := strings.ToLower(si)
+		sjLower := strings.ToLower(sj)
+		if siLower == sjLower {
+			return si < sj
+		}
+		return siLower < sjLower
+	})
+
+	var buf bytes.Buffer
+
+	fmt.Fprintf(&buf, "%s\n", mimeHeader)
+
+	for i := 0; i < len(messages); i++ {
+		fmt.Fprintf(&buf, "%s\n", messages[i].String())
+	}
+
+	return buf.Bytes()
+}
+
+// Save saves a po file.
+func Save(name string, buff []byte) error {
+	return ioutil.WriteFile(name, buff, 0600)
 }
