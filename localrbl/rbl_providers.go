@@ -14,7 +14,6 @@ var DefaultRBLs = []string{
 	"contacts.abuse.net",                    // Abuse.net
 	"rbl.abuse.ro",                          // abuse.ro IP RBL
 	"uribl.abuse.ro",                        // abuse.ro URI RBL
-	"abuse-contacts.abusix.org",             // abusix.org Abuse Contact DB
 	"spam.dnsbl.anonmails.de",               // anonmails.de DNSBL
 	"dnsbl.anticaptcha.net",                 // AntiCaptcha.NET IPv4
 	"dnsbl6.anticaptcha.net",                // AntiCaptcha.NET IPv6
@@ -31,7 +30,6 @@ var DefaultRBLs = []string{
 	"l2.bbfh.ext.sorbs.net",                 // BBFH Level 2 (@SORBS)
 	"l3.bbfh.ext.sorbs.net",                 // BBFH Level 3 (@SORBS)
 	"l4.bbfh.ext.sorbs.net",                 // BBFH Level 4 (@SORBS)
-	"all.ascc.dnsbl.bit.nl",                 // BIT.nl all ascc IPv4 address space list
 	"all.v6.ascc.dnsbl.bit.nl",              // BIT.nl all ascc IPv6 address space list
 	"all.dnsbl.bit.nl",                      // BIT.nl all IPv4 address space list
 	"ipv6.all.dnsbl.bit.nl",                 // BIT.nl all IPv6 address space list
@@ -71,9 +69,6 @@ var DefaultRBLs = []string{
 	"bogons.cymru.com",                      // Cymru Bogon List
 	"v4.fullbogons.cymru.com",               // Cymru Fullbogon IPv4 List
 	"v6.fullbogons.cymru.com",               // Cymru Fullbogon IPv6 List
-	"origin.asn.cymru.com",                  // Cymru origin IPv4 asn list
-	"origin6.asn.cymru.com",                 // Cymru origin IPv6 asn list
-	"peer.asn.cymru.com",                    // Cymru peer asn list
 	"tor.dan.me.uk",                         // dan.me.uk (all tor nodes)
 	"torexit.dan.me.uk",                     // dan.me.uk (only tor exit nodes)
 	"dnsbl.darklist.de",                     // darklist.de
@@ -288,14 +283,12 @@ var DefaultRBLs = []string{
 	"noptr.spamrats.com",                    // SpamRATS! NoPtr
 	"spam.spamrats.com",                     // SpamRATS! Spam
 	"spamsources.fabel.dk",                  // spamsources.fabel.dk
-	"abuse.spfbl.net",                       // SPFBL.net abuse list
 	"dnsbl.spfbl.net",                       // SPFBL.net RBL
 	"score.spfbl.net",                       // SPFBL.net Score Service
 	"dnswl.spfbl.net",                       // SPFBL.net Whitelist
 	"dul.pacifier.net",                      // StopSpam.org dul
 	"bl.suomispam.net",                      // Suomispam Blacklist
 	"dbl.suomispam.net",                     // Suomispam Domain Blacklist
-	"gl.suomispam.net",                      // Suomispam Graylist
 	"multi.surbl.org",                       // SURBL multi (Combined SURBL list)
 	"srn.surgate.net",                       // SurGATE Reputation Network (SRN)
 	"dnsrbl.swinog.ch",                      // Swinog DNSRBL
@@ -312,17 +305,11 @@ var DefaultRBLs = []string{
 	"wbl.triumf.ca",                         // TRIUMF.ca DNSWL
 	"truncate.gbudb.net",                    // truncate.gbudb.net
 	"dunk.dnsbl.tuxad.de",                   // tuxad dunk.dnsbl
-	"hartkore.dnsbl.tuxad.de",               // tuxad hartkore.dnsbl
 	"dnsbl-0.uceprotect.net",                // UCEPROTECT Level 0
 	"dnsbl-1.uceprotect.net",                // UCEPROTECT Level 1
 	"dnsbl-2.uceprotect.net",                // UCEPROTECT Level 2
 	"dnsbl-3.uceprotect.net",                // UCEPROTECT Level 3
 	"ubl.unsubscore.com",                    // Unsubscribe Blacklist UBL
-	"black.uribl.com",                       // URIBL black
-	"grey.uribl.com",                        // URIBL grey
-	"multi.uribl.com",                       // URIBL multi
-	"red.uribl.com",                         // URIBL red
-	"white.uribl.com",                       // URIBL white
 	"free.v4bl.org",                         // V4BL-FREE/DDNSBL-FREE
 	"ip.v4bl.org",                           // V4BL/DDNSBL
 	"ips.whitelisted.org",                   // Whitelisted.org
