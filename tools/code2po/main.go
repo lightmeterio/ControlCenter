@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	rootDir    = flag.String("i", "", "root directory to look for files")
-	outfile    = flag.String("o", "", "path for po file to write")
-	pattern    = flag.String("p", `.i18n.html$`, "filename pattern to extract strings")
-	isTemplate = flag.Bool("pot", false, "use if generating a pot file")
+	rootDir       = flag.String("i", "", "root directory to look for files")
+	outfile       = flag.String("o", "", "path for po file to write")
+	pattern       = flag.String("p", `.i18n.html$`, "filename pattern to extract strings")
+	isTemplate    = flag.Bool("pot", false, "use if generating a pot file")
+	addMissingIDs = flag.Bool("ids", false, "add missing ids")
 )
 
 type messages map[string]*po.Message
@@ -163,6 +164,39 @@ func main() {
 
 	for _, m := range messages {
 		f.Messages = append(f.Messages, *m)
+	}
+
+	if *addMissingIDs {
+		content, err := ioutil.ReadFile(*outfile)
+		if err != nil {
+			panic(err)
+		}
+
+		newFile, err := po.LoadData(content)
+		if err != nil {
+			panic(err)
+		}
+
+		ids := make(map[string]bool)
+		for _, message := range newFile.Messages {
+			ids[message.MsgId] = true
+		}
+
+		for _, message := range f.Messages {
+			// Skip all messages which are available in messages to avoid generation of duplicates
+			if ids[message.MsgId] {
+				continue
+			}
+			newFile.Messages = append(newFile.Messages, message)
+		}
+
+		// use custom save and pre process
+		err = Save(*outfile, Data(newFile.Messages, f.MimeHeader.String()))
+		if err != nil {
+			panic(err)
+		}
+
+		return
 	}
 
 	// use custom save and pre process
