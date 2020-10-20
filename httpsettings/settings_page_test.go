@@ -45,14 +45,12 @@ func TestSettingsPage(t *testing.T) {
 		// Approach: as for now we have independent endpoints, we instantiate one server per endpoint
 		// But as soon as we unify them all in a single one, that'll not be needed anymore
 
-		allSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsHandler)))
-		generalSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.GeneralSettingsHandler)))
-		notificationsSettingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler)))
+		settingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward)))
 
 		c := &http.Client{}
 
 		Convey("No settings set yields empty values", func() {
-			r, err := c.Get(allSettingsServer.URL)
+			r, err := c.Get(settingsServer.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
@@ -74,7 +72,7 @@ func TestSettingsPage(t *testing.T) {
 		Convey("Change some settings", func() {
 			// set public ip address
 			{
-				r, err := c.PostForm(generalSettingsServer.URL,
+				r, err := c.PostForm(settingsServer.URL+"?setting=general",
 					url.Values{"postfixPublicIP": {"11.22.33.44"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -82,7 +80,7 @@ func TestSettingsPage(t *testing.T) {
 
 			// set slack settings
 			{
-				r, err := c.PostForm(notificationsSettingsServer.URL,
+				r, err := c.PostForm(settingsServer.URL+"?setting=notification",
 					url.Values{
 						"messenger_kind":    {"slack"},
 						"messenger_token":   {"some_token"},
@@ -93,7 +91,7 @@ func TestSettingsPage(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			}
 
-			r, err := c.Get(allSettingsServer.URL)
+			r, err := c.Get(settingsServer.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
@@ -115,7 +113,7 @@ func TestSettingsPage(t *testing.T) {
 		Convey("Slack notifications are disabled if the requests explicitely requests it", func() {
 			// set slack settings
 			{
-				r, err := c.PostForm(notificationsSettingsServer.URL,
+				r, err := c.PostForm(settingsServer.URL+"?setting=notification",
 					url.Values{
 						"messenger_kind":    {"slack"},
 						"messenger_token":   {"some_token"},
@@ -126,7 +124,7 @@ func TestSettingsPage(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			}
 
-			r, err := c.Get(allSettingsServer.URL)
+			r, err := c.Get(settingsServer.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 

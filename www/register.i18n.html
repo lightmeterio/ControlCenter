@@ -56,7 +56,7 @@
                       return
                   }
 
-                  fetch("/settings/initialSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
+                  fetch("/settings?setting=initSetup", {method: 'post', body: new URLSearchParams(settingsFormData)}).then(function(data) {
                       // matomo registration success
                       _paq.push(['trackEvent', 'RegisterAdmin', 'success'])
 

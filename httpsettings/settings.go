@@ -21,6 +21,7 @@ type Settings struct {
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   notification.Center
+	handlers             map[string]func(http.ResponseWriter, *http.Request) error
 }
 
 func NewSettings(writer *meta.AsyncWriter,
@@ -28,9 +29,15 @@ func NewSettings(writer *meta.AsyncWriter,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter notification.Center,
 ) *Settings {
-	return &Settings{writer, reader, initialSetupSettings, notificationCenter}
-}
+	s := &Settings{writer: writer, reader: reader, initialSetupSettings: initialSetupSettings, notificationCenter: notificationCenter}
+	s.handlers = map[string]func(http.ResponseWriter, *http.Request) error{
+		"initSetup":    s.InitialSetupHandler,
+		"notification": s.NotificationSettingsHandler,
+		"general":      s.GeneralSettingsHandler,
+	}
 
+	return s
+}
 func handleForm(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
@@ -55,10 +62,29 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 func (h *Settings) SetupMux(mux *http.ServeMux) {
 	chain := httpmiddleware.WithDefaultTimeout()
 
-	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsHandler)))
-	mux.Handle("/settings/initialSetup", chain.WithError(httpmiddleware.CustomHTTPHandler(h.InitialSetupHandler)))
-	mux.Handle("/settings/notificationSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.NotificationSettingsHandler)))
-	mux.Handle("/settings/generalSettings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.GeneralSettingsHandler)))
+	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
+}
+
+func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+	}
+
+	if r.Method == http.MethodGet {
+		return h.SettingsHandler(w, r)
+	}
+
+	kind := r.URL.Query().Get("setting")
+	if kind == "" {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error query parameter setting is missing"))
+	}
+
+	handler, ok := h.handlers[kind]
+	if !ok {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error settings type is not supported"))
+	}
+
+	return handler(w, r)
 }
 
 func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error {

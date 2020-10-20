@@ -149,7 +149,7 @@
 
         async function submitNotificationsSettingsForm() {
             let notificationsSettingsFormData = new FormData(document.getElementById("notifications-form-container"))
-            const response = await fetch("/settings/notificationSettings", {method: 'post', body: new URLSearchParams(notificationsSettingsFormData)})
+            const response = await fetch("/settings?setting=notification", {method: 'post', body: new URLSearchParams(notificationsSettingsFormData)})
             const text = await response.text()
 
             if (!response.ok) {
@@ -163,7 +163,7 @@
 
         async function submitGeneralForm() {
             var generalFormContainer = new FormData(document.getElementById("general-form-container"))
-            const response = await fetch("/settings/generalSettings", {method: 'post', body: new URLSearchParams(generalFormContainer)})
+            const response = await fetch("/settings?setting=general", {method: 'post', body: new URLSearchParams(generalFormContainer)})
             const text = await response.text()
 
             if (!response.ok) {
@@ -218,14 +218,16 @@
 
                 submitNotificationsSettingsForm();
 
-                fetch('/settings')
-                    .then(response => response.json())
-                    .then(function (data) {
-                        slackNotificationsData = data["slack_notifications"]
-                        autoNotificationsFormFill(slackNotificationsData)
-                        generalData = data["general"]
-                        autoGeneralFormFill(generalData)
-                    });
+                setTimeout(function () {
+                    fetch('/settings')
+                        .then(response => response.json())
+                        .then(function (data) {
+                            slackNotificationsData = data["slack_notifications"]
+                            autoNotificationsFormFill(slackNotificationsData)
+                            generalData = data["general"]
+                            autoGeneralFormFill(generalData)
+                        });
+                }, 300)
             }
         })
 
@@ -238,14 +240,16 @@
 
                 submitGeneralForm();
 
-                fetch('/settings')
-                    .then(response => response.json())
-                    .then(function (data) {
-                        slackNotificationsData = data["slack_notifications"]
-                        autoNotificationsFormFill(slackNotificationsData)
-                        generalData = data["general"]
-                        autoGeneralFormFill(generalData)
-                    });
+                setTimeout(function () {
+                    fetch('/settings')
+                        .then(response => response.json())
+                        .then(function (data) {
+                            slackNotificationsData = data["slack_notifications"]
+                            autoNotificationsFormFill(slackNotificationsData)
+                            generalData = data["general"]
+                            autoGeneralFormFill(generalData)
+                        });
+                }, 300)
             }
         })
 

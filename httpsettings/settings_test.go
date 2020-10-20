@@ -76,56 +76,59 @@ func TestInitialSetup(t *testing.T) {
 		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.InitialSetupHandler))
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		s := httptest.NewServer(handler)
 		c := &http.Client{}
 
+		querySettingsParameter := "?setting=initSetup"
+		settingsURL := s.URL+querySettingsParameter
+
 		Convey("Fails", func() {
 			Convey("Invalid Form data", func() {
-				r, err := c.Post(s.URL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
+				r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
 
 			Convey("Invalid mime type", func() {
-				r, err := c.Post(s.URL, "ksajdhfk*I&^&*^87678  $$343", nil)
+				r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
 
 			Convey("Subscribe is not a boolean", func() {
-				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"Falsch"}})
+				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"Falsch"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Unsupported multiple subscribe options", func() {
-				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"on", "on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"on", "on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Incompatible mime type", func() {
-				r, err := c.Post(s.URL, "application/json", nil)
+				r, err := c.Post(settingsURL, "application/json", nil)
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
 
 			Convey("Incompatible Method", func() {
-				r, err := c.Get(s.URL)
+				r, err := c.Head(settingsURL)
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
 			})
 
 			Convey("Subscribe without email", func() {
-				r, err := c.PostForm(s.URL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Subscribe with zero email", func() {
-				r, err := c.PostForm(s.URL, url.Values{"email": {}, "email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"email": {}, "email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
@@ -133,7 +136,7 @@ func TestInitialSetup(t *testing.T) {
 
 		Convey("Success", func() {
 			Convey("Do subscribe", func() {
-				r, err := c.PostForm(s.URL, url.Values{
+				r, err := c.PostForm(settingsURL, url.Values{
 					"email":                {"user@example.com"},
 					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
@@ -144,7 +147,7 @@ func TestInitialSetup(t *testing.T) {
 			})
 
 			Convey("Do not subscribe", func() {
-				r, err := c.PostForm(s.URL, url.Values{
+				r, err := c.PostForm(settingsURL, url.Values{
 					"email_kind": {string(settings.MailKindDirect)},
 				})
 
@@ -174,34 +177,39 @@ func TestSettingsSetup(t *testing.T) {
 
 		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
 
+
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler))
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 		s := httptest.NewServer(handler)
+
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL+querySettingsParameter
+
 		c := &http.Client{}
 
 		Convey("Fails", func() {
 			Convey("Invalid Form data", func() {
-				r, err := c.Post(s.URL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
+				r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
 
 			Convey("Invalid mime type", func() {
-				r, err := c.Post(s.URL, "ksajdhfk*I&^&*^87678  $$343", nil)
+				r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 			})
 
 			Convey("Incompatible Method", func() {
-				r, err := c.Get(s.URL)
+				r, err := c.Head(settingsURL)
 				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
 			})
 		})
 
 		Convey("Success", func() {
 			Convey("send valid values", func() {
-				r, err := c.PostForm(s.URL, url.Values{
+				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"sjdfklsjdfkljfs"},
 					"messenger_channel": {"donutloop"},
@@ -252,13 +260,17 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 		center := notification.New(m.Reader)
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.NotificationSettingsHandler))
-		s := httptest.NewServer(handler)
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
 		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL+querySettingsParameter
 
 		Convey("Success", func() {
 			Convey("send valid values", func() {
-				r, err := c.PostForm(s.URL, url.Values{
+				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
@@ -268,7 +280,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-				r, err = c.PostForm(s.URL, url.Values{
+				r, err = c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
@@ -298,7 +310,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 			Convey("Fails if slack validations fail", func() {
 				fakeCenter.shouldFailToAddSlackNotifier = true
 
-				r, err := c.PostForm(s.URL, url.Values{
+				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
 					"messenger_token":   {"sjdfklsjdfkljfs"},
 					"messenger_channel": {"donutloop"},
