@@ -183,6 +183,7 @@ func main() {
 		}
 
 		for _, message := range f.Messages {
+			// Skip all messages which are available in messages to avoid generation of duplicates
 			if ids[message.MsgId] {
 				continue
 			}
