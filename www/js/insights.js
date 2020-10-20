@@ -92,17 +92,26 @@ function buildInsightDescription(insight) {
   return handler(insight)
 }
 
+// NOTE: yes, this is ugly, and aims to prevent the RBL messages of injecting code in the page.
+// It was copied from https://stackoverflow.com/a/9251169/1721672
+// Hopefully we'll get rid of all this code when migrating to a proper UI library/framework
+function escapeHTML(value) {
+  var e = document.createElement("textarea")
+  e.textContent = value
+  return e.innerHTML
+}
+
 function buildInsightRblList(insightId) {
   var insight = allCurrentInsightsData.find(i => i.ID == insightId)
 
-  if (insight == undefined) {
+  if (insight === undefined) {
     return
   }
 
   var content = "<ul>"
 
   insight.Content.rbls.forEach(r => {
-    content += "<li><b>" + r.rbl + "</b>: " + r.text + "</li>"
+    content += "<li><b>" + escapeHTML(r.rbl) + "</b>: " + escapeHTML(r.text) + "</li>"
   })
   
   content += "</ul>"
@@ -113,8 +122,8 @@ function buildInsightRblList(insightId) {
 function buildInsightRblCheckedIp(insightId) {
   var insight = allCurrentInsightsData.find(i => i.ID == insightId)
 
-  if (insight == undefined) {
-    return
+  if (insight === undefined) {
+    return ""
   }
 
   return insight.Content.address
