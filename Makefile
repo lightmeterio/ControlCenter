@@ -58,6 +58,8 @@ po2go:
 
 code2po:
 	go run tools/code2po/main.go -i www -o po/en/LC_MESSAGES/controlcenter.po
+	go run tools/code2po/main.go -i www -o po/de/LC_MESSAGES/controlcenter.po -ids=true
+	go run tools/code2po/main.go -i www -o po/pt_BR/LC_MESSAGES/controlcenter.po -ids=true
 	go run tools/code2po/main.go -i www -pot -o po/controlcenter.pot
 
 swag:
