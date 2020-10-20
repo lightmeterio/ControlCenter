@@ -251,7 +251,6 @@ var DefaultRBLs = []string{
 	"web.dnsbl.sorbs.net",                   // SORBS Vulnerable formmailers
 	"korea.services.net",                    // South Korean Network Blocking List
 	"geobl.spameatingmonkey.net",            // Spam Eating Monkey GeoBL (deny all)
-	"origin.asn.spameatingmonkey.net",       // Spam Eating Monkey SEM-ASN-ORIGIN
 	"backscatter.spameatingmonkey.net",      // Spam Eating Monkey SEM-BACKSCATTER
 	"bl.spameatingmonkey.net",               // Spam Eating Monkey SEM-BLACK
 	"fresh.spameatingmonkey.net",            // Spam Eating Monkey SEM-FRESH
