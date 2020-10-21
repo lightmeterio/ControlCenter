@@ -1,7 +1,5 @@
-# ControlCenter 0.0.8
+# ControlCenter 0.0.8-1
 
-Avoid duplicated RBL scan results and remove false positive RBLs
-
-Prevent JS script injection from the RBL check results
+Improve RBL results quality and security
 
 See separate release notes on https://lightmeter.io for full changes.
