@@ -5,16 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/slack-go/slack"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/bus"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"golang.org/x/text/language"
 	"log"
+
 	"time"
 )
 
 type Content interface {
 	fmt.Stringer
+	translator.TranslatableStringer
 }
 
 type Notification struct {
@@ -28,10 +33,11 @@ type Center interface {
 	AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error
 }
 
-func New(settingsReader *meta.Reader) Center {
+func New(settingsReader *meta.Reader, translators translator.Translators) Center {
 	cp := &center{
 		bus:            bus.New(),
 		settingsReader: settingsReader,
+		translators:    translators,
 	}
 
 	if err := cp.init(); err != nil {
@@ -45,6 +51,7 @@ type center struct {
 	bus            bus.Interface
 	settingsReader *meta.Reader
 	slackapi       Messenger
+	translators    translator.Translators
 }
 
 func (cp *center) init() error {
@@ -65,7 +72,13 @@ func (cp *center) init() error {
 		return nil
 	}
 
+	languageTag, err := language.Parse(slackSettings.Language)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
+	translator := cp.translators.Translator(languageTag, time.Time{})
 
 	err = cp.slackapi.PostMessage(newConnectContent())
 	if err != nil {
@@ -73,24 +86,18 @@ func (cp *center) init() error {
 	}
 
 	cp.bus.AddEventListener("slack", func(notification Notification) error {
-		return cp.slackapi.PostMessage(notification.Content)
+		translatedMessage, args, err := cp.Translate(slackSettings.Language, translator, notification)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+		return cp.slackapi.PostMessage(Messagef(translatedMessage, args...))
 	})
 
 	return nil
 }
 
-func newConnectContent() *connectContent {
-	return &connectContent{
-		msg: "Lightmeter ControlCenter successfully connected to Slack!",
-	}
-}
-
-type connectContent struct {
-	msg string
-}
-
-func (hc *connectContent) String() string {
-	return hc.msg
+func newConnectContent() Message {
+	return "Lightmeter ControlCenter successfully connected to Slack!"
 }
 
 func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSettings) error {
@@ -103,16 +110,42 @@ func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSett
 		}
 	}
 
-	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
+	languageTag := language.MustParse(slackSettings.Language)
 
+	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
+	translator := cp.translators.Translator(languageTag, time.Time{})
+
+	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
 		if !slackSettings.Enabled {
 			return nil
 		}
 
-		return cp.slackapi.PostMessage(notification.Content)
+		translatedMessage, args, err := cp.Translate(slackSettings.Language, translator, notification)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return cp.slackapi.PostMessage(Messagef(translatedMessage, args...))
 	})
 
 	return nil
+}
+
+func (cp *center) Translate(language string, translator translator.Translator, notification Notification) (string, []interface{}, error) {
+	translatedMessage, err := translator.Translate(notification.Content.TplString())
+	if err != nil {
+		return "", nil, errorutil.Wrap(err)
+	}
+
+	args := notification.Content.Args()
+	for i, arg := range args {
+		t, ok := arg.(time.Time)
+		if ok {
+			args[i] = timeutil.PrettyFormatTime(t, language)
+		}
+	}
+
+	return translatedMessage, args, nil
 }
 
 func (cp *center) Notify(notification Notification) error {
@@ -128,8 +161,18 @@ func (cp *center) Notify(notification Notification) error {
 	return nil
 }
 
+func Messagef(format string, a ...interface{}) Message {
+	return Message(fmt.Sprintf(format, a...))
+}
+
+type Message string
+
+func (s *Message) String() string {
+	return string(*s)
+}
+
 type Messenger interface {
-	PostMessage(stringer fmt.Stringer) error
+	PostMessage(stringer Message) error
 }
 
 func newSlack(token string, channel string) Messenger {
@@ -146,7 +189,7 @@ type slackapi struct {
 	channel string
 }
 
-func (s *slackapi) PostMessage(message fmt.Stringer) error {
+func (s *slackapi) PostMessage(message Message) error {
 	_, _, err := s.client.PostMessage(
 		s.channel,
 		slack.MsgOptionText(message.String(), false),

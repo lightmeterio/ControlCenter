@@ -13,3 +13,18 @@ var (
 	// This is the entrypoint for the generated dictionaries during build time
 	DefaultCatalog = catalog.NewBuilder(catalog.Fallback(FallbackLanguage))
 )
+
+const (
+	German              string = "de"
+	English             string = "en"
+	BrazilianPortuguese string = "pt_BR"
+)
+
+func IsLanguageSupported(code string) bool {
+	switch code {
+	case German, English, BrazilianPortuguese:
+		return true
+	}
+
+	return false
+}

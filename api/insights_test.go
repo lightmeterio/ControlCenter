@@ -56,6 +56,14 @@ func (c content) String() string {
 	return c.V
 }
 
+func (c content) TplString() string {
+	return c.V
+}
+
+func (c content) Args() []interface{} {
+	return nil
+}
+
 func TestInsights(t *testing.T) {
 	ctrl := gomock.NewController(t)
 

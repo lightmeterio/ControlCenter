@@ -43,9 +43,3 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 
 	return time.Unix(ts, 0), nil
 }
-
-func PrettyFormatTime(time time.Time) string {
-	// TODO: this should be part of the i18n component
-	// as how date and time is displayed varies according to the language
-	return time.Format("02 Jan. (3:04PM)")
-}

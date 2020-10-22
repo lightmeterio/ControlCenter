@@ -5,6 +5,7 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"golang.org/x/text/message/catalog"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -214,6 +216,7 @@ func TestSettingsSetup(t *testing.T) {
 					"messenger_token":   {"sjdfklsjdfkljfs"},
 					"messenger_channel": {"donutloop"},
 					"messenger_enabled": {"true"},
+					"messenger_language": {"de"},
 				})
 
 				So(err, ShouldBeNil)
@@ -233,6 +236,14 @@ func TestSettingsSetup(t *testing.T) {
 type fakeContent struct{}
 
 func (c *fakeContent) String() string {
+	return "Hell world!, Mister Donutloop 2"
+}
+
+func (c *fakeContent) Args() []interface{} {
+	return nil
+}
+
+func (c *fakeContent) TplString() string {
 	return "Hell world!, Mister Donutloop 2"
 }
 
@@ -257,7 +268,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 
 		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
 
-		center := notification.New(m.Reader)
+		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()))
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -275,6 +286,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
 					"messenger_enabled": {"true"},
+					"messenger_language": {"de"},
 				})
 
 				So(err, ShouldBeNil)
@@ -285,6 +297,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
 					"messenger_channel": {"general"},
 					"messenger_enabled": {"true"},
+					"messenger_language": {"en"},
 				})
 
 				So(err, ShouldBeNil)

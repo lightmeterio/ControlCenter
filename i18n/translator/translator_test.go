@@ -1,4 +1,4 @@
-package i18n
+package translator
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
@@ -11,7 +11,7 @@ import (
 func TestTranslators(t *testing.T) {
 	Convey("Test Translators", t, func() {
 		b := catalog.NewBuilder(catalog.Fallback(language.English))
-		translators := newTranslators(b)
+		translators := New(b)
 
 		Convey("No strings translated. Get value itself", func() {
 			t := translators.Translator(language.English, time.Time{})

@@ -89,6 +89,21 @@
                     <label class="form-check-label" for="messenger_enabled_2">{{ translate "No" }}</label>
                 </div>
             </div>
+            <div class="slack-disabler form-group">
+                <label class="form-label">Slack message language</label><br>
+                <div class="form-check">
+                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_1" value="en" required>
+                    <label class="form-check-label" for="messenger_language_1">{{ translate "English" }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_2" value="de" required>
+                    <label class="form-check-label" for="messenger_language_2">{{ translate "German" }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_3" value="pt_BR" required>
+                    <label class="form-check-label" for="messenger_language_3">{{ translate "Brazilian Portuguese" }}</label>
+                </div>
+            </div>
             <div class="slack-channel form-group">
                 <label for="slackChannel">Slack channel</label>
                 <input class="form-control" id="slackChannel" name="messenger_channel" placeholder="{{ translate "Please enter slack channel name" }}"  maxlength="255" required>
@@ -178,16 +193,24 @@
         function autoNotificationsFormFill(data) {
             document.getElementById('slackChannel').value = data["channel"];
             document.getElementById('slackApiToken').value = data["bearer_token"];
-            var radioElements = document.getElementsByClassName("messenger_enabled");
-            for (var i=0; i<radioElements.length; i++) {
+            let radioMessengerEnabledElements = document.getElementsByClassName("messenger_enabled");
+            for (let i=0; i<radioMessengerEnabledElements.length; i++) {
 
-                if (radioElements[i].getAttribute('value') === "true" && data["enabled"] === true) {
-                    radioElements[i].checked = true;
+                if (radioMessengerEnabledElements[i].getAttribute('value') === "true" && data["enabled"] === true) {
+                    radioMessengerEnabledElements[i].checked = true;
                     break
                 }
 
-                if (radioElements[i].getAttribute('value') === "false" && data["enabled"] === false) {
-                    radioElements[i].checked = true;
+                if (radioMessengerEnabledElements[i].getAttribute('value') === "false" && data["enabled"] === false) {
+                    radioMessengerEnabledElements[i].checked = true;
+                    break
+                }
+            }
+
+            let radioLanguageElements = document.getElementsByClassName("messenger_language");
+            for (let i=0; i<radioLanguageElements.length; i++) {
+                if (radioLanguageElements[i].getAttribute('value') === data["language"]) {
+                    radioLanguageElements[i].checked = true;
                     break
                 }
             }

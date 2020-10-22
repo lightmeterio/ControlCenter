@@ -35,6 +35,14 @@ func (c content) String() string {
 	return c.V
 }
 
+func (c content) TplString() string {
+	return c.V
+}
+
+func (c content) Args() []interface{} {
+	return nil
+}
+
 type fakeNotificationCenter struct {
 	notifications []notification.Notification
 }
