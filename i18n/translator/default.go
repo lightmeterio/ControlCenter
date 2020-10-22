@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+// Allows extractions of language keys
+func I18n(s string) string {
+	return s
+}
+
 type TranslatableStringer interface {
 	TplString() string
 	Args() []interface{}

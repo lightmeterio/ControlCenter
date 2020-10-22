@@ -3,6 +3,7 @@ run:
   skip-dirs:
     - examples
     - vendor
+    - gotestdata
 
 linters:
   enable-all: true
