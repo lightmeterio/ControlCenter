@@ -60,7 +60,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": nil},
+				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": nil, "language":""},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
 				},
@@ -86,6 +86,7 @@ func TestSettingsPage(t *testing.T) {
 						"messenger_token":   {"some_token"},
 						"messenger_channel": {"some_channel"},
 						"messenger_enabled": {"true"},
+						"messenger_language": {"en"},
 					})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -101,7 +102,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": true},
+				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": true, "language":"en"},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "11.22.33.44",
 				},
@@ -119,6 +120,7 @@ func TestSettingsPage(t *testing.T) {
 						"messenger_token":   {"some_token"},
 						"messenger_channel": {"some_channel"},
 						"messenger_enabled": {"false"},
+						"messenger_language": {"en"},
 					})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -134,7 +136,7 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
-				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": false},
+				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": false, "language":"en"},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
 				},

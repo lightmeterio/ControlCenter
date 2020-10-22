@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -29,7 +29,15 @@ type content struct {
 }
 
 func (c content) String() string {
-	return fmt.Sprintf("The IP address %s is listed by %d RBLs", c.Address, len(c.RBLs))
+	return translator.Stringfy(c)
+}
+
+func (c content) TplString() string {
+	return "The IP address %%v is listed by %%v RBLs"
+}
+
+func (c content) Args() []interface{} {
+	return []interface{}{c.Address, len(c.RBLs)}
 }
 
 const (

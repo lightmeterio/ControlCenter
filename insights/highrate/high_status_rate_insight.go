@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -171,7 +171,15 @@ type bounceRateContent struct {
 }
 
 func (c bounceRateContent) String() string {
-	return fmt.Sprintf("%d%% bounce rate between %v and %v", int(c.Value*100), core.PrettyFormatTime(c.Interval.From), core.PrettyFormatTime(c.Interval.To))
+	return translator.Stringfy(c)
+}
+
+func (c bounceRateContent) TplString() string {
+	return "%%v percent bounce rate between %%v and %%v"
+}
+
+func (c bounceRateContent) Args() []interface{} {
+	return []interface{}{int(c.Value * 100), c.Interval.From, c.Interval.To}
 }
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -18,7 +18,15 @@ type content struct {
 }
 
 func (c content) String() string {
-	return fmt.Sprintf("No emails were sent between %v and %v", core.PrettyFormatTime(c.Interval.From), core.PrettyFormatTime(c.Interval.To))
+	return translator.Stringfy(c)
+}
+
+func (c content) TplString() string {
+	return "No emails were sent between %%v and %%v"
+}
+
+func (c content) Args() []interface{} {
+	return []interface{}{c.Interval.From, c.Interval.To}
 }
 
 type generator struct {

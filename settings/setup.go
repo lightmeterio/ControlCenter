@@ -28,6 +28,7 @@ type SlackNotificationsSettings struct {
 	Kind        string `json:"-"`
 	Channel     string `json:"channel"`
 	Enabled     bool   `json:"enabled"`
+	Language    string `json:"language"`
 }
 
 type InitialOptions struct {
@@ -85,6 +86,7 @@ func SetSlackNotificationsSettings(ctx context.Context, writer *meta.AsyncWriter
 			BearerToken: slackNotificationsSettings.BearerToken,
 			Channel:     slackNotificationsSettings.Channel,
 			Enabled:     slackNotificationsSettings.Enabled,
+			Language:    slackNotificationsSettings.Language,
 		})
 
 	select {

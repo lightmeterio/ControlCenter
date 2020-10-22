@@ -7,6 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
@@ -103,6 +104,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 			BearerToken string `json:"bearer_token"`
 			Channel     string `json:"channel"`
 			Enabled     *bool  `json:"enabled"`
+			Language    string `json:"language"`
 		} `json:"slack_notifications"`
 		GeneralSettings struct {
 			PostfixPublicIP net.IP `json:"postfix_public_ip"`
@@ -121,6 +123,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		allCurrentSettings.SlackNotificationSettings.BearerToken = slackSettings.BearerToken
 		allCurrentSettings.SlackNotificationSettings.Channel = slackSettings.Channel
 		allCurrentSettings.SlackNotificationSettings.Enabled = &slackSettings.Enabled
+		allCurrentSettings.SlackNotificationSettings.Language = slackSettings.Language
 	}
 
 	var localRBLSettings localrbl.Settings
@@ -263,11 +266,24 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
+	messengerLanguage := r.Form.Get("messenger_language")
+	if messengerLanguage == "" {
+		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is missing %v", messengerLanguage))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	if !po.IsLanguageSupported(messengerLanguage) {
+		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is bad %v", messengerLanguage))
+
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
 	slackNotificationsSettings := settings.SlackNotificationsSettings{
 		Kind:        messengerKind,
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
 		Enabled:     messengerEnabled == "true",
+		Language:    messengerLanguage,
 	}
 
 	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {

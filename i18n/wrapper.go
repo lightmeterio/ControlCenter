@@ -2,9 +2,11 @@ package i18n
 
 import (
 	"bytes"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"golang.org/x/text/language"
+	"golang.org/x/text/message/catalog"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +16,41 @@ import (
 	"time"
 )
 
+func DefaultWrap(h http.Handler, fs http.FileSystem, catalog catalog.Catalog) *Wrapper {
+	return Wrap(h, &FileSystemContents{fs: fs}, translator.New(catalog), &now{})
+}
+
+type FileSystemContents struct {
+	fs http.FileSystem
+}
+
+type file struct {
+	http.File
+}
+
+func (f *file) ModificationTime() time.Time {
+	s, err := f.Stat()
+	errorutil.MustSucceed(err)
+
+	return s.ModTime()
+}
+
+func (c *FileSystemContents) Reader(path string) (File, error) {
+	f, err := c.fs.Open(path)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &file{f}, nil
+}
+
+type now struct{}
+
+func (*now) Now() time.Time {
+	return time.Now()
+}
+
 type File interface {
 	io.Reader
 	ModificationTime() time.Time
@@ -21,15 +58,6 @@ type File interface {
 
 type Contents interface {
 	Reader(path string) (File, error)
-}
-
-type Translators interface {
-	Translator(language.Tag, time.Time) Translator
-	Matcher() language.Matcher
-}
-
-type Translator interface {
-	Translate(string, ...interface{}) (string, error)
 }
 
 type Now interface {
@@ -77,12 +105,12 @@ func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 type Wrapper struct {
 	h           http.Handler
 	contents    Contents
-	translators Translators
+	translators translator.Translators
 	now         Now
 	cache       cache
 }
 
-func Wrap(h http.Handler, contents Contents, translators Translators, now Now) *Wrapper {
+func Wrap(h http.Handler, contents Contents, translators translator.Translators, now Now) *Wrapper {
 	return &Wrapper{h: h, contents: contents, translators: translators, now: now}
 }
 

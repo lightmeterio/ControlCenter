@@ -3,6 +3,7 @@ package i18n
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/language"
 	"io/ioutil"
@@ -51,7 +52,7 @@ func (f *fallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type fakeTranslators struct {
 }
 
-func (t *fakeTranslators) Translator(tag language.Tag, accessTime time.Time) Translator {
+func (t *fakeTranslators) Translator(tag language.Tag, accessTime time.Time) translator.Translator {
 	return &fakeTranslator{translationTime: accessTime}
 }
 

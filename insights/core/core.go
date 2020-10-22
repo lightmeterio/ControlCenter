@@ -3,6 +3,7 @@ package core
 import (
 	"database/sql"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -48,4 +49,5 @@ func (c *Core) Close() error {
 
 type Content interface {
 	fmt.Stringer
+	translator.TranslatableStringer
 }

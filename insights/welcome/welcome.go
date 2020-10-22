@@ -48,6 +48,14 @@ func (c content) String() string {
 	return ""
 }
 
+func (c content) Args() []interface{} {
+	return nil
+}
+
+func (c content) TplString() string {
+	return ""
+}
+
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
