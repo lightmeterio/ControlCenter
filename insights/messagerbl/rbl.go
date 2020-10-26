@@ -95,6 +95,7 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 	// Don't do anything if there's already an insight for such host in the past
 	// MinTimeToGenerateNewInsight
 	if t.Add(d.options.MinTimeToGenerateNewInsight).After(now) {
+		log.Println("Ignoring RBL insight for host", r.Host, "that has been generated", now.Sub(t), "ago")
 		return nil
 	}
 
