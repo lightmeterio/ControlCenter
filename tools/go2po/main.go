@@ -30,7 +30,7 @@ func main() {
 
 	fset := token.NewFileSet()
 
-	pkgs, err := ParseAllDir(fset, *rootDir, func(os.FileInfo) bool { return true }, parser.ParseComments)
+	pkgs, err := ParseAllDir(fset, *rootDir, func(os.FileInfo) bool { return true }, parser.ParseComments, *debugMode)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -155,12 +155,12 @@ func StoreMsgID(e ast.Expr) {
 	}
 }
 
-func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, mode parser.Mode) (map[string]*ast.Package, error) {
+func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, mode parser.Mode, debugMode bool) (map[string]*ast.Package, error) {
 	pkgs := make(map[string]*ast.Package)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 
-		if strings.Contains(path, "vendor") || strings.Contains(path, ".git") || strings.Contains(path, "gotestdata")  {
+		if strings.Contains(path, "vendor") || strings.Contains(path, ".git") || (!debugMode && strings.Contains(path, "gotestdata"))  {
 			return nil
 		}
 
