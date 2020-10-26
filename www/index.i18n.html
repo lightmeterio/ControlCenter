@@ -6,14 +6,14 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="icon" href="img/favicon.svg" sizes="any" type="image/svg+xml">
-        
+
         <!-- Boostrap CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/bootstrap.min.css">
         <link rel="stylesheet" type="text/css" href="3rd/css/daterangepicker.css" />
-        
+
         <!-- Fontawesome CSS -->
         <link rel="stylesheet" type="text/css" href="3rd/css/fontawesome.css"/>
-        
+
         <!-- App CSS -->
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
@@ -30,6 +30,7 @@
             "welcome_content": "{{translate `Your first Insight`}}",
             "insights_introduction_content": "{{translate `Breaking new ground`}}",
             "local_rbl_check": "{{translate `Blocked IP`}}",
+            "message_rbl": i => sprintf("{{translate `Blocked IP by %%s`}}", i.Content.host),
           }
 
           insightsDescriptions = {
@@ -43,22 +44,29 @@
               return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
-            "welcome_content": function(i) { 
+            "welcome_content": function(i) {
               var c = i.Content
               return "{{ translate `Insights are time-based analyses relating to your mailserver` }}"
             },
 
-            "insights_introduction_content": function(i) { 
+            "insights_introduction_content": function(i) {
               var c = i.Content
-              return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}" 
+              return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}"
             },
 
-            "local_rbl_check": function(i) { 
+            "local_rbl_check": function(i) {
               var c = i.Content
               var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
               var linkPart = "<button class='btn btn-sm' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openRblModal']);\">{{ translate `View list` }}</a>"
               return msgPart + linkPart
             },
+
+            "message_rbl": function(i) {
+              var c = i.Content
+              var msgPart = sprintf("{{ translate `The IP %%s cannot deliver to %%s (<strong>%%s</strong>)` }}. ", c.address, c.recipient, c.host)
+              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msgRblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openMsgRblModal']);\">{{ translate `View details` }}</a>"
+              return msgPart + linkPart
+            }
           }
 
           function greetingText() {
@@ -71,7 +79,7 @@
     </head>
 
     <body onload="drawDashboard()">
-    
+
         <header>
             <div class="navbar">
                 <div class="container d-flex justify-content-between">
@@ -85,7 +93,7 @@
                         </span>
                         <i class="fas fa-sign-out-alt" onclick="window.location.href='/logout';" data-toggle="tooltip" data-placement="bottom" title="Log out" onclick="_paq.push(['trackEvent', 'Logout', 'clickHeaderButton']);"></i>
                     </span>
-                        
+
                     <!-- About modal -->
                     <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
                         <div class="modal-dialog" role="document">
@@ -116,7 +124,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- RBL list modal -->
                     <div class="modal fade" id="rblListModal" tabindex="-1" role="dialog" aria-labelledby="rblListLabel" aria-hidden="true">
                         <div class="modal-dialog modal-lg" role="document">
@@ -136,29 +144,49 @@
                             </div>
                         </div>
                     </div>
-                        
+
+                    <!-- Message RBL list modal -->
+                    <div class="modal fade" id="msgRblListModal" tabindex="-1" role="dialog" aria-labelledby="msgRblListLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="msgRblListLabel"></h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                  <span id="msg-rbl-list-content"></span>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-cancel" data-dismiss="modal">{{translate "Close"}}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </header>
-        
+
             <div class="container main-content">
-            
+
                 <div class="row">
                     <div class="col-md-12">
                         <h1 class="row-title">{{translate "Control Center"}}</h1>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-md-12">
                         <div class="panel panel-default greeting">
-                        
+
                             <div class="row">
-                            
+
                                 <div class="col-md-3 align-center">
                                     <img class="hero" src="img/greeting-observatory.svg" alt="Observatory illustration" />
                                 </div>
-                                
+
                                 <div class="col-md-9 d-flex align-items-center">
                                     <div class="row">
                                         <div class="container">
@@ -167,15 +195,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
 
                 <div class="row">
-                    
+
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
@@ -189,7 +217,7 @@
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
-                            
+
                                 <ul class="nav nav-tabs card-header-tabs" id="overview-graphs" role="tablist">
                                     <li class="nav-item">
                                         <a class="nav-link active" href="#busiest-domains" role="tab" aria-controls="busiest-domains" aria-selected="true">{{translate "Busiest domains"}}</a>
@@ -203,26 +231,26 @@
                                 </ul>
                             </div>
                             <div class="card-body">
-                                
+
                                 <div id="basic-graphs-area" class="tab-content mt-3">
                                     <div class="tab-pane active" id="busiest-domains" role="tabpanel">
                                         <div class="dashboard-gadget" id='topBusiestDomains'></div>
                                     </div>
-                                    
-                                    <div class="tab-pane" id="bounced-domains" role="tabpanel" aria-labelledby="bounced-domains-tab">    
+
+                                    <div class="tab-pane" id="bounced-domains" role="tabpanel" aria-labelledby="bounced-domains-tab">
                                         <div class="dashboard-gadget" id='topBouncedDomains'></div>
                                     </div>
-                                    
+
                                     <div class="tab-pane" id="deferred-domains" role="tabpanel" aria-labelledby="deferred-domains-tab">
                                         <div class="dashboard-gadget" id='topDeferredDomains'></div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row container d-flex time-interval card-section-heading">
                     <div class="col-lg-2 col-md-6 col-6 p-2">
                         <h2>{{translate "Insights"}}</h2>
@@ -233,7 +261,7 @@
                             <span></span>&nbsp;&nbsp;<i class="fa fa-calendar"></i>
                         </div>
                     </div>
-                
+
                     <div class="col-lg-4 col-md-6 col-12 ml-auto p-2">
                         <form id="insights-form">
                             <div class="form-group d-flex justify-content-end align-items-center">
@@ -254,9 +282,9 @@
                             </div>
                         </form>
                     </div>
-                    
+
                 </div>
-                
+
                 <div class="row insights" id="insights">
                     <div class="col-md-6" id="insight-template">
                         <div class="card">
@@ -275,34 +303,34 @@
                         </div>
                     </div>
                 </div>
-                
+
             </div>
         </div>
-        
+
         <footer>
             <div class="container">
                 <p class="float-right">
-                    &bull; 
+                    &bull;
                     <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
                 </p>
                 <p>{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">{{translate "Privacy Policy"}}</a></p>
             </div>
         </footer>
-        
+
         <!-- Boostrap dependencies -->
         <script type="text/javascript" src="3rd/js/jquery-3.4.1.slim.min.js"></script>
         <script type="text/javascript" src="3rd/js/popper.min.js"></script>
         <script type="text/javascript" src="3rd/js/bootstrap.min.js"></script>
-        
+
         <!-- Other 3rd party dependencies -->
         <script type="text/javascript" src='3rd/js/plotly.min.js'></script>
         <script type="text/javascript" src="3rd/js/moment.min.js"></script>
         <script type="text/javascript" src="3rd/js/daterangepicker.min.js"></script>
-        
+
         <!-- App scripts -->
         <script type="text/javascript" src='js/app.js'></script>
         <script type="text/javascript" src='js/insights.js'></script>
-        
+
         <!-- Lightmeter-hosted Matomo analytics -->
         <script type="text/javascript">
         var _paq = window._paq || [];
@@ -320,11 +348,19 @@
         <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
 
         <script>
-           $('#rblListModal').on('shown.bs.modal', function(e) {
+          $('#rblListModal').on('shown.bs.modal', function(e) {
               var rblId = $(e.relatedTarget).data('rbl-id')
               var modal = $(this)
               modal.find('.modal-title').text('{{translate "RBLs for "}}'+buildInsightRblCheckedIp(rblId))
               buildInsightRblList(rblId)
+          })
+
+          $('#msgRblListModal').on('shown.bs.modal', function(e) {
+              var rblId = $(e.relatedTarget).data('msg-rbl-id')
+              var modal = $(this)
+              var text = sprintf('{{translate "Original message for IP Block for %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
+              modal.find('.modal-title').text(text)
+              buildInsightMsgRblDetails(rblId)
           })
         </script>
     </body>
