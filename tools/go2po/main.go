@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"github.com/robfig/gettext-go/gettext/po"
+	"gitlab.com/lightmeter/controlcenter/tools/poutil"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 )
@@ -56,7 +54,7 @@ func main() {
 	})
 
 	// use custom save and pre process
-	err = Save(*outfile, Data(f.Messages, f.MimeHeader.String()))
+	err = poutil.Save(*outfile, poutil.Data(f.Messages, f.MimeHeader.String()))
 	if err != nil {
 		panic(err)
 	}
@@ -155,35 +153,6 @@ func StoreMsgID(e ast.Expr) {
 	} else {
 		log.Println("Error custom types and variables are not allowed in combination with I18n: ", e)
 	}
-}
-
-// Save returns a po file format data.
-func Data(messages []po.Message, mimeHeader string) []byte {
-	sort.Slice(messages, func(i, j int) bool {
-		si := messages[i].MsgId
-		sj := messages[j].MsgId
-		siLower := strings.ToLower(si)
-		sjLower := strings.ToLower(sj)
-		if siLower == sjLower {
-			return si < sj
-		}
-		return siLower < sjLower
-	})
-
-	var buf bytes.Buffer
-
-	fmt.Fprintf(&buf, "%s\n", mimeHeader)
-
-	for i := 0; i < len(messages); i++ {
-		fmt.Fprintf(&buf, "%s\n", messages[i].String())
-	}
-
-	return buf.Bytes()
-}
-
-// Save saves a po file.
-func Save(name string, buff []byte) error {
-	return ioutil.WriteFile(name, buff, 0600)
 }
 
 func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, mode parser.Mode) (map[string]*ast.Package, error) {
