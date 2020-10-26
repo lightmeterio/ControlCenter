@@ -13,4 +13,6 @@ func (d *DataC) String(s string) string {
 	return b
 }
 
-
+func main() {
+	I18n("hello world")
+}
