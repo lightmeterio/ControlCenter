@@ -59,6 +59,9 @@ po2go:
 code2po:
 	sh ./code2poutil.sh
 
+go2po:
+	sh ./go2poutil.sh
+
 swag:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/api
 	cp api/docs/swagger.json www/api.json

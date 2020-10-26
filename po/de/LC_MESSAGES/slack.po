@@ -1,8 +1,21 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+
 msgid "%%v percent bounce rate between %%v and %%v"
 msgstr "%%v prozent bounce rate ist zwischen %%v und %%v"
+
+msgid "No emails were sent between %%v and %%v"
+msgstr "Zwischen %%v und %%v wurden keine E-Mails gesendet"
 
 msgid "The IP address %%v is listed by %%v RBLs"
 msgstr "Die IP addresse %%v wurde von %%d RBLs geblockt"
 
-msgid "No emails were sent between %%v and %%v"
-msgstr "Zwischen %%v und %%v wurden keine E-Mails gesendet"

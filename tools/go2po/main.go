@@ -22,6 +22,7 @@ func main() {
 		rootDir   = flag.String("i", "", "root directory to look for files")
 		outfile   = flag.String("o", "", "path for po file to write")
 		debugMode = flag.Bool("debugMode", false, "debug mode")
+		addMissingIDs = flag.Bool("ids", false, "add missing ids")
 	)
 
 	flag.Parse()
@@ -45,16 +46,25 @@ func main() {
 		}
 	}
 
-	f := po.File{}
-
+	messagesList := make([]po.Message, 0)
 	messages.Range(func(key, value interface{}) bool {
 		message := value.(po.Message)
-		f.Messages = append(f.Messages, message)
+		messagesList = append(messagesList, message)
 		return true
 	})
 
+	if *addMissingIDs {
+		err := poutil.SaveDifference(*outfile, messagesList)
+		if err != nil {
+			panic(err)
+		}
+
+		return
+	}
+
+	f := po.File{}
 	// use custom save and pre process
-	err = poutil.Save(*outfile, poutil.Data(f.Messages, f.MimeHeader.String()))
+	err = poutil.Save(*outfile, poutil.Data(messagesList, f.MimeHeader.String()))
 	if err != nil {
 		panic(err)
 	}
