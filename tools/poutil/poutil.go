@@ -72,4 +72,3 @@ func SaveDifference(name string, messagesList []po.Message) error {
 
 	return nil
 }
-

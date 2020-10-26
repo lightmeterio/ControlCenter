@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/lightmeter/controlcenter/i18n/translator"
+import "gitlab.com/lightmeter/controlcenter/tools/gotestdata/translator"
 
 func I18n(s string) string {
 	return ""
@@ -16,15 +16,6 @@ type DataB struct{}
 
 func (d *DataB) String(s string) string {
 	b := I18n("DataB")
-
-	return b
-}
-
-type DataC struct{}
-
-func (d *DataC) String(s string) string {
-	a := "DataC"
-	b := I18n(a)
 
 	return b
 }

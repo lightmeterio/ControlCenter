@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/robfig/gettext-go/gettext/po"
 	"gitlab.com/lightmeter/controlcenter/tools/poutil"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -19,9 +20,9 @@ var messages sync.Map
 
 func main() {
 	var (
-		rootDir   = flag.String("i", "", "root directory to look for files")
-		outfile   = flag.String("o", "", "path for po file to write")
-		debugMode = flag.Bool("debugMode", false, "debug mode")
+		rootDir       = flag.String("i", "", "root directory to look for files")
+		outfile       = flag.String("o", "", "path for po file to write")
+		debugMode     = flag.Bool("debugMode", false, "debug mode")
 		addMissingIDs = flag.Bool("ids", false, "add missing ids")
 	)
 
@@ -47,6 +48,7 @@ func main() {
 	}
 
 	messagesList := make([]po.Message, 0)
+
 	messages.Range(func(key, value interface{}) bool {
 		message := value.(po.Message)
 		messagesList = append(messagesList, message)
@@ -78,6 +80,7 @@ func (f VisitorFunc) Visit(n ast.Node) ast.Visitor {
 
 const FuncI18n = "I18n"
 
+// nolint:gocriticm,nestif
 func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.Visitor {
 	return func(n ast.Node) ast.Visitor {
 		if debugNode {
@@ -110,7 +113,11 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 		case *ast.CallExpr:
 			if _, ok := n.Fun.(*ast.SelectorExpr); ok {
 				if n.Fun.(*ast.SelectorExpr).Sel.Name == FuncI18n {
-					StoreMsgID(n.Args[0])
+					err := StoreMsgID(n.Args[0])
+					if err != nil {
+						log.Println(err)
+						os.Exit(1)
+					}
 					return nil
 				}
 			}
@@ -131,12 +138,20 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 				if ident, ok := assignStmt.Rhs[0].(*ast.Ident); ok {
 					if funcDecl, ok := ident.Obj.Decl.(*ast.FuncDecl); ok {
 						if funcDecl.Name.Name == FuncI18n {
-							StoreMsgID(n.Args[0])
+							err := StoreMsgID(n.Args[0])
+							if err != nil {
+								log.Println(err)
+								os.Exit(1)
+							}
 						}
 					}
 				}
 			} else if ident.Name == FuncI18n {
-				StoreMsgID(n.Args[0])
+				err := StoreMsgID(n.Args[0])
+				if err != nil {
+					log.Println(err)
+					os.Exit(1)
+				}
 			}
 		}
 
@@ -144,7 +159,7 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 	}
 }
 
-func StoreMsgID(e ast.Expr) {
+func StoreMsgID(e ast.Expr) error {
 	if typ, ok := e.(*ast.BasicLit); ok {
 		if typ.Kind == 9 {
 			cleanValue := strings.TrimFunc(typ.Value, func(r rune) bool {
@@ -161,16 +176,19 @@ func StoreMsgID(e ast.Expr) {
 			messages.Store(cleanValue, message)
 		}
 	} else {
-		log.Println("Error custom types and variables are not allowed in combination with I18n: ", e)
+		return errorutil.Wrap(fmt.Errorf("Error custom types and variables are not allowed in combination with I18n: %v", e))
 	}
+
+	return nil
 }
 
+// nolint:gocriticm,nestif
 func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, mode parser.Mode, debugMode bool) (map[string]*ast.Package, error) {
 	pkgs := make(map[string]*ast.Package)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 
-		if strings.Contains(path, "vendor") || strings.Contains(path, ".git") || (!debugMode && strings.Contains(path, "gotestdata"))  {
+		if strings.Contains(path, "node_modules") || strings.Contains(path, "vendor") || strings.Contains(path, ".git") || (!debugMode && strings.Contains(path, "gotestdata")) {
 			return nil
 		}
 
@@ -188,7 +206,7 @@ func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool
 				}
 				pkg.Files[path] = src
 			} else {
-				log.Println("Error ", err)
+				return errorutil.Wrap(err)
 			}
 		} else {
 			if info.IsDir() {
