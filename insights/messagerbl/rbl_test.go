@@ -1,0 +1,177 @@
+package messagerblinsight
+
+import (
+	"context"
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/messagerbl"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	parser "gitlab.com/lightmeter/postfix-log-parser"
+	"net"
+	"testing"
+	"time"
+)
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
+
+var (
+	dummyContext = context.Background()
+)
+
+type fakeActions map[time.Time]func() messagerbl.Result
+
+type fakeChecker struct {
+	clock   core.Clock
+	actions fakeActions
+}
+
+func (d *fakeChecker) Step(withResult func(messagerbl.Result) error, withoutResult func() error) error {
+	if action, ok := d.actions[d.clock.Now()]; ok {
+		r := action()
+		return withResult(r)
+	}
+
+	return withoutResult()
+}
+
+func (d *fakeChecker) IPAddress(context.Context) net.IP {
+	return net.ParseIP("127.0.0.2")
+}
+
+func parseLogLine(line string) (parser.Header, parser.Payload) {
+	h, p, err := parser.Parse([]byte(line))
+	So(err, ShouldBeNil)
+	return h, p
+}
+
+func actionFromLog(converter *parser.TimeConverter, host string, line string) func() messagerbl.Result {
+	return func() messagerbl.Result {
+		h, p := parseLogLine(line)
+
+		return messagerbl.Result{
+			Address: net.ParseIP("127.0.0.2"),
+			Host:    host,
+			Header:  h,
+			Payload: p.(parser.SmtpSentStatus),
+			Time:    converter.Convert(h.Time),
+		}
+	}
+}
+
+func TestMessageRBLInsight(t *testing.T) {
+	Convey("Test Message RBL Insight", t, func() {
+		accessor, clearAccessor := insighttestsutil.NewFakeAcessor()
+		defer clearAccessor()
+
+		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+		converter := parser.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
+		clock := &insighttestsutil.FakeClock{Time: baseTime}
+
+		actions := map[time.Time]func() messagerbl.Result{
+			// this will generate an insight from Host 1
+			baseTime.Add(time.Second * 2): actionFromLog(&converter, "Host 1", `Jan  1 00:00:02 node postfix/smtp[12357]: 375593D395: to=<recipient@example.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=bounced (Error for Host 1 insight 1)`),
+
+			// this will generate an insight from Host 2
+			baseTime.Add(time.Second * 30): actionFromLog(&converter, "Host 2", `Jan  1 00:00:30 node postfix/smtp[12357]: 375593D395: to=<recipient@example2.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=deferred (Error for Host 2 insight 1)`),
+
+			// this will NOT generate an insight from Host 1, as the there was another from Host 1 only 48s ago
+			baseTime.Add(time.Second * 50): actionFromLog(&converter, "Host 1", `Jan  1 00:00:50 node postfix/smtp[12357]: 375593D395: to=<recipient@example.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=bounced (Error for Host 1 no insight)`),
+
+			// this will generate an insight from Host 1, as the time since last generated insight for it was 70s ago
+			baseTime.Add(time.Second * 72): actionFromLog(&converter, "Host 1", `Jan  1 00:01:12 node postfix/smtp[12357]: 375593D395: to=<recipient@example.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=bounced (Error for Host 1 insight 2)`),
+		}
+
+		checker := &fakeChecker{clock: clock, actions: actions}
+
+		detector := NewDetector(accessor, core.Options{
+			"messagerbl": Options{
+				Detector:                    checker,
+				MinTimeToGenerateNewInsight: time.Second * 70,
+			},
+		})
+
+		executeCyclesUntil := func(end time.Time, stepDuration time.Duration) {
+			for ; end.After(clock.Time); clock.Sleep(stepDuration) {
+				tx, err := accessor.ConnPair.RwConn.Begin()
+				So(err, ShouldBeNil)
+				So(detector.Step(clock, tx), ShouldBeNil)
+				So(tx.Commit(), ShouldBeNil)
+			}
+		}
+
+		executeCyclesUntil(testutil.MustParseTime(`2000-01-01 00:30:00 +0000`), time.Second*2)
+
+		So(accessor.Insights, ShouldResemble, []int64{1, 2, 3})
+
+		insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+			From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+		},
+			OrderBy: core.OrderByCreationAsc,
+		})
+
+		So(err, ShouldBeNil)
+
+		{
+			So(insights[0].ID(), ShouldEqual, 1)
+			So(insights[0].ContentType(), ShouldEqual, ContentType)
+			So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*2))
+			So(insights[0].Rating(), ShouldEqual, core.BadRating)
+			So(insights[0].Category(), ShouldEqual, core.LocalCategory)
+
+			c, ok := insights[0].Content().(*content)
+			So(ok, ShouldBeTrue)
+
+			So(c.Host, ShouldEqual, "Host 1")
+			So(c.Message, ShouldEqual, "(Error for Host 1 insight 1)")
+			So(c.Status, ShouldEqual, "bounced")
+			So(c.Recipient, ShouldEqual, "example.com")
+			So(c.Time, ShouldEqual, baseTime.Add(time.Second*2))
+		}
+
+		{
+			So(insights[1].ID(), ShouldEqual, 2)
+			So(insights[1].ContentType(), ShouldEqual, ContentType)
+			So(insights[1].Time(), ShouldEqual, baseTime.Add(time.Second*30))
+			So(insights[1].Rating(), ShouldEqual, core.BadRating)
+			So(insights[1].Category(), ShouldEqual, core.LocalCategory)
+
+			c, ok := insights[1].Content().(*content)
+			So(ok, ShouldBeTrue)
+
+			So(*c, ShouldResemble, content{
+				Host:      "Host 2",
+				Address:   net.ParseIP("127.0.0.2"),
+				Message:   "(Error for Host 2 insight 1)",
+				Status:    "deferred",
+				Recipient: "example2.com",
+				Time:      baseTime.Add(time.Second * 30),
+			})
+		}
+
+		{
+			So(insights[2].ID(), ShouldEqual, 3)
+			So(insights[2].ContentType(), ShouldEqual, ContentType)
+			So(insights[2].Time(), ShouldEqual, baseTime.Add(time.Second*72))
+			So(insights[2].Rating(), ShouldEqual, core.BadRating)
+			So(insights[2].Category(), ShouldEqual, core.LocalCategory)
+
+			c, ok := insights[2].Content().(*content)
+			So(ok, ShouldBeTrue)
+
+			So(*c, ShouldResemble, content{
+				Host:      "Host 1",
+				Address:   net.ParseIP("127.0.0.2"),
+				Message:   "(Error for Host 1 insight 2)",
+				Status:    "bounced",
+				Recipient: "example.com",
+				Time:      baseTime.Add(time.Second * 72),
+			})
+		}
+	})
+}
