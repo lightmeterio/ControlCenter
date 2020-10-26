@@ -173,6 +173,10 @@ sast:
   extends: .on-non-tag
   stage: test
   needs: []
+  artifacts:
+    paths:
+      - gl-sast-report.json
+    expire_in: 7 days
 
 dependency_scanning:
   extends: .on-non-tag
