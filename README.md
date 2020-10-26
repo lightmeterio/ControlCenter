@@ -211,9 +211,9 @@ After doing all this you should see a Chrome / Chromium browser open, and tests 
 
 The following command will look for translatable words inside interface files (currently files within the `www` directory) and generate a `.po` file for the English language: `make code2po`
 
-### Notifications 
+## Notifications 
 
-## Integrate slack 
+### Integrate slack 
 
 Create a app on your slack account go to https://api.slack.com/
 
@@ -242,3 +242,30 @@ Add the token and channel details to lightmeter go to the settings page
 ![alt text](./images/add_token_control.png)
 
 Congrats you successfully configured the slack notifications
+
+### Making backend strings translatable (i18n)
+
+The following command will look for translatable strings inside of all go files. All translatable strings needs to be wrap with
+the the function `translator.I18n`
+
+Generates a `.po` file for all supported languages: 
+
+```bash
+make go2po
+```
+
+Example:
+
+```go
+package content
+
+import (
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+)
+
+type Block struct{}
+
+func (d *Block) String(s string) string {
+	return translator.I18n("%%v percent bounce rate between %%v and %%v")
+}
+```
