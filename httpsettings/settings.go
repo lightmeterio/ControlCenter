@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
-	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"mime"
@@ -126,9 +126,9 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		allCurrentSettings.SlackNotificationSettings.Language = slackSettings.Language
 	}
 
-	var localRBLSettings localrbl.Settings
+	var localRBLSettings globalsettings.Settings
 
-	err = h.reader.RetrieveJson(ctx, localrbl.SettingsKey, &localRBLSettings)
+	err = h.reader.RetrieveJson(ctx, globalsettings.SettingsKey, &localRBLSettings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -152,9 +152,9 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 	}
 
-	s := localrbl.Settings{LocalIP: localIP}
+	s := globalsettings.Settings{LocalIP: localIP}
 
-	result := h.writer.StoreJson(localrbl.SettingsKey, &s)
+	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
 
 	select {
 	case err := <-result.Done():

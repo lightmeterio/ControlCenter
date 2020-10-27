@@ -6,20 +6,12 @@ import (
 	"github.com/mrichman/godnsbl"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
-	"net"
 	"sync"
 	"time"
 )
-
-const (
-	SettingsKey = "localrbl"
-)
-
-type Settings struct {
-	LocalIP net.IP `json:"local_ip"`
-}
 
 type DNSLookupFunction func(string, string) godnsbl.RBLResults
 
@@ -28,6 +20,8 @@ var (
 )
 
 type dnsChecker struct {
+	*globalsettings.MetaReaderGetter
+
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
@@ -44,6 +38,7 @@ func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
 	}
 
 	return &dnsChecker{
+		MetaReaderGetter:   globalsettings.New(meta),
 		checkerStartChan:   make(chan time.Time, 32),
 		checkerResultsChan: make(chan Results),
 		options:            options,
@@ -53,18 +48,6 @@ func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
 
 func NewChecker(meta *meta.Reader, options Options) Checker {
 	return newDnsChecker(meta, options)
-}
-
-func (c *dnsChecker) CheckedIP(ctx context.Context) net.IP {
-	var settings Settings
-	err := c.meta.RetrieveJson(ctx, SettingsKey, &settings)
-
-	if err != nil {
-		// If we cannot obtain the ip address, just chicken out
-		return nil
-	}
-
-	return settings.LocalIP
 }
 
 func (c *dnsChecker) Close() error {
@@ -113,7 +96,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	results := make([]godnsbl.Result, len(checker.options.RBLProvidersURLs))
 
-	ip := checker.CheckedIP(ctx)
+	ip := checker.IPAddress(ctx)
 
 	if err := ctx.Err(); err != nil {
 		log.Println("Error obtaining IP address from settings on RBL Check:", err)

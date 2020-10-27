@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
@@ -51,11 +52,11 @@ func TestDnsRBL(t *testing.T) {
 
 		Convey("An IP address is defined", func() {
 			{
-				settings := Settings{
+				settings := globalsettings.Settings{
 					LocalIP: net.ParseIP("11.22.33.44"),
 				}
 
-				meta.Writer.StoreJson(dummyContext, SettingsKey, &settings)
+				meta.Writer.StoreJson(dummyContext, globalsettings.SettingsKey, &settings)
 			}
 
 			Convey("Panic on invalid number of workers", func() {
