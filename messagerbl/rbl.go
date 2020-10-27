@@ -84,8 +84,16 @@ func (d *Detector) NewPublisher() *Publisher {
 func messageMatchesAnyHosts(settings globalsettings.Getter, matchers matchers, r record) (Result, bool) {
 	for _, m := range matchers {
 		if m.match(r) {
+			ip := func() net.IP {
+				if r.header.ProcessIP != nil {
+					return r.header.ProcessIP
+				}
+
+				return settings.IPAddress(context.Background())
+			}()
+
 			return Result{
-				Address: settings.IPAddress(context.Background()),
+				Address: ip,
 				Host:    m.host,
 				Header:  r.header,
 				Payload: r.payload,
