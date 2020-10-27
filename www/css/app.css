@@ -858,14 +858,16 @@ input-group-addon a {
     flex-flow: row-reverse;
 }
 
-.button-group button {
+.button-group button, .button-group .btn-cancel {
     width: 10%;
     margin-left: 1em;
     margin-right: 1em;
+    display: flex;
+    justify-content: center;
 }
 
-.button-group .btn-cancel {
-    width: 10%;
-    margin-left: 1em;
-    margin-right: 1em;
+@media only screen and (max-device-width: 600px) {
+    .button-group button, .button-group .btn-cancel {
+        width: 25%;
+    }
 }
