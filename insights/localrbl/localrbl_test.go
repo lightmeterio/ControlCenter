@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
@@ -106,7 +107,7 @@ func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) err
 	return withoutResults()
 }
 
-func (c *fakeChecker) CheckedIP(context.Context) net.IP {
+func (c *fakeChecker) IPAddress(context.Context) net.IP {
 	return c.checkedIP
 }
 
@@ -404,11 +405,11 @@ func TestLocalRBL(t *testing.T) {
 					defer func() { errorutil.MustSucceed(m.Close()) }()
 
 					{
-						settings := localrbl.Settings{
+						settings := globalsettings.Settings{
 							LocalIP: net.ParseIP("11.22.33.44"),
 						}
 
-						err := m.Writer.StoreJson(dummyContext, localrbl.SettingsKey, &settings)
+						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingsKey, &settings)
 
 						So(err, ShouldBeNil)
 					}
