@@ -20,6 +20,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pressly/goose v2.6.0+incompatible
 	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
+	github.com/satori/go.uuid v1.2.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/slack-go/slack v0.6.6

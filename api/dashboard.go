@@ -139,7 +139,7 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error
 }
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	chain := httpmiddleware.WithDefaultTimeout(httpmiddleware.RequestWithInterval(timezone))
+	chain := httpmiddleware.WithDefaultStack(httpmiddleware.RequestWithInterval(timezone))
 	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
 	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))

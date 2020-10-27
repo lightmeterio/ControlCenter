@@ -18,11 +18,16 @@ func (h sleepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func withTimeout(timeout time.Duration, middleware ...Middleware) Chain {
+	middleware = append(middleware, []Middleware{RequestWithTimeout(timeout)}...)
+	return New(middleware...)
+}
+
 func TestTimeout(t *testing.T) {
 	Convey("Test Request Interval", t, func() {
 		Convey("No Timeout", func() {
 			h := &sleepHandler{sleepTime: time.Microsecond * 1}
-			c := WithTimeout(time.Millisecond * 100)
+			c := withTimeout(time.Millisecond * 100)
 			s := httptest.NewServer(c.WithEndpoint(h))
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)
@@ -31,7 +36,7 @@ func TestTimeout(t *testing.T) {
 
 		Convey("Timeout Happens", func() {
 			h := &sleepHandler{sleepTime: time.Millisecond * 100}
-			c := WithTimeout(time.Millisecond * 3)
+			c := withTimeout(time.Millisecond * 3)
 			s := httptest.NewServer(c.WithEndpoint(h))
 			r, err := http.Get(s.URL)
 			So(err, ShouldBeNil)

@@ -16,15 +16,6 @@ const (
 	MaxCustomTimeout = time.Minute * 1
 )
 
-func WithDefaultTimeout(middleware ...Middleware) Chain {
-	return WithTimeout(DefaultTimeout, middleware...)
-}
-
-func WithTimeout(timeout time.Duration, middleware ...Middleware) Chain {
-	middleware = append(middleware, []Middleware{RequestWithTimeout(timeout)}...)
-	return New(middleware...)
-}
-
 var (
 	// NOTE: this is not an exhaustive parser for Keep-Alive. It's just good enough for our needs
 	// More information about Keep-Alive at https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
