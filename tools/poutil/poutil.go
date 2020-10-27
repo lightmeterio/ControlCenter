@@ -6,6 +6,7 @@ import (
 	"github.com/robfig/gettext-go/gettext/po"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
 )
@@ -40,35 +41,101 @@ func Save(name string, buff []byte) error {
 }
 
 // Save difference returns a po file format data.
+// nolint:gocriticm,nestif
 func SaveDifference(name string, messagesList []po.Message) error {
-	content, err := ioutil.ReadFile(name)
-	if err != nil {
-		return errorutil.Wrap(err)
+	var newFile *po.File
+
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			newFile = &po.File{}
+		}
+	} else {
+		content, err := ioutil.ReadFile(name)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		newFile, err = po.LoadData(content)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
 	}
 
-	newFile, err := po.LoadData(content)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	ids := make(map[string]bool)
+	messageMap := make(map[string]po.Message)
 	for _, message := range newFile.Messages {
-		ids[message.MsgId] = true
+		messageMap[message.MsgId] = message
 	}
 
 	for _, message := range messagesList {
 		// Skip all messages which are available in messages to avoid generation of duplicates
-		if ids[message.MsgId] {
+		if oldMessage, ok := messageMap[message.MsgId]; ok {
+			if oldMessage.StartLine != message.StartLine {
+				oldMessage.StartLine = message.StartLine
+			}
+
+			oldFilename := getReferenceFileFirst(oldMessage.Comment.ReferenceFile)
+			newFilename := getReferenceFileFirst(message.Comment.ReferenceFile)
+
+			if oldFilename != newFilename {
+				comment := oldMessage.Comment
+
+				if comment.ReferenceFile == nil {
+					comment.ReferenceFile = make([]string, 1)
+				}
+
+				comment.ReferenceFile[0] = newFilename
+				oldMessage.Comment = comment
+			}
+
+			oldLine := getReferenceLineFirst(oldMessage.Comment.ReferenceLine)
+			newLine := getReferenceLineFirst(message.Comment.ReferenceLine)
+
+			if newLine != oldLine {
+				comment := oldMessage.Comment
+				if comment.ReferenceLine == nil {
+					comment.ReferenceLine = make([]int, 1)
+				}
+
+				comment.ReferenceLine[0] = newLine
+				oldMessage.Comment = comment
+			}
+
+			messageMap[message.MsgId] = oldMessage
+
 			continue
 		}
-		newFile.Messages = append(newFile.Messages, message)
+
+		message.MsgStr = " "
+		message.Flags = append(message.Flags, "Fuzzy")
+		messageMap[message.MsgId] = message
+	}
+
+	messagesList = make([]po.Message, 0)
+	for _, message := range messageMap {
+		messagesList = append(messagesList, message)
 	}
 
 	// use custom save and pre process
-	err = Save(name, Data(newFile.Messages, newFile.MimeHeader.String()))
+	err := Save(name, Data(messagesList, newFile.MimeHeader.String()))
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
+}
+
+func getReferenceLineFirst(line []int) int {
+	if len(line) > 0 {
+		return line[0]
+	}
+
+	return -1
+}
+
+func getReferenceFileFirst(file []string) string {
+	if len(file) > 0 {
+		return file[0]
+	}
+
+	return ""
 }

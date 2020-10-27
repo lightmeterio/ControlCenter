@@ -40,6 +40,11 @@ msgstr " "
 msgid "Bounced domains"
 msgstr " "
 
+#: www/settingspage.i18n.html:104
+#, fuzzy
+msgid "Brazilian Portuguese"
+msgstr " "
+
 #: www/index.i18n.html:31
 #, fuzzy
 msgid "Breaking new ground"
@@ -50,7 +55,7 @@ msgstr " "
 msgid "Busiest domains"
 msgstr " "
 
-#: www/settingspage.i18n.html:103 www/settingspage.i18n.html:115
+#: www/settingspage.i18n.html:118 www/settingspage.i18n.html:130
 #, fuzzy
 msgid "Cancel"
 msgstr " "
@@ -100,22 +105,27 @@ msgstr " "
 msgid "Email"
 msgstr " "
 
+#: www/settingspage.i18n.html:96
+#, fuzzy
+msgid "English"
+msgstr " "
+
 #: www/login.i18n.html:35 www/register.i18n.html:48 www/register.i18n.html:51
 #, fuzzy
 msgid "Error"
 msgstr " "
 
-#: www/settingspage.i18n.html:170
+#: www/settingspage.i18n.html:185
 #, fuzzy
 msgid "Error on saving general settings!"
 msgstr " "
 
-#: www/settingspage.i18n.html:156
+#: www/settingspage.i18n.html:171
 #, fuzzy
 msgid "Error on saving notification settings!"
 msgstr " "
 
-#: www/index.i18n.html:286 www/settingspage.i18n.html:126
+#: www/index.i18n.html:286 www/settingspage.i18n.html:141
 #, fuzzy
 msgid "Feedback"
 msgstr " "
@@ -130,9 +140,14 @@ msgstr " "
 msgid "Forgot password?"
 msgstr " "
 
-#: www/settingspage.i18n.html:106
+#: www/settingspage.i18n.html:121
 #, fuzzy
 msgid "General"
+msgstr " "
+
+#: www/settingspage.i18n.html:100
+#, fuzzy
+msgid "German"
 msgstr " "
 
 #: www/register.i18n.html:97
@@ -260,17 +275,17 @@ msgstr " "
 msgid "Please create a new administrator account - this is necessary to login."
 msgstr " "
 
-#: www/settingspage.i18n.html:98
+#: www/settingspage.i18n.html:113
 #, fuzzy
 msgid "Please enter api token"
 msgstr " "
 
-#: www/settingspage.i18n.html:94
+#: www/settingspage.i18n.html:109
 #, fuzzy
 msgid "Please enter slack channel name"
 msgstr " "
 
-#: www/settingspage.i18n.html:111
+#: www/settingspage.i18n.html:126
 #, fuzzy
 msgid "Please extract from your config file the ip address of postfix"
 msgstr " "
@@ -280,7 +295,7 @@ msgstr " "
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:128
+#: www/index.i18n.html:288 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Privacy Policy"
 msgstr " "
@@ -305,17 +320,17 @@ msgstr " "
 msgid "Registration"
 msgstr " "
 
-#: www/settingspage.i18n.html:102 www/settingspage.i18n.html:114
+#: www/settingspage.i18n.html:117 www/settingspage.i18n.html:129
 #, fuzzy
 msgid "Save"
 msgstr " "
 
-#: www/settingspage.i18n.html:174
+#: www/settingspage.i18n.html:189
 #, fuzzy
 msgid "Saved general settings"
 msgstr " "
 
-#: www/settingspage.i18n.html:160
+#: www/settingspage.i18n.html:175
 #, fuzzy
 msgid "Saved notification settings"
 msgstr " "
@@ -335,7 +350,7 @@ msgstr " "
 msgid "Settings Error on initial setup!"
 msgstr " "
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:128
+#: www/index.i18n.html:288 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Thank you for using Lightmeter."
 msgstr " "

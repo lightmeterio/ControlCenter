@@ -34,6 +34,10 @@ msgstr "Blocked IP"
 msgid "Bounced domains"
 msgstr "Bounced domains"
 
+#: www/settingspage.i18n.html:104
+msgid "Brazilian Portuguese"
+msgstr "Brazilian Portuguese"
+
 #: www/index.i18n.html:31
 msgid "Breaking new ground"
 msgstr "Breaking new ground"
@@ -42,7 +46,7 @@ msgstr "Breaking new ground"
 msgid "Busiest domains"
 msgstr "Busiest domains"
 
-#: www/settingspage.i18n.html:103 www/settingspage.i18n.html:115
+#: www/settingspage.i18n.html:118 www/settingspage.i18n.html:130
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -82,19 +86,23 @@ msgstr "E-mail"
 msgid "Email"
 msgstr "Email"
 
+#: www/settingspage.i18n.html:96
+msgid "English"
+msgstr "English"
+
 #: www/login.i18n.html:35 www/register.i18n.html:48 www/register.i18n.html:51
 msgid "Error"
 msgstr "Error"
 
-#: www/settingspage.i18n.html:170
+#: www/settingspage.i18n.html:185
 msgid "Error on saving general settings!"
 msgstr "Error on saving general settings!"
 
-#: www/settingspage.i18n.html:156
+#: www/settingspage.i18n.html:171
 msgid "Error on saving notification settings!"
 msgstr "Error on saving notification settings!"
 
-#: www/index.i18n.html:286 www/settingspage.i18n.html:126
+#: www/index.i18n.html:286 www/settingspage.i18n.html:141
 msgid "Feedback"
 msgstr "Feedback"
 
@@ -106,9 +114,13 @@ msgstr "Filter"
 msgid "Forgot password?"
 msgstr "Forgot password?"
 
-#: www/settingspage.i18n.html:106
+#: www/settingspage.i18n.html:121
 msgid "General"
 msgstr "General"
+
+#: www/settingspage.i18n.html:100
+msgid "German"
+msgstr "German"
 
 #: www/register.i18n.html:97
 msgid "Get help"
@@ -210,15 +222,15 @@ msgstr "Password"
 msgid "Please create a new administrator account - this is necessary to login."
 msgstr "Please create a new administrator account - this is necessary to login."
 
-#: www/settingspage.i18n.html:98
+#: www/settingspage.i18n.html:113
 msgid "Please enter api token"
 msgstr "Please enter api token"
 
-#: www/settingspage.i18n.html:94
+#: www/settingspage.i18n.html:109
 msgid "Please enter slack channel name"
 msgstr "Please enter slack channel name"
 
-#: www/settingspage.i18n.html:111
+#: www/settingspage.i18n.html:126
 msgid "Please extract from your config file the ip address of postfix"
 msgstr "Please extract from your config file the ip address of postfix"
 
@@ -226,7 +238,7 @@ msgstr "Please extract from your config file the ip address of postfix"
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr "Please select an option for 'Most of my mail is' - see help for details"
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:128
+#: www/index.i18n.html:288 www/settingspage.i18n.html:143
 msgid "Privacy Policy"
 msgstr "Privacy Policy"
 
@@ -246,15 +258,15 @@ msgstr "Register"
 msgid "Registration"
 msgstr "Registration"
 
-#: www/settingspage.i18n.html:102 www/settingspage.i18n.html:114
+#: www/settingspage.i18n.html:117 www/settingspage.i18n.html:129
 msgid "Save"
 msgstr "Save"
 
-#: www/settingspage.i18n.html:174
+#: www/settingspage.i18n.html:189
 msgid "Saved general settings"
 msgstr "Saved general settings"
 
-#: www/settingspage.i18n.html:160
+#: www/settingspage.i18n.html:175
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
@@ -270,7 +282,7 @@ msgstr "Settings"
 msgid "Settings Error on initial setup!"
 msgstr "Settings Error on initial setup!"
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:128
+#: www/index.i18n.html:288 www/settingspage.i18n.html:143
 msgid "Thank you for using Lightmeter."
 msgstr "Thank you for using Lightmeter."
 

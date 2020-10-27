@@ -13,10 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
-var messages sync.Map
+var messages = map[string]po.Message{}
 
 func main() {
 	var (
@@ -42,18 +41,19 @@ func main() {
 
 	for _, v := range pkgs {
 		for _, vv := range v.Files {
-			log.Println("file: ", vv.Name)
+			if *debugMode {
+				log.Println("file: ", vv.Name)
+			}
+
 			ast.Walk(VisitorFunc(FindLangaugeKeys(*debugMode, fset)), vv)
 		}
 	}
 
 	messagesList := make([]po.Message, 0)
 
-	messages.Range(func(key, value interface{}) bool {
-		message := value.(po.Message)
+	for _, message := range messages {
 		messagesList = append(messagesList, message)
-		return true
-	})
+	}
 
 	if *addMissingIDs {
 		err := poutil.SaveDifference(*outfile, messagesList)
@@ -65,6 +65,7 @@ func main() {
 	}
 
 	f := po.File{}
+
 	// use custom save and pre process
 	err = poutil.Save(*outfile, poutil.Data(messagesList, f.MimeHeader.String()))
 	if err != nil {
@@ -81,9 +82,9 @@ func (f VisitorFunc) Visit(n ast.Node) ast.Visitor {
 const FuncI18n = "I18n"
 
 // nolint:gocriticm,nestif
-func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.Visitor {
+func FindLangaugeKeys(debugMode bool, fset *token.FileSet) func(n ast.Node) ast.Visitor {
 	return func(n ast.Node) ast.Visitor {
-		if debugNode {
+		if debugMode {
 			log.Println("")
 			log.Println("ast node:")
 			log.Println(fmt.Sprintf("verbose value: %#v", n))
@@ -93,31 +94,34 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 
 		switch n := n.(type) {
 		case *ast.Package:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.File:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.GenDecl:
 			if n.Tok == token.TYPE {
-				return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+				return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 			}
 		case *ast.FuncDecl:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.ReturnStmt:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.BlockStmt:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.ExprStmt:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case ast.Stmt:
-			return VisitorFunc(FindLangaugeKeys(debugNode, fset))
+			return VisitorFunc(FindLangaugeKeys(debugMode, fset))
 		case *ast.CallExpr:
+
+			filename := fset.File(n.Pos()).Name()
+			line := fset.File(n.Pos()).Line(n.Pos())
+			if debugMode {
+				log.Println("file:", filename, " line:", line)
+			}
+
 			if _, ok := n.Fun.(*ast.SelectorExpr); ok {
 				if n.Fun.(*ast.SelectorExpr).Sel.Name == FuncI18n {
-					err := StoreMsgID(n.Args[0])
-					if err != nil {
-						log.Println(err)
-						os.Exit(1)
-					}
+					MustStoreID(n.Args[0], filename, fset.File(n.Pos()).Line(n.Pos()))
 					return nil
 				}
 			}
@@ -131,27 +135,16 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 				return nil
 			}
 
-			name := fset.File(n.Pos()).Name()
-			log.Println("file:", name, " line:", fset.File(n.Pos()).Line(n.Pos()))
-
 			if assignStmt, ok := ident.Obj.Decl.(*ast.AssignStmt); ok {
 				if ident, ok := assignStmt.Rhs[0].(*ast.Ident); ok {
 					if funcDecl, ok := ident.Obj.Decl.(*ast.FuncDecl); ok {
 						if funcDecl.Name.Name == FuncI18n {
-							err := StoreMsgID(n.Args[0])
-							if err != nil {
-								log.Println(err)
-								os.Exit(1)
-							}
+							MustStoreID(n.Args[0], filename, fset.File(n.Pos()).Line(n.Pos()))
 						}
 					}
 				}
 			} else if ident.Name == FuncI18n {
-				err := StoreMsgID(n.Args[0])
-				if err != nil {
-					log.Println(err)
-					os.Exit(1)
-				}
+				MustStoreID(n.Args[0], filename, fset.File(n.Pos()).Line(n.Pos()))
 			}
 		}
 
@@ -159,7 +152,15 @@ func FindLangaugeKeys(debugNode bool, fset *token.FileSet) func(n ast.Node) ast.
 	}
 }
 
-func StoreMsgID(e ast.Expr) error {
+func MustStoreID(expr ast.Expr, filename string, line int) {
+	err := StoreMsgID(expr, filename, line)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+}
+
+func StoreMsgID(e ast.Expr, filename string, line int) error {
 	if typ, ok := e.(*ast.BasicLit); ok {
 		if typ.Kind == 9 {
 			cleanValue := strings.TrimFunc(typ.Value, func(r rune) bool {
@@ -171,9 +172,14 @@ func StoreMsgID(e ast.Expr) error {
 			message := po.Message{
 				MsgId:  cleanValue,
 				MsgStr: cleanValue,
+				Comment: po.Comment{
+					ReferenceLine: []int{line},
+					ReferenceFile: []string{filename},
+					StartLine:     line,
+				},
 			}
 
-			messages.Store(cleanValue, message)
+			messages[cleanValue] = message
 		}
 	} else {
 		return errorutil.Wrap(fmt.Errorf("Error custom types and variables are not allowed in combination with I18n: %v", e))
@@ -193,7 +199,11 @@ func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool
 		}
 
 		if strings.HasSuffix(info.Name(), ".go") && (filter == nil || filter(info)) {
-			fmt.Println("file: ", filepath.Join(path, info.Name()))
+
+			if debugMode {
+				fmt.Println("file: ", filepath.Join(path, info.Name()))
+			}
+
 			if src, err := parser.ParseFile(fset, path, nil, mode); err == nil {
 				name := src.Name.Name
 				pkg, found := pkgs[name]
@@ -209,7 +219,7 @@ func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool
 				return errorutil.Wrap(err)
 			}
 		} else {
-			if info.IsDir() {
+			if debugMode && info.IsDir() {
 				fmt.Println("dir: ", path)
 			}
 		}
