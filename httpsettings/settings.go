@@ -61,7 +61,7 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *Settings) SetupMux(mux *http.ServeMux) {
-	chain := httpmiddleware.WithDefaultTimeout()
+	chain := httpmiddleware.WithDefaultStack()
 
 	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
 }

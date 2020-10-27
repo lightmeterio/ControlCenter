@@ -21,6 +21,11 @@ type Chain struct {
 	middleware []Middleware
 }
 
+func WithDefaultStack(middleware ...Middleware) Chain {
+	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithID()}, middleware...)
+	return New(middleware...)
+}
+
 func New(middleware ...Middleware) Chain {
 	return Chain{middleware: middleware}
 }
