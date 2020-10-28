@@ -10,9 +10,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logdb"
+	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
@@ -24,6 +26,7 @@ type Workspace struct {
 	logs           *logdb.DB
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
+	rblDetector    *messagerbl.Detector
 
 	NotificationCenter notification.Center
 
@@ -87,9 +90,11 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 	// FIXME: rblChecker should start on Run()!!!
 	rblChecker.StartListening()
 
+	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
+
 	insightsEngine, err := insights.NewEngine(
 		workspaceDirectory,
-		notificationCenter, insightsOptions(dashboard, rblChecker))
+		notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
 
 	if err != nil {
 		return Workspace{}, errorutil.Wrap(err)
@@ -100,6 +105,7 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		logs:                &logDb,
 		insightsEngine:      insightsEngine,
 		auth:                auth,
+		rblDetector:         rblDetector,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		closes: closeutil.New(
@@ -137,12 +143,13 @@ func (ws *Workspace) MostRecentLogTime() time.Time {
 }
 
 func (ws *Workspace) NewPublisher() data.Publisher {
-	return ws.logs.NewPublisher()
+	return data.ComposedPublisher{ws.logs.NewPublisher(), ws.rblDetector.NewPublisher()}
 }
 
 func (ws *Workspace) Run() <-chan struct{} {
 	doneInsights, cancelInsights := ws.insightsEngine.Run()
 	doneSettings, cancelSettings := ws.settingsRunner.Run()
+	doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
 
 	done := make(chan struct{})
 
@@ -155,9 +162,11 @@ func (ws *Workspace) Run() <-chan struct{} {
 
 		cancelInsights()
 		cancelSettings()
+		cancelMsgRbl()
 
 		doneInsights()
 		doneSettings()
+		doneMsgRbl()
 
 		done <- struct{}{}
 	}()

@@ -79,7 +79,17 @@ function buildInsightRating(insight) {
 }
 
 function buildInsightTitle(insight) {
-  return insightsTitles[insight.ContentType]
+  var s = insightsTitles[insight.ContentType]
+
+  if (typeof s == "string") {
+    return s
+  }
+
+  if (typeof s == "function") {
+    return s(insight)
+  }
+
+  return "Title for " + insight.ContentType
 }
 
 function buildInsightDescription(insight) {
@@ -113,7 +123,7 @@ function buildInsightRblList(insightId) {
   insight.Content.rbls.forEach(r => {
     content += "<li><b>" + escapeHTML(r.rbl) + "</b>: " + escapeHTML(r.text) + "</li>"
   })
-  
+
   content += "</ul>"
 
   $('#rbl-list-content').html(content)
@@ -128,3 +138,26 @@ function buildInsightRblCheckedIp(insightId) {
 
   return insight.Content.address
 }
+
+function buildInsightMsgRblDetails(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight === undefined) {
+    return
+  }
+
+  var content = escapeHTML(insight.Content.message)
+
+  $('#msg-rbl-list-content').html(content)
+}
+
+function buildInsightMsgRblTitle(insightId) {
+  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+
+  if (insight === undefined) {
+    return ""
+  }
+
+  return [insight.Content.recipient, insight.Content.host]
+}
+
