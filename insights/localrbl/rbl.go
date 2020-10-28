@@ -239,19 +239,3 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 
 	return nil
 }
-
-// Executed only on development builds, for better developer experience
-func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	if err := generateInsight(tx, c, d.creator, content{
-		ScanInterval: data.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
-		Address:      d.options.Checker.IPAddress(context.Background()),
-		RBLs: []localrbl.ContentElement{
-			{RBL: "rbl.com", Text: "Funny reason"},
-			{RBL: "anotherrbl.de", Text: "Another funny reason"},
-		},
-	}); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}

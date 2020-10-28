@@ -204,15 +204,6 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval da
 	return nil
 }
 
-// Executed only on development builds, for better developer experience
-func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	if err := generateInsight(tx, c, d.creator, data.TimeInterval{From: c.Now().Add(-d.options.LookupRange), To: c.Now()}); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func init() {
 	core.RegisterContentType(ContentType, 0, func(b []byte) (core.Content, error) {
 		content := content{}
