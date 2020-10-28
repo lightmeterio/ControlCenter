@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"flag"
-	"fmt"
 	"github.com/robfig/gettext-go/gettext/po"
+	"gitlab.com/lightmeter/controlcenter/tools/poutil"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
-	"strings"
 	"text/template"
 	"text/template/parse"
 )
@@ -132,12 +129,6 @@ func main() {
 	// not to lose the already extracted ones
 	flag.Parse()
 
-	f := po.File{}
-
-	if !*isTemplate {
-		f.MimeHeader.Language = "en"
-	}
-
 	r := regexp.MustCompile(*pattern)
 
 	messages := messages{}
@@ -162,36 +153,13 @@ func main() {
 		panic(err)
 	}
 
+	messagesList := make([]po.Message, 0)
 	for _, m := range messages {
-		f.Messages = append(f.Messages, *m)
+		messagesList = append(messagesList, *m)
 	}
 
 	if *addMissingIDs {
-		content, err := ioutil.ReadFile(*outfile)
-		if err != nil {
-			panic(err)
-		}
-
-		newFile, err := po.LoadData(content)
-		if err != nil {
-			panic(err)
-		}
-
-		ids := make(map[string]bool)
-		for _, message := range newFile.Messages {
-			ids[message.MsgId] = true
-		}
-
-		for _, message := range f.Messages {
-			// Skip all messages which are available in messages to avoid generation of duplicates
-			if ids[message.MsgId] {
-				continue
-			}
-			newFile.Messages = append(newFile.Messages, message)
-		}
-
-		// use custom save and pre process
-		err = Save(*outfile, Data(newFile.Messages, f.MimeHeader.String()))
+		err := poutil.SaveDifference(*outfile, messagesList)
 		if err != nil {
 			panic(err)
 		}
@@ -199,38 +167,15 @@ func main() {
 		return
 	}
 
+	f := po.File{}
+
+	if !*isTemplate {
+		f.MimeHeader.Language = "en"
+	}
+
 	// use custom save and pre process
-	err = Save(*outfile, Data(f.Messages, f.MimeHeader.String()))
+	err = poutil.Save(*outfile, poutil.Data(messagesList, f.MimeHeader.String()))
 	if err != nil {
 		panic(err)
 	}
-}
-
-// Save returns a po file format data.
-func Data(messages []po.Message, mimeHeader string) []byte {
-	sort.Slice(messages, func(i, j int) bool {
-		si := messages[i].MsgId
-		sj := messages[j].MsgId
-		siLower := strings.ToLower(si)
-		sjLower := strings.ToLower(sj)
-		if siLower == sjLower {
-			return si < sj
-		}
-		return siLower < sjLower
-	})
-
-	var buf bytes.Buffer
-
-	fmt.Fprintf(&buf, "%s\n", mimeHeader)
-
-	for i := 0; i < len(messages); i++ {
-		fmt.Fprintf(&buf, "%s\n", messages[i].String())
-	}
-
-	return buf.Bytes()
-}
-
-// Save saves a po file.
-func Save(name string, buff []byte) error {
-	return ioutil.WriteFile(name, buff, 0600)
 }

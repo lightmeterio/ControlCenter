@@ -57,7 +57,10 @@ po2go:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/po
 
 code2po:
-	sh ./code2poutil.sh
+	sh ./tools/code2poutil.sh
+
+go2po:
+	sh ./tools/go2poutil.sh
 
 swag:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/api

@@ -33,7 +33,7 @@ func (c content) String() string {
 }
 
 func (c content) TplString() string {
-	return "The IP address %%v is listed by %%v RBLs"
+	return translator.I18n("The IP address %%v is listed by %%v RBLs")
 }
 
 func (c content) Args() []interface{} {

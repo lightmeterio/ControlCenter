@@ -1,8 +1,0 @@
-msgid "%%v percent bounce rate between %%v and %%v"
-msgstr "%%v prozent bounce rate ist zwischen %%v und %%v"
-
-msgid "The IP address %%v is listed by %%v RBLs"
-msgstr "Die IP addresse %%v wurde von %%d RBLs geblockt"
-
-msgid "No emails were sent between %%v and %%v"
-msgstr "Zwischen %%v und %%v wurden keine E-Mails gesendet"

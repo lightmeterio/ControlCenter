@@ -1,0 +1,24 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+
+#: insights/highrate/high_status_rate_insight.go:178
+msgid "%%v percent bounce rate between %%v and %%v"
+msgstr "%%v percent bounce rate between %%v and %%v"
+
+#: insights/mailinactivity/mail_inactivity_insight.go:25
+msgid "No emails were sent between %%v and %%v"
+msgstr "No emails were sent between %%v and %%v"
+
+#: insights/localrbl/rbl.go:36
+msgid "The IP address %%v is listed by %%v RBLs"
+msgstr "The IP address %%v is listed by %%v RBLs"
+

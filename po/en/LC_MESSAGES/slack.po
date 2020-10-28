@@ -1,9 +1,0 @@
-msgid "%%v percent bounce rate between %%v and %%v"
-msgstr "%%v percent bounce rate between %%v and %%v"
-
-msgid "The IP address %%v is listed by %%v RBLs"
-msgstr "The IP address %%v is listed by %%v RBLs"
-
-msgid "No emails were sent between %%v and %%v"
-msgstr "No emails were sent between %%v and %%v"
-

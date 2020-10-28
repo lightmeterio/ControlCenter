@@ -175,7 +175,7 @@ func (c bounceRateContent) String() string {
 }
 
 func (c bounceRateContent) TplString() string {
-	return "%%v percent bounce rate between %%v and %%v"
+	return translator.I18n("%%v percent bounce rate between %%v and %%v")
 }
 
 func (c bounceRateContent) Args() []interface{} {
