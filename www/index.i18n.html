@@ -64,7 +64,7 @@
             "message_rbl": function(i) {
               var c = i.Content
               var msgPart = sprintf("{{ translate `The IP %%s cannot deliver to %%s (<strong>%%s</strong>)` }}. ", c.address, c.recipient, c.host)
-              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msgRblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openMsgRblModal']);\">{{ translate `View details` }}</a>"
+              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openMsgRblModal']);\">{{ translate `View details` }}</a>"
               return msgPart + linkPart
             }
           }
@@ -146,11 +146,11 @@
                     </div>
 
                     <!-- Message RBL list modal -->
-                    <div class="modal fade" id="msgRblListModal" tabindex="-1" role="dialog" aria-labelledby="msgRblListLabel" aria-hidden="true">
+                    <div class="modal fade" id="msg_rbl_list_modal" tabindex="-1" role="dialog" aria-labelledby="msg_rbl_list_label" aria-hidden="true">
                         <div class="modal-dialog modal-lg" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="msgRblListLabel"></h5>
+                                    <h5 class="modal-title" id="msg_rbl_list_label"></h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                     </button>
@@ -355,7 +355,7 @@
               buildInsightRblList(rblId)
           })
 
-          $('#msgRblListModal').on('shown.bs.modal', function(e) {
+          $('#msg_rbl_list_modal').on('shown.bs.modal', function(e) {
               var rblId = $(e.relatedTarget).data('msg-rbl-id')
               var modal = $(this)
               var text = sprintf('{{translate "Original message for IP Block for %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))

@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"log"
 	"net"
 	"time"
@@ -65,13 +64,6 @@ type detector struct {
 	creator core.Creator
 }
 
-func newDetectorWithOptions(creator core.Creator, options Options) *detector {
-	return &detector{
-		options: options,
-		creator: creator,
-	}
-}
-
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["messagerbl"].(Options)
 
@@ -79,7 +71,10 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 		errorutil.MustSucceed(errors.New("Invalid detector options"))
 	}
 
-	return newDetectorWithOptions(creator, detectorOptions)
+	return &detector{
+		options: detectorOptions,
+		creator: creator,
+	}
 }
 
 func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Clock, tx *sql.Tx) error {
@@ -142,22 +137,6 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 	}
 
 	if err := creator.GenerateInsight(tx, properties); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
-// Executed only on development builds, for better developer experience
-func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	if err := generateInsight(tx, c, d.creator, content{
-		Address:   d.options.Detector.IPAddress(context.Background()),
-		Message:   "Sample Insight: host blocked. Try https://google.com/ to unblock it",
-		Recipient: "some.mail.com",
-		Status:    parser.DeferredStatus.String(),
-		Host:      "Big Host",
-		Time:      c.Now(),
-	}); err != nil {
 		return errorutil.Wrap(err)
 	}
 

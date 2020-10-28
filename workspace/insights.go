@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+const (
+	// Those are rough times. They don't need to be so precise to consider leap seconds, and so on...
+	oneDay  = time.Hour * 24
+	oneWeek = oneDay * 7
+)
+
 func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker, rblDetector messagerbl.Stepper) insightscore.Options {
 	return insightscore.Options{
 		"dashboard":      dashboard,
@@ -22,12 +28,12 @@ func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker,
 			CheckInterval:               time.Hour * 3,
 			Checker:                     rblChecker,
 			RetryOnScanErrorInterval:    time.Second * 30,
-			MinTimeToGenerateNewInsight: time.Hour * 24 * 7,
+			MinTimeToGenerateNewInsight: oneWeek,
 		},
 
 		"messagerbl": messagerblinsight.Options{
 			Detector:                    rblDetector,
-			MinTimeToGenerateNewInsight: (time.Hour * 24 * 7) / 2,
+			MinTimeToGenerateNewInsight: oneWeek / 2,
 		},
 	}
 }

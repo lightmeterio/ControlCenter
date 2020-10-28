@@ -26,10 +26,6 @@ type matcher struct {
 	pattern *regexp.Regexp
 }
 
-func pattern(p string) *regexp.Regexp {
-	return regexp.MustCompile(p)
-}
-
 func (m matcher) match(r record) bool {
 	// If dsn code is not available, ignore it
 	dsnMatches := (len(m.dsn) > 0 && r.payload.Dsn == m.dsn) || len(m.dsn) == 0
@@ -68,12 +64,20 @@ type Detector struct {
 	matchers         matchers
 }
 
-func newDetectorWithMatchers(settings globalsettings.Getter, matchers matchers) *Detector {
+const (
+	// MsgBufferSize is how much messages we are able to process without blocking
+	// any other publisher.
+	// Its value is for now arbitrary, and chosen experimentally to make the log thread
+	// never block (see the logdb package)
+	MsgBufferSize = 1024
+)
+
+func New(settings globalsettings.Getter) *Detector {
 	return &Detector{
 		Getter:           settings,
-		nonDeliveredChan: make(chan record, 1024),
-		resultsChan:      make(chan Result, 1024),
-		matchers:         matchers,
+		nonDeliveredChan: make(chan record, MsgBufferSize),
+		resultsChan:      make(chan Result, MsgBufferSize),
+		matchers:         defaultMatchers,
 	}
 }
 
