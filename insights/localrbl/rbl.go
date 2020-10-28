@@ -3,7 +3,6 @@ package localrblinsight
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -45,21 +44,10 @@ const (
 	ContentTypeId = 4
 )
 
-func decodeContent(b []byte) (*content, error) {
-	content := content{}
-	err := json.Unmarshal(b, &content)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &content, nil
-}
+var decodeContent = core.DefaultContentTypeDecoder(&content{})
 
 func init() {
-	core.RegisterContentType(ContentType, ContentTypeId, func(b []byte) (core.Content, error) {
-		return decodeContent(b)
-	})
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
 }
 
 type detector struct {
@@ -117,13 +105,16 @@ func shouldGenerateBasedOnHistoricalDataAndCurrentResults(ctx context.Context, d
 		return false, errorutil.Wrap(err)
 	}
 
-	lastInsightContent, err := decodeContent([]byte(lastInsightRawContent))
+	v, err := decodeContent([]byte(lastInsightRawContent))
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
 
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
-	resultChanged := contentsHaveDifferentLists(r.RBLs, lastInsightContent.RBLs)
+	resultChanged := contentsHaveDifferentLists(r.RBLs, v.(*content).RBLs)
 
 	if !resultChanged {
 		log.Println("RBL Scan result will not generate a new insight as scan results has not changed since last insight")

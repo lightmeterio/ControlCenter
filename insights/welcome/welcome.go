@@ -2,7 +2,6 @@ package welcome
 
 import (
 	"database/sql"
-	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -83,17 +82,6 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 func init() {
-	handler := func(b []byte) (core.Content, error) {
-		content := content{}
-		err := json.Unmarshal(b, &content)
-
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return &content, nil
-	}
-
-	core.RegisterContentType("welcome_content", 2, handler)
-	core.RegisterContentType("insights_introduction_content", 3, handler)
+	core.RegisterContentType("welcome_content", 2, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType("insights_introduction_content", 3, core.DefaultContentTypeDecoder(&content{}))
 }
