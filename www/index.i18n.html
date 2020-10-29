@@ -64,7 +64,7 @@
             "message_rbl": function(i) {
               var c = i.Content
               var msgPart = sprintf("{{ translate `The IP %%s cannot deliver to %%s (<strong>%%s</strong>)` }}. ", c.address, c.recipient, c.host)
-              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openMsgRblModal']);\">{{ translate `Details` }}</a>"
+              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             }
           }
