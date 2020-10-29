@@ -10,32 +10,32 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: www/index.i18n.html:38
+#: www/index.i18n.html:39
 #, fuzzy
 msgid "<b>%%i%%%%</b> bounce rate between %%s and %%s"
 msgstr " "
 
-#: www/index.i18n.html:94 www/settingspage.i18n.html:46
+#: www/index.i18n.html:102 www/settingspage.i18n.html:46
 #, fuzzy
 msgid "About"
 msgstr " "
 
-#: www/index.i18n.html:242
+#: www/index.i18n.html:316
+#, fuzzy
+msgid "About Lightmeter"
+msgstr " "
+
+#: www/index.i18n.html:270
 #, fuzzy
 msgid "All"
 msgstr " "
 
-#: www/index.i18n.html:166
+#: www/index.i18n.html:194
 #, fuzzy
 msgid "and welcome back"
 msgstr " "
 
-#: www/index.i18n.html:32
-#, fuzzy
-msgid "Blocked IP"
-msgstr " "
-
-#: www/index.i18n.html:198
+#: www/index.i18n.html:226
 #, fuzzy
 msgid "Bounced domains"
 msgstr " "
@@ -50,7 +50,7 @@ msgstr " "
 msgid "Breaking new ground"
 msgstr " "
 
-#: www/index.i18n.html:195
+#: www/index.i18n.html:223
 #, fuzzy
 msgid "Busiest domains"
 msgstr " "
@@ -60,29 +60,34 @@ msgstr " "
 msgid "Cancel"
 msgstr " "
 
-#: www/index.i18n.html:114 www/index.i18n.html:134 www/settingspage.i18n.html:66
+#: www/index.i18n.html:122 www/index.i18n.html:142 www/index.i18n.html:162 www/settingspage.i18n.html:66
 #, fuzzy
 msgid "Close"
 msgstr " "
 
-#: www/index.i18n.html:247
+#: www/index.i18n.html:275
 #, fuzzy
 msgid "Comparative"
 msgstr " "
 
-#: www/index.i18n.html:148
+#: www/index.i18n.html:176
 #, fuzzy
 msgid "Control Center"
 msgstr " "
 
-#: www/index.i18n.html:201
+#: www/index.i18n.html:229
 #, fuzzy
 msgid "Deferred domains"
 msgstr " "
 
-#: www/index.i18n.html:182
+#: www/index.i18n.html:210
 #, fuzzy
 msgid "Delivery attempts"
+msgstr " "
+
+#: www/index.i18n.html:60 www/index.i18n.html:67
+#, fuzzy
+msgid "Details"
 msgstr " "
 
 #: www/register.i18n.html:130
@@ -125,12 +130,12 @@ msgstr " "
 msgid "Error on saving notification settings!"
 msgstr " "
 
-#: www/index.i18n.html:286 www/settingspage.i18n.html:141
+#: www/index.i18n.html:314 www/settingspage.i18n.html:141
 #, fuzzy
 msgid "Feedback"
 msgstr " "
 
-#: www/index.i18n.html:240
+#: www/index.i18n.html:268
 #, fuzzy
 msgid "Filter"
 msgstr " "
@@ -155,7 +160,7 @@ msgstr " "
 msgid "Get help"
 msgstr " "
 
-#: www/index.i18n.html:67
+#: www/index.i18n.html:75
 #, fuzzy
 msgid "Happy %%s,"
 msgstr " "
@@ -165,27 +170,37 @@ msgstr " "
 msgid "High Bounce Rate"
 msgstr " "
 
-#: www/index.i18n.html:228
+#: www/index.i18n.html:256
 #, fuzzy
 msgid "Insights"
 msgstr " "
 
-#: www/index.i18n.html:48
+#: www/index.i18n.html:49
 #, fuzzy
 msgid "Insights are time-based analyses relating to your mailserver"
 msgstr " "
 
-#: www/index.i18n.html:246
+#: www/index.i18n.html:274
 #, fuzzy
 msgid "Intel"
 msgstr " "
 
-#: www/index.i18n.html:53
+#: www/index.i18n.html:33
+#, fuzzy
+msgid "IP blocked by %%s"
+msgstr " "
+
+#: www/index.i18n.html:32
+#, fuzzy
+msgid "IP on shared blocklist"
+msgstr " "
+
+#: www/index.i18n.html:54
 #, fuzzy
 msgid "Keep Control Center running to generate Insights; checks run every few seconds"
 msgstr " "
 
-#: www/index.i18n.html:100 www/settingspage.i18n.html:52
+#: www/index.i18n.html:108 www/settingspage.i18n.html:52
 #, fuzzy
 msgid "Lightmeter Control Center"
 msgstr " "
@@ -195,7 +210,7 @@ msgstr " "
 msgid "Lightmeter ControlCenter"
 msgstr " "
 
-#: www/index.i18n.html:243
+#: www/index.i18n.html:271
 #, fuzzy
 msgid "Local"
 msgstr " "
@@ -230,17 +245,17 @@ msgstr " "
 msgid "Name"
 msgstr " "
 
-#: www/index.i18n.html:251
+#: www/index.i18n.html:279
 #, fuzzy
 msgid "Newest"
 msgstr " "
 
-#: www/index.i18n.html:244
+#: www/index.i18n.html:272
 #, fuzzy
 msgid "News"
 msgstr " "
 
-#: www/index.i18n.html:108 www/settingspage.i18n.html:60
+#: www/index.i18n.html:116 www/settingspage.i18n.html:60
 #, fuzzy
 msgid "Newsletter"
 msgstr " "
@@ -250,7 +265,7 @@ msgstr " "
 msgid "No"
 msgstr " "
 
-#: www/index.i18n.html:43
+#: www/index.i18n.html:44
 #, fuzzy
 msgid "No emails were sent between %%s and %%s"
 msgstr " "
@@ -260,9 +275,14 @@ msgstr " "
 msgid "Notifications"
 msgstr " "
 
-#: www/index.i18n.html:252
+#: www/index.i18n.html:280
 #, fuzzy
 msgid "Oldest"
+msgstr " "
+
+#: www/index.i18n.html:361
+#, fuzzy
+msgid "Original response from %%s (%%s)"
 msgstr " "
 
 #: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
@@ -295,19 +315,24 @@ msgstr " "
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:143
+#: www/index.i18n.html:316 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Privacy Policy"
 msgstr " "
 
-#: www/index.i18n.html:125
+#: www/index.i18n.html:133
 #, fuzzy
 msgid "RBLs for"
 msgstr " "
 
-#: www/index.i18n.html:326
+#: www/index.i18n.html:354
 #, fuzzy
 msgid "RBLs for "
+msgstr " "
+
+#: www/index.i18n.html:316
+#, fuzzy
+msgid "Read policy"
 msgstr " "
 
 #: www/register.i18n.html:141
@@ -350,17 +375,22 @@ msgstr " "
 msgid "Settings Error on initial setup!"
 msgstr " "
 
-#: www/index.i18n.html:288 www/settingspage.i18n.html:143
+#: www/index.i18n.html:316 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Thank you for using Lightmeter."
 msgstr " "
 
-#: www/index.i18n.html:58
+#: www/index.i18n.html:66
+#, fuzzy
+msgid "The IP %%s cannot deliver to %%s (<strong>%%s</strong>)"
+msgstr " "
+
+#: www/index.i18n.html:59
 #, fuzzy
 msgid "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 msgstr " "
 
-#: www/index.i18n.html:231
+#: www/index.i18n.html:259
 #, fuzzy
 msgid "Time interval:"
 msgstr " "
@@ -380,17 +410,12 @@ msgstr " "
 msgid "User details"
 msgstr " "
 
-#: www/index.i18n.html:59
-#, fuzzy
-msgid "View list"
-msgstr " "
-
 #: www/register.i18n.html:48
 #, fuzzy
 msgid "Vulnerable to"
 msgstr " "
 
-#: www/index.i18n.html:106 www/settingspage.i18n.html:58
+#: www/index.i18n.html:114 www/settingspage.i18n.html:58
 #, fuzzy
 msgid "Website"
 msgstr " "
@@ -398,6 +423,11 @@ msgstr " "
 #: www/register.i18n.html:95
 #, fuzzy
 msgid "Welcome"
+msgstr " "
+
+#: www/index.i18n.html:314
+#, fuzzy
+msgid "What would you improve?"
 msgstr " "
 
 #: www/settingspage.i18n.html:85
