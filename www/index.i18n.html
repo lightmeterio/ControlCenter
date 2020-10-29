@@ -358,7 +358,7 @@
           $('#msg_rbl_list_modal').on('shown.bs.modal', function(e) {
               var rblId = $(e.relatedTarget).data('msg-rbl-id')
               var modal = $(this)
-              var text = sprintf('{{translate "Original message for IP Block for %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
+              var text = sprintf('{{translate "Original response from %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
               modal.find('.modal-title').text(text)
               buildInsightMsgRblDetails(rblId)
           })
