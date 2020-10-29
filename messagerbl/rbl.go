@@ -3,6 +3,7 @@ package messagerbl
 import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"net"
@@ -62,6 +63,7 @@ type Detector struct {
 	nonDeliveredChan chan record
 	resultsChan      chan Result
 	matchers         matchers
+	runner.CancelableRunner
 }
 
 const (
@@ -73,12 +75,34 @@ const (
 )
 
 func New(settings globalsettings.Getter) *Detector {
-	return &Detector{
+	d := &Detector{
 		Getter:           settings,
 		nonDeliveredChan: make(chan record, MsgBufferSize),
 		resultsChan:      make(chan Result, MsgBufferSize),
 		matchers:         defaultMatchers,
 	}
+
+	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
+		go func() {
+			<-cancel
+			close(d.nonDeliveredChan)
+		}()
+
+		go func() {
+			for r := range d.nonDeliveredChan {
+				if result, matched := messageMatchesAnyHosts(d, d.matchers, r); matched {
+					d.resultsChan <- result
+				}
+			}
+
+			close(d.resultsChan)
+			done <- struct{}{}
+		}()
+	}
+
+	d.CancelableRunner = runner.NewCancelableRunner(execute)
+
+	return d
 }
 
 func (d *Detector) NewPublisher() *Publisher {
@@ -107,30 +131,6 @@ func messageMatchesAnyHosts(settings globalsettings.Getter, matchers matchers, r
 	}
 
 	return Result{}, false
-}
-
-func (d *Detector) Run() (done func(), cancel func()) {
-	// Receives messages, filters them, and notify any listeners of if
-	cancelChan := make(chan struct{})
-	doneChan := make(chan struct{})
-
-	go func() {
-		<-cancelChan
-		close(d.nonDeliveredChan)
-	}()
-
-	go func() {
-		for r := range d.nonDeliveredChan {
-			if result, matched := messageMatchesAnyHosts(d, d.matchers, r); matched {
-				d.resultsChan <- result
-			}
-		}
-
-		close(d.resultsChan)
-		doneChan <- struct{}{}
-	}()
-
-	return func() { <-doneChan }, func() { cancelChan <- struct{}{} }
 }
 
 type Stepper interface {
