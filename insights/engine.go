@@ -7,6 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
@@ -22,6 +23,7 @@ type Engine struct {
 	txActions         chan txAction
 	fetcher           core.Fetcher
 	closers           closeutil.Closers
+	runner.CancelableRunner
 }
 
 func NewCustomEngine(
@@ -83,6 +85,28 @@ func NewCustomEngine(
 			fetcher,
 		),
 	}
+
+	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
+		cancelInsightsJob := make(chan struct{})
+
+		clock := &realClock{}
+		// start generating insights
+		go spawnInsightsJob(clock, e, cancelInsightsJob)
+
+		go func() {
+			<-cancel
+			cancelInsightsJob <- struct{}{}
+
+			close(e.txActions)
+		}()
+
+		go func() {
+			runDatabaseWriterLoop(e)
+			done <- struct{}{}
+		}()
+	}
+
+	e.CancelableRunner = runner.NewCancelableRunner(execute)
 
 	return e, nil
 }
@@ -176,39 +200,6 @@ func runDatabaseWriterLoop(e *Engine) {
 			return
 		}
 	}
-}
-
-func (e *Engine) Run() (func(), func()) {
-	clock := &realClock{}
-
-	cancelInsightsJob := make(chan struct{})
-
-	// start generating insights
-	go spawnInsightsJob(clock, e, cancelInsightsJob)
-
-	cancelRun := make(chan struct{})
-	doneRun := make(chan struct{})
-
-	go func() {
-		<-cancelRun
-		cancelInsightsJob <- struct{}{}
-
-		close(e.txActions)
-	}()
-
-	// TODO: start user actions thread
-	// something that reads user actions (resolve insights, etc.)
-
-	go func() {
-		runDatabaseWriterLoop(e)
-		doneRun <- struct{}{}
-	}()
-
-	return func() {
-			<-doneRun
-		}, func() {
-			cancelRun <- struct{}{}
-		}
 }
 
 func (e *Engine) Fetcher() core.Fetcher {

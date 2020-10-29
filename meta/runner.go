@@ -2,6 +2,7 @@ package meta
 
 import (
 	"context"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"time"
 )
 
@@ -10,10 +11,27 @@ import (
 type Runner struct {
 	writer       *Writer
 	requestsChan chan storeRequest
+	runner.CancelableRunner
 }
 
 func NewRunner(h *Handler) *Runner {
-	return &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
+	r := &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
+
+	cancelableRunner := runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		go func() {
+			<-cancel
+			close(r.requestsChan)
+		}()
+
+		go func() {
+			runnerLoop(r.writer, r.requestsChan)
+			done <- struct{}{}
+		}()
+	})
+
+	r.CancelableRunner = cancelableRunner
+
+	return r
 }
 
 // AsyncWriter allows callers to schedule values to be stored, but in a non-blocking way
@@ -93,21 +111,4 @@ func runnerLoop(writer *Writer, requestsChan chan storeRequest) {
 	for req := range requestsChan {
 		handleRequest(loopContext, writer, req)
 	}
-}
-
-func (runner *Runner) Run() (done func(), cancel func()) {
-	doneChan := make(chan struct{})
-	cancelChan := make(chan struct{})
-
-	go func() {
-		<-cancelChan
-		close(runner.requestsChan)
-	}()
-
-	go func() {
-		runnerLoop(runner.writer, runner.requestsChan)
-		doneChan <- struct{}{}
-	}()
-
-	return func() { <-doneChan }, func() { cancelChan <- struct{}{} }
 }
