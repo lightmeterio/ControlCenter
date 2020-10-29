@@ -52,7 +52,7 @@ func (c content) String() string {
 }
 
 func (c content) TplString() string {
-	return translator.I18n(`The IP %%v cannot deliver to %%v (%%v)`)
+	return translator.I18n("The IP %%v cannot deliver to %%v (%%v)")
 }
 
 func (c content) Args() []interface{} {
