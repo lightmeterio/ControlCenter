@@ -64,7 +64,7 @@
             "message_rbl": function(i) {
               var c = i.Content
               var msgPart = sprintf("{{ translate `The IP %%s cannot deliver to %%s (<strong>%%s</strong>)` }}. ", c.address, c.recipient, c.host)
-              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openMsgRblModal']);\">{{ translate `Details` }}</a>"
+              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             }
           }
@@ -311,9 +311,9 @@
             <div class="container">
                 <p class="float-right">
                     &bull;
-                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
+                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" title='{{translate "What would you improve?"}}' onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
                 </p>
-                <p>{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">{{translate "Privacy Policy"}}</a></p>
+                <p><a href="https://lightmeter.io/about/" title='{{translate "About Lightmeter"}}' onclick="_paq.push(['trackEvent', 'Footer', 'clickAboutLink']);" target="_blank">{{translate "Thank you for using Lightmeter."}}</a> &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" title='{{translate "Read policy"}}' target="_blank">{{translate "Privacy Policy"}}</a></p>
             </div>
         </footer>
 
