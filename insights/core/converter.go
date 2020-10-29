@@ -1,8 +1,11 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
+	"reflect"
 )
 
 var (
@@ -55,6 +58,27 @@ func RegisterContentType(contentType string, value int, handler decoderHandler) 
 	}
 
 	reverseConverters[value] = contentType
+}
+
+func DefaultContentTypeDecoder(content Content) func(b []byte) (Content, error) {
+	reflectedValue := reflect.ValueOf(content)
+
+	if reflectedValue.Kind() != reflect.Ptr {
+		panic("content is not ptr")
+	}
+
+	handler := func(b []byte) (Content, error) {
+		v := reflect.New(reflectedValue.Elem().Type()).Interface().(Content)
+
+		err := json.Unmarshal(b, v)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return v, nil
+	}
+
+	return handler
 }
 
 func decodeByContentType(contentType string, content []byte) (Content, error) {

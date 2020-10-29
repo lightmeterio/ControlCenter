@@ -3,7 +3,6 @@ package highrate
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -217,13 +216,5 @@ func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error
 }
 
 func init() {
-	core.RegisterContentType(highBaseBounceRateContentType, 1, func(b []byte) (core.Content, error) {
-		var v bounceRateContent
-
-		if err := json.Unmarshal(b, &v); err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return &v, nil
-	})
+	core.RegisterContentType(highBaseBounceRateContentType, 1, core.DefaultContentTypeDecoder(&bounceRateContent{}))
 }

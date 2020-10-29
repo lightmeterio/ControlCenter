@@ -3,7 +3,6 @@ package mailinactivity
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
@@ -214,14 +213,5 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 }
 
 func init() {
-	core.RegisterContentType(ContentType, 0, func(b []byte) (core.Content, error) {
-		content := content{}
-		err := json.Unmarshal(b, &content)
-
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return &content, nil
-	})
+	core.RegisterContentType(ContentType, 0, core.DefaultContentTypeDecoder(&content{}))
 }

@@ -3,7 +3,6 @@ package insights
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -100,15 +99,7 @@ func (d *fakeDetector) GenerateSampleInsight(tx *sql.Tx, clock core.Clock) error
 }
 
 func init() {
-	core.RegisterContentType("fake_insight_type", 200, func(b []byte) (core.Content, error) {
-		var v content
-
-		if err := json.Unmarshal(b, &v); err != nil {
-			return nil, err
-		}
-
-		return &v, nil
-	})
+	core.RegisterContentType("fake_insight_type", 200, core.DefaultContentTypeDecoder(&content{}))
 }
 
 func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
