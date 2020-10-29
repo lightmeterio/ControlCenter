@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 func main() {
@@ -31,5 +31,4 @@ func main() {
 			fmt.Println(string(j))
 		}
 	}
-
 }
