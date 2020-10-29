@@ -8,7 +8,7 @@ import (
 
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 func init() {

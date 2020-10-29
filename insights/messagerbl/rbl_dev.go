@@ -6,8 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 )
 
 // Executed only on development builds, for better developer experience

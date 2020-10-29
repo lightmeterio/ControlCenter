@@ -13,7 +13,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 func readFromReader(reader io.Reader,

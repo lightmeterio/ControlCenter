@@ -15,7 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 func init() {

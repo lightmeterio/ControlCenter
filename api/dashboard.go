@@ -5,9 +5,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/version"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"net/http"
 	"time"
 )
