@@ -65,7 +65,7 @@ func actionFromLog(converter *parser.TimeConverter, host string, line string) fu
 
 func TestMessageRBLInsight(t *testing.T) {
 	Convey("Test Message RBL Insight", t, func() {
-		accessor, clearAccessor := insighttestsutil.NewFakeAcessor()
+		accessor, clearAccessor := insighttestsutil.NewFakeAccessor()
 		defer clearAccessor()
 
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)

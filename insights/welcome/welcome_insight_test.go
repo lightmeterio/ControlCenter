@@ -8,10 +8,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 	"time"
 )
@@ -26,25 +23,10 @@ func init() {
 
 func TestWelcomeInsights(t *testing.T) {
 	Convey("Test Welcome Generator", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		accessor, clear := insighttestsutil.NewFakeAccessor()
+		defer clear()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
-		So(err, ShouldBeNil)
-
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		migrator.Run(connPair.RwConn.DB, "insights")
-
-		accessor := func() *insighttestsutil.FakeAcessor {
-			creator, err := core.NewCreator(connPair.RwConn)
-			So(err, ShouldBeNil)
-			fetcher, err := core.NewFetcher(connPair.RoConn)
-			So(err, ShouldBeNil)
-			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher}
-		}()
+		connPair := accessor.ConnPair
 
 		Convey("Insight is generated only once", func() {
 			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24)}

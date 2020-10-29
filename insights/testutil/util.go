@@ -33,14 +33,14 @@ func (t *FakeClock) Sleep(d time.Duration) {
 	t.Time = t.Time.Add(d)
 }
 
-type FakeAcessor struct {
+type FakeAccessor struct {
 	*core.DBCreator
 	core.Fetcher
 	Insights []int64
 	ConnPair dbconn.ConnPair
 }
 
-func (c *FakeAcessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
+func (c *FakeAccessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
 	id, err := core.GenerateInsight(tx, properties)
 
 	if err != nil {
@@ -52,9 +52,9 @@ func (c *FakeAcessor) GenerateInsight(tx *sql.Tx, properties core.InsightPropert
 	return nil
 }
 
-// NewFakeAcessor returns an acessor that implements core.Fetcher and core.Creator
+// NewFakeAccessor returns an acessor that implements core.Fetcher and core.Creator
 // using a temporary database that should be delete using clear()
-func NewFakeAcessor() (acessor *FakeAcessor, clear func()) {
+func NewFakeAccessor() (acessor *FakeAccessor, clear func()) {
 	connPair, removeDir := testutil.TempDBConnection("insights")
 
 	if err := migrator.Run(connPair.RwConn.DB, "insights"); err != nil {
@@ -71,7 +71,7 @@ func NewFakeAcessor() (acessor *FakeAcessor, clear func()) {
 		log.Panicln(err)
 	}
 
-	return &FakeAcessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}, ConnPair: connPair},
+	return &FakeAccessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}, ConnPair: connPair},
 		func() {
 			if connPair.Close(); err != nil {
 				log.Panicln(err)
