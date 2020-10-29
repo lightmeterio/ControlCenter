@@ -27,6 +27,7 @@ type Workspace struct {
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
 	rblDetector    *messagerbl.Detector
+	rblChecker     localrbl.Checker
 
 	NotificationCenter notification.Center
 
@@ -87,9 +88,6 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		RBLProvidersURLs: localrbl.DefaultRBLs,
 	})
 
-	// FIXME: rblChecker should start on Run()!!!
-	rblChecker.StartListening()
-
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
 	insightsEngine, err := insights.NewEngine(
@@ -100,12 +98,12 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		return Workspace{}, errorutil.Wrap(err)
 	}
 
-	// closes can be mocked or stubbed out
 	w := Workspace{
 		logs:                &logDb,
 		insightsEngine:      insightsEngine,
 		auth:                auth,
 		rblDetector:         rblDetector,
+		rblChecker:          rblChecker,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		closes: closeutil.New(
@@ -147,6 +145,8 @@ func (ws *Workspace) NewPublisher() data.Publisher {
 }
 
 func (ws *Workspace) Run() <-chan struct{} {
+	ws.rblChecker.StartListening()
+
 	doneInsights, cancelInsights := ws.insightsEngine.Run()
 	doneSettings, cancelSettings := ws.settingsRunner.Run()
 	doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
