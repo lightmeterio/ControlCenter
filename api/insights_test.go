@@ -51,7 +51,7 @@ func (f *fakeFetchedInsight) Content() core.Content {
 
 type content struct {
 	V           string `json:"v"`
-	ContentType string
+	ContentType string `json:"content_type"`
 }
 
 func (c content) String() string {
@@ -152,22 +152,22 @@ func TestInsights(t *testing.T) {
 
 			So(body, ShouldResemble, []interface{}{
 				map[string]interface{}{
-					"Category":    "intel",
-					"Content":     map[string]interface{}{"v": "content1", "ContentType": contentType1},
-					"ContentType": contentType1,
-					"ID":          float64(1),
-					"Rating":      "bad",
-					"Time":        "1999-01-01T00:00:00Z",
-					"help_link":   "https://kb.lightemter.io/KB0002",
+					"category":     "intel",
+					"content":      map[string]interface{}{"v": "content1", "content_type": contentType1},
+					"content_type": contentType1,
+					"id":           float64(1),
+					"rating":       "bad",
+					"time":         "1999-01-01T00:00:00Z",
+					"help_link":    "https://kb.lightemter.io/KB0002",
 				},
 				map[string]interface{}{
-					"Category":    "local",
-					"Content":     map[string]interface{}{"v": "content2", "ContentType": contentType2},
-					"ContentType": contentType2,
-					"ID":          float64(2),
-					"Rating":      "ok",
-					"Time":        "1999-12-31T00:00:00Z",
-					"help_link":   "https://kb.lightemter.io/KB0001",
+					"category":     "local",
+					"content":      map[string]interface{}{"v": "content2", "content_type": contentType2},
+					"content_type": contentType2,
+					"id":           float64(2),
+					"rating":       "ok",
+					"time":         "1999-12-31T00:00:00Z",
+					"help_link":    "https://kb.lightemter.io/KB0001",
 				},
 			})
 		})

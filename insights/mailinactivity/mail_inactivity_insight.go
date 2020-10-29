@@ -13,7 +13,7 @@ import (
 )
 
 type content struct {
-	Interval data.TimeInterval
+	Interval data.TimeInterval `json:"interval"`
 }
 
 func (c content) String() string {

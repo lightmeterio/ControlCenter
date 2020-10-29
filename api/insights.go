@@ -88,13 +88,13 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type fetchedInsight struct {
-	ID          int
-	Time        time.Time
-	Rating      string
-	Category    string
-	ContentType string
-	Content     interface{}
-	HelpLink    string `json:"help_link,omitempty"`
+	ID          int         `json:"id"`
+	Time        time.Time   `json:"time"`
+	Rating      string      `json:"rating"`
+	Category    string      `json:"category"`
+	ContentType string      `json:"content_type"`
+	Content     interface{} `json:"content"`
+	HelpLink    string      `json:"help_link,omitempty"`
 }
 
 type fetchInsightsResult []fetchedInsight

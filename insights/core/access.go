@@ -336,11 +336,11 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 }
 
 type InsightProperties struct {
-	Time        time.Time
-	Category    Category
-	Rating      Rating
-	ContentType string
-	Content     Content
+	Time        time.Time `json:"time"`
+	Category    Category  `json:"category"`
+	Rating      Rating    `json:"rating"`
+	ContentType string    `json:"content_type"`
+	Content     Content   `json:"content"`
 }
 
 type Creator interface {

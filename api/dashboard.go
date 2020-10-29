@@ -125,9 +125,9 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 type appVersionHandler struct{}
 
 type appVersion struct {
-	Version     string
-	Commit      string
-	TagOrBranch string
+	Version     string `json:"version"`
+	Commit      string `json:"commit"`
+	TagOrBranch string `json:"tag_or_branch"`
 }
 
 // @Summary Control Center Version

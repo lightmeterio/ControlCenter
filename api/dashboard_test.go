@@ -88,9 +88,9 @@ func TestDashboard(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := []interface{}{
-				map[string]interface{}{"Key": "bounced", "Value": float64(4)},
-				map[string]interface{}{"Key": "deferred", "Value": float64(5)},
-				map[string]interface{}{"Key": "sent", "Value": float64(9)},
+				map[string]interface{}{"key": "bounced", "value": float64(4)},
+				map[string]interface{}{"key": "deferred", "value": float64(5)},
+				map[string]interface{}{"key": "sent", "value": float64(9)},
 			}
 
 			So(body, ShouldResemble, expected)
