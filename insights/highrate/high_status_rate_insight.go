@@ -197,24 +197,6 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 	return nil
 }
 
-// Executed only on development builds, for better developer experience
-func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	for _, g := range d.generators {
-		now := c.Now()
-
-		content := bounceRateContent{
-			Value:    0.9,
-			Interval: data.TimeInterval{From: now.Add(g.checkTimespan * -1), To: now},
-		}
-
-		if err := generateInsight(tx, c, g.creator, content); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	return nil
-}
-
 func init() {
 	core.RegisterContentType(highBaseBounceRateContentType, 1, core.DefaultContentTypeDecoder(&bounceRateContent{}))
 }
