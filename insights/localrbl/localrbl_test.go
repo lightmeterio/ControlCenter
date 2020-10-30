@@ -10,8 +10,6 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -19,7 +17,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
 	"net"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -113,11 +110,10 @@ func (c *fakeChecker) IPAddress(context.Context) net.IP {
 
 func TestLocalRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
+		accessor, clear := insighttestsutil.NewFakeAccessor()
+		defer clear()
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
-		So(err, ShouldBeNil)
+		connPair := accessor.ConnPair
 
 		cycleOnDetector := func(d core.Detector, c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
@@ -125,20 +121,6 @@ func TestLocalRBL(t *testing.T) {
 			So(d.Step(c, tx), ShouldBeNil)
 			So(tx.Commit(), ShouldBeNil)
 		}
-
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		migrator.Run(connPair.RwConn.DB, "insights")
-
-		accessor := func() *insighttestsutil.FakeAcessor {
-			creator, err := core.NewCreator(connPair.RwConn)
-			So(err, ShouldBeNil)
-			fetcher, err := core.NewFetcher(connPair.RoConn)
-			So(err, ShouldBeNil)
-			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}}
-		}()
 
 		ip := net.ParseIP("11.22.33.44")
 

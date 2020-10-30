@@ -11,10 +11,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 	"time"
 )
@@ -29,29 +26,14 @@ func init() {
 
 func TestHighRateDetectorInsight(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir, clearDir := testutil.TempDir()
-		defer clearDir()
-
 		ctrl := gomock.NewController(t)
 
 		d := mock_dashboard.NewMockDashboard(ctrl)
 
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights_state.db"))
-		So(err, ShouldBeNil)
+		accessor, clear := insighttestsutil.NewFakeAccessor()
+		defer clear()
 
-		defer func() {
-			So(connPair.Close(), ShouldBeNil)
-		}()
-
-		migrator.Run(connPair.RwConn.DB, "insights")
-
-		accessor := func() *insighttestsutil.FakeAcessor {
-			creator, err := core.NewCreator(connPair.RwConn)
-			So(err, ShouldBeNil)
-			fetcher, err := core.NewFetcher(connPair.RoConn)
-			So(err, ShouldBeNil)
-			return &insighttestsutil.FakeAcessor{DBCreator: creator, Fetcher: fetcher}
-		}()
+		connPair := accessor.ConnPair
 
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 
