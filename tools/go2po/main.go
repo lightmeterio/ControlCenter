@@ -164,7 +164,7 @@ func StoreMsgID(e ast.Expr, filename string, line int) error {
 	if typ, ok := e.(*ast.BasicLit); ok {
 		if typ.Kind == 9 {
 			cleanValue := strings.TrimFunc(typ.Value, func(r rune) bool {
-				return r == '"'
+				return r == '"' || r == '`'
 			})
 
 			log.Println("MsgId: ", cleanValue)

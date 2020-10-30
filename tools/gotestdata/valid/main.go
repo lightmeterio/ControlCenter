@@ -17,6 +17,8 @@ type DataB struct{}
 func (d *DataB) String(s string) string {
 	b := I18n("DataB")
 
+	I18n(`DataB1`)
+
 	return b
 }
 
