@@ -28,6 +28,10 @@ func (c content) Args() []interface{} {
 	return []interface{}{c.Interval.From, c.Interval.To}
 }
 
+func (c content) HelpLink(urlContainer core.URLContainer) string {
+	return urlContainer.Get(ContentType)
+}
+
 type generator struct {
 	creator  core.Creator
 	interval *data.TimeInterval

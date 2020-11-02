@@ -13,4 +13,4 @@ COVERPKG="$(go list ./... | egrep -v '(/examples/|/po/|/tools/|(controlcenter|li
 export CGO_ENABLED=1
 
 make mocks > /dev/null
-go test ./... -coverpkg=$COVERPKG "$@"
+go test -tags="test" ./... -coverpkg=$COVERPKG "$@"

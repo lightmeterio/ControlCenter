@@ -3,7 +3,6 @@ package messagerblinsight
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -26,16 +25,7 @@ const (
 )
 
 func init() {
-	core.RegisterContentType(ContentType, ContentTypeId, func(b []byte) (core.Content, error) {
-		content := content{}
-		err := json.Unmarshal(b, &content)
-
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return &content, nil
-	})
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
 }
 
 type content struct {
@@ -57,6 +47,10 @@ func (c content) TplString() string {
 
 func (c content) Args() []interface{} {
 	return []interface{}{c.Address, c.Recipient, c.Host}
+}
+
+func (c content) HelpLink(urlContainer core.URLContainer) string {
+	return urlContainer.Get(ContentType + "_" + c.Host)
 }
 
 type detector struct {

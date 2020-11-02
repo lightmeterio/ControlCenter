@@ -62,7 +62,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		Time:        now,
 		Category:    core.NewsCategory,
 		Content:     content{},
-		ContentType: "welcome_content",
+		ContentType: WelcomeContentType,
 		Rating:      core.Unrated,
 	}, now); err != nil {
 		return errorutil.Wrap(err)
@@ -72,7 +72,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		Time:        now,
 		Category:    core.NewsCategory,
 		Content:     content{},
-		ContentType: "insights_introduction_content",
+		ContentType: InsightsIntroductionContentType,
 		Rating:      core.Unrated,
 	}, now); err != nil {
 		return errorutil.Wrap(err)
@@ -81,7 +81,10 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
+var WelcomeContentType string = "welcome_content"
+var InsightsIntroductionContentType string = "insights_introduction_content"
+
 func init() {
-	core.RegisterContentType("welcome_content", 2, core.DefaultContentTypeDecoder(&content{}))
-	core.RegisterContentType("insights_introduction_content", 3, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(WelcomeContentType, 2, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(InsightsIntroductionContentType, 3, core.DefaultContentTypeDecoder(&content{}))
 }

@@ -39,6 +39,10 @@ func (c content) Args() []interface{} {
 	return []interface{}{c.Address, len(c.RBLs)}
 }
 
+func (c content) HelpLink(urlContainer core.URLContainer) string {
+	return urlContainer.Get(ContentType)
+}
+
 const (
 	ContentType   = "local_rbl_check"
 	ContentTypeId = 4
