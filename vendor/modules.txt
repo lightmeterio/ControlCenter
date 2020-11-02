@@ -136,10 +136,6 @@ github.com/trustelem/zxcvbn/scoring
 # github.com/urfave/cli/v2 v2.2.0
 ## explicit
 github.com/urfave/cli/v2
-# gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3
-## explicit
-gitlab.com/lightmeter/postfix-log-parser
-gitlab.com/lightmeter/postfix-log-parser/rawparser
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 ## explicit
 golang.org/x/crypto/bcrypt

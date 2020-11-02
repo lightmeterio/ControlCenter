@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 type localDirectoryContent struct {

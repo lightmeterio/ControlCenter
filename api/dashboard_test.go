@@ -11,7 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"net/http"
 	"net/http/httptest"
 	"testing"

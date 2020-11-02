@@ -1,7 +1,7 @@
 package data
 
 import (
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"time"
 )
 

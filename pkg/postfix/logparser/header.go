@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
 )
 
 func parseMonth(m []byte) time.Month {

@@ -3,7 +3,7 @@ package parser
 import (
 	"errors"
 
-	"gitlab.com/lightmeter/postfix-log-parser/rawparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
 )
 
 var (

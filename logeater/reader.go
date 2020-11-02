@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {

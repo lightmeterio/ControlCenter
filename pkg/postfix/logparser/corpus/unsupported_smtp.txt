@@ -1,0 +1,1 @@
+Sep 16 00:07:41 smtpnode07 postfix-10.20.30.40/smtp[31868]: 0D59F4165A: host mx-aol.mail.gm0.yahoodns.net[44.55.66.77] said: 421 4.7.0 [TSS04] Messages from 10.20.30.40 temporarily deferred due to user complaints - 4.16.55.1;i see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command)

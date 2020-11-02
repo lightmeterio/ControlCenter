@@ -1,0 +1,1 @@
+Sep 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: 3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)

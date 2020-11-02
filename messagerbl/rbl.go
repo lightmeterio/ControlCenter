@@ -3,9 +3,9 @@ package messagerbl
 import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/data"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
 	"net"
 	"regexp"
 	"time"

@@ -31,7 +31,6 @@ require (
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	github.com/urfave/cli/v2 v2.2.0 // indirect
-	gitlab.com/lightmeter/postfix-log-parser v0.0.0-20200815131311-5a76b852daf3
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
 	golang.org/x/text v0.3.3

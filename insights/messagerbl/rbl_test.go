@@ -9,7 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"net"
 	"testing"
 	"time"

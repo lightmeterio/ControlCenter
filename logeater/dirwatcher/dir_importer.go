@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/data"
-	parser "gitlab.com/lightmeter/postfix-log-parser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 type fileEntry struct {
