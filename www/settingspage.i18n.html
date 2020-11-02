@@ -79,7 +79,7 @@
         <h6 class="form-heading">{{ translate "Notifications" }}</h6>
         <form id="notifications-form-container">
             <div class="slack-disabler form-group">
-                <label class="form-label">Slack notifications</label><br>
+                <label class="form-label">{{ translate "Slack notifications" }}</label><br>
                 <div class="form-check form-check-inline">
                     <input class="messenger_enabled form-check-input" type="radio" name="messenger_enabled" id="messenger_enabled_1" value="true" required>
                     <label class="form-check-label" for="messenger_enabled_1">{{ translate "Yes" }}</label>
@@ -90,7 +90,7 @@
                 </div>
             </div>
             <div class="slack-disabler form-group">
-                <label class="form-label">Slack message language</label><br>
+                <label class="form-label">{{ translate "Slack message language" }}</label><br>
                 <div class="form-check">
                     <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_1" value="en" required>
                     <label class="form-check-label" for="messenger_language_1">{{ translate "English" }}</label>
@@ -105,11 +105,11 @@
                 </div>
             </div>
             <div class="slack-channel form-group">
-                <label for="slackChannel">Slack channel</label>
+              <label for="slackChannel">{{ translate "Slack channel" }} </label>
                 <input class="form-control" id="slackChannel" name="messenger_channel" placeholder="{{ translate "Please enter slack channel name" }}"  maxlength="255" required>
             </div>
             <div class="slack-token form-group">
-                <label for="slackApiToken">Slack api token</label>
+                <label for="slackApiToken">{{ translate "Slack API token" }}</label>
                 <input class="form-control" id="slackApiToken" name="messenger_token" placeholder="{{ translate "Please enter api token" }}" maxlength="255" required>
             </div>
             <input type="hidden" class="form-kind" name="messenger_kind" value="slack">
@@ -121,7 +121,7 @@
         <h6 class="form-heading">{{ translate "General" }}</h6>
         <form id="general-form-container">
             <div class="form-group">
-                <label for="postfixPublicIP">Postfix public IP</label>
+                <label for="postfixPublicIP">{{ translate "Postfix public IP" }}</label>
                 <input class="form-control" id="postfixPublicIP" name="postfixPublicIP" aria-describedby="ipHelp" placeholder="Enter ip address" maxlength="255" required>
                 <small id="ipHelp" class="form-text text-muted">{{ translate "Please extract from your config file the ip address of postfix" }}</small>
             </div>
