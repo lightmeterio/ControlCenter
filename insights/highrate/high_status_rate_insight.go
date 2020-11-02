@@ -181,6 +181,10 @@ func (c bounceRateContent) Args() []interface{} {
 	return []interface{}{int(c.Value * 100), c.Interval.From, c.Interval.To}
 }
 
+func (c bounceRateContent) HelpLink(urlContainer core.URLContainer) string {
+	return urlContainer.Get(highBaseBounceRateContentType)
+}
+
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),

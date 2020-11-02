@@ -4,6 +4,7 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/recommendation"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
@@ -12,7 +13,8 @@ import (
 )
 
 type fetchInsightsHandler struct {
-	f core.Fetcher
+	f                          core.Fetcher
+	recommendationURLContainer recommendation.URLContainer
 }
 
 // @Summary Fetch Insights
@@ -75,6 +77,10 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			Content:     fi.Content(),
 		}
 
+		if recommendationHelpLinkProvider, ok := fi.Content().(core.RecommendationHelpLinkProvider); ok {
+			i.HelpLink = recommendationHelpLinkProvider.HelpLink(h.recommendationURLContainer)
+		}
+
 		insights = append(insights, i)
 	}
 
@@ -88,11 +94,14 @@ type fetchedInsight struct {
 	Category    string
 	ContentType string
 	Content     interface{}
+	HelpLink    string `json:"help_link,omitempty"`
 }
 
 type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
 	chain := httpmiddleware.WithDefaultStack(httpmiddleware.RequestWithInterval(timezone))
-	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f}))
+	recommendationURLContainer := recommendation.GetDefaultURLContainer()
+
+	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: recommendationURLContainer}))
 }

@@ -38,5 +38,3 @@ func TestDefaultContentTypeDecoder(t *testing.T) {
 		wg.Wait()
 	})
 }
-
-

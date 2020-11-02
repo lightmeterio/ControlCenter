@@ -24,10 +24,10 @@ all:
 race:
 	./tools/go_test.sh -race
 
-dev: mocks swag domain_mapping_list po2go
+dev: mocks swag domain_mapping_list po2go recommendation_dev
 	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-release: static_www domain_mapping_list po2go
+release: static_www domain_mapping_list po2go recommendation_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 windows_release: static_www domain_mapping_list po2go
@@ -44,6 +44,12 @@ domain_mapping_list: domainmapping/generated_list.go
 
 domainmapping/generated_list.go: domainmapping/mapping.json
 	go generate gitlab.com/lightmeter/controlcenter/domainmapping
+
+recommendation_dev:
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/recommendation
+
+recommendation_release:
+	go generate -tags="release" gitlab.com/lightmeter/controlcenter/recommendation
 
 mocks: dashboard_mock insights_mock
 
@@ -83,3 +89,6 @@ clean_mocks:
 
 dependencies.svg: go.sum go.mod
 	go mod graph | tools/gen_deps_graph.py | dot -Tsvg > dependencies.svg
+
+make testlocal:
+	./tools/go_test_local.sh

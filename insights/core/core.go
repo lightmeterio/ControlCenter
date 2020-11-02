@@ -51,3 +51,11 @@ type Content interface {
 	fmt.Stringer
 	translator.TranslatableStringer
 }
+
+type URLContainer interface {
+	Get(k string) string
+}
+
+type RecommendationHelpLinkProvider interface {
+	HelpLink(container URLContainer) string
+}

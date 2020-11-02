@@ -17,7 +17,7 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 		Message:   "Sample Insight: host blocked. Try https://google.com/ to unblock it",
 		Recipient: "some.mail.com",
 		Status:    parser.DeferredStatus.String(),
-		Host:      "Big Host",
+		Host:      "Google",
 		Time:      c.Now(),
 	}); err != nil {
 		return errorutil.Wrap(err)
