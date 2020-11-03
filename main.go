@@ -46,7 +46,7 @@ func main() {
 		"Only migrates down")
 	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
 	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
-	flag.IntVar(&logYear, "what_year_is_it", time.Now().Year(), "Specify the year when the logs start. Defaults to the current year. This option is temporary and will be removed soon. Promise :-)")
+	flag.IntVar(&logYear, "log_starting_year", time.Now().Year(), "Value to be used as initial year when it cannot be obtained fro the Postfix logs. Defaults to the current year. Requires -stdin.")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
