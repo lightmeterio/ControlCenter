@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/robfig/gettext-go/gettext/po"
+	"github.com/chai2010/gettext-go/po"
 	"gitlab.com/lightmeter/controlcenter/tools/poutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"go/ast"

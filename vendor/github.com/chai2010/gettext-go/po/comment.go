@@ -83,8 +83,6 @@ func (p *Comment) readPoComment(r *lineReader) (err error) {
 			return
 		}
 	}
-
-	return nil
 }
 
 func (p *Comment) readTranslatorComment(r *lineReader) (err error) {
@@ -110,7 +108,6 @@ func (p *Comment) readTranslatorComment(r *lineReader) (err error) {
 		}
 		p.TranslatorComment += strings.TrimSpace(s[1:])
 	}
-	return nil
 }
 
 func (p *Comment) readExtractedComment(r *lineReader) (err error) {
@@ -129,7 +126,6 @@ func (p *Comment) readExtractedComment(r *lineReader) (err error) {
 		}
 		p.ExtractedComment += strings.TrimSpace(s[len(prefix):])
 	}
-	return nil
 }
 
 func (p *Comment) readReferenceComment(r *lineReader) (err error) {
@@ -155,7 +151,6 @@ func (p *Comment) readReferenceComment(r *lineReader) (err error) {
 			p.ReferenceLine = append(p.ReferenceLine, line)
 		}
 	}
-	return nil
 }
 
 func (p *Comment) readFlagsComment(r *lineReader) (err error) {
@@ -174,7 +169,6 @@ func (p *Comment) readFlagsComment(r *lineReader) (err error) {
 			p.Flags = append(p.Flags, strings.TrimSpace(ss[i]))
 		}
 	}
-	return nil
 }
 
 func (p *Comment) readPrevMsgContext(r *lineReader) (err error) {

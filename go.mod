@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
+	github.com/chai2010/gettext-go v1.0.3-0.20200705094307-42825e1d282c
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
@@ -19,7 +20,6 @@ require (
 	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
 	github.com/pkg/errors v0.8.1
 	github.com/pressly/goose v2.6.0+incompatible
-	github.com/robfig/gettext-go v0.0.0-20141023015941-548cda1a137a
 	github.com/satori/go.uuid v1.2.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
