@@ -23,6 +23,15 @@ var apiCallGet = function(url) {
     })
 }
 
+function setupApplicationInfo(){
+    apiCallGet("api/v0/appVersion").then(function(data) {
+        if (data != null) {
+            let e = document.getElementById("release-info")
+            $(e).html(sprintf("<strong>Version:</strong> %s<br/><strong>Commit:</strong> %s<br/><strong>Tag/branch</strong>: %s", data.Version, data.Commit, data.TagOrBranch))
+        }
+    })
+}
+
 var selectedDateFrom = ""
 var selectedDateTo = ""
 
@@ -188,13 +197,6 @@ var drawDashboard = function() {
         updateTopBusiestDomainsChart()
         updateTopDeferredDomainsChart()
         updateTopBouncedDomainsChart()
-    }
-
-    var setupApplicationInfo = function() {
-        apiCallGet("api/v0/appVersion").then(function(data) {
-            var e = document.getElementById("release-info")
-            e.textContent = "Version: " + data.Version + ", commit: " + data.Commit
-        })
     }
 
     // Plotly has a bug that makes it unable to resize hidden graphs:
