@@ -167,15 +167,21 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = s.cache.onKey(cacheKey{path: path, time: f.ModificationTime(), tag: tag}, w,
 		func() []byte {
-			translator := s.translators.Translator(tag, s.now.Now())
 
 			content, err := ioutil.ReadAll(f)
 
 			errorutil.MustSucceed(err)
 
+			translatorByTag := s.translators.Translator(tag, s.now.Now())
+
+			translate := func(s string, args ...interface{}) (string, error) {
+				transformed := translator.TransformTranslation(s)
+				return translatorByTag.Translate(transformed, args)
+			}
+
 			t, err := template.New("root").
 				Funcs(template.FuncMap{
-					"translate":  translator.Translate,
+					"translate":  translate,
 					"appVersion": func() string { return version.Version },
 				}).
 				Parse(string(content))

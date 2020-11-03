@@ -131,8 +131,10 @@ func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSett
 	return nil
 }
 
-func (cp *center) Translate(language string, translator translator.Translator, notification Notification) (string, []interface{}, error) {
-	translatedMessage, err := translator.Translate(notification.Content.TplString())
+func (cp *center) Translate(language string, t translator.Translator, notification Notification) (string, []interface{}, error) {
+	transformed := translator.TransformTranslation(notification.Content.TplString())
+
+	translatedMessage, err := t.Translate(transformed)
 	if err != nil {
 		return "", nil, errorutil.Wrap(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/chai2010/gettext-go/po"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"io/ioutil"
 	"os"
 	"path"
@@ -92,7 +93,11 @@ func init() {`)
 			for _, msg := range f.Messages {
 				// skip messages with no translation
 				if len(strings.TrimSpace(msg.MsgStr)) > 0 {
-					fmt.Fprintf(outFile, "\n\t\tDefaultCatalog.SetString(lang, `%s`, `%s`);", msg.MsgId, msg.MsgStr)
+					// Convert gettext (po) style to go-text style
+					// TODO: this is planned to be improved. Please have a look at the gitlab issue #245 for more info.
+					msgId := translator.TransformTranslation(msg.MsgId)
+					msgStr := translator.TransformTranslation(msg.MsgStr)
+					fmt.Fprintf(outFile, "\n\t\tDefaultCatalog.SetString(lang, `%s`, `%s`);", msgId, msgStr)
 				}
 			}
 		}

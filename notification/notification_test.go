@@ -26,7 +26,6 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-
 type TimeInterval struct {
 	From time.Time
 	To   time.Time
@@ -41,7 +40,7 @@ func (c fakeContent) String() string {
 }
 
 func (c fakeContent) TplString() string {
-	return "No emails were sent between %%v and %%v"
+	return "No emails were sent between %v and %v"
 }
 
 func (c fakeContent) Args() []interface{} {
@@ -64,7 +63,6 @@ func TestSendNotification(t *testing.T) {
 
 		defer func() { errorutil.MustSucceed(m.Close()) }()
 
-
 		content := new(fakeContent)
 		content.Interval.To = time.Now()
 		content.Interval.From = time.Now()
@@ -77,7 +75,7 @@ func TestSendNotification(t *testing.T) {
 					Kind:        "slack",
 					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 					Enabled:     true,
-					Language: "de",
+					Language:    "de",
 				}
 
 				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
@@ -85,14 +83,14 @@ func TestSendNotification(t *testing.T) {
 
 				DefaultCatalog := catalog.NewBuilder()
 				lang := language.MustParse("de")
-				DefaultCatalog.SetString(lang, content.TplString(), `Zwischen %%v und %%v wurden keine E-Mails gesendet`)
+				DefaultCatalog.SetString(lang, content.TplString(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
 
 				translators := translator.New(DefaultCatalog)
 				center := New(m.Reader, translators)
 				So(err, ShouldBeNil)
 
 				notification := Notification{
-					ID: 0,
+					ID:      0,
 					Content: content,
 				}
 				err := center.Notify(notification)
@@ -106,7 +104,7 @@ func TestSendNotification(t *testing.T) {
 					Kind:        "slack",
 					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 					Enabled:     true,
-					Language: "en",
+					Language:    "en",
 				}
 
 				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
@@ -121,7 +119,7 @@ func TestSendNotification(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				notification := Notification{
-					ID: 0,
+					ID:      0,
 					Content: content,
 				}
 
@@ -136,7 +134,7 @@ func TestSendNotification(t *testing.T) {
 					Kind:        "slack",
 					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 					Enabled:     true,
-					Language: "pt_BR",
+					Language:    "pt_BR",
 				}
 
 				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
@@ -151,7 +149,7 @@ func TestSendNotification(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				notification := Notification{
-					ID: 0,
+					ID:      0,
 					Content: content,
 				}
 
@@ -224,7 +222,7 @@ func TestFakeSendNotification(t *testing.T) {
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 			Enabled:     true,
-			Language: "de",
+			Language:    "de",
 		}
 
 		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
@@ -234,9 +232,8 @@ func TestFakeSendNotification(t *testing.T) {
 
 		DefaultCatalog := catalog.NewBuilder()
 		lang := language.MustParse("de")
-		DefaultCatalog.SetString(lang, `%%v bounce rate between %%v and %%v`, `%%v bounce rate ist zwischen %%v und %%v`)
+		DefaultCatalog.SetString(lang, `%v bounce rate between %v and %v`, `%v bounce rate ist zwischen %v und %v`)
 		translators := translator.New(DefaultCatalog)
-
 
 		centerInterface := New(m.Reader, translators)
 		c := centerInterface.(*center)
@@ -279,7 +276,7 @@ func TestFakeSendNotificationDisabled(t *testing.T) {
 			Kind:        "slack",
 			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
 			Enabled:     false,
-			Language: "en",
+			Language:    "en",
 		}
 
 		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
