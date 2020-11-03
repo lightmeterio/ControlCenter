@@ -21,7 +21,7 @@ func (c content) String() string {
 }
 
 func (c content) TplString() string {
-	return translator.I18n("No emails were sent between %%v and %%v")
+	return translator.I18n("No emails were sent between %v and %v")
 }
 
 func (c content) Args() []interface{} {
