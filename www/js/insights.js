@@ -60,9 +60,29 @@ function fetchInsights() {
       c.querySelector(".title").innerHTML = buildInsightTitle(i)
       c.querySelector(".rating").classList.add(buildInsightRating(i))
       c.querySelector(".description").innerHTML = buildInsightDescription(i)
+
+      setupInsightInfoIcon(i, c.querySelector(".insight-help-button"))
+
       insights.appendChild(c)
     })
   })
+}
+
+function setupInsightInfoIcon(insight, iconElem) {
+  var helpUnavailable = insight.help_link == null
+
+  if (helpUnavailable) {
+    iconElem.classList.add("d-none");
+    return
+  }
+
+  $(iconElem).tooltip()
+
+  iconElem.addEventListener("click", function(event) {
+    event.preventDefault()
+    _paq.push(['trackEvent', 'InsightsInfoButton', 'click', insight.help_link, insight.ContentType])
+    window.open(insight.help_link)
+  }, false)
 }
 
 function buildInsightTime(insight) {

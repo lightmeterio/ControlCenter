@@ -316,7 +316,6 @@ span.buttons i {
     text-align: center;
     cursor: pointer;
 }
-}
 
 #time-interval-field span {
     text-align: center;
@@ -449,8 +448,12 @@ h5.row-title {
     background-color: #F2F2F2;
     border-radius: 18px;
     padding: 0.4em 1.5em;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0em;
     width: min-content;
+}
+
+.insights .insight-header {
+    margin-bottom: 0.6rem;
 }
 
 .insights .card-text.description button {
@@ -484,7 +487,7 @@ h5.row-title {
 
 .insights .card .rating.bad {
     background: rgb(255,92,111);
-    background: linear-gradient(0deg, rgba(255,92,111,1) 85%, rgba(230,231,231,1) 85%) content-box; 
+    background: linear-gradient(0deg, rgba(255,92,111,1) 85%, rgba(230,231,231,1) 85%) content-box;
 }
 
 
@@ -518,9 +521,9 @@ h5.row-title {
     padding: 15px;
 }
 
-.panel-page .panel-body h1, 
-.panel-page .panel-body h2, 
-.panel-page .panel-body h3, 
+.panel-page .panel-body h1,
+.panel-page .panel-body h2,
+.panel-page .panel-body h3,
 .panel-page .panel-body h4 {
     color: #202324;
 }
@@ -583,7 +586,7 @@ form #register {
 }
 
 .panel-page footer,
-.panel-page footer a, 
+.panel-page footer a,
 .panel-page footer a:hover {
     background-color: inherit;
     text-align: center;
@@ -804,7 +807,7 @@ input-group-addon a {
     .greeting {
         height: 150px;
     }
- 
+
 }
 
 /* settings page */
@@ -870,4 +873,24 @@ input-group-addon a {
     .button-group button, .button-group .btn-cancel {
         width: 25%;
     }
+}
+
+a.insight-help-button {
+  font-size: 1.3em;
+}
+
+@media (hover: hover) {
+  a.insight-help-button {
+    color: #C5C7C6;
+  }
+
+  a.insight-help-button:hover {
+    color: #2C9CD6;
+  }
+}
+
+@media (hover: none) {
+  a.insight-help-button {
+    color: #2C9CD6;
+  }
 }
