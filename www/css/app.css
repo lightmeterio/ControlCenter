@@ -470,8 +470,8 @@ h5.row-title {
 }
 
 .insights .card-text.description button:hover {
-    background-color: silver;
-    color: white;
+    background-color: #1D8CAF;
+    color: #FFFFFF;
 }
 
 .insights .card-text.time {
