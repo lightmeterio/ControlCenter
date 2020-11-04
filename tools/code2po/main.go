@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/robfig/gettext-go/gettext/po"
+	"github.com/chai2010/gettext-go/po"
 	"gitlab.com/lightmeter/controlcenter/tools/poutil"
 	"io/ioutil"
 	"log"

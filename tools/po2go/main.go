@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/robfig/gettext-go/gettext/po"
+	"github.com/chai2010/gettext-go/po"
 	"io/ioutil"
 	"os"
 	"path"
@@ -83,7 +83,7 @@ func init() {`)
 	`)
 
 		for _, filename := range filenames {
-			f, err := po.Load(filename)
+			f, err := po.LoadFile(filename)
 
 			if err != nil {
 				panic(err)

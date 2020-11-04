@@ -3,7 +3,7 @@ package poutil
 import (
 	"bytes"
 	"fmt"
-	"github.com/robfig/gettext-go/gettext/po"
+	"github.com/chai2010/gettext-go/po"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io/ioutil"
 	"os"
@@ -55,7 +55,7 @@ func SaveDifference(name string, messagesList []po.Message) error {
 			return errorutil.Wrap(err)
 		}
 
-		newFile, err = po.LoadData(content)
+		newFile, err = po.Load(content)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
