@@ -12,6 +12,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
+	"log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -82,5 +84,15 @@ func (s *HttpServer) Start() error {
 
 	authWrapper := httpauth.Serve(mux, s.Workspace.Auth(), s.WorkspaceDirectory, publicPaths)
 
-	return http.ListenAndServe(s.Address, authWrapper)
+	server := http.Server{Handler: authWrapper}
+
+	ln, err := net.Listen("tcp", s.Address)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	log.Printf("Lightmeter ControlCenter is running on http://%s", ln.Addr().String())
+
+	return server.Serve(ln)
 }
