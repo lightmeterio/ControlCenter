@@ -18,7 +18,7 @@ msgstr "<b>%%i%%%%</b> bounce rate between %%s and %%s"
 msgid "About"
 msgstr "About"
 
-#: www/index.i18n.html:316
+#: www/index.i18n.html:319
 msgid "About Lightmeter"
 msgstr "About Lightmeter"
 
@@ -106,7 +106,7 @@ msgstr "Error on saving general settings!"
 msgid "Error on saving notification settings!"
 msgstr "Error on saving notification settings!"
 
-#: www/index.i18n.html:314 www/settingspage.i18n.html:141
+#: www/index.i18n.html:317 www/settingspage.i18n.html:141
 msgid "Feedback"
 msgstr "Feedback"
 
@@ -137,6 +137,10 @@ msgstr "Happy %%s,"
 #: www/index.i18n.html:28
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
+
+#: www/index.i18n.html:298 www/index.i18n.html:298
+msgid "Info"
+msgstr "Info"
 
 #: www/index.i18n.html:256
 msgid "Insights"
@@ -226,7 +230,7 @@ msgstr "Notifications"
 msgid "Oldest"
 msgstr "Oldest"
 
-#: www/index.i18n.html:361
+#: www/index.i18n.html:364
 msgid "Original response from %%s (%%s)"
 msgstr "Original response from %%s (%%s)"
 
@@ -254,7 +258,11 @@ msgstr "Please extract from your config file the ip address of postfix"
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr "Please select an option for 'Most of my mail is' - see help for details"
 
-#: www/index.i18n.html:316 www/settingspage.i18n.html:143
+#: www/settingspage.i18n.html:124
+msgid "Postfix public IP"
+msgstr "Postfix public IP"
+
+#: www/index.i18n.html:319 www/settingspage.i18n.html:143
 msgid "Privacy Policy"
 msgstr "Privacy Policy"
 
@@ -262,11 +270,11 @@ msgstr "Privacy Policy"
 msgid "RBLs for"
 msgstr "RBLs for"
 
-#: www/index.i18n.html:354
+#: www/index.i18n.html:357
 msgid "RBLs for "
 msgstr "RBLs for "
 
-#: www/index.i18n.html:316
+#: www/index.i18n.html:319
 msgid "Read policy"
 msgstr "Read policy"
 
@@ -302,7 +310,23 @@ msgstr "Settings"
 msgid "Settings Error on initial setup!"
 msgstr "Settings Error on initial setup!"
 
-#: www/index.i18n.html:316 www/settingspage.i18n.html:143
+#: www/settingspage.i18n.html:112
+msgid "Slack API token"
+msgstr "Slack API token"
+
+#: www/settingspage.i18n.html:108
+msgid "Slack channel"
+msgstr "Slack channel"
+
+#: www/settingspage.i18n.html:93
+msgid "Slack message language"
+msgstr "Slack message language"
+
+#: www/settingspage.i18n.html:82
+msgid "Slack notifications"
+msgstr "Slack notifications"
+
+#: www/index.i18n.html:319 www/settingspage.i18n.html:143
 msgid "Thank you for using Lightmeter."
 msgstr "Thank you for using Lightmeter."
 
@@ -342,7 +366,7 @@ msgstr "Website"
 msgid "Welcome"
 msgstr "Welcome"
 
-#: www/index.i18n.html:314
+#: www/index.i18n.html:317
 msgid "What would you improve?"
 msgstr "What would you improve?"
 

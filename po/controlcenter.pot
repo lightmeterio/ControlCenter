@@ -20,7 +20,7 @@ msgstr " "
 msgid "About"
 msgstr " "
 
-#: www/index.i18n.html:316
+#: www/index.i18n.html:319
 #, fuzzy
 msgid "About Lightmeter"
 msgstr " "
@@ -130,7 +130,7 @@ msgstr " "
 msgid "Error on saving notification settings!"
 msgstr " "
 
-#: www/index.i18n.html:314 www/settingspage.i18n.html:141
+#: www/index.i18n.html:317 www/settingspage.i18n.html:141
 #, fuzzy
 msgid "Feedback"
 msgstr " "
@@ -168,6 +168,11 @@ msgstr " "
 #: www/index.i18n.html:28
 #, fuzzy
 msgid "High Bounce Rate"
+msgstr " "
+
+#: www/index.i18n.html:298 www/index.i18n.html:298
+#, fuzzy
+msgid "Info"
 msgstr " "
 
 #: www/index.i18n.html:256
@@ -280,7 +285,7 @@ msgstr " "
 msgid "Oldest"
 msgstr " "
 
-#: www/index.i18n.html:361
+#: www/index.i18n.html:364
 #, fuzzy
 msgid "Original response from %%s (%%s)"
 msgstr " "
@@ -315,7 +320,12 @@ msgstr " "
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
-#: www/index.i18n.html:316 www/settingspage.i18n.html:143
+#: www/settingspage.i18n.html:124
+#, fuzzy
+msgid "Postfix public IP"
+msgstr " "
+
+#: www/index.i18n.html:319 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Privacy Policy"
 msgstr " "
@@ -325,12 +335,12 @@ msgstr " "
 msgid "RBLs for"
 msgstr " "
 
-#: www/index.i18n.html:354
+#: www/index.i18n.html:357
 #, fuzzy
 msgid "RBLs for "
 msgstr " "
 
-#: www/index.i18n.html:316
+#: www/index.i18n.html:319
 #, fuzzy
 msgid "Read policy"
 msgstr " "
@@ -375,7 +385,27 @@ msgstr " "
 msgid "Settings Error on initial setup!"
 msgstr " "
 
-#: www/index.i18n.html:316 www/settingspage.i18n.html:143
+#: www/settingspage.i18n.html:112
+#, fuzzy
+msgid "Slack API token"
+msgstr " "
+
+#: www/settingspage.i18n.html:108
+#, fuzzy
+msgid "Slack channel"
+msgstr " "
+
+#: www/settingspage.i18n.html:93
+#, fuzzy
+msgid "Slack message language"
+msgstr " "
+
+#: www/settingspage.i18n.html:82
+#, fuzzy
+msgid "Slack notifications"
+msgstr " "
+
+#: www/index.i18n.html:319 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Thank you for using Lightmeter."
 msgstr " "
@@ -425,7 +455,7 @@ msgstr " "
 msgid "Welcome"
 msgstr " "
 
-#: www/index.i18n.html:314
+#: www/index.i18n.html:317
 #, fuzzy
 msgid "What would you improve?"
 msgstr " "
