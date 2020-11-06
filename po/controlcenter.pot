@@ -12,7 +12,7 @@ msgstr ""
 
 #: www/index.i18n.html:39
 #, fuzzy
-msgid "<b>%%i%%%%</b> bounce rate between %%s and %%s"
+msgid "<b>%i%%</b> bounce rate between %s and %s"
 msgstr " "
 
 #: www/index.i18n.html:102 www/settingspage.i18n.html:46
@@ -162,7 +162,7 @@ msgstr " "
 
 #: www/index.i18n.html:75
 #, fuzzy
-msgid "Happy %%s,"
+msgid "Happy %s,"
 msgstr " "
 
 #: www/index.i18n.html:28
@@ -192,7 +192,7 @@ msgstr " "
 
 #: www/index.i18n.html:33
 #, fuzzy
-msgid "IP blocked by %%s"
+msgid "IP blocked by %s"
 msgstr " "
 
 #: www/index.i18n.html:32
@@ -272,7 +272,7 @@ msgstr " "
 
 #: www/index.i18n.html:44
 #, fuzzy
-msgid "No emails were sent between %%s and %%s"
+msgid "No emails were sent between %s and %s"
 msgstr " "
 
 #: www/settingspage.i18n.html:79
@@ -287,7 +287,7 @@ msgstr " "
 
 #: www/index.i18n.html:364
 #, fuzzy
-msgid "Original response from %%s (%%s)"
+msgid "Original response from %s (%s)"
 msgstr " "
 
 #: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
@@ -412,12 +412,12 @@ msgstr " "
 
 #: www/index.i18n.html:66
 #, fuzzy
-msgid "The IP %%s cannot deliver to %%s (<strong>%%s</strong>)"
+msgid "The IP %s cannot deliver to %s (<strong>%s</strong>)"
 msgstr " "
 
 #: www/index.i18n.html:59
 #, fuzzy
-msgid "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 msgstr " "
 
 #: www/index.i18n.html:259

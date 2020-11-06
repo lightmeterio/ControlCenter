@@ -14,8 +14,8 @@ msgstr ""
 
 #: www/index.i18n.html:39
 #, Fuzzy
-msgid "<b>%%i%%%%</b> bounce rate between %%s and %%s"
-msgstr "<b>%%i%%%%</b> bounce rate between %%s and %%s"
+msgid "<b>%i%%</b> bounce rate between %s and %s"
+msgstr "<b>%i%%</b> bounce rate between %s and %s"
 
 #: www/index.i18n.html:102
 msgid "About"
@@ -155,7 +155,7 @@ msgstr "Hilfe erhalten"
 
 #: www/index.i18n.html:75
 #, Fuzzy
-msgid "Happy %%s,"
+msgid "Happy %s,"
 msgstr " "
 
 #: www/index.i18n.html:163
@@ -192,7 +192,7 @@ msgstr " "
 
 #: www/index.i18n.html:33
 #, Fuzzy
-msgid "IP blocked by %%s"
+msgid "IP blocked by %s"
 msgstr " "
 
 #: www/index.i18n.html:32
@@ -263,8 +263,8 @@ msgid "No"
 msgstr " "
 
 #: www/index.i18n.html:44
-msgid "No emails were sent between %%s and %%s"
-msgstr "No emails were sent between %%s and %%s"
+msgid "No emails were sent between %s and %s"
+msgstr "No emails were sent between %s and %s"
 
 #: www/settingspage.i18n.html:79
 #, Fuzzy
@@ -278,7 +278,7 @@ msgstr " "
 
 #: www/index.i18n.html:364
 #, Fuzzy
-msgid "Original response from %%s (%%s)"
+msgid "Original response from %s (%s)"
 msgstr " "
 
 #: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
@@ -402,12 +402,12 @@ msgstr "Vielen Dank, dass Sie diese Alpha-Version von Lightmeter Control Center 
 
 #: www/index.i18n.html:66
 #, Fuzzy
-msgid "The IP %%s cannot deliver to %%s (<strong>%%s</strong>)"
+msgid "The IP %s cannot deliver to %s (<strong>%s</strong>)"
 msgstr " "
 
 #: www/index.i18n.html:59
-msgid "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
-msgstr "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgstr "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 
 #: www/index.i18n.html:259
 msgid "Time interval:"
