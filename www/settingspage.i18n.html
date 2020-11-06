@@ -89,20 +89,8 @@
                     <label class="form-check-label" for="messenger_enabled_2">{{ translate "No" }}</label>
                 </div>
             </div>
-            <div class="slack-disabler form-group">
+            <div id="slack-language" class="slack-language form-group">
                 <label class="form-label">{{ translate "Slack message language" }}</label><br>
-                <div class="form-check">
-                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_1" value="en" required>
-                    <label class="form-check-label" for="messenger_language_1">{{ translate "English" }}</label>
-                </div>
-                <div class="form-check">
-                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_2" value="de" required>
-                    <label class="form-check-label" for="messenger_language_2">{{ translate "German" }}</label>
-                </div>
-                <div class="form-check">
-                    <input class="messenger_language form-check-input" type="radio" name="messenger_language" id="messenger_language_3" value="pt_BR" required>
-                    <label class="form-check-label" for="messenger_language_3">{{ translate "Brazilian Portuguese" }}</label>
-                </div>
             </div>
             <div class="slack-channel form-group">
               <label for="slackChannel">{{ translate "Slack channel" }} </label>
@@ -122,7 +110,7 @@
         <form id="general-form-container">
             <div class="form-group">
                 <label for="postfixPublicIP">{{ translate "Postfix public IP" }}</label>
-                <input class="form-control" id="postfixPublicIP" name="postfixPublicIP" aria-describedby="ipHelp" placeholder="Enter ip address" maxlength="255" required>
+                <input class="form-control" id="postfixPublicIP" name="postfixPublicIP" aria-describedby="ipHelp" placeholder="Enter ip address" maxlength="255">
                 <small id="ipHelp" class="form-text text-muted">{{ translate "Please extract from your config file the ip address of postfix" }}</small>
             </div>
             <div class="button-group">
@@ -134,13 +122,29 @@
 
 </div>
 
-<footer  class="mt-auto">
+<footer id="normal-footer" class="mt-auto">
     <div class="container">
-        <p class="float-right">
+        <p class="thanks-using-lightmeter">{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>.</p>
+        <p class="privacy-Policy">
+            &bull;
+            <a href="https://lightmeter.io/privacy-policy/" target="_blank">
+                {{translate "Privacy Policy"}}</a>
+        </p>
+        <p class="feedback">
             &bull;
             <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
         </p>
-        <p>{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" target="_blank">{{translate "Privacy Policy"}}</a></p>
+        <div class="dropdown" id="app-language">
+            <form id="languageForm">
+                <button  class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+
+                </button>
+                <input name="app_language" type="hidden" id="app-language-hidden">
+                <div id="dropdown-menu-language" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+
+                </div>
+            </form>
+        </div>
     </div>
 </footer>
 
@@ -159,6 +163,25 @@
 
 <!-- Lightmeter-hosted Matomo analytics -->
 <script type="text/javascript">
+    var _paq = window._paq || [];
+    _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+        var u="https://matomo.lightmeter.io/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '3']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+    })();
+</script>
+
+<script type="module">
+    import {submitGeneralForm} from "./js/util.js";
+    import {AttachEventHandlerToLanguageForm} from "./js/util.js";
+    import {CreateDropDown} from "./js/dropdown_language.js";
+
+    CreateDropDown();
 
     $(document).ready(function() {
 
@@ -174,20 +197,6 @@
 
             alert('{{ translate `Saved notification settings` }}')
             _paq.push(['trackEvent', 'SaveNotificationSettings', 'success'])
-        }
-
-        async function submitGeneralForm() {
-            var generalFormContainer = new FormData(document.getElementById("general-form-container"))
-            const response = await fetch("/settings?setting=general", {method: 'post', body: new URLSearchParams(generalFormContainer)})
-            const text = await response.text()
-
-            if (!response.ok) {
-                alert('{{ translate `Error on saving general settings!` }}' + ' ' + text)
-                return
-            }
-
-            alert('{{ translate `Saved general settings` }}')
-            _paq.push(['trackEvent', 'SaveGeneralSettings', 'success'])
         }
 
         function autoNotificationsFormFill(data) {
@@ -206,10 +215,13 @@
                     break
                 }
             }
+            autoFileLanguageRadioButton("messenger_language", data["language"])
+        }
 
-            let radioLanguageElements = document.getElementsByClassName("messenger_language");
+        function autoFileLanguageRadioButton(id, value) {
+            let radioLanguageElements = document.getElementsByClassName(id);
             for (let i=0; i<radioLanguageElements.length; i++) {
-                if (radioLanguageElements[i].getAttribute('value') === data["language"]) {
+                if (radioLanguageElements[i].getAttribute('value') === value) {
                     radioLanguageElements[i].checked = true;
                     break
                 }
@@ -218,19 +230,63 @@
 
         function autoGeneralFormFill(data) {
             document.getElementById('postfixPublicIP').value = data["postfix_public_ip"];
+            if (data["app_language"]) {
+                let node = document.getElementById("dropdownMenuButton");
+                node.innerHTML = '';
+                document.getElementById( "app-language-hidden").value =  data["app_language"]
+                let textnode = document.createTextNode(document.getElementById("dropdown-item-"+ data["app_language"]).getAttribute("languageKey"));
+                node.appendChild(textnode);
+            }
+        }
+
+        function GenerateLanguageList(id, prefix, languages) {
+            let i = 1
+            languages.forEach(function (language) {
+                let div = document.createElement("div");
+                div.classList.add("form-check");
+                let radioButton = document.createElement("input");
+                radioButton.classList.add("form-check-input");
+                radioButton.classList.add(prefix+"_language");
+                radioButton.setAttribute("type", "radio");
+                radioButton.setAttribute("name", prefix+"_language");
+                radioButton.setAttribute("value", language.value);
+                radioButton.setAttribute("id",prefix+"_language_"+i);
+                radioButton.setAttribute("required", "");
+                div.appendChild(radioButton);
+                let label = document.createElement("label");
+                label.setAttribute("for", prefix+"_language_"+i);
+                label.appendChild(document.createTextNode(language.key));
+                div.appendChild(label);
+                document.getElementById(id).appendChild(div);
+                i++
+            })
         }
 
         let slackNotificationsData = null
         let generalData = null
 
-        fetch('/settings')
+
+        fetch('/language/metadata')
             .then(response => response.json())
             .then(function (data) {
-                slackNotificationsData = data["slack_notifications"]
-                autoNotificationsFormFill(slackNotificationsData)
-                generalData = data["general"]
-                autoGeneralFormFill(generalData)
-            });
+                GenerateLanguageList("slack-language", "messenger", data["languages"])
+
+                fetch('/settings')
+                    .then(response => response.json())
+                    .then(function (data) {
+                        slackNotificationsData = data["slack_notifications"]
+                        autoNotificationsFormFill(slackNotificationsData)
+                        generalData = data["general"]
+                        autoGeneralFormFill(generalData)
+                    }).catch(function(err) {
+                    alert('{{ translate `Error get settings` }}')
+                    console.log(err)
+                });
+
+            }).catch(function(err) {
+                alert('{{ translate `Error get metadata` }}')
+                console.log(err)
+        });
 
         $('#notifications-form-container .slack-save').on('click', function (e) {
             var ele = document.getElementById("notifications-form-container");
@@ -261,7 +317,7 @@
             if (chk_status) {
                 e.preventDefault();
 
-                submitGeneralForm();
+                submitGeneralForm("general-form-container", '{{ translate `Saved general settings` }}', '{{ translate `Error on saving general settings!` }}', null);
 
                 setTimeout(function () {
                     fetch('/settings')
@@ -285,19 +341,10 @@
             e.preventDefault();
             autoGeneralFormFill(generalData);
         })
+
+        AttachEventHandlerToLanguageForm(null, '{{ translate `Error on saving general settings!` }}')
     });
 
-    var _paq = window._paq || [];
-    _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
-    _paq.push(['trackPageView']);
-    _paq.push(['enableLinkTracking']);
-    (function() {
-        var u="https://matomo.lightmeter.io/";
-        _paq.push(['setTrackerUrl', u+'matomo.php']);
-        _paq.push(['setSiteId', '3']);
-        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-    })();
 </script>
 <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
 

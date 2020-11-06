@@ -82,7 +82,7 @@ func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error
 
 	handler, ok := h.handlers[kind]
 	if !ok {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error settings type is not supported"))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error handler type is not supported"))
 	}
 
 	return handler(w, r)
@@ -108,6 +108,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		} `json:"slack_notifications"`
 		GeneralSettings struct {
 			PostfixPublicIP net.IP `json:"postfix_public_ip"`
+			AppLanguage     string `json:"app_language"`
 		} `json:"general"`
 	}{}
 
@@ -126,16 +127,17 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		allCurrentSettings.SlackNotificationSettings.Language = slackSettings.Language
 	}
 
-	var localRBLSettings globalsettings.Settings
+	var globalSettings globalsettings.Settings
 
-	err = h.reader.RetrieveJson(ctx, globalsettings.SettingsKey, &localRBLSettings)
+	err = h.reader.RetrieveJson(ctx, globalsettings.SettingsKey, &globalSettings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if err == nil {
-		allCurrentSettings.GeneralSettings.PostfixPublicIP = localRBLSettings.LocalIP
+		allCurrentSettings.GeneralSettings.PostfixPublicIP = globalSettings.LocalIP
+		allCurrentSettings.GeneralSettings.AppLanguage = globalSettings.APPLanguage
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
@@ -146,13 +148,30 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	localIP := net.ParseIP(r.Form.Get("postfixPublicIP"))
+	localIPRaw := r.Form.Get("postfixPublicIP")
+	appLanguage := r.Form.Get("app_language")
 
-	if localIP == nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+	if appLanguage == "" && localIPRaw == "" {
+		err := errorutil.Wrap(errors.New("values are missing"))
+
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	s := globalsettings.Settings{LocalIP: localIP}
+	var localIP net.IP
+	if localIPRaw != "" {
+		localIP = net.ParseIP(localIPRaw)
+		if localIP == nil {
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+		}
+	}
+
+	if appLanguage != "" && !po.IsLanguageSupported(appLanguage) {
+		err := errorutil.Wrap(fmt.Errorf("Error app language option is bad %v", appLanguage))
+
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage}
 
 	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
 
@@ -164,7 +183,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 
 		return nil
 	case <-r.Context().Done():
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store local rbl settings"))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
 	}
 }
 
@@ -234,7 +253,27 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	return nil
+	appLanguage := r.Form.Get("app_language")
+	if appLanguage != "" && !po.IsLanguageSupported(appLanguage) {
+		err := errorutil.Wrap(fmt.Errorf("Error app language option is bad %v", appLanguage))
+
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	s := globalsettings.Settings{APPLanguage: appLanguage}
+
+	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
+
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		return nil
+	case <-r.Context().Done():
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
+	}
 }
 
 func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {

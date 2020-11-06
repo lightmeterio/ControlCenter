@@ -4,11 +4,13 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/api"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/i18n"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -50,7 +52,12 @@ func (s *HttpServer) Start() error {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/", i18n.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets, po.DefaultCatalog))
+	i18nService := i18n.NewService(po.DefaultCatalog, globalsettings.New(reader))
+	mux.Handle("/", i18nService.DefaultWrap(http.FileServer(staticdata.HttpAssets), staticdata.HttpAssets))
+
+	chain := httpmiddleware.WithDefaultStack()
+
+	mux.Handle("/language/metadata", chain.WithError(httpmiddleware.CustomHTTPHandler(i18nService.LanguageMetaDataHandler)))
 
 	exposeApiExplorer(mux)
 
@@ -78,6 +85,7 @@ func (s *HttpServer) Start() error {
 		"/js",
 		"/3rd",
 		"/debug",
+		"/language/metadata",
 	}
 
 	setup.HttpSettingsPage(mux)

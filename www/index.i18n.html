@@ -78,7 +78,7 @@
         </script>
     </head>
 
-    <body onload="drawDashboard()">
+    <body onload="drawDashboard()" class="d-flex flex-column min-vh-100">
 
         <header>
             <div class="navbar">
@@ -310,13 +310,29 @@
             </div>
         </div>
 
-        <footer>
+        <footer id="normal-footer" class="mt-auto">
             <div class="container">
-                <p class="float-right">
+                <p class="thanks-using-lightmeter">{{translate "Thank you for using Lightmeter."}} &copy; <script>document.write(new Date().getFullYear())</script>.</p>
+                <p class="privacy-Policy">
                     &bull;
-                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" title='{{translate "What would you improve?"}}' onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
+                    <a href="https://lightmeter.io/privacy-policy/" target="_blank">
+                        {{translate "Privacy Policy"}}</a>
                 </p>
-                <p><a href="https://lightmeter.io/about/" title='{{translate "About Lightmeter"}}' onclick="_paq.push(['trackEvent', 'Footer', 'clickAboutLink']);" target="_blank">{{translate "Thank you for using Lightmeter."}}</a> &copy; <script>document.write(new Date().getFullYear())</script>. <a href="https://lightmeter.io/privacy-policy/" title='{{translate "Read policy"}}' target="_blank">{{translate "Privacy Policy"}}</a></p>
+                <p class="feedback">
+                    &bull;
+                    <a href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);" target="_blank">{{translate "Feedback"}}</a>
+                </p>
+                <div class="dropdown" id="app-language">
+                    <form id="languageForm">
+                        <button  class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+
+                        </button>
+                        <input name="app_language" type="hidden" id="app-language-hidden">
+                        <div id="dropdown-menu-language" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+
+                        </div>
+                    </form>
+                </div>
             </div>
         </footer>
 
@@ -334,36 +350,65 @@
         <script type="text/javascript" src='js/app.js'></script>
         <script type="text/javascript" src='js/insights.js'></script>
 
-        <!-- Lightmeter-hosted Matomo analytics -->
-        <script type="text/javascript">
-        var _paq = window._paq || [];
-        _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
-        _paq.push(['trackPageView']);
-        _paq.push(['enableLinkTracking']);
-        (function() {
-            var u="https://matomo.lightmeter.io/";
-            _paq.push(['setTrackerUrl', u+'matomo.php']);
-            _paq.push(['setSiteId', '3']);
-            var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-            g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-        })();
-        </script>
         <noscript><p><img src="https://matomo.lightmeter.io/matomo.php?idsite=3&amp;rec=1" style="border:0;" alt="" /></p></noscript>
 
-        <script>
-          $('#rblListModal').on('shown.bs.modal', function(e) {
-              var rblId = $(e.relatedTarget).data('rbl-id')
-              var modal = $(this)
-              modal.find('.modal-title').text('{{translate "RBLs for "}}'+buildInsightRblCheckedIp(rblId))
-              buildInsightRblList(rblId)
-          })
+        <!-- Lightmeter-hosted Matomo analytics -->
+        <script type="text/javascript">
+            var _paq = window._paq || [];
+            _paq.push(['setCustomDimension', 1, '{{appVersion}}']);
+            _paq.push(['trackPageView']);
+            _paq.push(['enableLinkTracking']);
+            (function() {
+                var u="https://matomo.lightmeter.io/";
+                _paq.push(['setTrackerUrl', u+'matomo.php']);
+                _paq.push(['setSiteId', '3']);
+                var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+                g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+            })();
+        </script>
 
-          $('#msg_rbl_list_modal').on('shown.bs.modal', function(e) {
-              var rblId = $(e.relatedTarget).data('msg-rbl-id')
-              var modal = $(this)
-              var text = sprintf('{{translate "Original response from %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
-              modal.find('.modal-title').text(text)
-              buildInsightMsgRblDetails(rblId)
+        <script type="module">
+            import {AttachEventHandlerToLanguageForm} from "./js/util.js";
+            import {CreateDropDown} from "./js/dropdown_language.js";
+
+            CreateDropDown();
+
+            $(document).ready(function() {
+
+                $('#rblListModal').on('shown.bs.modal', function(e) {
+                  var rblId = $(e.relatedTarget).data('rbl-id')
+                  var modal = $(this)
+                  modal.find('.modal-title').text('{{translate "RBLs for "}}'+buildInsightRblCheckedIp(rblId))
+                  buildInsightRblList(rblId)
+              })
+
+              $('#msg_rbl_list_modal').on('shown.bs.modal', function(e) {
+                  var rblId = $(e.relatedTarget).data('msg-rbl-id')
+                  var modal = $(this)
+                  var text = sprintf('{{translate "Original response from %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
+                  modal.find('.modal-title').text(text)
+                  buildInsightMsgRblDetails(rblId)
+              });
+
+              fetch('/settings')
+                  .then(response => response.json())
+                  .then(function (data) {
+                      let generalData = data["general"]
+
+                      if (generalData["app_language"]) {
+                          let node = document.getElementById("dropdownMenuButton");
+                          node.innerHTML = '';
+                          document.getElementById("app-language-hidden").value = generalData["app_language"]
+                          let textnode = document.createTextNode(document.getElementById("dropdown-item-" + generalData["app_language"]).getAttribute("languageKey"));
+                          node.appendChild(textnode);
+                      }
+
+                  }).catch(function (err) {
+                  alert('{{ translate `Error get settings` }}')
+                  console.log(err)
+              });
+
+              AttachEventHandlerToLanguageForm(null, '{{ translate `Error on saving general settings!` }}')
           })
         </script>
     </body>
