@@ -1,9 +1,16 @@
 package i18n
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/language"
 	"io/ioutil"
@@ -13,6 +20,10 @@ import (
 	"testing"
 	"time"
 )
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
 
 type fakeFile struct {
 	*strings.Reader
@@ -78,6 +89,14 @@ func (n *fakeNow) Now() time.Time {
 	return n.now
 }
 
+type fakeSettings struct {
+	s string
+}
+
+func (s *fakeSettings) AppLanguage(ctx context.Context) string {
+	return s.s
+}
+
 func TestTemplates(t *testing.T) {
 	Convey("Test Templates", t, func() {
 		fs := &fakeContents{
@@ -97,7 +116,10 @@ func TestTemplates(t *testing.T) {
 		translators := &fakeTranslators{}
 		now := fakeNow{now: testutil.MustParseTime(`2000-01-01 00:00:10 +0000`)}
 
-		s := httptest.NewServer(Wrap(fh, fs, translators, &now))
+
+
+
+		s := httptest.NewServer(wrap(fh, fs, translators, &now, &fakeSettings{}))
 		c := &http.Client{}
 
 		Convey("Get non translated content", func() {
@@ -152,3 +174,39 @@ func TestTemplates(t *testing.T) {
 		})
 	})
 }
+
+func TestSettingsPage(t *testing.T) {
+	Convey("Retrieve languages", t, func() {
+		conn, closeConn := testutil.TempDBConnection()
+		defer closeConn()
+
+		m, err := meta.NewHandler(conn, "master")
+		So(err, ShouldBeNil)
+
+		defer func() {
+			So(m.Close(), ShouldBeNil)
+		}()
+
+		s := NewService(po.DefaultCatalog, globalsettings.New(m.Reader))
+
+		settingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(s.LanguageMetaDataHandler)))
+
+		c := &http.Client{}
+
+		Convey("get keys", func() {
+			r, err := c.Get(settingsServer.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			var body map[string]interface{}
+			dec := json.NewDecoder(r.Body)
+			err = dec.Decode(&body)
+			So(err, ShouldBeNil)
+
+			expected := map[string]interface{}{"languages":[]interface{}{map[string]interface{}{"key":"English", "value":"en"}, map[string]interface{}{"key":"Deutsch", "value":"de"}, map[string]interface{}{"key":"Português do Brasil", "value":"pt_BR"}}}
+
+			So(body, ShouldResemble, expected)
+		})
+
+	})
+}
+

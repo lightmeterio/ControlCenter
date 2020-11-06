@@ -63,6 +63,7 @@ func TestSettingsPage(t *testing.T) {
 				"slack_notifications": map[string]interface{}{"bearer_token": "", "channel": "", "enabled": nil, "language":""},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
+					"app_language":"",
 				},
 			}
 
@@ -73,7 +74,7 @@ func TestSettingsPage(t *testing.T) {
 			// set public ip address
 			{
 				r, err := c.PostForm(settingsServer.URL+"?setting=general",
-					url.Values{"postfixPublicIP": {"11.22.33.44"}})
+					url.Values{"postfixPublicIP": {"11.22.33.44"}, "app_language": {"en"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			}
@@ -105,6 +106,7 @@ func TestSettingsPage(t *testing.T) {
 				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": true, "language":"en"},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "11.22.33.44",
+					"app_language": "en",
 				},
 			}
 
@@ -139,6 +141,7 @@ func TestSettingsPage(t *testing.T) {
 				"slack_notifications": map[string]interface{}{"bearer_token": "some_token", "channel": "some_channel", "enabled": false, "language":"en"},
 				"general": map[string]interface{}{
 					"postfix_public_ip": "",
+					"app_language": "",
 				},
 			}
 

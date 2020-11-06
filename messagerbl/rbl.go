@@ -58,7 +58,7 @@ type Result struct {
 }
 
 type Detector struct {
-	globalsettings.Getter
+	globalsettings.IPAddressGetter
 
 	nonDeliveredChan chan record
 	resultsChan      chan Result
@@ -74,9 +74,9 @@ const (
 	MsgBufferSize = 1024
 )
 
-func New(settings globalsettings.Getter) *Detector {
+func New(settings globalsettings.IPAddressGetter) *Detector {
 	d := &Detector{
-		Getter:           settings,
+		IPAddressGetter:  settings,
 		nonDeliveredChan: make(chan record, MsgBufferSize),
 		resultsChan:      make(chan Result, MsgBufferSize),
 		matchers:         defaultMatchers,
@@ -90,7 +90,7 @@ func New(settings globalsettings.Getter) *Detector {
 
 		go func() {
 			for r := range d.nonDeliveredChan {
-				if result, matched := messageMatchesAnyHosts(d, d.matchers, r); matched {
+				if result, matched := messageMatchesAnyHosts(d.IPAddressGetter, d.matchers, r); matched {
 					d.resultsChan <- result
 				}
 			}
@@ -109,7 +109,7 @@ func (d *Detector) NewPublisher() *Publisher {
 	return &Publisher{nonDeliveredChan: d.nonDeliveredChan}
 }
 
-func messageMatchesAnyHosts(settings globalsettings.Getter, matchers matchers, r record) (Result, bool) {
+func messageMatchesAnyHosts(settings globalsettings.IPAddressGetter, matchers matchers, r record) (Result, bool) {
 	for _, m := range matchers {
 		if m.match(r) {
 			ip := func() net.IP {
@@ -134,7 +134,7 @@ func messageMatchesAnyHosts(settings globalsettings.Getter, matchers matchers, r
 }
 
 type Stepper interface {
-	globalsettings.Getter
+	globalsettings.IPAddressGetter
 	Step(withResult func(Result) error, withoutResult func() error) error
 }
 

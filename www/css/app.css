@@ -332,8 +332,7 @@ div#time-interval-field {
 }
 
 footer {
-    padding: 0.5rem 0;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
 }
 
 footer, footer a, footer a:hover {
@@ -869,12 +868,87 @@ input-group-addon a {
     justify-content: center;
 }
 
+#registration-footer .container .sub-container {
+    margin: 0 auto;
+}
+
+#registration-footer .container-right, footer .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#normal-footer {
+    margin-top: 1em !important;
+}
+
+#normal-footer .container {
+    justify-content: start;
+    margin-right: 0;
+}
+
+#registration-footer .dropdown-menu-language-item, #normal-footer .dropdown-menu-language-item  {
+    font: normal normal normal 14px/20px Open Sans;
+    color: #202324;
+    text-align: left;
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+footer .dropdown {
+    margin-left: 40px;
+}
+
+#registration-footer .dropdown  #dropdownMenuButton, footer .btn-secondary:not(:disabled):not(.disabled).active,
+#registration-footer .btn-secondary:not(:disabled):not(.disabled):active,
+#registration-footer .show>#dropdownMenuButton.dropdown-toggle,
+#registration-footer  #dropdownMenuButton.focus,
+#registration-footer  #dropdownMenuButton:focus,
+#registration-footer  #dropdownMenuButton:hover {
+    background-color: #F7F8F9;
+    border: 1px solid #E6E7E7;
+    border-radius: 3px;
+    opacity: 1;
+    text-align: left;
+    font: normal normal normal 14px/20px Open Sans;
+    letter-spacing: 0px;
+    color: #202324;
+    margin-left: 0.5em;
+}
+
+#normal-footer .container {
+   margin-left: 0;
+}
+
+#normal-footer .dropdown  #dropdownMenuButton, footer .btn-secondary:not(:disabled):not(.disabled).active,
+#normal-footer .btn-secondary:not(:disabled):not(.disabled):active,
+#normal-footer .show>#dropdownMenuButton.dropdown-toggle,
+#normal-footer  #dropdownMenuButton.focus,
+#normal-footer  #dropdownMenuButton:focus,
+#normal-footer  #dropdownMenuButton:hover {
+    background-color: #426475;
+    border: 1px solid #426475;
+    border-radius: 3px;
+    text-align: left;
+    font: normal normal normal 14px/20px Open Sans;
+    letter-spacing: 0px;
+    color: #FFFFFF;
+    opacity: 1;
+}
+
+#normal-footer p {
+    display: block;
+}
+
 @media only screen and (max-device-width: 600px) {
     .button-group button, .button-group .btn-cancel {
         width: 25%;
     }
 }
 
+#normal-footer .privacy-Policy, footer .feedback {
+    margin: 0 0.5em;
+}
 a.insight-help-button {
   font-size: 1.3em;
 }

@@ -142,6 +142,7 @@ func TestInitialSetup(t *testing.T) {
 					"email":                {"user@example.com"},
 					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
+					"app_language": {"en"},
 				})
 
 				So(err, ShouldBeNil)

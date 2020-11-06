@@ -26,7 +26,7 @@ type Results struct {
 
 type Checker interface {
 	io.Closer
-	globalsettings.Getter
+	globalsettings.IPAddressGetter
 	StartListening()
 	NotifyNewScan(time.Time)
 	Step(time.Time, func(Results) error, func() error) error

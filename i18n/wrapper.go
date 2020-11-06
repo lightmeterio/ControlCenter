@@ -2,8 +2,13 @@ package i18n
 
 import (
 	"bytes"
+	"fmt"
+	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
@@ -16,8 +21,22 @@ import (
 	"time"
 )
 
-func DefaultWrap(h http.Handler, fs http.FileSystem, catalog catalog.Catalog) *Wrapper {
-	return Wrap(h, &FileSystemContents{fs: fs}, translator.New(catalog), &now{})
+func NewService(catalog catalog.Catalog, settings globalsettings.Getter) *Service {
+	return &Service{
+		translators:          translator.New(catalog),
+		globalsettingsGetter: settings,
+		now:                  &now{},
+	}
+}
+
+type Service struct {
+	globalsettingsGetter globalsettings.Getter
+	translators          translator.Translators
+	now                  *now
+}
+
+func (s *Service) DefaultWrap(h http.Handler, fs http.FileSystem) *Wrapper {
+	return wrap(h, &FileSystemContents{fs: fs}, s.translators, s.now, s.globalsettingsGetter)
 }
 
 type FileSystemContents struct {
@@ -103,15 +122,16 @@ func (c *cache) onKey(key cacheKey, w io.Writer, gen func() []byte) error {
 }
 
 type Wrapper struct {
-	h           http.Handler
-	contents    Contents
-	translators translator.Translators
-	now         Now
-	cache       cache
+	h                    http.Handler
+	contents             Contents
+	translators          translator.Translators
+	now                  Now
+	cache                cache
+	globalsettingsGetter globalsettings.AppLanguageGetter
 }
 
-func Wrap(h http.Handler, contents Contents, translators translator.Translators, now Now) *Wrapper {
-	return &Wrapper{h: h, contents: contents, translators: translators, now: now}
+func wrap(h http.Handler, contents Contents, translators translator.Translators, now Now, globalsettingsGetter globalsettings.AppLanguageGetter) *Wrapper {
+	return &Wrapper{h: h, contents: contents, translators: translators, now: now, globalsettingsGetter: globalsettingsGetter}
 }
 
 func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -137,11 +157,13 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lang, _ := r.Cookie("lang")
+	primaryLanguage := s.globalsettingsGetter.AppLanguage(r.Context())
 
-	accept := r.Header.Get("Accept-Language")
+	secondaryLanguage, _ := r.Cookie("lang")
 
-	tag, _ := language.MatchStrings(s.translators.Matcher(), lang.String(), accept)
+	tertiaryLanguage := r.Header.Get("Accept-Language")
+
+	tag, _ := language.MatchStrings(s.translators.Matcher(), primaryLanguage, secondaryLanguage.String(), tertiaryLanguage)
 
 	err = s.cache.onKey(cacheKey{path: path, time: f.ModificationTime(), tag: tag}, w,
 		func() []byte {
@@ -171,4 +193,38 @@ func (s *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: handle this error, as it might be caused by some issue with the connection with the client
 	errorutil.MustSucceed(err)
+}
+
+type LanguagePair struct {
+	Value string `json:"value"`
+	Key   string `json:"key"`
+}
+
+// order of values matters
+var languages = []LanguagePair{
+	{Key: "English", Value: po.English}, // default value
+	{Key: "Deutsch", Value: po.German},
+	{Key: "Português do Brasil", Value: po.BrazilianPortuguese},
+}
+
+func GetLanguages() []LanguagePair {
+	return languages
+}
+
+func (s *Service) LanguageMetaDataHandler(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+	}
+
+	type MetaData struct {
+		Languages []LanguagePair `json:"languages"`
+	}
+
+	copyLanguages := GetLanguages()
+
+	m := MetaData{
+		Languages: copyLanguages,
+	}
+
+	return httputil.WriteJson(w, &m, http.StatusOK)
 }
