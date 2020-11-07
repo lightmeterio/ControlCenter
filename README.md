@@ -25,6 +25,7 @@
 - [Upgrade](#upgrade)
 - [Usage](#usage)
 - [Feature details](#feature-details)
+- [Known issues](#known-issues)
 - [Development](#development)
 
 ## Introduction
@@ -178,6 +179,19 @@ Currently the mapping is hardcoded in the application - changing the mappings re
 Mappings are stored in `domainmapping/mapping.json` and cover the largest remote hosts by default. The mappings can be easily customised by editing that file, followed by [rebuilding](#Build-from-source-code).
 
 Please consider extending the default mappings by making merge requests to benefit all users!
+
+## Known issues
+
+### High risk
+
+- The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
+- Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
+
+### Low risk
+
+- Some Insights are triggered too frequently (depending on use case) and can fill the homepage with repetitious details (planned fix: [#231](https://gitlab.com/lightmeter/controlcenter/-/issues/231), [#157](157))
+- Some messages are recorded twice during statistical processing, resulting in double counting for e.g. sent status (planned fix: [#82](https://gitlab.com/lightmeter/controlcenter/-/issues/82))
+- Clicking on homepage chart sections can result in the reporting of misleading stats (planned fix: [#63](https://gitlab.com/lightmeter/controlcenter/-/issues/63))
 
 ## Development
 
