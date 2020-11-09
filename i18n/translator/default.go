@@ -19,8 +19,17 @@ type TranslatableStringer interface {
 	Args() []interface{}
 }
 
+// Given a string supported by gettext, transform it into something consumable by go-text
+// NOTE: right now what we are looking for it just to prevent go-text of interpreting %
+// by duplicating it, meaning "literal percent".
+// TODO: this function will need to be smarter in order to support positional
+// arguments and pluralization. Please see gitlab issue #245 for more info.
+func TransformTranslation(s string) string {
+	return strings.ReplaceAll(s, "%", "%%")
+}
+
 func Stringfy(s TranslatableStringer) string {
-	return fmt.Sprintf(strings.ReplaceAll(s.TplString(), "%%", "%"), s.Args()...)
+	return fmt.Sprintf(s.TplString(), s.Args()...)
 }
 
 type Translator interface {

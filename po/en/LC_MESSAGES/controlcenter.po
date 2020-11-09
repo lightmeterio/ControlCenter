@@ -11,8 +11,8 @@ msgstr ""
 "Content-Transfer-Encoding: \n"
 
 #: www/index.i18n.html:39
-msgid "<b>%%i%%%%</b> bounce rate between %%s and %%s"
-msgstr "<b>%%i%%%%</b> bounce rate between %%s and %%s"
+msgid "<b>%i%%</b> bounce rate between %s and %s"
+msgstr "<b>%i%%</b> bounce rate between %s and %s"
 
 #: www/index.i18n.html:102 www/settingspage.i18n.html:46
 msgid "About"
@@ -131,8 +131,8 @@ msgid "Get help"
 msgstr "Get help"
 
 #: www/index.i18n.html:75
-msgid "Happy %%s,"
-msgstr "Happy %%s,"
+msgid "Happy %s,"
+msgstr "Happy %s,"
 
 #: www/index.i18n.html:28
 msgid "High Bounce Rate"
@@ -155,8 +155,8 @@ msgid "Intel"
 msgstr "Intel"
 
 #: www/index.i18n.html:33
-msgid "IP blocked by %%s"
-msgstr "IP blocked by %%s"
+msgid "IP blocked by %s"
+msgstr "IP blocked by %s"
 
 #: www/index.i18n.html:32
 msgid "IP on shared blocklist"
@@ -219,8 +219,8 @@ msgid "No"
 msgstr "No"
 
 #: www/index.i18n.html:44
-msgid "No emails were sent between %%s and %%s"
-msgstr "No emails were sent between %%s and %%s"
+msgid "No emails were sent between %s and %s"
+msgstr "No emails were sent between %s and %s"
 
 #: www/settingspage.i18n.html:79
 msgid "Notifications"
@@ -231,8 +231,8 @@ msgid "Oldest"
 msgstr "Oldest"
 
 #: www/index.i18n.html:364
-msgid "Original response from %%s (%%s)"
-msgstr "Original response from %%s (%%s)"
+msgid "Original response from %s (%s)"
+msgstr "Original response from %s (%s)"
 
 #: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
 msgid "Password"
@@ -331,12 +331,12 @@ msgid "Thank you for using Lightmeter."
 msgstr "Thank you for using Lightmeter."
 
 #: www/index.i18n.html:66
-msgid "The IP %%s cannot deliver to %%s (<strong>%%s</strong>)"
-msgstr "The IP %%s cannot deliver to %%s (<strong>%%s</strong>)"
+msgid "The IP %s cannot deliver to %s (<strong>%s</strong>)"
+msgstr "The IP %s cannot deliver to %s (<strong>%s</strong>)"
 
 #: www/index.i18n.html:59
-msgid "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
-msgstr "The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgstr "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 
 #: www/index.i18n.html:259
 msgid "Time interval:"

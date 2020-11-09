@@ -30,18 +30,18 @@
             "welcome_content": "{{translate `Your first Insight`}}",
             "insights_introduction_content": "{{translate `Breaking new ground`}}",
             "local_rbl_check": "{{translate `IP on shared blocklist`}}",
-            "message_rbl": i => sprintf("{{translate `IP blocked by %%s`}}", i.Content.host),
+            "message_rbl": i => sprintf("{{translate `IP blocked by %s`}}", i.Content.host),
           }
 
           insightsDescriptions = {
             "high_bounce_rate": function(i) {
               var c = i.Content
-              return sprintf("{{ translate `<b>%%i%%%%</b> bounce rate between %%s and %%s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+              return sprintf("{{ translate `<b>%i%%</b> bounce rate between %s and %s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
             "mail_inactivity": function(i) {
               var c = i.Content
-              return sprintf("{{ translate `No emails were sent between %%s and %%s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+              return sprintf("{{ translate `No emails were sent between %s and %s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
             },
 
             "welcome_content": function(i) {
@@ -56,14 +56,14 @@
 
             "local_rbl_check": function(i) {
               var c = i.Content
-              var msgPart = sprintf("{{ translate `The IP address %%s is listed by <strong>%%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
+              var msgPart = sprintf("{{ translate `The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
               var linkPart = "<button class='btn btn-sm' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openRblModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             },
 
             "message_rbl": function(i) {
               var c = i.Content
-              var msgPart = sprintf("{{ translate `The IP %%s cannot deliver to %%s (<strong>%%s</strong>)` }}. ", c.address, c.recipient, c.host)
+              var msgPart = sprintf("{{ translate `The IP %s cannot deliver to %s (<strong>%s</strong>)` }}. ", c.address, c.recipient, c.host)
               var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             }
@@ -72,7 +72,7 @@
           function greetingText() {
             var dateObj = new Date()
             var weekday = dateObj.toLocaleString("default", { weekday: "long" })
-            return sprintf("{{ translate `Happy %%s,` }}", weekday)
+            return sprintf("{{ translate `Happy %s,` }}", weekday)
           }
 
         </script>
@@ -385,7 +385,7 @@
               $('#msg_rbl_list_modal').on('shown.bs.modal', function(e) {
                   var rblId = $(e.relatedTarget).data('msg-rbl-id')
                   var modal = $(this)
-                  var text = sprintf('{{translate "Original response from %%s (%%s)"}}', ...buildInsightMsgRblTitle(rblId))
+                  var text = sprintf('{{translate "Original response from %s (%s)"}}', ...buildInsightMsgRblTitle(rblId))
                   modal.find('.modal-title').text(text)
                   buildInsightMsgRblDetails(rblId)
               });
