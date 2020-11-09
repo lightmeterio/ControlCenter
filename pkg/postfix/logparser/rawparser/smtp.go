@@ -16,10 +16,7 @@ const (
 	// NOTE: Relay name might be absent, having only "none"
 	relayComponentsRegexpFormat = `((?P<RelayName>[^\,[]+)` + `\[(?P<RelayIp>[^\],]+)\]` + `:` + `(?P<RelayPort>[\d]+)|` + `none)`
 
-	// TODO: I have the feeling this expression can be simplified a lot,
-	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well,
-	// But I don't know how it'd be performance-wise
-	mailRecipientPartRegexpFormat = `((?P<NonQuotedRecipientLocalPart>[^@"]+)|"(?P<QuotedRecipientLocalPart>[^@"]+)")`
+	mailRecipientPartRegexpFormat = `(?P<RecipientLocalPart>` + mailLocalPartRegexpFormat + `)`
 
 	messageSentWithStatusRawSmtpSentStatusRegexpFormat = `(?P<MessageSentWithStatus>` +
 		`to=<` + mailRecipientPartRegexpFormat + `@(?P<RecipientDomainPart>[^>]+)>` + `,\s` +
@@ -54,23 +51,22 @@ type RawSmtpSentStatus struct {
 var (
 	smtpPossiblePayloadsRegexp *regexp.Regexp
 
-	smtpMessageSentWithStatusIndex       int
-	smtpQueueIndex                       int
-	smtpNonQuotedRecipientLocalPartIndex int
-	smtpQuotedRecipientLocalPartIndex    int
-	smtpRecipientDomainPartIndex         int
-	smtpRelayNameIndex                   int
-	smtpRelayIpIndex                     int
-	smtpRelayPortIndex                   int
-	smtpDelayIndex                       int
-	smtpDelaysIndex                      int
-	smtpDelays0Index                     int
-	smtpDelays1Index                     int
-	smtpDelays2Index                     int
-	smtpDelays3Index                     int
-	smtpDsnIndex                         int
-	smtpStatusIndex                      int
-	smtpExtraMessageIndex                int
+	smtpMessageSentWithStatusIndex int
+	smtpQueueIndex                 int
+	smtpRecipientLocalPartIndex    int
+	smtpRecipientDomainPartIndex   int
+	smtpRelayNameIndex             int
+	smtpRelayIpIndex               int
+	smtpRelayPortIndex             int
+	smtpDelayIndex                 int
+	smtpDelaysIndex                int
+	smtpDelays0Index               int
+	smtpDelays1Index               int
+	smtpDelays2Index               int
+	smtpDelays3Index               int
+	smtpDsnIndex                   int
+	smtpStatusIndex                int
+	smtpExtraMessageIndex          int
 )
 
 func init() {
@@ -78,8 +74,7 @@ func init() {
 
 	smtpMessageSentWithStatusIndex = indexForGroup(smtpPossiblePayloadsRegexp, "MessageSentWithStatus")
 	smtpQueueIndex = indexForGroup(smtpPossiblePayloadsRegexp, "Queue")
-	smtpNonQuotedRecipientLocalPartIndex = indexForGroup(smtpPossiblePayloadsRegexp, "NonQuotedRecipientLocalPart")
-	smtpQuotedRecipientLocalPartIndex = indexForGroup(smtpPossiblePayloadsRegexp, "QuotedRecipientLocalPart")
+	smtpRecipientLocalPartIndex = indexForGroup(smtpPossiblePayloadsRegexp, "RecipientLocalPart")
 	smtpRecipientDomainPartIndex = indexForGroup(smtpPossiblePayloadsRegexp, "RecipientDomainPart")
 	smtpRelayNameIndex = indexForGroup(smtpPossiblePayloadsRegexp, "RelayName")
 	smtpRelayIpIndex = indexForGroup(smtpPossiblePayloadsRegexp, "RelayIp")
@@ -107,13 +102,7 @@ func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawPayload, error) 
 		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
-	recipientLocalPart := func() []byte {
-		if len(payloadMatches[smtpNonQuotedRecipientLocalPartIndex]) > 0 {
-			return payloadMatches[smtpNonQuotedRecipientLocalPartIndex]
-		}
-
-		return payloadMatches[smtpQuotedRecipientLocalPartIndex]
-	}()
+	recipientLocalPart := normalizeMailLocalPart(payloadMatches[smtpRecipientLocalPartIndex])
 
 	s := RawSmtpSentStatus{
 		Queue:               payloadMatches[smtpQueueIndex],

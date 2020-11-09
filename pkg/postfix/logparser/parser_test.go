@@ -75,7 +75,7 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	})
 
 	Convey("Unsupported dovecot line", t, func() {
-		h, p, err := Parse([]byte(`May 5 18:56:52 mail dovecot: imap(laal@mail.io)<28358><CO3htpid9tRXDNo5>: Connection closed (IDLE running for 0.001 + waiting input for 28.914 secs, 2 B in + 10 B out, state=wait-input) in=703 out=12338 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0`))
+		h, p, err := Parse([]byte(`May  5 18:56:52 mail dovecot: imap(laal@mail.io)<28358><CO3htpid9tRXDNo5>: Connection closed (IDLE running for 0.001 + waiting input for 28.914 secs, 2 B in + 10 B out, state=wait-input) in=703 out=12338 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0`))
 		So(err, ShouldEqual, ErrUnsupportedLogLine)
 		So(p, ShouldBeNil)
 		So(h.Process, ShouldEqual, "dovecot")

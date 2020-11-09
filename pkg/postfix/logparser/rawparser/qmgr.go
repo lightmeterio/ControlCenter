@@ -12,7 +12,7 @@ const (
 	// TODO: I have the feeling this expression can be simplified a lot,
 	// and started seeing that using a grammar based syntax instead of regexp would make it easier to write as well,
 	// But I don't know how it'd be performance-wise
-	mailSenderPartRegexpFormat = `((?P<NonQuotedSenderLocalPart>[^@"]+)|"(?P<QuotedSenderLocalPart>[^@"]+)")`
+	mailSenderPartRegexpFormat = `(?P<SenderLocalPart>` + mailLocalPartRegexpFormat + `)`
 
 	qmgrPossiblePayloadsFormat = `(?P<MessageReturnedToSenderStatus>` +
 		`from=<` + mailSenderPartRegexpFormat + `@(?P<SenderDomainPart>[^>]+)>` + `,\s` +
@@ -33,11 +33,10 @@ type QmgrReturnedToSender struct {
 var (
 	qmgrPossiblePayloadsRegexp *regexp.Regexp
 
-	qmgrMessageSentWithStatusIndex    int
-	qmgrQueueIndex                    int
-	qmgrNonQuotedSenderLocalPartIndex int
-	qmgrQuotedSenderLocalPartIndex    int
-	qmgrSenderDomainPartIndex         int
+	qmgrMessageSentWithStatusIndex int
+	qmgrQueueIndex                 int
+	senderLocalPartIndex           int
+	qmgrSenderDomainPartIndex      int
 )
 
 func init() {
@@ -45,8 +44,7 @@ func init() {
 
 	qmgrMessageSentWithStatusIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "MessageReturnedToSenderStatus")
 	qmgrQueueIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "Queue")
-	qmgrNonQuotedSenderLocalPartIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "NonQuotedSenderLocalPart")
-	qmgrQuotedSenderLocalPartIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "QuotedSenderLocalPart")
+	senderLocalPartIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "SenderLocalPart")
 	qmgrSenderDomainPartIndex = indexForGroup(qmgrPossiblePayloadsRegexp, "SenderDomainPart")
 }
 
@@ -62,13 +60,7 @@ func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawPayload, error) 
 		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
-	senderLocalPart := func() []byte {
-		if len(payloadMatches[qmgrNonQuotedSenderLocalPartIndex]) > 0 {
-			return payloadMatches[qmgrNonQuotedSenderLocalPartIndex]
-		}
-
-		return payloadMatches[qmgrQuotedSenderLocalPartIndex]
-	}()
+	senderLocalPart := normalizeMailLocalPart(payloadMatches[senderLocalPartIndex])
 
 	s := QmgrReturnedToSender{
 		Queue:            payloadMatches[qmgrQueueIndex],

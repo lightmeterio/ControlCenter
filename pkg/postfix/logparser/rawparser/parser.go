@@ -1,19 +1,24 @@
 package rawparser
 
 import (
+	"bytes"
 	"errors"
 	"regexp"
 )
 
 const (
-	timeRegexpFormat = `(?P<Time>(?P<Month>([\w]{3}))\s\s?(?P<Day>[0-9]{1,2})\s(?P<Hour>[0-9]{2}):(?P<Minute>[\d]{2}):(?P<Second>[0-9]{2}))`
-
 	hostRegexpFormat = `(?P<Host>[\w\.]+)`
 
 	processRegexpFormat = `(?P<ProcessName>[\w]+)(-(?P<ProcessIP>[^/+]+))?(/(?P<DaemonName>[^[]+))?(\[(?P<ProcessID>\d+)\])?`
 
-	headerRegexpFormat = `^` + timeRegexpFormat + `\s` + hostRegexpFormat + ` ` + processRegexpFormat + `:\s`
+	headerRegexpFormat = `^` + hostRegexpFormat + ` ` + processRegexpFormat + `:\s`
+
+	mailLocalPartRegexpFormat = `[^@]+`
 )
+
+func normalizeMailLocalPart(s []byte) []byte {
+	return bytes.Trim(s, `"`)
+}
 
 type RawHeader struct {
 	Time      []byte
@@ -43,14 +48,7 @@ func indexForGroup(r *regexp.Regexp, name string) int {
 var (
 	headerRegexp *regexp.Regexp
 
-	timeIndex   int
-	monthIndex  int
-	dayIndex    int
-	hourIndex   int
-	minuteIndex int
-	secondIndex int
-	hostIndex   int
-
+	hostIndex          int
 	processNameIndex   int
 	processDaemonIndex int
 	processIPIndex     int
@@ -60,12 +58,6 @@ var (
 func init() {
 	headerRegexp = regexp.MustCompile(headerRegexpFormat)
 
-	timeIndex = indexForGroup(headerRegexp, "Time")
-	monthIndex = indexForGroup(headerRegexp, "Month")
-	dayIndex = indexForGroup(headerRegexp, "Day")
-	hourIndex = indexForGroup(headerRegexp, "Hour")
-	minuteIndex = indexForGroup(headerRegexp, "Minute")
-	secondIndex = indexForGroup(headerRegexp, "Second")
 	hostIndex = indexForGroup(headerRegexp, "Host")
 
 	processDaemonIndex = indexForGroup(headerRegexp, "DaemonName")
@@ -74,22 +66,39 @@ func init() {
 	processIDIndex = indexForGroup(headerRegexp, "ProcessID")
 }
 
+const (
+	// A line starts with a time, with fixed length
+	// the `day` field is always trailed with a space, if needed
+	// so it's always two characters long
+	sampleLogDateTime = `Mar 22 06:28:55 `
+)
+
 func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
-	headerMatches := headerRegexp.FindSubmatch(logLine)
+	if len(logLine) < len(sampleLogDateTime) {
+		return RawHeader{}, nil, ErrInvalidHeaderLine
+	}
+
+	remainingHeader := logLine[len(sampleLogDateTime):]
+
+	if len(remainingHeader) == 0 {
+		return RawHeader{}, nil, ErrInvalidHeaderLine
+	}
+
+	headerMatches := headerRegexp.FindSubmatch(remainingHeader)
 
 	if len(headerMatches) == 0 {
 		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
-	payloadLine := logLine[len(headerMatches[0]):]
+	payloadLine := logLine[len(sampleLogDateTime)+len(headerMatches[0]):]
 
 	return RawHeader{
-		Time:      headerMatches[timeIndex],
-		Month:     headerMatches[monthIndex],
-		Day:       headerMatches[dayIndex],
-		Hour:      headerMatches[hourIndex],
-		Minute:    headerMatches[minuteIndex],
-		Second:    headerMatches[secondIndex],
+		Time:      logLine[:len(sampleLogDateTime)-1],
+		Month:     logLine[0:3],
+		Day:       logLine[4:6],
+		Hour:      logLine[7:9],
+		Minute:    logLine[10:12],
+		Second:    logLine[13:15],
 		Host:      headerMatches[hostIndex],
 		Process:   headerMatches[processNameIndex],
 		ProcessIP: headerMatches[processIPIndex],
