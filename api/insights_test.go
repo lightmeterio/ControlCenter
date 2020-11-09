@@ -50,7 +50,7 @@ func (f *fakeFetchedInsight) Content() core.Content {
 }
 
 type content struct {
-	V string `json:"v"`
+	V           string `json:"v"`
 	ContentType string
 }
 
@@ -70,26 +70,33 @@ func (c content) HelpLink(container core.URLContainer) string {
 	return container.Get(c.ContentType)
 }
 
-func TestInsights(t *testing.T) {
-	ctrl := gomock.NewController(t)
+func parseTimeInterval(from, to string) data.TimeInterval {
+	i, err := data.ParseTimeInterval(from, to, time.UTC)
 
-	f := mock_insights_fetcher.NewMockFetcher(ctrl)
-
-	parseTimeInterval := func(from, to string) data.TimeInterval {
-		i, err := data.ParseTimeInterval(from, to, time.UTC)
-
-		if err != nil {
-			panic("invalid time interval!!!")
-		}
-
-		return i
+	if err != nil {
+		panic("invalid time interval!!!")
 	}
 
-	urlContainer := recommendation.GetDefaultURLContainer()
+	return i
+}
 
-	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
-
+func TestInsights(t *testing.T) {
 	Convey("Test Insights", t, func() {
+		urlContainer := recommendation.NewURLContainer()
+
+		urlContainer.SetForEach([]recommendation.Link{
+			{Link: "https://kb.lightemter.io/KB0001", ID: "message_rbl_Yahoo"},
+			{Link: "https://kb.lightemter.io/KB0002", ID: "local_rbl_check"},
+		})
+
+		chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
+
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		f := mock_insights_fetcher.NewMockFetcher(ctrl)
+
 		Convey("Missing mandatory arguments", func() {
 			s := httptest.NewServer(chain.WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: urlContainer}))
 			r, err := http.Get(s.URL)
@@ -165,6 +172,4 @@ func TestInsights(t *testing.T) {
 			})
 		})
 	})
-
-	ctrl.Finish()
 }
