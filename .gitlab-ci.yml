@@ -140,7 +140,7 @@ publish-binaries:
   dependencies:
     - build
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME =~ /^feature\/release-/'
       changes:
         - VERSION.txt
       when: manual
@@ -157,7 +157,7 @@ publish-release:
   dependencies:
     - publish-binaries
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME =~ /^feature\/release-/'
       changes:
         - VERSION.txt
       when: on_success
