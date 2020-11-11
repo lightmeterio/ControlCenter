@@ -328,7 +328,7 @@ div#time-interval-field {
     text-align: right;
     font: 12px/16px Open Sans;
     letter-spacing: 0px;
-    color: #20232
+    color: #20232;
 }
 
 footer {
@@ -429,7 +429,7 @@ h5.row-title {
     margin: 0 0 0.3rem 0;
     font: 18px Inter;
     font-weight: bold;
-    color: color: #202324;
+    color: #202324;
 }
 
 .insights .card-text {
@@ -741,7 +741,7 @@ input-group-addon a {
 .greeting {
     background: url("../img/greeting-lensflare.svg") no-repeat right top, linear-gradient(104deg, #2A93D6 0%, #3DD9D6 100%) 0% 0% padding-box;
     color: white;
-    padding: 0.5rem;x
+    padding: 0.5rem;
     border-radius: 7px;
     margin-bottom: 30px;
 }
@@ -967,6 +967,16 @@ a.insight-help-button {
   a.insight-help-button {
     color: #2C9CD6;
   }
+}
+
+/* disable plotly pie chart legend interactivity */
+/* hides the svg dom element that has the click handler responsible for toggling */
+.plotly .legend .traces .legendtoggle {
+   display: none;
+}
+/* just for presentation: shows the default cursor insted of the text cursor */
+.plotly .legend .traces .legendtext {
+   cursor: default;
 }
 
 .card.info {
