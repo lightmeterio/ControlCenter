@@ -566,7 +566,7 @@ h5.row-title {
 }
 
 .panel-page .field-group {
-    margin: 2rem 0;
+    margin: 1rem 0;
 }
 
 .panel .form-control,
@@ -967,4 +967,27 @@ a.insight-help-button {
   a.insight-help-button {
     color: #2C9CD6;
   }
+}
+
+.card.info {
+    background: #DAEBF4;
+    border: none;
+}
+
+.card.info .card-text,
+.card.info .card-title {
+    color: #00689D;
+    font-size: 12px;
+}
+
+.card.info .card-body {
+    padding: 0.8em;
+}
+
+.card.info .card-title {
+    margin-bottom: 0.8em;
+}
+
+.card .fa {
+    padding-right: 0.8em;
 }

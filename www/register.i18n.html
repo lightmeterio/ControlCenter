@@ -82,7 +82,23 @@
                                     </div>
 
                                     <input type="button" class="btn-sm btn-primary w-100" value="{{translate `Register`}}" id="submit" />
+
                             </div>
+                            
+                            <!-- Show telemetry notice if DNT is disabled -->
+                            <script>
+                            if (navigator.doNotTrack!=1) {
+                                document.write('\
+                                    <div class="card info">\
+                                        <div class="card-body">\
+                                            <h5 class="card-title"><i class="fa fa-info-circle"></i>{{translate `Telemetry enabled`}}</h5>\
+                                            <p class="card-text">{{translate `Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a href="https://lightmeter.io/privacy-policy/">disabled</a> at any time`}}</p>\
+                                        </div>\
+                                    </div>\
+                                ')
+                            }
+                            </script>    
+                            
                         </div>
                     </div>
                 </div>
