@@ -86,20 +86,20 @@ function setupInsightInfoIcon(insight, iconElem) {
 }
 
 function buildInsightTime(insight) {
-  return moment(insight.Time).format('DD MMM YYYY | h:mmA')
+  return moment(insight.time).format('DD MMM YYYY | h:mmA')
 }
 
 function buildInsightCategory(insight) {
   // FIXME We shouldn't capitalise in the code -- leave that for the i18n workflow to decide
-  return insight.Category.charAt(0).toUpperCase() + insight.Category.slice(1)
+  return insight.category.charAt(0).toUpperCase() + insight.category.slice(1)
 }
 
 function buildInsightRating(insight) {
-  return insight.Rating
+  return insight.rating
 }
 
 function buildInsightTitle(insight) {
-  var s = insightsTitles[insight.ContentType]
+  var s = insightsTitles[insight.content_type]
 
   if (typeof s == "string") {
     return s
@@ -109,14 +109,14 @@ function buildInsightTitle(insight) {
     return s(insight)
   }
 
-  return "Title for " + insight.ContentType
+  return "Title for " + insight.content_type
 }
 
 function buildInsightDescription(insight) {
-  var handler = insightsDescriptions[insight.ContentType]
+  var handler = insightsDescriptions[insight.content_type]
 
   if (handler == undefined) {
-    return "Description for " + insight.ContentType
+    return "Description for " + insight.content_type
   }
 
   return handler(insight)
@@ -132,7 +132,7 @@ function escapeHTML(value) {
 }
 
 function buildInsightRblList(insightId) {
-  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+  var insight = allCurrentInsightsData.find(i => i.id == insightId)
 
   if (insight === undefined) {
     return
@@ -140,7 +140,7 @@ function buildInsightRblList(insightId) {
 
   var content = "<ul>"
 
-  insight.Content.rbls.forEach(r => {
+  insight.content.rbls.forEach(r => {
     content += "<li><b>" + escapeHTML(r.rbl) + "</b>: " + escapeHTML(r.text) + "</li>"
   })
 
@@ -150,34 +150,34 @@ function buildInsightRblList(insightId) {
 }
 
 function buildInsightRblCheckedIp(insightId) {
-  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+  var insight = allCurrentInsightsData.find(i => i.id == insightId)
 
   if (insight === undefined) {
     return ""
   }
 
-  return insight.Content.address
+  return insight.content.address
 }
 
 function buildInsightMsgRblDetails(insightId) {
-  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+  var insight = allCurrentInsightsData.find(i => i.id == insightId)
 
   if (insight === undefined) {
     return
   }
 
-  var content = escapeHTML(insight.Content.message)
+  var content = escapeHTML(insight.content.message)
 
   $('#msg-rbl-list-content').html(content)
 }
 
 function buildInsightMsgRblTitle(insightId) {
-  var insight = allCurrentInsightsData.find(i => i.ID == insightId)
+  var insight = allCurrentInsightsData.find(i => i.id == insightId)
 
   if (insight === undefined) {
     return ""
   }
 
-  return [insight.Content.recipient, insight.Content.host]
+  return [insight.content.recipient, insight.content.host]
 }
 

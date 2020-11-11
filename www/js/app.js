@@ -27,7 +27,7 @@ function setupApplicationInfo(){
     apiCallGet("api/v0/appVersion").then(function(data) {
         if (data != null) {
             let e = document.getElementById("release-info")
-            $(e).html(sprintf("<strong>Version:</strong> %s<br/><strong>Commit:</strong> %s<br/><strong>Tag/branch</strong>: %s", data.Version, data.Commit, data.TagOrBranch))
+            $(e).html(sprintf("<strong>Version:</strong> %s<br/><strong>Commit:</strong> %s<br/><strong>Tag/branch</strong>: %s", data.version, data.commit, data.tag_or_branch))
         }
     })
 }
@@ -113,8 +113,8 @@ var drawDashboard = function() {
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-                var d = data != null ? data.map(v => v["Value"]) : []
-                var l = data != null ? data.map(v => v["Key"]) : []
+                var d = data != null ? data.map(v => v["value"]) : []
+                var l = data != null ? data.map(v => v["key"]) : []
                 updateArray(chartData[0].values, d)
                 updateArray(chartData[0].labels, l)
                 Plotly.redraw(graphName)
@@ -178,8 +178,8 @@ var drawDashboard = function() {
 
         return function() {
             fetchGraphDataAsJsonWithTimeInterval(graphName).then(function(data) {
-                var x = data != null ? data.map(v => v["Key"]) : []
-                var y = data != null ? data.map(v => v["Value"]) : []
+                var x = data != null ? data.map(v => v["key"]) : []
+                var y = data != null ? data.map(v => v["value"]) : []
                 updateArray(chartData[0].x, x)
                 updateArray(chartData[0].y, y)
                 Plotly.redraw(graphName)

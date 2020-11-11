@@ -165,8 +165,8 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 type bounceRateContent struct {
-	Value    float32
-	Interval data.TimeInterval
+	Value    float32           `json:"value"`
+	Interval data.TimeInterval `json:"interval"`
 }
 
 func (c bounceRateContent) String() string {

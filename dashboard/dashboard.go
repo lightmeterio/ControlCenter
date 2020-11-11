@@ -20,8 +20,8 @@ type queries struct {
 }
 
 type Pair struct {
-	Key   interface{}
-	Value interface{}
+	Key   interface{} `json:"key"`
+	Value interface{} `json:"value"`
 }
 
 type Pairs []Pair

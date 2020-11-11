@@ -30,41 +30,41 @@
             "welcome_content": "{{translate `Your first Insight`}}",
             "insights_introduction_content": "{{translate `Breaking new ground`}}",
             "local_rbl_check": "{{translate `IP on shared blocklist`}}",
-            "message_rbl": i => sprintf("{{translate `IP blocked by %s`}}", i.Content.host),
+            "message_rbl": i => sprintf("{{translate `IP blocked by %s`}}", i.content.host),
           }
 
           insightsDescriptions = {
             "high_bounce_rate": function(i) {
-              var c = i.Content
-              return sprintf("{{ translate `<b>%i%%</b> bounce rate between %s and %s`}}", c.Value * 100, formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+              var c = i.content
+              return sprintf("{{ translate `<b>%i%%</b> bounce rate between %s and %s`}}", c.value * 100, formatInsightDescriptionDateTime(c.interval.from), formatInsightDescriptionDateTime(c.interval.to))
             },
 
             "mail_inactivity": function(i) {
-              var c = i.Content
-              return sprintf("{{ translate `No emails were sent between %s and %s` }}", formatInsightDescriptionDateTime(c.Interval.From), formatInsightDescriptionDateTime(c.Interval.To))
+              var c = i.content
+              return sprintf("{{ translate `No emails were sent between %s and %s` }}", formatInsightDescriptionDateTime(c.interval.from), formatInsightDescriptionDateTime(c.interval.to))
             },
 
             "welcome_content": function(i) {
-              var c = i.Content
+              var c = i.content
               return "{{ translate `Insights are time-based analyses relating to your mailserver` }}"
             },
 
             "insights_introduction_content": function(i) {
-              var c = i.Content
+              var c = i.content
               return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}"
             },
 
             "local_rbl_check": function(i) {
-              var c = i.Content
+              var c = i.content
               var msgPart = sprintf("{{ translate `The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s` }}. ", c.address, c.rbls.length)
-              var linkPart = "<button class='btn btn-sm' data-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#rblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openRblModal']);\">{{ translate `Details` }}</a>"
+              var linkPart = "<button class='btn btn-sm' data-rbl-id='" + i.id.toString() +  "' data-toggle='modal' data-target='#rblListModal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openRblModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             },
 
             "message_rbl": function(i) {
-              var c = i.Content
+              var c = i.content
               var msgPart = sprintf("{{ translate `The IP %s cannot deliver to %s (<strong>%s</strong>)` }}. ", c.address, c.recipient, c.host)
-              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.ID.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']);\">{{ translate `Details` }}</a>"
+              var linkPart = "<button class='btn btn-sm' data-msg-rbl-id='" + i.id.toString() +  "' data-toggle='modal' data-target='#msg_rbl_list_modal' onclick=\"_paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']);\">{{ translate `Details` }}</a>"
               return msgPart + linkPart
             }
           }

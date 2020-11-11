@@ -11,8 +11,8 @@ var (
 )
 
 type TimeInterval struct {
-	From time.Time
-	To   time.Time
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 
 func ParseTimeInterval(fromStr string, toStr string, location *time.Location) (TimeInterval, error) {
