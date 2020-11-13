@@ -98,7 +98,10 @@ func main() {
 		errorutil.Die(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
 	}
 
-	ws.Run()
+	go func() {
+		<-ws.Run()
+		log.Panicln("Error: Workspace execution has ended, which should never happen here!")
+	}()
 
 	func() {
 		if len(dirToWatch) > 0 {

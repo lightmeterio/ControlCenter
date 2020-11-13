@@ -20,8 +20,16 @@ func OnlyImportLogs(workspaceDirectory string, timezone *time.Location, logYear 
 	}
 
 	doneWithDatabase := ws.Run()
+
 	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
-	logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, reader)
+
+	publisher := ws.NewPublisher()
+
+	logeater.ParseLogsFromReader(publisher, initialLogsTime, reader)
+
+	publisher.Close()
+
 	<-doneWithDatabase
+
 	log.Println("Importing has finished. Bye!")
 }
