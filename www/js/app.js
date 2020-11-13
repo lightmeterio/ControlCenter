@@ -222,6 +222,11 @@ var drawDashboard = function() {
     setupResizers(document.getElementById('basic-graphs-area'))
 
     setupApplicationInfo()
+
+    setInterval(function() {
+        updateDashboard()
+        fetchInsights()
+    }, 30000)
 }
 
 // enable tooltips everywhere
