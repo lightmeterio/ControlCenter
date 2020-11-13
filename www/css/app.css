@@ -895,6 +895,49 @@ a.insight-help-button {
   }
 }
 
+.badge {
+    font-size: 80%;
+}
+
+.badge-warning {
+    background-color: #FF5C6F;
+    color: white;
+}
+
+.badge-info {
+    background-color: #FCE4C4;
+    color: #FF5C6F;
+}
+
+.modal-body .intro {
+    font-size: 0.7em;
+}
+#rbl-list-content .card {
+    margin-bottom: 0.8em;
+    background-color: #F9F9F9;
+    border: 1px solid #c5c7c6;
+}
+
+#rbl-list-content .card-title,
+#rbl-list-content .card-text {
+    font-size: 0.8em;
+}
+
+#rbl-list-content .card-text {
+    font-size: 0.7em;
+}
+
+#rbl-list-content .card .badge {
+    margin-right: 0.6em;
+}
+
+#rbl-list-content .card .message-label {
+    color: #7A82AB;
+    font-weight: bold;
+    padding-right: 0.5em;
+    font-size: 0.9em;
+}
+
 blockquote {
   font-style:italic;
   color: #555555;
@@ -924,5 +967,5 @@ blockquote span {
   color:#333333;
   font-style: normal;
   margin-top:1em;
-  font-size: 0.7em
+  font-size: 0.7em;
 }
