@@ -1,0 +1,171 @@
+.login-gradient {
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-image: url('~@/assets/login-gradient-bg.svg');
+    background-color: #F7F8F9;
+}
+
+.panel-page .panel-default {
+    border-color: #ddd;
+}
+
+.panel-page .panel {
+    margin-bottom: 20px;
+    background-color: #fff;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.panel-page .panel-body {
+    padding: 15px;
+}
+
+.panel-page .panel-body h1,
+.panel-page .panel-body h2,
+.panel-page .panel-body h3,
+.panel-page .panel-body h4 {
+    color: #202324;
+}
+
+.panel-page .panel-body h2 {
+    font-size: 22px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.panel-page .panel-body h4 {
+    text-align: left;
+}
+
+.panel-page p {
+    font-size: 14px;
+    color: #202324;
+}
+
+.panel-page .panel-body h4 {
+    margin-bottom: 1rem;
+}
+
+.panel-page .panel:first-child {
+    box-shadow: 0px 1px 30px #0000001A;
+}
+
+.panel-page .panel-body h4 {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.panel-page .panel-body {
+    padding: 15px 15%;
+}
+
+.panel-page .logo {
+    margin: 1.5rem 0 2.5rem 0;
+}
+
+.panel-page .panel .form-control {
+    background-color: #F5F7F7;
+    border: 1px solid #EBEBEB;
+    border-radius: 0.25rem;
+    margin: 0.4rem 0;
+}
+
+.panel-page .field-group {
+    margin: 2rem 0;
+}
+
+.panel-page .panel .form-control {
+    font-size: 14px;
+    color: #909192;
+}
+
+.panel-page .panel .custom-form-check-label {
+    font-size: 14px;
+    color: #909192;
+}
+
+.panel-page .panel .form-control::placeholder {
+    font-size: 14px;
+    color: #909192;
+}
+
+.panel-page footer,
+.panel-page footer a,
+.panel-page footer a:hover {
+    background-color: inherit;
+    text-align: center;
+    color: #202324;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.panel-page footer a:hover {
+    text-decoration: underline;
+}
+
+.panel-page .btn-primary {
+    background-color: #2C9CD6;
+    border-radius: 0.25rem;
+    border: none;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.panel-page footer .bi-heart-fill path {
+    color: #FFDC00;
+}
+
+.panel-page .form-group small a {
+    color: inherit;
+}
+
+.panel-page .input-group-append, .panel-page .input-group-prepend {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+}
+
+.panel-page .input-group-append .btn {
+    background-color: #DBDBDB;
+    border: 1px solid #EBEBEB;
+    margin-left: -1px;
+    padding: .1rem .6rem;
+}
+
+.panel-page .input-group > .form-control:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.panel-page  .input-group > .input-group-append > .btn,
+.panel-page .input-group > .input-group-append > .input-group-text,
+.panel-page .input-group > .input-group-prepend:first-child > .btn:not(:first-child),
+.panel-page .input-group > .input-group-prepend:first-child > .input-group-text:not(:first-child),
+.panel-page .input-group > .input-group-prepend:not(:first-child) > .btn,
+.panel-page .input-group > .input-group-prepend:not(:first-child) > .input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.panel-page .input-group-append .btn, .input-group-prepend .btn {
+    position: relative;
+    z-index: 2;
+}
+
+.panel-page .form-control.custom-select, .input-group-append .btn  {
+    margin: 0.4rem 0;
+    background-color: #E6E7E7;
+    color: #202324;
+}
+
+.panel-page .input-group-append .btn {
+    line-height: 1.25;
+}
+
+.panel-page .btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}

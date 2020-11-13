@@ -13,10 +13,22 @@ Vue.use(BootstrapVueIcons);
 /*
   Import of third party css and javascript
  */
+
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
 import "@fortawesome/fontawesome-free/css/all.css";
 import "@fortawesome/fontawesome-free/js/all.js";
+import "./assets/css/panel-page.css";
+
+/*
+  Import components
+ */
+
+import authpagefooter from "./components/auth-page-footer";
+import panelpage from "./components/panelpage";
+
+Vue.component("auth-page-footer", authpagefooter);
+Vue.component("panel-page", panelpage);
 
 Vue.config.productionTip = false;
 
