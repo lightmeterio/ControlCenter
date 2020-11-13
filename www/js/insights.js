@@ -138,13 +138,18 @@ function buildInsightRblList(insightId) {
     return
   }
 
-  var content = "<ul>"
+  var content = ""
 
   insight.content.rbls.forEach(r => {
-    content += "<li><b>" + escapeHTML(r.rbl) + "</b>: " + escapeHTML(r.text) + "</li>"
+    // FIXME: this needs to made translatable
+    content += `\
+    <div class="card">\
+      <div class="card-body">\
+        <h5 class="card-title"><span class="badge badge-pill badge-warning">List</span>` + escapeHTML(r.rbl) + `</h5>\
+        <p class="card-text"><span class="message-label">Message:</span>` + escapeHTML(r.text) + `</p>\
+      </div>\
+    </div>`
   })
-
-  content += "</ul>"
 
   $('#rbl-list-content').html(content)
 }
