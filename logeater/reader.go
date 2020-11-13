@@ -37,8 +37,6 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *pars
 
 func ParseLogsFromReader(publisher data.Publisher, ts time.Time, reader io.Reader) {
 	ReadFromReader(reader, publisher, ts)
-	publisher.Close()
-	log.Println("log reader has just closed!")
 }
 
 func BuildInitialLogsTime(mostRecentLogTime time.Time, logYear int, timezone *time.Location) time.Time {
