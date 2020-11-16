@@ -24,16 +24,16 @@ all:
 race:
 	./tools/go_test.sh -race
 
-dev: mocks swag domain_mapping_list po2go recommendation_dev
+dev: postfix_parser  mocks swag domain_mapping_list po2go recommendation_dev
 	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-release: static_www domain_mapping_list po2go recommendation_release
+release: postfix_parser static_www domain_mapping_list po2go recommendation_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-windows_release: static_www domain_mapping_list po2go
+windows_release: postfix_parser static_www domain_mapping_list po1go
 	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
 
-static_release: static_www domain_mapping_list po2go
+static_release: postfix_parser static_www domain_mapping_list po2go
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
@@ -51,7 +51,7 @@ recommendation_dev:
 recommendation_release:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/recommendation
 
-mocks: dashboard_mock insights_mock
+mocks: postfix_parser dashboard_mock insights_mock
 
 dashboard_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
@@ -72,7 +72,7 @@ swag:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/api
 	cp api/docs/swagger.json www/api.json
 
-clean: clean_binaries clean_swag clean_staticdata clean_mocks
+clean: clean_binaries clean_swag clean_staticdata clean_mocks clean_postfix_parser
 	rm -f dependencies.svg
 
 clean_binaries:
@@ -92,3 +92,9 @@ dependencies.svg: go.sum go.mod
 
 make testlocal:
 	./tools/go_test_local.sh
+
+postfix_parser:
+	go generate gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser
+
+clean_postfix_parser:
+	@rm -vf pkg/postfix/logparser/rawparser/*.gen.go
