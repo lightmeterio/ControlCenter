@@ -1,22 +1,20 @@
+//go:generate ragel -Z -G2 header.rl -o header.gen.go
+//go:generate ragel -Z -G2 smtp.rl -o smtp.gen.go
+//go:generate ragel -Z -G2 qmgr.rl -o qmgr.gen.go
+
 package rawparser
 
 import (
 	"bytes"
 	"errors"
-	"regexp"
 )
 
-const (
-	hostRegexpFormat = `(?P<Host>[\w\.]+)`
-
-	processRegexpFormat = `(?P<ProcessName>[\w]+)(-(?P<ProcessIP>[^/+]+))?(/(?P<DaemonName>[^[]+))?(\[(?P<ProcessID>\d+)\])?`
-
-	headerRegexpFormat = `^` + hostRegexpFormat + ` ` + processRegexpFormat + `:\s`
-
-	mailLocalPartRegexpFormat = `[^@]+`
-)
-
+//nolint:deadcode,unused
+// this function is used by the Ragel generated code (.rl files)
+// and the linters are not able to see that.
 func normalizeMailLocalPart(s []byte) []byte {
+	// email local part can contain quotes, in case it contains spaces, like in: from=<"some email"@example.com>.
+	// this function removes the trailing quotes
 	return bytes.Trim(s, `"`)
 }
 
@@ -32,38 +30,6 @@ type RawHeader struct {
 	Daemon    []byte
 	ProcessIP []byte
 	ProcessID []byte
-}
-
-func indexForGroup(r *regexp.Regexp, name string) int {
-	e := r.SubexpNames()
-	for i, v := range e {
-		if v == name {
-			return i
-		}
-	}
-
-	panic("Wrong Group Name: " + name + "!")
-}
-
-var (
-	headerRegexp *regexp.Regexp
-
-	hostIndex          int
-	processNameIndex   int
-	processDaemonIndex int
-	processIPIndex     int
-	processIDIndex     int
-)
-
-func init() {
-	headerRegexp = regexp.MustCompile(headerRegexpFormat)
-
-	hostIndex = indexForGroup(headerRegexp, "Host")
-
-	processDaemonIndex = indexForGroup(headerRegexp, "DaemonName")
-	processIPIndex = indexForGroup(headerRegexp, "ProcessIP")
-	processNameIndex = indexForGroup(headerRegexp, "ProcessName")
-	processIDIndex = indexForGroup(headerRegexp, "ProcessID")
 }
 
 const (
@@ -84,27 +50,25 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
-	headerMatches := headerRegexp.FindSubmatch(remainingHeader)
+	h := RawHeader{
+		Time:   logLine[:len(sampleLogDateTime)-1],
+		Month:  logLine[0:3],
+		Day:    logLine[4:6],
+		Hour:   logLine[7:9],
+		Minute: logLine[10:12],
+		Second: logLine[13:15],
+		// Other fields intentionally left empty
+	}
 
-	if len(headerMatches) == 0 {
+	n, succeed := parseHeaderPostfixPart(&h, remainingHeader)
+
+	if !succeed {
 		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
-	payloadLine := logLine[len(sampleLogDateTime)+len(headerMatches[0]):]
+	payloadLine := logLine[len(sampleLogDateTime)+n+1:]
 
-	return RawHeader{
-		Time:      logLine[:len(sampleLogDateTime)-1],
-		Month:     logLine[0:3],
-		Day:       logLine[4:6],
-		Hour:      logLine[7:9],
-		Minute:    logLine[10:12],
-		Second:    logLine[13:15],
-		Host:      headerMatches[hostIndex],
-		Process:   headerMatches[processNameIndex],
-		ProcessIP: headerMatches[processIPIndex],
-		Daemon:    headerMatches[processDaemonIndex],
-		ProcessID: headerMatches[processIDIndex],
-	}, payloadLine, nil
+	return h, payloadLine, nil
 }
 
 type payloadHandlerKey struct {

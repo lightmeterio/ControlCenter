@@ -1,4 +1,6 @@
 run:
+  build-tags:
+    - codeanalysis
   tests: false
   skip-dirs:
     - examples

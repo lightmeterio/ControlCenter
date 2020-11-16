@@ -99,7 +99,8 @@ cover:
   needs: []
   script:
     - go get -u github.com/t-yuki/gocover-cobertura
-    - ./tools/go_test.sh -coverprofile=coverinfo.txt
+    - ./tools/go_test.sh -coverprofile=coverinfo_with_gen.txt
+    - grep -v '.gen.go' < coverinfo_with_gen.txt > coverinfo.txt
     - go run github.com/t-yuki/gocover-cobertura < coverinfo.txt > cobertura.xml
     - go tool cover -html=coverinfo.txt -o coverage.html
     - go tool cover -func=coverinfo.txt
