@@ -59,10 +59,10 @@
             <div class="input-group">
               <select
                 required
+                v-model="form.email_kind"
                 class="form-control custom-select"
                 name="email_kind"
                 id="email_kind"
-                v-model="form.email_kind"
               >
                 <option value="" selected disabled
                   >Most of my mail is…<!--{{translate "Most of my mail is…"}}--></option
@@ -156,6 +156,10 @@ export default {
   mounted() {
     const el = document.body;
     el.classList.add("login-gradient");
+  },
+  destroyed() {
+    const el = document.body;
+    el.classList.remove("login-gradient");
   }
 };
 </script>
