@@ -17,18 +17,14 @@
         <link rel="stylesheet" type="text/css" href="css/app.css">
 
         <title>{{ translate "Registration" }}</title>
-
     </head>
 
     <body class="panel-page">
-
         <div class="container">
-
-        <div class="row row justify-content-center vh-93">
-            <div class="col-sm-5 align-self-center">
-                <div class="panel panel-default mx-auto">
-                    <div class="panel-body">
-
+            <div class="row row justify-content-center vh-93">
+                <div class="col-sm-5 align-self-center">
+                    <div class="panel panel-default mx-auto">
+                        <div class="panel-body">
                             <div class="row justify-content-center">
                                 <div class="col-10">
                                     <img class="logo w-100" src="img/logo-color-120.png" alt="Lightmeter logo">
@@ -41,48 +37,55 @@
                             {{translate "to avoid repeating this step if you've done it before"}}</p>
 
                             <div class="field-group">
-                              <h4>{{translate "User details"}}</h4>
                                 <form method="post" id="form"></form>
                                 <form method="post" id="settingsForm"></form>
+                                <form method="post" id="generalSettingsForm"></form>
 
                                 <div class="form-group">
+                                    <h4>{{translate "User details"}}</h4>
 
-                                  <label for="name" class="sr-only">{{translate "Name"}}:</label>
-                                  <input form="form" id="name" class="form-control" aria-describedby="nameHelp" placeholder="{{translate `Name`}}" name="name" autoFocus />
+                                    <label for="name" class="sr-only">{{translate "Name"}}:</label>
+                                    <input form="form" id="name" class="form-control" aria-describedby="nameHelp" placeholder="{{translate `Name`}}" name="name" autoFocus />
 
-                                  <label for="email" class="sr-only">{{translate "E-mail"}}:</label>
-                                  <input form="form" id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="{{translate `Email`}}" name="email" />
+                                    <label for="email" class="sr-only">{{translate "E-mail"}}:</label>
+                                    <input form="form" id="email" type="email" class="form-control" aria-describedby="emailHelp" placeholder="{{translate `Email`}}" name="email" />
 
                                     <div class="input-group" id="show_hide_password">
-                                      <label for="password" class="sr-only">{{translate "Password"}}:</label>
-                                      <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="{{translate `Password`}}" name="password">
+                                        <label for="password" class="sr-only">{{translate "Password"}}:</label>
+                                        <input form="form" id="password" type="password" class="form-control" aria-describedby="passwordHelp" placeholder="{{translate `Password`}}" name="password">
                                         <div class="input-group-addon">
                                             <a href=""><i class="fa fa-eye-slash" aria-hidden="true"></i></a>
                                         </div>
                                     </div>
 
                                     <div class="input-group">
-                                      <label for="email_kind" class="sr-only">{{translate "Most of my mail is…"}}</label>
+                                        <label for="email_kind" class="sr-only">{{translate "Most of my mail is…"}}</label>
                                         <select form="settingsForm" class="form-control custom-select" name="email_kind" id="email_kind">
-                                          <option value="" selected disabled>{{translate "Most of my mail is…"}}</option>
-                                          <option value="direct">{{translate "Direct (personal, office, one-to-one)"}}</option>
-                                          <option value="transactional">{{translate "Transactional (notifications, apps)"}}</option>
-                                          <option value="marketing">{{translate "Marketing (newsletters, adverts)"}}</option>
-                                          </select>
-                                          <div class="input-group-append">
+                                            <option value="" selected disabled>{{translate "Most of my mail is…"}}</option>
+                                            <option value="direct">{{translate "Direct (personal, office, one-to-one)"}}</option>
+                                            <option value="transactional">{{translate "Transactional (notifications, apps)"}}</option>
+                                            <option value="marketing">{{translate "Marketing (newsletters, adverts)"}}</option>
+                                        </select>
+                                        <div class="input-group-append">
                                             <button class="btn btn-outline-secondary" type="button" data-toggle="tooltip" data-placement="top" title="{{translate `Different types of mail perform differently. This helps show the most relevant information.`}}">
-                                                  <i class="far fa-question-circle"></i>
-                                              </button>
-                                          </div>
+                                                <i class="far fa-question-circle"></i>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div class="form-check custom-form-check">
                                         <input form="settingsForm" type="checkbox" class="form-check-input" name="subscribe_newsletter" id="subscribe_newsletter" />
                                         <label class="form-check-label" for="subscribe_newsletter">{{translate "Monthly newsletter"}}</label>
                                     </div>
+                                </div>
 
-                                    <input type="button" class="btn-sm btn-primary w-100" value="{{translate `Register`}}" id="submit" />
+                                <div class="form-group">
+                                    <h4>{{translate "System details"}}</h4>
+                                    <label for="public-ip-address" class="sr-only">{{translate "Postfix public IP"}}:</label>
+                                    <input form="generalSettingsForm" id="public-ip-address" name="postfixPublicIP" type="text" class="form-control" aria-describedby="publicIPHelp" placeholder="{{translate `Postfix public IP address`}}" required name="public-ip-address">
+                                </div>
 
+                                <input type="button" class="btn-sm btn-primary w-100" value="{{translate `Register`}}" id="submit" />
                             </div>
                             
                             <!-- Show telemetry notice if DNT is disabled -->
@@ -163,6 +166,9 @@
                     let settingsFormData = new FormData(document.getElementById("settingsForm"))
 
                     let emailKind = settingsFormData.get("email_kind")
+
+                    let generalSettingsFormData = new FormData(document.getElementById("generalSettingsForm"))
+
                     settingsFormData.set("app_language", document.getElementById("app-language-hidden").value)
 
                     if (emailKind === null || emailKind.length == 0) {
@@ -206,15 +212,21 @@
                                 if (settingsFormData.has('subscribe_newsletter') && settingsFormData.get('subscribe_newsletter') == 'on') {
                                     _paq.push(['trackEvent', 'RegisterAdmin', 'newsletterOn'])
                                 }
-                                window.location.href = "/"
+
+                                fetch("/settings?setting=general", {method: 'post', body: new URLSearchParams(generalSettingsFormData)}).then(function(data) {
+                                    window.location.href = "/"
+                                }).catch(function(err) {
+                                    alert('{{ translate `Settings Error on initial setup!` }}')
+                                    console.log(err)
+                                })
                             }).catch(function (err) {
                                 alert('{{ translate `Settings Error on initial setup!` }}')
                                 console.log(err)
                             })
                         }).catch(function (err) {
-                        alert("{{ translate `Server Error!` }}")
-                        console.log(err)
-                    })
+                            alert("{{ translate `Server Error!` }}")
+                            console.log(err)
+                        })
                 }
 
                 $("#submit").on("click", function (e) {
