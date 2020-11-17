@@ -7,6 +7,7 @@ import store from "./store";
   Import of third party libs
  */
 import { BootstrapVue, BootstrapVueIcons } from "bootstrap-vue";
+
 Vue.use(BootstrapVue);
 Vue.use(BootstrapVueIcons);
 
@@ -26,8 +27,12 @@ import "./assets/css/panel-page.css";
 
 import authpagefooter from "./components/auth-page-footer";
 import panelpage from "./components/panelpage";
+import mainheader from "./components/mainheader";
+import mainfooter from "./components/mainfooter";
 
 Vue.component("auth-page-footer", authpagefooter);
+Vue.component("mainfooter", mainfooter);
+Vue.component("mainheader", mainheader);
 Vue.component("panel-page", panelpage);
 
 Vue.config.productionTip = false;

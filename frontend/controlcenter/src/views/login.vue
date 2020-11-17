@@ -79,6 +79,10 @@ export default {
   mounted() {
     const el = document.body;
     el.classList.add("login-gradient");
+  },
+  destroyed() {
+    const el = document.body;
+    el.classList.remove("login-gradient");
   }
 };
 </script>
