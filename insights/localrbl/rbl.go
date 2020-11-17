@@ -121,7 +121,7 @@ func shouldGenerateBasedOnHistoricalDataAndCurrentResults(ctx context.Context, d
 	resultChanged := contentsHaveDifferentLists(r.RBLs, v.(*content).RBLs)
 
 	if !resultChanged {
-		log.Println("RBL Scan result will not generate a new insight as scan results has not changed since last insight")
+		log.Println("RBL Scan result will not generate a new insight as scan results have not changed since last insight")
 	}
 
 	return resultChanged, nil
