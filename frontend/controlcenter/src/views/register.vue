@@ -134,11 +134,14 @@ export default {
     onSubmit(event) {
       event.preventDefault();
 
-      const settingsData = {
+      let settingsData = {
         email: this.form.email,
-        email_kind: this.form.email_kind,
-        subscribe_newsletter: this.form.subscribe_newsletter
+        email_kind: this.form.email_kind
       };
+
+      if (this.form.subscribe_newsletter !== null) {
+        settingsData.subscribe_newsletter = this.form.subscribe_newsletter;
+      }
 
       const registrationData = {
         email: this.form.email,
