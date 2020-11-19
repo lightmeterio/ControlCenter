@@ -144,7 +144,8 @@ header .logo img {
 }
 
 header .buttons,
-header a {
+header a,
+header a:hover {
   color: #2c9cd6;
 }
 
