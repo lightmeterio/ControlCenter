@@ -575,6 +575,62 @@ func TestHTTPAuth(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 		})
+
+		Convey("user has login", func() {
+			c := buildCookieClient()
+			defer c.CloseIdleConnections()
+
+			r, err := c.PostForm(s.URL+"/register", url.Values{
+				"email":    {"alice@example.com"},
+				"name":     {"Alice"},
+				"password": {"correcthorsebatterystable"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			body, _ := ioutil.ReadAll(r.Body)
+
+			response := struct {
+				Error string
+			}{}
+
+			So(json.Unmarshal(body, &response), ShouldBeNil)
+			So(response.Error, ShouldEqual, "")
+
+			// first user logs in
+			r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			// check login
+			r, err = c.Get(s.URL+"/auth/check")
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("user has not login", func() {
+			c := buildCookieClient()
+
+			registrar.email = "user@example.com"
+			registrar.password = "654321"
+			registrar.name = "Sakura"
+
+			// check login
+			r, err := c.Get(s.URL+"/auth/check")
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
+		})
+
+		Convey("user has not registerd", func() {
+			c := buildCookieClient()
+			defer c.CloseIdleConnections()
+
+			// check registered
+			r, err := c.Get(s.URL+"/auth/check")
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusForbidden)
+		})
 	})
 }
 
