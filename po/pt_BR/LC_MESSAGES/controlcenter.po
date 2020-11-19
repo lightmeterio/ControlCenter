@@ -17,88 +17,73 @@ msgid "<b>%i%%</b> bounce rate between %s and %s"
 msgstr "<b>%i%%</b> bounce rate between %s and %s"
 
 #: www/index.i18n.html:102 www/settingspage.i18n.html:46
-#, Fuzzy
 msgid "About"
 msgstr " "
 
 #: www/index.i18n.html:319
-#, Fuzzy
 msgid "About Lightmeter"
 msgstr " "
 
 #: www/index.i18n.html:270
-#, Fuzzy
 msgid "All"
 msgstr " "
 
 #: www/index.i18n.html:194
-#, Fuzzy
 msgid "and welcome back"
 msgstr " "
 
-#: www/index.i18n.html:32
-#, Fuzzy
-msgid "Blocked IP"
-msgstr " "
-
 #: www/index.i18n.html:226
-#, Fuzzy
 msgid "Bounced domains"
 msgstr " "
 
 #: www/settingspage.i18n.html:104
-#, Fuzzy
 msgid "Brazilian Portuguese"
 msgstr " "
 
 #: www/index.i18n.html:31
-#, Fuzzy
 msgid "Breaking new ground"
 msgstr " "
 
 #: www/index.i18n.html:223
-#, Fuzzy
 msgid "Busiest domains"
 msgstr " "
 
 #: www/settingspage.i18n.html:118 www/settingspage.i18n.html:130
-#, Fuzzy
 msgid "Cancel"
 msgstr " "
 
-#: www/index.i18n.html:122 www/index.i18n.html:134 www/settingspage.i18n.html:66
-#, Fuzzy
+#: www/index.i18n.html:122 www/index.i18n.html:142 www/index.i18n.html:162
+#: www/settingspage.i18n.html:66
 msgid "Close"
 msgstr " "
 
 #: www/index.i18n.html:275
-#, Fuzzy
 msgid "Comparative"
 msgstr " "
 
 #: www/index.i18n.html:176
-#, Fuzzy
 msgid "Control Center"
 msgstr " "
 
 #: www/index.i18n.html:229
-#, Fuzzy
 msgid "Deferred domains"
 msgstr " "
 
 #: www/index.i18n.html:210
-#, Fuzzy
 msgid "Delivery attempts"
 msgstr " "
 
 #: www/index.i18n.html:60 www/index.i18n.html:67
-#, Fuzzy
 msgid "Details"
 msgstr " "
 
 #: www/register.i18n.html:130
-msgid "Different types of mail perform differently. This helps show the most relevant information."
-msgstr "Diferentes tipos de correio eletrônico funcionam de forma diferente. Esta opção mostra as informações mais relevantes."
+msgid ""
+"Different types of mail perform differently. This helps show the most "
+"relevant information."
+msgstr ""
+"Diferentes tipos de correio eletrônico funcionam de forma diferente. Esta "
+"opção mostra as informações mais relevantes."
 
 #: www/register.i18n.html:125
 msgid "Direct (personal, office, one-to-one)"
@@ -113,32 +98,26 @@ msgid "Email"
 msgstr "Email"
 
 #: www/settingspage.i18n.html:96
-#, Fuzzy
 msgid "English"
 msgstr " "
 
 #: www/login.i18n.html:35 www/register.i18n.html:48 www/register.i18n.html:51
-#, Fuzzy
 msgid "Error"
 msgstr " "
 
 #: www/settingspage.i18n.html:185
-#, Fuzzy
 msgid "Error on saving general settings!"
 msgstr " "
 
 #: www/settingspage.i18n.html:171
-#, Fuzzy
 msgid "Error on saving notification settings!"
 msgstr " "
 
 #: www/index.i18n.html:317 www/settingspage.i18n.html:141
-#, Fuzzy
 msgid "Feedback"
 msgstr " "
 
 #: www/index.i18n.html:268
-#, Fuzzy
 msgid "Filter"
 msgstr " "
 
@@ -147,86 +126,72 @@ msgid "Forgot password?"
 msgstr "Esqueceu a senha??"
 
 #: www/settingspage.i18n.html:121
-#, Fuzzy
 msgid "General"
 msgstr " "
 
 #: www/settingspage.i18n.html:100
-#, Fuzzy
 msgid "German"
 msgstr " "
 
 #: www/register.i18n.html:97
-#, Fuzzy
 msgid "Get help"
 msgstr " "
 
 #: www/index.i18n.html:75
-#, Fuzzy
 msgid "Happy %s,"
 msgstr " "
 
 #: www/index.i18n.html:28
-#, Fuzzy
 msgid "High Bounce Rate"
 msgstr " "
 
-#: www/index.i18n.html:298 www/index.i18n.html:298
-#, Fuzzy
+#: www/index.i18n.html:298
 msgid "Info"
 msgstr " "
 
 #: www/index.i18n.html:256
-#, Fuzzy
 msgid "Insights"
 msgstr " "
 
 #: www/index.i18n.html:49
-#, Fuzzy
 msgid "Insights are time-based analyses relating to your mailserver"
 msgstr " "
 
 #: www/index.i18n.html:274
-#, Fuzzy
 msgid "Intel"
 msgstr " "
 
 #: www/index.i18n.html:33
-#, Fuzzy
 msgid "IP blocked by %s"
 msgstr " "
 
 #: www/index.i18n.html:32
-#, Fuzzy
 msgid "IP on shared blocklist"
 msgstr " "
 
 #: www/index.i18n.html:54
-#, Fuzzy
-msgid "Keep Control Center running to generate Insights; checks run every few seconds"
+msgid ""
+"Keep Control Center running to generate Insights; checks run every few "
+"seconds"
 msgstr " "
 
 #: www/index.i18n.html:108 www/settingspage.i18n.html:52
-#, Fuzzy
 msgid "Lightmeter Control Center"
 msgstr " "
 
 #: www/index.i18n.html:22 www/settingspage.i18n.html:22
-#, Fuzzy
 msgid "Lightmeter ControlCenter"
 msgstr " "
 
 #: www/index.i18n.html:271
-#, Fuzzy
 msgid "Local"
 msgstr " "
 
-#: www/login.i18n.html:19 www/login.i18n.html:82
+#: www/login.i18n.html:19 www/login.i18n.html:63 www/login.i18n.html:82
 msgid "Login"
 msgstr "Login"
 
 #: www/index.i18n.html:29
-#, Fuzzy
 msgid "Mail Inactivity"
 msgstr " "
 
@@ -247,97 +212,81 @@ msgid "Name"
 msgstr "Nome"
 
 #: www/index.i18n.html:279
-#, Fuzzy
 msgid "Newest"
 msgstr " "
 
 #: www/index.i18n.html:272
-#, Fuzzy
 msgid "News"
 msgstr " "
 
-#: www/index.i18n.html:116
+#: www/index.i18n.html:116 www/settingspage.i18n.html:60
 #, fuzzy
-#| msgid #| "Monthly newsletter"
+#| msgid "Monthly newsletter"
 msgid "Newsletter"
 msgstr "Receber boletim de notícias mensal"
 
 #: www/settingspage.i18n.html:89
-#, Fuzzy
 msgid "No"
 msgstr " "
 
 #: www/index.i18n.html:44
-#, Fuzzy
 msgid "No emails were sent between %s and %s"
 msgstr " "
 
 #: www/settingspage.i18n.html:79
-#, Fuzzy
 msgid "Notifications"
 msgstr " "
 
 #: www/index.i18n.html:280
-#, Fuzzy
 msgid "Oldest"
 msgstr " "
 
 #: www/index.i18n.html:364
-#, Fuzzy
 msgid "Original response from %s (%s)"
 msgstr " "
 
-#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114
+#: www/register.i18n.html:115
 msgid "Password"
 msgstr "Senha"
 
 #: www/register.i18n.html:96
-#, Fuzzy
 msgid "Please create a new administrator account - this is necessary to login."
 msgstr " "
 
 #: www/settingspage.i18n.html:113
-#, Fuzzy
 msgid "Please enter api token"
 msgstr " "
 
 #: www/settingspage.i18n.html:109
-#, Fuzzy
 msgid "Please enter slack channel name"
 msgstr " "
 
 #: www/settingspage.i18n.html:126
-#, Fuzzy
 msgid "Please extract from your config file the ip address of postfix"
 msgstr " "
 
 #: www/register.i18n.html:30
-#, Fuzzy
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
 #: www/settingspage.i18n.html:124
-#, Fuzzy
 msgid "Postfix public IP"
 msgstr " "
 
 #: www/index.i18n.html:319 www/settingspage.i18n.html:143
-#, Fuzzy
 msgid "Privacy Policy"
 msgstr " "
 
 #: www/index.i18n.html:133
-#, Fuzzy
 msgid "RBLs for"
 msgstr " "
 
 #: www/index.i18n.html:357
-#, Fuzzy
 msgid "RBLs for "
 msgstr " "
 
 #: www/index.i18n.html:319
-#, Fuzzy
 msgid "Read policy"
 msgstr " "
 
@@ -345,82 +294,72 @@ msgstr " "
 msgid "Register"
 msgstr "Registrar"
 
-#: www/register.i18n.html:19 www/register.i18n.html:19
+#: www/register.i18n.html:19
 msgid "Registration"
 msgstr "Registro"
 
 #: www/settingspage.i18n.html:117 www/settingspage.i18n.html:129
-#, Fuzzy
 msgid "Save"
 msgstr " "
 
 #: www/settingspage.i18n.html:189
-#, Fuzzy
 msgid "Saved general settings"
 msgstr " "
 
 #: www/settingspage.i18n.html:175
-#, Fuzzy
 msgid "Saved notification settings"
 msgstr " "
 
-#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
-#, Fuzzy
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40
+#: www/register.i18n.html:73
 msgid "Server Error!"
 msgstr " "
 
 #: www/settingspage.i18n.html:77
-#, Fuzzy
 msgid "Settings"
 msgstr " "
 
 #: www/register.i18n.html:69
-#, Fuzzy
 msgid "Settings Error on initial setup!"
 msgstr " "
 
 #: www/settingspage.i18n.html:112
-#, Fuzzy
 msgid "Slack API token"
 msgstr " "
 
 #: www/settingspage.i18n.html:108
-#, Fuzzy
 msgid "Slack channel"
 msgstr " "
 
 #: www/settingspage.i18n.html:93
-#, Fuzzy
 msgid "Slack message language"
 msgstr " "
 
 #: www/settingspage.i18n.html:82
-#, Fuzzy
 msgid "Slack notifications"
 msgstr " "
 
 #: www/index.i18n.html:319 www/settingspage.i18n.html:143
-#, Fuzzy
 msgid "Thank you for using Lightmeter."
 msgstr " "
 
 #: www/index.i18n.html:66
-#, Fuzzy
 msgid "The IP %s cannot deliver to %s (<strong>%s</strong>)"
 msgstr " "
 
 #: www/index.i18n.html:59
-#, Fuzzy
-msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
-msgstr "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgid ""
+"The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time "
+"Blackhole List'>RBL</abbr>s"
+msgstr ""
+"The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time "
+"Blackhole List'>RBL</abbr>s"
 
 #: www/index.i18n.html:259
-#, Fuzzy
 msgid "Time interval:"
 msgstr " "
 
 #: www/register.i18n.html:98
-#, Fuzzy
 msgid "to avoid repeating this step if you've done it before"
 msgstr " "
 
@@ -432,18 +371,11 @@ msgstr "Transacional (notificações, apps)"
 msgid "User details"
 msgstr "Informações de usuário"
 
-#: www/index.i18n.html:59
-#, Fuzzy
-msgid "View list"
-msgstr " "
-
 #: www/register.i18n.html:48
-#, Fuzzy
 msgid "Vulnerable to"
 msgstr " "
 
 #: www/index.i18n.html:114 www/settingspage.i18n.html:58
-#, Fuzzy
 msgid "Website"
 msgstr " "
 
@@ -452,17 +384,19 @@ msgid "Welcome"
 msgstr "Bem-vindo(a)"
 
 #: www/index.i18n.html:317
-#, Fuzzy
 msgid "What would you improve?"
 msgstr " "
 
 #: www/settingspage.i18n.html:85
-#, Fuzzy
 msgid "Yes"
 msgstr " "
 
 #: www/index.i18n.html:30
-#, Fuzzy
 msgid "Your first Insight"
 msgstr " "
 
+#~ msgid "Blocked IP"
+#~ msgstr " "
+
+#~ msgid "View list"
+#~ msgstr " "
