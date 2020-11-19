@@ -284,7 +284,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 			Convey("send valid values", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
-					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
+					"messenger_token":   {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
 					"messenger_channel": {"general"},
 					"messenger_enabled": {"true"},
 					"messenger_language": {"de"},
@@ -295,7 +295,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 
 				r, err = c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
-					"messenger_token":   {"xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz"},
+					"messenger_token":   {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
 					"messenger_channel": {"general"},
 					"messenger_enabled": {"true"},
 					"messenger_language": {"en"},
@@ -309,7 +309,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
-				So(mo.BearerToken, ShouldEqual, "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz")
+				So(mo.BearerToken, ShouldEqual, "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6")
 
 				content := new(fakeContent)
 				notification := notification.Notification{

@@ -73,7 +73,7 @@ func TestSendNotification(t *testing.T) {
 				slackSettings := settings.SlackNotificationsSettings{
 					Channel:     "general",
 					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
 					Enabled:     true,
 					Language:    "de",
 				}
@@ -102,7 +102,7 @@ func TestSendNotification(t *testing.T) {
 				slackSettings := settings.SlackNotificationsSettings{
 					Channel:     "general",
 					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
 					Enabled:     true,
 					Language:    "en",
 				}
@@ -132,7 +132,7 @@ func TestSendNotification(t *testing.T) {
 				slackSettings := settings.SlackNotificationsSettings{
 					Channel:     "general",
 					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
 					Enabled:     true,
 					Language:    "pt_BR",
 				}
@@ -220,7 +220,7 @@ func TestFakeSendNotification(t *testing.T) {
 		slackSettings := settings.SlackNotificationsSettings{
 			Channel:     "general",
 			Kind:        "slack",
-			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+			BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
 			Enabled:     true,
 			Language:    "de",
 		}
@@ -274,7 +274,7 @@ func TestFakeSendNotificationDisabled(t *testing.T) {
 		slackSettings := settings.SlackNotificationsSettings{
 			Channel:     "general",
 			Kind:        "slack",
-			BearerToken: "xoxb-1388191062644-1385067635637-5dvVTcz77UHTyFDwmjZY6sEz",
+			BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
 			Enabled:     false,
 			Language:    "en",
 		}
