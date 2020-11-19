@@ -358,6 +358,31 @@ func handleLogout(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func isNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
+	withSession(auth, w, r, func(session *sessions.Session) {
+
+		hasAnyUser, err := auth.auth.HasAnyUser(r.Context())
+		if err != nil {
+			log.Println("Error check has any users: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !hasAnyUser {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		sessionData, ok := session.Values["auth"].(*SessionData)
+		if !(ok && sessionData.isAuthenticated()) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
 func withBasicHTTPAuth(auth *Authenticator, user, password string, w http.ResponseWriter, r *http.Request) {
 	ok, userData, err := auth.auth.Authenticate(r.Context(), user, password)
 
@@ -409,6 +434,11 @@ func handlePublic(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 func (auth *Authenticator) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if pathIsPublic(auth, r.URL) {
 		handlePublic(auth, w, r)
+		return
+	}
+
+	if r.URL.Path == "/auth/check" {
+		isNotLoginOrNotRegistered(auth, w, r)
 		return
 	}
 
