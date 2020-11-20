@@ -28,7 +28,7 @@
             "high_bounce_rate": "{{translate `High Bounce Rate` }}",
             "mail_inactivity": "{{translate `Mail Inactivity`}}",
             "welcome_content": "{{translate `Your first Insight`}}",
-            "insights_introduction_content": "{{translate `Breaking new ground`}}",
+            "insights_introduction_content": () => sprintf("{{translate `Welcome to Lightmeter %s &nbsp;&#127881;`}}", "{{appVersion}}"),
             "local_rbl_check": "{{translate `IP on shared blocklist`}}",
             "message_rbl": i => sprintf("{{translate `IP blocked by %s`}}", i.Content.host),
           }
@@ -46,12 +46,12 @@
 
             "welcome_content": function(i) {
               var c = i.Content
-              return "{{ translate `Insights are time-based analyses relating to your mailserver` }}"
+              return "{{ translate `Insights reveal mailops problems in real time &ndash; both here, and via notifications` }}"
             },
 
             "insights_introduction_content": function(i) {
               var c = i.Content
-              return "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}"
+              return "{{ translate `Join us on the journey to better mailops! We're listening for your feedback` }}"
             },
 
             "local_rbl_check": function(i) {
