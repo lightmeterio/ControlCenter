@@ -53,7 +53,21 @@ Docker images are generated for each release and are published in the Lightmeter
 
 ### Build from source code
 
-You'll need the Go compiler installed. Check http://golang.org for more information. The Go version we are currently using is 1.14.1.
+The following dependencies are needed during development:
+
+- Bash
+- [Git](https://git-scm.com) on any recent (as in 2020) version.
+- [Go compiler](https://golang.org/) version 1.15 or newer.
+- [GCC](https://gcc.gnu.org/) version 9.3 or newer.
+- Libc development files. Both [glibc](https://www.gnu.org/software/libc/) and [musl](https://www.musl-libc.org/) have been successfully tested.
+- [GNU Make](https://www.gnu.org/software/make/manual/make.html) or compatible.
+- [Ragel](https://www.colm.net/open-source/ragel/) version 6.X. We have successfully tested version 6.10 and don't guarantee it will work with the version 7 as we have not tested it.
+
+For instance, on Alpine Linux 3.12, they can be installed with:
+
+```
+$ apk add git make gcc go libc-dev ragel
+```
 
 To build Lightmeter during development, execute:
 

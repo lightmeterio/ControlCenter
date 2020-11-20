@@ -8,7 +8,7 @@ If you have interest on improving it, please send us a PR and check the Lightmet
 
 ## Building
 
-You'll need [ragel](http://www.colm.net/open-source/ragel/) to generate code from some state machines with go generate.
+You'll need [ragel](http://www.colm.net/open-source/ragel/) version 6.10 or newer to generate code from some state machines with `go generate`.
 
 Then run:
 
