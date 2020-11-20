@@ -1,5 +1,8 @@
 run:
   tests: false
+  skip-files:
+    - ".*\\.gen\\.go"
+    - ".*\\.rl"
   skip-dirs:
     - examples
     - vendor

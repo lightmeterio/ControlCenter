@@ -1,41 +1,42 @@
 package parser
 
 import (
+	"bytes"
 	"net"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
 )
 
-func parseMonth(m []byte) time.Month {
+func parseMonth(m []byte) (time.Month, error) {
 	switch string(m) {
 	case "Jan":
-		return time.January
+		return time.January, nil
 	case "Feb":
-		return time.February
+		return time.February, nil
 	case "Mar":
-		return time.March
+		return time.March, nil
 	case "Apr":
-		return time.April
+		return time.April, nil
 	case "May":
-		return time.May
+		return time.May, nil
 	case "Jun":
-		return time.June
+		return time.June, nil
 	case "Jul":
-		return time.July
+		return time.July, nil
 	case "Aug":
-		return time.August
+		return time.August, nil
 	case "Sep":
-		return time.September
+		return time.September, nil
 	case "Oct":
-		return time.October
+		return time.October, nil
 	case "Nov":
-		return time.November
+		return time.November, nil
 	case "Dec":
-		return time.December
+		return time.December, nil
 	}
 
-	panic("Invalid Month! " + string(m))
+	return time.January, ErrInvalidHeaderLine
 }
 
 type Time struct {
@@ -67,7 +68,7 @@ type Header struct {
 }
 
 func parseHeader(h rawparser.RawHeader) (Header, error) {
-	day, err := atoi(h.Day)
+	day, err := atoi(bytes.TrimLeft(h.Day, ` `))
 
 	if err != nil {
 		return Header{}, err
@@ -103,10 +104,15 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
+	month, err := parseMonth(h.Month)
+	if err != nil {
+		return Header{}, err
+	}
+
 	return Header{
 		Time: Time{
 			Day:    uint8(day),
-			Month:  parseMonth(h.Month),
+			Month:  month,
 			Hour:   uint8(hour),
 			Minute: uint8(minute),
 			Second: uint8(second),
