@@ -3,10 +3,16 @@ import VueRouter from "vue-router";
 import login from "../views/login.vue";
 import register from "../views/register.vue";
 import settingspage from "../views/settingspage.vue";
+import index from "../views/index.vue";
 
 Vue.use(VueRouter);
 
 const routes = [
+  {
+    path: "/",
+    name: "index",
+    component: index
+  },
   {
     path: "/login",
     name: "login",

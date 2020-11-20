@@ -1,5 +1,5 @@
 <template>
-  <div class="settings-page">
+  <div class="settings-page d-flex flex-column min-vh-100">
     <mainheader></mainheader>
 
     <b-container id="settings" class="main-content">

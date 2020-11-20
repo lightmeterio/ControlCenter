@@ -39,15 +39,10 @@ export default {
 };
 </script>
 <style>
-#normal-footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 34px;
-}
 #normal-footer .container {
   text-align: left;
   padding-top: 1em;
+  padding-bottom: 0.5em;
 }
 #normal-footer .container p {
   margin-left: 0.5em;

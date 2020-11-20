@@ -183,6 +183,10 @@ h6 {
   font-family: Inter;
 }
 
+.main-content {
+  margin-top: 0.6rem;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

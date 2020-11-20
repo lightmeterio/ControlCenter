@@ -133,6 +133,7 @@ export default {
   methods: {
     onSubmit(event) {
       event.preventDefault();
+      let vue = this;
 
       let settingsData = {
         email: this.form.email,
@@ -149,7 +150,11 @@ export default {
         password: this.form.password
       };
 
-      submitRegisterForm(registrationData, settingsData);
+      let redirect = function() {
+        vue.$router.push({ name: "index" });
+      };
+
+      submitRegisterForm(registrationData, settingsData, redirect);
     },
     onTogglePasswordShow(event) {
       event.preventDefault();

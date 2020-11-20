@@ -1,5 +1,5 @@
 <template>
-  <div class="panel-page">
+  <div class="panel-page d-flex flex-column min-vh-100">
     <b-container>
       <b-row class="justify-content-center vh-93">
         <b-col sm="5" class="align-self-center">

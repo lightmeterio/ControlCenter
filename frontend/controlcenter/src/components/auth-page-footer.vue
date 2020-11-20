@@ -33,4 +33,8 @@ export default {
   name: "auth-page-footer"
 };
 </script>
-<style></style>
+<style>
+#auth-page-footer {
+  margin-bottom: 1em;
+}
+</style>
