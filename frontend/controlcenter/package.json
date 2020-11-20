@@ -11,6 +11,9 @@
     "axios": "^0.21.0",
     "bootstrap-vue": "^2.19.0",
     "core-js": "^3.6.5",
+    "moment": "^2.29.1",
+    "plotly.js-dist": "^1.57.1",
+    "sprintf-js": "^1.1.2",
     "vue": "^2.6.12",
     "vue-router": "^3.2.0",
     "vuex": "^3.4.0"

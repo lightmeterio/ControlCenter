@@ -20,7 +20,7 @@ export async function submitGeneralForm(data) {
   //_paq.push(["trackEvent", "SaveGeneralSettings", "success"]);
 }
 
-export function submitLoginForm(formData) {
+export function submitLoginForm(formData, redirect) {
   const data = new URLSearchParams(getFormData(formData));
   axios
     .post(BASE_URL + "/login", data)
@@ -33,6 +33,7 @@ export function submitLoginForm(formData) {
         alert("Error: " + response.data.Error); // todo "{{translate `Error` }}"
         return;
       }
+      redirect();
     })
     .catch(function(err) {
       alert("Server Error!"); // todo "{{translate `Server Error!`}}"
@@ -65,7 +66,7 @@ export function getMetaLanguage() {
   return axios.get(BASE_URL + "/language/metadata");
 }
 
-export function logout() {
+export function logout(redirect) {
   axios
     .post(BASE_URL + "/logout", null)
     .then(function(response) {
@@ -77,6 +78,7 @@ export function logout() {
         alert("Error: " + response.data.Error); // todo "{{translate `Error` }}"
         return;
       }
+      redirect();
     })
     .catch(function(err) {
       alert("Server Error!"); // todo "{{translate `Server Error!`}}"
@@ -84,7 +86,7 @@ export function logout() {
     });
 }
 
-export function submitRegisterForm(registrationData, settingsData) {
+export function submitRegisterForm(registrationData, settingsData, redirect) {
   let registrationFormData = getFormData(registrationData);
   let settingsFormData = getFormData(settingsData);
 
@@ -131,7 +133,7 @@ export function submitRegisterForm(registrationData, settingsData) {
             return;
           }
           // todo tracking
-          // todo forward
+          redirect();
         })
         .catch(function(err) {
           alert("Settings Error on initial setup!"); // todo {{ translate `Settings Error on initial setup!` }}
@@ -152,4 +154,43 @@ function getFormData(object) {
 
 export function getApplicationInfo() {
   return axios.get(BASE_URL + "/api/v0/appVersion");
+}
+
+export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
+  let formData = new FormData();
+
+  formData.append("from", selectedDateFrom);
+  formData.append("to", selectedDateTo);
+
+  let setCategoryFilter = function(category) {
+    formData.append("filter", "category");
+    formData.append("category", category);
+  };
+
+  let s = filter.split("-");
+
+  if (s.length === 2 && s[0] === "category") {
+    setCategoryFilter(s[1]);
+  }
+
+  formData.append("entries", "6");
+  formData.append("order", sort);
+
+  var params = new URLSearchParams(formData);
+
+  return axios.get(BASE_URL + "/api/v0/fetchInsights?" + params.toString());
+}
+
+export function fetchGraphDataAsJsonWithTimeInterval(
+  selectedDateFrom,
+  selectedDateTo,
+  methodName
+) {
+  const timeIntervalUrlParams = function() {
+    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
+  };
+
+  return axios.get(
+    BASE_URL + "/api/v0/" + methodName + "?" + timeIntervalUrlParams()
+  );
 }

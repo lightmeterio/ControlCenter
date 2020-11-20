@@ -51,10 +51,10 @@
           <!--{{translate "Lightmeter Control Center"}}-->
           <br />
           <span id="release-info" v-if="applicationData">
-            <strong>Version:</strong> {{ applicationData.Version }}
+            <strong>Version:</strong> {{ applicationData.version }}
             <br />
-            <strong>Commit:</strong> {{ applicationData.Commit }} <br />
-            <strong>Tag/branch</strong>: {{ applicationData.TagOrBranch }}
+            <strong>Commit:</strong> {{ applicationData.commit }} <br />
+            <strong>Tag/branch</strong>: {{ applicationData.tag_or_branch }}
           </span>
 
           <br />
@@ -125,7 +125,11 @@ export default {
       });
     },
     onLogout() {
-      logout();
+      let redirect = function() {
+        this.$router.push({ name: "login" });
+      };
+
+      logout(redirect);
     }
   }
 };

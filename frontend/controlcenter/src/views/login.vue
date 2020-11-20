@@ -69,7 +69,11 @@ export default {
   methods: {
     onSubmit(event) {
       event.preventDefault();
-      submitLoginForm(this.form);
+      let vue = this;
+      let redirect = function() {
+        vue.$router.push({ name: "index" });
+      };
+      submitLoginForm(this.form, redirect);
     },
     onTogglePasswordShow(event) {
       event.preventDefault();
