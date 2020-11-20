@@ -1,7 +1,8 @@
 run:
-  build-tags:
-    - codeanalysis
   tests: false
+  skip-files:
+    - ".*\\.gen\\.go"
+    - ".*\\.rl"
   skip-dirs:
     - examples
     - vendor
