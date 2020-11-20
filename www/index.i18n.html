@@ -28,7 +28,7 @@
             "high_bounce_rate": "{{translate `High Bounce Rate` }}",
             "mail_inactivity": "{{translate `Mail Inactivity`}}",
             "welcome_content": "{{translate `Your first Insight`}}",
-            "insights_introduction_content": "{{translate `Welcome to Lightmeter 1.0.0 &nbsp;&#127881;`}}",
+            "insights_introduction_content": () => sprintf("{{translate `Welcome to Lightmeter %s &nbsp;&#127881;`}}", "{{appVersion}}"),
             "local_rbl_check": "{{translate `IP on shared blocklist`}}",
             "message_rbl": i => sprintf("{{translate `IP blocked by %s`}}", i.content.host),
           }
