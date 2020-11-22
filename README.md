@@ -30,7 +30,7 @@
 
 ## Introduction
 
-Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
+Welcome to Lightmeter Control Center, the Open Source mailops monitoring application.
 
 <img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/screenshot.png"  width="600"/>
 
