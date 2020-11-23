@@ -70,7 +70,7 @@ export default {
     onSubmit(event) {
       event.preventDefault();
       let vue = this;
-      let redirect = function() {
+      const redirect = () => {
         vue.$router.push({ name: "index" });
       };
       submitLoginForm(this.form, redirect);

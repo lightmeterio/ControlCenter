@@ -2,13 +2,9 @@
   <header>
     <div class="navbar">
       <div class="container d-flex justify-content-between">
-        <a
-          class="logo navbar-brand d-flex align-items-center"
-          href="/"
-          title="Home"
-        >
+        <router-link class="logo navbar-brand d-flex align-items-center" to="/">
           <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
-        </a>
+        </router-link>
         <span class="buttons">
           <router-link to="/settings">
             <i
@@ -125,8 +121,9 @@ export default {
       });
     },
     onLogout() {
-      let redirect = function() {
-        this.$router.push({ name: "login" });
+      let vue = this;
+      const redirect = () => {
+        vue.$router.push({ name: "login" });
       };
 
       logout(redirect);
