@@ -171,7 +171,7 @@ export default {
         password: this.form.password
       };
 
-      let redirect = function() {
+      const redirect = () => {
         vue.$router.push({ name: "index" });
       };
 

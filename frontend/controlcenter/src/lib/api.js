@@ -156,6 +156,10 @@ export function getApplicationInfo() {
   return axios.get(BASE_URL + "/api/v0/appVersion");
 }
 
+export function getIsNotLoginOrNotRegistered() {
+  return axios.get(BASE_URL + "/auth/check");
+}
+
 export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
   let formData = new FormData();
 
