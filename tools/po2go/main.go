@@ -81,6 +81,7 @@ func init() {`)
 		fmt.Fprintln(outFile, `
 	{
 		lang := language.MustParse("`+lang+`")
+		_ = lang
 	`)
 
 		for _, filename := range filenames {
