@@ -28,4 +28,8 @@ export default {
   name: "panel-page"
 };
 </script>
-<style></style>
+<style>
+.panel-page .field-group {
+  margin: 1rem 0;
+}
+</style>
