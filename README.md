@@ -112,6 +112,8 @@ Achieving this is easy using manual upgrade based on replacing binary files. For
 
 ## Usage
 
+For detailed information, check [Usage](cli_usage.md).
+
 - Run `lightmeter -help` to show a list of all available commands
 - Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
