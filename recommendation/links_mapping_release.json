@@ -16,15 +16,15 @@
     "id": "message_rbl_AOL"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/microsoft-email-blocklists/",
     "id": "message_rbl_Microsoft"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/yahoo-email-blocklists/",
     "id": "message_rbl_Yahoo"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/google-email-blocklists/",
     "id": "message_rbl_Google"
   },
   {
