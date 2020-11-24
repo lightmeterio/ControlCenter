@@ -28,6 +28,11 @@ const routes = [
     path: "/settings",
     name: "settings",
     component: settingspage
+  },
+  {
+    path: "*",
+    name: "any",
+    redirect: { name: "index" }
   }
 ];
 
