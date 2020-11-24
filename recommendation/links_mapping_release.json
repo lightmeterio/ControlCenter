@@ -1,18 +1,18 @@
 [
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/email-blocklists-blacklists/",
     "id": "message_rbl_Trend_Micro"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/email-blocklists-blacklists/",
     "id": "message_rbl_ATT"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/email-blocklists-blacklists/",
     "id": "message_rbl_Mimecast"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
+    "link": "https://lightmeter.io/knowledgebase/email-blocklists-blacklists/",
     "id": "message_rbl_AOL"
   },
   {
@@ -28,7 +28,7 @@
     "id": "message_rbl_Google"
   },
   {
-    "link": "https://lightmeter.io/knowledgebase/email-blocklists-blacklists/",
+    "link": "https://lightmeter.io/knowledgebase/real-time-blackhole-lists-rbls/",
     "id": "local_rbl_check"
   }
 ]
