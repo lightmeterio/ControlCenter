@@ -27,10 +27,12 @@ import "@fortawesome/fontawesome-free/js/all.js";
 import authpagefooter from "./components/auth-page-footer";
 import panelpage from "./components/panelpage";
 import mainheader from "./components/mainheader";
+import graphdashboard from "./components/graph-dashboard";
 import mainfooter from "./components/mainfooter";
 import insights from "./components/insights";
 
 Vue.component("insights", insights);
+Vue.component("graphdashboard", graphdashboard);
 Vue.component("auth-page-footer", authpagefooter);
 Vue.component("mainfooter", mainfooter);
 Vue.component("mainheader", mainheader);
