@@ -20,22 +20,22 @@ msgstr " "
 msgid "About"
 msgstr " "
 
-#: www/index.i18n.html:319
+#: www/index.i18n.html:322
 #, fuzzy
 msgid "About Lightmeter"
 msgstr " "
 
-#: www/index.i18n.html:270
+#: www/index.i18n.html:273
 #, fuzzy
 msgid "All"
 msgstr " "
 
-#: www/index.i18n.html:194
+#: www/index.i18n.html:197
 #, fuzzy
 msgid "and welcome back"
 msgstr " "
 
-#: www/index.i18n.html:226
+#: www/index.i18n.html:229
 #, fuzzy
 msgid "Bounced domains"
 msgstr " "
@@ -45,12 +45,7 @@ msgstr " "
 msgid "Brazilian Portuguese"
 msgstr " "
 
-#: www/index.i18n.html:31
-#, fuzzy
-msgid "Breaking new ground"
-msgstr " "
-
-#: www/index.i18n.html:223
+#: www/index.i18n.html:226
 #, fuzzy
 msgid "Busiest domains"
 msgstr " "
@@ -60,27 +55,27 @@ msgstr " "
 msgid "Cancel"
 msgstr " "
 
-#: www/index.i18n.html:122 www/index.i18n.html:142 www/index.i18n.html:162 www/settingspage.i18n.html:66
+#: www/index.i18n.html:122 www/index.i18n.html:143 www/index.i18n.html:165 www/settingspage.i18n.html:66
 #, fuzzy
 msgid "Close"
 msgstr " "
 
-#: www/index.i18n.html:275
+#: www/index.i18n.html:278
 #, fuzzy
 msgid "Comparative"
 msgstr " "
 
-#: www/index.i18n.html:176
+#: www/index.i18n.html:179
 #, fuzzy
 msgid "Control Center"
 msgstr " "
 
-#: www/index.i18n.html:229
+#: www/index.i18n.html:232
 #, fuzzy
 msgid "Deferred domains"
 msgstr " "
 
-#: www/index.i18n.html:210
+#: www/index.i18n.html:213
 #, fuzzy
 msgid "Delivery attempts"
 msgstr " "
@@ -90,22 +85,22 @@ msgstr " "
 msgid "Details"
 msgstr " "
 
-#: www/register.i18n.html:130
+#: www/register.i18n.html:136
 #, fuzzy
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr " "
 
-#: www/register.i18n.html:125
+#: www/register.i18n.html:131
 #, fuzzy
 msgid "Direct (personal, office, one-to-one)"
 msgstr " "
 
-#: www/login.i18n.html:69 www/register.i18n.html:110
+#: www/login.i18n.html:69 www/register.i18n.html:116
 #, fuzzy
 msgid "E-mail"
 msgstr " "
 
-#: www/login.i18n.html:70 www/register.i18n.html:111
+#: www/login.i18n.html:70 www/register.i18n.html:117
 #, fuzzy
 msgid "Email"
 msgstr " "
@@ -115,7 +110,12 @@ msgstr " "
 msgid "English"
 msgstr " "
 
-#: www/login.i18n.html:35 www/register.i18n.html:48 www/register.i18n.html:51
+#: www/settingspage.i18n.html:125
+#, fuzzy
+msgid "Enter Postfix public IP"
+msgstr " "
+
+#: www/login.i18n.html:35 www/register.i18n.html:50 www/register.i18n.html:53
 #, fuzzy
 msgid "Error"
 msgstr " "
@@ -130,12 +130,12 @@ msgstr " "
 msgid "Error on saving notification settings!"
 msgstr " "
 
-#: www/index.i18n.html:317 www/settingspage.i18n.html:141
+#: www/index.i18n.html:320 www/settingspage.i18n.html:141
 #, fuzzy
 msgid "Feedback"
 msgstr " "
 
-#: www/index.i18n.html:268
+#: www/index.i18n.html:271
 #, fuzzy
 msgid "Filter"
 msgstr " "
@@ -155,7 +155,7 @@ msgstr " "
 msgid "German"
 msgstr " "
 
-#: www/register.i18n.html:97
+#: www/register.i18n.html:102
 #, fuzzy
 msgid "Get help"
 msgstr " "
@@ -170,22 +170,22 @@ msgstr " "
 msgid "High Bounce Rate"
 msgstr " "
 
-#: www/index.i18n.html:298 www/index.i18n.html:298
+#: www/index.i18n.html:301 www/index.i18n.html:301
 #, fuzzy
 msgid "Info"
 msgstr " "
 
-#: www/index.i18n.html:256
+#: www/index.i18n.html:259
 #, fuzzy
 msgid "Insights"
 msgstr " "
 
 #: www/index.i18n.html:49
 #, fuzzy
-msgid "Insights are time-based analyses relating to your mailserver"
+msgid "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
 msgstr " "
 
-#: www/index.i18n.html:274
+#: www/index.i18n.html:277
 #, fuzzy
 msgid "Intel"
 msgstr " "
@@ -202,7 +202,7 @@ msgstr " "
 
 #: www/index.i18n.html:54
 #, fuzzy
-msgid "Keep Control Center running to generate Insights; checks run every few seconds"
+msgid "Join us on the journey to better mailops! We're listening for your feedback"
 msgstr " "
 
 #: www/index.i18n.html:108 www/settingspage.i18n.html:52
@@ -215,7 +215,7 @@ msgstr " "
 msgid "Lightmeter ControlCenter"
 msgstr " "
 
-#: www/index.i18n.html:271
+#: www/index.i18n.html:274
 #, fuzzy
 msgid "Local"
 msgstr " "
@@ -230,32 +230,32 @@ msgstr " "
 msgid "Mail Inactivity"
 msgstr " "
 
-#: www/register.i18n.html:127
+#: www/register.i18n.html:133
 #, fuzzy
 msgid "Marketing (newsletters, adverts)"
 msgstr " "
 
-#: www/register.i18n.html:138
+#: www/register.i18n.html:144
 #, fuzzy
 msgid "Monthly newsletter"
 msgstr " "
 
-#: www/register.i18n.html:122 www/register.i18n.html:124
+#: www/register.i18n.html:128 www/register.i18n.html:130
 #, fuzzy
 msgid "Most of my mail is…"
 msgstr " "
 
-#: www/register.i18n.html:107 www/register.i18n.html:108
+#: www/register.i18n.html:113 www/register.i18n.html:114
 #, fuzzy
 msgid "Name"
 msgstr " "
 
-#: www/index.i18n.html:279
+#: www/index.i18n.html:282
 #, fuzzy
 msgid "Newest"
 msgstr " "
 
-#: www/index.i18n.html:272
+#: www/index.i18n.html:275
 #, fuzzy
 msgid "News"
 msgstr " "
@@ -280,22 +280,22 @@ msgstr " "
 msgid "Notifications"
 msgstr " "
 
-#: www/index.i18n.html:280
+#: www/index.i18n.html:283
 #, fuzzy
 msgid "Oldest"
 msgstr " "
 
-#: www/index.i18n.html:364
+#: www/index.i18n.html:367
 #, fuzzy
 msgid "Original response from %s (%s)"
 msgstr " "
 
-#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:120 www/register.i18n.html:121
 #, fuzzy
 msgid "Password"
 msgstr " "
 
-#: www/register.i18n.html:96
+#: www/register.i18n.html:101
 #, fuzzy
 msgid "Please create a new administrator account - this is necessary to login."
 msgstr " "
@@ -315,17 +315,22 @@ msgstr " "
 msgid "Please extract from your config file the ip address of postfix"
 msgstr " "
 
-#: www/register.i18n.html:30
+#: www/register.i18n.html:32
 #, fuzzy
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr " "
 
-#: www/settingspage.i18n.html:124
+#: www/register.i18n.html:150 www/settingspage.i18n.html:124
 #, fuzzy
 msgid "Postfix public IP"
 msgstr " "
 
-#: www/index.i18n.html:319 www/settingspage.i18n.html:143
+#: www/register.i18n.html:151
+#, fuzzy
+msgid "Postfix public IP address"
+msgstr " "
+
+#: www/index.i18n.html:322 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Privacy Policy"
 msgstr " "
@@ -335,17 +340,17 @@ msgstr " "
 msgid "RBLs for"
 msgstr " "
 
-#: www/index.i18n.html:357
+#: www/index.i18n.html:360
 #, fuzzy
 msgid "RBLs for "
 msgstr " "
 
-#: www/index.i18n.html:319
+#: www/index.i18n.html:322
 #, fuzzy
 msgid "Read policy"
 msgstr " "
 
-#: www/register.i18n.html:141
+#: www/register.i18n.html:154
 #, fuzzy
 msgid "Register"
 msgstr " "
@@ -370,7 +375,7 @@ msgstr " "
 msgid "Saved notification settings"
 msgstr " "
 
-#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:42 www/register.i18n.html:81
 #, fuzzy
 msgid "Server Error!"
 msgstr " "
@@ -380,7 +385,7 @@ msgstr " "
 msgid "Settings"
 msgstr " "
 
-#: www/register.i18n.html:69
+#: www/register.i18n.html:73 www/register.i18n.html:77
 #, fuzzy
 msgid "Settings Error on initial setup!"
 msgstr " "
@@ -405,7 +410,12 @@ msgstr " "
 msgid "Slack notifications"
 msgstr " "
 
-#: www/index.i18n.html:319 www/settingspage.i18n.html:143
+#: www/register.i18n.html:149
+#, fuzzy
+msgid "System details"
+msgstr " "
+
+#: www/index.i18n.html:322 www/settingspage.i18n.html:143
 #, fuzzy
 msgid "Thank you for using Lightmeter."
 msgstr " "
@@ -420,27 +430,32 @@ msgstr " "
 msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 msgstr " "
 
-#: www/index.i18n.html:259
+#: www/index.i18n.html:139
+#, fuzzy
+msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+msgstr " "
+
+#: www/index.i18n.html:262
 #, fuzzy
 msgid "Time interval:"
 msgstr " "
 
-#: www/register.i18n.html:98
+#: www/register.i18n.html:103
 #, fuzzy
 msgid "to avoid repeating this step if you've done it before"
 msgstr " "
 
-#: www/register.i18n.html:126
+#: www/register.i18n.html:132
 #, fuzzy
 msgid "Transactional (notifications, apps)"
 msgstr " "
 
-#: www/register.i18n.html:101
+#: www/register.i18n.html:111
 #, fuzzy
 msgid "User details"
 msgstr " "
 
-#: www/register.i18n.html:48
+#: www/register.i18n.html:50
 #, fuzzy
 msgid "Vulnerable to"
 msgstr " "
@@ -450,12 +465,17 @@ msgstr " "
 msgid "Website"
 msgstr " "
 
-#: www/register.i18n.html:95
+#: www/register.i18n.html:100
 #, fuzzy
 msgid "Welcome"
 msgstr " "
 
-#: www/index.i18n.html:317
+#: www/index.i18n.html:31
+#, fuzzy
+msgid "Welcome to Lightmeter %s &nbsp;&#127881;"
+msgstr " "
+
+#: www/index.i18n.html:320
 #, fuzzy
 msgid "What would you improve?"
 msgstr " "

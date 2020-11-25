@@ -18,19 +18,19 @@ msgstr "<b>%i%%</b> bounce rate between %s and %s"
 msgid "About"
 msgstr "About"
 
-#: www/index.i18n.html:319
+#: www/index.i18n.html:322
 msgid "About Lightmeter"
 msgstr "About Lightmeter"
 
-#: www/index.i18n.html:270
+#: www/index.i18n.html:273
 msgid "All"
 msgstr "All"
 
-#: www/index.i18n.html:194
+#: www/index.i18n.html:197
 msgid "and welcome back"
 msgstr "and welcome back"
 
-#: www/index.i18n.html:226
+#: www/index.i18n.html:229
 msgid "Bounced domains"
 msgstr "Bounced domains"
 
@@ -38,11 +38,7 @@ msgstr "Bounced domains"
 msgid "Brazilian Portuguese"
 msgstr "Brazilian Portuguese"
 
-#: www/index.i18n.html:31
-msgid "Breaking new ground"
-msgstr "Breaking new ground"
-
-#: www/index.i18n.html:223
+#: www/index.i18n.html:226
 msgid "Busiest domains"
 msgstr "Busiest domains"
 
@@ -50,23 +46,23 @@ msgstr "Busiest domains"
 msgid "Cancel"
 msgstr "Cancel"
 
-#: www/index.i18n.html:122 www/index.i18n.html:142 www/index.i18n.html:162 www/settingspage.i18n.html:66
+#: www/index.i18n.html:122 www/index.i18n.html:143 www/index.i18n.html:165 www/settingspage.i18n.html:66
 msgid "Close"
 msgstr "Close"
 
-#: www/index.i18n.html:275
+#: www/index.i18n.html:278
 msgid "Comparative"
 msgstr "Comparative"
 
-#: www/index.i18n.html:176
+#: www/index.i18n.html:179
 msgid "Control Center"
 msgstr "Control Center"
 
-#: www/index.i18n.html:229
+#: www/index.i18n.html:232
 msgid "Deferred domains"
 msgstr "Deferred domains"
 
-#: www/index.i18n.html:210
+#: www/index.i18n.html:213
 msgid "Delivery attempts"
 msgstr "Delivery attempts"
 
@@ -74,19 +70,19 @@ msgstr "Delivery attempts"
 msgid "Details"
 msgstr "Details"
 
-#: www/register.i18n.html:130
+#: www/register.i18n.html:136
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr "Different types of mail perform differently. This helps show the most relevant information."
 
-#: www/register.i18n.html:125
+#: www/register.i18n.html:131
 msgid "Direct (personal, office, one-to-one)"
 msgstr "Direct (personal, office, one-to-one)"
 
-#: www/login.i18n.html:69 www/register.i18n.html:110
+#: www/login.i18n.html:69 www/register.i18n.html:116
 msgid "E-mail"
 msgstr "E-mail"
 
-#: www/login.i18n.html:70 www/register.i18n.html:111
+#: www/login.i18n.html:70 www/register.i18n.html:117
 msgid "Email"
 msgstr "Email"
 
@@ -94,7 +90,11 @@ msgstr "Email"
 msgid "English"
 msgstr "English"
 
-#: www/login.i18n.html:35 www/register.i18n.html:48 www/register.i18n.html:51
+#: www/settingspage.i18n.html:125
+msgid "Enter Postfix public IP"
+msgstr "Enter Postfix public IP"
+
+#: www/login.i18n.html:35 www/register.i18n.html:50 www/register.i18n.html:53
 msgid "Error"
 msgstr "Error"
 
@@ -106,11 +106,11 @@ msgstr "Error on saving general settings!"
 msgid "Error on saving notification settings!"
 msgstr "Error on saving notification settings!"
 
-#: www/index.i18n.html:317 www/settingspage.i18n.html:141
+#: www/index.i18n.html:320 www/settingspage.i18n.html:141
 msgid "Feedback"
 msgstr "Feedback"
 
-#: www/index.i18n.html:268
+#: www/index.i18n.html:271
 msgid "Filter"
 msgstr "Filter"
 
@@ -126,7 +126,7 @@ msgstr "General"
 msgid "German"
 msgstr "German"
 
-#: www/register.i18n.html:97
+#: www/register.i18n.html:102
 msgid "Get help"
 msgstr "Get help"
 
@@ -138,19 +138,19 @@ msgstr "Happy %s,"
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
 
-#: www/index.i18n.html:298 www/index.i18n.html:298
+#: www/index.i18n.html:301 www/index.i18n.html:301
 msgid "Info"
 msgstr "Info"
 
-#: www/index.i18n.html:256
+#: www/index.i18n.html:259
 msgid "Insights"
 msgstr "Insights"
 
 #: www/index.i18n.html:49
-msgid "Insights are time-based analyses relating to your mailserver"
-msgstr "Insights are time-based analyses relating to your mailserver"
+msgid "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
+msgstr "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
 
-#: www/index.i18n.html:274
+#: www/index.i18n.html:277
 msgid "Intel"
 msgstr "Intel"
 
@@ -163,8 +163,8 @@ msgid "IP on shared blocklist"
 msgstr "IP on shared blocklist"
 
 #: www/index.i18n.html:54
-msgid "Keep Control Center running to generate Insights; checks run every few seconds"
-msgstr "Keep Control Center running to generate Insights; checks run every few seconds"
+msgid "Join us on the journey to better mailops! We're listening for your feedback"
+msgstr "Join us on the journey to better mailops! We're listening for your feedback"
 
 #: www/index.i18n.html:108 www/settingspage.i18n.html:52
 msgid "Lightmeter Control Center"
@@ -174,7 +174,7 @@ msgstr "Lightmeter Control Center"
 msgid "Lightmeter ControlCenter"
 msgstr "Lightmeter ControlCenter"
 
-#: www/index.i18n.html:271
+#: www/index.i18n.html:274
 msgid "Local"
 msgstr "Local"
 
@@ -186,27 +186,27 @@ msgstr "Login"
 msgid "Mail Inactivity"
 msgstr "Mail Inactivity"
 
-#: www/register.i18n.html:127
+#: www/register.i18n.html:133
 msgid "Marketing (newsletters, adverts)"
 msgstr "Marketing (newsletters, adverts)"
 
-#: www/register.i18n.html:138
+#: www/register.i18n.html:144
 msgid "Monthly newsletter"
 msgstr "Monthly newsletter"
 
-#: www/register.i18n.html:122 www/register.i18n.html:124
+#: www/register.i18n.html:128 www/register.i18n.html:130
 msgid "Most of my mail is…"
 msgstr "Most of my mail is…"
 
-#: www/register.i18n.html:107 www/register.i18n.html:108
+#: www/register.i18n.html:113 www/register.i18n.html:114
 msgid "Name"
 msgstr "Name"
 
-#: www/index.i18n.html:279
+#: www/index.i18n.html:282
 msgid "Newest"
 msgstr "Newest"
 
-#: www/index.i18n.html:272
+#: www/index.i18n.html:275
 msgid "News"
 msgstr "News"
 
@@ -226,19 +226,19 @@ msgstr "No emails were sent between %s and %s"
 msgid "Notifications"
 msgstr "Notifications"
 
-#: www/index.i18n.html:280
+#: www/index.i18n.html:283
 msgid "Oldest"
 msgstr "Oldest"
 
-#: www/index.i18n.html:364
+#: www/index.i18n.html:367
 msgid "Original response from %s (%s)"
 msgstr "Original response from %s (%s)"
 
-#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:114 www/register.i18n.html:115
+#: www/login.i18n.html:73 www/login.i18n.html:74 www/register.i18n.html:120 www/register.i18n.html:121
 msgid "Password"
 msgstr "Password"
 
-#: www/register.i18n.html:96
+#: www/register.i18n.html:101
 msgid "Please create a new administrator account - this is necessary to login."
 msgstr "Please create a new administrator account - this is necessary to login."
 
@@ -254,15 +254,19 @@ msgstr "Please enter slack channel name"
 msgid "Please extract from your config file the ip address of postfix"
 msgstr "Please extract from your config file the ip address of postfix"
 
-#: www/register.i18n.html:30
+#: www/register.i18n.html:32
 msgid "Please select an option for 'Most of my mail is' - see help for details"
 msgstr "Please select an option for 'Most of my mail is' - see help for details"
 
-#: www/settingspage.i18n.html:124
+#: www/register.i18n.html:150 www/settingspage.i18n.html:124
 msgid "Postfix public IP"
 msgstr "Postfix public IP"
 
-#: www/index.i18n.html:319 www/settingspage.i18n.html:143
+#: www/register.i18n.html:151
+msgid "Postfix public IP address"
+msgstr "Postfix public IP address"
+
+#: www/index.i18n.html:322 www/settingspage.i18n.html:143
 msgid "Privacy Policy"
 msgstr "Privacy Policy"
 
@@ -270,15 +274,15 @@ msgstr "Privacy Policy"
 msgid "RBLs for"
 msgstr "RBLs for"
 
-#: www/index.i18n.html:357
+#: www/index.i18n.html:360
 msgid "RBLs for "
 msgstr "RBLs for "
 
-#: www/index.i18n.html:319
+#: www/index.i18n.html:322
 msgid "Read policy"
 msgstr "Read policy"
 
-#: www/register.i18n.html:141
+#: www/register.i18n.html:154
 msgid "Register"
 msgstr "Register"
 
@@ -298,7 +302,7 @@ msgstr "Saved general settings"
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
-#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:40 www/register.i18n.html:73
+#: www/login.i18n.html:30 www/login.i18n.html:41 www/register.i18n.html:42 www/register.i18n.html:81
 msgid "Server Error!"
 msgstr "Server Error!"
 
@@ -306,7 +310,7 @@ msgstr "Server Error!"
 msgid "Settings"
 msgstr "Settings"
 
-#: www/register.i18n.html:69
+#: www/register.i18n.html:73 www/register.i18n.html:77
 msgid "Settings Error on initial setup!"
 msgstr "Settings Error on initial setup!"
 
@@ -326,7 +330,11 @@ msgstr "Slack message language"
 msgid "Slack notifications"
 msgstr "Slack notifications"
 
-#: www/index.i18n.html:319 www/settingspage.i18n.html:143
+#: www/register.i18n.html:149
+msgid "System details"
+msgstr "System details"
+
+#: www/index.i18n.html:322 www/settingspage.i18n.html:143
 msgid "Thank you for using Lightmeter."
 msgstr "Thank you for using Lightmeter."
 
@@ -338,23 +346,27 @@ msgstr "The IP %s cannot deliver to %s (<strong>%s</strong>)"
 msgid "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 msgstr "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 
-#: www/index.i18n.html:259
+#: www/index.i18n.html:139
+msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+msgstr "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+
+#: www/index.i18n.html:262
 msgid "Time interval:"
 msgstr "Time interval:"
 
-#: www/register.i18n.html:98
+#: www/register.i18n.html:103
 msgid "to avoid repeating this step if you've done it before"
 msgstr "to avoid repeating this step if you've done it before"
 
-#: www/register.i18n.html:126
+#: www/register.i18n.html:132
 msgid "Transactional (notifications, apps)"
 msgstr "Transactional (notifications, apps)"
 
-#: www/register.i18n.html:101
+#: www/register.i18n.html:111
 msgid "User details"
 msgstr "User details"
 
-#: www/register.i18n.html:48
+#: www/register.i18n.html:50
 msgid "Vulnerable to"
 msgstr "Vulnerable to"
 
@@ -362,11 +374,15 @@ msgstr "Vulnerable to"
 msgid "Website"
 msgstr "Website"
 
-#: www/register.i18n.html:95
+#: www/register.i18n.html:100
 msgid "Welcome"
 msgstr "Welcome"
 
-#: www/index.i18n.html:317
+#: www/index.i18n.html:31
+msgid "Welcome to Lightmeter %s &nbsp;&#127881;"
+msgstr "Welcome to Lightmeter %s &nbsp;&#127881;"
+
+#: www/index.i18n.html:320
 msgid "What would you improve?"
 msgstr "What would you improve?"
 
