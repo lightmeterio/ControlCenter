@@ -21,8 +21,10 @@
           class="btn-cancel"
           variant="outline-danger"
           @click="hideRBLListModal"
-          >Close</b-button
         >
+          <!-- prettier-ignore -->
+          <translate>Close</translate>
+        </b-button>
       </div>
     </b-modal>
     <b-modal
@@ -39,8 +41,10 @@
           class="btn-cancel"
           variant="outline-danger"
           @click="hideRBLMsqModal"
-          >Close</b-button
         >
+          <!-- prettier-ignore -->
+          <translate>Close</translate>
+        </b-button>
       </div>
     </b-modal>
     <div
@@ -71,7 +75,7 @@
                     )
                   "
                   v-b-tooltip.hover
-                  title="Info"
+                  :title="Info"
                 >
                   <i class="fa fa-info-circle insight-help-button"></i>
                 </span>
@@ -80,38 +84,34 @@
               <p
                 v-if="insight.content_type === 'high_bounce_rate'"
                 class="card-text description"
-              >
-                <b>{{ insight.description.value }}</b> bounce rate between
-                {{ insight.description.from }} and {{ insight.description.to }}
-              </p>
+                v-html="insight.description"
+              ></p>
+
               <p
                 v-if="insight.content_type === 'mail_inactivity'"
                 class="card-text description"
-              >
-                No emails were sent between
-                {{ insight.description.from }} and {{ insight.description.to }}
-              </p>
+                v-html="insight.description"
+              ></p>
               <p
                 v-if="insight.content_type === 'welcome_content'"
                 class="card-text description"
               >
-                Insights are time-based analyses relating to your mailserver
+                <!-- prettier-ignore -->
+                <translate>Insights are time-based analyses relating to your mailserver</translate
+                >
               </p>
               <p
                 v-if="insight.content_type === 'insights_introduction_content'"
                 class="card-text description"
               >
-                Keep Control Center running to generate Insights; checks run
-                every few seconds
+                <!-- prettier-ignore -->
+                <translate>Keep Control Center running to generate Insights; checks run every few seconds</translate>
               </p>
               <p
                 v-if="insight.content_type === 'local_rbl_check'"
                 class="card-text description"
+                v-html="insight.description.message"
               >
-                The IP address {{ insight.description.address }} is listed by
-                <strong>{{ insight.description.length }} </strong>
-                <abbr title="Real-time Blackhole List">RBL</abbr>s
-
                 <button
                   v-b-modal.modal-rbl-list
                   v-on:click="
@@ -120,17 +120,15 @@
                   "
                   class="btn btn-sm"
                 >
-                  Details
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
                 </button>
               </p>
               <p
                 v-if="insight.content_type === 'message_rbl'"
                 class="card-text description"
+                v-html="insight.description.message"
               >
-                The IP {{ insight.description.address }} cannot deliver to
-                {{ insight.description.recipient }} (<strong
-                  >{{ insight.description.host }} </strong
-                >)
                 <button
                   v-b-modal.modal-msg-rbl
                   v-on:click="
@@ -139,10 +137,11 @@
                   "
                   class="btn btn-sm"
                 >
-                  Details
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
                 </button>
               </p>
-              <p class="card-text time">{{ insight.time }}</p>
+              <p class="card-text time">{{ insight.modTime }}</p>
             </div>
           </div>
         </div>
@@ -153,6 +152,7 @@
 
 <script>
 import moment from "moment";
+import { sprintf } from "sprintf-js";
 
 export default {
   name: "insights",
@@ -162,6 +162,9 @@ export default {
   computed: {
     insightsTransformed() {
       return this.transformInsights(this.insights);
+    },
+    Info() {
+      return this.$gettext("Info");
     }
   },
   data() {
@@ -169,63 +172,75 @@ export default {
       rbls: [],
       msgRblDetails: "",
       insightRblCheckedIpTitle: "",
-      insightMsgRblTitle: "",
-      insightsTitles: {
-        high_bounce_rate: "High Bounce Rate", //todo translate
-        mail_inactivity: "Mail Inactivity", //todo translate
-        welcome_content: "Your first Insight", //todo translate
-        insights_introduction_content: "Breaking new ground", //todo translate
-        local_rbl_check: "IP on shared blocklist", //todo translate
-        message_rbl: i => {
-          return "IP blocked by " + i.content.host;
-        } //todo translate
-      },
-      insightsDescriptions: {
-        high_bounce_rate: function(i) {
-          let c = i.content;
-          return {
-            value: c.value * 100,
-            from: formatInsightDescriptionDateTime(c.interval.from),
-            to: formatInsightDescriptionDateTime(c.interval.to)
-          };
-        },
-        // "{{ translate `<b>%i%%</b> bounce rate between %s and %s`}}"
-        mail_inactivity: function(i) {
-          let c = i.content;
-          return {
-            from: formatInsightDescriptionDateTime(c.interval.from),
-            to: formatInsightDescriptionDateTime(c.interval.to)
-          };
-        },
-        // "{{ translate `Keep Control Center running to generate Insights; checks run every few seconds` }}"
-        local_rbl_check: function(i) {
-          let c = i.content;
-
-          return {
-            address: c.address,
-            length: c.rbls.length,
-            id: i.id.toString()
-          };
-        },
-        //{{ translate `Details` }}
-        // _paq.push(['trackEvent', 'InsightDescription', 'openRblModal']) -> onclick rblListModal
-        message_rbl: function(i) {
-          let c = i.content;
-
-          return {
-            address: c.address,
-            recipient: c.recipient,
-            host: c.host,
-            id: i.id.toString()
-          };
-          // "{{ translate `The IP %s cannot deliver to %s (<strong>%s</strong>)` }}.
-        }
-        // {{ translate `Details` }}
-        // _paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']); -> on click msg_rbl_list_modal
-      }
+      insightMsgRblTitle: ""
     };
   },
   methods: {
+    high_bounce_rate_title() {
+      return this.$gettext("High Bounce Rate");
+    },
+    mail_inactivity_title() {
+      return this.$gettext("Mail Inactivity");
+    },
+    welcome_content_title() {
+      return this.$gettext("Your first Insight");
+    },
+    insights_introduction_content_title() {
+      return this.$gettext("Breaking new ground");
+    },
+    local_rbl_check_title() {
+      return this.$gettext("IP on shared blocklist");
+    },
+    message_rbl_title(i) {
+      return this.$gettext("IP blocked by ") + i.content.host;
+    },
+    high_bounce_rate_description(i) {
+      let c = i.content;
+      let translation = this.$gettext(
+        "<b>%i%%</b> bounce rate between %s and %s"
+      );
+      return sprintf(
+        translation,
+        c.value * 100,
+        formatInsightDescriptionDateTime(c.interval.from),
+        formatInsightDescriptionDateTime(c.interval.to)
+      );
+    },
+    mail_inactivity_description(i) {
+      let c = i.content;
+      let translation = this.$gettext("No emails were sent between %s and %s");
+      return sprintf(
+        translation,
+        formatInsightDescriptionDateTime(c.interval.from),
+        formatInsightDescriptionDateTime(c.interval.to)
+      );
+    },
+    local_rbl_check_description(i) {
+      let c = i.content;
+      let translation = this.$gettext(
+        "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+      );
+      let message = sprintf(translation, c.address, c.rbls.length);
+      return {
+        id: i.id.toString(),
+        message: message
+      };
+    },
+    // _paq.push(['trackEvent', 'InsightDescription', 'openRblModal']) -> onclick rblListModal
+    message_rbl_description(i) {
+      let c = i.content;
+      let translation = this.$gettext(
+        "The IP %s cannot deliver to %s (<strong>%s</strong>)"
+      );
+
+      let message = sprintf(translation, c.address, c.recipient, c.host);
+
+      return {
+        id: i.id.toString(),
+        message: message
+      };
+    },
+    // _paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']); -> on click msg_rbl_list_modal
     transformInsights(insights) {
       let vue = this;
       if (insights === null) {
@@ -235,7 +250,7 @@ export default {
       let insightsTransformed = [];
       for (let insight of insights) {
         insight.category = vue.buildInsightCategory(insight);
-        insight.time = vue.buildInsightTime(insight);
+        insight.modTime = vue.buildInsightTime(insight);
         insight.title = vue.buildInsightTitle(insight);
         insight.ratingClass = vue.buildInsightRating(insight);
         insight.description = vue.buildInsightDescriptionValues(insight);
@@ -254,7 +269,7 @@ export default {
       return moment(insight.time).format("DD MMM YYYY | h:mmA");
     },
     buildInsightTitle(insight) {
-      const s = this.insightsTitles[insight.content_type];
+      const s = this[insight.content_type + "_title"];
 
       if (typeof s == "string") {
         return s;
@@ -264,16 +279,16 @@ export default {
         return s(insight);
       }
 
-      return "Title for " + insight.content_type;
+      return this.$gettext("Title for ") + insight.content_type;
     },
     buildInsightRating(insight) {
       return insight.rating;
     },
     buildInsightDescriptionValues(insight) {
-      let handler = this.insightsDescriptions[insight.content_type];
+      let handler = this[insight.content_type + "_description"];
 
       if (handler === undefined) {
-        return "Description for " + insight.content_type;
+        return this.$gettext("Description for ") + insight.content_type;
       }
 
       return handler(insight);
@@ -284,7 +299,8 @@ export default {
       if (insight === undefined) {
         return "";
       }
-      this.insightRblCheckedIpTitle = "RBLS for" + insight.content.address;
+      this.insightRblCheckedIpTitle =
+        this.$gettext("RBLS for") + insight.content.address;
     },
     buildInsightRblList(insightId) {
       let insight = this.insights.find(i => i.id === insightId);
@@ -296,7 +312,7 @@ export default {
       this.rbls = insight.content.rbls;
     },
     buildInsightMsgRblDetails(insightId) {
-      var insight = this.insights.find(i => i.id == insightId);
+      let insight = this.insights.find(i => i.id == insightId);
 
       if (insight === undefined) {
         return;
@@ -305,18 +321,17 @@ export default {
       this.msgRblDetails = insight.content.message;
     },
     buildInsightMsgRblTitle(insightId) {
-      var insight = this.insights.find(i => i.id === insightId);
+      let insight = this.insights.find(i => i.id === insightId);
 
       if (insight === undefined) {
         return "";
       }
 
-      this.insightMsgRblTitle =
-        "Original response from " +
-        insight.content.recipient +
-        " (" +
-        insight.content.host +
-        ")";
+      this.insightMsgRblTitle = sprintf(
+        this.$gettext("Original response from %s (%s)"),
+        insight.content.recipient,
+        insight.content.host
+      );
     },
     onInsightInfo(event, helpLink, contentType) {
       event.preventDefault();

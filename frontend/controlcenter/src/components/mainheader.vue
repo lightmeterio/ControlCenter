@@ -11,7 +11,7 @@
               class="fas fa-cog"
               data-toggle="tooltip"
               data-placement="bottom"
-              title="Settings"
+              :title="Settings"
             ></i
           ></router-link>
 
@@ -21,7 +21,7 @@
               class="fas fa-info-circle"
               data-toggle="tooltip"
               data-placement="bottom"
-              title="Information"
+              :title="Information"
             ></i>
             <!--onclick="_paq.push(['trackEvent', 'About', 'clickHeaderButton']);" -->
           </span>
@@ -30,7 +30,7 @@
               class="fas fa-sign-out-alt"
               data-toggle="tooltip"
               data-placement="bottom"
-              title="Log out"
+              :title="LogOut"
             ></i>
           </span>
           <!-- onclick="_paq.push(['trackEvent', 'Logout', 'clickHeaderButton']);" -->
@@ -40,11 +40,11 @@
           ref="modal-about"
           id="modal-about"
           hide-footer
-          title="About"
+          :title="About"
           cancel-only
         >
-          Lightmeter Control Center
-          <!--{{translate "Lightmeter Control Center"}}-->
+          <!-- prettier-ignore -->
+          <translate>Lightmeter Control Center</translate>
           <br />
           <span id="release-info" v-if="applicationData">
             <strong>Version:</strong> {{ applicationData.version }}
@@ -60,9 +60,10 @@
               <a
                 href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui"
                 target="_blank"
-                >Website
-                <!-- {{translate "Website"}}--></a
               >
+                <!-- prettier-ignore -->
+                <translate>Website</translate>
+              </a>
             </li>
             <li>
               <a href="https://gitlab.com/lightmeter" target="_blank">GitLab</a>
@@ -71,8 +72,9 @@
               <a
                 href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1"
                 target="_blank"
-                >Newsletter
-                <!-- {{translate "Newsletter"}}--></a
+              >
+                <!-- prettier-ignore -->
+                <translate>Newsletter</translate></a
               >
             </li>
             <li>
@@ -91,8 +93,10 @@
               class="btn-cancel"
               variant="outline-danger"
               @click="hideModal"
-              >Close</b-button
             >
+              <!-- prettier-ignore -->
+              <translate>Close</translate>
+            </b-button>
           </div>
         </b-modal>
       </div>
@@ -109,6 +113,23 @@ export default {
       year: null,
       applicationData: null
     };
+  },
+  computed: {
+    Home: function() {
+      return this.$gettext("Home");
+    },
+    Settings: function() {
+      return this.$gettext("Settings");
+    },
+    Information: function() {
+      return this.$gettext("Information");
+    },
+    LogOut: function() {
+      return this.$gettext("Log out");
+    },
+    About: function() {
+      return this.$gettext("About");
+    }
   },
   methods: {
     hideModal() {

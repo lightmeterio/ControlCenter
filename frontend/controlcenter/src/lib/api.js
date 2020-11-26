@@ -2,8 +2,9 @@ const BASE_URL = "http://localhost:8003";
 
 import axios from "axios";
 axios.defaults.withCredentials = true;
+import Vue from "vue";
 
-export async function submitGeneralForm(data) {
+export async function submitGeneralForm(data, successMessage) {
   let formData = getFormData(data);
 
   const response = await axios.post(
@@ -12,15 +13,21 @@ export async function submitGeneralForm(data) {
   );
 
   if (response.status !== 200) {
-    alert("Error on saving notification settings!" + " " + response.data); //todo  "{{ translate `Error on saving notification settings!` }}"
+    alert(
+      Vue.prototype.$gettext("Error on saving notification settings!") +
+        " " +
+        response.data
+    );
     return;
   }
 
-  alert("Saved general settings");
+  if (successMessage !== false) {
+    alert(Vue.prototype.$gettext("Saved general settings"));
+  }
   //_paq.push(["trackEvent", "SaveGeneralSettings", "success"]);
 }
 
-export function submitLoginForm(formData, redirect) {
+export function submitLoginForm(formData, callback) {
   const data = new URLSearchParams(getFormData(formData));
   axios
     .post(BASE_URL + "/login", data)
@@ -30,13 +37,13 @@ export function submitLoginForm(formData, redirect) {
         response.data.Error !== undefined &&
         response.data.Error.length > 0
       ) {
-        alert("Error: " + response.data.Error); // todo "{{translate `Error` }}"
+        alert(Vue.prototype.$gettext("Error") + ":" + response.data.Error);
         return;
       }
-      redirect();
+      callback();
     })
     .catch(function(err) {
-      alert("Server Error!"); // todo "{{translate `Server Error!`}}"
+      alert(Vue.prototype.$gettext("Server Error!"));
       console.log(err);
     });
 }
@@ -50,11 +57,15 @@ export async function submitNotificationsSettingsForm(data) {
   );
 
   if (response.status !== 200) {
-    alert("Error on saving notification settings!" + " " + response.data); //todo  "{{ translate `Error on saving notification settings!` }}"
+    alert(
+      Vue.prototype.$gettext("Error on saving notification settings!") +
+        " " +
+        response.data
+    );
     return;
   }
 
-  alert("Saved notification settings"); // todo {{ translate `Saved notification settings` }}
+  alert(Vue.prototype.$gettext("Saved notification settings"));
   //todo _paq.push(["trackEvent", "SaveNotificationSettings", "success"]);
 }
 
@@ -75,13 +86,13 @@ export function logout(redirect) {
         response.data.Error !== undefined &&
         response.data.Error.length > 0
       ) {
-        alert("Error: " + response.data.Error); // todo "{{translate `Error` }}"
+        alert(Vue.prototype.$gettext("Error") + ":" + response.data.Error);
         return;
       }
       redirect();
     })
     .catch(function(err) {
-      alert("Server Error!"); // todo "{{translate `Server Error!`}}"
+      alert(Vue.prototype.$gettext("Server Error!"));
       console.log(err);
     });
 }
@@ -106,16 +117,19 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
             response.data.Detailed.Sequence[0].pattern
           ) {
             return (
-              "Error" +
+              Vue.prototype.$gettext("Error") +
               response.data.Error +
               ".\n" +
-              "Vulnerable to: " +
+              Vue.prototype.$gettext("Vulnerable to") +
+              ":" +
               response.data.Detailed.Sequence[0].pattern +
               "."
-            ); //todo "{{ translate `Error` }}: " + data.Error + ".\n" + "{{ translate `Vulnerable to` }}: " + data.Detailed.Sequence[0].pattern + '.'
+            );
           }
 
-          return "Error:" + response.data.Error; //todo "{{ translate `Error` }}:" + data.Error
+          return (
+            alert(Vue.prototype.$gettext("Error")) + ":" + response.data.Error
+          );
         })();
 
         alert(message);
@@ -129,19 +143,23 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
         )
         .then(function(response) {
           if (response.status !== 200) {
-            alert("Settings Error on initial setup!" + " " + response.data); //todo  "{{ translate `Error Settings Error on initial setup!` }}"
+            alert(
+              Vue.prototype.$gettext("Settings Error on initial setup!") +
+                " " +
+                response.data
+            );
             return;
           }
           // todo tracking
           redirect();
         })
         .catch(function(err) {
-          alert("Settings Error on initial setup!"); // todo {{ translate `Settings Error on initial setup!` }}
+          alert(Vue.prototype.$gettext("Settings Error on initial setup!"));
           console.log(err);
         });
     })
     .catch(function(err) {
-      alert("Server Error!"); //todo "{{ translate `Server Error!` }}"
+      alert(Vue.prototype.$gettext("Server Error!"));
       console.log(err);
     });
 }

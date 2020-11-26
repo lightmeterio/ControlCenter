@@ -21,3 +21,8 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+src/translation/locale/pt_BR/LC_MESSAGES/app.po~
+src/translation/locale/de/LC_MESSAGES/app.po~
+src/translation/locale/pl/LC_MESSAGES/app.po~
+src/translation/locale/en/LC_MESSAGES/app.po~

@@ -41,3 +41,6 @@ dependencies.svg
 result
 
 generated_link_list.go
+
+*.po
+*.po~
