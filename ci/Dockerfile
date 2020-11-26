@@ -1,5 +1,7 @@
 FROM registry.gitlab.com/lightmeter/golang-builder-docker-image:latest AS builder
 
+RUN apk update && apk add ca-certificates
+
 ADD . /src
 
 WORKDIR /src
@@ -25,6 +27,9 @@ LABEL org.label-schema.schema-version="1.0"
 LABEL maintainer="Leandro Santiago <leandro@lightmeter.io>"
 
 COPY --from=builder /src/lightmeter /lightmeter
+COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates
+
+ENV SSL_CERT_DIR /usr/share/ca-certificates/mozilla
 
 VOLUME /logs
 
