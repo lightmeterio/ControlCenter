@@ -3,24 +3,25 @@
     <mainheader></mainheader>
 
     <b-container id="settings" class="main-content">
-      <h2 class="form-heading">Settings</h2>
-      <!-- {{ translate "Settings" }} -->
+      <h2 class="form-heading">
+        <!-- prettier-ignore -->
+        <translate>Settings</translate>
+      </h2>
       <div class="form-container">
-        <h6 class="form-heading">Notifications</h6>
-        <!-- {{ translate "Notifications" }} -->
+        <h6 class="form-heading">
+          <!-- prettier-ignore -->
+          <translate>Notifications</translate>
+        </h6>
         <b-form
           @submit="onNotificationSettingsSubmit"
           id="notifications-form-container"
         >
-          <!-- {{ translate "Slack notifications" }} -->
-          <!-- {{ translate "Yes" }} -->
-          <!-- {{ translate "No" }} -->
-          <b-form-group label="Slack notifications" class="slack-disabler">
+          <b-form-group :label="SlackNotifications" class="slack-disabler">
             <b-form-radio-group
               class="pt-2"
               required
               v-model="settings.slack_notifications.enabled"
-              :options="['Yes', 'No']"
+              :options="SlackNotificationsSwitchOptions"
             ></b-form-radio-group>
           </b-form-group>
 
@@ -36,88 +37,84 @@
 
           <b-form-group
             class="slack-channel"
-            label="Slack channel"
+            :label="SlackChannel"
             label-for="slackChannel"
           >
-            <!-- {{ translate "Slack channel" }} -->
             <b-form-input
               name="messenger_channel"
               id="slackChannel"
               v-model="settings.slack_notifications.channel"
               required
-              placeholder="Please enter slack channel name"
+              :placeholder="SlackChannelInputPlaceholder"
               maxlength="255"
             ></b-form-input>
           </b-form-group>
 
           <b-form-group
             class="slack-token"
-            label="Slack API token"
+            :label="SlackAPItoken"
             label-for="slackApiToken"
           >
-            <!-- {{ Slack API token" }} -->
             <b-form-input
               name="messenger_token"
               id="slackApiToken"
               v-model="settings.slack_notifications.bearer_token"
               required
-              placeholder="Please enter api token"
+              :placeholder="SlackAPItokenPlacefolder"
               maxlength="255"
             ></b-form-input>
           </b-form-group>
 
           <div class="button-group">
-            <b-button variant="primary" class="general-save" type="submit"
-              >Save</b-button
-            >
-            <!--{{ translate "Save" }}-->
-
+            <b-button variant="primary" class="general-save" type="submit">
+              <!-- prettier-ignore -->
+              <translate>Save</translate>
+            </b-button>
             <b-button
               variant="primary"
               class="general-cancel btn-cancel"
               type="submit"
-              >Cancel</b-button
             >
-            <!--{{ translate "Cancel" }}-->
+              <!-- prettier-ignore -->
+              <translate>Cancel</translate>
+            </b-button>
           </div>
         </b-form>
 
         <h6 class="form-heading">
-          General
-          <!--{{ translate "General" }}-->
+          <!-- prettier-ignore -->
+          <translate>General</translate>
         </h6>
 
         <b-form @submit="onGeneralSettingsSubmit" id="general-form-container">
           <b-form-group
             class="postfixPublicIP"
-            label="Postfix public IP"
+            :label="PostfixPublicIP"
             label-for="postfixPublicIP"
           >
-            <!-- {{ Postfix public IP" }} -->
             <b-form-input
               name="postfixPublicIP"
               id="postfixPublicIP"
               v-model="settings.general.postfix_public_ip"
               required
-              placeholder="Enter ip address"
+              :placeholder="EnterIpAddress"
               maxlength="255"
             ></b-form-input>
-            <!-- {{ translate "Enter ip address" }} -->
           </b-form-group>
 
           <div class="button-group">
-            <b-button variant="primary" class="general-save" type="submit"
-              >Save</b-button
-            >
-            <!--{{ translate "Save" }}-->
-
+            <b-button variant="primary" class="general-save" type="submit">
+              <!-- prettier-ignore -->
+              <translate>Save</translate>
+            </b-button>
             <b-button
               variant="primary"
               class="general-cancel btn-cancel"
               type="submit"
-              >Cancel</b-button
             >
-            <!--{{ translate "Cancel" }}-->
+              <!-- prettier-ignore -->
+              <translate>Cancel</translate>
+            </b-button>
           </div>
         </b-form>
       </div>
@@ -131,6 +128,7 @@ import { getSettings } from "../lib/api.js";
 import { getMetaLanguage } from "../lib/api.js";
 import { submitNotificationsSettingsForm } from "../lib/api.js";
 import { submitGeneralForm } from "../lib/api.js";
+import { mapState } from "vuex";
 
 export default {
   name: "settingspage",
@@ -153,23 +151,53 @@ export default {
       languages: []
     };
   },
+  computed: {
+    SlackChannel: function() {
+      return this.$gettext("Slack channel");
+    },
+    SlackChannelInputPlaceholder: function() {
+      return this.$gettext("Please enter slack channel name");
+    },
+    SlackNotifications: function() {
+      return this.$gettext("Slack notifications");
+    },
+    SlackNotificationsSwitchOptions: function() {
+      return [this.$gettext("Yes"), this.$gettext("No")];
+    },
+    SlackAPItoken: function() {
+      return this.$gettext("Slack API token");
+    },
+    SlackAPItokenPlacefolder: function() {
+      return this.$gettext("Please enter api token");
+    },
+    PostfixPublicIP: function() {
+      return this.$gettext("Postfix public IP");
+    },
+    EnterIpAddress: function() {
+      return this.$gettext("Enter ip address");
+    },
+    ...mapState(["language"])
+  },
   methods: {
     onGeneralSettingsSubmit() {
       event.preventDefault();
       let vue = this;
 
-      const data = {
-        postfixPublicIP: this.settings.general.postfix_public_ip
-      };
+      setTimeout(function() {
+        const data = {
+          postfixPublicIP: vue.settings.general.postfix_public_ip,
+          app_language: vue.language
+        };
 
-      submitGeneralForm(data).then(function() {
-        getSettings().then(function(response) {
-          vue.settings = response.data;
-          vue.settings.slack_notifications.enabled = vue.MapEnabled(
-            vue.settings.slack_notifications.enabled
-          );
+        submitGeneralForm(data, true).then(function() {
+          getSettings().then(function(response) {
+            vue.settings = response.data;
+            vue.settings.slack_notifications.enabled = vue.MapEnabled(
+              vue.settings.slack_notifications.enabled
+            );
+          });
         });
-      });
+      }, 100);
     },
     onNotificationSettingsSubmit(event) {
       event.preventDefault();

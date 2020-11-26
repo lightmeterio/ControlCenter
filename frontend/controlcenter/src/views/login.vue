@@ -1,8 +1,8 @@
 <template>
   <panel-page>
     <h2>
-      Login
-      <!--{{translate "Login"}}-->
+      <!-- prettier-ignore -->
+      <translate>Login</translate>
     </h2>
     <div class="field-group">
       <b-form @submit="onSubmit">
@@ -14,7 +14,7 @@
             type="email"
             required
             aria-describedby="emailHelp"
-            placeholder="Email"
+            :placeholder="EmailInputPlaceholder"
             maxlength="255"
           ></b-form-input>
           <b-input-group id="show_hide_password">
@@ -24,7 +24,7 @@
               v-model="form.password"
               required
               aria-describedby="passwordHelp"
-              placeholder="Password"
+              :placeholder="PasswordInputPlaceholder"
               type="password"
               maxlength="255"
             ></b-form-input>
@@ -37,22 +37,26 @@
               ><a
                 target="_blank"
                 href="https://gitlab.com/lightmeter/controlcenter#password-reset"
-                >Forgot password?</a
-              ></small
+              >
+                <!-- prettier-ignore -->
+                <translate>Forgot password?</translate>
+              </a></small
             >
           </p>
-          <!--{{translate "Forgot password?"}}-->
         </b-form-group>
-        <b-button variant="primary" class="w-100" type="submit">Login</b-button
-        ><!--{{translate `Login`}}-->
+        <b-button variant="primary" class="w-100" type="submit">
+          <!-- prettier-ignore -->
+          <translate>Login</translate>
+        </b-button>
       </b-form>
     </div>
   </panel-page>
 </template>
 
 <script>
-import { submitLoginForm } from "../lib/api.js";
+import { submitLoginForm, submitGeneralForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
+import { mapState } from "vuex";
 
 export default {
   name: "login",
@@ -65,15 +69,28 @@ export default {
       }
     };
   },
-
+  computed: {
+    PasswordInputPlaceholder: function() {
+      return this.$gettext("Password");
+    },
+    EmailInputPlaceholder: function() {
+      return this.$gettext("Email");
+    },
+    ...mapState(["language"])
+  },
   methods: {
     onSubmit(event) {
       event.preventDefault();
       let vue = this;
-      const redirect = () => {
+      const callback = () => {
+        const data = {
+          app_language: vue.language
+        };
+        submitGeneralForm(data, false);
+
         vue.$router.push({ name: "index" });
       };
-      submitLoginForm(this.form, redirect);
+      submitLoginForm(this.form, callback);
     },
     onTogglePasswordShow(event) {
       event.preventDefault();

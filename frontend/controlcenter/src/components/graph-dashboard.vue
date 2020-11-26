@@ -3,8 +3,8 @@
     <div class="col-md-4">
       <div id="delivery-attempts" class="card">
         <div class="card-header">
-          Delivery attempts
-          <!-- {{translate "Delivery attempts"}} -->
+          <!-- prettier-ignore -->
+          <translate>Delivery attempts</translate>
         </div>
         <div class="card-body">
           <div class="dashboard-gadget" id="deliveryStatus"></div>
@@ -13,13 +13,13 @@
     </div>
     <div class="col-md-8">
       <b-tabs id="basic-graphs-area" content-class="mt-3" justified>
-        <b-tab title="Busiest domains" active>
+        <b-tab :title="BusiestDomainsTitle" active>
           <div class="dashboard-gadget" id="topBusiestDomains"></div
         ></b-tab>
-        <b-tab title="Bounced Domains">
+        <b-tab :title="BouncedDomainsTitle">
           <div class="dashboard-gadget" id="topBouncedDomains"></div
         ></b-tab>
-        <b-tab title="Deferred Domains">
+        <b-tab :title="DeferredDomainsTitle">
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
       </b-tabs>
@@ -40,6 +40,17 @@ export default {
     return {
       graphAreaResizeObserver: null
     };
+  },
+  computed: {
+    BusiestDomainsTitle: function() {
+      return this.$gettext("Busiest Domains");
+    },
+    BouncedDomainsTitle: function() {
+      return this.$gettext("Bounced Domains");
+    },
+    DeferredDomainsTitle: function() {
+      return this.$gettext("Deferred Domains");
+    }
   },
   beforeDestroy() {
     this.graphAreaResizeObserver.disconnect();

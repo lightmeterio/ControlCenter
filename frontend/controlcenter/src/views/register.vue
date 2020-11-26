@@ -2,23 +2,22 @@
   <panel-page>
     <div id="registration-page">
       <h2>
-        Welcome
-        <!--{{translate "Welcome"}}-->
+        <translate>Welcome</translate>
       </h2>
       <p class="align-left">
-        Please create a new administrator account - this is necessary to login
-        <!--{{translate "Please create a new administrator account - this is necessary to login."}}-->
+        <!-- prettier-ignore -->
+        <translate>Please create a new administrator account - this is necessary to login</translate>
         <a href="https://gitlab.com/lightmeter/controlcenter#upgrade"
-          >Get help<!--{{translate "Get help"}}--></a
+          ><translate>Get help</translate></a
         >
-        to avoid repeating this step if you've done it before
-        <!--{{translate "to avoid repeating this step if you've done it before"}}-->
+        <!-- prettier-ignore -->
+        <translate>to avoid repeating this step if you've done it before</translate>
       </p>
 
       <div class="field-group">
         <h4>
-          User details
-          <!--{{translate "User details"}}-->
+          <!-- prettier-ignore -->
+          <translate>User details</translate>
         </h4>
         <b-form @submit="onSubmit">
           <b-form-group>
@@ -29,7 +28,7 @@
               type="text"
               required
               aria-describedby="nameHelp"
-              placeholder="Name"
+              :placeholder="NameInputPlaceholder"
               maxlength="255"
             ></b-form-input>
             <b-form-input
@@ -39,7 +38,7 @@
               type="email"
               required
               aria-describedby="emailHelp"
-              placeholder="Email"
+              :placeholder="EmailInputPlaceholder"
               maxlength="255"
             ></b-form-input>
             <b-input-group id="show_hide_password">
@@ -50,7 +49,7 @@
                 type="password"
                 required
                 aria-describedby="passwordHelp"
-                placeholder="Password"
+                :placeholder="PasswordInputPlaceholder"
                 maxlength="255"
               ></b-form-input>
               <div class="input-group-addon" v-on:click="onTogglePasswordShow">
@@ -65,18 +64,22 @@
                   name="email_kind"
                   id="email_kind"
                 >
-                  <option value="" selected disabled
-                    >Most of my mail is…<!--{{translate "Most of my mail is…"}}--></option
-                  >
-                  <option value="direct"
-                    >Direct (personal, office, one-to-one)<!--{{translate "Direct (personal, office, one-to-one)"}}--></option
-                  >
-                  <option value="transactional"
-                    >Transactional (notifications, apps)<!--{{translate "Transactional (notifications, apps)"}}--></option
-                  >
-                  <option value="marketing"
-                    >Marketing (newsletters, adverts)<!--{{translate "Marketing (newsletters, adverts)"}}--></option
-                  >
+                  <option value="" selected disabled>
+                    <!-- prettier-ignore -->
+                    <translate>Most of my mail is…</translate>
+                  </option>
+                  <option value="direct">
+                    <!-- prettier-ignore -->
+                    <translate>Direct (personal, office, one-to-one)</translate>
+                  </option>
+                  <option value="transactional">
+                    <!-- prettier-ignore -->
+                    <translate>Transactional (notifications, apps)</translate>
+                  </option>
+                  <option value="marketing">
+                    <!-- prettier-ignore -->
+                    <translate>Marketing (newsletters, adverts)</translate>
+                  </option>
                 </select>
                 <div class="input-group-append">
                   <button
@@ -85,9 +88,8 @@
                     data-toggle="tooltip"
                     data-placement="top"
                     v-b-tooltip.hover
-                    title="Different types of mail perform differently. This helps show the most relevant information."
+                    :title="EmailKindHoverTitle"
                   >
-                    <!--{{translate `Different types of mail perform differently. This helps show the most relevant information.`}}-->
                     <i class="far fa-question-circle"></i>
                   </button>
                 </div>
@@ -101,30 +103,31 @@
                 unchecked-value="off"
                 class="custom-form-check-label"
               >
-                Monthly newsletter
+                <!-- prettier-ignore -->
+                <translate>Monthly newsletter</translate>
               </b-form-checkbox>
             </b-input-group>
           </b-form-group>
-          <b-button variant="primary" class="w-100" type="submit"
-            >Register</b-button
-          ><!--{{translate `Register`}}-->
+          <b-button variant="primary" class="w-100" type="submit">
+            <!-- prettier-ignore -->
+            <translate>Register</translate>
+          </b-button>
         </b-form>
         <div class="card info" v-if="tracking()">
           <div class="card-body">
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
-              Telemetry enabled
-              <!--{{ translate`Telemetry enabled` }}-->
+              <!-- prettier-ignore -->
+              <translate>Telemetry enabled</translate>
             </h5>
             <p class="card-text">
-              Feature usage data is shared with a private Open Source analytics
-              system to improve your experience and may be
-              <a href="https://lightmeter.io/privacy-policy/">disabled</a> at
-              any time
-              <!-- {{translate `Feature usage data is shared with a private Open Source
-              analytics system to improve your experience and may be
-              <a href="https://lightmeter.io/privacy-policy/">disabled</a> at any
-              time`}} -->
+              <!-- prettier-ignore -->
+              <translate>
+                Feature usage data is shared with a private Open Source
+                analytics system to improve your experience and may be
+                <a href="https://lightmeter.io/privacy-policy/">disabled</a> at
+                any time
+              </translate>
             </p>
           </div>
         </div>
@@ -136,6 +139,7 @@
 <script>
 import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
+import { mapState } from "vuex";
 
 export default {
   name: "register",
@@ -151,6 +155,23 @@ export default {
       }
     };
   },
+  computed: {
+    NameInputPlaceholder: function() {
+      return this.$gettext("Name");
+    },
+    EmailInputPlaceholder: function() {
+      return this.$gettext("Email");
+    },
+    PasswordInputPlaceholder: function() {
+      return this.$gettext("Password");
+    },
+    EmailKindHoverTitle: function() {
+      return this.$gettext(
+        "Different types of mail perform differently. This helps show the most relevant information."
+      );
+    },
+    ...mapState(["language"])
+  },
   methods: {
     onSubmit(event) {
       event.preventDefault();
@@ -158,7 +179,8 @@ export default {
 
       let settingsData = {
         email: this.form.email,
-        email_kind: this.form.email_kind
+        email_kind: this.form.email_kind,
+        app_language: this.language
       };
 
       if (this.form.subscribe_newsletter !== null) {
@@ -180,10 +202,10 @@ export default {
     tracking() {
       if (window.doNotTrack || navigator.doNotTrack || navigator.msDoNotTrack) {
         if (
-            (window.doNotTrack == 1 ||
+          window.doNotTrack == 1 ||
           navigator.doNotTrack == "yes" ||
           navigator.doNotTrack == 1 ||
-          navigator.msDoNotTrack == 1)
+          navigator.msDoNotTrack == 1
         ) {
           return false;
         }
@@ -236,5 +258,8 @@ export default {
 
 #registration-page .card .fa {
   padding-right: 0.8em;
+}
+#auth-page-footer .container .sub-container {
+  margin: 0 auto;
 }
 </style>

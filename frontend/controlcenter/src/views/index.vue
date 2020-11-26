@@ -5,7 +5,8 @@
       <div class="row">
         <div class="col-md-12">
           <h1 class="row-title">
-            Control Center<!--{{translate "Control Center"}}-->
+            <!-- prettier-ignore -->
+            <translate>Control Center</translate>
           </h1>
         </div>
       </div>
@@ -27,7 +28,8 @@
                   <div class="container">
                     <h3>{{ greetingText }}</h3>
                     <p>
-                      and welcome back<!-- {{translate "and welcome back"}}-->
+                      <!-- prettier-ignore -->
+                      <translate>and welcome back</translate>
                     </p>
                   </div>
                 </div>
@@ -38,18 +40,19 @@
       </div>
 
       <graphdashboard :graphDateRange="dateRange"></graphdashboard>
+
       <div class="row container d-flex time-interval card-section-heading">
         <div class="col-lg-2 col-md-6 col-6 p-2">
           <h2>
-            Insights
-            <!--{{translate "Insights"}}-->
+            <!-- prettier-ignore -->
+            <translate>Insights</translate>
           </h2>
         </div>
         <div class="col-lg-3 col-md-6 col-6 p-2">
           <label class="col-md-2 col-form-label sr-only">
-            Time interval:
-            <!--{{translate "Time interval:"}}--></label
-          >
+            <!-- prettier-ignore -->
+            <translate>Time interval:</translate>
+          </label>
           <DateRangePicker
             @update="onUpdateDateRangePicker"
             :autoApply="autoApply"
@@ -68,10 +71,10 @@
             <div
               class="form-group d-flex justify-content-end align-items-center"
             >
-              <label class="sr-only"
-                >Filter
-                <!-- {{translate "Filter"}}: --></label
-              >
+              <label class="sr-only">
+                <!-- prettier-ignore -->
+                <translate>Filter</translate>
+              </label>
               <select
                 id="insights-filter"
                 class="form-control custom-select custom-select-sm"
@@ -82,19 +85,19 @@
                 v-on:change="onFetchInsights"
               >
                 <!-- todo remove in style -->
-                <option selected value="nofilter"
-                  >All
-                  <!-- {{translate "All"}} --></option
-                >
+                <option selected value="nofilter">
+                  <!-- prettier-ignore -->
+                  <translate>All</translate>
+                </option>
                 <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
-                <option value="category-local"
-                  >Local
-                  <!-- {{translate "Local"}}--></option
-                >
+                <option value="category-local">
+                  <!-- prettier-ignore -->
+                  <translate>Local</translate>
+                </option>
                 <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
-                <option value="category-news"
-                  >News
-                  <!-- {{translate "News"}} -->
+                <option value="category-news">
+                  <!-- prettier-ignore -->
+                  <translate>News</translate>
                 </option>
                 <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
               </select>
@@ -108,24 +111,21 @@
                 v-on:change="onFetchInsights"
               >
                 <!-- todo remove in style -->
-                <option selected value="creationDesc"
-                  >Newest
-                  <!-- {{translate "Newest"}}--></option
-                >
+                <option selected value="creationDesc">
+                  <!-- prettier-ignore -->
+                  <translate>Newest</translate>
+                </option>
                 <!-- onclick _paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);-->
-
-                <option value="creationAsc"
-                  >Oldest
-                  <!--{{translate "Oldest"}}--></option
-                >
-
+                <option value="creationAsc">
+                  <!-- prettier-ignore -->
+                  <translate>Oldest</translate>
+                </option>
                 <!-- onclick _paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);-->
               </select>
             </div>
           </form>
         </div>
       </div>
-      <!-- {{translate `Info`}} -->
       <insights class="row" :insights="insights"></insights>
     </div>
     <mainfooter></mainfooter>
