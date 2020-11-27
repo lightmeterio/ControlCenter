@@ -21,7 +21,7 @@ if [ -z "$2" ]
     SHOWUSAGE=1
 fi
 
-if [ $SHOWUSAGE == 1 ]
+if [ "$SHOWUSAGE" == 1 ]
   then
     echo "Example usage: $0 /var/mail/log /home/admin/cleaned_logs"
     exit 1
@@ -37,7 +37,7 @@ DESTDIR="$(realpath "$2")"
 
 [ -n "$DESTDIR" ]
 
-find "$SRCDIR" -name 'mail.log.*' | while read FILEPATH; do
+find "$SRCDIR" -name 'mail.log*' | while read FILEPATH; do
   echo "Cleaning $FILEPATH"
   FILE="$DESTDIR/${FILEPATH##${SRCDIR}}"
   mkdir -p "$(dirname "$FILE")"
