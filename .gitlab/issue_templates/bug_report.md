@@ -1,8 +1,14 @@
 🎉 Thank you for reporting this! 
 
-**Version number**
+**Version number of controlcenter**
 
 Please state version here (found via the "i" info button top right of Web UI)
+
+Version: 
+
+**Postfix version**
+
+Use `postconf mail_version` to get postfix version
 
 Version: 
 
