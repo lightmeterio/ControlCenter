@@ -43,7 +43,7 @@ Version:
 
 **Attach logs**
 
-Consider attaching relevant mail logs to this issue - you can safely remove private data from them (email addresses, hostnames, IPs, etc) using the `utils/batch_log_cleaner` script in this repository. That creates clean log copies without modifying your source logs.
+Consider attaching relevant mail logs to this issue - you can safely remove private data from them (email addresses, hostnames, IPs, etc) using the [`tools/batch_log_cleaner.sh`] script in this repository. That creates clean log copies without modifying your source logs.
 
 **Which Operating System and version are you using?**
 
