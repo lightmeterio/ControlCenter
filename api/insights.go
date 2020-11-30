@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/recommendation"
@@ -101,6 +102,13 @@ type fetchInsightsResult []fetchedInsight
 
 func HttpInsights(mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
 	chain := httpmiddleware.WithDefaultStack(httpmiddleware.RequestWithInterval(timezone))
+	recommendationURLContainer := recommendation.GetDefaultURLContainer()
+
+	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: recommendationURLContainer}))
+}
+
+func HttpInsightsV2(auth *v2.Authenticator, mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
+	chain := httpmiddleware.WithDefaultStackV2(auth, httpmiddleware.RequestWithInterval(timezone))
 	recommendationURLContainer := recommendation.GetDefaultURLContainer()
 
 	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: recommendationURLContainer}))

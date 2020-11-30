@@ -67,6 +67,7 @@ The following dependencies are needed during development:
 - Libc development files. Both [glibc](https://www.gnu.org/software/libc/) and [musl](https://www.musl-libc.org/) have been successfully tested.
 - [GNU Make](https://www.gnu.org/software/make/manual/make.html) or compatible.
 - [Ragel](https://www.colm.net/open-source/ragel/) version 6.X. We have successfully tested version 6.10 and don't guarantee it will work with the version 7 as we have not tested it.
+- [vue cli](https://cli.vuejs.org/) - only for frontend version 2
 
 For instance, on Alpine Linux 3.12, they can be installed with:
 
