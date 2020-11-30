@@ -102,3 +102,12 @@ postfix_parser:
 
 clean_postfix_parser:
 	@rm -vf pkg/postfix/logparser/rawparser/*.gen.go
+
+frontend_root:
+	sh ./frontend/controlcenter/root_build.sh
+
+restore_www:
+	git clean -fdx ./www
+	git checkout ./www
+
+release_ui_v2_vuejs: postfix_parser domain_mapping_list recommendation_release frontend_root static_www release restore_www

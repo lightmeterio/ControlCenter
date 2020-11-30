@@ -31,6 +31,7 @@ func main() {
 		dirToWatch                string
 		address                   string
 		verbose                   bool
+		frontendv2                bool
 		emailToPasswdReset        string
 		passwordToReset           string
 
@@ -53,6 +54,7 @@ func main() {
 	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
+	flag.BoolVar(&frontendv2, "frontendv2", false, "use frontend v2")
 
 	flag.Usage = func() {
 		printVersion()
@@ -122,7 +124,11 @@ func main() {
 		Address:            address,
 	}
 
-	errorutil.MustSucceed(httpServer.Start(), "server died")
+	if frontendv2 {
+		errorutil.MustSucceed(httpServer.StartV2(), "server died")
+	} else {
+		errorutil.MustSucceed(httpServer.Start(), "server died")
+	}
 }
 
 func printVersion() {

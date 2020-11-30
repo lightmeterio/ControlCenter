@@ -4,6 +4,7 @@ import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
@@ -140,6 +141,16 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error
 
 func HttpDashboard(mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
 	chain := httpmiddleware.WithDefaultStack(httpmiddleware.RequestWithInterval(timezone))
+	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
+	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topDeferredDomains", chain.WithEndpoint(topDeferredDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/deliveryStatus", chain.WithEndpoint(deliveryStatusHandler{dashboard}))
+	mux.Handle("/api/v0/appVersion", chain.WithError(appVersionHandler{}))
+}
+
+func HttpDashboardV2(auth *v2.Authenticator, mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
+	chain := httpmiddleware.WithDefaultStackV2(auth, httpmiddleware.RequestWithInterval(timezone))
 	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
 	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))
