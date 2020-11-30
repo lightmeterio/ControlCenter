@@ -4,26 +4,18 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 import Vue from "vue";
 
-export async function submitGeneralForm(data, successMessage) {
+export function submitGeneralForm(data, successMessage) {
   let formData = getFormData(data);
 
-  const response = await axios.post(
-    BASE_URL + "/settings?setting=general",
-    new URLSearchParams(formData)
-  );
+  axios
+    .post(BASE_URL + "/settings?setting=general", new URLSearchParams(formData))
+    .then(function() {
+      if (successMessage !== false) {
+        alert(Vue.prototype.$gettext("Saved general settings"));
+      }
+    })
+    .catch(errorHandler);
 
-  if (response.status !== 200) {
-    alert(
-      Vue.prototype.$gettext("Error on saving notification settings!") +
-        " " +
-        response.data
-    );
-    return;
-  }
-
-  if (successMessage !== false) {
-    alert(Vue.prototype.$gettext("Saved general settings"));
-  }
   //_paq.push(["trackEvent", "SaveGeneralSettings", "success"]);
 }
 
@@ -31,41 +23,24 @@ export function submitLoginForm(formData, callback) {
   const data = new URLSearchParams(getFormData(formData));
   axios
     .post(BASE_URL + "/login", data)
-    .then(function(response) {
-      if (
-        response.data !== null &&
-        response.data.Error !== undefined &&
-        response.data.Error.length > 0
-      ) {
-        alert(Vue.prototype.$gettext("Error") + ":" + response.data.Error);
-        return;
-      }
+    .then(function() {
       callback();
     })
-    .catch(function(err) {
-      alert(Vue.prototype.$gettext("Server Error!"));
-      console.log(err);
-    });
+    .catch(errorHandler);
 }
 
-export async function submitNotificationsSettingsForm(data) {
+export function submitNotificationsSettingsForm(data) {
   let notificationsSettingsFormData = getFormData(data);
 
-  const response = await axios.post(
-    BASE_URL + "/settings?setting=notification",
-    new URLSearchParams(notificationsSettingsFormData)
-  );
-
-  if (response.status !== 200) {
-    alert(
-      Vue.prototype.$gettext("Error on saving notification settings!") +
-        " " +
-        response.data
-    );
-    return;
-  }
-
-  alert(Vue.prototype.$gettext("Saved notification settings"));
+  return axios
+    .post(
+      BASE_URL + "/settings?setting=notification",
+      new URLSearchParams(notificationsSettingsFormData)
+    )
+    .then(function() {
+      alert(Vue.prototype.$gettext("Saved notification settings"));
+    })
+    .catch(errorHandler);
   //todo _paq.push(["trackEvent", "SaveNotificationSettings", "success"]);
 }
 
@@ -80,21 +55,10 @@ export function getMetaLanguage() {
 export function logout(redirect) {
   axios
     .post(BASE_URL + "/logout", null)
-    .then(function(response) {
-      if (
-        response.data !== null &&
-        response.data.Error !== undefined &&
-        response.data.Error.length > 0
-      ) {
-        alert(Vue.prototype.$gettext("Error") + ":" + response.data.Error);
-        return;
-      }
+    .then(function() {
       redirect();
     })
-    .catch(function(err) {
-      alert(Vue.prototype.$gettext("Server Error!"));
-      console.log(err);
-    });
+    .catch(errorHandler);
 }
 
 export function submitRegisterForm(registrationData, settingsData, redirect) {
@@ -103,64 +67,36 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
 
   axios
     .post(BASE_URL + "/register", new URLSearchParams(registrationFormData))
-    .then(function(response) {
-      if (
-        response.data !== null &&
-        response.data.Error !== undefined &&
-        response.data.Error.length > 0
-      ) {
-        let message = (function() {
-          // add hints of pwd weakness
-          if (
-            response.data.Detailed &&
-            response.data.Detailed.Sequence &&
-            response.data.Detailed.Sequence[0].pattern
-          ) {
-            return (
-              Vue.prototype.$gettext("Error") +
-              response.data.Error +
-              ".\n" +
-              Vue.prototype.$gettext("Vulnerable to") +
-              ":" +
-              response.data.Detailed.Sequence[0].pattern +
-              "."
-            );
-          }
-
-          return (
-            alert(Vue.prototype.$gettext("Error")) + ":" + response.data.Error
-          );
-        })();
-
-        alert(message);
-        return;
-      }
-
+    .then(function() {
       axios
         .post(
           BASE_URL + "/settings?setting=initSetup",
           new URLSearchParams(settingsFormData)
         )
-        .then(function(response) {
-          if (response.status !== 200) {
-            alert(
-              Vue.prototype.$gettext("Settings Error on initial setup!") +
-                " " +
-                response.data
-            );
-            return;
-          }
+        .then(function() {
           // todo tracking
           redirect();
         })
-        .catch(function(err) {
-          alert(Vue.prototype.$gettext("Settings Error on initial setup!"));
-          console.log(err);
-        });
+        .catch(errorHandler);
     })
     .catch(function(err) {
-      alert(Vue.prototype.$gettext("Server Error!"));
-      console.log(err);
+      // add hints of pwd weakness
+      if (
+        err.response.data.Detailed &&
+        err.response.data.Detailed.Sequence &&
+        err.response.data.Detailed.Sequence[0].pattern
+      ) {
+        alert(
+          Vue.prototype.$gettext("Error") +
+            err.response.data.Error +
+            ".\n" +
+            Vue.prototype.$gettext("Vulnerable to: ") +
+            err.response.data.Detailed.Sequence[0].pattern +
+            "."
+        );
+        return;
+      }
+      alertError(err);
     });
 }
 
@@ -171,7 +107,7 @@ function getFormData(object) {
 }
 
 export function getApplicationInfo() {
-  return axios.get(BASE_URL + "/api/v0/appVersion");
+  return axios.get(BASE_URL + "/api/v0/appVersion").catch(errorHandler);
 }
 
 export function getIsNotLoginOrNotRegistered() {
@@ -212,7 +148,28 @@ export function fetchGraphDataAsJsonWithTimeInterval(
     return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
   };
 
-  return axios.get(
-    BASE_URL + "/api/v0/" + methodName + "?" + timeIntervalUrlParams()
-  );
+  return axios
+    .get(BASE_URL + "/api/v0/" + methodName + "?" + timeIntervalUrlParams())
+    .catch(errorHandler);
+}
+
+function errorHandler(err) {
+  alertError(err.response);
+}
+
+function alertError(response) {
+  console.log("dump response: ", response);
+  let errMsg = (function() {
+    if (response.data.Error !== undefined) {
+      return ": " + response.data.Error;
+    }
+
+    if (response.data !== "") {
+      return ": " + response.data;
+    }
+
+    return "";
+  })();
+
+  alert(Vue.prototype.$gettext("Error") + errMsg);
 }
