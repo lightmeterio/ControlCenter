@@ -131,6 +131,15 @@ function escapeHTML(value) {
   return e.innerHTML
 }
 
+// Find urls in plain text and replace with html links
+function urlsToLinks(text) {
+  const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g
+
+  return text.replaceAll(urlRegex, function(l) {
+    return `<a target="_blank" href="${l}">${l}</a>`
+  })
+}
+
 function buildInsightRblList(insightId) {
   var insight = allCurrentInsightsData.find(i => i.id == insightId)
 
@@ -138,13 +147,18 @@ function buildInsightRblList(insightId) {
     return
   }
 
-  var content = "<ul>"
+  var content = ""
 
   insight.content.rbls.forEach(r => {
-    content += "<li><b>" + escapeHTML(r.rbl) + "</b>: " + escapeHTML(r.text) + "</li>"
+    // FIXME: this needs to made translatable
+    content += `\
+    <div class="card">\
+      <div class="card-body">\
+        <h5 class="card-title"><span class="badge badge-pill badge-warning">List</span>` + escapeHTML(r.rbl) + `</h5>\
+        <p class="card-text"><span class="message-label">Message:</span>` + urlsToLinks(escapeHTML(r.text)) + `</p>\
+      </div>\
+    </div>`
   })
-
-  content += "</ul>"
 
   $('#rbl-list-content').html(content)
 }
@@ -166,7 +180,7 @@ function buildInsightMsgRblDetails(insightId) {
     return
   }
 
-  var content = escapeHTML(insight.content.message)
+  var content = urlsToLinks(escapeHTML(insight.content.message))
 
   $('#msg-rbl-list-content').html(content)
 }

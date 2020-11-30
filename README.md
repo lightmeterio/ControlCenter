@@ -30,16 +30,21 @@
 
 ## Introduction
 
-Welcome to Lightmeter Control Center, the Open Source mailtech monitoring and management application.
+Welcome to Lightmeter Control Center, the Open Source mailops monitoring application.
 
 <img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/screenshot.png"  width="600"/>
 
 ## Quickstart
 
-1. Install Lightmeter Control Center as you prefer, then run it using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
+1. Install Lightmeter Control Center as you prefer:
+   1. [Download Docker Image](https://hub.docker.com/r/lightmeter/controlcenter)
+   2. [Download source code from Gitlab](https://gitlab.com/lightmeter/controlcenter/-/releases)
+   3. [Download from JFrog](https://bintray.com/lightmeter/controlcenter/controlcenter)
+2. When using the binaries you can run Lightmeter using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
    This command will start the application monitoring `/var/log` in real time (including old logs found there), and store operation files in `lightmeter_workspace` folder in your user's home directory.
-1. Open `http://localhost:8080/` to see the web interface
-1. If necessary, change the date range to see charts for the period of the logs you just imported
+3. If you are using the docker image, plese look at the [Usage](#usage), Docker image section in the README.md
+4. Open `http://localhost:8080/` to see the web interface
+5. If necessary, change the date range to see charts for the period of the logs you just imported
 
 ## Supported Mail Transfer Agents
 
@@ -111,6 +116,8 @@ Automatic data migration during upgrade is not yet supported. Depending on how y
 Achieving this is easy using manual upgrade based on replacing binary files. For Docker-based installations you should configure a workspace directory outside of the Lightmeter Docker container. See 'Usage' on how to specify which workspace directory Lightmeter should use.
 
 ## Usage
+
+For detailed information, check [Usage](cli_usage.md).
 
 - Run `lightmeter -help` to show a list of all available commands
 - Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.

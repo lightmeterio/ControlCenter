@@ -1001,3 +1001,78 @@ a.insight-help-button {
 .card .fa {
     padding-right: 0.8em;
 }
+
+.badge {
+    font-size: 80%;
+}
+
+.badge-warning {
+    background-color: #FF5C6F;
+    color: white;
+}
+
+.badge-info {
+    background-color: #FCE4C4;
+    color: #FF5C6F;
+}
+
+.modal-body .intro {
+    font-size: 0.7em;
+}
+#rbl-list-content .card {
+    margin-bottom: 0.8em;
+    background-color: #F9F9F9;
+    border: 1px solid #c5c7c6;
+}
+
+#rbl-list-content .card-title,
+#rbl-list-content .card-text {
+    font-size: 0.8em;
+}
+
+#rbl-list-content .card-text {
+    font-size: 0.7em;
+}
+
+#rbl-list-content .card .badge {
+    margin-right: 0.6em;
+}
+
+#rbl-list-content .card .message-label {
+    color: #7A82AB;
+    font-weight: bold;
+    padding-right: 0.5em;
+    font-size: 0.9em;
+}
+
+blockquote {
+  font-style:italic;
+  color: #555555;
+  padding:1em 30px 1em 0.6em;
+  border-left:8px solid #1D8CAF;
+  line-height:1.3;
+  position: relative;
+  background:#F9F9F9;
+}
+
+blockquote::before {
+  font-family:Inter;
+  content: "\201C";
+  color:#DAEBF4;
+  font-size:3em;
+  position: absolute;
+  left: 10px;
+  top:-10px;
+}
+
+blockquote::after {
+  content: '';
+}
+
+blockquote span {
+  display:block;
+  color:#333333;
+  font-style: normal;
+  margin-top:1em;
+  font-size: 0.7em;
+}
