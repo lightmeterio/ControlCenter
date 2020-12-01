@@ -24,6 +24,11 @@ all:
 race:
 	./tools/go_test.sh -race
 
+# TODO: add vue as as a build dependency once we adopt the vue.js UI.
+BUILD_DEPENDENCIES = go gcc ragel
+K := $(foreach exec,$(BUILD_DEPENDENCIES),\
+      $(if $(shell which $(exec)),nothing here,$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
+
 pre_build: postfix_parser domain_mapping_list po2go
 
 pre_release: pre_build static_www recommendation_release
@@ -106,6 +111,7 @@ clean_postfix_parser:
 frontend_root:
 	sh ./frontend/controlcenter/root_build.sh
 
+# TODO: remove git as a build dependency (not used on release tarballs)
 restore_www:
 	git clean -fdx ./www
 	git checkout ./www
