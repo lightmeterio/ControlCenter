@@ -111,6 +111,7 @@ clean_postfix_parser:
 frontend_root:
 	sh ./frontend/controlcenter/root_build.sh
 
+# TODO: remove git as a build dependency (not used on release tarballs)
 restore_www:
 	git clean -fdx ./www
 	git checkout ./www
