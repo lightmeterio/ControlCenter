@@ -262,4 +262,10 @@ export default {
 #auth-page-footer .container .sub-container {
   margin: 0 auto;
 }
+
+#registration-page .btn-primary:hover {
+  color: #fff;
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
 </style>

@@ -285,11 +285,8 @@ export default {
   font-family: Inter;
 }
 
-#graph-dashboard .nav-tabs .nav-link:hover {
+#graph-dashboard .nav-tabs .nav-item a:hover {
   border: 1px solid #95cdea;
-}
-
-#graph-dashboard .tabs .nav-tabs a:hover {
-  border: none;
+  border-radius: 27px;
 }
 </style>

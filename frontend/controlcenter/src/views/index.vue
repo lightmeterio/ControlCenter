@@ -164,6 +164,7 @@ export default {
   components: { DateRangePicker },
   data() {
     return {
+      triggerRefreshValue: false,
       autoApply: true,
       alwaysShowCalendars: false,
       singleDatePicker: "range",
@@ -171,7 +172,8 @@ export default {
         startDate: moment()
           .subtract(29, "days")
           .format("YYYY-MM-DD"),
-        endDate: moment().format("YYYY-MM-DD")
+        endDate: moment().format("YYYY-MM-DD"),
+        triggerUpdate: null
       },
       ranges: defaultRange(),
       opens: "left",
@@ -189,6 +191,10 @@ export default {
     }
   },
   methods: {
+    triggerRefresh: function() {
+      this.triggerRefreshValue = !this.triggerRefreshValue;
+      return this.triggerRefreshValue;
+    },
     onUpdateDateRangePicker: function(obj) {
       let vue = this;
       let s = moment(obj.startDate).format("YYYY-MM-DD");
@@ -223,6 +229,21 @@ export default {
       ).then(function(response) {
         vue.insights = response.data;
       });
+
+      setInterval(function() {
+        // update graph component
+        vue.dateRange.triggerUpdate = vue.triggerRefresh();
+
+        // update insights component
+        fetchInsights(
+          vue.dateRange.startDate,
+          vue.dateRange.endDate,
+          vue.insightsFilter,
+          vue.insightsSort
+        ).then(function(response) {
+          vue.insights = response.data;
+        });
+      }, 30000);
     }
   },
   mounted() {

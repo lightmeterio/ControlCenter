@@ -9,9 +9,10 @@
       </p>
       <p class="privacy-Policy">
         &bull;
-        <a href="https://lightmeter.io/privacy-policy/" target="_blank"> </a>
-        <!-- prettier-ignore -->
-        <translate>Privacy Policy</translate>
+        <a href="https://lightmeter.io/privacy-policy/" target="_blank">
+          <!-- prettier-ignore -->
+          <translate>Privacy Policy</translate>
+        </a>
       </p>
       <p class="feedback">
         &bull;
@@ -42,16 +43,17 @@ export default {
 };
 </script>
 <style>
+#normal-footer {
+  height: 32px;
+}
+
 #normal-footer .container {
   text-align: left;
-  padding-top: 1em;
-  padding-bottom: 0.5em;
 }
 #normal-footer .container p {
   margin-left: 0.5em;
   margin-right: 0.5em;
-  margin-bottom: auto;
-  margin-top: auto;
+  margin-top: 0.8em;
 }
 
 #normal-footer .dropdown-menu li {
@@ -68,6 +70,7 @@ export default {
 }
 
 #normal-footer .dropdown {
+  height: 28px;
   margin: 0rem !important;
   margin-left: 40px !important;
 }

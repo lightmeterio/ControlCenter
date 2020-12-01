@@ -7,13 +7,22 @@
       :title="insightRblCheckedIpTitle"
     >
       <div class="modal-body">
+        <p class="intro">
+          These lists are recommending that your list be blocked &ndash; check
+          their messages for hints
+        </p>
         <span id="rbl-list-content">
-          <ul>
-            <li v-for="r of rbls" v-bind:key="r.text">
-              <b>{{ r.rbl }}</b
-              >{{ r.text }}
-            </li>
-          </ul>
+          <div class="card" v-for="r of rbls" v-bind:key="r.text">
+            <div class="card-body">
+              <h5 class="card-title">
+                <span class="badge badge-pill badge-warning">List</span
+                >{{ r.rbl }}
+              </h5>
+              <p class="card-text">
+                <span class="message-label">Message:</span>{{ r.text }}
+              </p>
+            </div>
+          </div>
         </span>
       </div>
       <div class="modal-footer">
@@ -34,7 +43,9 @@
       :title="insightMsgRblTitle"
     >
       <div class="modal-body">
-        <span id="rbl-msg-rbl-content"> {{ msgRblDetails }} </span>
+        <blockquote>
+          <span id="rbl-msg-rbl-content"> {{ msgRblDetails }} </span>
+        </blockquote>
       </div>
       <div class="modal-footer">
         <b-button
@@ -97,7 +108,7 @@
                 class="card-text description"
               >
                 <!-- prettier-ignore -->
-                <translate>Insights are time-based analyses relating to your mailserver</translate
+                <translate>Insights reveal mailops problems in real time &ndash; both here, and via notifications</translate
                 >
               </p>
               <p
@@ -105,13 +116,14 @@
                 class="card-text description"
               >
                 <!-- prettier-ignore -->
-                <translate>Keep Control Center running to generate Insights; checks run every few seconds</translate>
+                <translate>Join us on the journey to better mailops! We're listening for your feedback</translate>
               </p>
               <p
                 v-if="insight.content_type === 'local_rbl_check'"
                 class="card-text description"
-                v-html="insight.description.message"
               >
+                <span v-html="insight.description.message"></span>
+
                 <button
                   v-b-modal.modal-rbl-list
                   v-on:click="
@@ -127,8 +139,8 @@
               <p
                 v-if="insight.content_type === 'message_rbl'"
                 class="card-text description"
-                v-html="insight.description.message"
               >
+                <span v-html="insight.description.message"></span>
                 <button
                   v-b-modal.modal-msg-rbl
                   v-on:click="
@@ -153,6 +165,7 @@
 <script>
 import moment from "moment";
 import { sprintf } from "sprintf-js";
+import { getApplicationInfo } from "@/lib/api";
 
 export default {
   name: "insights",
@@ -167,12 +180,19 @@ export default {
       return this.$gettext("Info");
     }
   },
+  mounted() {
+    let vue = this;
+    getApplicationInfo().then(function(response) {
+      vue.applicationData = response.data;
+    });
+  },
   data() {
     return {
       rbls: [],
       msgRblDetails: "",
       insightRblCheckedIpTitle: "",
-      insightMsgRblTitle: ""
+      insightMsgRblTitle: "",
+      applicationData: { version: "" }
     };
   },
   methods: {
@@ -186,7 +206,12 @@ export default {
       return this.$gettext("Your first Insight");
     },
     insights_introduction_content_title() {
-      return this.$gettext("Breaking new ground");
+      //todo translate should use new method from framework
+      return (
+        this.$gettext("Welcome to Lightmeter") +
+        " " +
+        this.applicationData.version
+      );
     },
     local_rbl_check_title() {
       return this.$gettext("IP on shared blocklist");
@@ -440,7 +465,7 @@ function formatInsightDescriptionDateTime(d) {
     content-box;
 }
 .insights .card svg {
-  margin-right: 0.8em;
+  margin-right: 0.05em;
 }
 .insights svg.insight-help-button {
   font-size: 1.3em;
@@ -463,11 +488,109 @@ svg.insight-help-button {
   color: #1d8caf;
   line-height: 1;
   border: 1px solid #e6e7e7;
-  margin-left: 0.2em;
+  margin-left: 0.25em;
 }
 
 .insights .card-text.description button:hover {
   background-color: #1d8caf;
   color: #ffffff;
+}
+
+#modal-msg-rbl .modal-content,
+#modal-rbl-list .modal-content {
+  width: 120%;
+}
+
+#modal-msg-rbl blockquote {
+  font-style: italic;
+  color: #555555;
+  padding: 1em 30px 1em 0.6em;
+  border-left: 8px solid #1d8caf;
+  line-height: 1.3;
+  position: relative;
+  background: #f9f9f9;
+}
+
+#modal-msg-rbl blockquote::before {
+  font-family: Inter;
+  content: "\201C";
+  color: #daebf4;
+  font-size: 3em;
+  position: absolute;
+  left: 10px;
+  top: -10px;
+}
+
+#modal-msg-rbl blockquote::after {
+  content: "";
+}
+
+#modal-msg-rbl blockquote span {
+  display: block;
+  color: #333333;
+  font-style: normal;
+  margin-top: 1em;
+  font-size: 0.7em;
+}
+
+#modal-msg-rbl .btn-cancel,
+#modal-rbl-list .btn-cancel {
+  background: #ff5c6f33 0% 0% no-repeat padding-box;
+  border: 1px solid #ff5c6f;
+  border-radius: 2px;
+  opacity: 0.8;
+  text-align: center;
+  font: normal normal bold 14px/24px Open Sans;
+  letter-spacing: 0px;
+  color: #820d1b;
+}
+
+#modal-msg-rbl .btn-cancel:hover,
+#modal-rbl-list .btn-cancel:hover {
+  color: #212529;
+  text-decoration: none;
+}
+
+#modal-rbl-list .modal-body .intro {
+  font-size: 0.7em;
+}
+
+#rbl-list-content .card {
+  margin-bottom: 0.8em;
+  background-color: #f9f9f9;
+  border: 1px solid #c5c7c6;
+}
+#rbl-list-content .card-title,
+#rbl-list-content .card-text {
+  font-size: 0.8em;
+}
+
+#rbl-list-content .card-title {
+  font: 12px/20px Inter;
+  letter-spacing: 0px;
+  color: #202324;
+  font-weight: bold;
+}
+
+#rbl-list-content .card .message-label {
+  color: #7a82ab;
+  font-weight: bold;
+  padding-right: 0.5em;
+  font-size: 0.9em;
+}
+
+#rbl-list-content .badge {
+  font-size: 80%;
+}
+
+#rbl-list-content .badge-info {
+  background-color: #fce4c4;
+  color: #ff5c6f;
+}
+
+#rbl-list-content .badge-warning {
+  background-color: #ff5c6f;
+  color: white;
+  margin-right: 0.6em;
 }
 </style>
