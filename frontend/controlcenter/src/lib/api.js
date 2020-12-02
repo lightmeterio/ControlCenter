@@ -1,4 +1,5 @@
 const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
+import { trackEvent } from "@/lib/util";
 
 import axios from "axios";
 axios.defaults.withCredentials = true;
@@ -10,13 +11,12 @@ export function submitGeneralForm(data, successMessage) {
   axios
     .post(BASE_URL + "/settings?setting=general", new URLSearchParams(formData))
     .then(function() {
+      trackEvent("SaveGeneralSettings", "success");
       if (successMessage !== false) {
         alert(Vue.prototype.$gettext("Saved general settings"));
       }
     })
-    .catch(errorHandler);
-
-  //_paq.push(["trackEvent", "SaveGeneralSettings", "success"]);
+    .catch(builderErrorHandler("setting_general"));
 }
 
 export function submitLoginForm(formData, callback) {
@@ -26,7 +26,7 @@ export function submitLoginForm(formData, callback) {
     .then(function() {
       callback();
     })
-    .catch(errorHandler);
+    .catch(builderErrorHandler("login"));
 }
 
 export function submitNotificationsSettingsForm(data) {
@@ -38,18 +38,22 @@ export function submitNotificationsSettingsForm(data) {
       new URLSearchParams(notificationsSettingsFormData)
     )
     .then(function() {
+      trackEvent("SaveNotificationSettings", "success");
       alert(Vue.prototype.$gettext("Saved notification settings"));
     })
-    .catch(errorHandler);
-  //todo _paq.push(["trackEvent", "SaveNotificationSettings", "success"]);
+    .catch(builderErrorHandler("settings"));
 }
 
 export function getSettings() {
-  return axios.get(BASE_URL + "/settings");
+  return axios
+    .get(BASE_URL + "/settings")
+    .catch(builderErrorHandler("settings"));
 }
 
 export function getMetaLanguage() {
-  return axios.get(BASE_URL + "/language/metadata");
+  return axios
+    .get(BASE_URL + "/language/metadata")
+    .catch(builderErrorHandler("language_metadata"));
 }
 
 export function logout(redirect) {
@@ -58,7 +62,7 @@ export function logout(redirect) {
     .then(function() {
       redirect();
     })
-    .catch(errorHandler);
+    .catch(builderErrorHandler("logout"));
 }
 
 export function submitRegisterForm(registrationData, settingsData, redirect) {
@@ -74,10 +78,15 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
           new URLSearchParams(settingsFormData)
         )
         .then(function() {
-          // todo tracking
+          trackEvent("RegisterAdmin", "success");
+          if (settingsData.subscribe_newsletter) {
+            trackEvent("RegisterAdmin", "newsletterOn");
+          }
+          trackEvent("RegisterAdmin", settingsData.email_kind);
+
           redirect();
         })
-        .catch(errorHandler);
+        .catch(builderErrorHandler("initSetup"));
     })
     .catch(function(err) {
       // add hints of pwd weakness
@@ -96,7 +105,8 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
         );
         return;
       }
-      alertError(err);
+
+      alertError(err, "register");
     });
 }
 
@@ -107,7 +117,9 @@ function getFormData(object) {
 }
 
 export function getApplicationInfo() {
-  return axios.get(BASE_URL + "/api/v0/appVersion").catch(errorHandler);
+  return axios
+    .get(BASE_URL + "/api/v0/appVersion")
+    .catch(builderErrorHandler("app_version"));
 }
 
 export function getIsNotLoginOrNotRegistered() {
@@ -154,10 +166,16 @@ export function fetchGraphDataAsJsonWithTimeInterval(
 }
 
 function errorHandler(err) {
-  alertError(err.response);
+  alertError(err.response, null);
 }
 
-function alertError(response) {
+function builderErrorHandler(eventName) {
+  return function(err) {
+    alertError(err.response, eventName);
+  };
+}
+
+function alertError(response, eventName) {
   console.log("dump response: ", response);
   let errMsg = (function() {
     if (response.data.Error !== undefined) {
@@ -170,6 +188,10 @@ function alertError(response) {
 
     return "";
   })();
+
+  if (eventName !== null && response.statusCode >= 500) {
+    trackEvent(eventName, errMsg);
+  }
 
   alert(Vue.prototype.$gettext("Error") + errMsg);
 }

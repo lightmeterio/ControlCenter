@@ -16,6 +16,7 @@
     "sprintf-js": "^1.1.2",
     "vue": "^2.6.12",
     "vue-gettext": "^2.1.10",
+    "vue-matomo": "^3.14.0-0",
     "vue-router": "^3.2.0",
     "vuex": "^3.4.0"
   },

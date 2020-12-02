@@ -13,13 +13,23 @@
     </div>
     <div class="col-md-8">
       <b-tabs id="basic-graphs-area" content-class="mt-3" justified>
-        <b-tab :title="BusiestDomainsTitle" active>
+        <b-tab
+          v-on:click="trackEvent('change-domains-tab', 'topBusiestDomains')"
+          :title="BusiestDomainsTitle"
+          active
+        >
           <div class="dashboard-gadget" id="topBusiestDomains"></div
         ></b-tab>
-        <b-tab :title="BouncedDomainsTitle">
+        <b-tab
+          v-on:click="trackEvent('change-domains-tab', 'topBouncedDomains')"
+          :title="BouncedDomainsTitle"
+        >
           <div class="dashboard-gadget" id="topBouncedDomains"></div
         ></b-tab>
-        <b-tab :title="DeferredDomainsTitle">
+        <b-tab
+          v-on:click="trackEvent('change-domains-tab', 'topDeferredDomains')"
+          :title="DeferredDomainsTitle"
+        >
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
       </b-tabs>
@@ -30,9 +40,11 @@
 <script>
 import Plotly from "plotly.js-dist";
 import { fetchGraphDataAsJsonWithTimeInterval } from "@/lib/api";
+import tracking from "../mixin/global_shared.js";
 
 export default {
   name: "graphdashboard",
+  mixins: [tracking],
   props: {
     graphDateRange: Object
   },

@@ -14,7 +14,7 @@
           <translate>Privacy Policy</translate>
         </a>
       </p>
-      <p class="feedback">
+      <p class="feedback" v-on:click="trackClick('Feedback', 'clickMailTo')">
         &bull;
         <a
           href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center"
@@ -23,15 +23,16 @@
           <!-- prettier-ignore -->
           <translate>Feedback</translate>
         </a>
-        <!--onclick="_paq.push(['trackEvent', 'Feedback', 'clickMailTo']);"-->
       </p>
       <langauge-switcher></langauge-switcher>
     </div>
   </footer>
 </template>
 <script>
+import tracking from "../mixin/global_shared.js";
 export default {
   name: "mainfooter",
+  mixins: [tracking],
   data() {
     return {
       year: null

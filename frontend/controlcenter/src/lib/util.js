@@ -18,3 +18,15 @@ export function togglePasswordShow() {
     i.classList.add("fa-eye-slash");
   }
 }
+
+export function trackEvent(eventName, value) {
+  window._paq.push(["trackEvent", eventName, value]);
+}
+
+export function trackEventArray(eventName, value) {
+  window._paq.push(["trackEvent", eventName, value].concat(value));
+}
+
+export function trackCLick(eventName, value) {
+  window._paq.push(["trackEvent", eventName, value]);
+}
