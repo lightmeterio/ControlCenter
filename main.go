@@ -35,8 +35,9 @@ func main() {
 		emailToPasswdReset        string
 		passwordToReset           string
 
-		timezone *time.Location = time.UTC
-		logYear  int
+		timezone    *time.Location = time.UTC
+		FrontendDev bool
+		logYear     int
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -55,6 +56,7 @@ func main() {
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
 	flag.BoolVar(&frontendv2, "frontendv2", false, "use frontend v2")
+	flag.BoolVar(&FrontendDev, "frontenddev", false, "allow external frontend to communicate with backend api")
 
 	flag.Usage = func() {
 		printVersion()
@@ -122,6 +124,7 @@ func main() {
 		WorkspaceDirectory: workspaceDirectory,
 		Timezone:           timezone,
 		Address:            address,
+		FrontendDev:        FrontendDev,
 	}
 
 	if frontendv2 {
