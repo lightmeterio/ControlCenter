@@ -89,17 +89,25 @@
                   <!-- prettier-ignore -->
                   <translate>All</translate>
                 </option>
-                <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
-                <option value="category-local">
+                <!--    " -->
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Local')
+                  "
+                  value="category-local"
+                >
                   <!-- prettier-ignore -->
                   <translate>Local</translate>
                 </option>
-                <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
-                <option value="category-news">
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'News')
+                  "
+                  value="category-news"
+                >
                   <!-- prettier-ignore -->
                   <translate>News</translate>
                 </option>
-                <!--    onclick="_paq.push(['trackEvent', 'InsightsFilterCategoryHomepage', 'click', this.value]);" -->
               </select>
               <select
                 id="insights-sort"
@@ -111,16 +119,25 @@
                 v-on:change="onFetchInsights"
               >
                 <!-- todo remove in style -->
-                <option selected value="creationDesc">
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterOrderHomepage', 'Newest')
+                  "
+                  selected
+                  value="creationDesc"
+                >
                   <!-- prettier-ignore -->
                   <translate>Newest</translate>
                 </option>
-                <!-- onclick _paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);-->
-                <option value="creationAsc">
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterOrderHomepage', 'Oldest')
+                  "
+                  value="creationAsc"
+                >
                   <!-- prettier-ignore -->
                   <translate>Oldest</translate>
                 </option>
-                <!-- onclick _paq.push(['trackEvent', 'InsightsFilterOrderHomepage', 'click', this.value]);-->
               </select>
             </div>
           </form>
@@ -139,6 +156,7 @@ axios.defaults.withCredentials = true;
 import moment from "moment";
 import { fetchInsights } from "../lib/api.js";
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
+import tracking from "../mixin/global_shared.js";
 
 function defaultRange() {
   let today = new Date();
@@ -162,6 +180,7 @@ function defaultRange() {
 export default {
   name: "insight",
   components: { DateRangePicker },
+  mixins: [tracking],
   data() {
     return {
       triggerRefreshValue: false,
@@ -196,6 +215,11 @@ export default {
       return this.triggerRefreshValue;
     },
     onUpdateDateRangePicker: function(obj) {
+      this.trackEvent(
+        "onUpdateDateRangePicker",
+        obj.startDate + "-" + obj.endDate
+      );
+
       let vue = this;
       let s = moment(obj.startDate).format("YYYY-MM-DD");
       let e = moment(obj.endDate).format("YYYY-MM-DD");

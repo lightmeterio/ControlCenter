@@ -126,10 +126,7 @@
 
                 <button
                   v-b-modal.modal-rbl-list
-                  v-on:click="
-                    buildInsightRblCheckedIp(insight.id);
-                    buildInsightRblList(insight.id);
-                  "
+                  v-on:click="onBuildInsightRbl(insight.id)"
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
@@ -143,10 +140,7 @@
                 <span v-html="insight.description.message"></span>
                 <button
                   v-b-modal.modal-msg-rbl
-                  v-on:click="
-                    buildInsightMsgRblTitle(insight.id);
-                    buildInsightMsgRblDetails(insight.id);
-                  "
+                  v-on:click="onBuildInsightMsgRbl(insight.id)"
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
@@ -166,9 +160,11 @@
 import moment from "moment";
 import { sprintf } from "sprintf-js";
 import { getApplicationInfo } from "@/lib/api";
+import tracking from "../mixin/global_shared.js";
 
 export default {
   name: "insights",
+  mixins: [tracking],
   props: {
     insights: Array
   },
@@ -196,6 +192,16 @@ export default {
     };
   },
   methods: {
+    onBuildInsightRbl: function(id) {
+      this.buildInsightRblCheckedIp(id);
+      this.buildInsightRblList(id);
+      this.trackEvent("InsightDescription", "openRblModal");
+    },
+    onBuildInsightMsgRbl(id) {
+      this.buildInsightMsgRblTitle(id);
+      this.buildInsightMsgRblDetails(id);
+      this.trackEvent("InsightDescription", "openHostBlockModal");
+    },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
     },
@@ -251,7 +257,6 @@ export default {
         message: message
       };
     },
-    // _paq.push(['trackEvent', 'InsightDescription', 'openRblModal']) -> onclick rblListModal
     message_rbl_description(i) {
       let c = i.content;
       let translation = this.$gettext(
@@ -265,7 +270,6 @@ export default {
         message: message
       };
     },
-    // _paq.push(['trackEvent', 'InsightDescription', 'openHostBlockModal']); -> on click msg_rbl_list_modal
     transformInsights(insights) {
       let vue = this;
       if (insights === null) {
@@ -360,16 +364,13 @@ export default {
     },
     onInsightInfo(event, helpLink, contentType) {
       event.preventDefault();
-      /*
-      _paq.push([
-        "trackEvent",
-        "InsightsInfoButton",
+
+      this.trackEventArray("InsightsInfoButton", [
         "click",
         helpLink,
         contentType
       ]);
-       */
-      console.log(contentType); // todo remove the consol.log after tracking is enabled
+
       window.open(helpLink);
     },
     hideRBLListModal() {

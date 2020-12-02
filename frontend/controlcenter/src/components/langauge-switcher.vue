@@ -20,8 +20,10 @@
 import Vue from "vue";
 import { getSettings, submitGeneralForm } from "@/lib/api";
 import { mapActions } from "vuex";
+import tracking from "../mixin/global_shared.js";
 export default {
   name: "langauge-switcher",
+  mixins: [tracking],
   data() {
     return {};
   },
@@ -38,6 +40,8 @@ export default {
   },
   methods: {
     onSwitchLanguage(key) {
+      this.trackEvent("SwitchLanguage", key);
+
       Vue.config.language = key;
       this.setLanguageAction(key);
 
