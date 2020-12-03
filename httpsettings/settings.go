@@ -267,7 +267,21 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	s := globalsettings.Settings{APPLanguage: appLanguage}
+	postfixPublicIp := r.Form.Get("postfix_public_ip")
+	if postfixPublicIp == "" {
+		err := errorutil.Wrap(fmt.Errorf("Error postfix_public_ip option is bad %v", appLanguage))
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	var localIP net.IP
+	if postfixPublicIp != "" {
+		localIP = net.ParseIP(postfixPublicIp)
+		if localIP == nil {
+			return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+		}
+	}
+
+	s := globalsettings.Settings{APPLanguage: appLanguage, LocalIP: localIP}
 
 	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
 

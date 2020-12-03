@@ -134,6 +134,30 @@ func TestInitialSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
+
+			Convey("invalid ip", func() {
+				r, err := c.PostForm(settingsURL, url.Values{
+					"email":                {"user@example.com"},
+					"email_kind":           {string(settings.MailKindDirect)},
+					"subscribe_newsletter": {"on"},
+					"app_language": {"en"},
+					"postfix_public_ip": {"9.9.9.X"},
+				})
+
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("missing ip", func() {
+				r, err := c.PostForm(settingsURL, url.Values{
+					"email":                {"user@example.com"},
+					"email_kind":           {string(settings.MailKindDirect)},
+					"subscribe_newsletter": {"on"},
+					"app_language": {"en"},
+				})
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+			})
 		})
 
 		Convey("Success", func() {
@@ -143,6 +167,7 @@ func TestInitialSetup(t *testing.T) {
 					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
 					"app_language": {"en"},
+					"postfix_public_ip": {"9.9.9.9"},
 				})
 
 				So(err, ShouldBeNil)
@@ -152,6 +177,7 @@ func TestInitialSetup(t *testing.T) {
 			Convey("Do not subscribe", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"email_kind": {string(settings.MailKindDirect)},
+					"postfix_public_ip": {"9.9.9.9"},
 				})
 
 				So(err, ShouldBeNil)

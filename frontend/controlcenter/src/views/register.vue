@@ -19,7 +19,7 @@
           <!-- prettier-ignore -->
           <translate>User details</translate>
         </h4>
-        <b-form @submit="onSubmit">
+        <b-form @submit.stop.prevent="onSubmit">
           <b-form-group>
             <b-form-input
               name="name"
@@ -107,6 +107,25 @@
                 <translate>Monthly newsletter</translate>
               </b-form-checkbox>
             </b-input-group>
+            <b-form-group>
+              <h4><translate>System details</translate></h4>
+              <b-form-input
+                name="postfixPublicIP"
+                id="postfixPublicIP"
+                v-model="$v.form.postfix_public_ip.$model"
+                type="text"
+                required
+                aria-describedby="publicIPHelp"
+                :placeholder="PostfixPublicIPInputPlaceholder"
+                maxlength="255"
+                :state="validateState('postfix_public_ip')"
+              ></b-form-input>
+              <b-form-invalid-feedback>
+                <!-- prettier-ignore -->
+                <translate>The Ip Address is invalid</translate
+                ></b-form-invalid-feedback
+              >
+            </b-form-group>
           </b-form-group>
           <b-button variant="primary" class="w-100" type="submit">
             <!-- prettier-ignore -->
@@ -140,6 +159,7 @@
 import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
 import { mapState } from "vuex";
+import { ipAddress } from "vuelidate/lib/validators";
 
 export default {
   name: "register",
@@ -151,11 +171,22 @@ export default {
         password: "",
         name: ``,
         subscribe_newsletter: null,
-        email_kind: ""
+        email_kind: "",
+        postfix_public_ip: ""
       }
     };
   },
+  validations: {
+    form: {
+      postfix_public_ip: {
+        ipAddress
+      }
+    }
+  },
   computed: {
+    PostfixPublicIPInputPlaceholder() {
+      return this.$gettext("Postfix public IP");
+    },
     NameInputPlaceholder: function() {
       return this.$gettext("Name");
     },
@@ -173,14 +204,23 @@ export default {
     ...mapState(["language"])
   },
   methods: {
+    validateState(name) {
+      const { $dirty, $error } = this.$v.form[name];
+      return $dirty ? !$error : null;
+    },
     onSubmit(event) {
+      this.$v.form.$touch();
+      if (this.$v.form.$anyError) {
+        return;
+      }
       event.preventDefault();
       let vue = this;
 
       let settingsData = {
         email: this.form.email,
         email_kind: this.form.email_kind,
-        app_language: this.language
+        app_language: this.language,
+        postfix_public_ip: this.form.postfix_public_ip
       };
 
       if (this.form.subscribe_newsletter !== null) {
