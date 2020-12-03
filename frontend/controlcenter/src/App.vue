@@ -284,13 +284,20 @@ body {
   background: #fff;
 }
 
+h1 span,
 h1,
+h2 span,
 h2,
+h3 span,
 h3,
+h4 span,
 h4,
+h5 span,
 h5,
+h6 span,
 h6 {
   font-family: Inter;
+  color: #212529;
 }
 
 .main-content {
