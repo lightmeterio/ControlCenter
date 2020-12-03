@@ -3,19 +3,19 @@
     <div class="container d-flex">
       <p class="thanks-using-lightmeter">
         <!-- prettier-ignore -->
+        <span class="copy">&copy;</span>
         <translate>Thank you for using Lightmeter.</translate>
-        &copy;
-        {{ year }} .
+        {{ year }}.
       </p>
       <p class="privacy-Policy">
-        &bull;
+        <span class="bull">&bull;</span>
         <a href="https://lightmeter.io/privacy-policy/" target="_blank">
           <!-- prettier-ignore -->
           <translate>Privacy Policy</translate>
         </a>
       </p>
       <p class="feedback" v-on:click="trackClick('Feedback', 'clickMailTo')">
-        &bull;
+        <span class="bull">&bull;</span>
         <a
           href=" mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center"
           target="_blank"
@@ -95,5 +95,18 @@ export default {
 
 #normal-footer .container {
   margin-left: 0;
+}
+
+@media (max-width: 768px) {
+  #normal-footer .dropdown {
+    margin-left: 0 !important;
+  }
+  #normal-footer {
+    min-height: 60px;
+  }
+  #normal-footer .copy,
+  #normal-footer .bull {
+    display: none;
+  }
 }
 </style>

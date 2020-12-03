@@ -600,4 +600,10 @@ svg.insight-help-button {
   color: white;
   margin-right: 0.6em;
 }
+@media (max-width: 768px) {
+  #modal-msg-rbl .modal-content,
+  #modal-rbl-list .modal-content {
+    width: 100%;
+  }
+}
 </style>
