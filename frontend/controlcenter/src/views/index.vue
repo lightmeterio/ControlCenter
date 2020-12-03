@@ -198,7 +198,7 @@ export default {
       triggerRefreshValue: false,
       autoApply: true,
       alwaysShowCalendars: false,
-      singleDatePicker: "range",
+      singleDatePicker: false,
       dateRange: {
         startDate: moment()
           .subtract(29, "days")
@@ -207,7 +207,7 @@ export default {
         triggerUpdate: null
       },
       ranges: defaultRange(),
-      opens: "left",
+      opens: "right",
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
       insights: []
@@ -382,11 +382,15 @@ export default {
 }
 
 #insights-page #insights {
-  min-height: 50vh;
+  min-height: 30vh;
 }
 
 #insights-page .modebar {
   display: none;
+}
+
+#insights-page .vue-daterange-picker .calendars {
+  flex-wrap: nowrap;
 }
 
 @media (min-width: 768px) {
