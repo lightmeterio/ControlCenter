@@ -169,6 +169,10 @@ header .logo img {
   height: 36px;
 }
 
+header .buttons span {
+  margin-left: 0.25rem;
+}
+
 header .buttons,
 header a,
 header a:hover {

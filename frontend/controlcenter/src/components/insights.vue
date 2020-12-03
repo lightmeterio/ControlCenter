@@ -8,8 +8,8 @@
     >
       <div class="modal-body">
         <p class="intro">
-          These lists are recommending that your list be blocked &ndash; check
-          their messages for hints
+          <!-- prettier-ignore -->
+          <translate>These lists are recommending that your list be blocked &ndash; check their messages for hints</translate>
         </p>
         <span id="rbl-list-content">
           <div class="card" v-for="r of rbls" v-bind:key="r.text">
@@ -61,7 +61,7 @@
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
-      class="col-md-6"
+      class="col-card col-md-6 h-25"
     >
       <div class="card">
         <div class="row">
@@ -389,6 +389,13 @@ function formatInsightDescriptionDateTime(d) {
 <style>
 .insights {
   margin-bottom: 1em;
+  margin-top: 0.9rem;
+  align-content: start;
+}
+
+.insights .col-card {
+  margin-top: 1rem;
+  align-content: start;
 }
 
 .insights .card {
@@ -396,7 +403,6 @@ function formatInsightDescriptionDateTime(d) {
   box-shadow: 0px 0px 6px #0000001a;
   border: 1px solid #e6e7e7;
   border-radius: 5px;
-  margin-top: 0.9rem;
 }
 .insights .card-text.category {
   background-color: #f2f2f2;

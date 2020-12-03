@@ -128,7 +128,6 @@ import { getSettings } from "../lib/api.js";
 import { getMetaLanguage } from "../lib/api.js";
 import { submitNotificationsSettingsForm } from "../lib/api.js";
 import { submitGeneralForm } from "../lib/api.js";
-import { mapState } from "vuex";
 
 export default {
   name: "settingspage",
@@ -175,29 +174,26 @@ export default {
     },
     EnterIpAddress: function() {
       return this.$gettext("Enter ip address");
-    },
-    ...mapState(["language"])
+    }
   },
   methods: {
-    onGeneralSettingsSubmit() {
+    onGeneralSettingsSubmit(event) {
       event.preventDefault();
       let vue = this;
 
-      setTimeout(function() {
-        const data = {
-          postfixPublicIP: vue.settings.general.postfix_public_ip,
-          app_language: vue.language
-        };
+      const data = {
+        postfixPublicIP: vue.settings.general.postfix_public_ip,
+        app_language: this.$language.current
+      };
 
-        submitGeneralForm(data, true).then(function() {
-          getSettings().then(function(response) {
-            vue.settings = response.data;
-            vue.settings.slack_notifications.enabled = vue.MapEnabled(
-              vue.settings.slack_notifications.enabled
-            );
-          });
+      submitGeneralForm(data, true).then(function() {
+        getSettings().then(function(response) {
+          vue.settings = response.data;
+          vue.settings.slack_notifications.enabled = vue.MapEnabled(
+            vue.settings.slack_notifications.enabled
+          );
         });
-      }, 100);
+      });
     },
     onNotificationSettingsSubmit(event) {
       event.preventDefault();

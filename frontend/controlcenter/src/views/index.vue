@@ -57,8 +57,8 @@
             @update="onUpdateDateRangePicker"
             :autoApply="autoApply"
             :opens="opens"
-            :single-date-picker="singleDatePicker"
-            :always-show-calendars="alwaysShowCalendars"
+            :singleDatePicker="singleDatePicker"
+            :alwaysShowCalendars="alwaysShowCalendars"
             :ranges="ranges"
             v-model="dateRange"
             :showCustomRangeCalendars="false"
@@ -166,15 +166,27 @@ function defaultRange() {
   yesterday.setHours(0, 0, 0, 0);
   let thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   let thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  let lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  let lastMonthEnd = new Date(today.getFullYear(), today.getMonth() - 1 + 1, 0);
   return {
     Today: [today, today],
     Yesterday: [yesterday, yesterday],
     "This month": [thisMonthStart, thisMonthEnd],
+    "Last month": [lastMonthStart, lastMonthEnd],
     "This year": [
       new Date(today.getFullYear(), 0, 1),
       new Date(today.getFullYear(), 11, 31)
     ]
   };
+}
+
+function formatDatePickerValue(obj) {
+  document.querySelector(
+    ".vue-daterange-picker .reportrange-text span"
+  ).innerHTML =
+    moment(obj.startDate).format("D MMM") +
+    " - " +
+    moment(obj.endDate).format("D MMM");
 }
 
 export default {
@@ -219,6 +231,7 @@ export default {
         "onUpdateDateRangePicker",
         obj.startDate + "-" + obj.endDate
       );
+      formatDatePickerValue(obj);
 
       let vue = this;
       let s = moment(obj.startDate).format("YYYY-MM-DD");
@@ -254,6 +267,8 @@ export default {
         vue.insights = response.data;
       });
 
+      formatDatePickerValue(vue.dateRange);
+
       setInterval(function() {
         // update graph component
         vue.dateRange.triggerUpdate = vue.triggerRefresh();
@@ -282,6 +297,7 @@ export default {
   font-weight: bold;
   margin: 0;
   text-align: left;
+  color: white;
 }
 
 #insights-page .greeting p {
@@ -363,6 +379,10 @@ export default {
   order: 2;
   margin-left: 1em;
   margin-top: 0.45em;
+}
+
+#insights-page #insights {
+  min-height: 50vh;
 }
 
 #insights-page .modebar {
