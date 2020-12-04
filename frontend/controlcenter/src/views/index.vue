@@ -154,9 +154,10 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import moment from "moment";
-import { fetchInsights } from "../lib/api.js";
+import { fetchInsights, getIsNotLoginOrNotRegistered } from "../lib/api.js";
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
+import session from "../mixin/views_shared.js";
 
 function defaultRange() {
   let today = new Date();
@@ -192,9 +193,11 @@ function formatDatePickerValue(obj) {
 export default {
   name: "insight",
   components: { DateRangePicker },
-  mixins: [tracking],
+  mixins: [tracking, session],
   data() {
     return {
+      fetchInsightsInterval: null,
+      sessionInterval: null,
       triggerRefreshValue: false,
       autoApply: true,
       alwaysShowCalendars: false,
@@ -256,6 +259,8 @@ export default {
       });
     },
     initIndex: function() {
+      this.sessionInterval = this.ValidSessionCheck();
+
       let vue = this;
 
       fetchInsights(
@@ -269,24 +274,30 @@ export default {
 
       formatDatePickerValue(vue.dateRange);
 
-      setInterval(function() {
-        // update graph component
-        vue.dateRange.triggerUpdate = vue.triggerRefresh();
+      this.fetchInsightsInterval = setInterval(function() {
+        getIsNotLoginOrNotRegistered().then(function() {
+          // update graph component
+          vue.dateRange.triggerUpdate = vue.triggerRefresh();
 
-        // update insights component
-        fetchInsights(
-          vue.dateRange.startDate,
-          vue.dateRange.endDate,
-          vue.insightsFilter,
-          vue.insightsSort
-        ).then(function(response) {
-          vue.insights = response.data;
+          // update insights component
+          fetchInsights(
+            vue.dateRange.startDate,
+            vue.dateRange.endDate,
+            vue.insightsFilter,
+            vue.insightsSort
+          ).then(function(response) {
+            vue.insights = response.data;
+          });
         });
       }, 30000);
     }
   },
   mounted() {
     this.initIndex();
+  },
+  destroyed() {
+    clearInterval(this.sessionInterval);
+    clearInterval(this.fetchInsightsInterval);
   }
 };
 </script>
