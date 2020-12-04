@@ -28,7 +28,7 @@ func TestParsingInvalidLines(t *testing.T) {
 
 func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	Convey("Unsupported Smtp Line", t, func() {
-		h, p, err := Parse([]byte(`Sep 16 00:07:41 smtpnode07 postfix-10.20.30.40/smtp[31868]: 0D59F4165A:` +
+		h, p, err := Parse([]byte(`Sep 16 00:07:41 smtp-node07.com postfix-10.20.30.40/smtp[31868]: 0D59F4165A:` +
 			` host mx-aol.mail.gm0.yahoodns.net[44.55.66.77] said: 421 4.7.0 [TSS04] ` +
 			`Messages from 10.20.30.40 temporarily deferred due to user complaints - 4.16.55.1;i ` +
 			`see https://help.yahoo.com/kb/postmaster/SLN3434.html (in reply to MAIL FROM command)`))
@@ -42,7 +42,7 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		So(h.Time.Hour, ShouldEqual, 0)
 		So(h.Time.Minute, ShouldEqual, 7)
 		So(h.Time.Second, ShouldEqual, 41)
-		So(h.Host, ShouldEqual, "smtpnode07")
+		So(h.Host, ShouldEqual, "smtp-node07.com")
 	})
 
 	Convey("Unsupported Log Line", t, func() {
