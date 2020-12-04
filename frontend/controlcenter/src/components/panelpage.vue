@@ -32,4 +32,8 @@ export default {
 .panel-page .field-group {
   margin: 1rem 0;
 }
+
+.panel-page {
+  margin-top: 1em;
+}
 </style>
