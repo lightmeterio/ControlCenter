@@ -392,4 +392,9 @@ footer p {
 #show_hide_password input {
   margin: 0;
 }
+
+#show_hide_password svg {
+  height: 14px;
+  width: 20px;
+}
 </style>
