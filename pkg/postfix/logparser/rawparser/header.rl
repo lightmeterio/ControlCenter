@@ -14,7 +14,7 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 %%{
 	action setTokBeg { tokBeg = p }
 
-	hostname = (alnum | '.')+ >setTokBeg %{
+	hostname = [^ ]+ >setTokBeg %{
 		h.Host = data[tokBeg:p]
 	};
 

@@ -37,12 +37,12 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	switch cs {
 	case 1:
 		goto st_case_1
-	case 0:
-		goto st_case_0
 	case 2:
 		goto st_case_2
 	case 3:
 		goto st_case_3
+	case 0:
+		goto st_case_0
 	case 4:
 		goto st_case_4
 	case 5:
@@ -82,26 +82,10 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	}
 	goto st_out
 	st_case_1:
-		if data[p] == 46 {
-			goto tr0
+		if data[p] == 32 {
+			goto st0
 		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto tr0
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto tr0
-			}
-		default:
-			goto tr0
-		}
-		goto st0
-st_case_0:
-	st0:
-		cs = 0
-		goto _out
+		goto tr0
 tr0:
 //line header.rl:15
  tokBeg = p 
@@ -111,27 +95,12 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line header.gen.go:115
-		switch data[p] {
-		case 32:
-			goto tr2
-		case 46:
-			goto st2
+//line header.gen.go:99
+		if data[p] == 32 {
+			goto tr3
 		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st2
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st2
-			}
-		default:
-			goto st2
-		}
-		goto st0
-tr2:
+		goto st2
+tr3:
 //line header.rl:17
 
 		h.Host = data[tokBeg:p]
@@ -142,7 +111,7 @@ tr2:
 			goto _test_eof3
 		}
 	st_case_3:
-//line header.gen.go:146
+//line header.gen.go:115
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -156,6 +125,10 @@ tr2:
 			goto tr4
 		}
 		goto st0
+st_case_0:
+	st0:
+		cs = 0
+		goto _out
 tr4:
 //line header.rl:15
  tokBeg = p 
@@ -165,7 +138,7 @@ tr4:
 			goto _test_eof4
 		}
 	st_case_4:
-//line header.gen.go:169
+//line header.gen.go:142
 		switch data[p] {
 		case 45:
 			goto tr5
@@ -200,7 +173,7 @@ tr5:
 			goto _test_eof5
 		}
 	st_case_5:
-//line header.gen.go:204
+//line header.gen.go:177
 		if data[p] == 47 {
 			goto st0
 		}
@@ -220,7 +193,7 @@ tr28:
 			goto _test_eof6
 		}
 	st_case_6:
-//line header.gen.go:224
+//line header.gen.go:197
 		switch data[p] {
 		case 47:
 			goto tr12
@@ -247,7 +220,7 @@ tr12:
 			goto _test_eof7
 		}
 	st_case_7:
-//line header.gen.go:251
+//line header.gen.go:224
 		if data[p] == 93 {
 			goto st0
 		}
@@ -261,7 +234,7 @@ tr15:
 			goto _test_eof8
 		}
 	st_case_8:
-//line header.gen.go:265
+//line header.gen.go:238
 		switch data[p] {
 		case 58:
 			goto tr17
@@ -282,7 +255,7 @@ tr17:
 			goto _test_eof9
 		}
 	st_case_9:
-//line header.gen.go:286
+//line header.gen.go:259
 		switch data[p] {
 		case 32:
 			goto tr19
@@ -305,7 +278,7 @@ tr19:
 			goto _test_eof19
 		}
 	st_case_19:
-//line header.gen.go:309
+//line header.gen.go:282
 		switch data[p] {
 		case 58:
 			goto tr17
@@ -326,7 +299,7 @@ tr18:
 			goto _test_eof10
 		}
 	st_case_10:
-//line header.gen.go:330
+//line header.gen.go:303
 		switch data[p] {
 		case 58:
 			goto tr17
@@ -348,7 +321,7 @@ tr20:
 			goto _test_eof11
 		}
 	st_case_11:
-//line header.gen.go:352
+//line header.gen.go:325
 		switch data[p] {
 		case 58:
 			goto tr17
@@ -372,7 +345,7 @@ tr22:
 			goto _test_eof12
 		}
 	st_case_12:
-//line header.gen.go:376
+//line header.gen.go:349
 		if data[p] == 58 {
 			goto st13
 		}
@@ -388,7 +361,7 @@ tr8:
 			goto _test_eof13
 		}
 	st_case_13:
-//line header.gen.go:392
+//line header.gen.go:365
 		if data[p] == 32 {
 			goto tr24
 		}
@@ -404,7 +377,7 @@ tr24:
 			goto _test_eof20
 		}
 	st_case_20:
-//line header.gen.go:408
+//line header.gen.go:381
 		goto st0
 tr13:
 //line header.rl:25
@@ -417,7 +390,7 @@ tr13:
 			goto _test_eof14
 		}
 	st_case_14:
-//line header.gen.go:421
+//line header.gen.go:394
 		switch data[p] {
 		case 32:
 			goto tr25
@@ -440,7 +413,7 @@ tr25:
 			goto _test_eof21
 		}
 	st_case_21:
-//line header.gen.go:444
+//line header.gen.go:417
 		switch data[p] {
 		case 47:
 			goto tr12
@@ -461,7 +434,7 @@ tr14:
 			goto _test_eof15
 		}
 	st_case_15:
-//line header.gen.go:465
+//line header.gen.go:438
 		switch data[p] {
 		case 47:
 			goto tr12
@@ -483,7 +456,7 @@ tr26:
 			goto _test_eof16
 		}
 	st_case_16:
-//line header.gen.go:487
+//line header.gen.go:460
 		switch data[p] {
 		case 47:
 			goto tr12
@@ -509,7 +482,7 @@ tr9:
 			goto _test_eof17
 		}
 	st_case_17:
-//line header.gen.go:513
+//line header.gen.go:486
 		if 48 <= data[p] && data[p] <= 57 {
 			goto tr29
 		}
@@ -523,7 +496,7 @@ tr29:
 			goto _test_eof18
 		}
 	st_case_18:
-//line header.gen.go:527
+//line header.gen.go:500
 		if data[p] == 93 {
 			goto tr22
 		}
