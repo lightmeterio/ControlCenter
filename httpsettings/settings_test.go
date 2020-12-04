@@ -147,17 +147,6 @@ func TestInitialSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
-
-			Convey("missing ip", func() {
-				r, err := c.PostForm(settingsURL, url.Values{
-					"email":                {"user@example.com"},
-					"email_kind":           {string(settings.MailKindDirect)},
-					"subscribe_newsletter": {"on"},
-					"app_language": {"en"},
-				})
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
-			})
 		})
 
 		Convey("Success", func() {
