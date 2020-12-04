@@ -1,12 +1,12 @@
 # Translating Lightmeter
 
-For managing the translation process we use [Weblate](http://translate.lightmeter.io). All translation changes are handled via this system.
+For managing the natural language translation process Lightmeter uses [Weblate](http://translate.lightmeter.io). All translation changes are handled via this system.
 
 Merge requests including direct edits to translation files (`.po` and `.pot`) do not fit this workflow, and so cannot be accepted. However you can [download](https://docs.weblate.org/en/latest/user/files.html) those files from Weblate, edit them, then [upload them](https://docs.weblate.org/en/latest/user/files.html), if you prefer using your own editing tools.
 
 ## Getting help
 
-Ask questions in the [Translators section](https://discuss.lightmeter.io/c/translation/9) of the Lightmeter discussion forum.
+Ask questions in the [Translators section](https://discuss.lightmeter.io/c/translation/9) of the Lightmeter discussion forum, or create a GitLab issue.
 
 ## Using Weblate
 
