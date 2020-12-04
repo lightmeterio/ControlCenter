@@ -181,7 +181,7 @@ Swagger-based API documentation and experimentation pages are generated automati
 
 #### Password reset
 
-You can reset the user password using the command line:
+You can reset the administrator password using the command line:
 
 `./lightmeter -email_reset '<registration-email>' -password '<new-password>'`
 
