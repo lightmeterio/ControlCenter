@@ -112,8 +112,10 @@ frontend_root:
 	sh ./frontend/controlcenter/root_build.sh
 
 # TODO: remove git as a build dependency (not used on release tarballs)
-restore_www:
+# TODO: consider to use git as dep in container
+restore:
+	git checkout  ./frontend/controlcenter/package-lock.json
 	git clean -fdx ./www
 	git checkout ./www
 
-release_ui_v2_vuejs: postfix_parser domain_mapping_list recommendation_release frontend_root static_www release restore_www
+release_ui_v2_vuejs: postfix_parser domain_mapping_list recommendation_release frontend_root static_www release restore
