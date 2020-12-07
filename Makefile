@@ -39,9 +39,6 @@ dev: mocks swag pre_build recommendation_dev
 release: pre_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-windows_release: pre_release
-	CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter.exe" -ldflags "${BUILD_INFO_FLAGS}"
-
 static_release: pre_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
