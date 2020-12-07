@@ -122,6 +122,7 @@ For detailed information, check [Usage](cli_usage.md).
 
 - Run `lightmeter -help` to show a list of all available commands
 - Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
+- The web UI authenticated sessions last 1 week by default
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
 - To supply single logs file, use the command line argument `-stdin` like `tail -f /path-to-file.log | lightmeter -stdin`.
 - Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
@@ -130,24 +131,38 @@ For detailed information, check [Usage](cli_usage.md).
 (even if compressed with gzip) and waiting new log files that happen after such import.
 To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
+
 Currently the following patterns for log files are "watched":
   - mail.log
   - mail.warn
   - mail.err
-- Web UI authenticated sessions last 1 week by default
+
+### Rotated files
+
+We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
+Currently only `gzip`ped and uncompressed files are supported.
+
+The suffixes on the archived log files that are supported are:
+
+- mail.log.2.gz and similar, where the suffix number gets higher as files get older.
+- mail.log-20030102.gz where the suffix number is a date, where the lower the value, the older the file is.
+
+Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
+
+### Importing logs
 
 The importing process will take a long time, depending on how many files you have and how big they are.
 
 It's important not to use `-watch_dir` with other ways of obtaining logs, and future versions of Lightmeter will disable such behaviour.
 
-In case you are having an error like this:
+In case you are having an error similar to:
 
 ```
 2020/05/29 13:45:05 Missing file mail.log . Instead, found:  /var/log/mail/mail.log.2.gz
 
 ```
 
-This means you should have a file mail.log, which means you should check your Postfix installation and ensure it's emitting logs properly.
+This means you should have a file `mail.log`, which means you should check your Postfix installation and ensure it's emitting logs properly.
 
 ### Docker image
 

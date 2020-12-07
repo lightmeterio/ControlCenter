@@ -30,13 +30,7 @@ type logPatterns []string
 
 type fileQueues map[string]fileEntryList
 
-func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pattern string, initialTime time.Time) fileEntryList {
-	// NOTE: we are using the default logrotate naming convension. More info at:
-	// http://man7.org/linux/man-pages/man5/logrotate.conf.5.html
-	reg, err := regexp.Compile(`^(` + pattern + `)(\.(\d+)(\.gz)?)?$`)
-
-	errorutil.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
-
+func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r filenameRecognizer, initialTime time.Time) fileEntryList {
 	entries := make(fileEntryList, 0, len(list))
 
 	type rec struct {
@@ -48,7 +42,7 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pat
 
 	for _, entry := range list {
 		basename := path.Base(entry.filename)
-		matches := reg.FindSubmatch([]byte(basename))
+		matches := r.reg.FindSubmatch([]byte(basename))
 
 		if len(matches) == 0 || entry.modificationTime.Before(initialTime) {
 			continue
@@ -69,8 +63,16 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pat
 	}
 
 	sort.Slice(recs, func(i, j int) bool {
-		// desc sort, so we have mail.log.2.gz, mail.log.1, mail.log
-		return recs[i].index > recs[j].index
+		// the base file is **always** the last element in the list
+		if path.Base(recs[j].entry.filename) == r.pattern {
+			return true
+		}
+
+		if path.Base(recs[i].entry.filename) == r.pattern {
+			return false
+		}
+
+		return recs[i].index*int(r.order) < recs[j].index*int(r.order)
 	})
 
 	for _, r := range recs {
@@ -80,7 +82,87 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, pat
 	return entries
 }
 
+type filenameSortOrder int
+
+const (
+	filenameReverseOrder filenameSortOrder = -1
+	filenameNormalOrder  filenameSortOrder = 1
+)
+
+type filenameRecognizerBuilder struct {
+	builder func(string) string
+	order   filenameSortOrder
+}
+
+type filenameRecognizer struct {
+	reg     *regexp.Regexp
+	pattern string
+	order   filenameSortOrder
+}
+
+func (f filenameRecognizerBuilder) build(pattern string) filenameRecognizer {
+	r, err := regexp.Compile(f.builder(pattern))
+
+	errorutil.MustSucceed(err, `trying to build regexp for pattern "`+pattern+`"`)
+
+	return filenameRecognizer{
+		reg:     r,
+		pattern: pattern,
+		order:   f.order,
+	}
+}
+
+// NOTE: More information about how logrotate defines the filename conventions at:
+// http://man7.org/linux/man-pages/man5/logrotate.conf.5.html
+var filenameRecognizers = []filenameRecognizerBuilder{
+	{
+		builder: func(pattern string) string {
+			// format mail.log-20201008.gz, where the suffix is a date, lexicographically sortable.
+			return `^(` + pattern + `)(-(\d{8})(\.gz)?)?$`
+		},
+		order: filenameNormalOrder,
+	},
+
+	{
+		builder: func(pattern string) string {
+			// format mail.log.3.gz
+			// the higher the suffix value, the older the file is.
+			return `^(` + pattern + `)(\.(\d+)(\.gz)?)?$`
+		},
+		order: filenameReverseOrder,
+	},
+}
+
 func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime time.Time) fileQueues {
+	queuesMatchAFileSuffixConvention := func(queues fileQueues) bool {
+		for _, queue := range queues {
+			// there must be at least one with suffix for the suffix convention to be recognized
+			// plus possibly the base file, without the suffix.
+			if len(queue) > 1 {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	var queues fileQueues
+
+	for _, f := range filenameRecognizers {
+		queues = buildFilesToImportByPatternKind(list, patterns, f, initialTime)
+
+		if queuesMatchAFileSuffixConvention(queues) {
+			return queues
+		}
+	}
+
+	// bail out and use whatever we've been able to find,
+	// which can be correct in case it's not possible to detect a suffix
+	// (for instance, there are only files without suffix: mail.log, mail.warn and so on...)
+	return queues
+}
+
+func buildFilesToImportByPatternKind(list fileEntryList, patterns logPatterns, r filenameRecognizerBuilder, initialTime time.Time) fileQueues {
 	if len(patterns) == 0 {
 		return fileQueues{}
 	}
@@ -88,7 +170,8 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime ti
 	queues := make(fileQueues, len(patterns))
 
 	for _, pattern := range patterns {
-		queues[pattern] = sortedEntriesFilteredByPatternAndMoreRecentThanTime(list, pattern, initialTime)
+		r := r.build(pattern)
+		queues[pattern] = sortedEntriesFilteredByPatternAndMoreRecentThanTime(list, r, initialTime)
 	}
 
 	return queues

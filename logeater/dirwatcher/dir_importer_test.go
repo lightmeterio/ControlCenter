@@ -12,8 +12,8 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 )
 
 func readFromReader(reader io.Reader,
@@ -480,6 +480,53 @@ func TestBuildingfileQueues(t *testing.T) {
 					},
 				})
 		})
+
+		Convey("Match Several files with several patterns, alternative suffix containing date", func() {
+			f := fileEntryList{
+				fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
+				fileEntry{filename: "logs/mail.warn-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:43:48 +0200`)},
+				fileEntry{filename: "logs/mail.warn-20201001.gz", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+				fileEntry{filename: "logs/mail.err-20201001.gz", modificationTime: testutil.MustParseTime(`2020-01-01 07:39:09 +0200`)},
+				fileEntry{filename: "logs/mail.info-20201002.gz", modificationTime: testutil.MustParseTime(`2020-01-02 07:25:05 +0200`)},
+				fileEntry{filename: "logs/mail.warn-20201002.gz", modificationTime: testutil.MustParseTime(`2020-01-02 07:25:05 +0200`)},
+				fileEntry{filename: "logs/mail.err-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:39:14 +0200`)},
+				fileEntry{filename: "logs/mail.info-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:43:48 +0200`)},
+				fileEntry{filename: "logs/mail.info-20201001.gz", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+				fileEntry{filename: "logs/mail.err-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:54:10 +0200`)},
+				fileEntry{filename: "logs/mail.log-20201001", modificationTime: testutil.MustParseTime(`2020-01-01 08:36:24 +0200`)},
+				fileEntry{filename: "logs/clamav.log", modificationTime: testutil.MustParseTime(`2020-02-14 11:35:44 +0200`)},
+				fileEntry{filename: "logs/mail.info-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				fileEntry{filename: "logs/mail.err-20201002.gz", modificationTime: testutil.MustParseTime(`2020-01-02 07:39:37 +0200`)},
+				fileEntry{filename: "logs/mail.info", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
+				fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
+				fileEntry{filename: "logs/mail.log", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
+				fileEntry{filename: "logs/mail.warn-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				fileEntry{filename: "logs/freshclam.log", modificationTime: testutil.MustParseTime(`2020-02-14 11:35:44 +0200`)},
+			}
+
+			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, time.Time{}), ShouldResemble,
+				fileQueues{
+					"mail.log": fileEntryList{
+						fileEntry{filename: "logs/mail.log-20201001", modificationTime: testutil.MustParseTime(`2020-01-01 08:36:24 +0200`)},
+						fileEntry{filename: "logs/mail.log", modificationTime: testutil.MustParseTime(`2020-04-03 18:58:34 +0200`)},
+					},
+					"mail.err": fileEntryList{
+						fileEntry{filename: "logs/mail.err-20201001.gz", modificationTime: testutil.MustParseTime(`2020-01-01 07:39:09 +0200`)},
+						fileEntry{filename: "logs/mail.err-20201002.gz", modificationTime: testutil.MustParseTime(`2020-01-02 07:39:37 +0200`)},
+						fileEntry{filename: "logs/mail.err-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:39:14 +0200`)},
+						fileEntry{filename: "logs/mail.err-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:54:10 +0200`)},
+						fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
+					},
+					"mail.warn": fileEntryList{
+						fileEntry{filename: "logs/mail.warn-20201001.gz", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+						fileEntry{filename: "logs/mail.warn-20201002.gz", modificationTime: testutil.MustParseTime(`2020-01-02 07:25:05 +0200`)},
+						fileEntry{filename: "logs/mail.warn-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+						fileEntry{filename: "logs/mail.warn-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:43:48 +0200`)},
+						fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
+					},
+				})
+		})
+
 	})
 }
 
