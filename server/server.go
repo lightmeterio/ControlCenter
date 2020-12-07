@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
-	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -58,7 +57,7 @@ func (s *HttpServer) Start() error {
 
 	mux := http.NewServeMux()
 
-	i18nService := i18n.NewService(po.DefaultCatalog, globalsettings.New(reader))
+	i18nService := i18n.NewService(po.DefaultCatalog)
 
 	chain := httpmiddleware.WithDefaultStackWithoutAuth()
 	mux.Handle("/language/metadata", chain.WithError(httpmiddleware.CustomHTTPHandler(i18nService.LanguageMetaDataHandler)))
