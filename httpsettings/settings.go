@@ -40,6 +40,7 @@ func NewSettings(writer *meta.AsyncWriter,
 
 	return s
 }
+
 func handleForm(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
@@ -268,7 +269,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	}
 
 	s := globalsettings.Settings{APPLanguage: appLanguage}
-	
+
 	postfixPublicIp := r.Form.Get("postfix_public_ip")
 	if postfixPublicIp != "" {
 		var localIP net.IP
