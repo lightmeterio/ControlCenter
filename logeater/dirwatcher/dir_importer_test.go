@@ -430,6 +430,20 @@ func TestBuildingfileQueues(t *testing.T) {
 				}})
 		})
 
+		Convey("Current file is always used, even if it's older than the requested time (issue #309)", func() {
+			f := fileEntryList{
+				fileEntry{filename: "mail.log.1", modificationTime: testutil.MustParseTime(`2020-01-16 11:35:44 +0200`)},
+				fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`)},
+			}
+
+			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`2020-03-01 12:00:00 +0000`)), ShouldResemble,
+				fileQueues{"mail.log": fileEntryList{
+					fileEntry{
+						filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`),
+					},
+				}})
+		})
+
 		Convey("No entry files", func() {
 			f := fileEntryList{}
 			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,

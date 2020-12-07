@@ -44,7 +44,14 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 		basename := path.Base(entry.filename)
 		matches := r.reg.FindSubmatch([]byte(basename))
 
-		if len(matches) == 0 || entry.modificationTime.Before(initialTime) {
+		if len(matches) == 0 {
+			continue
+		}
+
+		// always include the most current log file as, if it's older than the initial time
+		// it must be present when we watch for changes on it as they potentially arrive in the future.
+		// This relates to #309
+		if basename != r.pattern && entry.modificationTime.Before(initialTime) {
 			continue
 		}
 
