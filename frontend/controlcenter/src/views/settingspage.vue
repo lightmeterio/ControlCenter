@@ -128,12 +128,15 @@ import { getSettings } from "../lib/api.js";
 import { getMetaLanguage } from "../lib/api.js";
 import { submitNotificationsSettingsForm } from "../lib/api.js";
 import { submitGeneralForm } from "../lib/api.js";
+import session from "@/mixin/views_shared";
 
 export default {
   name: "settingspage",
   components: {},
+  mixins: [session],
   data() {
     return {
+      sessionInterval: null,
       settings: {
         slack_notifications: {
           bearer_token: "",
@@ -186,18 +189,10 @@ export default {
         app_language: this.$language.current
       };
 
-      submitGeneralForm(data, true).then(function() {
-        getSettings().then(function(response) {
-          vue.settings = response.data;
-          vue.settings.slack_notifications.enabled = vue.MapEnabled(
-            vue.settings.slack_notifications.enabled
-          );
-        });
-      });
+      submitGeneralForm(data, true);
     },
     onNotificationSettingsSubmit(event) {
       event.preventDefault();
-      let vue = this;
 
       const data = {
         messenger_enabled: this.MapEnabled(
@@ -209,14 +204,7 @@ export default {
         messenger_language: this.settings.slack_notifications.language
       };
 
-      submitNotificationsSettingsForm(data).then(function() {
-        getSettings().then(function(response) {
-          vue.settings = response.data;
-          vue.settings.slack_notifications.enabled = vue.MapEnabled(
-            vue.settings.slack_notifications.enabled
-          );
-        });
-      });
+      submitNotificationsSettingsForm(data);
     },
     MapEnabled(value) {
       if (false === value) {
@@ -232,6 +220,8 @@ export default {
     }
   },
   mounted() {
+    this.sessionInterval = this.ValidSessionCheck();
+
     let vue = this;
     getMetaLanguage().then(function(response) {
       vue.languages = [];
@@ -245,6 +235,9 @@ export default {
         vue.settings.slack_notifications.enabled
       );
     });
+  },
+  destroyed() {
+    clearInterval(this.sessionInterval);
   }
 };
 </script>
@@ -327,5 +320,12 @@ export default {
   margin-right: 1em;
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .settings-page .button-group button,
+  .settings-page .button-group .btn-cancel {
+    width: auto;
+  }
 }
 </style>

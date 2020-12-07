@@ -114,7 +114,6 @@
                 id="postfixPublicIP"
                 v-model="$v.form.postfix_public_ip.$model"
                 type="text"
-                required
                 aria-describedby="publicIPHelp"
                 :placeholder="PostfixPublicIPInputPlaceholder"
                 maxlength="255"

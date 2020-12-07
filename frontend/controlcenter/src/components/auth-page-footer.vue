@@ -1,29 +1,31 @@
 <template>
   <footer id="auth-page-footer" class="mt-auto">
     <b-container class="footer-text">
-      Made with
-      <svg
-        class="bi bi-heart-fill"
-        width="1em"
-        height="1em"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"
-        />
-      </svg>
-      by
-      <a
-        href="https://lightmeter.io"
-        target="_blank"
-        data-toggle="tooltip"
-        data-placement="top"
-        title="Lightmeter website"
-        >Open Source professionals</a
-      >
+      <span>
+        Made with
+        <svg
+          class="bi bi-heart-fill"
+          width="1em"
+          height="1em"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"
+          />
+        </svg>
+        by
+        <a
+          href="https://lightmeter.io"
+          target="_blank"
+          data-toggle="tooltip"
+          data-placement="top"
+          title="Lightmeter website"
+          >Open Source professionals</a
+        >
+      </span>
       <langauge-switcher></langauge-switcher>
     </b-container>
   </footer>
@@ -100,5 +102,11 @@ export default {
 #auth-page-footer .footer-text a {
   margin-left: 0.25em;
   margin-right: 0.25em;
+}
+
+@media (max-width: 768px) {
+  #auth-page-footer .dropdown {
+    margin-left: 0px;
+  }
 }
 </style>

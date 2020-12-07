@@ -43,7 +43,7 @@
 
       <div class="row container d-flex time-interval card-section-heading">
         <div class="col-lg-2 col-md-6 col-6 p-2">
-          <h2>
+          <h2 class="insights-title">
             <!-- prettier-ignore -->
             <translate>Insights</translate>
           </h2>
@@ -154,9 +154,10 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import moment from "moment";
-import { fetchInsights } from "../lib/api.js";
+import { fetchInsights, getIsNotLoginOrNotRegistered } from "../lib/api.js";
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
+import session from "../mixin/views_shared.js";
 
 function defaultRange() {
   let today = new Date();
@@ -192,9 +193,11 @@ function formatDatePickerValue(obj) {
 export default {
   name: "insight",
   components: { DateRangePicker },
-  mixins: [tracking],
+  mixins: [tracking, session],
   data() {
     return {
+      fetchInsightsInterval: null,
+      sessionInterval: null,
       triggerRefreshValue: false,
       autoApply: true,
       alwaysShowCalendars: false,
@@ -256,6 +259,8 @@ export default {
       });
     },
     initIndex: function() {
+      this.sessionInterval = this.ValidSessionCheck();
+
       let vue = this;
 
       fetchInsights(
@@ -269,24 +274,30 @@ export default {
 
       formatDatePickerValue(vue.dateRange);
 
-      setInterval(function() {
-        // update graph component
-        vue.dateRange.triggerUpdate = vue.triggerRefresh();
+      this.fetchInsightsInterval = setInterval(function() {
+        getIsNotLoginOrNotRegistered().then(function() {
+          // update graph component
+          vue.dateRange.triggerUpdate = vue.triggerRefresh();
 
-        // update insights component
-        fetchInsights(
-          vue.dateRange.startDate,
-          vue.dateRange.endDate,
-          vue.insightsFilter,
-          vue.insightsSort
-        ).then(function(response) {
-          vue.insights = response.data;
+          // update insights component
+          fetchInsights(
+            vue.dateRange.startDate,
+            vue.dateRange.endDate,
+            vue.insightsFilter,
+            vue.insightsSort
+          ).then(function(response) {
+            vue.insights = response.data;
+          });
         });
       }, 30000);
     }
   },
   mounted() {
     this.initIndex();
+  },
+  destroyed() {
+    clearInterval(this.sessionInterval);
+    clearInterval(this.fetchInsightsInterval);
   }
 };
 </script>
@@ -393,9 +404,54 @@ export default {
   flex-wrap: nowrap;
 }
 
+#insights-page .insights-title {
+  text-align: left;
+}
+
 @media (min-width: 768px) {
   #insights-page .greeting {
     height: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  #insights-page .daterangepicker.dropdown-menu {
+    left: -40vw;
+  }
+  #insights-page .vue-daterange-picker .calendars {
+    flex-wrap: wrap;
+  }
+  .daterangepicker .calendars-container {
+    display: block;
+  }
+  #insights-page .vue-daterange-picker {
+    max-width: 150px;
+    padding: 0px;
+  }
+  #insights-page .vue-daterange-picker .form-control {
+    max-width: inherit;
+  }
+
+  #insights-page #insights {
+    min-height: 100vh;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  #insights-page .vue-daterange-picker {
+    max-width: none;
+  }
+  #insights-page .daterangepicker.dropdown-menu {
+    left: -10vw;
+  }
+  #insights-page #insights {
+    min-height: 60vh;
+  }
+  #insights-page .vue-daterange-picker .calendars {
+    flex-wrap: wrap;
+  }
+  #insights-page .daterangepicker .calendars .ranges li:last-child {
+    display: block;
   }
 }
 </style>
