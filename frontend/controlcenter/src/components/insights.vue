@@ -329,7 +329,7 @@ export default {
         return "";
       }
       this.insightRblCheckedIpTitle =
-        this.$gettext("RBLS for") + insight.content.address;
+        this.$gettext("RBLS for") + " " + insight.content.address;
     },
     buildInsightRblList(insightId) {
       let insight = this.insights.find(i => i.id === insightId);
