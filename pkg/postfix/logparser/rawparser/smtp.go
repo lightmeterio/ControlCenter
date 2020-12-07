@@ -5,17 +5,19 @@ func init() {
 }
 
 type RawSmtpSentStatus struct {
-	Queue               []byte
-	RecipientLocalPart  []byte
-	RecipientDomainPart []byte
-	RelayName           []byte
-	RelayIp             []byte
-	RelayPort           []byte
-	Delay               []byte
-	Delays              [5][]byte
-	Dsn                 []byte
-	Status              []byte
-	ExtraMessage        []byte
+	Queue                   []byte
+	RecipientLocalPart      []byte
+	RecipientDomainPart     []byte
+	OrigRecipientLocalPart  []byte
+	OrigRecipientDomainPart []byte
+	RelayName               []byte
+	RelayIp                 []byte
+	RelayPort               []byte
+	Delay                   []byte
+	Delays                  [5][]byte
+	Dsn                     []byte
+	Status                  []byte
+	ExtraMessage            []byte
 }
 
 func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {

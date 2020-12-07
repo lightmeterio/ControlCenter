@@ -183,6 +183,8 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.Queue, ShouldEqual, "AE8E32C60819")
 		So(p.RecipientLocalPart, ShouldEqual, "mail")
 		So(p.RecipientDomainPart, ShouldEqual, "e.mail.com")
+		So(p.OrigRecipientLocalPart, ShouldEqual, "")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "")
 		So(p.RelayName, ShouldEqual, "")
 
 		So(p.RelayIP, ShouldBeNil)
@@ -194,6 +196,33 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.Delays.Smtp, ShouldEqual, 0)
 		So(p.Dsn, ShouldEqual, "5.4.4")
 		So(p.Status, ShouldEqual, BouncedStatus)
+	})
+
+	Convey("Log line with optional orig_to", t, func() {
+		header, parsed, err := Parse([]byte(`May  5 00:00:00 mail postfix/smtp[17709]: AB5501855DA0: to=<to@mail.com>, ` +
+			`orig_to=<orig_to@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.87, delays=0.68/0.01/0/0.18, ` +
+			`dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`))
+		So(parsed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldEqual, true)
+
+		So(header.Time.Day, ShouldEqual, 5)
+		So(header.Time.Month, ShouldEqual, time.May)
+		So(header.Time.Hour, ShouldEqual, 0)
+		So(header.Time.Minute, ShouldEqual, 0)
+		So(header.Time.Second, ShouldEqual, 0)
+		So(header.Host, ShouldEqual, "mail")
+		So(header.Process, ShouldEqual, "postfix")
+		So(header.Daemon, ShouldEqual, "smtp")
+
+		So(p.Queue, ShouldEqual, "AB5501855DA0")
+		So(p.RecipientLocalPart, ShouldEqual, "to")
+		So(p.RecipientDomainPart, ShouldEqual, "mail.com")
+		So(p.OrigRecipientLocalPart, ShouldEqual, "orig_to")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "example.com")
+		So(p.RelayName, ShouldEqual, "127.0.0.1")
+		So(p.Status, ShouldEqual, SentStatus)
 	})
 }
 
