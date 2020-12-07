@@ -15,13 +15,7 @@ func HttpAuthenticator(mux *http.ServeMux, auth *v2.Authenticator) {
 	})))
 
 	mux.Handle("/login", chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-		session, err := auth.Store.Get(r, v2.SessionName)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			log.Println(err)
-			return nil
-		}
-		v2.HandleLogin(auth, w, r, session)
+		v2.HandleLogin(auth, w, r)
 		return nil
 	})))
 

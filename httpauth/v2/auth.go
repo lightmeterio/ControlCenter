@@ -99,7 +99,7 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request, session *sessions.Session) {
+func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 	if err := handleForm(w, r); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -128,6 +128,11 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request, se
 		}
 
 		return
+	}
+
+	session, err := auth.Store.New(r, SessionName)
+	if err != nil {
+		log.Println("Error creating new session:", errorutil.Wrap(err))
 	}
 
 	session.Values["auth"] = SessionData{Email: email, Name: userData.Name}
