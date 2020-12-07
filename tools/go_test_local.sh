@@ -10,4 +10,4 @@ echo "Generate new mocks for test env"
 make mocks > /dev/null
 
 echo "Run all tests and create a coverage profile for each package"
-go test -v ./... -race -coverpkg=$COVERPKG -failfast "$@"
+go test -tags="test" -v ./... -race -coverpkg=$COVERPKG -failfast "$@"

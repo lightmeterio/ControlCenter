@@ -103,5 +103,6 @@ type fetchInsightsResult []fetchedInsight
 func HttpInsights(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
 	chain := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 	recommendationURLContainer := recommendation.GetDefaultURLContainer()
+
 	mux.Handle("/api/v0/fetchInsights", chain.WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: recommendationURLContainer}))
 }

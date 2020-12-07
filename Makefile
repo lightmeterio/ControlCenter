@@ -29,22 +29,22 @@ BUILD_DEPENDENCIES = go gcc ragel
 K := $(foreach exec,$(BUILD_DEPENDENCIES),\
       $(if $(shell which $(exec)),nothing here,$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
 
-pre_build: postfix_parser domain_mapping_list po2go
+pre_build: frontend_root static_www postfix_parser domain_mapping_list po2go
 
-pre_release: pre_build static_www recommendation_release
+pre_release: pre_build recommendation_release
 
-dev: mocks swag pre_build recommendation_dev
+dev_bin: mocks swag pre_build recommendation_dev
 	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-release: pre_release
+release_bin: pre_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
-static_release: pre_release
+static_release_bin: pre_release
 	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
-	go generate -tags="release" gitlab.com/lightmeter/controlcenter/staticdata
+	go generate -tags="include" gitlab.com/lightmeter/controlcenter/staticdata
 
 domain_mapping_list: domainmapping/generated_list.go
 
@@ -112,4 +112,9 @@ restore:
 	git clean -fdx ./www
 	git checkout ./www
 
-release_ui_v2_vuejs: postfix_parser domain_mapping_list recommendation_release frontend_root static_www release restore
+release: release_bin restore
+
+# Todo: add headless dev
+dev: dev_bin restore
+
+static_release: static_release_bin restore

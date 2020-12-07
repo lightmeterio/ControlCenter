@@ -22,7 +22,7 @@ type Chain struct {
 	middleware []Middleware
 }
 
-func WithDefaultStackWithoutAuth( middleware ...Middleware) Chain {
+func WithDefaultStackWithoutAuth(middleware ...Middleware) Chain {
 	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithID()}, middleware...)
 	return New(middleware...)
 }

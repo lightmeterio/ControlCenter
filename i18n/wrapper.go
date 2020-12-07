@@ -13,12 +13,12 @@ import (
 
 func NewService(catalog catalog.Catalog) *Service {
 	return &Service{
-		translators:          translator.New(catalog),
+		translators: translator.New(catalog),
 	}
 }
 
 type Service struct {
-	translators          translator.Translators
+	translators translator.Translators
 }
 
 type LanguagePair struct {
