@@ -68,9 +68,6 @@ insights_mock:
 po2go:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/po
 
-code2po:
-	sh ./tools/code2poutil.sh
-
 go2po:
 	sh ./tools/go2poutil.sh
 
