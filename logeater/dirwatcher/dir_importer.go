@@ -429,19 +429,19 @@ func NewDirectoryImporter(
 	return DirectoryImporter{content, pub, initialTime}
 }
 
-var ErrEmptyDirectory = errors.New("Empty Directory")
+var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
 
 func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
 	entries := content.fileEntries()
 
 	if len(entries) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
 	}
 
 	queues := buildFilesToImport(entries, patterns, initialTime)
 
 	if len(queues) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
 	}
 
 	for _, q := range queues {
@@ -450,7 +450,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 		}
 	}
 
-	return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+	return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
 }
 
 var (
