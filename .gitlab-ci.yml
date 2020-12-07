@@ -132,6 +132,7 @@ acceptance-test:
     reports:
       junit: acceptance_tests/reports/xml-report/result.xml
     expire_in: 7 days
+  allow_failure: true
 
 publish-binaries:
   extends: .go-builder
