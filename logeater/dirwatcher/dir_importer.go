@@ -44,7 +44,14 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 		basename := path.Base(entry.filename)
 		matches := r.reg.FindSubmatch([]byte(basename))
 
-		if len(matches) == 0 || entry.modificationTime.Before(initialTime) {
+		if len(matches) == 0 {
+			continue
+		}
+
+		// always include the most current log file as, if it's older than the initial time
+		// it must be present when we watch for changes on it as they potentially arrive in the future.
+		// This relates to #309
+		if basename != r.pattern && entry.modificationTime.Before(initialTime) {
 			continue
 		}
 
@@ -408,6 +415,7 @@ type fileWatcher interface {
 }
 
 type DirectoryContent interface {
+	dirName() string
 	fileEntries() fileEntryList
 	modificationTimeForEntry(filename string) (time.Time, error)
 	readerForEntry(filename string) (fileReader, error)
@@ -429,19 +437,23 @@ func NewDirectoryImporter(
 	return DirectoryImporter{content, pub, initialTime}
 }
 
-var ErrEmptyDirectory = errors.New("Empty Directory")
+var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
 
 func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
+	onError := func() (fileQueues, error) {
+		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound, "Could not find any matching log files in the directory: ", content.dirName(), " that are more recent than ", initialTime)
+	}
+
 	entries := content.fileEntries()
 
 	if len(entries) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+		return onError()
 	}
 
 	queues := buildFilesToImport(entries, patterns, initialTime)
 
 	if len(queues) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+		return onError()
 	}
 
 	for _, q := range queues {
@@ -450,7 +462,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 		}
 	}
 
-	return fileQueues{}, errorutil.Wrap(ErrEmptyDirectory)
+	return onError()
 }
 
 var (
