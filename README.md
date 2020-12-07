@@ -95,18 +95,6 @@ make static_release
 That will download all the dependencies and build a file called `lightmeter`,
 which you can simply copy to your Postfix server and use it as described in the `Usage` section.
 
-### Cross compilation
-
-To compile to Windows, using Linux as host (requires cross compiler):
-
-```
-make windows_release
-```
-
-Which will create a file called `lightmeter.exe`.
-
-It's good to remember that we probably won't ever support Windows, but that does not mean you cannot use it there :)
-
 ## Upgrade
 
 Automatic data migration during upgrade is not yet supported. Depending on how you upgrade, your data may be lost.
