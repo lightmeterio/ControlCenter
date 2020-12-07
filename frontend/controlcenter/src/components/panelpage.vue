@@ -33,9 +33,7 @@ export default {
   margin: 1rem 0;
 }
 
-@media (max-width: 768px) {
-  .panel-page {
-    margin-top: 1em;
-  }
+.panel-page {
+  margin-top: 1em;
 }
 </style>

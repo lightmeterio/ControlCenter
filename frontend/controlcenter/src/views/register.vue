@@ -8,7 +8,7 @@
         <!-- prettier-ignore -->
         <translate>Please create a new administrator account - this is necessary to login</translate>
         <a href="https://gitlab.com/lightmeter/controlcenter#upgrade"
-          ><translate>Get help</translate></a
+          ><translate class="get-help">Get help</translate></a
         >
         <!-- prettier-ignore -->
         <translate>to avoid repeating this step if you've done it before</translate>
@@ -136,7 +136,7 @@
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
               <!-- prettier-ignore -->
-              <translate>Telemetry enabled</translate>
+              <translate class="text-blue">Telemetry enabled</translate>
             </h5>
             <p class="card-text">
               <!-- prettier-ignore -->
@@ -273,6 +273,11 @@ export default {
   text-align: left;
 }
 
+#registration-page .get-help {
+  margin-left: 0.2em;
+  margin-right: 0.2em;
+}
+
 #registration-page .card .card-text {
   color: #00689d;
   font-size: 12px;
@@ -289,6 +294,11 @@ export default {
   font-weight: bold;
   margin-bottom: 0.8em;
   color: #00689d;
+}
+
+#registration-page .card.info .card-title .text-blue {
+  color: #00689d;
+  margin-left: 0.2em;
 }
 
 #registration-page .card.info .card-body {
