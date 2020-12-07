@@ -3,7 +3,7 @@ package httpsettings
 import (
 	"errors"
 	"fmt"
-	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
@@ -62,14 +62,8 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *Settings) SetupMux(mux *http.ServeMux) {
-	chain := httpmiddleware.WithDefaultStack()
-
-	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
-}
-
-func (h *Settings) HttpSetup(mux *http.ServeMux, auth *v2.Authenticator) {
-	chain := httpmiddleware.WithDefaultStackV2(auth)
+func (h *Settings) HttpSetup(mux *http.ServeMux, auth *auth.Authenticator) {
+	chain := httpmiddleware.WithDefaultStack(auth)
 
 	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
 }
@@ -357,11 +351,4 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	return nil
-}
-
-// todo remove after migration
-func (h *Settings) HttpSettingsPage(mux *http.ServeMux) {
-	mux.Handle("/settingspage", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/settingspage.i18n.html", http.StatusSeeOther)
-	}))
 }

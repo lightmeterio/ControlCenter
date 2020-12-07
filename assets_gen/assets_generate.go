@@ -12,7 +12,6 @@ func main() {
 		vfsgen.Options{
 			Filename:     "http_vfsdata.go",
 			PackageName:  "staticdata",
-			BuildTags:    "release",
 			VariableName: "HttpAssets",
 		})
 
