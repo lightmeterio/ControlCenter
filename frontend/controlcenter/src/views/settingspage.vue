@@ -128,12 +128,15 @@ import { getSettings } from "../lib/api.js";
 import { getMetaLanguage } from "../lib/api.js";
 import { submitNotificationsSettingsForm } from "../lib/api.js";
 import { submitGeneralForm } from "../lib/api.js";
+import session from "@/mixin/views_shared";
 
 export default {
   name: "settingspage",
   components: {},
+  mixins: [session],
   data() {
     return {
+      sessionInterval: null,
       settings: {
         slack_notifications: {
           bearer_token: "",
@@ -217,6 +220,8 @@ export default {
     }
   },
   mounted() {
+    this.sessionInterval = this.ValidSessionCheck();
+
     let vue = this;
     getMetaLanguage().then(function(response) {
       vue.languages = [];
@@ -230,6 +235,9 @@ export default {
         vue.settings.slack_notifications.enabled
       );
     });
+  },
+  destroyed() {
+    clearInterval(this.sessionInterval);
   }
 };
 </script>
