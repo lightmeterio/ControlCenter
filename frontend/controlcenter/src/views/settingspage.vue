@@ -313,4 +313,11 @@ export default {
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 768px) {
+  .settings-page .button-group button,
+  .settings-page .button-group .btn-cancel {
+    width: auto;
+  }
+}
 </style>
