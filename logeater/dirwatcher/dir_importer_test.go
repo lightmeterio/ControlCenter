@@ -132,6 +132,10 @@ func (f FakeDirectoryContent) fileEntries() fileEntryList {
 	return f.entries
 }
 
+func (f FakeDirectoryContent) dirName() string {
+	return "/dummy"
+}
+
 func (f FakeDirectoryContent) readerForEntry(filename string) (fileReader, error) {
 	content, ok := f.contents[filename]
 

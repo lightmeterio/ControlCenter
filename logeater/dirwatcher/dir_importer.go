@@ -415,6 +415,7 @@ type fileWatcher interface {
 }
 
 type DirectoryContent interface {
+	dirName() string
 	fileEntries() fileEntryList
 	modificationTimeForEntry(filename string) (time.Time, error)
 	readerForEntry(filename string) (fileReader, error)
@@ -439,16 +440,20 @@ func NewDirectoryImporter(
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
 
 func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
+	onError := func() (fileQueues, error) {
+		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound, "Could not find any matching log files in the directory: ", content.dirName(), " that are more recent than ", initialTime)
+	}
+
 	entries := content.fileEntries()
 
 	if len(entries) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
+		return onError()
 	}
 
 	queues := buildFilesToImport(entries, patterns, initialTime)
 
 	if len(queues) == 0 {
-		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
+		return onError()
 	}
 
 	for _, q := range queues {
@@ -457,7 +462,7 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 		}
 	}
 
-	return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound)
+	return onError()
 }
 
 var (
