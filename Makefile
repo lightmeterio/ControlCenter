@@ -29,11 +29,18 @@ BUILD_DEPENDENCIES = go gcc ragel
 K := $(foreach exec,$(BUILD_DEPENDENCIES),\
       $(if $(shell which $(exec)),nothing here,$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
 
+dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go
+
+dev_pre_build: mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
+
 pre_build: translations frontend_root static_www postfix_parser domain_mapping_list po2go
 
 pre_release: pre_build recommendation_release
 
-dev_bin: mocks swag pre_build recommendation_dev
+dev_bin: dev_pre_build recommendation_dev
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+
+dev_headless_bin: dev_headless_pre_build recommendation_dev
 	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release_bin: pre_release
@@ -115,8 +122,9 @@ restore:
 
 release: release_bin restore
 
-# Todo: add headless dev
 dev: dev_bin restore
+
+devheadless: dev_headless_bin restore
 
 static_release: static_release_bin restore
 
