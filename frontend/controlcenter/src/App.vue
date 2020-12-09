@@ -284,6 +284,11 @@ body {
   background: #fff;
 }
 
+body .modal-header button:focus,
+.navbar span:focus {
+  outline: none;
+}
+
 h1 span,
 h1,
 h2 span,
