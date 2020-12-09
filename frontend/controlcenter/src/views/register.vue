@@ -222,7 +222,7 @@ export default {
         postfix_public_ip: this.form.postfix_public_ip
       };
 
-      if (this.form.subscribe_newsletter !== null) {
+      if (this.form.subscribe_newsletter === "on") {
         settingsData.subscribe_newsletter = this.form.subscribe_newsletter;
       }
 
