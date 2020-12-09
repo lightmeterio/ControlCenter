@@ -147,6 +147,7 @@ OUTPUT_DIR = ./po
 TRANSLATION_OUTPUT = ./frontend/controlcenter/src/translation/translations.json
 
 # Available locales for the app.
+# TODO: Consider to use new approch to retrieve contry codes
 LOCALES = en de pt_BR pl
 
 # Name of the generated .po files for each available locale.
