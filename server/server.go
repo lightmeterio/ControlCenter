@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/api"
-	"gitlab.com/lightmeter/controlcenter/httpauth"
-	auth2 "gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	httpauth "gitlab.com/lightmeter/controlcenter/httpauth"
+	auth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/httpsettings"
 	"gitlab.com/lightmeter/controlcenter/i18n"
@@ -53,7 +53,7 @@ func (s *HttpServer) Start() error {
 
 	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter)
 
-	auth := auth2.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
+	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
 
 	mux := http.NewServeMux()
 

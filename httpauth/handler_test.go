@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	auth2 "gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -82,7 +82,7 @@ func TestHTTPAuthV2(t *testing.T) {
 
 		mux := http.NewServeMux()
 
-		auth := auth2.NewAuthenticatorWithOptions(registrar)
+		auth := httpauth.NewAuthenticatorWithOptions(registrar)
 		HttpAuthenticator(mux, auth)
 
 
