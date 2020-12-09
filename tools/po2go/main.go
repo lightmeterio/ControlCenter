@@ -17,6 +17,7 @@ var (
 	outfile = flag.String("o", "", "output filename")
 )
 
+// nolint:gocognit
 func main() {
 	flag.Parse()
 
