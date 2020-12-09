@@ -29,18 +29,18 @@ BUILD_DEPENDENCIES = go gcc ragel
 K := $(foreach exec,$(BUILD_DEPENDENCIES),\
       $(if $(shell which $(exec)),nothing here,$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
 
-pre_build: frontend_root static_www postfix_parser domain_mapping_list po2go
+pre_build: translations frontend_root static_www postfix_parser domain_mapping_list po2go
 
 pre_release: pre_build recommendation_release
 
 dev_bin: mocks swag pre_build recommendation_dev
-	go build -tags="dev no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release_bin: pre_release
-	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 static_release_bin: pre_release
-	go build -tags="release no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
@@ -109,6 +109,7 @@ frontend_root:
 # TODO: consider to use git as dep in container
 restore:
 	git checkout  ./frontend/controlcenter/package-lock.json
+	git checkout  ./frontend/controlcenter/src/translation/translations.json
 	git clean -fdx ./www
 	git checkout ./www
 
@@ -145,10 +146,8 @@ LOCALE_FILES ?= $(patsubst %,$(OUTPUT_DIR)/%/LC_MESSAGES/app.po,$(LOCALES))
 
 GETTEXT_SOURCES ?= $(shell find $(INPUT_FILES) -name '*.jade' -o -name '*.html' -o -name '*.js' -o -name '*.vue' 2> /dev/null)
 
-translationclean:
-	rm -f $(TEMPLATE_POT) $(TRANSLATION_OUTPUT)
-
-translations: $(TRANSLATION_OUTPUT)
+cleantemplatepot:
+	rm -f $(TEMPLATE_POT)
 
 makemessages: $(TEMPLATE_POT)
 
@@ -174,5 +173,5 @@ $(TEMPLATE_POT): $(GETTEXT_SOURCES)
 		fi; \
 	done;
 
-$(TRANSLATION_OUTPUT): $(LOCALE_FILES)
-	gettext-compile --output ./$@ $(LOCALE_FILES)
+translations: $(LOCALE_FILES)
+	gettext-compile --output $(TRANSLATION_OUTPUT) $(LOCALE_FILES)
