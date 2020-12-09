@@ -173,5 +173,5 @@ $(TEMPLATE_POT): $(GETTEXT_SOURCES)
 		fi; \
 	done;
 
-translations: $(LOCALE_FILES)
-	gettext-compile --output $(TRANSLATION_OUTPUT) $(LOCALE_FILES)
+translations:
+	gettext-compile --output $(TRANSLATION_OUTPUT) $(LOCALE_FILES) || true
