@@ -92,8 +92,17 @@ def clean_pattern(level, s, c, r):
 
     return r(s[:spans(0)[1]], c, spans) + clean_pattern(level + 1, s[spans(0)[1]:], c, r)
 
+def as_string(line):
+    if type(line) == str:
+        return line
+
+    if type(line) == bytes:
+        return line.decode("ascii")
+        
+    raise Exception(f"as_string accepts only bytes and string, not {type(line)}!")
+
 def clean_line(line):
-    stripped = line.rstrip()
+    stripped = as_string(line).rstrip()
 
     for p in compiled_patterns:
         replaced_or_none = clean_pattern(0, stripped, p[0], p[1])
@@ -102,14 +111,18 @@ def clean_line(line):
 
     return stripped
 
-def main():
-    import sys
+def clean_file(iteratable, on_each_line):
     from multiprocessing import Pool, cpu_count
 
     p = Pool(cpu_count() + 1)
 
-    for c in p.map(clean_line, sys.stdin):
-        print(c)
+    for c in p.map(clean_line, iteratable):
+        on_each_line(c)
 
 if __name__ == '__main__':
-    main()
+    import sys
+
+    def print_line(line):
+        print(line)
+
+    clean_file(sys.stdin, print_line)
