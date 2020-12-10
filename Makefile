@@ -31,9 +31,9 @@ K := $(foreach exec,$(BUILD_DEPENDENCIES),\
 
 dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go
 
-dev_pre_build: mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
+dev_pre_build: npminstall mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
 
-pre_build: translations frontend_root static_www postfix_parser domain_mapping_list po2go
+pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go
 
 pre_release: pre_build recommendation_release
 
@@ -108,6 +108,9 @@ postfix_parser:
 
 clean_postfix_parser:
 	@rm -vf pkg/postfix/logparser/rawparser/*.gen.go
+
+npminstall:
+	sh ./frontend/controlcenter/npm_install.sh
 
 frontend_root:
 	sh ./frontend/controlcenter/root_build.sh
