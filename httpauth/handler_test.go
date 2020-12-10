@@ -1,9 +1,13 @@
 package httpauth
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
+	"github.com/gorilla/sessions"
+	"gitlab.com/lightmeter/controlcenter/auth"
+	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,6 +18,55 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+type fakeRegistrar struct {
+	sessionKey                        []byte
+	email                             string
+	name                              string
+	password                          string
+	authenticated                     bool
+	shouldFailToRegister              bool
+	shouldFailToAuthenticate          bool
+	authenticateYieldsError           bool
+	shouldFailToCheckIfThereIsAnyUser bool
+}
+
+func (f *fakeRegistrar) Register(ctx context.Context, email, name, password string) error {
+	if f.shouldFailToRegister {
+		return errors.New("Weak Password")
+	}
+
+	f.authenticated = true
+	f.name = name
+	f.email = email
+	f.password = password
+	return nil
+}
+
+func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
+	if f.shouldFailToCheckIfThereIsAnyUser {
+		return false, errors.New("Some very severe error. Really")
+	}
+
+	return len(f.email) > 0, nil
+}
+
+func (f *fakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, auth.UserData, error) {
+	if f.authenticateYieldsError {
+		return false, auth.UserData{}, errors.New("Fail On Authentication")
+	}
+
+	if f.shouldFailToAuthenticate {
+		return false, auth.UserData{}, nil
+	}
+
+	return email == f.email && password == f.password, auth.UserData{Name: f.name, Email: f.email}, nil
+}
+
+func (f *fakeRegistrar) CookieStore() sessions.Store {
+	return sessions.NewCookieStore(f.sessionKey)
+}
+
 
 func TestHTTPAuthV2(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
@@ -29,7 +82,7 @@ func TestHTTPAuthV2(t *testing.T) {
 
 		mux := http.NewServeMux()
 
-		auth := v2.NewAuthenticatorWithOptions(registrar)
+		auth := httpauth.NewAuthenticatorWithOptions(registrar)
 		HttpAuthenticator(mux, auth)
 
 

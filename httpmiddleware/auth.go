@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/sessions"
-	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"time"
@@ -12,20 +12,20 @@ import (
 
 type SessionName string
 
-const SessionKey SessionName = v2.SessionName
+const SessionKey SessionName = auth.SessionName
 
 func GetSession(ctx context.Context) *sessions.Session {
 	return ctx.Value(SessionKey).(*sessions.Session)
 }
 
-func RequestWithSession(auth *v2.Authenticator) Middleware {
+func RequestWithSession(authenticator *auth.Authenticator) Middleware {
 	return func(h CustomHTTPHandler) CustomHTTPHandler {
 		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 
-			session, err := auth.Store.Get(r, v2.SessionName)
+			session, err := authenticator.Store.Get(r, auth.SessionName)
 			if err != nil {
 				cookie := &http.Cookie{
-					Name:     v2.SessionName,
+					Name:     auth.SessionName,
 					Value:    "",
 					Path:     "/",
 					Expires:  time.Unix(0, 0),
@@ -36,7 +36,7 @@ func RequestWithSession(auth *v2.Authenticator) Middleware {
 				return fmt.Errorf("Error getting session. Force session expiration: %w", errorutil.Wrap(err))
 			}
 
-			sessionData, ok := session.Values["auth"].(*v2.SessionData)
+			sessionData, ok := session.Values["auth"].(*auth.SessionData)
 			if !(ok && sessionData.IsAuthenticated()) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return nil

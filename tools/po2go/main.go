@@ -6,6 +6,7 @@ import (
 	"github.com/chai2010/gettext-go/po"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -16,6 +17,7 @@ var (
 	outfile = flag.String("o", "", "output filename")
 )
 
+// nolint:gocognit
 func main() {
 	flag.Parse()
 
@@ -63,6 +65,11 @@ func main() {
 		}
 
 		for _, e := range entries {
+			if e.Name() != "backend.po" {
+				log.Println("skip file ", e.Name())
+				continue
+			}
+
 			filename := path.Join(messagesDir, e.Name())
 			filenamesByLanguage[langname] = append(filenamesByLanguage[langname], filename)
 		}

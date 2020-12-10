@@ -1,7 +1,7 @@
 package httpmiddleware
 
 import (
-	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"log"
 	"net/http"
 )
@@ -22,12 +22,12 @@ type Chain struct {
 	middleware []Middleware
 }
 
-func WithDefaultStack(middleware ...Middleware) Chain {
+func WithDefaultStackWithoutAuth(middleware ...Middleware) Chain {
 	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithID()}, middleware...)
 	return New(middleware...)
 }
 
-func WithDefaultStackV2(auth *v2.Authenticator, middleware ...Middleware) Chain {
+func WithDefaultStack(auth *auth.Authenticator, middleware ...Middleware) Chain {
 	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithSession(auth), RequestWithID()}, middleware...)
 	return New(middleware...)
 }

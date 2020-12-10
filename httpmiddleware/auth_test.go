@@ -3,7 +3,7 @@ package httpmiddleware
 import (
 	"github.com/gorilla/sessions"
 	. "github.com/smartystreets/goconvey/convey"
-	v2 "gitlab.com/lightmeter/controlcenter/httpauth/v2"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 )
 
 
-func withAuth(auth *v2.Authenticator, middleware ...Middleware) Chain {
+func withAuth(auth *auth.Authenticator, middleware ...Middleware) Chain {
 	middleware = append([]Middleware{RequestWithSession(auth)}, middleware...)
 	return New(middleware...)
 }
@@ -22,7 +22,7 @@ func TestSession(t *testing.T) {
 	Convey("With session", t, func() {
 		Convey("Success", func() {
 
-			auth := &v2.Authenticator{
+			authenticator := &auth.Authenticator{
 				Store: sessions.NewCookieStore([]byte("secret-key")),
 			}
 
@@ -33,13 +33,13 @@ func TestSession(t *testing.T) {
 			}
 
 			loginHandler := func(w http.ResponseWriter, r *http.Request)  {
-				session, err := auth.Store.New(r, v2.SessionName)
+				session, err := authenticator.Store.New(r, auth.SessionName)
 				if err != nil {
 					log.Println("Error creating new session:", errorutil.Wrap(err))
 				}
 
 				// Implicitly log in
-				session.Values["auth"] = v2.SessionData{Email: "donutloop", Name: "donutloop"}
+				session.Values["auth"] = auth.SessionData{Email: "donutloop", Name: "donutloop"}
 				if err := session.Save(r, w); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					t.Error(err)
@@ -58,7 +58,7 @@ func TestSession(t *testing.T) {
 
 			httpClient := buildCookieClient()
 
-			c := withAuth(auth)
+			c := withAuth(authenticator)
 
 			mux := http.NewServeMux()
 			mux.Handle("/fake/login", http.HandlerFunc(loginHandler))
@@ -76,7 +76,7 @@ func TestSession(t *testing.T) {
 		})
 		Convey("Fail", func() {
 
-			auth := &v2.Authenticator{
+			authenticator := &auth.Authenticator{
 				Store: sessions.NewCookieStore([]byte("secret-key")),
 			}
 
@@ -89,7 +89,7 @@ func TestSession(t *testing.T) {
 				return nil
 			})
 
-			c := withAuth(auth)
+			c := withAuth(authenticator)
 
 			mux := http.NewServeMux()
 			mux.Handle("/any", c.WithEndpoint(handler))
