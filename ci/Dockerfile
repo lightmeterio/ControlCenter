@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/lightmeter/golang-builder-docker-image:latest AS builder
+FROM testvue:latest AS builder
 
 RUN apk update && apk add ca-certificates
 

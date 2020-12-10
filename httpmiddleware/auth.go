@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/sessions"
-    "gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"time"
