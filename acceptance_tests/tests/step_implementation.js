@@ -2,7 +2,26 @@
 "use strict";
 
 // add Gauge functions here in order to use them, otherwise you'll get `ReferenceError: foobar is not defined`
-const { alert, accept, click, openBrowser,write, closeBrowser, goto, press, screenshot, text, button, focus, textBox, toRightOf, toLeftOf, dropDown, waitFor, $ } = require('taiko');
+const {
+  alert,
+  accept,
+  click,
+  openBrowser,write,
+  closeBrowser,
+  goto,
+  press,
+  screenshot,
+  text,
+  button,
+  focus,
+  textBox,
+  toRightOf,
+  toLeftOf,
+  dropDown,
+  waitFor,
+  $,
+  reload,
+  currentURL } = require('taiko');
 
 const assert = require("assert");
 const child_process = require("child_process")
@@ -16,7 +35,7 @@ var lightmeterProcess = null
 
 var tmpDir = tmp.dirSync()
 
-beforeSuite(async() => {
+beforeSuite(async () => {
     lightmeterProcess = child_process.execFile('../lightmeter', ['-workspace', tmpDir.name, '-stdin', '-listen', ':8080'])
 
     return new Promise((r) => setTimeout(r, 2000)).then(async () => {
@@ -42,15 +61,18 @@ gauge.screenshotFn = async function() {
 };
 
 step("Go to homepage", async () => {
-    await goto('localhost:8080');
+    await goto('localhost:8080/#/');
+    await reload()
 });
 
 step("Go to registration page", async () => {
-    await goto('localhost:8080/register');
+    await goto('localhost:8080/#/register');
+    await reload()
 });
 
 step("Go to login page", async () => {
-    await goto('localhost:8080/login');
+    await goto('localhost:8080/#/login');
+    await reload()
 });
 
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {
@@ -66,18 +88,20 @@ step("Type <content>", async (content) => {
 });
 
 step("Select option <option> from menu <menuName>", async (option, menuName) => {
-    await dropDown(menuName).select(option)
+    // Ugly workaroudn due a bug on taiko: https://github.com/getgauge/taiko/issues/1729
+    //await dropDown(menuName).select(option)
+    await dropDown().select(option)
 });
 
 step("Open datepicker menu", async () => {
-    await waitFor(3000)
-    await click($("div#time-interval-field > span"))
-    await waitFor(4000)
+    await waitFor(1000)
+    await click($(".vue-daterange-picker"))
+    await waitFor(1000)
     await click(text('Custom Range'))
 });
 
 step("Skip forward several months", async () => {
-    var button = $("//html/body/div[2]/div[@class='drp-calendar left']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[1]")
+    var button = $(".daterangepicker * .left * .prev")
 
     for (var i = 0; i < 12 ; i++) {
         await click(button)
@@ -85,11 +109,12 @@ step("Skip forward several months", async () => {
 });
 
 step("Set start date", async () => {
-    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
+    // choose any time in the weekend
+    await click($(".daterangepicker * .left * td.weekend"))
 });
 
 step("Move forward some months", async () => {
-    var button = $("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/thead/tr[1]/th[3]")
+    var button = $(".daterangepicker * .right * .next")
 
     for (var i = 0; i < 3; i++) {
         await click(button)
@@ -97,17 +122,22 @@ step("Move forward some months", async () => {
 });
 
 step("Set end date", async () => {
-    await click($("//html/body/div[2]/div[@class='drp-calendar right']/div[@class='calendar-table']/table[@class='table-condensed']/tbody/tr[2]/td"))
-});
-
-step("Click apply", async () => {
-    await click(button("apply"))
+    await click($(".daterangepicker * .right * td.weekend"))
 });
 
 step("Click logout", async () => {
-    await click($("//*[contains(@class,'fa-sign-out-alt')]"))
+    await waitFor(1000)
+    await click($(".fa-sign-out-alt"))
 });
 
 step("Expect to see <pageText>", async (pageText) => {
     await text(pageText).exists()
+});
+
+step("Expect to be in the main page", async () => {
+    await waitFor(async() => {
+      var url = await currentURL();
+      console.log("current url:", url)
+      return url == "http://localhost:8080/#/";
+    })
 });

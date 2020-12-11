@@ -7,8 +7,8 @@
     "gauge": "gauge"
   },
   "dependencies": {
-    "@getgauge/cli": "^1.1.1",
-    "taiko": "^1.0.16",
+    "@getgauge/cli": "^1.1.6",
+    "taiko": "^1.1.0",
     "tmp": "^0.2.1"
   }
 }

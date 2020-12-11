@@ -10,4 +10,3 @@ Tags: success
 * Set start date
 * Move forward some months
 * Set end date
-* Click apply

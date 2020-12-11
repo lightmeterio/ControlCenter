@@ -120,6 +120,7 @@ acceptance-test:
     paths:
       - acceptance_tests/node_modules/
   artifacts:
+    when: always
     paths:
       - acceptance_tests/reports/html-report/
     reports:
