@@ -117,10 +117,7 @@ frontend_root:
 # TODO: remove git as a build dependency (not used on release tarballs)
 # TODO: consider to use git as dep in container
 restore:
-	git checkout  ./frontend/controlcenter/package-lock.json
-	git checkout  ./frontend/controlcenter/src/translation/translations.json
-	git clean -fdx ./www
-	git checkout ./www
+	true
 
 release: release_bin restore
 
@@ -184,5 +181,10 @@ $(TEMPLATE_POT): $(GETTEXT_SOURCES)
 		fi; \
 	done;
 
-translations:
+frontend/controlcenter/node_modules/.bin/gettext-compile:
+	$(MAKE) npminstall
+
+vuejs-translations: frontend/controlcenter/node_modules/.bin/gettext-compile
 	gettext-compile --output $(TRANSLATION_OUTPUT) $(LOCALE_FILES) || true
+
+translations: vuejs-translations
