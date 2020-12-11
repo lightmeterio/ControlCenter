@@ -27,6 +27,7 @@
 - [Feature details](#feature-details)
 - [Known issues](#known-issues)
 - [Development](#development)
+- [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -308,3 +309,9 @@ func (d *Block) String(s string) string {
 	return translator.I18n("%%v percent bounce rate between %%v and %%v")
 }
 ```
+
+## Troubleshooting
+
+### Issues after upgrade from version x to y
+
+* Many problems with loading ui of controlcenter can be resolved by clearing browser cookies and cache
