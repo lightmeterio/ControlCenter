@@ -26,8 +26,8 @@ race:
 
 # TODO: add vue as as a build dependency once we adopt the vue.js UI.
 BUILD_DEPENDENCIES = go gcc ragel
-K := $(foreach exec,$(BUILD_DEPENDENCIES),\
-      $(if $(shell which $(exec)),nothing here,$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
+$(foreach exec,$(BUILD_DEPENDENCIES),\
+    $(if $(shell command -v $(exec) 2> /dev/null),$(info Found executable `$(exec)`),$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
 
 dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go
 
