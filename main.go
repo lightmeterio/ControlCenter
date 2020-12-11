@@ -36,9 +36,8 @@ func main() {
 		emailToPasswdReset        string
 		passwordToReset           string
 
-		timezone    *time.Location = time.UTC
-		FrontendDev bool
-		logYear     int
+		timezone *time.Location = time.UTC
+		logYear  int
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -56,7 +55,6 @@ func main() {
 	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
-	flag.BoolVar(&FrontendDev, "frontenddev", false, "allow external frontend to communicate with backend api")
 
 	flag.Usage = func() {
 		printVersion()
@@ -124,7 +122,6 @@ func main() {
 		WorkspaceDirectory: workspaceDirectory,
 		Timezone:           timezone,
 		Address:            address,
-		FrontendDev:        FrontendDev,
 	}
 
 	errorutil.MustSucceed(httpServer.Start(), "server died")
