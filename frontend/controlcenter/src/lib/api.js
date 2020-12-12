@@ -95,14 +95,13 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
         err.response.data.Detailed.Sequence &&
         err.response.data.Detailed.Sequence[0].pattern
       ) {
-        alert(
-          Vue.prototype.$gettext("Error") +
-            err.response.data.Error +
-            ".\n" +
-            Vue.prototype.$gettext("Vulnerable to: ") +
-            err.response.data.Detailed.Sequence[0].pattern +
-            "."
-        );
+        let errTranslation = Vue.prototype.$gettext("Error: %{error}.")
+        let errMessage = Vue.prototype.$gettextInterpolate(errTranslation, {error: err.response.data.Error})
+        let descTranslation = Vue.prototype.$gettext("Vulnerable to: %{description}.")
+        let descMessage = Vue.prototype.$gettextInterpolate(descTranslation, {description: err.response.data.Detailed.Sequence[0].pattern})
+
+        alert(errMessage + "\n" + descMessage);
+
         return;
       }
 
@@ -193,5 +192,8 @@ function alertError(response, eventName) {
     trackEvent(eventName, errMsg);
   }
 
-  alert(Vue.prototype.$gettext("Error") + errMsg);
+  let translation = Vue.prototype.$gettext("Error: %{err}")
+  let message = Vue.prototype.$gettextInterpolate(translation, {err: errMsg})
+
+  alert(message);
 }

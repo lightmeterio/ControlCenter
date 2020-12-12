@@ -206,22 +206,10 @@ export default {
         };
       };
 
-      const updateDeliveryStatus = updateDonutChart(
-        "deliveryStatus",
-        "Delivery Status"
-      );
-      const updateTopBusiestDomainsChart = updateBarChart(
-        "topBusiestDomains",
-        "Busiest Domains"
-      );
-      const updateTopDeferredDomainsChart = updateBarChart(
-        "topDeferredDomains",
-        "Most Deferred Domains"
-      );
-      const updateTopBouncedDomainsChart = updateBarChart(
-        "topBouncedDomains",
-        "Most Bounced Domains"
-      );
+      const updateDeliveryStatus = updateDonutChart("deliveryStatus");
+      const updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains");
+      const updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains");
+      const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
 
       vue.updateDashboard = function(start, end) {
         updateDeliveryStatus(start, end);
