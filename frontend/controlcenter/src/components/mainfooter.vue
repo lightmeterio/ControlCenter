@@ -3,9 +3,8 @@
     <div class="container d-flex">
       <p class="thanks-using-lightmeter">
         <!-- prettier-ignore -->
-        <span class="copy">&copy;</span>
         <translate>Thank you for using Lightmeter.</translate>
-        {{ year }}.
+         <span class="copy">&copy;</span> {{ year }}.
       </p>
       <p class="privacy-Policy">
         <span class="bull">&bull;</span>
@@ -52,8 +51,7 @@ export default {
   text-align: left;
 }
 #normal-footer .container p {
-  margin-left: 0.5em;
-  margin-right: 0.5em;
+  margin-right: 1em;
   margin-top: 0.8em;
 }
 
@@ -95,6 +93,10 @@ export default {
 
 #normal-footer .container {
   margin-left: 0;
+}
+
+.bull {
+  padding-right: 0.3em;
 }
 
 @media (max-width: 768px) {
