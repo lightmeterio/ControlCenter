@@ -41,6 +41,19 @@ const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
+  if (to.name === "index") {
+    document.title = Vue.prototype.$gettext("Lightmeter Control Center");
+  } else if (to.name === "settings") {
+    document.title = Vue.prototype.$gettext("Settings");
+  } else if (to.name === "register") {
+    document.title = Vue.prototype.$gettext("Registration");
+  } else if (to.name === "login") {
+    document.title = Vue.prototype.$gettext("Login");
+  }
+  next();
+});
+
+router.beforeEach((to, from, next) => {
   if (to.name === "login") {
     getIsNotLoginOrNotRegistered()
       .then(function() {
