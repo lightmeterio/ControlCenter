@@ -184,5 +184,10 @@ $(TEMPLATE_POT): $(GETTEXT_SOURCES)
 		fi; \
 	done;
 
-translations:
+frontend/controlcenter/node_modules/.bin/gettext-compile:
+	cd frontend/controlcenter && npm install --only=dev
+
+vuejs-translations: frontend/controlcenter/node_modules/.bin/gettext-compile
 	gettext-compile --output $(TRANSLATION_OUTPUT) $(LOCALE_FILES) || true
+
+translations: vuejs-translations
