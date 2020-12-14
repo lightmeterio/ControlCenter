@@ -44,3 +44,6 @@ generated_link_list.go
 
 *.po
 *.po~
+
+frontend/controlcenter/src/translation/translations.json
+www
