@@ -24,9 +24,19 @@
 - [Install](#install)
 - [Upgrade](#upgrade)
 - [Usage](#usage)
+    - [Rotated files](#rotated-files)
+    - [Imported logs](#imported-logs)
+    - [Docker image](#docker-image)
+    - [NixOS Package and Module](#nixos-package-and-module)
+    - [API](#api)
+    - [Headless mode](#headless-mode-no-web-ui)
+    - [Authentication](#authentication)
 - [Feature details](#feature-details)
 - [Known issues](#known-issues)
 - [Development](#development)
+    - [Frontend development with VueJs](#frontend-development-with-vuejs)
+    - [Browser automation tests](#browser-automation-tests)
+    - [Making user interfaces translatable (i18n)](#making-user-interfaces-translatable-i18n)
 - [Troubleshooting](#troubleshooting)
 
 ## Introduction
@@ -173,29 +183,22 @@ You can find all released images in the [registry page](https://gitlab.com/light
 
 You can find the released  pkg, module, testbed and an instruction for "How to build & install it?" on [Github](https://github.com/ngi-nix/lightmeter).
 
-### How to run dev headless mode and frontend server
-
-The usage of development system requires starting two servers (dev frontend and backend server)
-
-Go to the directory of controlcenter and open two terminal windows or tabs
-
-First terminal window or terminal tab
-
-```
-make devheadless
-./lightmeter -stdin -verbose --listen :8003 
-```
-
-Second terminal window or terminal tab and start the front-end:
-```
-make serve_frontend_dev
-```
-
 ### API
 
 Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
 
 Swagger-based API documentation and experimentation pages are generated automatically on development builds. Access them via `http://lightmeter-address:8080/api`, eg. [http://localhost:8080/api](http://localhost:8080/api).
+
+### Headless mode (no Web UI)
+
+Headless mode is allows ControlCenter to run the backend only, without the Web UI. This is currently intended for development purposes. Headless modes will be useful for using only the API part of the application.
+
+Running headless mode requires building ControlCenter for this purpose:
+
+```
+make devheadless # Build ControlCenter
+./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build) 
+```
 
 ### Authentication
 
@@ -238,6 +241,24 @@ Please consider extending the default mappings by making merge requests to benef
 - Clicking on homepage chart sections can result in the reporting of misleading stats (planned fix: [#63](https://gitlab.com/lightmeter/controlcenter/-/issues/63))
 
 ## Development
+
+### Frontend development with VueJs
+
+ControlCenter's Web UI uses the [VueJS](https://vuejs.org/) framework and related tooling. The frontend is effectively an independent Javascript application which interacts with the backend via the [API](#api). 
+
+The frontend files such as javascipt and css need to be compiled and moved to the correct directory before they can be used be a web browser. This process is handled automatically by the make commands / build scripts, and VueJS terminal tools for development.
+
+The most efficient workflow for developing / making changes to the frontend files is to run the frontend separately to the backend, using [Vue CLI](https://cli.vuejs.org/) for serving and automatically rebuilding files in development mode. This allows you to see changes made to frontend files almost immediately without executing any commands or manually rebuilding or compiling any files.
+
+#### Instructions
+
+Open two terminal windows or tabs with the working directory set to ControlCenter's repository root.
+
+1. In the first terminal build and run ControlCenter in [headless mode](#headless-mode-no-web-ui)
+1. In the second terminal start the VueJS frontend development server (in development mode): `make serve_frontend_dev`
+1. The terminal output in the 2nd terminal should tell you which local URL/port to access the development UI on
+
+Any changes made to frontend files will be detected automatically, necessary files will be rebuilt, and changes should take effect immediately in your local browser. To apply changes made to backend files you will need to [rebuild](#build-from-source-code) the backend from source, as the frontend is now running separately and independently, without affecting backend / golang files.
 
 ### Browser automation tests
 
