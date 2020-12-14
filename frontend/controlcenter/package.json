@@ -13,7 +13,6 @@
     "core-js": "^3.6.5",
     "moment": "^2.29.1",
     "plotly.js-dist": "^1.57.1",
-    "sprintf-js": "^1.1.2",
     "vue": "^2.6.12",
     "vue-gettext": "^2.1.10",
     "vue-matomo": "^3.14.0-0",

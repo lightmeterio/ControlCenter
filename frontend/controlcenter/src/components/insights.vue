@@ -158,7 +158,6 @@
 
 <script>
 import moment from "moment";
-import { sprintf } from "sprintf-js";
 import { getApplicationInfo } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 
@@ -212,46 +211,42 @@ export default {
       return this.$gettext("Your first Insight");
     },
     insights_introduction_content_title() {
-      //todo translate should use new method from framework
-      return (
-        this.$gettext("Welcome to Lightmeter") +
-        " " +
-        this.applicationData.version
-      );
+      let translation = this.$gettext("Welcome to Lightmeter %{version}");
+      return this.$gettextInterpolate(translation, {version: this.applicationData.version});
     },
     local_rbl_check_title() {
       return this.$gettext("IP on shared blocklist");
     },
     message_rbl_title(i) {
-      return this.$gettext("IP blocked by ") + i.content.host;
+      let translation = this.$gettext("IP blocked by %{host}");
+      return this.$gettextInterpolate(translation, {host: i.content.host});
     },
     high_bounce_rate_description(i) {
       let c = i.content;
-      let translation = this.$gettext(
-        "<b>%i%%</b> bounce rate between %s and %s"
-      );
-      return sprintf(
-        translation,
-        c.value * 100,
-        formatInsightDescriptionDateTime(c.interval.from),
-        formatInsightDescriptionDateTime(c.interval.to)
-      );
+      let translation = this.$gettext("<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}");
+
+      return this.$gettextInterpolate(translation, {
+        bounceValue: c.value * 100, 
+        intFrom: formatInsightDescriptionDateTime(c.interval.from),
+        intTo:formatInsightDescriptionDateTime(c.interval.to)
+      });
     },
     mail_inactivity_description(i) {
       let c = i.content;
-      let translation = this.$gettext("No emails were sent between %s and %s");
-      return sprintf(
-        translation,
-        formatInsightDescriptionDateTime(c.interval.from),
-        formatInsightDescriptionDateTime(c.interval.to)
-      );
+      let translation = this.$gettext("No emails were sent between %{intFrom} and %{intTo}");
+
+      return this.$gettextInterpolate(translation, {
+        intFrom: formatInsightDescriptionDateTime(c.interval.from),
+        intTo:formatInsightDescriptionDateTime(c.interval.to)
+      });
     },
     local_rbl_check_description(i) {
       let c = i.content;
-      let translation = this.$gettext(
-        "The IP address %s is listed by <strong>%d</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
-      );
-      let message = sprintf(translation, c.address, c.rbls.length);
+      // TODO: handle difference between singular (one RBL) and plurals
+      let translation = this.$gettext("The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s" );
+
+      let message = this.$gettextInterpolate(translation, {ip: c.address, rblCount: c.rbls.length});
+
       return {
         id: i.id.toString(),
         message: message
@@ -259,11 +254,9 @@ export default {
     },
     message_rbl_description(i) {
       let c = i.content;
-      let translation = this.$gettext(
-        "The IP %s cannot deliver to %s (<strong>%s</strong>)"
-      );
+      let translation = this.$gettext("The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)");
 
-      let message = sprintf(translation, c.address, c.recipient, c.host);
+      let message = this.$gettextInterpolate(translation, {ip: c.address, recipient: c.recipient, host: c.host});
 
       return {
         id: i.id.toString(),
@@ -308,7 +301,9 @@ export default {
         return s(insight);
       }
 
-      return this.$gettext("Title for ") + insight.content_type;
+      let translation = this.$gettext("Title for %{content}")
+
+      return this.$gettextInterpolate(translation, {content: insight.content_type})
     },
     buildInsightRating(insight) {
       return insight.rating;
@@ -317,7 +312,9 @@ export default {
       let handler = this[insight.content_type + "_description"];
 
       if (handler === undefined) {
-        return this.$gettext("Description for ") + insight.content_type;
+        // NOTE: this string is for debug purposes only, therefore does not need to be translated
+        // It happens only during the development of a new insight, as a final one should always have a description
+        return "Description for " + insight.content_type;
       }
 
       return handler(insight);
@@ -328,8 +325,11 @@ export default {
       if (insight === undefined) {
         return "";
       }
+
+      let translation = this.$gettext("RBLS for %{address}");
+
       this.insightRblCheckedIpTitle =
-        this.$gettext("RBLS for") + " " + insight.content.address;
+        this.$gettextInterpolate(translation, {address: insight.content.address});
     },
     buildInsightRblList(insightId) {
       let insight = this.insights.find(i => i.id === insightId);
@@ -356,11 +356,9 @@ export default {
         return "";
       }
 
-      this.insightMsgRblTitle = sprintf(
-        this.$gettext("Original response from %s (%s)"),
-        insight.content.recipient,
-        insight.content.host
-      );
+      let translation = this.$gettext("Original response from %{recipient} (%{host})")
+
+      this.insightMsgRblTitle = this.$gettextInterpolate(translation, {recipient: insight.content.recipient, host: insight.content.host});
     },
     onInsightInfo(event, helpLink, contentType) {
       event.preventDefault();
@@ -383,6 +381,7 @@ export default {
 };
 
 function formatInsightDescriptionDateTime(d) {
+  // TODO: this should be formatted according to the chosen language
   return moment(d).format("DD MMM. (h:mmA)");
 }
 </script>
