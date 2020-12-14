@@ -38,17 +38,19 @@ const (
 )
 
 type SmtpSentStatus struct {
-	Queue               string
-	RecipientLocalPart  string
-	RecipientDomainPart string
-	RelayName           string
-	RelayIP             net.IP
-	RelayPort           uint16
-	Delay               float32
-	Delays              Delays
-	Dsn                 string
-	Status              SmtpStatus
-	ExtraMessage        string
+	Queue                   string
+	RecipientLocalPart      string
+	RecipientDomainPart     string
+	OrigRecipientLocalPart  string
+	OrigRecipientDomainPart string
+	RelayName               string
+	RelayIP                 net.IP
+	RelayPort               uint16
+	Delay                   float32
+	Delays                  Delays
+	Dsn                     string
+	Status                  SmtpStatus
+	ExtraMessage            string
 }
 
 func (SmtpSentStatus) isPayload() {
@@ -140,13 +142,15 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 	}()
 
 	return SmtpSentStatus{
-		Queue:               string(p.Queue),
-		RecipientLocalPart:  string(p.RecipientLocalPart),
-		RecipientDomainPart: string(p.RecipientDomainPart),
-		RelayName:           relayName,
-		RelayIP:             ip,
-		RelayPort:           uint16(relayPort),
-		Delay:               delay,
+		Queue:                   string(p.Queue),
+		RecipientLocalPart:      string(p.RecipientLocalPart),
+		RecipientDomainPart:     string(p.RecipientDomainPart),
+		OrigRecipientLocalPart:  string(p.OrigRecipientLocalPart),
+		OrigRecipientDomainPart: string(p.OrigRecipientDomainPart),
+		RelayName:               relayName,
+		RelayIP:                 ip,
+		RelayPort:               uint16(relayPort),
+		Delay:                   delay,
 		Delays: Delays{
 			Smtpd:   smtpdDelay,
 			Cleanup: cleanupDelay,

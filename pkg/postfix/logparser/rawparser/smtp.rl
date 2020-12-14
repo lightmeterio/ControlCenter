@@ -25,11 +25,20 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 	};
 
 	recipientLocalPart = bracketedEmailLocalPart >setTokBeg %{
+
 		r.RecipientLocalPart = normalizeMailLocalPart(data[tokBeg:p])
 	};
 
 	recipientDomainPart = bracketedEmailDomainPart >setTokBeg %{
 		r.RecipientDomainPart = data[tokBeg:p]
+	};
+
+	origRecipientLocalPart = bracketedEmailLocalPart >setTokBeg %{
+		r.OrigRecipientLocalPart = normalizeMailLocalPart(data[tokBeg:p])
+	};
+
+	origRecipientDomainPart = bracketedEmailDomainPart >setTokBeg %{
+		r.OrigRecipientDomainPart = data[tokBeg:p]
 	};
 
 	relayName = [^,\[]+ >setTokBeg %{
@@ -76,7 +85,9 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 
 	extraMessage = any+ >setTokBeg;
 
-	main := smtpQueueId ': to=<' recipientLocalPart '@' recipientDomainPart '>, relay=' ((relayName '[' relayIp ']:' relayPort)|'none') ', '
+	main := smtpQueueId ': to=<' recipientLocalPart '@' recipientDomainPart '>, '
+        ('orig_to=<' origRecipientLocalPart '@' origRecipientDomainPart '>, ')?
+        'relay=' ((relayName '[' relayIp ']:' relayPort)|'none') ', '
 			  'delay=' delay ', delays=' delays ', dsn=' dsn ', status=' status ' ' extraMessage @{
 		r.ExtraMessage = data[tokBeg:eof]
 		return r, true
