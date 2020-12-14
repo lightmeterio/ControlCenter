@@ -186,9 +186,9 @@ make devheadless
 ./lightmeter -stdin -verbose --listen :8003 
 ```
 
-Second terminal window or terminal tab
+Second terminal window or terminal tab and start the front-end:
 ```
-cd ./frontend/controlcenter && vue serve ./src/main.js
+make serve_frontend_dev
 ```
 
 ### API
