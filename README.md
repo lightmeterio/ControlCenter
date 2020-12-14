@@ -173,6 +173,24 @@ You can find all released images in the [registry page](https://gitlab.com/light
 
 You can find the released  pkg, module, testbed and an instruction for "How to build & install it?" on [Github](https://github.com/ngi-nix/lightmeter).
 
+### How to run dev headless mode and frontend server
+
+The usage of development system requires starting two servers (dev frontend and backend server)
+
+Go to the directory of controlcenter and open two terminal windows or tabs
+
+First terminal window or terminal tab
+
+```
+make devheadless
+./lightmeter -stdin -verbose --listen :8003 
+```
+
+Second terminal window or terminal tab
+```
+cd ./frontend/controlcenter && vue serve ./src/main.js
+```
+
 ### API
 
 Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
