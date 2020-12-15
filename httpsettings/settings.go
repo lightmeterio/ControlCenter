@@ -3,6 +3,7 @@ package httpsettings
 import (
 	"errors"
 	"fmt"
+	"github.com/imdario/mergo"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/meta"
@@ -173,7 +174,19 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
+	currentSettings := globalsettings.Settings{}
+
+	err := h.reader.RetrieveJson(r.Context(), globalsettings.SettingsKey, &currentSettings)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
+	}
+
 	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage}
+
+	if err := mergo.Merge(&s, currentSettings); err != nil {
+		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error handling settings"))
+	}
 
 	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
 
