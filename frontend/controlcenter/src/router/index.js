@@ -41,6 +41,25 @@ const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
+  let customPageTitles = {
+    "settings": Vue.prototype.$gettext("Settings - %{mainPageTitle}"),
+    "register": Vue.prototype.$gettext("Registration - %{mainPageTitle}"),
+    "login": Vue.prototype.$gettext("Login - %{mainPageTitle}"),
+  };
+
+  let mainTitle = "Lightmeter";
+  let extraText = customPageTitles[to.name];
+
+  if (extraText !== undefined) {
+    mainTitle = Vue.prototype.$gettextInterpolate(extraText, {mainPageTitle: mainTitle})
+  }
+
+  document.title = mainTitle;
+
+  next();
+});
+
+router.beforeEach((to, from, next) => {
   if (to.name === "login") {
     getIsNotLoginOrNotRegistered()
       .then(function() {
