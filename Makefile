@@ -28,18 +28,13 @@ BUILD_DEPENDENCIES = go gcc ragel npm vue
 $(foreach exec,$(BUILD_DEPENDENCIES),\
     $(if $(shell command -v $(exec) 2> /dev/null),$(info Found executable `$(exec)`),$(error "Build dependency program $(exec) could not be found in PATH. Check README.md for more info")))
 
-dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go www
-
-dev_pre_build: npminstall mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
+dev_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go www
 
 pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go
 
 pre_release: pre_build recommendation_release
 
 dev_bin: dev_pre_build recommendation_dev
-	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
-
-dev_headless_bin: dev_headless_pre_build recommendation_dev
 	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release_bin: pre_release
@@ -125,8 +120,6 @@ frontend_root: www $(TRANSLATION_OUTPUT)
 release: release_bin
 
 dev: dev_bin
-
-devheadless: dev_headless_bin
 
 static_release: static_release_bin
 

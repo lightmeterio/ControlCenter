@@ -196,7 +196,7 @@ Headless mode is allows ControlCenter to run the backend only, without the Web U
 Running headless mode requires building ControlCenter for this purpose:
 
 ```
-make devheadless # Build ControlCenter
+make dev # Build ControlCenter
 ./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build) 
 ```
 
