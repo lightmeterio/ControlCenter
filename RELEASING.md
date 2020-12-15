@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2020,  Lightmeter <hello@lightmeter.io>
+SPDX-License-Identifier: AGPL-3.0
+-->
+
 # HOW TO RELEASE
 
 We use semantic versioning (see http://semver.org).

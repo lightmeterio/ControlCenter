@@ -1,3 +1,7 @@
+<!--
+SPDX-FileCopyrightText: 2020,  Lightmeter <hello@lightmeter.io>
+SPDX-License-Identifier: AGPL-3.0
+-->
 # Translating Lightmeter
 
 For managing the natural language translation process Lightmeter uses [Weblate](http://translate.lightmeter.io). All translation changes are handled via this system.
