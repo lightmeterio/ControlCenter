@@ -11,10 +11,12 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -33,7 +35,7 @@ func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	return nil
 }
 
-type fakeNotificationCenter struct{
+type fakeNotificationCenter struct {
 	shouldFailToAddSlackNotifier bool
 }
 
@@ -84,7 +86,7 @@ func TestInitialSetup(t *testing.T) {
 		c := &http.Client{}
 
 		querySettingsParameter := "?setting=initSetup"
-		settingsURL := s.URL+querySettingsParameter
+		settingsURL := s.URL + querySettingsParameter
 
 		Convey("Fails", func() {
 			Convey("Invalid Form data", func() {
@@ -140,8 +142,8 @@ func TestInitialSetup(t *testing.T) {
 					"email":                {"user@example.com"},
 					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
-					"app_language": {"en"},
-					"postfix_public_ip": {"9.9.9.X"},
+					"app_language":         {"en"},
+					"postfix_public_ip":    {"9.9.9.X"},
 				})
 
 				So(err, ShouldBeNil)
@@ -155,8 +157,8 @@ func TestInitialSetup(t *testing.T) {
 					"email":                {"user@example.com"},
 					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
-					"app_language": {"en"},
-					"postfix_public_ip": {"9.9.9.9"},
+					"app_language":         {"en"},
+					"postfix_public_ip":    {"9.9.9.9"},
 				})
 
 				So(err, ShouldBeNil)
@@ -165,7 +167,7 @@ func TestInitialSetup(t *testing.T) {
 
 			Convey("Do not subscribe", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
-					"email_kind": {string(settings.MailKindDirect)},
+					"email_kind":        {string(settings.MailKindDirect)},
 					"postfix_public_ip": {"9.9.9.9"},
 				})
 
@@ -195,55 +197,80 @@ func TestSettingsSetup(t *testing.T) {
 
 		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
 
-
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 		s := httptest.NewServer(handler)
 
-		querySettingsParameter := "?setting=notification"
-		settingsURL := s.URL+querySettingsParameter
-
 		c := &http.Client{}
 
-		Convey("Fails", func() {
-			Convey("Invalid Form data", func() {
-				r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+		Convey("Do not clean IP settings when updating the language", func() {
+			// First set an IP address manually
+			writer.StoreJson(globalsettings.SettingsKey, &globalsettings.Settings{
+				LocalIP:     net.ParseIP("127.0.0.1"),
+				APPLanguage: "en",
+			}).Wait()
+
+			// Set the app language via http, not posting the ip address
+			r, err := c.PostForm(s.URL+"?setting=general", url.Values{
+				"app_language": {"de"},
 			})
 
-			Convey("Invalid mime type", func() {
-				r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
-			})
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-			Convey("Incompatible Method", func() {
-				r, err := c.Head(settingsURL)
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
-			})
+			// The IP address must be intact
+			settings := globalsettings.Settings{}
+			err = m.Reader.RetrieveJson(context.Background(), globalsettings.SettingsKey, &settings)
+			So(err, ShouldBeNil)
+
+			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
 		})
 
-		Convey("Success", func() {
-			Convey("send valid values", func() {
-				r, err := c.PostForm(settingsURL, url.Values{
-					"messenger_kind":    {"slack"},
-					"messenger_token":   {"sjdfklsjdfkljfs"},
-					"messenger_channel": {"donutloop"},
-					"messenger_enabled": {"true"},
-					"messenger_language": {"de"},
+		Convey("Notifications", func() {
+			querySettingsParameter := "?setting=notification"
+			settingsURL := s.URL + querySettingsParameter
+
+			Convey("Fails", func() {
+				Convey("Invalid Form data", func() {
+					r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
 				})
 
-				So(err, ShouldBeNil)
-				So(r.StatusCode, ShouldEqual, http.StatusOK)
+				Convey("Invalid mime type", func() {
+					r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+				})
 
-				mo := new(settings.SlackNotificationsSettings)
-				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
-				So(err, ShouldBeNil)
+				Convey("Incompatible Method", func() {
+					r, err := c.Head(settingsURL)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
+				})
+			})
 
-				So(mo.Channel, ShouldEqual, "donutloop")
-				So(mo.BearerToken, ShouldEqual, "sjdfklsjdfkljfs")
+			Convey("Success", func() {
+				Convey("send valid values", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"messenger_kind":     {"slack"},
+						"messenger_token":    {"sjdfklsjdfkljfs"},
+						"messenger_channel":  {"donutloop"},
+						"messenger_enabled":  {"true"},
+						"messenger_language": {"de"},
+					})
+
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					mo := new(settings.SlackNotificationsSettings)
+					err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+					So(err, ShouldBeNil)
+
+					So(mo.Channel, ShouldEqual, "donutloop")
+					So(mo.BearerToken, ShouldEqual, "sjdfklsjdfkljfs")
+				})
 			})
 		})
 	})
@@ -293,15 +320,15 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 
 		s := httptest.NewServer(handler)
 		querySettingsParameter := "?setting=notification"
-		settingsURL := s.URL+querySettingsParameter
+		settingsURL := s.URL + querySettingsParameter
 
 		Convey("Success", func() {
 			Convey("send valid values", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
-					"messenger_kind":    {"slack"},
-					"messenger_token":   {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
-					"messenger_channel": {"general"},
-					"messenger_enabled": {"true"},
+					"messenger_kind":     {"slack"},
+					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_channel":  {"general"},
+					"messenger_enabled":  {"true"},
 					"messenger_language": {"de"},
 				})
 
@@ -309,10 +336,10 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				r, err = c.PostForm(settingsURL, url.Values{
-					"messenger_kind":    {"slack"},
-					"messenger_token":   {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
-					"messenger_channel": {"general"},
-					"messenger_enabled": {"true"},
+					"messenger_kind":     {"slack"},
+					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_channel":  {"general"},
+					"messenger_enabled":  {"true"},
 					"messenger_language": {"en"},
 				})
 
