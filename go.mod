@@ -14,6 +14,7 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/imdario/mergo v0.3.11
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-sqlite3 v1.14.2

@@ -55,6 +55,9 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
+# github.com/imdario/mergo v0.3.11
+## explicit
+github.com/imdario/mergo
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/jstemmer/go-junit-report v0.9.1
