@@ -138,14 +138,12 @@
               <!-- prettier-ignore -->
               <translate class="text-blue">Telemetry enabled</translate>
             </h5>
-            <p class="card-text">
-              <!-- prettier-ignore -->
-              <translate>
-                Feature usage data is shared with a private Open Source
-                analytics system to improve your experience and may be
-                <a href="https://lightmeter.io/privacy-policy/">disabled</a> at
-                any time
-              </translate>
+            <!-- prettier-ignore -->
+            <p class="card-text"
+               v-translate
+               translate
+               render-html="true">
+               Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a href="https://lightmeter.io/privacy-policy/">disabled</a> at any time
             </p>
           </div>
         </div>
@@ -159,6 +157,11 @@ import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
 import { mapState } from "vuex";
 import { ipAddress } from "vuelidate/lib/validators";
+
+import linkify from 'vue-linkify';
+import Vue from "vue";
+
+Vue.directive('linkified', linkify);
 
 export default {
   name: "register",
