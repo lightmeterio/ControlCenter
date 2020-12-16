@@ -21,6 +21,10 @@ msgstr ""
 msgid "and welcome back"
 msgstr ""
 
+#: ./frontend/controlcenter/src/views/register.vue:86
+msgid "at any time"
+msgstr ""
+
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:21
 msgid "Bounced Domains"
 msgstr ""
@@ -65,6 +69,10 @@ msgstr ""
 msgid "Direct (personal, office, one-to-one)"
 msgstr ""
 
+#: ./frontend/controlcenter/src/views/register.vue:84
+msgid "disabled"
+msgstr ""
+
 #: ./frontend/controlcenter/src/views/login.vue:21
 #: ./frontend/controlcenter/src/views/register.vue:36
 msgid "Email"
@@ -83,11 +91,7 @@ msgid "Error: %{error}."
 msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:82
-msgid ""
-"Feature usage data is shared with a private Open Source\n"
-"                analytics system to improve your experience and may be\n"
-"                <a href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at\n"
-"                any time"
+msgid "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainfooter.vue:19

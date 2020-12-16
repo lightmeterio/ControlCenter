@@ -140,12 +140,11 @@
             </h5>
             <p class="card-text">
               <!-- prettier-ignore -->
-              <translate>
-                Feature usage data is shared with a private Open Source
-                analytics system to improve your experience and may be
-                <a href="https://lightmeter.io/privacy-policy/">disabled</a> at
-                any time
-              </translate>
+              <translate>Feature usage data is shared with a private Open Source analytics system to improve your experience and may be</translate>
+              <!-- prettier-ignore -->
+              <a class="privacy-policy-link" href="https://lightmeter.io/privacy-policy/"><translate>disabled</translate></a>
+              <!-- prettier-ignore -->
+              <translate>at any time</translate>
             </p>
           </div>
         </div>
@@ -316,5 +315,9 @@ export default {
   color: #fff;
   background-color: #0069d9;
   border-color: #0062cc;
+}
+
+#registration-page .privacy-policy-link span {
+  margin: 0 0.2em;
 }
 </style>
