@@ -63,6 +63,24 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
 
 ## Install
 
+### Install from binaries
+
+We provide pre-build architecture dependent binaries at [Bintray](https://bintray.com/lightmeter/controlcenter/controlcenter) that
+should run on any modern Linux distribution. Just download them, set them as executable and executed as described in [Usage](##Usage).
+
+Your operating system should provide certificate authority certificates (ca-certificates package in many distributions) by default,
+but in case you are keeping your own CA certificates, you'll need to set the environment variable `SSL_CERT_DIR` to it.
+
+For instance, on Alpine linux, you can use, before executing the binary:
+
+```sh
+export SSL_CERT_DIR=/usr/share/ca-certificates/mozilla
+```
+
+But this is almost always not needed as Control Center is able to properly find them.
+
+For more information about how the CA certificates are found, please check the correspondent [Go source code](https://golang.org/src/crypto/x509/root_unix.go).
+
 ### Install using Docker
 
 Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You can use the `latest` tag if desired. For usage see [Docker image](#docker-image).
@@ -77,28 +95,23 @@ The following dependencies are needed during development:
 - [GCC](https://gcc.gnu.org/) version 9.3 or newer.
 - Libc development files. Both [glibc](https://www.gnu.org/software/libc/) and [musl](https://www.musl-libc.org/) have been successfully tested.
 - [GNU Make](https://www.gnu.org/software/make/manual/make.html) or compatible.
-- [Ragel](https://www.colm.net/open-source/ragel/) version 6.X. We have successfully tested version 6.10 and don't guarantee it will work with the version 7 as we have not tested it.
-- [vue cli](https://cli.vuejs.org/) - only for frontend version 2
+- [Ragel](https://www.colm.net/open-source/ragel/) version 6.X. We have successfully tested version 6.10. Ragel 7 is currently NOT supported.
+- [vue cli](https://cli.vuejs.org/) - Used for the web based UI.
 
 For instance, on Alpine Linux 3.12, they can be installed with:
 
 ```
-$ apk add git make gcc go libc-dev ragel
+$ apk add git make gcc go libc-dev ragel npm
+$ npm install -g @vue/cli@v4.5.9 @vue/cli-service-global@4.5.9
 ```
 
-To build Lightmeter during development, execute:
-
-```
-make dev
-```
-
-And for the final release, execute:
+To build a release version, dynamically linked to the local libc, execute:
 ```
 make release
 
 ```
 
-And to create a static linked (please use carefully) version, execute:
+And to create a static linked (supported only if your libc can be statically linked) version, execute:
 ```
 make static_release
 ```
@@ -106,14 +119,22 @@ make static_release
 That will download all the dependencies and build a file called `lightmeter`,
 which you can simply copy to your Postfix server and use it as described in the `Usage` section.
 
+If you are planning to contribute with code (Thank you! :-)), please check [Development](#development).
+
 ## Upgrade
 
-Automatic data migration during upgrade is not yet supported. Depending on how you upgrade, your data may be lost.
+Limited Automatic data migration during upgrade is supported. As the data format is not yet stable, we cannot guarantee 100% data safety.
 
-- Keep your account data (e.g. administrator accounts and preferences): do not delete `<workspace name>/auth.db*`
-- Keep your mail performance data: do not delete `<workspace name>/logs.db*`
+We advice you to create a backup of the workspace directory before a major upgrade.
+A backup can be performed by stopping controlcenter, copying the workspace directory somewhere else (or creating an archive, etc.),
+upgrade controlcenter, and finally start it again.
 
-Achieving this is easy using manual upgrade based on replacing binary files. For Docker-based installations you should configure a workspace directory outside of the Lightmeter Docker container. See 'Usage' on how to specify which workspace directory Lightmeter should use.
+Achieving this is easy using manual upgrade based on replacing binary files.
+For Docker-based installations you should configure a workspace directory outside of the Lightmeter Docker container.
+See 'Usage' on how to specify which workspace directory Lightmeter should use.
+
+We have planned support for [on-the-fly backup](https://gitlab.com/lightmeter/controlcenter/-/issues/170) for future releases,
+where this procedure will become easier, safer and more flexible.
 
 ## Usage
 
