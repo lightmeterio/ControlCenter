@@ -6,7 +6,7 @@ msgstr ""
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
-"Language: \n"
+"Language: en\n"
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
