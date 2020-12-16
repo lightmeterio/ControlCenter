@@ -113,6 +113,9 @@ getApplicationInfo().then(function(response) {
     // Default: false
     debug: false,
 
+    // When user's browser has DNT enabled, don't even initiate Matomo connections
+    setDoNotTrack: true,
+
     // UserID passed to Matomo (see https://developer.matomo.org/guides/tracking-javascript-guide#user-id)
     // Default: undefined
     userId: undefined,
