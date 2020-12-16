@@ -15,6 +15,7 @@
     "plotly.js-dist": "^1.57.1",
     "vue": "^2.6.12",
     "vue-gettext": "^2.1.10",
+    "vue-linkify": "^1.0.1",
     "vue-matomo": "^3.14.0-0",
     "vue-router": "^3.2.0",
     "vuelidate": "^0.7.6",

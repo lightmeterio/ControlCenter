@@ -19,7 +19,8 @@
                 >{{ r.rbl }}
               </h5>
               <p class="card-text">
-                <span class="message-label">Message:</span>{{ r.text }}
+                <span class="message-label">Message:</span>
+                <span v-linkified>{{ r.text }}</span>
               </p>
             </div>
           </div>
@@ -44,7 +45,7 @@
     >
       <div class="modal-body">
         <blockquote>
-          <span id="rbl-msg-rbl-content"> {{ msgRblDetails }} </span>
+          <span id="rbl-msg-rbl-content" v-linkified> {{ msgRblDetails }} </span>
         </blockquote>
       </div>
       <div class="modal-footer">
@@ -160,6 +161,10 @@
 import moment from "moment";
 import { getApplicationInfo } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
+import linkify from 'vue-linkify';
+import Vue from "vue";
+
+Vue.directive('linkified', linkify);
 
 export default {
   name: "insights",
