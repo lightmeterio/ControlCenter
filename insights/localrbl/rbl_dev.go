@@ -19,7 +19,7 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 		Address:      d.options.Checker.IPAddress(context.Background()),
 		RBLs: []localrbl.ContentElement{
 			{RBL: "rbl.com", Text: "Funny reason"},
-			{RBL: "anotherrbl.de", Text: "Another funny reason"},
+			{RBL: "anotherrbl.de", Text: "Another funny reason at http://example.com Website"},
 		},
 	}); err != nil {
 		return errorutil.Wrap(err)
