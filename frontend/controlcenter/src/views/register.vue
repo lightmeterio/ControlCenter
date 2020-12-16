@@ -104,7 +104,7 @@
                 class="custom-form-check-label"
               >
                 <!-- prettier-ignore -->
-                <translate>Monthly newsletter</translate>
+                <translate>Subscribe to newsletter</translate>
               </b-form-checkbox>
             </b-input-group>
             <b-form-group>
