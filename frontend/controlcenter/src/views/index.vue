@@ -41,7 +41,7 @@
 
       <graphdashboard :graphDateRange="dateRange"></graphdashboard>
 
-      <div class="row container d-flex time-interval card-section-heading">
+      <div class="row container d-flex align-items-center time-interval card-section-heading">
         <div class="col-lg-2 col-md-6 col-6 p-2">
           <h2 class="insights-title">
             <!-- prettier-ignore -->

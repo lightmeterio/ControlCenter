@@ -2,8 +2,8 @@
   <form id="languageForm">
     <b-dropdown
       id="dropdown-1"
-      class="m-md-2"
       name="language"
+      right
       v-bind:text="getLangaugeLabel"
       v-model="$language.current"
     >

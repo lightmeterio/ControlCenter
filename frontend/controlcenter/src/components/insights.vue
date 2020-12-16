@@ -3,44 +3,49 @@
     <b-modal
       ref="modal-rbl-list"
       id="modal-rbl-list"
+      size="lg"
       hide-footer
+      centered
       :title="insightRblCheckedIpTitle"
     >
-      <div class="modal-body">
-        <p class="intro">
-          <!-- prettier-ignore -->
-          <translate>These lists are recommending that your list be blocked &ndash; check their messages for hints</translate>
-        </p>
-        <span id="rbl-list-content">
-          <div class="card" v-for="r of rbls" v-bind:key="r.text">
-            <div class="card-body">
-              <h5 class="card-title">
-                <span class="badge badge-pill badge-warning">List</span
-                >{{ r.rbl }}
-              </h5>
-              <p class="card-text">
-                <span class="message-label">Message:</span>
-                <span v-linkified:options="{target: {url: '_blank'}}">{{ r.text }}</span>
-              </p>
-            </div>
+      <p class="intro">
+        <!-- prettier-ignore -->
+        <translate>These lists are recommending that your list be blocked &ndash; check their messages for hints</translate>
+      </p>
+      <span id="rbl-list-content">
+        <div class="card" v-for="r of rbls" v-bind:key="r.text">
+          <div class="card-body">
+            <h5 class="card-title">
+              <span class="badge badge-pill badge-warning">List</span
+              >{{ r.rbl }}
+            </h5>
+            <p class="card-text">
+              <span class="message-label">Message:</span>
+              <span v-linkified:options="{target: {url: '_blank'}}">{{ r.text }}</span>
+            </p>
           </div>
-        </span>
-      </div>
-      <div class="modal-footer">
-        <b-button
-          class="btn-cancel"
-          variant="outline-danger"
-          @click="hideRBLListModal"
-        >
-          <!-- prettier-ignore -->
-          <translate>Close</translate>
-        </b-button>
-      </div>
+        </div>
+      </span>
+
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideRBLListModal"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
     </b-modal>
     <b-modal
       ref="modal-msg-rbl"
       id="modal-msg-rbl"
+      size="lg"
       hide-footer
+      centered
       :title="insightMsgRblTitle"
     >
       <div class="modal-body">
@@ -48,16 +53,20 @@
           <span id="rbl-msg-rbl-content" v-linkified:options="{target: {url: '_blank'}}"> {{ msgRblDetails }} </span>
         </blockquote>
       </div>
-      <div class="modal-footer">
-        <b-button
-          class="btn-cancel"
-          variant="outline-danger"
-          @click="hideRBLMsqModal"
-        >
-          <!-- prettier-ignore -->
-          <translate>Close</translate>
-        </b-button>
-      </div>
+
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideRBLMsqModal"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
+
     </b-modal>
     <div
       v-for="insight of insightsTransformed"
@@ -231,7 +240,7 @@ export default {
       let translation = this.$gettext("<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}");
 
       return this.$gettextInterpolate(translation, {
-        bounceValue: c.value * 100, 
+        bounceValue: c.value * 100,
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
         intTo:formatInsightDescriptionDateTime(c.interval.to)
       });
@@ -412,8 +421,9 @@ function formatInsightDescriptionDateTime(d) {
   background-color: #f2f2f2;
   border-radius: 18px;
   padding: 0.4em 1.5em;
-  margin-bottom: 0em;
+  margin-bottom: 1.2em;
   width: min-content;
+  height: 100%;
 }
 .insights .card-text.category,
 .insights .card-text.time {
@@ -507,10 +517,6 @@ svg.insight-help-button {
   color: #ffffff;
 }
 
-#modal-msg-rbl .modal-content,
-#modal-rbl-list .modal-content {
-  width: 120%;
-}
 
 #modal-msg-rbl blockquote {
   font-style: italic;
@@ -571,23 +577,22 @@ svg.insight-help-button {
   background-color: #f9f9f9;
   border: 1px solid #c5c7c6;
 }
-#rbl-list-content .card-title,
-#rbl-list-content .card-text {
-  font-size: 0.8em;
+.modal-content .card .card-title {
+  font-size: 19px;
+  font-weight: bold;
+  color: #202324;
+  font-family: Inter;
 }
 
-#rbl-list-content .card-title {
-  font: 12px/20px Inter;
-  letter-spacing: 0px;
-  color: #202324;
-  font-weight: bold;
+.modal-content .card .card-text {
+  font-size: 15px;
 }
 
 #rbl-list-content .card .message-label {
   color: #7a82ab;
   font-weight: bold;
   padding-right: 0.5em;
-  font-size: 0.9em;
+  font-size: 15px;
 }
 
 #rbl-list-content .badge {
@@ -604,10 +609,22 @@ svg.insight-help-button {
   color: white;
   margin-right: 0.6em;
 }
+
+.modal-content {
+  border-radius: 0;
+}
+
 @media (max-width: 768px) {
-  #modal-msg-rbl .modal-content,
-  #modal-rbl-list .modal-content {
+  .modal-content {
     width: 100%;
   }
+}
+
+/* Note: workaround for vue bootstraps weird default modal footer handling */
+.vue-modal-footer {
+  padding-top: .75rem;
+  border-top: 1px solid #dee2e6;
+  text-align: right;
+  margin-top: 1em;
 }
 </style>
