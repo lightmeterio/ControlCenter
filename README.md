@@ -38,6 +38,7 @@
     - [Browser automation tests](#browser-automation-tests)
     - [Making user interfaces translatable (i18n)](#making-user-interfaces-translatable-i18n)
 - [Troubleshooting](#troubleshooting)
+- [Supported by](#supported-by)
 
 ## Introduction
 
@@ -300,27 +301,27 @@ Create a app on your slack account go to https://api.slack.com/
 
 Click on "Create New APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
 
-![alt text](./images/create_app.png)
+![create new app screenshot](./images/create_app.png)
 
 Choose a "Development Slack Workspace" and give your app a name.
 
-![alt text](./images/app_config.png)
+![configure new app screenshot](./images/app_config.png)
 
 Create a oauth token for your app (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![alt text](./images/create_token.png) 
+![create new token screenshot](./images/create_token.png) 
 
 Add "write to channel" permission to your previously created token (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![alt text](./images/add_permission.png)
+![add permission screenshot](./images/add_permission.png)
 
 Invite the bot into your channel
 
-![alt text](./images/invite_bot.png)
+![invite bot screenshot](./images/invite_bot.png)
 
 Add the token and channel details to lightmeter go to the settings page
 
-![alt text](./images/add_token_control.png)
+![add token control screenshot](./images/add_token_control.png)
 
 Congrats you successfully configured the slack notifications
 
@@ -355,3 +356,9 @@ func (d *Block) String(s string) string {
 ### Issues after upgrade from version x to y
 
 * Many problems with loading ui of controlcenter can be resolved by clearing browser cookies and cache
+
+## Supported by
+
+Work on Lightmeter is supported by the European Commission's [Next Generation Internet](https://www.ngi.eu/) [Zero fund](https://www.ngi.eu/ngi-projects/ngi-zero/) for Privacy Enhancing Technologies, managed by [NLnet](https://nlnet.nl/).
+
+![NGI Zero logo](https://lightmeter.io/wp-content/uploads/2020/12/ngi-zero-1.png)
