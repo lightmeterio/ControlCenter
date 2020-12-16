@@ -12,8 +12,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var langFileRegexp = regexp.MustCompile(`.*\/([^/]+)\/LC_MESSAGES\/`)
 
 var messages = map[string]po.Message{}
 
@@ -65,6 +68,17 @@ func main() {
 	}
 
 	f := po.File{}
+
+	if strings.HasSuffix(*outfile, ".po") {
+		r := langFileRegexp.FindSubmatch([]byte(*outfile))
+
+		if len(r) != 2 {
+			panic("Invalid output file:" + *outfile)
+		}
+
+		// Write the language
+		f.MimeHeader.Language = string(r[1])
+	}
 
 	// use custom save and pre process
 	err = poutil.Save(*outfile, poutil.Data(messagesList, f.MimeHeader.String()))

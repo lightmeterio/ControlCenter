@@ -304,13 +304,12 @@ Congrats you successfully configured the slack notifications
 
 ### Making backend strings translatable (i18n)
 
-The following command will look for translatable strings inside of all go files. All translatable strings needs to be wrap with
-the the function `translator.I18n`
+Translatable strings can be found in diverse files, such as Go code, used by the backend, or Vue/html/js files used in the web ui.
 
-Generates a `.po` file for all supported languages: 
+In order to update the translable strings, making them available for translators with the command:
 
 ```bash
-make go2po
+$ make messages
 ```
 
 Example:
@@ -325,7 +324,7 @@ import (
 type Block struct{}
 
 func (d *Block) String(s string) string {
-	return translator.I18n("%%v percent bounce rate between %%v and %%v")
+	return translator.I18n("%v percent bounce rate between %v and %v")
 }
 ```
 
