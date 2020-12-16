@@ -151,6 +151,7 @@ For detailed information, check [Usage](cli_usage.md).
 (even if compressed with gzip) and waiting new log files that happen after such import.
 To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
+- You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
 
 Currently the following patterns for log files are "watched":
   - mail.log

@@ -9,7 +9,7 @@ export function submitGeneralForm(data, successMessage) {
   let formData = getFormData(data);
 
   axios
-    .post(BASE_URL + "/settings?setting=general", new URLSearchParams(formData))
+    .post(BASE_URL + "settings?setting=general", new URLSearchParams(formData))
     .then(function() {
       trackEvent("SaveGeneralSettings", "success");
       if (successMessage !== false) {
@@ -22,7 +22,7 @@ export function submitGeneralForm(data, successMessage) {
 export function submitLoginForm(formData, callback) {
   const data = new URLSearchParams(getFormData(formData));
   axios
-    .post(BASE_URL + "/login", data)
+    .post(BASE_URL + "login", data)
     .then(function() {
       callback();
     })
@@ -34,7 +34,7 @@ export function submitNotificationsSettingsForm(data) {
 
   return axios
     .post(
-      BASE_URL + "/settings?setting=notification",
+      BASE_URL + "settings?setting=notification",
       new URLSearchParams(notificationsSettingsFormData)
     )
     .then(function() {
@@ -46,19 +46,19 @@ export function submitNotificationsSettingsForm(data) {
 
 export function getSettings() {
   return axios
-    .get(BASE_URL + "/settings")
+    .get(BASE_URL + "settings")
     .catch(builderErrorHandler("settings"));
 }
 
 export function getMetaLanguage() {
   return axios
-    .get(BASE_URL + "/language/metadata")
+    .get(BASE_URL + "language/metadata")
     .catch(builderErrorHandler("language_metadata"));
 }
 
 export function logout(redirect) {
   axios
-    .post(BASE_URL + "/logout", null)
+    .post(BASE_URL + "logout", null)
     .then(function() {
       redirect();
     })
@@ -70,11 +70,11 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
   let settingsFormData = getFormData(settingsData);
 
   axios
-    .post(BASE_URL + "/register", new URLSearchParams(registrationFormData))
+    .post(BASE_URL + "register", new URLSearchParams(registrationFormData))
     .then(function() {
       axios
         .post(
-          BASE_URL + "/settings?setting=initSetup",
+          BASE_URL + "settings?setting=initSetup",
           new URLSearchParams(settingsFormData)
         )
         .then(function() {
@@ -117,12 +117,12 @@ function getFormData(object) {
 
 export function getApplicationInfo() {
   return axios
-    .get(BASE_URL + "/api/v0/appVersion")
+    .get(BASE_URL + "api/v0/appVersion")
     .catch(builderErrorHandler("app_version"));
 }
 
 export function getIsNotLoginOrNotRegistered() {
-  return axios.get(BASE_URL + "/auth/check");
+  return axios.get(BASE_URL + "auth/check");
 }
 
 export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
@@ -147,7 +147,7 @@ export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
 
   var params = new URLSearchParams(formData);
 
-  return axios.get(BASE_URL + "/api/v0/fetchInsights?" + params.toString());
+  return axios.get(BASE_URL + "api/v0/fetchInsights?" + params.toString());
 }
 
 export function fetchGraphDataAsJsonWithTimeInterval(
@@ -160,7 +160,7 @@ export function fetchGraphDataAsJsonWithTimeInterval(
   };
 
   return axios
-    .get(BASE_URL + "/api/v0/" + methodName + "?" + timeIntervalUrlParams())
+    .get(BASE_URL + "api/v0/" + methodName + "?" + timeIntervalUrlParams())
     .catch(errorHandler);
 }
 
