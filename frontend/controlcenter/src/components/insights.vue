@@ -20,7 +20,7 @@
               </h5>
               <p class="card-text">
                 <span class="message-label">Message:</span>
-                <span v-linkified>{{ r.text }}</span>
+                <span v-linkified:options="{target: {url: '_blank'}}">{{ r.text }}</span>
               </p>
             </div>
           </div>
@@ -45,7 +45,7 @@
     >
       <div class="modal-body">
         <blockquote>
-          <span id="rbl-msg-rbl-content" v-linkified> {{ msgRblDetails }} </span>
+          <span id="rbl-msg-rbl-content" v-linkified:options="{target: {url: '_blank'}}"> {{ msgRblDetails }} </span>
         </blockquote>
       </div>
       <div class="modal-footer">
