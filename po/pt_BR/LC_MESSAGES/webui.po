@@ -1,9 +1,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
+"PO-Revision-Date: 2020-12-18 16:49+0000\n"
+"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
+"Language-Team: Portuguese (Brazil) <https://translate.lightmeter.io/projects/"
+"controlcenter/frontend/pt_BR/>\n"
 "Language: pt_BR\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
 "Generated-By: easygettext\n"
 
 #: ./frontend/controlcenter/src/components/insights.vue:67
@@ -12,7 +18,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:28
 msgid "About"
-msgstr ""
+msgstr "Sobre"
 
 #: ./frontend/controlcenter/src/views/index.vue:66
 msgid "All"
@@ -56,7 +62,7 @@ msgstr ""
 #: ./frontend/controlcenter/src/components/insights.vue:77
 #: ./frontend/controlcenter/src/components/insights.vue:84
 msgid "Details"
-msgstr ""
+msgstr "Detalhes"
 
 #: ./frontend/controlcenter/src/views/register.vue:42
 msgid "Different types of mail perform differently. This helps show the most relevant information."
