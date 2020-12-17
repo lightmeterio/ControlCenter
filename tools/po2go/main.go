@@ -82,7 +82,9 @@ import (
 	"golang.org/x/text/language"
 )
 
-func init() {`)
+func init() {
+	_ = language.English
+`)
 
 	for lang, filenames := range filenamesByLanguage {
 		fmt.Fprintln(outFile, `

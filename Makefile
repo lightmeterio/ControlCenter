@@ -76,7 +76,6 @@ po2go:
 
 go2po:
 	go run tools/go2po/main.go -i . -o po/backend.pot
-	go run tools/go2po/main.go -i . -o po/en/LC_MESSAGES/backend.po
 
 swag: www
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/api
@@ -155,12 +154,7 @@ GETTEXT_SOURCES ?= $(shell find $(INPUT_FILES) -name '*.jade' -o -name '*.html' 
 cleantemplatepot:
 	rm -f $(UI_TEMPLATE_POT)
 
-messages: go2po $(UI_TEMPLATE_POT) $(OUTPUT_DIR)/en/LC_MESSAGES/webui.po
-
-$(OUTPUT_DIR)/en/LC_MESSAGES/webui.po: $(GETTEXT_SOURCES)
-	mkdir -p $$(dirname $@);
-	msginit --no-translator --locale=en --input=$(UI_TEMPLATE_POT) --output-file=$@
-	msgattrib --no-wrap --no-obsolete -o $@ $@
+messages: go2po $(UI_TEMPLATE_POT)
 
 $(UI_TEMPLATE_POT): frontend/controlcenter/node_modules/.bin/gettext-extract $(GETTEXT_SOURCES)
 	mkdir -p $(dir $@)
