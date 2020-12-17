@@ -3,7 +3,6 @@
     <b-container class="footer-text">
       <span
         render-html="true"
-        translate
         v-translate>
         Made with %{heart} by %{openLink}Open Source professionals%{closeLink} 
       </span>

@@ -141,7 +141,6 @@
             <!-- prettier-ignore -->
             <p class="card-text"
                v-translate
-               translate
                render-html="true">
                Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target="_blank" href="https://lightmeter.io/privacy-policy/">disabled</a> at any time
             </p>
