@@ -164,7 +164,7 @@ $(OUTPUT_DIR)/en/LC_MESSAGES/webui.po: $(GETTEXT_SOURCES)
 
 $(UI_TEMPLATE_POT): frontend/controlcenter/node_modules/.bin/gettext-extract $(GETTEXT_SOURCES)
 	mkdir -p $(dir $@)
-	gettext-extract --quiet  --output $@ $(GETTEXT_SOURCES)
+	gettext-extract --quiet --attribute v-translate --output $@ $(GETTEXT_SOURCES)
 
 frontend/controlcenter/node_modules/.bin/gettext-compile:
 	cd frontend/controlcenter && npm ci install

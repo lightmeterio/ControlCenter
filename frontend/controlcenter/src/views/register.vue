@@ -4,14 +4,8 @@
       <h2>
         <translate>Welcome</translate>
       </h2>
-      <p class="align-left">
-        <!-- prettier-ignore -->
-        <translate>Please create a new administrator account - this is necessary to login</translate>
-        <a href="https://gitlab.com/lightmeter/controlcenter#upgrade"
-          ><translate class="get-help">Get help</translate></a
-        >
-        <!-- prettier-ignore -->
-        <translate>to avoid repeating this step if you've done it before</translate>
+      <p class="align-left" render-html="true" v-translate>
+        Please create a new administrator account - this is necessary to login. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if you've done it before.
       </p>
 
       <div class="field-group">
@@ -186,6 +180,12 @@ export default {
     }
   },
   computed: {
+    openHelpLink() {
+      return `<a href="https://gitlab.com/lightmeter/controlcenter#upgrade"><translate class="get-help">`
+    },
+    closeHelpLink() {
+      return `</a>`
+    },
     PostfixPublicIPInputPlaceholder() {
       return this.$gettext("Postfix public IP");
     },
