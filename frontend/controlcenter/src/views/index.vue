@@ -5,8 +5,7 @@
       <div class="row">
         <div class="col-md-12">
           <h1 class="row-title">
-            <!-- prettier-ignore -->
-            <translate>Control Center</translate>
+            Control Center
           </h1>
         </div>
       </div>
