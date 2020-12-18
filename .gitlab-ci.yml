@@ -33,8 +33,8 @@ lint:
   allow_failure: true
   needs: []
   script:
-    - golangci-lint run --out-format=junit-xml --timeout=10m > golangci-output.xml
-    - golangci-lint run --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
+    - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=junit-xml --timeout=10m > golangci-output.xml
+    - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
   artifacts:
     paths:
       - golangci-output-checkstyle.xml
