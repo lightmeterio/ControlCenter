@@ -1,0 +1,371 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"PO-Revision-Date: 2020-12-18 16:49+0000\n"
+"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
+"Language-Team: Portuguese (Brazil) <https://translate.lightmeter.io/projects/"
+"controlcenter/frontend/pt_BR/>\n"
+"Language: pt_BR\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+"Generated-By: easygettext\n"
+
+#: ./frontend/controlcenter/src/components/insights.vue:67
+msgid "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:28
+msgid "About"
+msgstr "Sobre"
+
+#: ./frontend/controlcenter/src/views/index.vue:66
+msgid "All"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:27
+msgid "and welcome back"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/graph-dashboard.vue:21
+msgid "Bounced Domains"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/graph-dashboard.vue:18
+msgid "Busiest Domains"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:38
+#: ./frontend/controlcenter/src/views/settingspage.vue:60
+msgid "Cancel"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:24
+#: ./frontend/controlcenter/src/components/insights.vue:37
+#: ./frontend/controlcenter/src/components/mainheader.vue:56
+msgid "Close"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:8
+msgid "Control Center"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/graph-dashboard.vue:24
+msgid "Deferred Domains"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/graph-dashboard.vue:6
+msgid "Delivery attempts"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:77
+#: ./frontend/controlcenter/src/components/insights.vue:84
+msgid "Details"
+msgstr "Detalhes"
+
+#: ./frontend/controlcenter/src/views/register.vue:42
+msgid "Different types of mail perform differently. This helps show the most relevant information."
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:37
+msgid "Direct (personal, office, one-to-one)"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/login.vue:21
+#: ./frontend/controlcenter/src/views/register.vue:36
+msgid "Email"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:53
+msgid "Enter ip address"
+msgstr ""
+
+#: ./frontend/controlcenter/src/lib/api.js:195
+msgid "Error: %{err}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/lib/api.js:98
+msgid "Error: %{error}."
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:82
+msgid ""
+"Feature usage data is shared with a private Open Source\n"
+"                analytics system to improve your experience and may be\n"
+"                <a href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at\n"
+"                any time"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainfooter.vue:19
+msgid "Feedback"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:60
+msgid "Filter"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/login.vue:20
+msgid "Forgot password?"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:45
+msgid "General"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:9
+msgid "Get help"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:46
+msgid "High Bounce Rate"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:16
+msgid "Home"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:16
+msgid "Info"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:22
+msgid "Information"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:43
+msgid "Insights"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:66
+msgid "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:62
+msgid "IP blocked by %{host}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:59
+msgid "IP on shared blocklist"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:70
+msgid "Join us on the journey to better mailops! We're listening for your feedback"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:20
+msgid "Lightmeter Control Center"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:73
+msgid "Local"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:25
+msgid "Log out"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/login.vue:5
+#: ./frontend/controlcenter/src/views/login.vue:26
+msgid "Login"
+msgstr ""
+
+#: ./frontend/controlcenter/src/router/index.js:47
+msgid "Login - %{mainPageTitle}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:49
+msgid "Mail Inactivity"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:45
+msgid "Marketing (newsletters, adverts)"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:57
+msgid "Monthly newsletter"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:33
+msgid "Most of my mail is…"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:33
+msgid "Name"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:88
+msgid "Newest"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:79
+msgid "News"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:44
+msgid "Newsletter"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:41
+msgid "No"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:77
+msgid "No emails were sent between %{intFrom} and %{intTo}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:12
+msgid "Notifications"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:94
+msgid "Oldest"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:200
+msgid "Original response from %{recipient} (%{host})"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/login.vue:18
+#: ./frontend/controlcenter/src/views/register.vue:39
+msgid "Password"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:8
+msgid "Please create a new administrator account - this is necessary to login"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:47
+msgid "Please enter api token"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:35
+msgid "Please enter slack channel name"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:30
+#: ./frontend/controlcenter/src/views/settingspage.vue:50
+msgid "Postfix public IP"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainfooter.vue:12
+msgid "Privacy Policy"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:170
+msgid "RBLS for %{address}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:70
+msgid "Register"
+msgstr ""
+
+#: ./frontend/controlcenter/src/router/index.js:46
+msgid "Registration - %{mainPageTitle}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:34
+#: ./frontend/controlcenter/src/views/settingspage.vue:56
+msgid "Save"
+msgstr ""
+
+#: ./frontend/controlcenter/src/lib/api.js:16
+msgid "Saved general settings"
+msgstr ""
+
+#: ./frontend/controlcenter/src/lib/api.js:42
+msgid "Saved notification settings"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:19
+#: ./frontend/controlcenter/src/views/settingspage.vue:7
+msgid "Settings"
+msgstr ""
+
+#: ./frontend/controlcenter/src/router/index.js:45
+msgid "Settings - %{mainPageTitle}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:44
+msgid "Slack API token"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:32
+msgid "Slack channel"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:38
+msgid "Slack notifications"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:61
+msgid "System details"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:78
+msgid "Telemetry enabled"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainfooter.vue:5
+msgid "Thank you for using Lightmeter."
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:98
+msgid "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:87
+msgid "The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:65
+msgid "The Ip Address is invalid"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:6
+msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:49
+msgid "Time interval:"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:145
+msgid "Title for %{content}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:11
+msgid "to avoid repeating this step if you've done it before"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:41
+msgid "Transactional (notifications, apps)"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:17
+msgid "User details"
+msgstr ""
+
+#: ./frontend/controlcenter/src/lib/api.js:100
+msgid "Vulnerable to: %{description}."
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/mainheader.vue:35
+msgid "Website"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/register.vue:4
+msgid "Welcome"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:55
+msgid "Welcome to Lightmeter %{version}"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/settingspage.vue:41
+msgid "Yes"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/insights.vue:52
+msgid "Your first Insight"
+msgstr ""
