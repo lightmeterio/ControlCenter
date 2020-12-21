@@ -50,7 +50,7 @@
         <div class="col-lg-3 col-md-6 col-6 p-2">
           <label class="col-md-2 col-form-label sr-only">
             <!-- prettier-ignore -->
-            <translate>Time interval:</translate>
+            <translate>Time interval</translate>:
           </label>
           <DateRangePicker
             @update="onUpdateDateRangePicker"
