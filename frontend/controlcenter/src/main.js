@@ -46,14 +46,37 @@ Vue.component("panel-page", panelpage);
 
 import translations from "./translation/translations.json";
 
-// todo(marcel) fetch from api
+// TODO: obtain this list from the API
+const availableLanguages = {
+  en: "English",
+  de: "Deutsch",
+  pt_BR: "Português do Brasil"
+};
+
+// TODO: once the user becomes able to store the prefered language in the application settings,
+// try to use such setting on determining the application language.
+function computeDefaultLanguage() {
+  const locale =
+    navigator.languages !== undefined
+      ? navigator.languages[0]
+      : navigator.language;
+
+  if (!locale) {
+    return "en";
+  }
+
+  let fixedLocale = locale.trim().replace("-", "_");
+
+  if (fixedLocale in availableLanguages) {
+    return fixedLocale;
+  }
+
+  return "en";
+}
+
 Vue.use(GetTextPlugin, {
-  availableLanguages: {
-    en: "English",
-    de: "Deutsch",
-    pt_BR: "Português do Brasil"
-  },
-  defaultLanguage: "en",
+  availableLanguages: availableLanguages,
+  defaultLanguage: computeDefaultLanguage(),
   languageVmMixin: {
     computed: {
       currentKebabCase: function() {
