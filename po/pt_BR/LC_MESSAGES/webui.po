@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"PO-Revision-Date: 2020-12-21 15:26+0000\n"
-"Last-Translator: Leandro Santiago <leandro@lightmeter.io>\n"
+"PO-Revision-Date: 2020-12-21 16:05+0000\n"
+"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.lightmeter.io/projects/"
 "controlcenter/frontend/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -226,7 +226,7 @@ msgstr "Notificações"
 
 #: ./frontend/controlcenter/src/views/index.vue:94
 msgid "Oldest"
-msgstr "Mais velhos"
+msgstr "Mais antigos"
 
 #: ./frontend/controlcenter/src/components/insights.vue:200
 msgid "Original response from %{recipient} (%{host})"
@@ -266,7 +266,7 @@ msgstr "RBLS para %{address}"
 
 #: ./frontend/controlcenter/src/views/register.vue:70
 msgid "Register"
-msgstr "Registro"
+msgstr "Registrar"
 
 #: ./frontend/controlcenter/src/router/index.js:46
 msgid "Registration - %{mainPageTitle}"
