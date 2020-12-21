@@ -42,14 +42,13 @@
           :title="About"
           cancel-only
         >
-          <!-- prettier-ignore -->
-          <translate>Lightmeter Control Center</translate>
+          Lightmeter Control Center
           <br />
           <span id="release-info" v-if="applicationData">
-            <strong>Version:</strong> {{ applicationData.version }}
+            <strong><translate>Version</translate>:</strong> {{ applicationData.version }}
             <br />
-            <strong>Commit:</strong> {{ applicationData.commit }} <br />
-            <strong>Tag/branch</strong>: {{ applicationData.tag_or_branch }}
+            <strong><translate>Commit</translate>:</strong> {{ applicationData.commit }} <br />
+            <strong><translate>Tag/branch</translate></strong>: {{ applicationData.tag_or_branch }}
           </span>
 
           <br />
