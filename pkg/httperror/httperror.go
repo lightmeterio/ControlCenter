@@ -6,6 +6,7 @@ type XHTTPError interface {
 	// StatusCode returns the HTTP status code of the error
 	StatusCode() int
 	JSON() bool
+	ErrObject() error
 }
 
 type HttpCodeError struct {
@@ -21,6 +22,10 @@ func NewHTTPStatusCodeError(code int, err error) XHTTPError {
 
 func (e *HttpCodeError) Error() string {
 	return e.Err.Error()
+}
+
+func (e *HttpCodeError) ErrObject() error {
+	return e.Err
 }
 
 // StatusCode returns the HTTP status code.
@@ -45,6 +50,10 @@ func NewHttpCodeJsonError(code int, err error) XHTTPError {
 
 func (e *HttpCodeJsonError) Error() string {
 	return e.Err.Error()
+}
+
+func (e *HttpCodeJsonError) ErrObject() error {
+	return e.Err
 }
 
 // StatusCode returns the HTTP status code.
