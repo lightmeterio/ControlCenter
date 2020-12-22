@@ -1,9 +1,10 @@
 package testutil
 
 import (
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"log"
 	"path"
+	"testing"
 )
 
 // TempDBConnection creates new database connection pair in a temporary directory
@@ -11,8 +12,8 @@ import (
 // is removed.
 // basename is an optional value specifying the name for the database file,
 // without extension.
-func TempDBConnection(basename ...string) (conn dbconn.ConnPair, removeDir func()) {
-	dir, removeDir := TempDir()
+func TempDBConnection(t *testing.T, basename ...string) (conn dbconn.ConnPair, removeDir func()) {
+	dir, removeDir := TempDir(t)
 
 	filename := path.Join(dir, func() string {
 		if len(basename) > 0 {
@@ -25,7 +26,7 @@ func TempDBConnection(basename ...string) (conn dbconn.ConnPair, removeDir func(
 	conn, err := dbconn.NewConnPair(filename)
 
 	if err != nil {
-		log.Panicln("Error creating temporary database:", err)
+		log.Panic().Err(err).Msgf("Error creating temporary database")
 	}
 
 	return conn, removeDir

@@ -2,10 +2,10 @@ package dirwatcher
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"time"
@@ -68,7 +68,7 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 		h, p, err := parser.Parse([]byte(line.Text))
 
 		if !parser.IsRecoverableError(err) {
-			log.Println("Error parsing line on file", w.filename)
+			log.Error().Msgf("parsing line on file: %v", w.filename)
 			continue
 		}
 

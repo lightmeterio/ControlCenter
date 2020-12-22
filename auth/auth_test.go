@@ -20,7 +20,7 @@ var (
 
 func TestSessionKey(t *testing.T) {
 	Convey("Test Session Key", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		var generatedKey, recoveredKey [][]byte
@@ -50,7 +50,7 @@ func TestAuth(t *testing.T) {
 	strongPassword := `ghjzfpailduifiapdq9um6ysuubvtjywAqbnadq+aUerxrqhfp`
 
 	Convey("Test Auth", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		auth, err := NewAuth(path.Join(dir), Options{})
@@ -192,7 +192,7 @@ func TestAuth(t *testing.T) {
 
 func TestResetPassword(t *testing.T) {
 	Convey("Reset Password", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		{

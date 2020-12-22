@@ -117,7 +117,7 @@ func errInChain(err error) string {
 	}
 
 	if len(e.Msg) > 0 {
-		return fmt.Sprintf("%s:%d: \"%s\"", e.Filename, e.Line, e.Msg)
+		return fmt.Sprintf("error:%v;file%s;fileline:%d", e.Msg, e.Filename, e.Line)
 	}
 
 	return fmt.Sprintf("%s:%d", e.Filename, e.Line)
@@ -127,8 +127,37 @@ func (chain ErrorChain) Error() string {
 	s := ""
 
 	for _, e := range chain {
-		s += "> " + errInChain(e) + "\n"
+		s += " > " + errInChain(e)
 	}
 
 	return s
+}
+
+type JsonErrorObject struct {
+	Error string `json:"error,omitempty"`
+	File  string `json:"file,omitempty"`
+	Line  int    `json:"line,omitempty"`
+}
+
+func (chain ErrorChain) JSON() []JsonErrorObject {
+	errs := make([]JsonErrorObject, len(chain))
+
+	for i, e := range chain {
+		errs[i] = errInJsonChain(e)
+	}
+
+	return errs
+}
+
+func errInJsonChain(err error) JsonErrorObject {
+	e, ok := err.(*Error)
+	if !ok {
+		return JsonErrorObject{Error: err.Error()}
+	}
+
+	if len(e.Msg) > 0 {
+		return JsonErrorObject{Error: e.Msg, File: e.Filename, Line: e.Line}
+	}
+
+	return JsonErrorObject{File: e.Filename, Line: e.Line}
 }

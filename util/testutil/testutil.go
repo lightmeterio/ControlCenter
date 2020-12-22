@@ -2,12 +2,12 @@ package testutil
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
+	"testing"
 	"time"
 )
 
-func TempDir() (string, func()) {
+func TempDir(t *testing.T) (string, func()) {
 	dir, e := ioutil.TempDir("", "lightmeter-tests-*")
 
 	if e != nil {
@@ -16,7 +16,7 @@ func TempDir() (string, func()) {
 
 	return dir, func() {
 		if err := os.RemoveAll(dir); err != nil {
-			log.Panicln("Could not remove tempdir", dir, "error:", err)
+			t.Fatal("Could not remove tempdir", dir, "error:", err)
 		}
 	}
 }

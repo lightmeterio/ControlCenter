@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/meta"
-	"log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 )
 
@@ -44,7 +44,7 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 
 	if err != nil {
 		if !errors.Is(err, meta.ErrNoSuchKey) {
-			log.Printf("Error obtaining IP address from global settings: %v", err)
+			errorutil.LogErrorf(errorutil.Wrap(err), "obtaining IP address from global settings")
 		}
 
 		return nil
@@ -59,7 +59,7 @@ func (r *MetaReaderGetter) AppLanguage(ctx context.Context) string {
 
 	if err != nil {
 		if !errors.Is(err, meta.ErrNoSuchKey) {
-			log.Printf("Error obtaining APP language from global settings: %v", err)
+			errorutil.LogErrorf(errorutil.Wrap(err), "obtaining APP language from global settings")
 		}
 
 		return ""

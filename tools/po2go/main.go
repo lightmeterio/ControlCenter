@@ -4,12 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/chai2010/gettext-go/po"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
 var (
@@ -20,6 +22,10 @@ var (
 // nolint:gocognit
 func main() {
 	flag.Parse()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	outFile, err := os.Create(*outfile)
 
@@ -66,7 +72,7 @@ func main() {
 
 		for _, e := range entries {
 			if e.Name() != "backend.po" {
-				log.Println("skip file ", e.Name())
+				log.Info().Msgf("skip file %s", e.Name())
 				continue
 			}
 

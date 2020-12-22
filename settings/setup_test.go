@@ -38,7 +38,7 @@ func TestMessengerSettings(t *testing.T) {
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -73,7 +73,7 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")

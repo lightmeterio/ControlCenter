@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/api"
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth"
 	auth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
@@ -14,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -89,7 +89,7 @@ func (s *HttpServer) Start() error {
 		return errorutil.Wrap(err)
 	}
 
-	log.Printf("Lightmeter ControlCenter is running on http://%s", ln.Addr().String())
+	log.Info().Msgf("Lightmeter ControlCenter is running on http://%s", ln.Addr().String())
 
 	return server.Serve(ln)
 }

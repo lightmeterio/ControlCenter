@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
-	"log"
 
 	"time"
 )
@@ -41,7 +40,7 @@ func New(settingsReader *meta.Reader, translators translator.Translators) Center
 	}
 
 	if err := cp.init(); err != nil {
-		log.Println("Error notifications ", err)
+		errorutil.LogErrorf(err, "init notifications")
 	}
 
 	return cp

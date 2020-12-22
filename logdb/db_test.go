@@ -38,7 +38,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Db is a directory instead of a file", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 			So(os.Mkdir(path.Join(dir, "logs.db"), os.ModePerm), ShouldBeNil)
 			_, err := Open(dir, Config{Location: time.UTC})
@@ -46,7 +46,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Db is not a sqlite file", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 			ioutil.WriteFile(path.Join(dir, "logs.db"), []byte("not a sqlite file header"), os.ModePerm)
 			_, err := Open(dir, Config{Location: time.UTC})
@@ -56,7 +56,7 @@ func TestDatabaseCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create DB", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -66,7 +66,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 			db, err := Open(dir, Config{Location: time.UTC})
 			So(err, ShouldBeNil)
@@ -75,7 +75,7 @@ func TestDatabaseCreation(t *testing.T) {
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			ws1, err := Open(dir, Config{Location: time.UTC})
@@ -132,7 +132,7 @@ func deliveryStatus(dashboard dashboard.Dashboard, interval data.TimeInterval) d
 
 func TestLogsInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		buildWs := func() (DB, <-chan interface{}, data.Publisher, dashboard.Dashboard, func()) {

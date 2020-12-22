@@ -5,13 +5,13 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"errors"
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"log"
 	"path"
 )
 
@@ -51,7 +51,7 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 	}
 
 	if count > 0 {
-		log.Println("Failed Attempt to register with the email", email, "again")
+		log.Info().Msgf("Failed Attempt to register with the email %s again", email)
 
 		// Here it's okay (privacy wise) and useful to inform that the user is already registred
 		return errorutil.Wrap(ErrUserAlreadyRegistred)
@@ -127,7 +127,7 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 		return errorutil.Wrap(err)
 	}
 
-	log.Println("Registering user", email, "with id", id)
+	log.Info().Msgf("Registering user %v with id %v", email, id)
 
 	return nil
 }
@@ -169,7 +169,7 @@ func generateKeys() ([][]byte, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	log.Println("Generated Session key with ", n, "bytes")
+	log.Info().Msgf("Generated Session key with %v bytes", n)
 
 	return [][]byte{sessionKey}, nil
 }

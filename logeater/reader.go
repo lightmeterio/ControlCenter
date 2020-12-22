@@ -2,12 +2,11 @@ package logeater
 
 import (
 	"bufio"
-	"io"
-	"log"
-	"time"
-
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"io"
+	"time"
 )
 
 func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
@@ -28,7 +27,7 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *pars
 	h, p, err := parser.Parse(line)
 
 	if !parser.IsRecoverableError(err) {
-		log.Printf("Invalid Postfix header: \"%s\"", string(line))
+		log.Info().Msgf("Invalid Postfix header: \"%s\"", string(line))
 		return
 	}
 

@@ -9,11 +9,11 @@ package logdb
 
 import (
 	"database/sql"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"log"
 )
 
 func findInserterForPayload(payload parser.Payload) func(*sql.Tx, data.Record) error {
@@ -51,19 +51,19 @@ var (
 
 func registerPayloadHandler(handler payloadHandler) {
 	if handler.down == nil {
-		log.Panicln("Down func is nil")
+		log.Panic().Msg("Down func is nil")
 	}
 
 	if handler.up == nil {
-		log.Panicln("Down func is nil")
+		log.Panic().Msg("Down func is nil")
 	}
 
 	if handler.filename == "" {
-		log.Panicln("filename is empty")
+		log.Panic().Msg("filename is empty")
 	}
 
 	if handler.database == "" {
-		log.Panicln("database name is empty")
+		log.Panic().Msg("database name is empty")
 	}
 
 	migrator.AddMigration(handler.database, handler.filename, handler.up, handler.down)

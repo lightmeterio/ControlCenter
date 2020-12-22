@@ -5,18 +5,17 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/data"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"log"
 	"path"
 	"regexp"
 	"sort"
 	"strconv"
 	"time"
-
-	"gitlab.com/lightmeter/controlcenter/data"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 type fileEntry struct {
@@ -661,7 +660,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 			initialTime.Location(),
 		),
 		func(int, parser.Time, parser.Time) {
-			log.Println("Changed Year on log queue", pattern)
+			log.Info().Msgf("Changed Year on log queue %s", pattern)
 		})
 
 	// workaround, make converter escape to the heap
@@ -688,7 +687,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 				return false, errorutil.Wrap(err)
 			}
 
-			log.Println("Finished importing log file:", p.entries[p.currentIndex].filename)
+			log.Info().Msgf("Finished importing log file: %v", p.entries[p.currentIndex].filename)
 
 			p.currentIndex++
 
@@ -795,7 +794,7 @@ func importExistingLogs(
 
 		if len(queueProcessors) == 0 {
 			elapsedTime := time.Since(initialImportTime)
-			log.Println("Finished importing postfix log directory in:", elapsedTime)
+			log.Info().Msgf("Finished importing postfix log directory in: %v", elapsedTime)
 
 			return nil
 		}
@@ -966,13 +965,13 @@ func startFileWatchers(
 		converterChan, ok := converterChans[pattern]
 
 		if !ok {
-			log.Fatalln("Failed to obtain offset chan for", pattern)
+			log.Fatal().Msgf("Failed to obtain offset chan for %s", pattern)
 		}
 
 		offsetChan, ok := offsetChans[pattern]
 
 		if !ok {
-			log.Fatalln("Failed to obtain offset chan for", pattern)
+			log.Fatal().Msgf("Failed to obtain offset chan for %s", pattern)
 		}
 
 		queueIndex := patternIndexes[pattern]

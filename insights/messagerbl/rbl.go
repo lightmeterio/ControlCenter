@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"net"
 	"time"
 )
@@ -84,7 +84,7 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 	// Don't do anything if there's already an insight for such host in the past
 	// MinTimeToGenerateNewInsight
 	if t.Add(d.options.MinTimeToGenerateNewInsight).After(now) {
-		log.Println("Ignoring RBL insight for host", r.Host, "that has been generated", now.Sub(t), "ago")
+		log.Info().Msgf("Ignoring RBL insight for host %v that has been generated %v ago", r.Host, now.Sub(t))
 		return nil
 	}
 

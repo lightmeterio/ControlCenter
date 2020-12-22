@@ -3,8 +3,8 @@ package httpmiddleware
 import (
 	"context"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -60,8 +60,7 @@ func RequestWithTimeout(defaultTimeout time.Duration) Middleware {
 			timeout, err := timeoutForRequest(r, defaultTimeout, MaxCustomTimeout)
 
 			if err != nil {
-				log.Println("Error reading Keep-Alive header", err)
-				return NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error reading Keep-Alive header"))
+				return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error reading Keep-Alive header"))
 			}
 
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
@@ -72,10 +71,10 @@ func RequestWithTimeout(defaultTimeout time.Duration) Middleware {
 
 			if deadline, ok := ctx.Deadline(); ok && ctx.Err() != nil {
 				elapsedTime := deadline.Sub(now)
-				return NewHTTPStatusCodeError(http.StatusRequestTimeout, errorutil.Wrap(err, "HTTP request", r.URL.Redacted(), "with timeout of", elapsedTime))
+				return httperror.NewHTTPStatusCodeError(http.StatusRequestTimeout, errorutil.Wrap(err, "HTTP request", r.URL.Redacted(), "with timeout of", elapsedTime))
 			}
 
-			return nil
+			return err
 		})
 	}
 }

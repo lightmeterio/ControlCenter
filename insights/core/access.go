@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"math"
 	"time"
 )
@@ -28,7 +28,7 @@ func (c Category) String() string {
 	case NoCategory:
 		fallthrough
 	default:
-		log.Panicln("Invalid category:", int(c))
+		log.Panic().Msgf("Invalid category: %d", int(c))
 		return ""
 	}
 }
@@ -89,7 +89,7 @@ func (r Rating) String() string {
 	case Unrated:
 		return "unrated"
 	default:
-		log.Panicln("Invalid/Unknown rating value:", int(r))
+		log.Panic().Msgf("Invalid/Unknown rating value: %d", int(r))
 		return ""
 	}
 }
@@ -267,7 +267,7 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]Fe
 	query, ok := f.queries[queryKey{order: options.OrderBy, filter: options.FilterBy}]
 
 	if !ok {
-		log.Panicln("Sql query for options", options, "not implemented!!!!")
+		log.Panic().Msgf("Sql query for options %v not implemented!!!!", options)
 	}
 
 	rows, err := query.q.QueryContext(ctx, query.p(options)...)
@@ -354,7 +354,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 		return 0, errorutil.Wrap(err)
 	}
 
-	log.Println("Generating an insight with the content: ", properties)
+	log.Info().Msgf("Generating an insight with the content: %v", properties)
 
 	contentTypeValue, err := ValueForContentType(properties.ContentType)
 

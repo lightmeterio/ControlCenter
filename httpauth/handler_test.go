@@ -1,13 +1,13 @@
-package httpauth
+package httpauth_test
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	"gitlab.com/lightmeter/controlcenter/httpauth"
+	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -82,9 +82,8 @@ func TestHTTPAuthV2(t *testing.T) {
 
 		mux := http.NewServeMux()
 
-		auth := httpauth.NewAuthenticatorWithOptions(registrar)
-		HttpAuthenticator(mux, auth)
-
+		auth := httpauthsub.NewAuthenticatorWithOptions(registrar)
+		httpauth.HttpAuthenticator(mux, auth)
 
 		s := httptest.NewServer(mux)
 
@@ -221,8 +220,6 @@ func TestHTTPAuthV2(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 					body, _ := ioutil.ReadAll(r.Body)
 
-					fmt.Println("test", string(body))
-
 					response := struct {
 						Error string
 					}{}
@@ -243,15 +240,6 @@ func TestHTTPAuthV2(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-				body, _ := ioutil.ReadAll(r.Body)
-
-				response := struct {
-					Error string
-				}{}
-
-				So(json.Unmarshal(body, &response), ShouldBeNil)
-				So(response.Error, ShouldEqual, "")
-
 				Convey("User logs out, returning to the login page", func() {
 					r, err := c.Get(s.URL + "/logout")
 					So(err, ShouldBeNil)
@@ -263,10 +251,6 @@ func TestHTTPAuthV2(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 						So(failedAttempts, ShouldEqual, 0)
-						body, _ := ioutil.ReadAll(r.Body)
-						response := struct{ Error string }{}
-						So(json.Unmarshal(body, &response), ShouldBeNil)
-						So(response.Error, ShouldEqual, "")
 					})
 
 					Convey("User can login again with posting more complex mime-type", func() {
@@ -275,10 +259,6 @@ func TestHTTPAuthV2(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 						So(failedAttempts, ShouldEqual, 0)
-						body, _ := ioutil.ReadAll(r.Body)
-						response := struct{ Error string }{}
-						So(json.Unmarshal(body, &response), ShouldBeNil)
-						So(response.Error, ShouldEqual, "")
 					})
 				})
 			})
@@ -297,14 +277,6 @@ func TestHTTPAuthV2(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-			body, _ := ioutil.ReadAll(r.Body)
-
-			response := struct {
-				Error string
-			}{}
-
-			So(json.Unmarshal(body, &response), ShouldBeNil)
-			So(response.Error, ShouldEqual, "")
 
 			// first user logs in
 			r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})

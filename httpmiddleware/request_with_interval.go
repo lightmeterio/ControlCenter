@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"net/url"
@@ -34,13 +35,13 @@ func RequestWithInterval(timezone *time.Location) Middleware {
 	return func(h CustomHTTPHandler) CustomHTTPHandler {
 		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 			if r.ParseForm() != nil {
-				return NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Wrong Input"))
+				return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Wrong Input"))
 			}
 
 			interval, err := intervalFromForm(timezone, r.Form)
 
 			if err != nil {
-				return NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Error parsing time interval:\""+err.Error()+"\""))
+				return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Error parsing time interval:\""+err.Error()+"\""))
 			}
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, Interval("interval"), interval)

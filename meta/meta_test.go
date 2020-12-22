@@ -20,7 +20,7 @@ func init() {
 
 func TestSimpleValues(t *testing.T) {
 	Convey("Test Meta", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		handler, err := NewHandler(conn, "master")
@@ -73,7 +73,7 @@ func TestSimpleValues(t *testing.T) {
 
 func TestJsonValues(t *testing.T) {
 	Convey("Test Json Values", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		handler, err := NewHandler(conn, "master")

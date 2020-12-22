@@ -14,7 +14,7 @@ func init() {
 
 func TestRunner(t *testing.T) {
 	Convey("Test Runner", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		handler, err := NewHandler(conn, "master")

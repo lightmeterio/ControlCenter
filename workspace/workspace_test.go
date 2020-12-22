@@ -29,7 +29,7 @@ func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
 
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
@@ -40,7 +40,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Empty Database is properly closed", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
@@ -50,7 +50,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Reopening workspace succeeds", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
@@ -62,7 +62,7 @@ func TestWorkspaceCreation(t *testing.T) {
 		})
 
 		Convey("Close workspace failed", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})

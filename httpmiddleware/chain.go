@@ -1,8 +1,14 @@
 package httpmiddleware
 
 import (
+	"context"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
-	"log"
+	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
 )
 
@@ -23,12 +29,12 @@ type Chain struct {
 }
 
 func WithDefaultStackWithoutAuth(middleware ...Middleware) Chain {
-	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithID()}, middleware...)
+	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout)}, middleware...)
 	return New(middleware...)
 }
 
 func WithDefaultStack(auth *auth.Authenticator, middleware ...Middleware) Chain {
-	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithSession(auth), RequestWithID()}, middleware...)
+	middleware = append([]Middleware{RequestWithTimeout(DefaultTimeout), RequestWithSession(auth)}, middleware...)
 	return New(middleware...)
 }
 
@@ -60,48 +66,66 @@ func (c Chain) WithError(endpoint CustomHTTPHandlerInterface) http.Handler {
 	return wrapWithErrorHandler(endpoint)
 }
 
+type RequestID string
+
+const RequestIDKey RequestID = "RequestIDKey"
+const LoggerKey string = "LoggerKey"
+
 func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		requestId := uuid.NewV4().String()
+
+		ctx := context.WithValue(r.Context(), RequestIDKey, requestId)
+		r = r.WithContext(ctx)
+
+		logger := LoggerWithHTTPContext(requestId)
+		//nolint:golint,staticcheck
+		ctx = context.WithValue(r.Context(), LoggerKey, &logger)
+		r = r.WithContext(ctx)
+
 		err := endpoint.ServeHTTP(w, r)
 		switch errType := err.(type) {
-		case *HttpCodeError:
-			if errType.statusCode >= 500 {
-				log.Println(err)
-				w.WriteHeader(errType.statusCode)
+		case httperror.XHTTPError:
+			if errType.StatusCode() >= 500 {
+				ctxlogger.LogErrorf(r.Context(), err, "Internal server error")
+				w.WriteHeader(errType.StatusCode())
 				return
 			}
-			http.Error(w, errType.err.Error(), errType.statusCode)
+
+			if errType.JSON() {
+
+				response := struct {
+					Error string
+				}{
+					Error: errType.Error(),
+				}
+
+				if err := httputil.WriteJson(w, response, errType.StatusCode()); err != nil {
+					ctxlogger.LogErrorf(r.Context(), err, "Internal server error")
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+				return
+			}
+
+			http.Error(w, errType.Error(), errType.StatusCode())
+
 		case error:
-			log.Println(err)
+			ctxlogger.LogErrorf(r.Context(), err, "Internal server error")
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})
 }
 
-// HTTPError represents an HTTP error with HTTP status code and error message
-type XHTTPError interface {
-	error
-	// StatusCode returns the HTTP status code of the error
-	StatusCode() int
-}
+// Logger returns a logger with http context
+func LoggerWithHTTPContext(requestId string) zerolog.Logger {
+	newLogger := log.Logger
 
-type HttpCodeError struct {
-	statusCode int
-	err        error
-}
+	if requestId != "" {
+		newLogger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("requestID", requestId)
+		})
+	}
 
-// NewHTTPStatusCodeError creates a new HttpError instance.
-// to generate the message based on the status code.
-func NewHTTPStatusCodeError(code int, err error) XHTTPError {
-	return &HttpCodeError{statusCode: code, err: err}
-}
-
-func (e *HttpCodeError) Error() string {
-	return http.StatusText(e.statusCode)
-}
-
-// StatusCode returns the HTTP status code.
-func (e *HttpCodeError) StatusCode() int {
-	return e.statusCode
+	return newLogger
 }

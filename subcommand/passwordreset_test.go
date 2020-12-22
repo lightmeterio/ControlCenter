@@ -16,7 +16,7 @@ func init() {
 func TestDatabaseRegisterUsername(t *testing.T) {
 	Convey("Password reset", t, func() {
 		Convey("Do password reset", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			auth, err := auth.NewAuth(dir, auth.Options{})

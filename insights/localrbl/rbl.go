@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"net"
 	"time"
 )
@@ -121,7 +121,7 @@ func shouldGenerateBasedOnHistoricalDataAndCurrentResults(ctx context.Context, d
 	resultChanged := contentsHaveDifferentLists(r.RBLs, v.(*content).RBLs)
 
 	if !resultChanged {
-		log.Println("RBL Scan result will not generate a new insight as scan results have not changed since last insight")
+		log.Info().Msg("RBL Scan result will not generate a new insight as scan results have not changed since last insight")
 	}
 
 	return resultChanged, nil

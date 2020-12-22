@@ -2,7 +2,7 @@ package errorutil
 
 import (
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 	"runtime"
 )
@@ -28,7 +28,7 @@ func MustSucceed(err error, msg ...string) {
 		errorMsg = fmt.Sprintf("FAILED: %s:%d, message:\"%s\", errors:\b", file, line, msg[0])
 	}
 
-	log.Println(errorMsg)
+	log.Error().Msg(errorMsg)
 
 	if wrappedErr, ok := err.(*Error); ok {
 		panic("\n" + wrappedErr.Chain().Error())
@@ -37,20 +37,30 @@ func MustSucceed(err error, msg ...string) {
 	panic(err)
 }
 
-func Die(verbose bool, err error, msg ...interface{}) {
-	expandError := func(err error) error {
-		if e, ok := err.(*Error); ok {
-			return e.Chain()
-		}
-
-		return err
-	}
-
-	log.Println(msg...)
+func Dief(verbose bool, err error, format string, values ...interface{}) {
+	log.Error().Msgf(format, values...)
 
 	if verbose {
-		log.Println("Detailed Error:\n", expandError(err).Error())
+		LogErrorf(err, "Detailed error")
 	}
 
 	os.Exit(1)
+}
+
+func LogErrorf(err error, format string, args ...interface{}) {
+	v := ExpandError(err)
+	log.Error().Interface("error", v).Msgf(format, args...)
+}
+
+func LogFatalf(err error, format string, args ...interface{}) {
+	v := ExpandError(err)
+	log.Fatal().Interface("error", v).Msgf(format, args...)
+}
+
+func ExpandError(err error) interface{} {
+	if e, ok := err.(*Error); ok {
+		return e.Chain().JSON()
+	}
+
+	return err
 }

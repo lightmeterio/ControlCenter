@@ -23,7 +23,7 @@ func init() {
 
 func TestWelcomeInsights(t *testing.T) {
 	Convey("Test Welcome Generator", t, func() {
-		accessor, clear := insighttestsutil.NewFakeAccessor()
+		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
 
 		connPair := accessor.ConnPair

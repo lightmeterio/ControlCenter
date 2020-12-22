@@ -9,8 +9,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"log"
 	"sync"
+	"testing"
 	"time"
 )
 
@@ -54,27 +54,27 @@ func (c *FakeAccessor) GenerateInsight(tx *sql.Tx, properties core.InsightProper
 
 // NewFakeAccessor returns an acessor that implements core.Fetcher and core.Creator
 // using a temporary database that should be delete using clear()
-func NewFakeAccessor() (acessor *FakeAccessor, clear func()) {
-	connPair, removeDir := testutil.TempDBConnection("insights")
+func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
+	connPair, removeDir := testutil.TempDBConnection(t, "insights")
 
 	if err := migrator.Run(connPair.RwConn.DB, "insights"); err != nil {
-		log.Panicln(err)
+		t.Fatal(err)
 	}
 
 	creator, err := core.NewCreator(connPair.RwConn)
 	if err != nil {
-		log.Panicln(err)
+		t.Fatal(err)
 	}
 
 	fetcher, err := core.NewFetcher(connPair.RoConn)
 	if err != nil {
-		log.Panicln(err)
+		t.Fatal(err)
 	}
 
 	return &FakeAccessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}, ConnPair: connPair},
 		func() {
 			if connPair.Close(); err != nil {
-				log.Panicln(err)
+				t.Fatal(err)
 			}
 
 			removeDir()

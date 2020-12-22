@@ -30,7 +30,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 		d := mock_dashboard.NewMockDashboard(ctrl)
 
-		accessor, clear := insighttestsutil.NewFakeAccessor()
+		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
 
 		connPair := accessor.ConnPair

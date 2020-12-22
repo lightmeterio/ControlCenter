@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"log"
@@ -74,10 +76,6 @@ func NewAuthenticatorWithOptions(
 
 const SessionName = "controlcenter"
 
-type loginResponse struct {
-	Error string
-}
-
 func handleForm(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("Error http method mismatch: %v", r.Method)
@@ -99,12 +97,9 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
+func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	email := r.Form.Get("email")
@@ -113,43 +108,27 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
 	authOk, userData, err := auth.auth.Authenticate(r.Context(), email, password)
 
 	if err != nil {
-		log.Println("Error on authentication:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("authentication: %v", err))
 	}
 
 	if !authOk {
-		if err := httputil.WriteJson(w, loginResponse{Error: "Invalid email address or password"}, http.StatusUnauthorized); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-
-			return
-		}
-
-		return
+		return httperror.NewHttpCodeJsonError(http.StatusUnauthorized, errors.New("Invalid email address or password"))
 	}
 
 	session, err := auth.Store.New(r, SessionName)
 	if err != nil {
-		log.Println("Error creating new session:", errorutil.Wrap(err))
+		ctxlogger.LogErrorf(r.Context(), errorutil.Wrap(err), "creating new session")
 	}
 
 	session.Values["auth"] = SessionData{Email: email, Name: userData.Name}
 
 	if err := session.Save(r, w); err != nil {
-		log.Println("Error saving session on Login:", errorutil.Wrap(err))
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on login: %v", err))
 	}
 
-	if err := httputil.WriteJson(w, loginResponse{Error: ""}, http.StatusOK); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
 
-		return
-	}
+	return nil
 }
 
 type registrationResponse struct {
@@ -157,7 +136,7 @@ type registrationResponse struct {
 	Detailed interface{}
 }
 
-func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request) {
+func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request) error {
 	response := registrationResponse{
 		Error: errorutil.TryToUnwrap(err).Error(),
 
@@ -172,11 +151,10 @@ func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request
 	}
 
 	if err := httputil.WriteJson(w, response, http.StatusUnauthorized); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
+
+	return nil
 }
 
 func extractRegistrationFormInfo(r *http.Request) (string, string, string, error) {
@@ -198,56 +176,41 @@ func extractRegistrationFormInfo(r *http.Request) (string, string, string, error
 	return email[0], name[0], password[0], nil
 }
 
-func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
+func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	email, name, password, err := extractRegistrationFormInfo(r)
 
 	if err != nil {
-		log.Println("Registration error:", err)
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Registration: %v", err))
 	}
 
 	if err := auth.auth.Register(r.Context(), email, name, password); err != nil {
-		handleRegistrationFailure(err, w, r)
-
-		return
+		return handleRegistrationFailure(err, w, r)
 	}
 
 	session, err := auth.Store.New(r, SessionName)
 	if err != nil {
-		log.Println("Error creating new session:", errorutil.Wrap(err))
+		ctxlogger.LogErrorf(r.Context(), errorutil.Wrap(err), "creating new session")
 	}
 
 	// Implicitly log in
 	session.Values["auth"] = SessionData{Email: email, Name: name}
 	if err := session.Save(r, w); err != nil {
-		log.Println("Error saving session on Login:", errorutil.Wrap(err))
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %v", err))
 	}
 
-	if err := httputil.WriteJson(w, registrationResponse{}, http.StatusOK); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
 
-		return
-	}
+	return nil
 }
 
-func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Session) {
+func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Session) error {
 	sessionData, ok := session.Values["auth"].(*SessionData)
 	if !(ok && sessionData.IsAuthenticated()) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
 	log.Println("User", sessionData.Email, "logs out")
@@ -255,39 +218,34 @@ func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Sess
 	session.Values["auth"] = nil
 
 	if err := session.Save(r, w); err != nil {
-		log.Println("Error saving session on Login:", errorutil.Wrap(err))
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %v", err))
 	}
+
+	return nil
 }
 
 // do not redirect to any page
-func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *http.Request) {
+func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	hasAnyUser, err := auth.auth.HasAnyUser(r.Context())
 	if err != nil {
-		log.Println("Error check has any users: ", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(fmt.Errorf("check has any users: %v", err)))
 	}
 
 	if !hasAnyUser {
-		w.WriteHeader(http.StatusForbidden)
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusForbidden, errors.New("forbidden"))
 	}
 
 	session, err := auth.Store.Get(r, SessionName)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
 	sessionData, ok := session.Values["auth"].(*SessionData)
 	if !(ok && sessionData.IsAuthenticated()) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	return nil
 }

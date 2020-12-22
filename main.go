@@ -3,13 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/logeater"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
-	"log"
 	"os"
 	"time"
 
@@ -20,8 +22,6 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-
 	var (
 		shouldWatchFromStdin      bool
 		workspaceDirectory        string
@@ -35,9 +35,8 @@ func main() {
 		verbose                   bool
 		emailToPasswdReset        string
 		passwordToReset           string
-
-		timezone *time.Location = time.UTC
-		logYear  int
+		timezone                  *time.Location = time.UTC
+		logYear                   int
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -66,6 +65,14 @@ func main() {
 
 	flag.Parse()
 
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Str("instanceid", uuid.NewV4().String()).Caller().Logger()
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	if verbose {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+
 	if showVersion {
 		printVersion()
 		return
@@ -84,7 +91,7 @@ func main() {
 	}
 
 	if len(dirToWatch) == 0 && !shouldWatchFromStdin && !importOnly {
-		errorutil.Die(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
+		errorutil.Dief(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
 	}
 
 	if importOnly {
@@ -97,12 +104,12 @@ func main() {
 	})
 
 	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files:", workspaceDirectory, ". Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.")
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", workspaceDirectory)
 	}
 
 	go func() {
 		<-ws.Run()
-		log.Panicln("Error: Workspace execution has ended, which should never happen here!")
+		log.Panic().Msg("Error: Workspace execution has ended, which should never happen here!")
 	}()
 
 	func() {
@@ -128,33 +135,32 @@ func main() {
 }
 
 func printVersion() {
-	fmt.Fprintf(os.Stderr, "Lightmeter ControlCenter %s\n", version.Version)
+	log.Info().Msgf("Lightmeter ControlCenter %s", version.Version)
 }
 
 func runWatchingDirectory(ws *workspace.Workspace, dirToWatch string, verbose bool) {
 	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
 
 	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening directory:", dirToWatch)
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening directory: %v", dirToWatch)
 	}
 
 	initialTime := ws.MostRecentLogTime()
 
 	func() {
 		if initialTime.IsZero() {
-			log.Println("Start importing Postfix logs directory into a new workspace")
+			log.Info().Msg("Start importing Postfix logs directory into a new workspace")
 			return
 		}
 
-		log.Println("Importing Postfix logs directory from time", initialTime)
+		log.Info().Msgf("Importing Postfix logs directory from time %v", initialTime)
 	}()
 
 	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
 
 	go func() {
 		if err := watcher.Run(); err != nil {
-			fmt.Println(err)
-			errorutil.Die(verbose, errorutil.Wrap(err), "Error watching directory:", dirToWatch)
+			errorutil.Dief(verbose, errorutil.Wrap(err), "Error watching directory: %v", dirToWatch)
 		}
 	}()
 }

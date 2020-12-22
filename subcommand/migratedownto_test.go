@@ -40,7 +40,7 @@ func init() {
 func TestDatabaseMigrationUp(t *testing.T) {
 	Convey("Migration succeeds", t, func() {
 		Convey("Run dummy migrations", func() {
-			dir, clearDir := testutil.TempDir()
+			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
 			dbPath := path.Join(dir, "dummy.db")
