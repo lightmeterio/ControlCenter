@@ -79,7 +79,7 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
-		ReOpen:    false,
+		ReOpen:    true,
 		Logger:    tail.DefaultLogger,
 		MustExist: true,
 		Location:  &tail.SeekInfo{Offset: offset, Whence: io.SeekStart},
