@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"PO-Revision-Date: 2020-12-21 16:05+0000\n"
+"PO-Revision-Date: 2020-12-22 09:47+0000\n"
 "Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.lightmeter.io/projects/"
 "controlcenter/frontend/pt_BR/>\n"
@@ -99,6 +99,10 @@ msgid ""
 "improve your experience and may be <a target=\"_blank\" href=\"https://"
 "lightmeter.io/privacy-policy/\">disabled</a> at any time"
 msgstr ""
+"Dados sobre uso do aplicativo são compartilhados com um sistema analytics "
+"privado visando melhorar sua experiência e pode ser <a target=\"_blank\" "
+"href=\"https://lightmeter.io/privacy-policy/\">desativado</a> a qualquer "
+"momento"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:8
 msgid "Feedback"
@@ -182,7 +186,7 @@ msgstr ""
 
 #: frontend/controlcenter/src/components/auth-page-footer.vue:3
 msgid "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
-msgstr ""
+msgstr "Feito com %{heart} por %{openLink}profissionais Open Source%{closeLink}"
 
 #: frontend/controlcenter/src/components/insights.vue:53
 msgid "Mail Inactivity"
@@ -243,6 +247,9 @@ msgid ""
 "%{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if "
 "you've done it before."
 msgstr ""
+"Por favor crie uma conta de admnistrador, necessário para o login. "
+"%{openHelpLink}Obtenha ajuda%{closeHelpLink} para evitar este processo "
+"novamente caso você já o tenha feito antes."
 
 #: frontend/controlcenter/src/views/settingspage.vue:47
 msgid "Please enter api token"
@@ -309,7 +316,7 @@ msgstr "Notificações no Slack"
 
 #: frontend/controlcenter/src/views/register.vue:53
 msgid "Subscribe to newsletter"
-msgstr ""
+msgstr "Inscreva-se no boletim informativo"
 
 #: frontend/controlcenter/src/views/register.vue:57
 msgid "System details"
@@ -325,7 +332,7 @@ msgstr "Telemetria ativada"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:6
 msgid "Thank you for using Lightmeter"
-msgstr ""
+msgstr "Obrigado por utilizar Lightmeter"
 
 #: frontend/controlcenter/src/components/insights.vue:102
 msgid "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
@@ -353,10 +360,8 @@ msgstr ""
 "informações"
 
 #: frontend/controlcenter/src/views/index.vue:48
-#, fuzzy
-#| msgid "Time interval:"
 msgid "Time interval"
-msgstr "Intervalo de tempo:"
+msgstr "Intervalo de tempo"
 
 #: frontend/controlcenter/src/components/insights.vue:149
 msgid "Title for %{content}"
@@ -372,7 +377,7 @@ msgstr "Detalhes de usuários"
 
 #: frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Version"
-msgstr ""
+msgstr "Versão"
 
 #: frontend/controlcenter/src/lib/api.js:100
 msgid "Vulnerable to: %{description}."
