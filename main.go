@@ -78,6 +78,10 @@ func main() {
 		return
 	}
 
+	liabilityDisclamer := `This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see here for details: https://lightmeter.io/lmcc-license.`
+
+	log.Info().Msg(liabilityDisclamer)
+
 	lmsqlite3.Initialize(lmsqlite3.Options{"domain_mapping": domainmapping.DefaultMapping})
 
 	if migrateDownToOnly {
