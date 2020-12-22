@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -71,7 +72,7 @@ func (h *Settings) HttpSetup(mux *http.ServeMux, auth *auth.Authenticator) {
 
 func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+		return httperror.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
 	}
 
 	if r.Method == http.MethodGet {
@@ -80,12 +81,12 @@ func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error
 
 	kind := r.URL.Query().Get("setting")
 	if kind == "" {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error query parameter setting is missing"))
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error query parameter setting is missing"))
 	}
 
 	handler, ok := h.handlers[kind]
 	if !ok {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error handler type is not supported"))
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Error handler type is not supported"))
 	}
 
 	return handler(w, r)
@@ -97,7 +98,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// so that /settings?setting=initialSetup does the job of /settings/initialSetup, and so on...
 	// TODO: make this endpoint part of the API, on /api/v0/settings
 	if r.Method != http.MethodGet {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+		return httperror.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
 	}
 
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
@@ -120,7 +121,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, h.reader)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if slackSettings != nil {
@@ -135,7 +136,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	err = h.reader.RetrieveJson(ctx, globalsettings.SettingsKey, &globalSettings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if err == nil {
@@ -148,7 +149,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	localIPRaw := r.Form.Get("postfixPublicIP")
@@ -157,21 +158,21 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 	if appLanguage == "" && localIPRaw == "" {
 		err := errorutil.Wrap(errors.New("values are missing"))
 
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	var localIP net.IP
 	if localIPRaw != "" {
 		localIP = net.ParseIP(localIPRaw)
 		if localIP == nil {
-			return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 		}
 	}
 
 	if appLanguage != "" && !po.IsLanguageSupported(appLanguage) {
 		err := errorutil.Wrap(fmt.Errorf("Error app language option is bad %v", appLanguage))
 
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	currentSettings := globalsettings.Settings{}
@@ -179,13 +180,13 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 	err := h.reader.RetrieveJson(r.Context(), globalsettings.SettingsKey, &currentSettings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 
 	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage}
 
 	if err := mergo.Merge(&s, currentSettings); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error handling settings"))
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error handling settings"))
 	}
 
 	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
@@ -193,18 +194,18 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 	select {
 	case err := <-result.Done():
 		if err != nil {
-			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
 
 		return nil
 	case <-r.Context().Done():
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
 	}
 }
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	subscribe, err := func() (bool, error) {
@@ -227,7 +228,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 
 	if err != nil {
 		err = errorutil.Wrap(err, "Error parsing subscribe option")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	email, err := func() (string, error) {
@@ -252,7 +253,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 
 	if err != nil {
 		err = errorutil.Wrap(err, "Error getting email address")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	mailKind := r.Form.Get("email_kind")
@@ -265,14 +266,14 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 
 	if err != nil {
 		err = errorutil.Wrap(err, "Error setting initial options")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	appLanguage := r.Form.Get("app_language")
 	if appLanguage != "" && !po.IsLanguageSupported(appLanguage) {
 		err := errorutil.Wrap(fmt.Errorf("Error app language option is bad %v", appLanguage))
 
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	s := globalsettings.Settings{APPLanguage: appLanguage}
@@ -283,7 +284,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		if postfixPublicIp != "" {
 			localIP = net.ParseIP(postfixPublicIp)
 			if localIP == nil {
-				return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
+				return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 			}
 		}
 
@@ -295,54 +296,54 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	select {
 	case err := <-result.Done():
 		if err != nil {
-			return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
 
 		return nil
 	case <-r.Context().Done():
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
 	}
 }
 
 func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	messengerKind := r.Form.Get("messenger_kind")
 	if messengerKind != "slack" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerToken := r.Form.Get("messenger_token")
 	if messengerToken == "" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger token option is bad %v", messengerToken))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerChannel := r.Form.Get("messenger_channel")
 	if messengerChannel == "" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerEnabled := r.Form.Get("messenger_enabled")
 	if messengerEnabled != "false" && messengerEnabled != "true" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger enabled option is bad %v", messengerEnabled))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	messengerLanguage := r.Form.Get("messenger_language")
 	if messengerLanguage == "" {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is missing %v", messengerLanguage))
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	if !po.IsLanguageSupported(messengerLanguage) {
 		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is bad %v", messengerLanguage))
 
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	slackNotificationsSettings := settings.SlackNotificationsSettings{
@@ -355,12 +356,12 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 
 	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
 		err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
 	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
 		err := errorutil.Wrap(err, "Error notification setting options")
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	return nil

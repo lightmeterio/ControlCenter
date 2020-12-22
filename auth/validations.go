@@ -2,9 +2,9 @@ package auth
 
 import (
 	"errors"
+	"github.com/rs/zerolog/log"
 	"github.com/trustelem/zxcvbn"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
-	"log"
 	"strings"
 )
 
@@ -49,10 +49,10 @@ func (e *PasswordValidationError) Error() string {
 func validatePassword(email, name, password string) error {
 	strength := zxcvbn.PasswordStrength(password, []string{email, name})
 
-	log.Println("Requested to register password with strength score:", strength.Score, "and calc time:", strength.CalcTime)
+	log.Info().Msgf("Requested to register password with strength score: %d and calc time: %f", strength.Score, strength.CalcTime)
 
 	if strength.Score < 3 {
-		log.Println("Registration request denied due weak password")
+		log.Info().Msg("Registration request denied due weak password")
 		return &PasswordValidationError{err: ErrWeakPassword, Result: PasswordErrorDetailedDescription(strength)}
 	}
 

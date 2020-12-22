@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"log"
 	"sync"
 	"testing"
 	"time"
@@ -62,6 +61,7 @@ type fakeValue struct {
 }
 
 type fakeDetector struct {
+	t *testing.T
 	// added just to silent the race detector during tests
 	sync.Mutex
 	creator   *creator
@@ -111,7 +111,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 	v := *p
 
-	log.Println("New Fake Insight at time", clock.Now())
+	d.t.Log("New Fake Insight at time ", clock.Now())
 
 	if err := d.creator.GenerateInsight(tx, core.InsightProperties{
 		Time:        clock.Now(),
@@ -130,12 +130,12 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		nc := &fakeNotificationCenter{}
 
-		detector := &fakeDetector{}
+		detector := &fakeDetector{t:t}
 
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn) error { return nil }
 

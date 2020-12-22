@@ -1,13 +1,11 @@
 package errorutil
 
 import (
-	"log"
+	"errors"
 	"path"
 	"runtime"
 	"strings"
 	"testing"
-
-	"errors"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -73,7 +71,7 @@ func TestErrorWrapping(t *testing.T) {
 	Convey("Errors chain", t, func() {
 		countLines := func(c ErrorChain) int {
 			msg := strings.Trim(c.Error(), "\n")
-			log.Println("{", msg, "}")
+			t.Log("{", msg, "}")
 			return len(strings.Split(msg, "\n"))
 		}
 
@@ -87,9 +85,9 @@ func TestErrorWrapping(t *testing.T) {
 			So(Chain(e4), ShouldResemble, ErrorChain{e4, e3, e2, e1})
 			So(errors.Is(e4, e1), ShouldBeTrue)
 
-			So(countLines(Chain(e2)), ShouldEqual, 2)
-			So(countLines(Chain(e3)), ShouldEqual, 3)
-			So(countLines(Chain(e4)), ShouldEqual, 4)
+			So(countLines(Chain(e2)), ShouldEqual, 1)
+			So(countLines(Chain(e3)), ShouldEqual, 1)
+			So(countLines(Chain(e4)), ShouldEqual, 1)
 
 			Convey("Unwrap", func() {
 				So(TryToUnwrap(nil), ShouldBeNil)
@@ -113,8 +111,8 @@ func TestErrorWrapping(t *testing.T) {
 			So(errors.Is(e4, e3), ShouldBeTrue)
 			So(errors.Is(e3, e4), ShouldBeFalse)
 
-			So(countLines(Chain(e3)), ShouldEqual, 3)
-			So(countLines(Chain(e4)), ShouldEqual, 4)
+			So(countLines(Chain(e3)), ShouldEqual, 1)
+			So(countLines(Chain(e4)), ShouldEqual, 1)
 
 			Convey("Unwrap", func() {
 				So(TryToUnwrap(e1), ShouldEqual, e1)

@@ -12,8 +12,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"math"
 	"path/filepath"
 	"time"
@@ -83,7 +83,7 @@ func Up(db *sql.DB, databaseName string) error {
 		next, err := migrations.Next(current)
 		if err != nil {
 			if err == goose.ErrNoNextVersion {
-				log.Printf("no migrations to run. current version: %d\n", current)
+				log.Info().Msgf("no migrations to run. current version: %d", current)
 				return nil
 			}
 
@@ -193,10 +193,9 @@ func Status(db *sql.DB, databaseName string) error {
 		return errors.Wrap(err, "failed to ensure DB version")
 	}
 
-	log.Print("\n")
-	log.Printf("    Database name               %v \n", databaseName)
-	log.Println("    Applied At                  Migration")
-	log.Println("    =======================================")
+	log.Info().Msgf("    Database name               %v", databaseName)
+	log.Info().Msgf("    Applied At                  Migration")
+	log.Info().Msgf("    =======================================")
 
 	for _, migration := range migrations {
 		if err := printMigrationStatus(db, migration.Version, filepath.Base(migration.Source)); err != nil {
@@ -226,7 +225,7 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 		return "Pending"
 	}()
 
-	log.Printf("    %-24s -- %v\n", appliedAt, script)
+	log.Info().Msgf("    %-24s -- %v", appliedAt, script)
 
 	return nil
 }

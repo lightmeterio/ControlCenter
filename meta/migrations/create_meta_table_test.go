@@ -17,7 +17,7 @@ func init() {
 
 func TestDatabaseMigrationUp(t *testing.T) {
 	Convey("Migration succeeds", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		Convey("Run auth migrations", func() {

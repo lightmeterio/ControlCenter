@@ -3,8 +3,8 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"reflect"
 )
 
@@ -48,7 +48,7 @@ func RegisterContentType(contentType string, value int, handler decoderHandler) 
 	c, ok := reverseConverters[value]
 
 	if ok {
-		log.Panicln("A content converter with value", value, "is already registred:", c, ". You must use a different and unique number!")
+		log.Panic().Msgf("A content converter with value %d is already registered: %s. You must use a different and unique number!", value, c)
 		return
 	}
 

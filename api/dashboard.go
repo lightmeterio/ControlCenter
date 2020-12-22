@@ -6,6 +6,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -34,17 +35,17 @@ func (h countByStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	sent, err := h.dashboard.CountByStatus(r.Context(), parser.SentStatus, interval)
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	deferred, err := h.dashboard.CountByStatus(r.Context(), parser.DeferredStatus, interval)
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	bounced, err := h.dashboard.CountByStatus(r.Context(), parser.BouncedStatus, interval)
 	if err != nil {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
 	return httputil.WriteJson(w, countByStatusResult{

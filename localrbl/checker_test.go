@@ -26,7 +26,7 @@ func init() {
 
 func TestDnsRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		meta, err := meta.NewHandler(conn, "master")

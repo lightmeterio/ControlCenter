@@ -5,7 +5,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -35,7 +34,7 @@ func TestSession(t *testing.T) {
 			loginHandler := func(w http.ResponseWriter, r *http.Request)  {
 				session, err := authenticator.Store.New(r, auth.SessionName)
 				if err != nil {
-					log.Println("Error creating new session:", errorutil.Wrap(err))
+					t.Log("Error creating new session:", errorutil.Wrap(err))
 				}
 
 				// Implicitly log in

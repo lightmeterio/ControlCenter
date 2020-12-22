@@ -10,7 +10,7 @@ import (
 
 func TestOnlyImportLogs(t *testing.T) {
 	Convey("Only Import Logs", t, func() {
-		dir, clearDir := testutil.TempDir()
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		Convey("Read three lines", func() {

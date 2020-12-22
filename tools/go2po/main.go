@@ -4,16 +4,18 @@ import (
 	"flag"
 	"fmt"
 	"github.com/chai2010/gettext-go/po"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/tools/poutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var langFileRegexp = regexp.MustCompile(`.*\/([^/]+)\/LC_MESSAGES\/`)
@@ -30,24 +32,29 @@ func main() {
 
 	flag.Parse()
 
-	log.Println("parse all files in dir")
+	log.Info().Msg("parse all files in dir")
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	if *debugMode {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 
 	fset := token.NewFileSet()
 
 	pkgs, err := ParseAllDir(fset, *rootDir, func(os.FileInfo) bool { return true }, parser.ParseComments, *debugMode)
 	if err != nil {
-		log.Panicln(err)
+		log.Panic().Err(err).Msg("could not parse dir")
 	}
 
-	log.Println("files count: ", len(pkgs))
-	log.Println("iterate over all files and extract all language keys")
+	log.Info().Msgf("files count: %v", len(pkgs))
+	log.Info().Msgf("iterate over all files and extract all language keys")
 
 	for _, v := range pkgs {
 		for _, vv := range v.Files {
-			if *debugMode {
-				log.Println("file: ", vv.Name)
-			}
-
+			log.Debug().Msgf("file: %v", vv.Name)
 			ast.Walk(VisitorFunc(FindLangaugeKeys(*debugMode, fset)), vv)
 		}
 	}
@@ -98,13 +105,11 @@ const FuncI18n = "I18n"
 // nolint:gocriticm,nestif
 func FindLangaugeKeys(debugMode bool, fset *token.FileSet) func(n ast.Node) ast.Visitor {
 	return func(n ast.Node) ast.Visitor {
-		if debugMode {
-			log.Println("")
-			log.Println("ast node:")
-			log.Println(fmt.Sprintf("verbose value: %#v", n))
-			log.Println(fmt.Sprintf("type: %T", n))
-			log.Println(fmt.Sprintf("value: %v", n))
-		}
+		log.Debug().Msgf("")
+		log.Debug().Msgf("ast node:")
+		log.Debug().Msgf("verbose value: %#v", n)
+		log.Debug().Msgf("type: %T", n)
+		log.Debug().Msgf("value: %v", n)
 
 		switch n := n.(type) {
 		case *ast.Package:
@@ -129,9 +134,7 @@ func FindLangaugeKeys(debugMode bool, fset *token.FileSet) func(n ast.Node) ast.
 
 			filename := fset.File(n.Pos()).Name()
 			line := fset.File(n.Pos()).Line(n.Pos())
-			if debugMode {
-				log.Println("file:", filename, " line:", line)
-			}
+			log.Debug().Msgf("file: %s line: %d", filename, line)
 
 			if _, ok := n.Fun.(*ast.SelectorExpr); ok {
 				if n.Fun.(*ast.SelectorExpr).Sel.Name == FuncI18n {
@@ -169,7 +172,7 @@ func FindLangaugeKeys(debugMode bool, fset *token.FileSet) func(n ast.Node) ast.
 func MustStoreID(expr ast.Expr, filename string, line int) {
 	err := StoreMsgID(expr, filename, line)
 	if err != nil {
-		log.Println(err)
+		errorutil.LogErrorf(err, "the expression is bad")
 		os.Exit(1)
 	}
 }
@@ -181,7 +184,7 @@ func StoreMsgID(e ast.Expr, filename string, line int) error {
 				return r == '"' || r == '`'
 			})
 
-			log.Println("MsgId: ", cleanValue)
+			log.Info().Msgf("MsgId: %s", cleanValue)
 
 			message := po.Message{
 				MsgId:  cleanValue,
@@ -214,9 +217,7 @@ func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool
 
 		if strings.HasSuffix(info.Name(), ".go") && (filter == nil || filter(info)) {
 
-			if debugMode {
-				fmt.Println("file: ", filepath.Join(path, info.Name()))
-			}
+			log.Debug().Msgf("file: %s", filepath.Join(path, info.Name()))
 
 			if src, err := parser.ParseFile(fset, path, nil, mode); err == nil {
 				name := src.Name.Name
@@ -233,8 +234,8 @@ func ParseAllDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool
 				return errorutil.Wrap(err)
 			}
 		} else {
-			if debugMode && info.IsDir() {
-				fmt.Println("dir: ", path)
+			if info.IsDir() {
+				log.Debug().Msgf("dir: %s", path)
 			}
 		}
 		return nil

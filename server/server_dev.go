@@ -3,8 +3,7 @@
 package server
 
 import (
-	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
 )
@@ -33,5 +32,5 @@ func preflightHandler(w http.ResponseWriter, r *http.Request) {
 
 	methods := []string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}
 	w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
-	log.Println(fmt.Sprintf("preflight request for %s", r.URL.Path))
+	log.Info().Msgf("preflight request for %s", r.URL.Path)
 }

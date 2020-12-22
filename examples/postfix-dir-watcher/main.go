@@ -8,8 +8,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	"os"
 	"runtime"
@@ -34,10 +34,10 @@ func (p *pub) Publish(r data.Record) {
 	})
 
 	if err != nil {
-		log.Fatalln("JSON Error:", err)
+		log.Panic().Err(err).Msgf("JSON Error")
 	}
 
-	fmt.Println(string(j))
+	log.Info().Msgf(string(j))
 }
 
 func (p *pub) Close() {
@@ -55,23 +55,23 @@ func main() {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			log.Fatal("could not create CPU profile: ", err)
+			errorutil.LogFatalf(err, "could not create CPU profile")
 		}
 		defer f.Close() // error handling omitted for example
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal("could not start CPU profile: ", err)
+			errorutil.LogFatalf(err, "could not start CPU profile")
 		}
 		defer pprof.StopCPUProfile()
 	}
 
 	if len(*dirToWatch) == 0 {
-		log.Fatalln("-dir is mandatory!")
+		log.Fatal().Msg("-dir is mandatory!")
 	}
 
 	content, err := dirwatcher.NewDirectoryContent(*dirToWatch)
 
 	if err != nil {
-		log.Fatalln("Error:", err)
+		errorutil.LogFatalf(err, "could not init content")
 	}
 
 	initialTime := time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -81,19 +81,19 @@ func main() {
 	watcher := dirwatcher.NewDirectoryImporter(content, &pub, initialTime)
 
 	if err := watcher.ImportOnly(); err != nil {
-		log.Fatalln("Error: ", err)
+		errorutil.LogFatalf(err,"import only")
 	}
 
 	// copied from https://golang.org/pkg/runtime/pprof/
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-			log.Fatal("could not create memory profile: ", err)
+			errorutil.LogFatalf(err, "could not create memory profile")
 		}
 		defer f.Close() // error handling omitted for example
 		runtime.GC()    // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
+			errorutil.LogFatalf(err, "could not write memory profile")
 		}
 	}
 }

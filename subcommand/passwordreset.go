@@ -2,9 +2,9 @@ package subcommand
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"time"
 )
 
@@ -12,7 +12,7 @@ func PerformPasswordReset(verbose bool, workspaceDirectory, emailToReset, passwo
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error opening auth database:", err)
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening auth database")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -20,12 +20,12 @@ func PerformPasswordReset(verbose bool, workspaceDirectory, emailToReset, passwo
 	defer cancel()
 
 	if err := auth.ChangePassword(ctx, emailToReset, passwordToReset); err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error resetting password:", err)
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error resetting password")
 	}
 
 	if err := auth.Close(); err != nil {
-		errorutil.Die(verbose, errorutil.Wrap(err), "Error closing auth database:", err)
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error closing auth database")
 	}
 
-	log.Println("Password for user", emailToReset, "reset successfully")
+	log.Info().Msgf("Password for user %s reset successfully", emailToReset)
 }

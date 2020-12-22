@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,7 +38,7 @@ func encodeBody(reader io.Reader) (string, error) {
 
 	defer func() {
 		if err := encoder.Close(); err != nil {
-			log.Println("could not close base64 encoder ", errorutil.Wrap(err))
+			errorutil.LogErrorf(errorutil.Wrap(err), "could not close base64 encoder")
 		}
 	}()
 
@@ -81,14 +81,14 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 		return errorutil.Wrap(err)
 	}
 
-	log.Println("Subscribe response:", body)
+	log.Info().Msgf("Subscribe response: %v", body)
 
 	if res.StatusCode != http.StatusOK {
-		log.Println("Error subscribing email to newsletter!")
+		log.Error().Msgf("subscribing email to newsletter failed!")
 		return errorutil.Wrap(ErrSubscribingToNewsletter)
 	}
 
-	log.Println("Successfully subscribed email to newsletter!")
+	log.Info().Msg("Successfully subscribed email to newsletter!")
 
 	return nil
 }

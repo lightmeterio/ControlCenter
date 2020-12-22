@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"log"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"github.com/rs/zerolog/log"
 )
 
 func readFromReader(reader io.Reader,
@@ -51,7 +51,7 @@ func compress(content []byte) []byte {
 	_, err := w.Write(content)
 
 	if err != nil {
-		log.Fatalln("Error compressing data")
+		log.Fatal().Msg("compressing data")
 	}
 
 	w.Close()
@@ -140,7 +140,7 @@ func (f FakeDirectoryContent) readerForEntry(filename string) (fileReader, error
 	content, ok := f.contents[filename]
 
 	if !ok {
-		log.Fatalln("Missing filename: " + filename)
+		log.Fatal().Msgf("Missing filename: %s", filename)
 	}
 
 	if data, ok := content.(fakePlainCurrentFileData); ok {
@@ -182,7 +182,7 @@ func (s *fakeFileReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		return s.currentPos, nil
 	}
 
-	log.Fatalln("Unexpected fakeFileReadSeeker seeking arguments")
+	log.Fatal().Msg("Unexpected fakeFileReadSeeker seeking arguments")
 
 	return 0, nil
 }
@@ -207,13 +207,13 @@ func (f FakeDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeke
 	content, ok := f.contents[filename]
 
 	if !ok {
-		log.Fatalln("Missing filename: " + filename)
+		log.Fatal().Msgf("Missing filename: %s", filename)
 	}
 
 	data, ok := content.(fakePlainCurrentFileData)
 
 	if !ok {
-		log.Fatalln("Could not find a entry for current log file:", filename)
+		log.Fatal().Msgf("Could not find a entry for current log file: %s", filename)
 	}
 
 	return &fakeFileReadSeeker{content: data.content, offset: data.offset, currentPos: 0}, nil
@@ -232,13 +232,13 @@ func (f FakeDirectoryContent) watcherForEntry(filename string, offset int64) (fi
 	content, ok := f.contents[filename]
 
 	if !ok {
-		log.Fatalln("Missing filename: " + filename)
+		log.Fatal().Msgf("Missing filename: %s", filename)
 	}
 
 	data, ok := content.(fakePlainCurrentFileData)
 
 	if !ok {
-		log.Fatalln("Could not find a entry for current log file:", filename)
+		log.Fatal().Msgf("Could not find a entry for current log file: %s", filename)
 	}
 
 	reader := bytes.NewReader(data.content[offset:])

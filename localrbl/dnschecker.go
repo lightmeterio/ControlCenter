@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/mrichman/godnsbl"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"sync"
 	"time"
 )
@@ -30,11 +30,11 @@ type dnsChecker struct {
 
 func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
 	if options.NumberOfWorkers < 1 {
-		log.Panicln("DnsChecker should have a number of workers greater than 1 and not", options.NumberOfWorkers, "!")
+		log.Panic().Msgf("DnsChecker should have a number of workers greater than 1 and not %d!", options.NumberOfWorkers)
 	}
 
 	if options.Lookup == nil {
-		log.Panicln("Lookup function not defined!")
+		log.Panic().Msg("Lookup function not defined!")
 	}
 
 	return &dnsChecker{
@@ -99,7 +99,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 	ip := checker.IPAddress(ctx)
 
 	if err := ctx.Err(); err != nil {
-		log.Println("Error obtaining IP address from settings on RBL Check:", err)
+		errorutil.LogErrorf(err, "obtaining IP address from settings on RBL Check")
 		checker.checkerResultsChan <- Results{Err: errorutil.Wrap(err)}
 
 		return
@@ -107,13 +107,13 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	if ip == nil {
 		// Do not perform a scan if the user has not configured an IP
-		log.Println("Ignoring RBL scan as IP is not configured")
+		log.Warn().Msg("Ignoring RBL scan as IP is not configured")
 		checker.checkerResultsChan <- Results{Err: ErrIPNotConfigured}
 
 		return
 	}
 
-	log.Println("Starting a new RBL scan on IP", ip)
+	log.Info().Msgf("Starting a new RBL scan on IP %v", ip)
 
 	scanStartTime := time.Now()
 
@@ -148,7 +148,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	scanElapsedTime := scanEndTime.Sub(scanStartTime)
 
-	log.Println("RBL scan finished in", scanElapsedTime)
+	log.Info().Msgf("RBL scan finished in %v", scanElapsedTime)
 
 	rbls := make([]ContentElement, 0, numberOfURLs)
 
@@ -162,7 +162,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 		return
 	}
 
-	log.Println("RBL scan finished with", len(rbls), "list blockings")
+	log.Info().Msgf("RBL scan finished with list blockings %d", len(rbls))
 
 	checker.checkerResultsChan <- Results{
 		Interval: data.TimeInterval{From: t, To: t.Add(scanElapsedTime)},

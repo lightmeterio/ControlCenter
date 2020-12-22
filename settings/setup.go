@@ -3,10 +3,10 @@ package settings
 import (
 	"context"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 )
 
 type SetupMailKind string
@@ -58,7 +58,7 @@ func (c *InitialSetupSettings) Set(ctx context.Context, writer *meta.AsyncWriter
 
 	if initialOptions.SubscribeToNewsletter {
 		if err := c.newsletterSubscriber.Subscribe(ctx, initialOptions.Email); err != nil {
-			log.Println("Failed to subscribe with error:", err)
+			log.Error().Err(err).Msg("Failed to subscribe")
 			return errorutil.Wrap(ErrFailedToSubscribeToNewsletter)
 		}
 	}

@@ -2,8 +2,8 @@ package i18n
 
 import (
 	"fmt"
-	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 
@@ -39,7 +39,7 @@ func GetLanguages() []LanguagePair {
 
 func (s *Service) LanguageMetaDataHandler(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet {
-		return httpmiddleware.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
+		return httperror.NewHTTPStatusCodeError(http.StatusMethodNotAllowed, fmt.Errorf("Error http method mismatch: %v", r.Method))
 	}
 
 	type MetaData struct {

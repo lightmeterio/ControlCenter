@@ -1,7 +1,6 @@
 package bus_test
 
 import (
-	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/notification/bus"
 	"sync/atomic"
@@ -18,15 +17,15 @@ func TestBus(t *testing.T) {
 
 			var counter int32
 			bus.AddEventListener("kind1", func(msg string) error {
-				fmt.Println("AddEventListener")
-				fmt.Println(msg)
+				t.Log("AddEventListener")
+				t.Log(msg)
 				atomic.AddInt32(&counter, 1)
 				return nil
 			})
 
 			bus.AddEventListener("kind2", func(msg string) error {
-				fmt.Println("AddEventListener")
-				fmt.Println(msg)
+				t.Log("AddEventListener")
+				t.Log(msg)
 				atomic.AddInt32(&counter, 1)
 				return nil
 			})
@@ -39,8 +38,8 @@ func TestBus(t *testing.T) {
 			atomic.AddInt32(&counter, -2)
 
 			bus.UpdateEventListener("kind1", func(msg string) error {
-				fmt.Println("UpdateEventListener")
-				fmt.Println(msg)
+				t.Log("UpdateEventListener")
+				t.Log(msg)
 				atomic.AddInt32(&counter, 1)
 				return nil
 			})
@@ -62,14 +61,14 @@ func TestBusPanic(t *testing.T) {
 		Convey("Flow panic", func() {
 			So(func() {
 				bus.AddEventListener("kind1", func(msg string) error {
-					fmt.Println("AddEventListener")
-					fmt.Println(msg)
+					t.Log("AddEventListener")
+					t.Log(msg)
 					return nil
 				})
 
 				bus.AddEventListener("kind1", func(msg string) error {
-					fmt.Println("AddEventListener")
-					fmt.Println(msg)
+					t.Log("AddEventListener")
+					t.Log(msg)
 					return nil
 				})
 			}, ShouldPanic)

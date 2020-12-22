@@ -50,7 +50,7 @@ func (c fakeContent) Args() []interface{} {
 func TestSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -163,7 +163,7 @@ func TestSendNotification(t *testing.T) {
 func TestSendNotificationMissingConf(t *testing.T) {
 
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -192,11 +192,12 @@ func TestSendNotificationMissingConf(t *testing.T) {
 }
 
 type fakeapi struct {
+	t *testing.T
 	Counter int32
 }
 
 func (s *fakeapi) PostMessage(stringer Message) error {
-	fmt.Println(stringer)
+	s.t.Log(stringer)
 	atomic.AddInt32(&s.Counter, 1)
 	return nil
 }
@@ -204,7 +205,7 @@ func (s *fakeapi) PostMessage(stringer Message) error {
 func TestFakeSendNotification(t *testing.T) {
 
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -228,7 +229,7 @@ func TestFakeSendNotification(t *testing.T) {
 		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
 		So(err, ShouldBeNil)
 
-		fakeapi := &fakeapi{}
+		fakeapi := &fakeapi{t: t}
 
 		DefaultCatalog := catalog.NewBuilder()
 		lang := language.MustParse("de")
@@ -258,7 +259,7 @@ func TestFakeSendNotification(t *testing.T) {
 func TestFakeSendNotificationDisabled(t *testing.T) {
 
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")

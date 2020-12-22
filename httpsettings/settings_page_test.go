@@ -22,7 +22,7 @@ func init() {
 
 func TestSettingsPage(t *testing.T) {
 	Convey("Retrieve all settings", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")

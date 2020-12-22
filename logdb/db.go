@@ -6,7 +6,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/logdb/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
-	"log"
+	"github.com/rs/zerolog/log"
 	"path"
 	"time"
 
@@ -118,7 +118,7 @@ func fillDatabase(db dbconn.RwConn, c <-chan data.Record,
 
 	performInsertsIntoDbGroupingInTransactions(db, c, TransactionTime, func(tx *sql.Tx, r data.Record) error {
 		if lastTime.After(r.Time) {
-			log.Panicln("Out of order log insertion in the database. Old:", lastTime, ", new:", r.Time)
+			log.Panic().Msgf("Out of order log insertion in the database. Old: %v, new: %v", lastTime, r.Time)
 		}
 
 		lastTime = r.Time
@@ -160,7 +160,7 @@ func performInsertsIntoDbGroupingInTransactions(db dbconn.RwConn,
 		}
 
 		// NOTE: improve it to be used for benchmarking
-		log.Println("Inserted", countPerTransaction, "rows in a transaction")
+		log.Info().Msgf("Inserted %d rows in a transaction", countPerTransaction)
 
 		countPerTransaction = 0
 

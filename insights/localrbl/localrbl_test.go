@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"log"
 	"net"
 	"strings"
 	"testing"
@@ -40,6 +39,7 @@ type fakeChecker struct {
 	scanIsInProgress               bool
 	scanResultsShouldChange        bool
 	scanCount                      int
+	t *testing.T
 }
 
 func (c *fakeChecker) Close() error {
@@ -52,7 +52,7 @@ func (c *fakeChecker) StartListening() {
 }
 
 func (c *fakeChecker) NotifyNewScan(now time.Time) {
-	log.Println("New Scan Executed at time", now)
+	c.t.Logf("New Scan Executed at time %v", now)
 	c.scanStartTime = now
 	c.scanFailed = c.checkedIP == nil
 	c.scanIsInProgress = true
@@ -110,7 +110,7 @@ func (c *fakeChecker) IPAddress(context.Context) net.IP {
 
 func TestLocalRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		accessor, clear := insighttestsutil.NewFakeAccessor()
+		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
 
 		connPair := accessor.ConnPair
@@ -127,6 +127,7 @@ func TestLocalRBL(t *testing.T) {
 		Convey("Use Fake Checker", func() {
 			checker := &fakeChecker{
 				timeToCompleteScan: time.Second * 10,
+				t: t,
 			}
 
 			d := NewDetector(accessor, core.Options{
@@ -378,7 +379,7 @@ func TestLocalRBL(t *testing.T) {
 
 				// TODO: move this test to its own test function
 				Convey("Use real DNS checker", func() {
-					conn, closeConn := testutil.TempDBConnection()
+					conn, closeConn := testutil.TempDBConnection(t)
 					defer closeConn()
 
 					m, err := meta.NewHandler(conn, "master")

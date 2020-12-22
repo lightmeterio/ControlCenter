@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"path"
 	"time"
 )
@@ -192,7 +191,7 @@ func runDatabaseWriterLoop(e *Engine) {
 		shouldContinue, err := engineCycle(e)
 
 		if err != nil {
-			log.Println("Could not not run Insights Engine cycle:", err)
+			errorutil.LogErrorf(err, "Could not not run Insights Engine cycle")
 			continue
 		}
 

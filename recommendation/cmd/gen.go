@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
+	"github.com/rs/zerolog/log"
 )
 
 type Link struct {
@@ -29,21 +29,21 @@ func main() {
 
 	b, err := ioutil.ReadFile(mappingFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("could not read file")
 	}
 
 	links := make([]Link, 0)
 	if err := json.Unmarshal(b, &links); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("could not unmarshal")
 	}
 
 	content, err := generateFileContent(links)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("could not unmarshal")
 	}
 
 	if err := ioutil.WriteFile("generated_link_list.go", content, 0600); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("could not write to file ")
 	}
 }
 
@@ -71,15 +71,15 @@ func generateLinksList(links []Link) []byte {
 
 	for _, l := range links {
 		if _, err := url.Parse(l.Link); err != nil {
-			log.Panicln("url is bad: ", err)
+			log.Info().Msgf("url is bad: %v", err)
 		}
 
 		// nolint:noctx
 		resp, err := http.Get(l.Link)
 		if err != nil {
-			log.Println("Warning url is not reachable ", err)
+			log.Info().Err(err).Msg("Warning url is not reachable")
 		} else if resp.StatusCode >= 400 {
-			log.Println("Warning url is not reachable status code: ", resp.StatusCode)
+			log.Info().Msgf("Warning url is not reachable status code: %d", resp.StatusCode)
 		}
 
 		if resp != nil {

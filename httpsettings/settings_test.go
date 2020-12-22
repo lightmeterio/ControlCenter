@@ -3,6 +3,7 @@ package httpsettings
 import (
 	"context"
 	"errors"
+	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -15,7 +16,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +31,7 @@ var (
 type dummySubscriber struct{}
 
 func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
-	log.Println("A dummy call that would otherwise subscribe email", email, "to Lightmeter newsletter :-)")
+	log.Info().Msgf("A dummy call that would otherwise subscribe email %v to Lightmeter newsletter :-)", email)
 	return nil
 }
 
@@ -40,12 +40,12 @@ type fakeNotificationCenter struct {
 }
 
 func (c *fakeNotificationCenter) Notify(center notification.Notification) error {
-	log.Println("send notification")
+	log.Info().Msg("send notification")
 	return nil
 }
 
 func (c *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
-	log.Println("Add slack")
+	log.Info().Msg("Add slack")
 	if c.shouldFailToAddSlackNotifier {
 		return errors.New("Invalid slack notifier")
 	}
@@ -59,7 +59,7 @@ func init() {
 
 func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -180,7 +180,7 @@ func TestInitialSetup(t *testing.T) {
 
 func TestSettingsSetup(t *testing.T) {
 	Convey("Settings Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")
@@ -293,7 +293,7 @@ func (c *fakeContent) TplString() string {
 // todo(marcel) before we create a release stub out the slack api
 func TestIntegrationSettingsSetup(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection()
+		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
 
 		m, err := meta.NewHandler(conn, "master")

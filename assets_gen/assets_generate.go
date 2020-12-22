@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/shurcooL/vfsgen"
-	"log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 )
 
@@ -17,6 +17,6 @@ func main() {
 		})
 
 	if err != nil {
-		log.Fatalln(err)
+		errorutil.LogFatalf(err, "Failed to generate static asset file")
 	}
 }
