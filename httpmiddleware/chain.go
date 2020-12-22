@@ -88,7 +88,7 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 		switch errType := err.(type) {
 		case httperror.XHTTPError:
 			if errType.StatusCode() >= 500 {
-				ctxlogger.LogErrorf(r.Context(), err, "Internal server error")
+				ctxlogger.LogErrorf(r.Context(), errType.ErrObject(), "Internal server error")
 				w.WriteHeader(errType.StatusCode())
 				return
 			}
