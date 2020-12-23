@@ -1,0 +1,5 @@
+# ControlCenter 1.1.0
+
+Web UI migrated to Vue.js and several log handling fixes
+
+See separate release notes on https://lightmeter.io for full changes.
