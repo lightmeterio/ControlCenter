@@ -31,16 +31,16 @@ type fakeRegistrar struct {
 	shouldFailToCheckIfThereIsAnyUser bool
 }
 
-func (f *fakeRegistrar) Register(ctx context.Context, email, name, password string) error {
+func (f *fakeRegistrar) Register(ctx context.Context, email, name, password string) (int64, error) {
 	if f.shouldFailToRegister {
-		return errors.New("Weak Password")
+		return -1, errors.New("Weak Password")
 	}
 
 	f.authenticated = true
 	f.name = name
 	f.email = email
 	f.password = password
-	return nil
+	return  1, nil
 }
 
 func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
@@ -49,6 +49,10 @@ func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
 	}
 
 	return len(f.email) > 0, nil
+}
+
+func (f *fakeRegistrar) GetUserDataByID(ctx context.Context, id int) (*auth.UserData, error) {
+	return &auth.UserData{Id: 1, Name: "Donutloop", Email: "example@test.de"}, nil
 }
 
 func (f *fakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, auth.UserData, error) {
@@ -240,6 +244,29 @@ func TestHTTPAuthV2(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
+				Convey("get fake user data", func() {
+					// first user logs in
+					r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					// get fake user data
+					r, err = c.Get(s.URL+"/api/v0/userInfo")
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+				})
+
+				Convey("get fake user data after registration", func() {
+					// get fake user data
+					r, err = c.Get(s.URL+"/api/v0/userInfo")
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					b, err := ioutil.ReadAll(r.Body)
+					So(err, ShouldBeNil)
+					t.Log("Response:", string(b))
+				})
+
 				Convey("User logs out, returning to the login page", func() {
 					r, err := c.Get(s.URL + "/logout")
 					So(err, ShouldBeNil)
@@ -260,33 +287,20 @@ func TestHTTPAuthV2(t *testing.T) {
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 						So(failedAttempts, ShouldEqual, 0)
 					})
+
+					Convey("user has login", func() {
+						// first user logs in
+						r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})
+						So(err, ShouldBeNil)
+						So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+						// check login
+						r, err = c.Get(s.URL+"/auth/check")
+						So(err, ShouldBeNil)
+						So(r.StatusCode, ShouldEqual, http.StatusOK)
+					})
 				})
 			})
-		})
-
-		Convey("user has login", func() {
-			c := buildCookieClient()
-			defer c.CloseIdleConnections()
-
-			r, err := c.PostForm(s.URL+"/register", url.Values{
-				"email":    {"alice@example.com"},
-				"name":     {"Alice"},
-				"password": {"correcthorsebatterystable"},
-			})
-
-			So(err, ShouldBeNil)
-			So(r.StatusCode, ShouldEqual, http.StatusOK)
-
-
-			// first user logs in
-			r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"correcthorsebatterystable"}})
-			So(err, ShouldBeNil)
-			So(r.StatusCode, ShouldEqual, http.StatusOK)
-
-			// check login
-			r, err = c.Get(s.URL+"/auth/check")
-			So(err, ShouldBeNil)
-			So(r.StatusCode, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("user has not login", func() {

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"database/sql"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gorilla/sessions"
@@ -46,6 +48,7 @@ func NewAuthenticator(auth *auth.Auth, workspaceDirectory string) *Authenticator
 }
 
 type SessionData struct {
+	ID    int
 	Email string
 	Name  string
 }
@@ -120,7 +123,7 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) er
 		ctxlogger.LogErrorf(r.Context(), errorutil.Wrap(err), "creating new session")
 	}
 
-	session.Values["auth"] = SessionData{Email: email, Name: userData.Name}
+	session.Values["auth"] = SessionData{Email: email, Name: userData.Name, ID: userData.Id}
 
 	if err := session.Save(r, w); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on login: %v", err))
@@ -187,7 +190,8 @@ func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Registration: %v", err))
 	}
 
-	if err := auth.auth.Register(r.Context(), email, name, password); err != nil {
+	id, err := auth.auth.Register(r.Context(), email, name, password)
+	if err != nil {
 		return handleRegistrationFailure(err, w, r)
 	}
 
@@ -197,7 +201,7 @@ func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 	}
 
 	// Implicitly log in
-	session.Values["auth"] = SessionData{Email: email, Name: name}
+	session.Values["auth"] = SessionData{Email: email, Name: name, ID: int(id)}
 	if err := session.Save(r, w); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %v", err))
 	}
@@ -246,6 +250,41 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	return nil
+}
+
+func GetUserData(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
+	session, err := auth.Store.Get(r, SessionName)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errorutil.Wrap(err, errors.New("unauthorized")))
+	}
+
+	sessionData, ok := session.Values["auth"].(*SessionData)
+	if !(ok && sessionData.IsAuthenticated()) {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized: is not authenticated"))
+	}
+
+	// refresh user data
+	userData, err := auth.auth.GetUserDataByID(r.Context(), sessionData.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return httperror.NewHTTPStatusCodeError(http.StatusNotFound, fmt.Errorf("not found (id: %v)", sessionData.ID))
+		}
+
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	b, err := json.Marshal(userData)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(b); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
 
 	return nil
 }
