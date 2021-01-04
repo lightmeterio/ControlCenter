@@ -139,7 +139,7 @@ func main() {
 }
 
 func printVersion() {
-	log.Info().Msgf("Lightmeter ControlCenter %s", version.Version)
+	fmt.Printf("Lightmeter ControlCenter %s\n", version.Version)
 }
 
 func runWatchingDirectory(ws *workspace.Workspace, dirToWatch string, verbose bool) {
