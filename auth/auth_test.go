@@ -188,6 +188,21 @@ func TestAuth(t *testing.T) {
 				So(userData.Email, ShouldEqual, "user@example.com")
 				So(userData.Name, ShouldEqual, "Name Surname")
 			})
+
+			Convey("User Data by ID", func() {
+				Convey("Invalid ID", func() {
+					_, err := auth.GetUserDataByID(dummyContext, 42)
+					So(errors.Is(err, ErrInvalidUserId), ShouldBeTrue)
+				})
+			})
+
+			Convey("Valid ID", func() {
+				userData, err := auth.GetUserDataByID(dummyContext, 1)
+				So(err, ShouldBeNil)
+				So(userData.Id, ShouldEqual, 1)
+				So(userData.Email, ShouldEqual, "user@example.com")
+				So(userData.Name, ShouldEqual, "Name Surname")
+			})
 		})
 	})
 }

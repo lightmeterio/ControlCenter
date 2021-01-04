@@ -26,10 +26,7 @@
                 <div class="row">
                   <div class="container">
                     <h3>{{ greetingText }}</h3>
-                    <p>
-                      <!-- prettier-ignore -->
-                      <translate>and welcome back</translate> {{ username }},
-                    </p>
+                    <p>{{ welcomeUserText }}</p>
                   </div>
                 </div>
               </div>
@@ -228,7 +225,15 @@ export default {
       // todo use better translate function for weekdays
       let dateObj = new Date();
       let weekday = dateObj.toLocaleString("default", { weekday: "long" });
-      return "Happy " + weekday;
+      let translation = this.$gettext("Happy %{weekday}");
+      let message = this.$gettextInterpolate(translation, { weekday: weekday });
+      return message;
+    },
+
+    welcomeUserText() {
+      let translation = this.$gettext("and welcome back, %{username}");
+      let message = this.$gettextInterpolate(translation, { username: this.username });
+      return message;
     }
   },
   methods: {
