@@ -56,6 +56,12 @@ export function getMetaLanguage() {
     .catch(builderErrorHandler("language_metadata"));
 }
 
+export function getUserInfo() {
+  return axios
+    .get(BASE_URL + "api/v0/userInfo")
+    .catch(builderErrorHandler("user_info"));
+}
+
 export function logout(redirect) {
   axios
     .post(BASE_URL + "logout", null)
@@ -95,10 +101,16 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
         err.response.data.Detailed.Sequence &&
         err.response.data.Detailed.Sequence[0].pattern
       ) {
-        let errTranslation = Vue.prototype.$gettext("Error: %{error}.")
-        let errMessage = Vue.prototype.$gettextInterpolate(errTranslation, {error: err.response.data.Error})
-        let descTranslation = Vue.prototype.$gettext("Vulnerable to: %{description}.")
-        let descMessage = Vue.prototype.$gettextInterpolate(descTranslation, {description: err.response.data.Detailed.Sequence[0].pattern})
+        let errTranslation = Vue.prototype.$gettext("Error: %{error}.");
+        let errMessage = Vue.prototype.$gettextInterpolate(errTranslation, {
+          error: err.response.data.Error
+        });
+        let descTranslation = Vue.prototype.$gettext(
+          "Vulnerable to: %{description}."
+        );
+        let descMessage = Vue.prototype.$gettextInterpolate(descTranslation, {
+          description: err.response.data.Detailed.Sequence[0].pattern
+        });
 
         alert(errMessage + "\n" + descMessage);
 
@@ -192,8 +204,8 @@ function alertError(response, eventName) {
     trackEvent(eventName, errMsg);
   }
 
-  let translation = Vue.prototype.$gettext("Error: %{err}")
-  let message = Vue.prototype.$gettextInterpolate(translation, {err: errMsg})
+  let translation = Vue.prototype.$gettext("Error: %{err}");
+  let message = Vue.prototype.$gettextInterpolate(translation, { err: errMsg });
 
   alert(message);
 }

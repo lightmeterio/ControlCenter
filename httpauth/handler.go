@@ -16,6 +16,10 @@ func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator) {
 		return auth.HandleLogin(a, w, r)
 	})))
 
+	mux.Handle("/api/v0/userInfo", chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
+		return auth.GetUserData(a, w, r)
+	})))
+
 	mux.Handle("/logout", chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 		session, err := a.Store.Get(r, auth.SessionName)
 		if err != nil {

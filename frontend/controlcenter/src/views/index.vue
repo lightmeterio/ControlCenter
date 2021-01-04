@@ -28,7 +28,7 @@
                     <h3>{{ greetingText }}</h3>
                     <p>
                       <!-- prettier-ignore -->
-                      <translate>and welcome back</translate>
+                      <translate>and welcome back</translate> {{ username }},
                     </p>
                   </div>
                 </div>
@@ -40,7 +40,9 @@
 
       <graphdashboard :graphDateRange="dateRange"></graphdashboard>
 
-      <div class="row container d-flex align-items-center time-interval card-section-heading">
+      <div
+        class="row container d-flex align-items-center time-interval card-section-heading"
+      >
         <div class="col-lg-2 col-md-6 col-6 p-2">
           <h2 class="insights-title">
             <!-- prettier-ignore -->
@@ -153,7 +155,12 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import moment from "moment";
-import { fetchInsights, getIsNotLoginOrNotRegistered } from "../lib/api.js";
+import {
+  fetchInsights,
+  getIsNotLoginOrNotRegistered,
+  getUserInfo
+} from "../lib/api.js";
+
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
 import session from "../mixin/views_shared.js";
@@ -195,6 +202,7 @@ export default {
   mixins: [tracking, session],
   data() {
     return {
+      username: "",
       fetchInsightsInterval: null,
       sessionInterval: null,
       triggerRefreshValue: false,
@@ -217,10 +225,10 @@ export default {
   },
   computed: {
     greetingText() {
+      // todo use better translate function for weekdays
       let dateObj = new Date();
       let weekday = dateObj.toLocaleString("default", { weekday: "long" });
-      // "{{ translate `Happy %s,` }}"
-      return "Happy " + weekday + ",";
+      return "Happy " + weekday;
     }
   },
   methods: {
@@ -293,6 +301,10 @@ export default {
   },
   mounted() {
     this.initIndex();
+    let vue = this;
+    getUserInfo().then(function(response) {
+      vue.username = response.data.Name;
+    });
   },
   destroyed() {
     clearInterval(this.sessionInterval);

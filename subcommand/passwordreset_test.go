@@ -24,7 +24,7 @@ func TestDatabaseRegisterUsername(t *testing.T) {
 
 			email := "marcel@lightmeter.com"
 
-			err = auth.Register(context.Background(), email, "donutloop", "l;sdkfl;s;ldfkkl")
+			_, err = auth.Register(context.Background(), email, "donutloop", "l;sdkfl;s;ldfkkl")
 			ShouldBeNil(err)
 
 			PerformPasswordReset(true, dir, email, "kshjdkljdfklsjfljsdjkf")

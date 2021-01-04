@@ -22,9 +22,10 @@ type UserData struct {
 }
 
 type Registrar interface {
-	Register(ctx context.Context, email, name, password string) error
+	Register(ctx context.Context, email, name, password string) (int64, error)
 	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
 	HasAnyUser(ctx context.Context) (bool, error)
+	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
 }
 
 type Options struct {
@@ -60,41 +61,42 @@ func userIsAlreadyRegistred(tx *sql.Tx, email string) error {
 	return nil
 }
 
-func (r *Auth) Register(ctx context.Context, email, name, password string) error {
+func (r *Auth) Register(ctx context.Context, email, name, password string) (int64, error) {
 	hasAnyUser, err := r.HasAnyUser(ctx)
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	if !r.options.AllowMultipleUsers && hasAnyUser {
-		return ErrRegistrationDenied
+		return -1, ErrRegistrationDenied
 	}
 
 	if err := validatePassword(email, name, password); err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	if err := validateEmail(email); err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	if err := validateName(name); err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
-	if err := registerInDb(ctx, r.connPair.RwConn, email, name, password); err != nil {
-		return errorutil.Wrap(err)
+	id, err := registerInDb(ctx, r.connPair.RwConn, email, name, password)
+	if err != nil {
+		return -1, errorutil.Wrap(err)
 	}
 
-	return nil
+	return id, err
 }
 
-func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) error {
+func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) (int64, error) {
 	tx, err := db.BeginTx(ctx, nil)
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -106,30 +108,30 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 	err = userIsAlreadyRegistred(tx, email)
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	result, err := tx.Exec(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`, email, name, password)
 
 	if err != nil {
-		return errorutil.Wrap(err, "executing user registration query")
+		return -1, errorutil.Wrap(err, "executing user registration query")
 	}
 
 	id, err := result.LastInsertId()
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	err = tx.Commit()
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return -1, errorutil.Wrap(err)
 	}
 
 	log.Info().Msgf("Registering user %v with id %v", email, id)
 
-	return nil
+	return id, nil
 }
 
 func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
@@ -158,6 +160,16 @@ func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+func (r *Auth) GetUserDataByID(ctx context.Context, id int) (*UserData, error) {
+	var userData UserData
+
+	if err := r.connPair.RoConn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &userData, nil
 }
 
 func generateKeys() ([][]byte, error) {
