@@ -81,6 +81,15 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		So(h.Process, ShouldEqual, "dovecot")
 		So(h.PID, ShouldEqual, 0)
 	})
+
+	Convey("Unsupported line starting with slash", t, func() {
+		h, p, err := Parse([]byte(`Dec 17 06:25:48 sm02 /postfix-script[112854]: the Postfix mail system is running: PID: 95072`))
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
+		So(p, ShouldBeNil)
+		So(h.Process, ShouldEqual, "postfix-script")
+		So(h.PID, ShouldEqual, 112854)
+	})
+
 }
 
 func TestSMTPParsing(t *testing.T) {
