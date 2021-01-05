@@ -63,6 +63,12 @@ If you prefer not collecting samples, but sending us all file lines, please add 
 ./tools/batch_log_cleaner.py -i /var/log/ -o logs.tar.gz --complete
 ```
 
+Please always check the contents of the `logs.tar.gz` file before sending it to us :-)
+
+You can attach the `logs.tar.gz` file to this issue, or send it via e-mail to `hello@lightmeter.io` with the subject
+`Log files for Gitlab issue #XXX`, where `#XXX` is the number assigned to the issue report you've just created
+(you can copy if from the URL or from the top of the page).
+
 **Which Operating System and version are you using?**
 
 OS: 
