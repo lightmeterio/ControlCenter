@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input-dir", "-i", help="Input directory")
 parser.add_argument("--output-file", "-o", help="Output file")
 parser.add_argument("--complete", "-c", help="Use the entire files. Ignore --lines", action="store_true")
-parser.add_argument("--lines", "-l", help="Number of lines in the sample (begin and end of the files)", default=5)
+parser.add_argument("--lines", "-l", help="Number of lines in the sample (begin and end of the files)", default=500)
 
 args = parser.parse_args()
 
