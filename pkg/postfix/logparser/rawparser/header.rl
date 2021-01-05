@@ -12,17 +12,21 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	_ = eof
 
 %%{
-	action setTokBeg { tokBeg = p }
+	include common "common.rl";
 
 	hostname = [^ ]+ >setTokBeg %{
 		h.Host = data[tokBeg:p]
 	};
 
-	processName = alnum+ >setTokBeg %{
+	# a process name can be postfix or something like /postfix-script
+	# but if we read postfix-127.0.0.2, the process name is just 'postfix',
+	# as the 127.0.0.2 in this case is the IP address
+	processName = '/'? (alnum|'-')+ >setTokBeg %{
 		h.Process = data[tokBeg:p]
 	};
 
-	processIp = (^'/')+ >setTokBeg %{
+	# TODO: support other representations of IP, as well as v6
+	processIp = ipv4 >setTokBeg %{
 		h.ProcessIP = data[tokBeg:p]
 	};
 
@@ -34,7 +38,9 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 		h.ProcessID = data[tokBeg:p]
 	};
 
-	main := hostname ' ' processName ('-' processIp)? ('/' daemonName)? ('[' processId ']')? ': ' @{
+	processPart = processName ('-' processIp)? ('/' daemonName)?;
+
+	main := hostname ' ' processPart ('[' processId ']')? ': ' @{
 		return p, true
 	};
 
