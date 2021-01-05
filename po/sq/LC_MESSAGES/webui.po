@@ -1,26 +1,34 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
+"PO-Revision-Date: 2021-01-05 22:27+0000\n"
+"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
+"Language-Team: Albanian <https://translate.lightmeter.io/projects/"
+"controlcenter/frontend/sq/>\n"
 "Language: sq\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
 "Generated-By: easygettext\n"
 
 #: ./frontend/controlcenter/src/components/insights.vue:71
 msgid "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
 msgstr ""
+"<b>%{bounceValue}%</b>norma e mesazheve të kthyera midis%{intFrom} dhe "
+"%{intTo}"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:28
 msgid "About"
-msgstr ""
+msgstr "Rreth"
 
 #: ./frontend/controlcenter/src/views/index.vue:65
 msgid "All"
-msgstr ""
+msgstr "Të gjitha"
 
 #: ./frontend/controlcenter/src/views/index.vue:26
 msgid "and welcome back"
-msgstr ""
+msgstr "dhe mirësevini përsëri"
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:21
 msgid "Bounced Domains"
@@ -28,22 +36,22 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:18
 msgid "Busiest Domains"
-msgstr ""
+msgstr "Domain-et më të zëna"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:38
 #: ./frontend/controlcenter/src/views/settingspage.vue:60
 msgid "Cancel"
-msgstr ""
+msgstr "Anullo"
 
 #: ./frontend/controlcenter/src/components/insights.vue:25
 #: ./frontend/controlcenter/src/components/insights.vue:41
 #: ./frontend/controlcenter/src/components/mainheader.vue:55
 msgid "Close"
-msgstr ""
+msgstr "Mbyll"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:24
 msgid "Commit"
-msgstr ""
+msgstr "Commit"
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:24
 msgid "Deferred Domains"
@@ -51,53 +59,59 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:6
 msgid "Delivery attempts"
-msgstr ""
+msgstr "Tentativa dërgimi"
 
 #: ./frontend/controlcenter/src/components/insights.vue:83
 #: ./frontend/controlcenter/src/components/insights.vue:90
 msgid "Details"
-msgstr ""
+msgstr "Detajet"
 
 #: ./frontend/controlcenter/src/views/register.vue:53
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr ""
+"Lloje të ndryshme e-mailesh performojnë ndryshe. Kjo na ndihmon të tregojmë "
+"informacionin më të përshtatshëm."
 
 #: ./frontend/controlcenter/src/views/register.vue:33
 msgid "Direct (personal, office, one-to-one)"
-msgstr ""
+msgstr "Direkt(personal, zyrë, një-me-një)"
 
 #: ./frontend/controlcenter/src/views/login.vue:21
 #: ./frontend/controlcenter/src/views/register.vue:47
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:53
 msgid "Enter ip address"
-msgstr ""
+msgstr "Jepni adresen IP"
 
 #: ./frontend/controlcenter/src/lib/api.js:195
 msgid "Error: %{err}"
-msgstr ""
+msgstr "Gabim: %{err}"
 
 #: ./frontend/controlcenter/src/lib/api.js:98
 msgid "Error: %{error}."
-msgstr ""
+msgstr "Gabim: %{error}."
 
 #: ./frontend/controlcenter/src/views/register.vue:77
 msgid "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target=\"_blank\" href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at any time"
 msgstr ""
+"Të dhënat mbi përdorimin e funksionaliteteve ndahen me një sistem anlatik me "
+"kod burim të hapur për të përmirësuar eksperiencën tuaj dhe transferimi i "
+"tyre mund të <a target=\"_blank\" href=\"https://lightmeter.io/"
+"privacy-policy/\">çaktivizohet</a>kurdo"
 
 #: ./frontend/controlcenter/src/components/mainfooter.vue:8
 msgid "Feedback"
-msgstr ""
+msgstr "Reagime"
 
 #: ./frontend/controlcenter/src/views/index.vue:59
 msgid "Filter"
-msgstr ""
+msgstr "Filtro"
 
 #: ./frontend/controlcenter/src/views/login.vue:20
 msgid "Forgot password?"
-msgstr ""
+msgstr "Harruat fjalëkalimin?"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
@@ -113,11 +127,11 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:20
 msgid "Info"
-msgstr ""
+msgstr "Info"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Information"
-msgstr ""
+msgstr "Informacion"
 
 #: ./frontend/controlcenter/src/views/index.vue:42
 msgid "Insights"
@@ -129,7 +143,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:66
 msgid "IP blocked by %{host}"
-msgstr ""
+msgstr "IP e bllokuar nga %{host}"
 
 #: ./frontend/controlcenter/src/components/insights.vue:63
 msgid "IP on shared blocklist"
@@ -178,7 +192,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:44
 msgid "Name"
-msgstr ""
+msgstr "Emri"
 
 #: ./frontend/controlcenter/src/views/index.vue:87
 msgid "Newest"
@@ -186,7 +200,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/index.vue:78
 msgid "News"
-msgstr ""
+msgstr "Të reja"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:43
 msgid "Newsletter"
@@ -194,7 +208,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:41
 msgid "No"
-msgstr ""
+msgstr "Jo"
 
 #: ./frontend/controlcenter/src/components/insights.vue:81
 msgid "No emails were sent between %{intFrom} and %{intTo}"
@@ -206,7 +220,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/index.vue:93
 msgid "Oldest"
-msgstr ""
+msgstr "Më të vjetrat"
 
 #: ./frontend/controlcenter/src/components/insights.vue:204
 msgid "Original response from %{recipient} (%{host})"
@@ -244,16 +258,16 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:66
 msgid "Register"
-msgstr ""
+msgstr "Regjistrohu"
 
 #: ./frontend/controlcenter/src/router/index.js:46
 msgid "Registration - %{mainPageTitle}"
-msgstr ""
+msgstr "Regjistrimi - %{mainPageTitle}"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:34
 #: ./frontend/controlcenter/src/views/settingspage.vue:56
 msgid "Save"
-msgstr ""
+msgstr "Ruaj"
 
 #: ./frontend/controlcenter/src/lib/api.js:16
 msgid "Saved general settings"
@@ -290,19 +304,19 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:57
 msgid "System details"
-msgstr ""
+msgstr "Detajet e sistemit"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:25
 msgid "Tag/branch"
-msgstr ""
+msgstr "Tag/branch"
 
 #: ./frontend/controlcenter/src/views/register.vue:74
 msgid "Telemetry enabled"
-msgstr ""
+msgstr "Telemetri e aktivizuar"
 
 #: ./frontend/controlcenter/src/components/mainfooter.vue:6
 msgid "Thank you for using Lightmeter"
-msgstr ""
+msgstr "Faleminderit që përdorni Lightmeter"
 
 #: ./frontend/controlcenter/src/components/insights.vue:102
 msgid "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
@@ -314,15 +328,17 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:61
 msgid "The Ip Address is invalid"
-msgstr ""
+msgstr "Adresa IP nuk është e vlefshme"
 
 #: ./frontend/controlcenter/src/components/insights.vue:5
 msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
 msgstr ""
+"Këto lista rekomandojnë që mesazhet tuaja të bllokohen &ndash; kontrolloni "
+"mesazhet e tyre për më shumë"
 
 #: ./frontend/controlcenter/src/views/index.vue:48
 msgid "Time interval"
-msgstr ""
+msgstr "Intervali kohor"
 
 #: ./frontend/controlcenter/src/components/insights.vue:149
 msgid "Title for %{content}"
@@ -334,11 +350,11 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:13
 msgid "User details"
-msgstr ""
+msgstr "Detajet e përdoruesit"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Version"
-msgstr ""
+msgstr "Versioni"
 
 #: ./frontend/controlcenter/src/lib/api.js:100
 msgid "Vulnerable to: %{description}."
@@ -346,19 +362,19 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:34
 msgid "Website"
-msgstr ""
+msgstr "Website"
 
 #: ./frontend/controlcenter/src/views/register.vue:4
 msgid "Welcome"
-msgstr ""
+msgstr "Mirësevini"
 
 #: ./frontend/controlcenter/src/components/insights.vue:59
 msgid "Welcome to Lightmeter %{version}"
-msgstr ""
+msgstr "Mirësevini në Lightmeter %{version}"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:41
 msgid "Yes"
-msgstr ""
+msgstr "Po"
 
 #: ./frontend/controlcenter/src/components/insights.vue:56
 msgid "Your first Insight"
