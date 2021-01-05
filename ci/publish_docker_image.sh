@@ -33,13 +33,17 @@ EOF
 
 mkdir -p .docker-cache
 
+# only define the latest tag for release images
+if [ -z "${SCHEDULED_DOCKER_IMAGE_TAG}" ]; then
+  EXTRA_DESTINATIONS="--destination $CI_REGISTRY_IMAGE:latest --destination index.docker.io/lightmeter/controlcenter:latest"
+fi
+
 /kaniko/executor \
   --context $CI_PROJECT_DIR \
   --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
   --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG \
-  --destination $CI_REGISTRY_IMAGE:latest \
   --destination index.docker.io/lightmeter/controlcenter:$IMAGE_TAG \
-  --destination index.docker.io/lightmeter/controlcenter:latest \
+  $EXTRA_DESTINATIONS \
   --build-arg "LIGHTMETER_VERSION=$(cat VERSION.txt)" \
   --build-arg "LIGHTMETER_COMMIT=$CI_COMMIT_SHA" \
   --build-arg "IMAGE_TAG=$IMAGE_TAG" \
