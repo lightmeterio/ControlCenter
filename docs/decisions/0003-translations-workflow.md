@@ -31,4 +31,3 @@ On a discussion including team members with different perspectives, consisting o
 
 Weblate creating a MR for new translations, instead of commiting to master, makes it technically possible to enforce a "String Freeze" on master, creating an opportunity for Lightmeter contributors to add translations for the new features during the RC phase. This means that in stable releases, new features can be used in different supported languages on the same day those features are first released. 
 
-In addition, it's easier to prevent possible translation related errors. 
