@@ -4,7 +4,7 @@ set -o pipefail
 set -e
 set -vx
 
-function image_tag() {
+function image_tag_from_git_tag() {
   if [ -n "${CI_COMMIT_TAG}" ]; then
     echo "${CI_COMMIT_TAG#release/}"
   else
@@ -13,7 +13,7 @@ function image_tag() {
   fi
 }
 
-IMAGE_TAG=$(image_tag)
+IMAGE_TAG=${SCHEDULED_DOCKER_IMAGE_TAG:-$(image_tag_from_git_tag)}
 
 cat > /kaniko/.docker/config.json << EOF
 {
