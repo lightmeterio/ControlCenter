@@ -10,7 +10,7 @@
     >
       <p class="intro">
         <!-- prettier-ignore -->
-        <translate>These lists are recommending that your emails be blocked &ndash; check their messages for hints</translate>
+        <translate>These lists are recommending that emails from your server be blocked &ndash; check their messages for hints</translate>
       </p>
       <span id="rbl-list-content">
         <div class="card" v-for="r of rbls" v-bind:key="r.text">
