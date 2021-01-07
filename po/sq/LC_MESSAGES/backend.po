@@ -1,0 +1,30 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2021-01-05 22:27+0000\n"
+"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
+"Language-Team: Albanian <https://translate.lightmeter.io/projects/"
+"controlcenter/backend/sq/>\n"
+"Language: sq\n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#: insights/highrate/high_status_rate_insight.go:177
+msgid "%v percent bounce rate between %v and %v"
+msgstr "%v përqindja e kthimeve nga %v deri më %v"
+
+#: insights/mailinactivity/mail_inactivity_insight.go:24
+msgid "No emails were sent between %v and %v"
+msgstr "Asnjë email i dërguar nga %v deri më %v"
+
+#: insights/messagerbl/rbl.go:45
+msgid "The IP %v cannot deliver to %v (%v)"
+msgstr "IP %v nuk mund të dërgoj tek %v(%v)"
+
+#: insights/localrbl/rbl.go:35
+msgid "The IP address %v is listed by %v RBLs"
+msgstr "Adresa IP %v është e listuar në %v RBL"
