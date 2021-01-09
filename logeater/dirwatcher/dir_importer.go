@@ -720,29 +720,27 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 	}
 }
 
-func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, toBeUpdated int) ([]*queueProcessor, error) {
-	updatedProcessors := make([]*queueProcessor, 0, len(processors))
-
+func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int) error {
 	for i, p := range processors {
 		isFirstExecution := toBeUpdated != -1
 
 		if isFirstExecution && i != toBeUpdated {
-			updatedProcessors = append(updatedProcessors, p)
+			*updatedProcessors = append(*updatedProcessors, p)
 			continue
 		}
 
 		shouldKeepProcessor, err := updateQueueProcessor(p, content)
 
 		if err != nil {
-			return []*queueProcessor{}, errorutil.Wrap(err)
+			return errorutil.Wrap(err)
 		}
 
 		if shouldKeepProcessor {
-			updatedProcessors = append(updatedProcessors, p)
+			*updatedProcessors = append(*updatedProcessors, p)
 		}
 	}
 
-	return updatedProcessors, nil
+	return nil
 }
 
 func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
@@ -783,21 +781,26 @@ func importExistingLogs(
 
 	toBeUpdated := -1
 
+	updatedProcessors := make([]*queueProcessor, 0, len(queueProcessors))
+
 	for {
-		updatedQueueProcessors, err := updateQueueProcessors(content, queueProcessors, toBeUpdated)
+		updatedProcessors = updatedProcessors[0:0]
+
+		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated)
 
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		queueProcessors = updatedQueueProcessors
-
-		if len(queueProcessors) == 0 {
+		if len(updatedProcessors) == 0 {
 			elapsedTime := time.Since(initialImportTime)
 			log.Info().Msgf("Finished importing postfix log directory in: %v", elapsedTime)
 
 			return nil
 		}
+
+		queueProcessors = queueProcessors[0:0]
+		queueProcessors = append(queueProcessors, updatedProcessors...)
 
 		toBeUpdated = chooseIndexForOldestElement(queueProcessors)
 
