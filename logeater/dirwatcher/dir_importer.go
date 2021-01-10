@@ -184,13 +184,14 @@ func buildFilesToImportByPatternKind(list fileEntryList, patterns logPatterns, r
 }
 
 // Given a leap year, what nth second is a time on it?
-func secondInTheYear(v parser.Time) float64 {
-	asRefTime := func(v parser.Time) time.Time {
-		return time.Date(2000, v.Month, int(v.Day), int(v.Hour), int(v.Minute), int(v.Second), 0, time.UTC)
+func secondInTheYear(month time.Month, day, hour, minute, second int) float64 {
+	asRefTime := func(month time.Month, day, hour, minute, second int) time.Time {
+		return time.Date(2000, month, day, hour, minute, second, 0, time.UTC)
 	}
 
-	return asRefTime(v).Sub(
-		asRefTime(parser.Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0})).Seconds()
+	return asRefTime(month, day, hour, minute, second).
+		Sub(asRefTime(time.January, 1, 0, 0, 0)).
+		Seconds()
 }
 
 func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
@@ -238,7 +239,9 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 	}()
 }
 
-func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time.Time, error) {
+func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Time) (time.Time, error) {
+	modificationTime := originalModificationTime.In(time.UTC)
+
 	scanner := bufio.NewScanner(reader)
 
 	timeFirstLine, ok, err := readFirstLine(scanner)
@@ -253,31 +256,42 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	secondsInYearFirstLine := secondInTheYear(timeFirstLine)
+	secondsInYearFirstLine := secondInTheYear(
+		timeFirstLine.Month,
+		int(timeFirstLine.Day),
+		int(timeFirstLine.Hour),
+		int(timeFirstLine.Minute),
+		int(timeFirstLine.Second))
 
 	timeLastLine, ok, err := readLastLine(scanner)
 
-	computeYear := func(a, b float64) int {
-		yearOffset := 0
-
-		if a < b {
-			yearOffset++
-		}
-
-		return modificationTime.Year() - yearOffset
+	secondsInTheYearForTime := func(t time.Time) float64 {
+		return secondInTheYear(t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
 	}
 
-	secondsInYearModificationTime := secondInTheYear(parser.Time{
-		Month:  modificationTime.Month(),
-		Day:    uint8(modificationTime.Day()),
-		Hour:   uint8(modificationTime.Hour()),
-		Minute: uint8(modificationTime.Minute()),
-		Second: uint8(modificationTime.Second()),
-	})
+	// as we normalize the file modification time to UTC, the original time might be
+	// up to 12 hours ahead, when ignoring the timezone
+	modificationTimePlus12Hours := modificationTime.Add(time.Hour * 12)
+
+	secondsInYearModificationTime := secondsInTheYearForTime(modificationTime)
+	secondsInYearModificationTimePlus12Hours := secondsInTheYearForTime(modificationTimePlus12Hours)
+
+	adjustYearOffsetAfter12HoursJumpForward := modificationTimePlus12Hours.Year() - modificationTime.Year()
 
 	if !ok {
 		// one line file
-		year := computeYear(secondsInYearModificationTime, secondsInYearFirstLine)
+		computeYear := func(a, b float64) int {
+			yearOffset := 0
+
+			if a < b {
+				yearOffset++
+			}
+
+			return modificationTime.Year() - yearOffset
+		}
+
+		year := computeYear(secondsInYearModificationTime, secondsInYearFirstLine) + adjustYearOffsetAfter12HoursJumpForward
+
 		return timeFirstLine.Time(year, modificationTime.Location()), nil
 	}
 
@@ -286,38 +300,37 @@ func guessInitialDateForFile(reader io.Reader, modificationTime time.Time) (time
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	secondsInYearLastLine := secondInTheYear(timeLastLine)
+	secondsInYearLastLine := secondInTheYear(
+		timeLastLine.Month,
+		int(timeLastLine.Day),
+		int(timeLastLine.Hour),
+		int(timeLastLine.Minute),
+		int(timeLastLine.Second))
 
 	ordered := func(a, b, c float64) bool {
 		return a <= b && b <= c
 	}
 
-	// B = Begin
-	// E = End
-	// M = Modified
-
-	offset := func(B, E, M float64) int {
-		// NOTE: This code can be simplified, but enumerating all possible combinations
-		// makes it clear we are not missing any case
-		switch {
-		case ordered(B, E, M):
+	basicOffset := func(begin, end, modified float64) int {
+		if begin <= end && end <= modified {
 			return 0
-		case ordered(B, M, E):
-			return 1
-		case ordered(E, B, M):
-			return 1
-		case ordered(E, M, B):
-			return 1
-		case ordered(M, B, E):
-			return 1
-		case ordered(M, E, B):
-			return 1
-		default:
-			panic("SPANK SPANK! This should not be possible, but it turns out it is")
 		}
+
+		return 1
 	}
 
-	year := modificationTime.Year() - offset(secondsInYearFirstLine, secondsInYearLastLine, secondsInYearModificationTime)
+	yearOffset := func() int {
+		switch {
+		case ordered(secondsInYearFirstLine, secondsInYearModificationTime, secondsInYearLastLine):
+			fallthrough
+		case ordered(secondsInYearModificationTime, secondsInYearFirstLine, secondsInYearLastLine):
+			return basicOffset(secondsInYearFirstLine, secondsInYearLastLine, secondsInYearModificationTimePlus12Hours) - adjustYearOffsetAfter12HoursJumpForward
+		default:
+			return basicOffset(secondsInYearFirstLine, secondsInYearLastLine, secondsInYearModificationTime)
+		}
+	}()
+
+	year := modificationTime.Year() - yearOffset
 
 	return timeFirstLine.Time(year, modificationTime.Location()), nil
 }

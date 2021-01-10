@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"github.com/rs/zerolog/log"
 )
 
 func readFromReader(reader io.Reader,
@@ -355,12 +355,19 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 			So(date, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
 		})
 
-		Convey("First log when file start, no change in year", func() {
+		Convey("First log when file starts, no change in year", func() {
 			reader := plainDataReader(
 				`Dec 31 23:59:50 mail postfix/postscreen[26735]: CONNECT
 Dec 31 23:59:51 mail postfix/dnsblog[26740]: addr
 Dec 31 23:59:55 mail dovecot: imap-login:`)
 			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
+			So(err, ShouldBeNil)
+			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
+		})
+
+		Convey("File with single line, close to changing year, timezone east of UTC", func() {
+			reader := plainDataReader(`Dec 31 23:59:50 mail postfix/postscreen[26735]: CONNECT`)
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:50 +0200`))
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
