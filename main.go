@@ -149,16 +149,10 @@ func runWatchingDirectory(ws *workspace.Workspace, dirToWatch string, verbose bo
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening directory: %v", dirToWatch)
 	}
 
-	initialTime := ws.MostRecentLogTime()
-
-	func() {
-		if initialTime.IsZero() {
-			log.Info().Msg("Start importing Postfix logs directory into a new workspace")
-			return
-		}
-
-		log.Info().Msgf("Importing Postfix logs directory from time %v", initialTime)
-	}()
+	initialTime, err := dirwatcher.FindInitialLogTimeIfUnavailable(ws.MostRecentLogTime(), dir)
+	if err != nil {
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening directory: %v", dirToWatch)
+	}
 
 	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
 

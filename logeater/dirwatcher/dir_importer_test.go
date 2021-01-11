@@ -626,9 +626,18 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 			},
 		}
 
-		t, err := FindInitialLogTime(dirContent)
-		So(err, ShouldBeNil)
-		So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
+		Convey("Use available time", func() {
+			initialTime := testutil.MustParseTime(`2020-02-02 10:11:12 +0006`)
+			t, err := FindInitialLogTimeIfUnavailable(initialTime, dirContent)
+			So(err, ShouldBeNil)
+			So(t, ShouldEqual, initialTime)
+		})
+
+		Convey("Use initial time from directory", func() {
+			t, err := FindInitialLogTimeIfUnavailable(time.Time{}, dirContent)
+			So(err, ShouldBeNil)
+			So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
+		})
 	})
 }
 

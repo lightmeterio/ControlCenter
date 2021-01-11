@@ -352,6 +352,22 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	return t, nil
 }
 
+func FindInitialLogTimeIfUnavailable(initialTime time.Time, content DirectoryContent) (time.Time, error) {
+	if !initialTime.IsZero() {
+		log.Info().Msgf("Importing Postfix logs directory from time %v", initialTime)
+		return initialTime, nil
+	}
+
+	initialTimeFromDir, err := FindInitialLogTime(content)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	log.Info().Msgf("Start importing Postfix logs directory into a new workspace with initial time: %v", initialTimeFromDir)
+
+	return initialTimeFromDir, nil
+}
+
 func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
 	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
 
