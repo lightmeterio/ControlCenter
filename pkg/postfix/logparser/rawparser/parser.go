@@ -85,6 +85,15 @@ func registerHandler(process, daemon string, handler func(RawHeader, []byte) (Ra
 }
 
 func Parse(logLine []byte) (RawHeader, RawPayload, error) {
+	// Remove leading 0x0
+	start := bytes.IndexFunc(logLine, func(r rune) bool {
+		return r != 0
+	})
+
+	if start != -1 {
+		logLine = logLine[start:]
+	}
+
 	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
 	if errors.Is(err, ErrInvalidHeaderLine) {
