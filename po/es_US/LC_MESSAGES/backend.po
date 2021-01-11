@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: es_US\n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+
+#: insights/highrate/high_status_rate_insight.go:177
+msgid "%v percent bounce rate between %v and %v"
+msgstr ""
+
+#: insights/mailinactivity/mail_inactivity_insight.go:24
+msgid "No emails were sent between %v and %v"
+msgstr ""
+
+#: insights/messagerbl/rbl.go:45
+msgid "The IP %v cannot deliver to %v (%v)"
+msgstr ""
+
+#: insights/localrbl/rbl.go:35
+msgid "The IP address %v is listed by %v RBLs"
+msgstr ""
