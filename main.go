@@ -6,19 +6,19 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
-	"gitlab.com/lightmeter/controlcenter/logeater"
-	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logdb"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
+	"gitlab.com/lightmeter/controlcenter/workspace"
 	"os"
 	"time"
-
-	"gitlab.com/lightmeter/controlcenter/domainmapping"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/logdb"
-	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
 func main() {
@@ -116,15 +116,34 @@ func main() {
 		log.Panic().Msg("Error: Workspace execution has ended, which should never happen here!")
 	}()
 
-	func() {
+	logSource, err := func() (logsource.Source, error) {
 		if len(dirToWatch) > 0 {
-			runWatchingDirectory(&ws, dirToWatch, verbose)
-			return
+			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime())
+			if err != nil {
+				return nil, errorutil.Wrap(err)
+			}
+
+			return s, nil
 		}
 
-		if shouldWatchFromStdin {
-			watchFromStdin(&ws, logYear, timezone)
-			return
+		s, err := filelogsource.New(os.Stdin, ws.MostRecentLogTime(), logYear)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return s, nil
+	}()
+
+	if err != nil {
+		errorutil.Dief(verbose, err, "Error setting up logs reading")
+	}
+
+	logReader := logsource.NewReader(logSource, ws.NewPublisher())
+
+	go func() {
+		err := logReader.Run()
+		if err != nil {
+			errorutil.Dief(verbose, err, "Error reading logs")
 		}
 	}()
 
@@ -140,36 +159,4 @@ func main() {
 
 func printVersion() {
 	fmt.Printf("Lightmeter ControlCenter %s\n", version.Version)
-}
-
-func runWatchingDirectory(ws *workspace.Workspace, dirToWatch string, verbose bool) {
-	dir, err := dirwatcher.NewDirectoryContent(dirToWatch)
-
-	if err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening directory: %v", dirToWatch)
-	}
-
-	initialTime := ws.MostRecentLogTime()
-
-	func() {
-		if initialTime.IsZero() {
-			log.Info().Msg("Start importing Postfix logs directory into a new workspace")
-			return
-		}
-
-		log.Info().Msgf("Importing Postfix logs directory from time %v", initialTime)
-	}()
-
-	watcher := dirwatcher.NewDirectoryImporter(dir, ws.NewPublisher(), initialTime)
-
-	go func() {
-		if err := watcher.Run(); err != nil {
-			errorutil.Dief(verbose, errorutil.Wrap(err), "Error watching directory: %v", dirToWatch)
-		}
-	}()
-}
-
-func watchFromStdin(ws *workspace.Workspace, logYear int, timezone *time.Location) {
-	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
-	go logeater.ParseLogsFromReader(ws.NewPublisher(), initialLogsTime, os.Stdin)
 }
