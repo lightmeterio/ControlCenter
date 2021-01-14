@@ -38,10 +38,10 @@ func ParseLogsFromReader(publisher data.Publisher, ts time.Time, reader io.Reade
 	ReadFromReader(reader, publisher, ts)
 }
 
-func BuildInitialLogsTime(mostRecentLogTime time.Time, logYear int, timezone *time.Location) time.Time {
+func BuildInitialLogsTime(mostRecentLogTime time.Time, logYear int) time.Time {
 	if !mostRecentLogTime.IsZero() {
 		return mostRecentLogTime
 	}
 
-	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, timezone)
+	return time.Date(logYear, time.January, 1, 0, 0, 0, 0, time.UTC)
 }

@@ -21,7 +21,7 @@ func OnlyImportLogs(workspaceDirectory string, timezone *time.Location, logYear 
 
 	doneWithDatabase := ws.Run()
 
-	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear, timezone)
+	initialLogsTime := logeater.BuildInitialLogsTime(ws.MostRecentLogTime(), logYear)
 
 	publisher := ws.NewPublisher()
 
