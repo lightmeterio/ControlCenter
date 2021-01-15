@@ -10,6 +10,8 @@ import (
 )
 
 func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
+	lineNo := uint64(0)
+
 	scanner := bufio.NewScanner(reader)
 
 	converter := parser.NewTimeConverter(ts, func(int, parser.Time, parser.Time) {})
@@ -19,11 +21,13 @@ func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
 			break
 		}
 
-		tryToParseAndPublish(scanner.Bytes(), pub, &converter)
+		lineNo++
+
+		tryToParseAndPublish(scanner.Bytes(), pub, &converter, lineNo)
 	}
 }
 
-func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *parser.TimeConverter) {
+func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *parser.TimeConverter, lineNo uint64) {
 	h, p, err := parser.Parse(line)
 
 	if !parser.IsRecoverableError(err) {
@@ -31,7 +35,15 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *pars
 		return
 	}
 
-	publisher.Publish(data.Record{Time: converter.Convert(h.Time), Header: h, Payload: p})
+	publisher.Publish(data.Record{
+		Time:    converter.Convert(h.Time),
+		Header:  h,
+		Payload: p,
+		Location: data.RecordLocation{
+			Line:     lineNo,
+			Filename: "unknown",
+		},
+	})
 }
 
 func ParseLogsFromReader(publisher data.Publisher, ts time.Time, reader io.Reader) {

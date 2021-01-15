@@ -8,16 +8,16 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"time"
-
-	"gitlab.com/lightmeter/controlcenter/data"
-	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 )
 
 type pub struct {
@@ -29,15 +29,17 @@ func (p *pub) Publish(r data.Record) {
 	}
 
 	j, err := json.Marshal(map[string]interface{}{
-		"header":  r.Header,
-		"payload": r.Payload,
+		"header":   r.Header,
+		"payload":  r.Payload,
+		"filename": r.Location.Filename,
+		"line":     r.Location.Line,
 	})
 
 	if err != nil {
 		log.Panic().Err(err).Msgf("JSON Error")
 	}
 
-	log.Info().Msgf(string(j))
+	fmt.Println(string(j))
 }
 
 func (p *pub) Close() {
@@ -68,20 +70,17 @@ func main() {
 		log.Fatal().Msg("-dir is mandatory!")
 	}
 
-	content, err := dirwatcher.NewDirectoryContent(*dirToWatch)
-
+	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), false)
 	if err != nil {
 		errorutil.LogFatalf(err, "could not init content")
 	}
 
-	initialTime := time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
-
 	pub := pub{}
 
-	watcher := dirwatcher.NewDirectoryImporter(content, &pub, initialTime)
+	logreader := logsource.NewReader(logSource, &pub)
 
-	if err := watcher.ImportOnly(); err != nil {
-		errorutil.LogFatalf(err,"import only")
+	if err := logreader.Run(); err != nil {
+		errorutil.LogFatalf(err, "import only")
 	}
 
 	// copied from https://golang.org/pkg/runtime/pprof/
