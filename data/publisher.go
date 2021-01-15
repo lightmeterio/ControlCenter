@@ -5,10 +5,16 @@ import (
 	"time"
 )
 
+type RecordLocation struct {
+	Line     uint64
+	Filename string
+}
+
 type Record struct {
-	Time    time.Time
-	Header  parser.Header
-	Payload parser.Payload
+	Time     time.Time
+	Header   parser.Header
+	Location RecordLocation
+	Payload  parser.Payload
 }
 
 type Publisher interface {
