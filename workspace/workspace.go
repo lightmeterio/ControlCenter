@@ -120,14 +120,52 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		settingsRunner:      settingsRunner,
 		closes: closeutil.New(
 			auth,
-			&logDb,
+			tracker,
+			logDb,
 			insightsEngine,
 			m,
 		),
 		NotificationCenter: notificationCenter,
 	}
 
-	return w, nil
+	ws.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		// Convert this one here to CancellableRunner!
+		ws.rblChecker.StartListening()
+
+		doneInsights, cancelInsights := ws.insightsEngine.Run()
+		doneSettings, cancelSettings := ws.settingsRunner.Run()
+		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
+		doneTracking, cancelTracking := ws.tracker.Run()
+		doneDelivery, cancelDelivery := ws.logs.Run()
+
+		go func() {
+			<-cancel
+			cancelTracking()
+			cancelDelivery()
+
+			cancelMsgRbl()
+			cancelSettings()
+			cancelInsights()
+		}()
+
+		go func() {
+			var err error
+			err = doneDelivery()
+			log.Println("done delivery:", err)
+
+			err = doneTracking()
+			log.Println("done tracking:", err)
+
+			doneMsgRbl()
+			doneSettings()
+			doneInsights()
+
+			// TODO: return a combination of the "children" errors!
+			done <- nil
+		}()
+	})
+
+	return ws, nil
 }
 
 func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
@@ -153,37 +191,7 @@ func (ws *Workspace) MostRecentLogTime() time.Time {
 }
 
 func (ws *Workspace) NewPublisher() data.Publisher {
-	return data.ComposedPublisher{ws.logs.NewPublisher(), ws.rblDetector.NewPublisher()}
-}
-
-func (ws *Workspace) Run() <-chan struct{} {
-	ws.rblChecker.StartListening()
-
-	doneInsights, cancelInsights := ws.insightsEngine.Run()
-	doneSettings, cancelSettings := ws.settingsRunner.Run()
-	doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
-
-	done := make(chan struct{})
-
-	go func() {
-		// NOTE: for now the workspace execution can be stoped by simply stopping
-		// feeding it with log lines, by closing the log publisher.
-		// TODO: this is a very unclear operation mode and needs to be changed
-		// or better documented
-		<-ws.logs.Run()
-
-		cancelInsights()
-		cancelSettings()
-		cancelMsgRbl()
-
-		doneInsights()
-		doneSettings()
-		doneMsgRbl()
-
-		done <- struct{}{}
-	}()
-
-	return done
+	return data.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
 }
 
 func (ws *Workspace) Close() error {
