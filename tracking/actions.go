@@ -7,6 +7,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -325,6 +326,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpStatusExtraMessageSentQueued)
 
 	if !messageQueuedInternally {
+		// not internally queued
 		err := createMailDeliveredResult(t, tx, r)
 
 		if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -451,8 +453,16 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 	return nil
 }
 
-func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.RecordLocation, p parser.SmtpSentStatus, resultId int64) error {
-	_, err := tx.Stmt(tracker.stmts[insertResultData14Rows]).Exec(
+func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
+	direction := func() MessageDirection {
+		if strings.HasSuffix(h.Daemon, "lmtp") {
+			return MessageDirectionIncoming
+		}
+
+		return MessageDirectionOutbound
+	}()
+
+	_, err := tx.Stmt(tracker.stmts[insertResultData15Rows]).Exec(
 		resultId, ResultRecipientLocalPartKey, p.RecipientLocalPart,
 		resultId, ResultRecipientDomainPartKey, p.RecipientDomainPart,
 		resultId, ResultOrigRecipientLocalPartKey, p.OrigRecipientLocalPart,
@@ -467,6 +477,7 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.Record
 		resultId, ResultDeliveryFilenameKey, loc.Filename,
 		resultId, ResultDeliveryFileLineKey, loc.Line,
 		resultId, ResultDeliveryTimeKey, time.Unix(),
+		resultId, ResultMessageDirectionKey, direction,
 	)
 
 	if err != nil {
@@ -509,7 +520,7 @@ func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) error {
 		return errorutil.Wrap(err)
 	}
 
-	err = addResultData(tracker, tx, r.Time, r.Location, p, resultId)
+	err = addResultData(tracker, tx, r.Time, r.Location, r.Header, p, resultId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

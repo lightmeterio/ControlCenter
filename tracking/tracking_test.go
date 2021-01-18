@@ -72,6 +72,7 @@ func TestTrackingFromFiles(t *testing.T) {
 			So(resultPublisher.results[0][QueueMessageIDKey], ShouldEqual, "ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com")
 			So(resultPublisher.results[0][ResultRecipientLocalPartKey], ShouldEqual, "invalid.email")
 			So(resultPublisher.results[0][ResultRecipientDomainPartKey], ShouldEqual, "example.com")
+			So(resultPublisher.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
 		})
 
 		Convey("Five messages, two bounced", func() {
@@ -86,6 +87,7 @@ func TestTrackingFromFiles(t *testing.T) {
 			cancel()
 			done()
 			So(len(resultPublisher.results), ShouldEqual, 1)
+			So(resultPublisher.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionIncoming)
 		})
 
 		Convey("Local queue ADCC76373 is forever lost by postfix (not delivered)", func() {

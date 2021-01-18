@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+type MessageDirection int
+
+const (
+	// NOTE: those values are stored in the database,
+	// so changing them must force a data migration to new values!
+	MessageDirectionOutbound = 0
+	MessageDirectionIncoming = 1
+)
+
 /**
  * The tracker keeps state of the postfix actions, and notifies once the destiny of an e-mail is met.
  */

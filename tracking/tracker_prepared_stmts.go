@@ -27,7 +27,7 @@ const (
 	insertNotificationQueue
 	selectNewQueueFromParenting
 	selectQueueById
-	insertResultData14Rows
+	insertResultData15Rows
 	insertResultData3Rows
 	insertResult
 	deleteFromNotificationQueues
@@ -70,8 +70,9 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	insertNotificationQueue:     `insert into notification_queues(queue_id, filename, line) values(?, ?, ?)`,
 	selectNewQueueFromParenting: `select new_queue_id from queue_parenting where orig_queue_id = ?`,
 	selectQueueById:             `select queue from queues where rowid = ?`,
-	insertResultData14Rows: `insert into result_data(result_id, key, value)
+	insertResultData15Rows: `insert into result_data(result_id, key, value)
 		values(?, ?, ?),
+					(?, ?, ?),
 					(?, ?, ?),
 					(?, ?, ?),
 					(?, ?, ?),

@@ -40,6 +40,7 @@ const (
 	ResultRelayIPKey
 	ResultRelayPortKey
 	ResultDeliveryServerKey
+	ResultMessageDirectionKey
 
 	lastKey
 )
@@ -79,5 +80,6 @@ var (
 		ResultRelayIPKey:                 "relay_ip",
 		ResultRelayPortKey:               "relay_port",
 		ResultDeliveryServerKey:          "delivery_server",
+		ResultMessageDirectionKey:        "message_direction",
 	}
 )
