@@ -41,16 +41,14 @@ type sqlDashboard struct {
 	closers closeutil.Closers
 }
 
-const removeSentToLocalhostSqlFragment = `((process_ip is not null and relay_ip != process_ip) or (process_ip is null and relay_name != "127.0.0.1"))`
-
 func New(db dbconn.RoConn) (Dashboard, error) {
 	countByStatus, err := db.Prepare(`
 	select
 		count(*)
 	from
-		postfix_smtp_message_status
+		deliveries
 	where
-		status = ? and read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment)
+		status = ? and delivery_ts between ? and ?`)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -66,9 +64,9 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 	select
 		status, count(status) as c
 	from
-		postfix_smtp_message_status
+		deliveries	
 	where
-		read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
+		delivery_ts between ? and ?
 	group by
 		status
 	order by
@@ -85,18 +83,30 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 		}
 	}()
 
-	topDomainsByStatus, err := db.Prepare(`
-	select
-		lm_resolve_domain_mapping(recipient_domain_part) as d, count(lm_resolve_domain_mapping(recipient_domain_part)) as c
-	from
-		postfix_smtp_message_status
-	where
-		status = ? and read_ts_sec between ? and ?
-	group by
-		d collate nocase
-	order by
-		c desc, d collate nocase asc
-	limit 20`)
+	byStatusWithStmtPart := `
+		with
+				resolve_domain_mapping(d, status, delivery_ts)
+		as (
+        select
+              lm_resolve_domain_mapping(remote_domains.domain) as domain, deliveries.status, deliveries.delivery_ts
+        from
+              deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid 
+        )
+`
+
+	topDomainsByStatus, err := db.Prepare(byStatusWithStmtPart + `
+				select
+                d, count(d) as c
+        from
+                resolve_domain_mapping
+        where
+                status = ? and delivery_ts between ? and ?
+        group by
+                d collate nocase
+        order by
+                c desc, d collate nocase asc
+        limit 20
+	`)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -108,18 +118,19 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 		}
 	}()
 
-	topBusiestDomains, err := db.Prepare(`
-	select
-		lm_resolve_domain_mapping(recipient_domain_part) as d, count(lm_resolve_domain_mapping(recipient_domain_part)) as c
-	from
-		postfix_smtp_message_status
-	where
-		read_ts_sec between ? and ? and ` + removeSentToLocalhostSqlFragment + `
-	group by
-		d collate nocase
-	order by
-		c desc, d collate nocase asc
-	limit 20`)
+	topBusiestDomains, err := db.Prepare(byStatusWithStmtPart + `
+				select
+                d, count(d) as c
+        from
+                resolve_domain_mapping
+        where
+                delivery_ts between ? and ?
+        group by
+                d collate nocase
+        order by
+                c desc, d collate nocase asc
+        limit 20
+	`)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
