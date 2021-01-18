@@ -46,9 +46,6 @@ func (p *Publisher) Publish(r data.Record) {
 	}
 }
 
-func (p *Publisher) Close() {
-}
-
 type Result struct {
 	Address net.IP
 	Host    string
