@@ -660,10 +660,6 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		return nil, errorutil.Wrap(err)
 	}
 
-	// Copy the pattern string so it can be moved into the log lambda below
-	// NOTE: I really miss explicit ownership checked at compile time :-(
-	pattern := p.pattern
-
 	converter := parser.NewTimeConverter(
 		time.Date(initialTime.Year(),
 			header.Time.Month,
@@ -675,7 +671,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 			initialTime.Location(),
 		),
 		func(int, parser.Time, parser.Time) {
-			log.Info().Msgf("Changed Year on log queue %s", pattern)
+			log.Info().Msgf("Changed Year on log file: %v:%v", p.record.Location.Filename, p.record.Location.Line)
 		})
 
 	// workaround, make converter escape to the heap

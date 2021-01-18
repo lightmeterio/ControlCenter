@@ -66,4 +66,44 @@ func TestPostfixTimeConverter(t *testing.T) {
 		c.Convert(Time{Month: time.March, Day: 29, Hour: 3, Minute: 5, Second: 17})
 		So(c.year, ShouldEqual, 2020)
 	})
+
+	Convey("Regression: Short out of order are supported", t, func() {
+		// Sometimes some log lines are out of order for a few seconds (it happens especially when they are logged by different processes)
+		// and we should support such cases, not bumping the year.
+		// One example is the following lines:
+		/*
+			Dec 17 10:42:27 sm02 postfix/cleanup[27439]: E6E98DC28ED: message-id=11111
+			Dec 17 10:42:27 sm02 opendkim[94828]: E6E98DC28ED: no signing table match for 'some.email@example.com'
+			Dec 17 10:42:27 sm02 postfix/dkimmilter/smtpd[27443]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+			Dec 17 10:42:28 sm02 amavis[13720]: (13720-05) 1PuXuLcNJCsB FWD from <sender@sender.example.com> -> <recipient@recipient.example.com>, BODY=7BIT 250 2.0.0 from MTA(smtp:[127.0.0.1]:10030): 250 2.0.0 Ok: queued as E6E98DC28ED
+			Dec 17 10:42:27 sm02 postfix/qmgr[95074]: E6E98DC28ED: from=<sender@sender.example.com>, size=55485, nrcpt=1 (queue active)
+			Dec 17 10:42:28 sm02 amavis[13720]: (13720-05) Passed CLEAN {RelayedOutbound}, ORIGINATING LOCAL [118.69.64.170]:61810 [118.69.64.170] <sender@sender.example.com> -> <recipient@recipient.example.com>, Queue-ID: D4280DC299D, Message-ID: <11111>, mail_id: 1PuXuLcNJCsB, Hits: -, size: 55031, queued_as: E6E98DC28ED, 277 ms
+		*/
+
+		initialTime := time.Date(2000, time.January, 1, 0, 0, 0, 0, tz)
+		yearOffset := 0
+
+		c := NewTimeConverter(initialTime, func(int, Time, Time) { yearOffset++ })
+
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 28})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 28})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 28})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 28})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 28})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 29})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 30})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 29})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 29})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 29})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 30})
+		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 31})
+
+		So(c.year, ShouldEqual, 2000)
+	})
+
 }
