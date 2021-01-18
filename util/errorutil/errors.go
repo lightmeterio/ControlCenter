@@ -26,9 +26,8 @@ func (e *Error) Error() string {
 	return e.Err.Error()
 }
 
-// Wrap an error adding more context such as filename and line where wrapping happened
-func Wrap(err error, args ...interface{}) *Error {
-	_, file, line, ok := runtime.Caller(1)
+func wrap(skip int, err error, args ...interface{}) *Error {
+	_, file, line, ok := runtime.Caller(skip)
 
 	if !ok {
 		line = 0
@@ -38,6 +37,20 @@ func Wrap(err error, args ...interface{}) *Error {
 	msg := fmt.Sprint(args...)
 
 	return &Error{line, file, msg, err}
+}
+
+// Wrap an error adding more context such as filename and line where wrapping happened
+func Wrap(err error, args ...interface{}) *Error {
+	return wrap(2, err, args...)
+}
+
+// MaybeWrap wraps an error if it exists. See Wrap() for more info
+func MaybeWrap(err error, args ...interface{}) *Error {
+	if err == nil {
+		return nil
+	}
+
+	return wrap(2, err, args...)
 }
 
 // Given an error, tries to unwrap it recursively until finds a "trivial" error
