@@ -7,6 +7,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
@@ -48,7 +49,7 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 	from
 		deliveries
 	where
-		status = ? and delivery_ts between ? and ?`)
+		status = ? and delivery_ts between ? and ? and direction = ?`)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -66,7 +67,7 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 	from
 		deliveries	
 	where
-		delivery_ts between ? and ?
+		delivery_ts between ? and ? and direction = ?
 	group by
 		status
 	order by
@@ -85,10 +86,10 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 
 	byStatusWithStmtPart := `
 		with
-				resolve_domain_mapping(d, status, delivery_ts)
+				resolve_domain_mapping(d, status, delivery_ts, direction)
 		as (
         select
-              lm_resolve_domain_mapping(remote_domains.domain) as domain, deliveries.status, deliveries.delivery_ts
+              lm_resolve_domain_mapping(remote_domains.domain) as domain, deliveries.status, deliveries.delivery_ts, deliveries.direction
         from
               deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid 
         )
@@ -100,7 +101,7 @@ func New(db dbconn.RoConn) (Dashboard, error) {
         from
                 resolve_domain_mapping
         where
-                status = ? and delivery_ts between ? and ?
+                status = ? and delivery_ts between ? and ? and direction = ?
         group by
                 d collate nocase
         order by
@@ -124,7 +125,7 @@ func New(db dbconn.RoConn) (Dashboard, error) {
         from
                 resolve_domain_mapping
         where
-                delivery_ts between ? and ?
+                delivery_ts between ? and ? and direction = ?
         group by
                 d collate nocase
         order by
@@ -173,15 +174,17 @@ func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatu
 }
 
 func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix())
+	return listDomainAndCount(ctx, d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.BouncedStatus, interval.From.Unix(), interval.To.Unix())
+	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.BouncedStatus,
+		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.DeferredStatus, interval.From.Unix(), interval.To.Unix())
+	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.DeferredStatus,
+		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
@@ -191,7 +194,8 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInte
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
 	countValue := 0
 
-	if err := stmt.QueryRowContext(ctx, status, interval.From.Unix(), interval.To.Unix()).Scan(&countValue); err != nil {
+	if err := stmt.QueryRowContext(ctx, status, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound).
+		Scan(&countValue); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 
@@ -245,7 +249,7 @@ func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}
 func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval data.TimeInterval) (Pairs, error) {
 	r := Pairs{}
 
-	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix())
+	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 
 	if err != nil {
 		return Pairs{}, errorutil.Wrap(err)

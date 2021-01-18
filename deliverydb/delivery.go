@@ -256,6 +256,7 @@ func (p *resultsPublisher) Publish(tr tracking.Result) {
 insert into deliveries(
 	status,
 	delivery_ts,
+	direction,
 	sender_domain_part_id,
 	recipient_domain_part_id,
 	message_id,
@@ -275,9 +276,10 @@ insert into deliveries(
 	client_hostname,
 	client_ip,
 	dsn)
-values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			tr[tracking.ResultStatusKey],
 			tr[tracking.ResultDeliveryTimeKey],
+			tr[tracking.ResultMessageDirectionKey],
 			senderDomainPartId,
 			recipientDomainPartId,
 			messageId,

@@ -16,6 +16,7 @@ func up(tx *sql.Tx) error {
 create table deliveries (
 	status integer not null,
 	delivery_ts integer not null,
+	direction integer not null,
 	sender_domain_part_id integer not null,
 	recipient_domain_part_id integer not null,
 	orig_recipient_domain_part_id integer, -- optional

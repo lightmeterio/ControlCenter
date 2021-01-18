@@ -146,6 +146,7 @@ func buildDefaultResult() tracking.Result {
 	result[tracking.ResultRelayIPKey] = "123.2.3.4"
 	result[tracking.ResultRelayPortKey] = 42
 	result[tracking.ResultDeliveryServerKey] = "server"
+	result[tracking.ResultMessageDirectionKey] = tracking.MessageDirectionOutbound
 	return result
 }
 
@@ -210,17 +211,30 @@ func TestEntriesInsertion(t *testing.T) {
 			}
 		}
 
-		smtpStatusRecordWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
+		fakeMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string, dir tracking.MessageDirection) tracking.Result {
 			r := buildDefaultResult()
 			r[tracking.ResultRecipientLocalPartKey] = recipientLocalPart
 			r[tracking.ResultRecipientDomainPartKey] = recipientDomainPart
 			r[tracking.ResultDeliveryTimeKey] = t.Unix()
 			r[tracking.ResultStatusKey] = status
+			r[tracking.ResultMessageDirectionKey] = dir
 			return r
 		}
 
+		fakeOutboundMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
+			return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionOutbound)
+		}
+
+		fakeIncomingMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
+			return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionIncoming)
+		}
+
 		smtpStatusRecord := func(status parser.SmtpStatus, t time.Time) tracking.Result {
-			return smtpStatusRecordWithRecipient(status, t, "recipient", "test.com")
+			return fakeOutboundMessageWithRecipient(status, t, "recipient", "test.com")
+		}
+
+		smtpStatusIncomingRecord := func(status parser.SmtpStatus, t time.Time) tracking.Result {
+			return fakeIncomingMessageWithRecipient(status, t, "recipient", "test.com")
 		}
 
 		Convey("Inserting entries", func() {
@@ -233,6 +247,25 @@ func TestEntriesInsertion(t *testing.T) {
 				interval := parseTimeInterval("1999-12-02", "2000-01-03")
 
 				So(db.HasLogs(), ShouldBeFalse)
+				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
+				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
+			})
+
+			Convey("Incoming messages don't show in the dashboard", func() {
+				db, done, cancel, pub, dashboard, dtor := buildWs()
+				defer dtor()
+
+				pub.Publish(smtpStatusIncomingRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
+				pub.Publish(smtpStatusIncomingRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-02 13:10:11 +0000`)))
+				pub.Publish(smtpStatusIncomingRecord(parser.BouncedStatus, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`)))
+
+				cancel()
+				So(done(), ShouldBeNil)
+
+				interval := parseTimeInterval("1999-12-02", "2000-01-03")
+
+				So(db.HasLogs(), ShouldBeTrue)
 				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 0)
 				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
 				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
@@ -307,23 +340,28 @@ func TestEntriesInsertion(t *testing.T) {
 					b := parser.BouncedStatus
 
 					// Something before the interval
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(1999, time.December, 1, 13, 0, 0), "recip", "domain"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, t(1999, time.December, 1, 13, 0, 0), "recip", "domain"))
 
 					// Inside the interval
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(1999, time.December, 2, 14, 1, 2), "r1", "ALALALA.COM"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(1999, time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(1999, time.December, 2, 14, 1, 4), "r3", "alalala.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(1999, time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(1999, time.December, 5, 15, 1, 0), "r2", "email3.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(1999, time.December, 6, 16, 1, 4), "r3", "ALALALA.COM"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2000, time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(2000, time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(2000, time.January, 4, 16, 1, 0), "r2", "example1.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(2000, time.January, 4, 16, 2, 1), "r2", "example1.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, t(1999, time.December, 2, 14, 1, 2), "r1", "ALALALA.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 2, 14, 1, 4), "r3", "alalala.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(1999, time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(1999, time.December, 5, 15, 1, 0), "r2", "email3.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 6, 16, 1, 4), "r3", "ALALALA.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2000, time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2000, time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2000, time.January, 4, 16, 1, 0), "r2", "example1.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2000, time.January, 4, 16, 2, 1), "r2", "example1.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+
+					// Incoming messages do not count
+					pub.Publish(fakeIncomingMessageWithRecipient(b, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeIncomingMessageWithRecipient(s, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeIncomingMessageWithRecipient(d, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
 
 					// Something after the interval
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(2000, time.March, 12, 13, 0, 0), "recip", "domain"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2000, time.March, 12, 13, 0, 0), "recip", "domain"))
 				}
 
 				cancel()
@@ -374,16 +412,16 @@ func TestEntriesInsertion(t *testing.T) {
 					d := parser.DeferredStatus
 					b := parser.BouncedStatus
 
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(2020, time.January, 1, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(2020, time.January, 2, 1, 0, 0), "p1", "another.de"))
-					pub.Publish(smtpStatusRecordWithRecipient(d, t(2020, time.January, 2, 2, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 1, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 2, 1, 0, 0), "p1", "another.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 2, 2, 0, 0), "p1", "domaintobegrouped.com"))
 
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2020, time.January, 3, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2020, time.January, 4, 1, 0, 0), "p1", "domaintobegrouped.com"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2020, time.January, 5, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(smtpStatusRecordWithRecipient(b, t(2020, time.January, 6, 1, 0, 0), "p1", "another.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 3, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 4, 1, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 5, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 6, 1, 0, 0), "p1", "another.de"))
 
-					pub.Publish(smtpStatusRecordWithRecipient(s, t(2020, time.January, 6, 1, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2020, time.January, 6, 1, 0, 0), "p1", "domaintobegrouped.com"))
 				}
 
 				cancel()
