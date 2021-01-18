@@ -8,7 +8,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
@@ -42,12 +41,12 @@ func main() {
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
-		"Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin")
+		"Only import existing logs, exiting immediately, without running the full application.")
 	flag.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
 	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
 	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
-	flag.IntVar(&logYear, "log_starting_year", time.Now().Year(), "Value to be used as initial year when it cannot be obtained fro the Postfix logs. Defaults to the current year. Requires -stdin.")
+	flag.IntVar(&logYear, "log_starting_year", time.Now().Year(), "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
@@ -98,27 +97,15 @@ func main() {
 		errorutil.Dief(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
 	}
 
-	if importOnly {
-		subcommand.OnlyImportLogs(workspaceDirectory, timezone, logYear, verbose, os.Stdin)
-		return
-	}
-
-	ws, err := workspace.NewWorkspace(workspaceDirectory, logdb.Config{
-		Location: timezone,
-	})
+	ws, err := workspace.NewWorkspace(workspaceDirectory)
 
 	if err != nil {
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", workspaceDirectory)
 	}
 
-	go func() {
-		<-ws.Run()
-		log.Panic().Msg("Error: Workspace execution has ended, which should never happen here!")
-	}()
-
 	logSource, err := func() (logsource.Source, error) {
 		if len(dirToWatch) > 0 {
-			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), true)
+			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}
@@ -140,6 +127,30 @@ func main() {
 
 	logReader := logsource.NewReader(logSource, ws.NewPublisher())
 
+	done, cancel := ws.Run()
+
+	// only import logs and exit when they end. Does not start web server.
+	// It's useful for benchmarking importing logs.
+	if importOnly {
+		logReader.Run()
+
+		cancel()
+		err := done()
+
+		errorutil.MustSucceed(err)
+
+		log.Info().Msg("Importing has finished. Bye!")
+
+		return
+	}
+
+	// from here on, workspace is never cancellable!
+
+	go func() {
+		err := done()
+		errorutil.Dief(verbose, err, "Error: Workspace execution has ended, which should never happen here!")
+	}()
+
 	go func() {
 		err := logReader.Run()
 		if err != nil {
@@ -148,7 +159,7 @@ func main() {
 	}()
 
 	httpServer := server.HttpServer{
-		Workspace:          &ws,
+		Workspace:          ws,
 		WorkspaceDirectory: workspaceDirectory,
 		Timezone:           timezone,
 		Address:            address,
