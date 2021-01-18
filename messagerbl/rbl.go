@@ -96,7 +96,7 @@ func New(settings globalsettings.IPAddressGetter) *Detector {
 			}
 
 			close(d.resultsChan)
-			done <- struct{}{}
+			done <- nil
 		}()
 	}
 
