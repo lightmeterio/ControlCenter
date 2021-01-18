@@ -22,6 +22,8 @@ func actionTypeForRecord(r data.Record) (ActionType, actionDataPair) {
 			return MailBouncedActionType, emptyActionDataPair
 		case parser.SentStatus:
 			return MailSentActionType, emptyActionDataPair
+		case parser.DeferredStatus:
+			return MailBouncedActionType, emptyActionDataPair
 		default:
 			return UnsupportedActionType, emptyActionDataPair
 		}

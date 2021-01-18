@@ -6,6 +6,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"os"
@@ -73,6 +74,7 @@ func TestTrackingFromFiles(t *testing.T) {
 			So(resultPublisher.results[0][ResultRecipientLocalPartKey], ShouldEqual, "invalid.email")
 			So(resultPublisher.results[0][ResultRecipientDomainPartKey], ShouldEqual, "example.com")
 			So(resultPublisher.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+			So(resultPublisher.results[0][ResultStatusKey], ShouldEqual, parser.BouncedStatus)
 		})
 
 		Convey("Five messages, two bounced", func() {
@@ -120,5 +122,19 @@ func TestTrackingFromFiles(t *testing.T) {
 			//So(resultPublisher.results[0][ConnectionBeginKey], ShouldNotBeNil)
 		})
 
+		Convey("An e-mail gets deferred", func() {
+			readFromTestFile("test_files/6_deferred_message_retry.log", t.Publisher())
+			cancel()
+			done()
+			So(len(resultPublisher.results), ShouldEqual, 2)
+
+			So(resultPublisher.results[0][ResultRecipientLocalPartKey], ShouldEqual, "recipient")
+			So(resultPublisher.results[0][ResultRecipientDomainPartKey], ShouldEqual, "recipient.com")
+			So(resultPublisher.results[0][ResultStatusKey], ShouldEqual, parser.DeferredStatus)
+			So(resultPublisher.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+
+			So(resultPublisher.results[1][ResultStatusKey], ShouldEqual, parser.SentStatus)
+			So(resultPublisher.results[1][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+		})
 	})
 }
