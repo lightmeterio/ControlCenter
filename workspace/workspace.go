@@ -4,26 +4,32 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
-	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"log"
 	"os"
 	"path"
 	"time"
 )
 
 type Workspace struct {
-	logs           *logdb.DB
+	runner.CancelableRunner
+
+	logs           *deliverydb.DB
+	tracker        *tracking.Tracker
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
 	rblDetector    *messagerbl.Detector
@@ -37,45 +43,50 @@ type Workspace struct {
 	closes closeutil.Closers
 }
 
-func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, error) {
+func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
-		return Workspace{}, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
+		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	logDb, err := logdb.Open(workspaceDirectory, config)
+	logDb, err := deliverydb.New(workspaceDirectory)
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
+	}
+
+	tracker, err := tracking.New(workspaceDirectory, logDb.ResultsPublisher())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
 	}
 
 	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	metadataConnPair, err := dbconn.NewConnPair(path.Join(workspaceDirectory, "master.db"))
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	m, err := meta.NewHandler(metadataConnPair, "master")
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	settingsRunner := meta.NewRunner(m)
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	dashboard, err := dashboard.New(logDb.ReadConnection())
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	translators := translator.New(po.DefaultCatalog)
@@ -95,11 +106,12 @@ func NewWorkspace(workspaceDirectory string, config logdb.Config) (Workspace, er
 		notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
 
 	if err != nil {
-		return Workspace{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
-	w := Workspace{
-		logs:                &logDb,
+	ws := &Workspace{
+		logs:                logDb,
+		tracker:             tracker,
 		insightsEngine:      insightsEngine,
 		auth:                auth,
 		rblDetector:         rblDetector,
