@@ -6,13 +6,15 @@ queueId = xdigit+;
 
 anythingExceptComma = [^,]+;
 
-bracketedEmailLocalPart = [^'@']+;
+bracketedEmailLocalPart = [^@]+;
 
-bracketedEmailDomainPart = [^'>']+;
+bracketedEmailDomainPart = [^>]+;
 
 dot = ".";
 
-ipv4 = ([0-9]+dot){3}[0-9]+;
+unknownIP = "unknown";
+
+ipv4 = ([0-9]+dot){3}[0-9]+ | unknownIP;
 
 action setTokBeg { tokBeg = p }
 
