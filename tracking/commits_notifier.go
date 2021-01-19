@@ -3,6 +3,7 @@ package tracking
 import (
 	"database/sql"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -70,7 +71,7 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.rowid == ?`,
 	selectKeyValueFromConnections: `
 			select
-				key, value
+				connection_data.rowid, key, value
 			from
 				connection_data join connections on connection_data.connection_id = connections.rowid
 				join queues on queues.connection_id == connections.rowid
@@ -78,14 +79,14 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.rowid = ?`,
 	selectKeyValueFromQueues: `
 			select
-				queue_data.key, queue_data.value
+				queue_data.key, queue_data.key, queue_data.value
 			from
 				queue_data join queues on queue_data.queue_id = queues.rowid
 			where
 				queues.rowid = ?`,
 	selectKeyValueFromQueuesByKeyType: `
 			select
-				queue_data.key, queue_data.value
+				queue_data.rowid, queue_data.key, queue_data.value
 			from
 				queue_data join queues on queue_data.queue_id = queues.rowid
 			where
@@ -99,7 +100,7 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.rowid == ?`,
 	selectKeyValueForResults: `
 				select
-					result_data.key, result_data.value
+					result_data.rowid, result_data.key, result_data.value
 				from
 					result_data join results on result_data.result_id = results.rowid
 				where
@@ -166,38 +167,12 @@ func findConnectionAndDeliveryQueue(stmts notifierStmts, queueId int64, loc data
 	return findConnectionAndDeliveryQueue(stmts, origQueue, loc)
 }
 
-func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) error {
-	var (
-		key   int
-		value interface{}
-	)
-
-	// fetch all results for connection
-	rows, err := stmt.Query(args...)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	for rows.Next() {
-		err = rows.Scan(&key, &value)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-		// TODO: abort if the key is not a valid result key (out of index)
-		result[key] = value
-	}
-
-	if err := rows.Err(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
-// FIXME: this method is way long. Really. It deserves urgent refactoring
-func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub ResultPublisher) error {
+// FIXME: this method is way too long. Really. It deserves urgent refactoring
+func buildAndPublishResult(stmts notifierStmts,
+	resultInfo resultInfo,
+	pub ResultPublisher,
+	trackerStmts trackerStmts,
+	actions chan<- func(*sql.Tx) error) error {
 	var queueId int64
 
 	err := stmts[selectQueueIdFromResult].QueryRow(&resultInfo.id).Scan(&queueId)
@@ -228,10 +203,9 @@ func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub Resul
 	// TODO: operate all on the same Result{}, except for the deliveryQueue stuff.
 	// It makes the mergeResults faster as it operates on less arrays!
 
-	connectionResult := Result{}
+	connResult := Result{}
 
-	err = collectKeyValueResult(&connectionResult, stmts[selectKeyValueFromConnections], connQueueId)
-
+	err = collectKeyValueResult(&connResult, stmts[selectKeyValueFromConnections], connQueueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -239,7 +213,6 @@ func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub Resul
 	queueResult := Result{}
 
 	err = collectKeyValueResult(&queueResult, stmts[selectKeyValueFromQueues], connQueueId)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -247,7 +220,6 @@ func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub Resul
 	deliveryQueueResult := Result{}
 
 	err = collectKeyValueResult(&deliveryQueueResult, stmts[selectKeyValueFromQueuesByKeyType], deliveryQueueId, QueueOriginalMessageSizeKey)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -258,7 +230,6 @@ func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub Resul
 	var deliveryQueueName string
 
 	err = stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -268,28 +239,70 @@ func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub Resul
 	resultResult := Result{}
 
 	err = collectKeyValueResult(&resultResult, stmts[selectKeyValueForResults], resultInfo.id)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	mergedResults := mergeResults(resultResult, queueResult, connectionResult, deliveryQueueResult)
+	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
 	mergedResults[QueueMessageIDKey] = messageId
 	mergedResults[ResultDeliveryServerKey] = deliveryServer
 
 	pub.Publish(mergedResults)
 
-	// TODO: send delete actions for the stuff used by the result and not anymore needed!
+	deleteQueueAction := func(tx *sql.Tx) error {
+		_, err := tryToDeleteQueue(tx, trackerStmts, queueId, resultInfo.loc)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	deleteResultAction := func(tx *sql.Tx) error {
+		_, err := tx.Stmt(trackerStmts[deleteResultByIdKey]).Exec(resultInfo.id)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		_, err = tx.Stmt(trackerStmts[deleteResultDataByResultId]).Exec(resultInfo.id)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	actions <- func(tx *sql.Tx) error {
+		if err := deleteQueueAction(tx); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := deleteResultAction(tx); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
 
 	return nil
 }
 
-func runQueuesCommitNotifier(stmts notifierStmts, n *queuesCommitNotifier) error {
+func runResultsNotifier(stmts notifierStmts, n *queuesCommitNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
 	for resultInfo := range n.resultsToNotify {
-		if err := buildAndPublishResult(stmts, resultInfo, n.publisher); err != nil {
-			return errorutil.Wrap(err)
+		err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
+
+		if err == nil {
+			continue
 		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v",
+				resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
+			continue
+		}
+
+		return errorutil.Wrap(err)
 	}
 
 	return nil

@@ -1,0 +1,17 @@
+Oct 13 16:40:39 ucs postfix/smtpd[18568]: warning: hostname h-d9fb9ffa81872.h-13c4c40aeef18 does not resolve to address 28.55.140.112
+Oct 13 16:40:39 ucs postfix/smtpd[18568]: connect from unknown[28.55.140.112]
+Oct 13 16:40:40 ucs postfix/smtpd[18568]: 4F5C64474F: client=unknown[28.55.140.112]
+Oct 13 16:40:40 ucs postfix/cleanup[18571]: 4F5C64474F: message-id=<>
+Oct 13 16:40:40 ucs postfix/qmgr[2329]: 4F5C64474F: from=<>, size=1315, nrcpt=1 (queue active)
+Oct 13 16:40:40 ucs postfix/smtpd[18568]: disconnect from unknown[28.55.140.112] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Oct 13 16:40:41 ucs postfix/smtpd[20743]: connect from unknown[11.172.110.165]
+Oct 13 16:40:42 ucs postfix/smtpd[18581]: connect from localhost[127.0.0.1]
+Oct 13 16:40:42 ucs postfix/smtpd[18581]: ED01244770: client=localhost[127.0.0.1], orig_queue_id=4F5C64474F, orig_client=unknown[28.55.140.112]
+Oct 13 16:40:42 ucs postfix/cleanup[18571]: ED01244770: message-id=<>
+Oct 13 16:40:42 ucs postfix/smtpd[18581]: disconnect from localhost[127.0.0.1] ehlo=1 xforward=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+Oct 13 16:40:42 ucs postfix/qmgr[2329]: ED01244770: from=<>, size=2135, nrcpt=1 (queue active)
+Oct 13 16:40:42 ucs amavis[10410]: (10410-08) Passed SPAM {RelayedTaggedInbound}, [28.55.140.112]:54908 [224.222.170.185] <> -> <h-14a52d@h-d6b1ceccbb3bc48.com>, Queue-ID: 4F5C64474F, mail_id: eFtKEm8YvMkT, Hits: 5.397, size: 1315, queued_as: ED01244770, 2426 ms
+Oct 13 16:40:42 ucs postfix/smtp[18572]: 4F5C64474F: to=<h-14a52d@h-d6b1ceccbb3bc48.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=2.7, delays=0.25/0.02/0.01/2.4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as ED01244770)
+Oct 13 16:40:42 ucs postfix/qmgr[2329]: 4F5C64474F: removed
+Oct 13 16:40:43 ucs postfix/lmtp[18582]: ED01244770: to=<h-14a52d@h-d6b1ceccbb3bc48.com>, relay=127.0.0.1[127.0.0.1]:2003, delay=0.38, delays=0.03/0.02/0.06/0.28, dsn=2.1.5, status=sent (250 2.1.5 h-14a52d@h-d6b1ceccbb3bc48.com Ok)
+Oct 13 16:40:43 ucs postfix/qmgr[2329]: ED01244770: removed

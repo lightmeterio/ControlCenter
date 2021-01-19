@@ -15,6 +15,7 @@ func up(tx *sql.Tx) error {
 	sql := `
 create table queues (
 	connection_id integer not null,
+	usage_counter integer not null, -- incremented whenever anything links the queue, and decrement otherwise
 	messageid_id integer,
 	queue text not null
 );
@@ -45,16 +46,21 @@ create table queue_parenting (
 	parenting_type integer not null
 );
 
+-- TODO: check if the two indexes are really needed!
+create index queue_parenting_new_queue_id_index on queue_parenting(new_queue_id);
+create index queue_parenting_orig_queue_id_index on queue_parenting(orig_queue_id);
+
 create table queue_data (
 	queue_id integer not null,
 	key integer not null,
 	value blob not null
 );
 
-create index queue_data_result_id_index on queue_data(queue_id);
+create index queue_data_queue_id_index on queue_data(queue_id);
 
 create table connections (
-	pid_id integer not null
+	pid_id integer not null,
+	usage_counter integer not null
 );
 
 create index connections_pid_id_index on connections(pid_id);
@@ -69,6 +75,7 @@ create index connection_data_connection_id_index on connection_data(connection_i
 
 create table pids (
 	pid integer not null,
+	usage_counter integer not null,
 	host text not null
 );
 
@@ -80,6 +87,13 @@ create table notification_queues (
 	line integer not null,
 	filename text
 );
+
+create table processed_queues (
+	queue_id integer not null
+);
+
+create index processed_queues_index on processed_queues(queue_id);
+
 `
 	if _, err := tx.Exec(sql); err != nil {
 		return errorutil.Wrap(err)

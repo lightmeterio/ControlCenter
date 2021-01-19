@@ -2,6 +2,7 @@ package tracking
 
 import (
 	"database/sql"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
@@ -9,8 +10,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"path"
+	"reflect"
 	"time"
 )
 
@@ -102,13 +103,11 @@ type trackerStmts [lastTrackerStmtKey]*sql.Stmt
 type Tracker struct {
 	runner.CancelableRunner
 
-	stmts trackerStmts
-
-	dbconn  dbconn.ConnPair
-	actions chan actionTuple
-
-	queuesToNotify chan resultInfo
-
+	stmts                trackerStmts
+	dbconn               dbconn.ConnPair
+	actions              chan actionTuple
+	txActions            <-chan func(*sql.Tx) error
+	resultsToNotify      chan resultInfo
 	queuesCommitNotifier *queuesCommitNotifier
 }
 
@@ -153,32 +152,35 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	queuesToNotify := make(chan resultInfo, 1024*20)
+	txActions := make(chan func(*sql.Tx) error)
+
+	resultsToNotify := make(chan resultInfo, 1024*20)
 
 	queuesCommitNotifier := &queuesCommitNotifier{
-		resultsToNotify: queuesToNotify,
+		resultsToNotify: resultsToNotify,
 		publisher:       pub,
 	}
+
+	trackerActions := make(chan actionTuple, 1024*10)
 
 	tracker := &Tracker{
 		stmts:                trackerStmts,
 		dbconn:               conn,
-		actions:              make(chan actionTuple, 1024*10),
-		queuesToNotify:       queuesToNotify,
+		actions:              trackerActions,
+		txActions:            txActions,
+		resultsToNotify:      resultsToNotify,
 		queuesCommitNotifier: queuesCommitNotifier,
 	}
 
-	queuesCommitNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		go func() {
-			<-cancel
-			close(queuesToNotify)
-		}()
-
+	queuesCommitNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
 		go func() {
 			done <- func() error {
-				if err := runQueuesCommitNotifier(notifierStmts, queuesCommitNotifier); err != nil {
+				// will leave when resultsToNotify is closed
+				if err := runResultsNotifier(notifierStmts, queuesCommitNotifier, trackerStmts, txActions); err != nil {
 					return errorutil.Wrap(err)
 				}
+
+				close(txActions)
 
 				return nil
 			}()
@@ -186,15 +188,12 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 	})
 
 	tracker.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		notifierDone, notifierCancel := queuesCommitNotifier.Run()
-
-		doneWithTrackerLoop := make(chan struct{})
+		notifierDone, _ := queuesCommitNotifier.Run()
 
 		go func() {
 			<-cancel
+
 			close(tracker.actions)
-			<-doneWithTrackerLoop
-			notifierCancel()
 		}()
 
 		go func() {
@@ -206,13 +205,23 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 				return nil
 			}()
 
-			doneWithTrackerLoop <- struct{}{}
+			panicOnError := func(err error) {
+				if e, ok := err.(*errorutil.Error); ok {
+					panic(e.Chain())
+				}
+
+				panic(err)
+			}
+
+			if trackerError != nil {
+				panicOnError(trackerError)
+			}
 
 			notifierError := notifierDone()
 
 			done <- func() error {
 				if notifierError != nil {
-					log.Panicln("Tracking commits notifier failed first. Ignore main tracker loop error for now:", trackerError)
+					log.Warn().Msgf("Tracking commits notifier failed first. Ignore main tracker loop error for now: %v", trackerError)
 					return errorutil.Wrap(notifierError)
 				}
 
@@ -247,7 +256,7 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	actionRecord, found := actions[actionTuple.actionType]
 
 	if !found {
-		log.Panicln("SPANK SPANK: Invalid/unsupported action!:", actionTuple)
+		log.Panic().Msgf("SPANK SPANK: Invalid/unsupported action!: %v", actionTuple)
 	}
 
 	action := actionRecord.impl
@@ -258,6 +267,18 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	}
 
 	if err = action(t, tx, actionTuple.record, actionDataPair); err != nil {
+		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+			asDeletionError := err.(*DeletionError)
+			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
+			// but we should investigate and make and fix them!
+			// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
+			// and potentially making queries slower... :-(
+			log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+				asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
+
+			return tx, nil
+		}
+
 		return nil, errorutil.Wrap(err, "log file: ", actionTuple.record.Location.Filename, ":", actionTuple.record.Location.Line)
 	}
 
@@ -265,9 +286,7 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 }
 
 func runTracker(t *Tracker) error {
-	var (
-		tx *sql.Tx
-	)
+	var tx *sql.Tx
 
 	commitTransactionIfNeeded := func() error {
 		if tx == nil {
@@ -290,7 +309,7 @@ func runTracker(t *Tracker) error {
 			return errorutil.Wrap(err)
 		}
 
-		if err = dispatchAllQueues(t, t.queuesToNotify, tx); err != nil {
+		if err = dispatchAllResults(t, t.resultsToNotify, tx); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -301,7 +320,7 @@ func runTracker(t *Tracker) error {
 		return nil
 	}
 
-	ensureMessagesArePersistedAndDispatchQueues := func() error {
+	ensureMessagesArePersistedAndDispatchResults := func() error {
 		if err := commitTransactionIfNeeded(); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -317,28 +336,84 @@ func runTracker(t *Tracker) error {
 
 	var err error
 
+	txActionsAsValue := reflect.ValueOf(t.txActions)
+	tickerAsValue := reflect.ValueOf(messagesTicker.C)
+	messageActionsAsValue := reflect.ValueOf(t.actions)
+
+	branches := []reflect.SelectCase{
+		{Dir: reflect.SelectRecv, Chan: txActionsAsValue},
+		{Dir: reflect.SelectRecv, Chan: tickerAsValue},
+		{Dir: reflect.SelectRecv, Chan: messageActionsAsValue},
+	}
+
+loop:
 	for {
-		select {
-		case <-messagesTicker.C:
-			if err := ensureMessagesArePersistedAndDispatchQueues(); err != nil {
-				return nil
-			}
-		case actionTuple, ok := <-t.actions:
+		chosen, recv, ok := reflect.Select(branches)
+
+		switch chosen {
+		case 0:
 			if !ok {
-				// cancel() has been called
-				// dispatch any remaning message and leave
-				if err = ensureMessagesArePersistedAndDispatchQueues(); err != nil {
+				if err := commitTransactionIfNeeded(); err != nil {
 					return errorutil.Wrap(err)
 				}
 
-				return nil
+				break loop
 			}
+
+			if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			txAction := recv.Interface().(func(*sql.Tx) error)
+
+			err = txAction(tx)
+
+			if err != nil {
+				if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+					asDeletionError := err.(*DeletionError)
+					// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
+					// but we should investigate and make and fix them!
+					// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
+					// and potentially making queries slower... :-(
+					log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+						asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
+
+					break
+				}
+
+				return errorutil.Wrap(err)
+			}
+		case 1:
+			if err := ensureMessagesArePersistedAndDispatchResults(); err != nil {
+				return errorutil.Wrap(err)
+			}
+		case 2:
+			if !ok {
+				// cancel() has been called
+				if err := ensureMessagesArePersistedAndDispatchResults(); err != nil {
+					return errorutil.Wrap(err)
+				}
+
+				close(t.resultsToNotify)
+
+				// Remove this branch from the select, as no new messages should arrive
+				// from now on
+				branches = branches[0 : len(branches)-1]
+
+				break
+			}
+
+			actionTuple := recv.Interface().(actionTuple)
 
 			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple); err != nil {
 				return errorutil.Wrap(err)
 			}
+		default:
+			panic("Read wrong select index!!!")
 		}
 	}
+
+	return nil
 }
 
 type Result [lastKey]interface{}

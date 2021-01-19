@@ -3,10 +3,10 @@ package tracking
 import (
 	"database/sql"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"strings"
 	"time"
 )
@@ -61,6 +61,11 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error
 		return 0, errorutil.Wrap(err)
 	}
 
+	err = incrementPidUsage(tx, tracker.stmts, pidId)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
 	result, err = tx.Stmt(tracker.stmts[insertConnectionOnConnection]).Exec(pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -94,7 +99,9 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 	}
 
 	// no IP (usually postfix sees it as "unknown"), just ignore it
+	// TODO: this should be a supported use case, but I don't know what to do in this case!
 	if payload.IP == nil {
+		log.Warn().Msgf("Ignoring unknown IP on connection on file %v:%v", r.Location.Filename, r.Location.Line)
 		return nil
 	}
 
@@ -106,17 +113,20 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 	return nil
 }
 
-func findConnectionId(tx *sql.Tx, t *Tracker, h parser.Header) (int64, error) {
-	var connectionId int64
+func findConnectionIdAndUsageCounter(tx *sql.Tx, t *Tracker, h parser.Header) (int64, int, error) {
+	var (
+		connectionId int64
+		usageCounter int
+	)
 
 	// find a connection entry for this
-	err := tx.Stmt(t.stmts[selectConnectionForPid]).QueryRow(h.Host, h.PID).Scan(&connectionId)
+	err := tx.Stmt(t.stmts[selectConnectionAndUsageCounterForPid]).QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
 
 	if err != nil {
-		return 0, errorutil.Wrap(err)
+		return 0, 0, errorutil.Wrap(err)
 	}
 
-	return connectionId, nil
+	return connectionId, usageCounter, nil
 }
 
 func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string) (int64, error) {
@@ -136,6 +146,11 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 		return 0, errorutil.Wrap(err)
 	}
 
+	err = incrementConnectionUsage(tx, tracker.stmts, connectionId)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
 	return queueId, nil
 }
 
@@ -148,12 +163,30 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
-	connectionId, err := findConnectionId(tx, tracker, r.Header)
+	connectionId, _, err := findConnectionIdAndUsageCounter(tx, tracker, r.Header)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	_, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func incrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
+	_, err := tx.Stmt(stmts[incrementConnectionUsageById]).Exec(connectionId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
+	_, err := tx.Stmt(stmts[decrementConnectionUsageById]).Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -277,12 +310,12 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPai
 }
 
 func disconnectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
-	connectionId, err := findConnectionId(tx, t, r.Header)
+	connectionId, usageCounter, err := findConnectionIdAndUsageCounter(tx, t, r.Header)
 
 	// it's possible for a "disconnect" not to have a "connect", if I started reading the log
 	// in between the two lines. In such cases, I just ignore the line.
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Println("Could not find a connection in log file:", r.Location.Filename, ":", r.Location.Line)
+		log.Warn().Msgf("Could not find a connection in log file: %v:%v", r.Location.Filename, r.Location.Line)
 		return nil
 	}
 
@@ -293,6 +326,16 @@ func disconnectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair acti
 	_, err = tx.Stmt(t.stmts[insertConnectionData]).Exec(
 		connectionId, ConnectionEndKey, r.Time.Unix())
 
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if usageCounter > 0 {
+		// Cannot delete the connection yet as there are queues using it!
+		return nil
+	}
+
+	err = deleteConnection(tx, t.stmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -343,7 +386,6 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 			// and can use such queue for delivering many e-mails.
 			// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
 			// More investigation is needed
-			log.Println("Could not find queue", p.Queue, "for outbound sent e-mail, therefore ignoring it")
 			return nil
 		}
 
@@ -356,7 +398,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 
 	newQueueId, err := findQueueIdFromQueueValue(tx, t, r.Header, e.Queue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Println("Queue has been lost forever and will be ignored:", e.Queue)
+		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v", e.Queue, r.Location.Filename, r.Location.Line)
 		return nil
 	}
 
@@ -373,7 +415,6 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 		// and can use such queue for delivering many e-mails.
 		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
 		// More investigation is needed
-		log.Println("Could not find queue", p.Queue, "for outbound sent e-mail, therefore ignoring it")
 		return nil
 	}
 
@@ -409,14 +450,8 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
 
-	// TODO: this block is copy&pasted many times! It should be refactored!
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// More investigation is needed
-		log.Println("Could not find queue", p.Queue, "for outbound sent e-mail, therefore ignoring it")
+		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v", p.Queue, r.Location.Filename, r.Location.Line)
 		return nil
 	}
 
@@ -425,13 +460,14 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 	}
 
 	_, err = tx.Stmt(tracker.stmts[insertQueueData]).Exec(queueId, QueueEndKey, r.Time.Unix())
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	// TODO: trigger cleanup here: remove all that depende on the queue, as well as removing the connection
-	// that created it, in case no other queue depends on it
+	_, err = tryToDeleteQueue(tx, tracker.stmts, queueId, r.Location)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	return nil
 }
@@ -493,6 +529,12 @@ func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, erro
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
+	// Increment usage of queue, as there's one more result using it
+	err = incrementQueueUsage(tx, tracker.stmts, queueId)
+	if err != nil {
+		return resultInfo{}, errorutil.Wrap(err)
+	}
+
 	result, err := tx.Stmt(tracker.stmts[insertResult]).Exec(queueId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
@@ -514,14 +556,10 @@ func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, erro
 func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
 	err := createMailDeliveredResult(tracker, tx, r)
 
-	// TODO: this block is copy&pasted many times! It should be refactored!
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// More investigation is needed
-		log.Println("Could not find queue", r.Payload.(parser.SmtpSentStatus).Queue, "for outbound sent e-mail, therefore ignoring it")
+		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+			r.Payload.(parser.SmtpSentStatus).Queue, r.Location.Filename, r.Location.Line)
+
 		return nil
 	}
 
@@ -537,12 +575,9 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 
 	bounceQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.ChildQueue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// More investigation is needed
-		log.Println("Could not find queue", p.ChildQueue, "for outbound sent e-mail, therefore ignoring it")
+		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+			p.ChildQueue, r.Location.Filename, r.Location.Line)
+
 		return nil
 	}
 
@@ -552,12 +587,9 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 
 	origQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// More investigation is needed
-		log.Println("Could not find queue", p.Queue, "for outbound sent e-mail, therefore ignoring it")
+		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+			p.Queue, r.Location.Filename, r.Location.Line)
+
 		return nil
 	}
 
