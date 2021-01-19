@@ -67,7 +67,7 @@ func TestTrackingFromFiles(t *testing.T) {
 			cancel()
 			done()
 
-			So(len(resultPublisher.results), ShouldEqual, 1)
+			So(len(resultPublisher.results), ShouldEqual, 2)
 			So(resultPublisher.results[0][QueueSenderLocalPartKey], ShouldEqual, "user")
 			So(resultPublisher.results[0][QueueSenderDomainPartKey], ShouldEqual, "sender.com")
 			So(resultPublisher.results[0][QueueMessageIDKey], ShouldEqual, "ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com")
@@ -78,10 +78,19 @@ func TestTrackingFromFiles(t *testing.T) {
 		})
 
 		Convey("Five messages, two bounced", func() {
-			readFromTestFile("test_files/2_multiple_recipieints_some_bounces.log", t.Publisher())
-			cancel()
-			done()
-			So(len(resultPublisher.results), ShouldEqual, 5)
+			Convey("Complete log, with last 'remove' available", func() {
+				readFromTestFile("test_files/2_multiple_recipieints_some_bounces.log", t.Publisher())
+				cancel()
+				done()
+				So(len(resultPublisher.results), ShouldEqual, 6)
+			})
+
+			Convey("Complete log, with last 'remove' missing", func() {
+				readFromTestFile("test_files/2_multiple_recipieints_some_bounces_no_last_remove.log", t.Publisher())
+				cancel()
+				done()
+				So(len(resultPublisher.results), ShouldEqual, 6)
+			})
 		})
 
 		Convey("One message deliered locally", func() {

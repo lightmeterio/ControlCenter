@@ -313,7 +313,12 @@ const (
 )
 
 func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r data.Record) error {
-	err := createResult(t, tx, r)
+	resultInfo, err := createResult(t, tx, r)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	err = markResultToBeNotified(t, tx, resultInfo)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -327,6 +332,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 
 	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpStatusExtraMessageSentQueued)
 
+	// delivery to the next relay outside of the system
 	if !messageQueuedInternally {
 		// not internally queued
 		err := createMailDeliveredResult(t, tx, r)
@@ -387,9 +393,9 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 	return nil
 }
 
-func markQueueToBeNotified(tracker *Tracker, tx *sql.Tx, queueInfo queueInfo) error {
+func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo) error {
 	_, err := tx.Stmt(tracker.stmts[insertNotificationQueue]).Exec(
-		queueInfo.queueId, queueInfo.loc.Filename, queueInfo.loc.Line)
+		resultInfo.id, resultInfo.loc.Filename, resultInfo.loc.Line)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -424,33 +430,8 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 		return errorutil.Wrap(err)
 	}
 
-	var newQueueId int64
-
-	err = tx.Stmt(tracker.stmts[selectNewQueueFromParenting]).QueryRow(queueId).Scan(&newQueueId)
-
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		err = markQueueToBeNotified(tracker, tx, queueInfo{
-			queueId: queueId,
-			loc:     data.RecordLocation{Line: r.Location.Line, Filename: r.Location.Filename},
-		})
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	var newQueue string
-
-	err = tx.Stmt(tracker.stmts[selectQueueById]).QueryRow(newQueueId).Scan(&newQueue)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
+	// TODO: trigger cleanup here: remove all that depende on the queue, as well as removing the connection
+	// that created it, in case no other queue depends on it
 
 	return nil
 }
@@ -504,34 +485,34 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.Record
 	return nil
 }
 
-func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) error {
+func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, error) {
 	p := r.Payload.(parser.SmtpSentStatus)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo{}, errorutil.Wrap(err)
 	}
 
 	result, err := tx.Stmt(tracker.stmts[insertResult]).Exec(queueId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo{}, errorutil.Wrap(err)
 	}
 
 	resultId, err := result.LastInsertId()
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo{}, errorutil.Wrap(err)
 	}
 
 	err = addResultData(tracker, tx, r.Time, r.Location, r.Header, p, resultId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	return nil
+	return resultInfo{id: resultId, loc: r.Location}, nil
 }
 
 func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
-	err := createResult(tracker, tx, r)
+	err := createMailDeliveredResult(tracker, tx, r)
 
 	// TODO: this block is copy&pasted many times! It should be refactored!
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

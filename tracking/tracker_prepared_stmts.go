@@ -67,7 +67,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 					(?, ?, ?),
 					(?, ?, ?)`,
 	insertQueueParenting:        `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
-	insertNotificationQueue:     `insert into notification_queues(queue_id, filename, line) values(?, ?, ?)`,
+	insertNotificationQueue:     `insert into notification_queues(result_id, filename, line) values(?, ?, ?)`,
 	selectNewQueueFromParenting: `select new_queue_id from queue_parenting where orig_queue_id = ?`,
 	selectQueueById:             `select queue from queues where rowid = ?`,
 	insertResultData15Rows: `insert into result_data(result_id, key, value)
@@ -91,7 +91,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 					(?, ?, ?),
 					(?, ?, ?)`,
 	insertResult:                 `insert into results(queue_id) values(?)`,
-	selectFromNotificationQueues: `select rowid, queue_id, filename, line from notification_queues`,
+	selectFromNotificationQueues: `select rowid, result_id, filename, line from notification_queues`,
 	deleteFromNotificationQueues: `delete from notification_queues where rowid = ?`,
 }
 

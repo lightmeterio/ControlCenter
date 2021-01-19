@@ -9,8 +9,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-type queueInfo struct {
-	queueId int64
+type resultInfo struct {
+	id int64
 
 	// a helper for debugging!
 	loc data.RecordLocation
@@ -18,8 +18,8 @@ type queueInfo struct {
 
 type queuesCommitNotifier struct {
 	runner.CancelableRunner
-	queuesToNotify <-chan queueInfo
-	publisher      ResultPublisher
+	resultsToNotify <-chan resultInfo
+	publisher       ResultPublisher
 }
 
 type notifierStmtKey uint
@@ -30,6 +30,7 @@ const (
 
 	selectParentingQueueByNewQueue
 	selectAllMessageIdsByQueue
+	selectQueueIdFromResult
 	selectPidHostByQueue
 	selectKeyValueFromConnections
 	selectKeyValueFromQueues
@@ -58,6 +59,7 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				messageids join queues on queues.messageid_id == messageids.rowid
 			where
 				queues.rowid = ?`,
+	selectQueueIdFromResult: `select queue_id from results where rowid = ?`,
 	selectPidHostByQueue: `
 			select
 				pids.host
@@ -164,131 +166,128 @@ func findConnectionAndDeliveryQueue(stmts notifierStmts, queueId int64, loc data
 	return findConnectionAndDeliveryQueue(stmts, origQueue, loc)
 }
 
-// FIXME: this method is way long. Really. It deserves urgentrefactoring
+func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) error {
+	var (
+		key   int
+		value interface{}
+	)
+
+	// fetch all results for connection
+	rows, err := stmt.Query(args...)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&key, &value)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+		// TODO: abort if the key is not a valid result key (out of index)
+		result[key] = value
+	}
+
+	if err := rows.Err(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+// FIXME: this method is way long. Really. It deserves urgent refactoring
+func buildAndPublishResult(stmts notifierStmts, resultInfo resultInfo, pub ResultPublisher) error {
+	var queueId int64
+
+	err := stmts[selectQueueIdFromResult].QueryRow(&resultInfo.id).Scan(&queueId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// find connection queue and delivery queue
+	connQueueId, deliveryQueueId, err := findConnectionAndDeliveryQueue(stmts, queueId, resultInfo.loc)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	var messageId string
+
+	err = stmts[selectAllMessageIdsByQueue].QueryRow(deliveryQueueId).Scan(&messageId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	var deliveryServer string
+
+	err = stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// TODO: operate all on the same Result{}, except for the deliveryQueue stuff.
+	// It makes the mergeResults faster as it operates on less arrays!
+
+	connectionResult := Result{}
+
+	err = collectKeyValueResult(&connectionResult, stmts[selectKeyValueFromConnections], connQueueId)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	queueResult := Result{}
+
+	err = collectKeyValueResult(&queueResult, stmts[selectKeyValueFromQueues], connQueueId)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	deliveryQueueResult := Result{}
+
+	err = collectKeyValueResult(&deliveryQueueResult, stmts[selectKeyValueFromQueuesByKeyType], deliveryQueueId, QueueOriginalMessageSizeKey)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	deliveryQueueResult[QueueProcessedMessageSizeKey] = deliveryQueueResult[QueueOriginalMessageSizeKey]
+	deliveryQueueResult[QueueOriginalMessageSizeKey] = nil
+
+	var deliveryQueueName string
+
+	err = stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
+
+	resultResult := Result{}
+
+	err = collectKeyValueResult(&resultResult, stmts[selectKeyValueForResults], resultInfo.id)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	mergedResults := mergeResults(resultResult, queueResult, connectionResult, deliveryQueueResult)
+
+	mergedResults[QueueMessageIDKey] = messageId
+	mergedResults[ResultDeliveryServerKey] = deliveryServer
+
+	pub.Publish(mergedResults)
+
+	// TODO: send delete actions for the stuff used by the result and not anymore needed!
+
+	return nil
+}
+
 func runQueuesCommitNotifier(stmts notifierStmts, n *queuesCommitNotifier) error {
-	for queueInfo := range n.queuesToNotify {
-		queueId := queueInfo.queueId
-
-		// find connection queue and delivery queue
-		connQueueId, deliveryQueueId, err := findConnectionAndDeliveryQueue(stmts, queueId, queueInfo.loc)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		var messageId string
-
-		err = stmts[selectAllMessageIdsByQueue].QueryRow(deliveryQueueId).Scan(&messageId)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		var deliveryServer string
-
-		err = stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		collectKeyValueResult := func(result *Result, stmt *sql.Stmt, args ...interface{}) error {
-			var (
-				key   int
-				value interface{}
-			)
-
-			// fetch all results for connection
-			rows, err := stmt.Query(args...)
-
-			if err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			for rows.Next() {
-				err = rows.Scan(&key, &value)
-
-				if err != nil {
-					return errorutil.Wrap(err)
-				}
-				// TODO: abort if the key is not a valid result key (out of index)
-				result[key] = value
-			}
-
-			if err := rows.Err(); err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			return nil
-		}
-
-		connectionResult := Result{}
-
-		err = collectKeyValueResult(&connectionResult, stmts[selectKeyValueFromConnections], connQueueId)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		queueResult := Result{}
-
-		err = collectKeyValueResult(&queueResult, stmts[selectKeyValueFromQueues], connQueueId)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		deliveryQueueResult := Result{}
-
-		err = collectKeyValueResult(&deliveryQueueResult, stmts[selectKeyValueFromQueuesByKeyType], deliveryQueueId, QueueOriginalMessageSizeKey)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		deliveryQueueResult[QueueProcessedMessageSizeKey] = deliveryQueueResult[QueueOriginalMessageSizeKey]
-		deliveryQueueResult[QueueOriginalMessageSizeKey] = nil
-
-		var deliveryQueueName string
-
-		err = stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
-
-		// iterate over all results
-		resultsRows, err := stmts[selectResultsByQueue].Query(deliveryQueueId)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		var resultId int64
-
-		for resultsRows.Next() {
-			err = resultsRows.Scan(&resultId)
-
-			if err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			resultResult := Result{}
-
-			err = collectKeyValueResult(&resultResult, stmts[selectKeyValueForResults], resultId)
-
-			if err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			mergedResults := mergeResults(resultResult, queueResult, connectionResult, deliveryQueueResult)
-
-			mergedResults[QueueMessageIDKey] = messageId
-			mergedResults[ResultDeliveryServerKey] = deliveryServer
-
-			n.publisher.Publish(mergedResults)
-		}
-
-		if err := resultsRows.Err(); err != nil {
+	for resultInfo := range n.resultsToNotify {
+		if err := buildAndPublishResult(stmts, resultInfo, n.publisher); err != nil {
 			return errorutil.Wrap(err)
 		}
 	}

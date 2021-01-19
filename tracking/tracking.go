@@ -107,7 +107,7 @@ type Tracker struct {
 	dbconn  dbconn.ConnPair
 	actions chan actionTuple
 
-	queuesToNotify chan queueInfo
+	queuesToNotify chan resultInfo
 
 	queuesCommitNotifier *queuesCommitNotifier
 }
@@ -153,11 +153,11 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	queuesToNotify := make(chan queueInfo, 1024*20)
+	queuesToNotify := make(chan resultInfo, 1024*20)
 
 	queuesCommitNotifier := &queuesCommitNotifier{
-		queuesToNotify: queuesToNotify,
-		publisher:      pub,
+		resultsToNotify: queuesToNotify,
+		publisher:       pub,
 	}
 
 	tracker := &Tracker{

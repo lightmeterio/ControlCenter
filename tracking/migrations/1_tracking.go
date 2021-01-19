@@ -74,13 +74,12 @@ create table pids (
 
 create index pids_id_index on pids(host, pid);
 
+-- TODO: move this table to a different file, or better, to memory!
 create table notification_queues (
-	queue_id integer not null,
+	result_id integer not null,
 	line integer not null,
 	filename text
 );
-
-create index notification_queues_queue_id_index on notification_queues(queue_id);
 `
 	if _, err := tx.Exec(sql); err != nil {
 		return errorutil.Wrap(err)

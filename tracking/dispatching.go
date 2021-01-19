@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func dispatchAllQueues(tracker *Tracker, queuesToNotify chan<- queueInfo, tx *sql.Tx) error {
+func dispatchAllQueues(tracker *Tracker, queuesToNotify chan<- resultInfo, tx *sql.Tx) error {
 	rows, err := tx.Stmt(tracker.stmts[selectFromNotificationQueues]).Query()
 
 	if err != nil {
@@ -32,7 +32,7 @@ func dispatchAllQueues(tracker *Tracker, queuesToNotify chan<- queueInfo, tx *sq
 			return errorutil.Wrap(err)
 		}
 
-		queuesToNotify <- queueInfo{queueId: queueId, loc: data.RecordLocation{Line: line, Filename: filename}}
+		queuesToNotify <- resultInfo{id: queueId, loc: data.RecordLocation{Line: line, Filename: filename}}
 
 		// Yes, deleting while iterating over the queues... That's supported by SQLite
 		_, err = tx.Stmt(tracker.stmts[deleteFromNotificationQueues]).Exec(id)
