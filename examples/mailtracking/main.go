@@ -10,6 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -108,6 +109,8 @@ func main() {
 
 	cancel()
 	done()
+
+	log.Println("Number of messages processed:", counter)
 
 	// copied from https://golang.org/pkg/runtime/pprof/
 	if *memprofile != "" {
