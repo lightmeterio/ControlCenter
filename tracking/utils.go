@@ -71,6 +71,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 	}
 
 	var usageCounter int
+
 	err = tx.Stmt(trackerStmts[queueUsageCounter]).QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
 		return false, errorutil.Wrap(err)
@@ -83,6 +84,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 	// Check if there's any queue that depends on me.
 	// In such scenario, I cannot be deleted yet
 	var countDependentQueues int64
+
 	err = tx.Stmt(trackerStmts[countNewQueueFromParenting]).QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
 		return false, errorutil.Wrap(err)
@@ -148,6 +150,7 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error 
 
 func countQueuesOnConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) (int, error) {
 	var connectionCounter int
+
 	err := tx.Stmt(trackerStmts[countConnectionUsageById]).QueryRow(connectionId).Scan(&connectionCounter)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -209,6 +212,7 @@ func deleteConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64)
 
 func countPidUsage(tx *sql.Tx, trackerStmts trackerStmts, pidId int64) (int, error) {
 	var count int
+
 	err := tx.Stmt(trackerStmts[countPidUsageByPidId]).QueryRow(pidId).Scan(&count)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -237,6 +241,7 @@ func decrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
 
 func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) error {
 	var pidId int64
+
 	err := tx.Stmt(trackerStmts[pidIdForConnection]).QueryRow(connectionId).Scan(&pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -264,6 +269,7 @@ func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connecti
 	return nil
 }
 
+//nolint:deadcode,unused
 func getQueueName(tx *sql.Tx, queueId int64) (string, error) {
 	var s string
 
@@ -308,6 +314,7 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 	}
 
 	var queuesWithMessageIdCount int
+
 	err = tx.Stmt(trackerStmts[countQueuesWithMessageId]).QueryRow(messageId).Scan(&queuesWithMessageIdCount)
 	if err != nil {
 		return errorutil.Wrap(err)
