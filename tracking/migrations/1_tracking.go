@@ -35,6 +35,7 @@ create table result_data (
 create index result_data_result_id_index on result_data(result_id);
 
 create table messageids (
+	usage_counter integer not null,
 	value text not null
 );
 

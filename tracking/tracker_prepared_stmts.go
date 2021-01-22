@@ -23,6 +23,8 @@ const (
 	insertQueueData
 	selectMessageIdForMessage
 	insertMessageId
+	incrementMessageIdUsageById
+	decrementMessageIdUsageById
 	updateQueueWithMessageId
 	selectQueueIdForQueue
 	insertQueueDataFourRows
@@ -48,7 +50,7 @@ const (
 	pidIdForConnection
 	deletePidById
 	messageIdForQueue
-	countQueuesWithMessageId
+	countWithMessageIdUsageById
 	deleteMessageId
 	incrementConnectionUsageById
 	decrementConnectionUsageById
@@ -74,14 +76,16 @@ var trackerStmtsText = map[trackerStmtKey]string{
 		connections.pid_id = pids.rowid 
 		and pids.host = ? and pids.pid = ?`,
 	// when a queue is created, the tracker is using it, therefore its counter is 1
-	insertQueueForConnection:  `insert into queues(connection_id, queue, usage_counter) values(?, ?, 1)`,
-	incrementQueueUsageById:   `update queues set usage_counter = usage_counter + 1 where rowid = ?`,
-	decrementQueueUsageById:   `update queues set usage_counter = usage_counter - 1 where rowid = ?`,
-	queueUsageCounter:         `select usage_counter from queues where rowid = ?`,
-	insertQueueData:           `insert into queue_data(queue_id, key, value) values(?, ?, ?)`,
-	selectMessageIdForMessage: `select rowid from messageids where value = ?`,
-	insertMessageId:           `insert into messageids(value) values(?)`,
-	updateQueueWithMessageId:  `update queues set messageid_id = ? where queues.rowid = ?`,
+	insertQueueForConnection:    `insert into queues(connection_id, queue, usage_counter) values(?, ?, 1)`,
+	incrementQueueUsageById:     `update queues set usage_counter = usage_counter + 1 where rowid = ?`,
+	decrementQueueUsageById:     `update queues set usage_counter = usage_counter - 1 where rowid = ?`,
+	queueUsageCounter:           `select usage_counter from queues where rowid = ?`,
+	insertQueueData:             `insert into queue_data(queue_id, key, value) values(?, ?, ?)`,
+	selectMessageIdForMessage:   `select rowid from messageids where value = ?`,
+	insertMessageId:             `insert into messageids(value, usage_counter) values(?, 1)`,
+	incrementMessageIdUsageById: `update messageids set usage_counter = usage_counter + 1 where rowid = ?`,
+	decrementMessageIdUsageById: `update messageids set usage_counter = usage_counter - 1 where rowid = ?`,
+	updateQueueWithMessageId:    `update queues set messageid_id = ? where queues.rowid = ?`,
 	selectQueueIdForQueue: `select
 		queues.rowid
 	from
@@ -134,7 +138,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	pidIdForConnection:                 `select pid_id from connections where rowid = ?`,
 	deletePidById:                      `delete from pids where rowid = ?`,
 	messageIdForQueue:                  `select messageid_id from queues where rowid = ?`,
-	countQueuesWithMessageId:           `select count(*) from queues where messageid_id = ?`,
+	countWithMessageIdUsageById:        `select usage_counter from messageids where rowid = ?`,
 	deleteMessageId:                    `delete from messageids where rowid = ?`,
 	incrementConnectionUsageById:       `update connections set usage_counter = usage_counter + 1 where rowid = ?`,
 	decrementConnectionUsageById:       `update connections set usage_counter = usage_counter - 1 where rowid = ?`,

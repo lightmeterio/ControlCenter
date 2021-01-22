@@ -2,6 +2,7 @@ package tracking
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -111,6 +112,32 @@ type Tracker struct {
 	queuesCommitNotifier *queuesCommitNotifier
 }
 
+func (t *Tracker) MostRecentLogTime() time.Time {
+	var ts int64
+
+	query := `
+	select
+		max(connection_data.value, result_data.value, queue_data.value)
+	from
+		connection_data, result_data, queue_data
+	where
+		connection_data.key in (?, ?)
+			and result_data.key = ?
+			and queue_data.key in (?, ?)`
+
+	err := t.dbconn.RoConn.
+		QueryRow(query, ConnectionBeginKey, ConnectionEndKey, ResultDeliveryTimeKey, QueueBeginKey, QueueEndKey).
+		Scan(&ts)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}
+	}
+
+	errorutil.MustSucceed(err)
+
+	return time.Unix(ts, 0)
+}
+
 func (t *Tracker) Publisher() *Publisher {
 	return &Publisher{actions: t.actions}
 }
@@ -152,16 +179,16 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	txActions := make(chan func(*sql.Tx) error)
+	txActions := make(chan func(*sql.Tx) error, 1024*1000)
 
-	resultsToNotify := make(chan resultInfo, 1024*20)
+	resultsToNotify := make(chan resultInfo, 1024*1000)
 
 	queuesCommitNotifier := &queuesCommitNotifier{
 		resultsToNotify: resultsToNotify,
 		publisher:       pub,
 	}
 
-	trackerActions := make(chan actionTuple, 1024*10)
+	trackerActions := make(chan actionTuple, 1024*1000)
 
 	tracker := &Tracker{
 		stmts:                trackerStmts,
@@ -187,6 +214,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		}()
 	})
 
+	// TODO: cleanup this cancel/waitForDone code that is a total mess and impossible to understand!!!
 	tracker.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		notifierDone, _ := queuesCommitNotifier.Run()
 
@@ -197,40 +225,39 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		}()
 
 		go func() {
-			trackerError := func() error {
-				if err := runTracker(tracker); err != nil {
-					return errorutil.Wrap(err)
-				}
+			runTrackerChan := make(chan error)
+			waitNotifierChan := make(chan error)
 
-				return nil
+			go func() {
+				runTrackerChan <- func() error {
+					if err := runTracker(tracker); err != nil {
+						return errorutil.Wrap(err)
+					}
+
+					return nil
+				}()
+
+				runTrackerChan <- err
 			}()
 
-			panicOnError := func(err error) {
-				if e, ok := err.(*errorutil.Error); ok {
-					panic(e.Chain())
-				}
-
-				panic(err)
-			}
-
-			if trackerError != nil {
-				panicOnError(trackerError)
-			}
-
-			notifierError := notifierDone()
-
-			done <- func() error {
-				if notifierError != nil {
-					log.Warn().Msgf("Tracking commits notifier failed first. Ignore main tracker loop error for now: %v", trackerError)
-					return errorutil.Wrap(notifierError)
-				}
-
-				if trackerError != nil {
-					return errorutil.Wrap(trackerError)
-				}
-
-				return nil
+			go func() {
+				waitNotifierChan <- notifierDone()
 			}()
+
+			var err error
+
+			select {
+			case e := <-runTrackerChan:
+				err = e
+				errorutil.MustSucceed(<-waitNotifierChan)
+			case e := <-waitNotifierChan:
+				err = e
+				errorutil.MustSucceed(<-runTrackerChan)
+			}
+
+			errorutil.MustSucceed(err)
+
+			done <- err
 		}()
 	})
 
@@ -332,7 +359,7 @@ func runTracker(t *Tracker) error {
 		return nil
 	}
 
-	messagesTicker := time.NewTicker(1 * time.Second)
+	messagesTicker := time.NewTicker(500 * time.Millisecond)
 
 	var err error
 

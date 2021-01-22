@@ -50,7 +50,7 @@ func New(workspace string) (*DB, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	dbActions := make(chan dbAction, 1024)
+	dbActions := make(chan dbAction, 1024*1000)
 
 	db := DB{
 		connPair:  connPair,
@@ -219,9 +219,8 @@ func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP, relayPort interface{
 	return id, true, nil
 }
 
-func (p *resultsPublisher) Publish(tr tracking.Result) {
-	// append to dbActions
-	p.dbActions <- func(tx *sql.Tx) error {
+func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
 		deliveryServerId, err := getUniqueDeliveryServerID(tx, tr[tracking.ResultDeliveryServerKey].(string))
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -329,6 +328,10 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	}
 }
 
+func (p *resultsPublisher) Publish(r tracking.Result) {
+	p.dbActions <- buildAction(r)
+}
+
 func (db *DB) ResultsPublisher() tracking.ResultPublisher {
 	return &resultsPublisher{dbActions: db.dbActions}
 }
@@ -409,7 +412,7 @@ func fillDatabase(conn dbconn.RwConn, dbActions <-chan dbAction) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
 
 	for {
 		select {

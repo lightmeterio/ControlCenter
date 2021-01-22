@@ -26,7 +26,6 @@ func TestWorkspaceCreation(t *testing.T) {
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
-
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
@@ -81,6 +80,28 @@ func TestWorkspaceCreation(t *testing.T) {
 
 			err = ws1.Close()
 			So(err, ShouldNotBeNil)
+		})
+	})
+}
+
+func TestWorkspaceExecution(t *testing.T) {
+	Convey("Workspace execution", t, func() {
+		Convey("Nothing read", func() {
+			dir, clearDir := testutil.TempDir(t)
+			defer clearDir()
+
+			ws, err := NewWorkspace(dir)
+			So(err, ShouldBeNil)
+
+			defer ws.Close()
+
+			done, cancel := ws.Run()
+
+			cancel()
+
+			So(done(), ShouldBeNil)
+
+			So(ws.HasLogs(), ShouldBeFalse)
 		})
 	})
 }

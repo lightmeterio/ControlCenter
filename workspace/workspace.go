@@ -19,7 +19,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"log"
 	"os"
 	"path"
 	"time"
@@ -28,7 +27,7 @@ import (
 type Workspace struct {
 	runner.CancelableRunner
 
-	logs           *deliverydb.DB
+	deliveries     *deliverydb.DB
 	tracker        *tracking.Tracker
 	insightsEngine *insights.Engine
 	auth           *auth.Auth
@@ -48,13 +47,13 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	logDb, err := deliverydb.New(workspaceDirectory)
+	deliveries, err := deliverydb.New(workspaceDirectory)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(workspaceDirectory, logDb.ResultsPublisher())
+	tracker, err := tracking.New(workspaceDirectory, deliveries.ResultsPublisher())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -83,7 +82,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	dashboard, err := dashboard.New(logDb.ReadConnection())
+	dashboard, err := dashboard.New(deliveries.ReadConnection())
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -109,8 +108,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	logsRunner := newLogsRunner(tracker, deliveries)
+
 	ws := &Workspace{
-		logs:                logDb,
+		deliveries:          deliveries,
 		tracker:             tracker,
 		insightsEngine:      insightsEngine,
 		auth:                auth,
@@ -121,7 +122,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		closes: closeutil.New(
 			auth,
 			tracker,
-			logDb,
+			deliveries,
 			insightsEngine,
 			m,
 		),
@@ -135,26 +136,20 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneInsights, cancelInsights := ws.insightsEngine.Run()
 		doneSettings, cancelSettings := ws.settingsRunner.Run()
 		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
-		doneTracking, cancelTracking := ws.tracker.Run()
-		doneDelivery, cancelDelivery := ws.logs.Run()
+
+		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
 
 		go func() {
 			<-cancel
-			cancelTracking()
-			cancelDelivery()
-
+			cancelLogsRunner()
 			cancelMsgRbl()
 			cancelSettings()
 			cancelInsights()
 		}()
 
 		go func() {
-			var err error
-			err = doneDelivery()
-			log.Println("done delivery:", err)
-
-			err = doneTracking()
-			log.Println("done tracking:", err)
+			err := doneLogsRunner()
+			errorutil.MustSucceed(err)
 
 			doneMsgRbl()
 			doneSettings()
@@ -177,7 +172,7 @@ func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 }
 
 func (ws *Workspace) Dashboard() (dashboard.Dashboard, error) {
-	return dashboard.New(ws.logs.ReadConnection())
+	return dashboard.New(ws.deliveries.ReadConnection())
 }
 
 func (ws *Workspace) Auth() *auth.Auth {
@@ -187,7 +182,7 @@ func (ws *Workspace) Auth() *auth.Auth {
 // Obtain the most recent time inserted in the database,
 // or a zero'd time in case case no value has been found
 func (ws *Workspace) MostRecentLogTime() time.Time {
-	return ws.logs.MostRecentLogTime()
+	return ws.deliveries.MostRecentLogTime()
 }
 
 func (ws *Workspace) NewPublisher() data.Publisher {
@@ -199,5 +194,5 @@ func (ws *Workspace) Close() error {
 }
 
 func (ws *Workspace) HasLogs() bool {
-	return ws.logs.HasLogs()
+	return ws.deliveries.HasLogs()
 }

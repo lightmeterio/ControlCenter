@@ -194,11 +194,17 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 	return nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted) (int64, error) {
+func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted) (int64, error) {
 	var existingMessageId int64
 
 	err := tx.Stmt(t.stmts[selectMessageIdForMessage]).QueryRow(p.MessageId).Scan(&existingMessageId)
 	if err == nil {
+		err = incrementMessageIdUsage(tx, t.stmts, existingMessageId)
+
+		if err != nil {
+			return 0, errorutil.Wrap(err)
+		}
+
 		return existingMessageId, nil
 	}
 
@@ -254,7 +260,7 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 		return errorutil.Wrap(err)
 	}
 
-	messageidId, err := getUniqueMessageId(tx, tracker, p)
+	messageidId, err := getUniqueMessageIdOrCreateANewOne(tx, tracker, p)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

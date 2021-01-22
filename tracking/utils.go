@@ -239,6 +239,24 @@ func decrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
 	return nil
 }
 
+func incrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
+	_, err := tx.Stmt(stmts[incrementMessageIdUsageById]).Exec(messageId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func decrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
+	_, err := tx.Stmt(stmts[decrementMessageIdUsageById]).Exec(messageId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) error {
 	var pidId int64
 
@@ -313,14 +331,18 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 		return errorutil.Wrap(err)
 	}
 
-	var queuesWithMessageIdCount int
-
-	err = tx.Stmt(trackerStmts[countQueuesWithMessageId]).QueryRow(messageId).Scan(&queuesWithMessageIdCount)
+	err = decrementMessageIdUsage(tx, trackerStmts, messageId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if queuesWithMessageIdCount > 1 {
+	var queuesWithMessageIdCount int
+	err = tx.Stmt(trackerStmts[countWithMessageIdUsageById]).QueryRow(messageId).Scan(&queuesWithMessageIdCount)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if queuesWithMessageIdCount > 0 {
 		return nil
 	}
 

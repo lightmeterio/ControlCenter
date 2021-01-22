@@ -9,8 +9,10 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -33,12 +35,21 @@ func (p *fakeResultPublisher) Publish(r Result) {
 	p.results = append(p.results, r)
 }
 
-func readFromTestFile(name string, pub data.Publisher) {
-	f := openFile(name)
-	s, err := filelogsource.New(f, time.Time{}, 2020)
+func readFromTestReader(reader io.Reader, pub data.Publisher) {
+	s, err := filelogsource.New(reader, time.Time{}, 2020)
 	errorutil.MustSucceed(err)
 	r := logsource.NewReader(s, pub)
 	r.Run()
+}
+
+func readFromTestFile(name string, pub data.Publisher) {
+	f := openFile(name)
+	readFromTestReader(f, pub)
+}
+
+func readFromTestContent(content string, pub data.Publisher) {
+	r := strings.NewReader(content)
+	readFromTestReader(r, pub)
 }
 
 func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker, func()) {
@@ -54,6 +65,28 @@ func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker,
 		So(tracker.Close(), ShouldBeNil)
 		clearDir()
 	}
+}
+
+func TestMostRecentLogTime(t *testing.T) {
+	Convey("Obtain most recent time", t, func() {
+		_, t, clear := buildPublisherAndTempTracker(t)
+		defer clear()
+		done, cancel := t.Run()
+
+		Convey("Nothing read", func() {
+			cancel()
+			done()
+			So(t.MostRecentLogTime(), ShouldResemble, time.Time{})
+		})
+
+		Convey("File with a connection", func() {
+			readFromTestContent(`Oct 13 16:40:39 ucs postfix/smtpd[18568]: connect from unknown[28.55.140.112]`, t.Publisher())
+			cancel()
+			done()
+			// FIXME: this is wrong!!! It should return a time equivalent to 2020.10.13 16:40:39!!!
+			So(t.MostRecentLogTime(), ShouldResemble, time.Time{})
+		})
+	})
 }
 
 func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
