@@ -83,8 +83,7 @@ func TestMostRecentLogTime(t *testing.T) {
 			readFromTestContent(`Oct 13 16:40:39 ucs postfix/smtpd[18568]: connect from unknown[28.55.140.112]`, t.Publisher())
 			cancel()
 			done()
-			// FIXME: this is wrong!!! It should return a time equivalent to 2020.10.13 16:40:39!!!
-			So(t.MostRecentLogTime(), ShouldResemble, time.Time{})
+			So(t.MostRecentLogTime(), ShouldResemble, testutil.MustParseTime(`2020-10-13 16:40:39 +0000`))
 		})
 	})
 }

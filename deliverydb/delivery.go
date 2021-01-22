@@ -355,7 +355,7 @@ func (db *DB) MostRecentLogTime() time.Time {
 
 	errorutil.MustSucceed(err)
 
-	return time.Unix(ts, 0)
+	return time.Unix(ts, 0).In(time.UTC)
 }
 
 func (db *DB) ReadConnection() dbconn.RoConn {

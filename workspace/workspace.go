@@ -179,10 +179,15 @@ func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
 }
 
-// Obtain the most recent time inserted in the database,
-// or a zero'd time in case case no value has been found
 func (ws *Workspace) MostRecentLogTime() time.Time {
-	return ws.deliveries.MostRecentLogTime()
+	mostRecentDeliverTime := ws.deliveries.MostRecentLogTime()
+	mostRecentTrackerTime := ws.tracker.MostRecentLogTime()
+
+	if mostRecentTrackerTime.After(mostRecentDeliverTime) {
+		return mostRecentTrackerTime
+	}
+
+	return mostRecentDeliverTime
 }
 
 func (ws *Workspace) NewPublisher() data.Publisher {

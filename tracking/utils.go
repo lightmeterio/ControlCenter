@@ -337,6 +337,7 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 	}
 
 	var queuesWithMessageIdCount int
+
 	err = tx.Stmt(trackerStmts[countWithMessageIdUsageById]).QueryRow(messageId).Scan(&queuesWithMessageIdCount)
 	if err != nil {
 		return errorutil.Wrap(err)

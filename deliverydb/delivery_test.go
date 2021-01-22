@@ -269,6 +269,8 @@ func TestEntriesInsertion(t *testing.T) {
 				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 0)
 				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
 				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
+
+				So(db.MostRecentLogTime(), ShouldResemble, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`))
 			})
 
 			Convey("Inserts one log entry", func() {

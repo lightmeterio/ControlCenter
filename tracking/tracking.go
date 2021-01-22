@@ -113,29 +113,44 @@ type Tracker struct {
 }
 
 func (t *Tracker) MostRecentLogTime() time.Time {
-	var ts int64
+	queryConnection := `select value from connection_data where key in (?,?) order by rowid desc limit 1`
+	queryResult := `select value from result_data where key = ? order by rowid desc limit 1`
+	queryQueue := `select value from queue_data where key in (?,?) order by rowid desc limit 1`
 
-	query := `
-	select
-		max(connection_data.value, result_data.value, queue_data.value)
-	from
-		connection_data, result_data, queue_data
-	where
-		connection_data.key in (?, ?)
-			and result_data.key = ?
-			and queue_data.key in (?, ?)`
+	exec := func(query string, args ...interface{}) int64 {
+		var ts int64
+		err := t.dbconn.RoConn.QueryRow(query, args...).Scan(&ts)
 
-	err := t.dbconn.RoConn.
-		QueryRow(query, ConnectionBeginKey, ConnectionEndKey, ResultDeliveryTimeKey, QueueBeginKey, QueueEndKey).
-		Scan(&ts)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0
+		}
 
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		errorutil.MustSucceed(err)
+
+		return ts
+	}
+
+	v := int64(0)
+
+	for _, p := range []struct {
+		q    string
+		args []interface{}
+	}{
+		{q: queryConnection, args: []interface{}{ConnectionBeginKey, ConnectionEndKey}},
+		{q: queryResult, args: []interface{}{ResultDeliveryTimeKey}},
+		{q: queryQueue, args: []interface{}{QueueBeginKey, QueueEndKey}},
+	} {
+		r := exec(p.q, p.args...)
+		if r > v {
+			v = r
+		}
+	}
+
+	if v == 0 {
 		return time.Time{}
 	}
 
-	errorutil.MustSucceed(err)
-
-	return time.Unix(ts, 0)
+	return time.Unix(v, 0).In(time.UTC)
 }
 
 func (t *Tracker) Publisher() *Publisher {
@@ -408,6 +423,8 @@ loop:
 					break
 				}
 
+				errorutil.MustSucceed(err)
+
 				return errorutil.Wrap(err)
 			}
 		case 1:
@@ -433,6 +450,7 @@ loop:
 			actionTuple := recv.Interface().(actionTuple)
 
 			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple); err != nil {
+				errorutil.MustSucceed(err)
 				return errorutil.Wrap(err)
 			}
 		default:
