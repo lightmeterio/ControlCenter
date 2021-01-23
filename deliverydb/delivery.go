@@ -7,6 +7,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -93,7 +94,7 @@ type resultsPublisher struct {
 
 func getUniqueRemoteDomainNameId(tx *sql.Tx, domainName string) (int64, error) {
 	var id int64
-	err := tx.QueryRow(`select rowid from remote_domains where domain = ?`, domainName).Scan(&id)
+	err := tx.QueryRow(`select id from remote_domains where domain = ?`, domainName).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -139,7 +140,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, domainName interface{}) (id
 func getUniqueDeliveryServerID(tx *sql.Tx, hostname string) (int64, error) {
 	// FIXME: this is almost copy&paste from getUniqueRemoteDomainNameId()!!!
 	var id int64
-	err := tx.QueryRow(`select rowid from delivery_server where hostname = ?`, hostname).Scan(&id)
+	err := tx.QueryRow(`select id from delivery_server where hostname = ?`, hostname).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -166,7 +167,7 @@ func getUniqueDeliveryServerID(tx *sql.Tx, hostname string) (int64, error) {
 func getUniqueMessageId(tx *sql.Tx, messageId string) (int64, error) {
 	// FIXME: this is almost copy&paste from getUniqueRemoteDomainNameId()!!!
 	var id int64
-	err := tx.QueryRow(`select rowid from messageids where value = ?`, messageId).Scan(&id)
+	err := tx.QueryRow(`select id from messageids where value = ?`, messageId).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -189,14 +190,14 @@ func getUniqueMessageId(tx *sql.Tx, messageId string) (int64, error) {
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP, relayPort interface{}) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP interface{}, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName == nil || relayIP == nil {
 		return 0, false, nil
 	}
 
 	var id int64
-	err := tx.QueryRow(`select rowid from next_relays where hostname = ? and ip = ? and port = ?`, relayName, relayIP, relayPort).Scan(&id)
+	err := tx.QueryRow(`select id from next_relays where hostname = ? and ip = ? and port = ?`, relayName, relayIP, relayPort).Scan(&id)
 
 	if err == nil {
 		return id, true, nil
@@ -206,7 +207,7 @@ func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP, relayPort interface{
 		return 0, false, errorutil.Wrap(err)
 	}
 
-	result, err := tx.Exec(`insert into next_relays(hostname, ip, port) values(?, ?, ?)`, relayName, relayIP, relayPort)
+	result, err := tx.Exec(`insert into next_relays(hostname, ip, port) values(?, ?, ?)`, relayName.(string), relayIP, relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -246,10 +247,34 @@ func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
 			return errorutil.Wrap(err)
 		}
 
-		relayId, relayIdFound, err := getOptionalNextRelayId(tx, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], tr[tracking.ResultRelayPortKey])
+		port := func() int64 {
+			if tr[tracking.ResultRelayPortKey] == nil {
+				return 0
+			}
+
+			return tr[tracking.ResultRelayPortKey].(int64)
+		}()
+
+		relayId, relayIdFound, err := getOptionalNextRelayId(tx, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
+
+		dir := func() tracking.MessageDirection {
+			if asInt64, ok := tr[tracking.ResultMessageDirectionKey].(int64); ok {
+				return tracking.MessageDirection(asInt64)
+			}
+
+			return tr[tracking.ResultMessageDirectionKey].(tracking.MessageDirection)
+		}()
+
+		status := func() parser.SmtpStatus {
+			if asInt64, ok := tr[tracking.ResultStatusKey].(int64); ok {
+				return parser.SmtpStatus(asInt64)
+			}
+
+			return tr[tracking.ResultStatusKey].(parser.SmtpStatus)
+		}()
 
 		result, err := tx.Exec(`
 insert into deliveries(
@@ -276,16 +301,16 @@ insert into deliveries(
 	client_ip,
 	dsn)
 values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			tr[tracking.ResultStatusKey],
-			tr[tracking.ResultDeliveryTimeKey],
-			tr[tracking.ResultMessageDirectionKey],
+			status,
+			tr[tracking.ResultDeliveryTimeKey].(int64),
+			dir,
 			senderDomainPartId,
 			recipientDomainPartId,
 			messageId,
 			tr[tracking.ConnectionBeginKey],
 			tr[tracking.QueueBeginKey],
-			tr[tracking.QueueOriginalMessageSizeKey],
-			tr[tracking.QueueProcessedMessageSizeKey],
+			tr[tracking.QueueOriginalMessageSizeKey].(int64),
+			tr[tracking.QueueProcessedMessageSizeKey].(int64),
 			tr[tracking.QueueNRCPTKey],
 			deliveryServerId,
 			tr[tracking.ResultDelayKey],
@@ -293,7 +318,7 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			tr[tracking.ResultDelayCleanupKey],
 			tr[tracking.ResultDelayQmgrKey],
 			tr[tracking.ResultDelaySMTPKey],
-			tr[tracking.QueueSenderLocalPartKey],
+			tr[tracking.QueueSenderLocalPartKey].(string),
 			tr[tracking.ResultRecipientLocalPartKey],
 			tr[tracking.ConnectionClientHostnameKey],
 			tr[tracking.ConnectionClientIPKey],
@@ -311,14 +336,14 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		}
 
 		if relayIdFound {
-			_, err = tx.Exec(`update deliveries set next_relay_id = ? where rowid = ?`, relayId, rowId)
+			_, err = tx.Exec(`update deliveries set next_relay_id = ? where id = ?`, relayId, rowId)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
 		}
 
 		if origRecipientDomainPartFound {
-			_, err = tx.Exec(`update deliveries set orig_recipient_domain_part_id = ? where rowid = ?`, origRecipientDomainPartId, rowId)
+			_, err = tx.Exec(`update deliveries set orig_recipient_domain_part_id = ? where id = ?`, origRecipientDomainPartId, rowId)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
@@ -347,7 +372,7 @@ func (db *DB) HasLogs() bool {
 func (db *DB) MostRecentLogTime() time.Time {
 	var ts int64
 
-	err := db.connPair.RoConn.QueryRow(`select delivery_ts from deliveries order by rowid desc limit 1`).Scan(&ts)
+	err := db.connPair.RoConn.QueryRow(`select delivery_ts from deliveries order by id desc limit 1`).Scan(&ts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}

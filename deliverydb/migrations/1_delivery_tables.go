@@ -14,6 +14,7 @@ func up(tx *sql.Tx) error {
 	// TODO: investigate, via profiling, which fields deserve to have indexes apart from the obvious ones.
 	sql := `
 create table deliveries (
+	id integer primary key,
 	status integer not null,
 	delivery_ts integer not null,
 	direction integer not null,
@@ -45,18 +46,21 @@ create index deliveries_ts_index on deliveries(delivery_ts, direction);
 create index deliveries_status_delivery_ts_index on deliveries(status, delivery_ts, direction);
 
 create table messageids (
+	id integer primary key,
 	value text not null
 );
 
 create index messageids_index on messageids(value);
 
 create table remote_domains (
+	id integer primary key,
 	domain text not null
 );
 
 create index remote_domains_index on remote_domains(domain);
 
 create table next_relays (
+	id integer primary key,
 	port integer not null,
 	hostname text not null,
 	ip blob not null
@@ -65,6 +69,7 @@ create table next_relays (
 create index next_relays_index on next_relays(hostname, ip, port);
 
 create table delivery_server (
+	id integer primary key,
 	hostname text not null
 );
 

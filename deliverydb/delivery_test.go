@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"log"
+	"net"
 	"testing"
 	"time"
 )
@@ -42,71 +43,8 @@ func TestDatabaseCreation(t *testing.T) {
 
 			pub := db.ResultsPublisher()
 
-			{
-				result := tracking.Result{}
-				result[tracking.ConnectionBeginKey] = 1
-				result[tracking.ConnectionEndKey] = 2
-				result[tracking.ConnectionClientHostnameKey] = "client.host"
-				result[tracking.ConnectionClientIPKey] = "127.0.0.1"
-				result[tracking.QueueBeginKey] = 2
-				result[tracking.QueueEndKey] = 3
-				result[tracking.QueueSenderLocalPartKey] = "sender"
-				result[tracking.QueueSenderDomainPartKey] = "sender1.com"
-				result[tracking.QueueOriginalMessageSizeKey] = 41
-				result[tracking.QueueProcessedMessageSizeKey] = 90
-				result[tracking.QueueNRCPTKey] = 5
-				result[tracking.QueueMessageIDKey] = "lala@caca.com"
-				result[tracking.ResultDeliveryTimeKey] = 3
-				result[tracking.ResultRecipientLocalPartKey] = "recipient"
-				result[tracking.ResultRecipientDomainPartKey] = "recipient1.com"
-				result[tracking.ResultOrigRecipientLocalPartKey] = nil
-				result[tracking.ResultOrigRecipientDomainPartKey] = nil
-				result[tracking.ResultDelayKey] = ""
-				result[tracking.ResultDelaySMTPDKey] = 1.0
-				result[tracking.ResultDelayCleanupKey] = 2.0
-				result[tracking.ResultDelayQmgrKey] = 3.0
-				result[tracking.ResultDelaySMTPKey] = 4.0
-				result[tracking.ResultDSNKey] = "2.0.0"
-				result[tracking.ResultStatusKey] = parser.SentStatus
-				result[tracking.ResultRelayNameKey] = "relay1.name"
-				result[tracking.ResultRelayIPKey] = "123.2.3.4"
-				result[tracking.ResultRelayPortKey] = 42
-				result[tracking.ResultDeliveryServerKey] = "server"
-				pub.Publish(result)
-			}
-
-			{
-				result := tracking.Result{}
-				result[tracking.ConnectionBeginKey] = 2
-				result[tracking.ConnectionEndKey] = 3
-				result[tracking.ConnectionClientHostnameKey] = "client.host"
-				result[tracking.ConnectionClientIPKey] = "127.0.0.1"
-				result[tracking.QueueBeginKey] = 2
-				result[tracking.QueueEndKey] = 3
-				result[tracking.QueueSenderLocalPartKey] = "sender2"
-				result[tracking.QueueSenderDomainPartKey] = "sender2.com"
-				result[tracking.QueueOriginalMessageSizeKey] = 32
-				result[tracking.QueueProcessedMessageSizeKey] = 80
-				result[tracking.QueueNRCPTKey] = 5
-				result[tracking.QueueMessageIDKey] = "lala@caca.com"
-				result[tracking.ResultDeliveryTimeKey] = 3
-				result[tracking.ResultRecipientLocalPartKey] = "recipient"
-				result[tracking.ResultRecipientDomainPartKey] = "recipient1.com"
-				result[tracking.ResultOrigRecipientLocalPartKey] = nil
-				result[tracking.ResultOrigRecipientDomainPartKey] = nil
-				result[tracking.ResultDelayKey] = ""
-				result[tracking.ResultDelaySMTPDKey] = 1.0
-				result[tracking.ResultDelayCleanupKey] = 2.0
-				result[tracking.ResultDelayQmgrKey] = 3.0
-				result[tracking.ResultDelaySMTPKey] = 4.0
-				result[tracking.ResultDSNKey] = "2.0.0"
-				result[tracking.ResultStatusKey] = parser.SentStatus
-				result[tracking.ResultRelayNameKey] = "relay1.name"
-				result[tracking.ResultRelayIPKey] = "123.2.3.4"
-				result[tracking.ResultRelayPortKey] = 42
-				result[tracking.ResultDeliveryServerKey] = "server"
-				pub.Publish(result)
-			}
+			pub.Publish(buildDefaultResult())
+			pub.Publish(buildDefaultResult())
 
 			cancel()
 			done()
@@ -118,19 +56,19 @@ func TestDatabaseCreation(t *testing.T) {
 
 func buildDefaultResult() tracking.Result {
 	result := tracking.Result{}
-	result[tracking.ConnectionBeginKey] = 2
-	result[tracking.ConnectionEndKey] = 3
+	result[tracking.ConnectionBeginKey] = int64(2)
+	result[tracking.ConnectionEndKey] = int64(3)
 	result[tracking.ConnectionClientHostnameKey] = "client.host"
 	result[tracking.ConnectionClientIPKey] = "127.0.0.1"
-	result[tracking.QueueBeginKey] = 2
-	result[tracking.QueueEndKey] = 3
+	result[tracking.QueueBeginKey] = int64(2)
+	result[tracking.QueueEndKey] = int64(3)
 	result[tracking.QueueSenderLocalPartKey] = "sender"
 	result[tracking.QueueSenderDomainPartKey] = "sender.com"
-	result[tracking.QueueOriginalMessageSizeKey] = 32
-	result[tracking.QueueProcessedMessageSizeKey] = 80
+	result[tracking.QueueOriginalMessageSizeKey] = int64(32)
+	result[tracking.QueueProcessedMessageSizeKey] = int64(80)
 	result[tracking.QueueNRCPTKey] = 5
 	result[tracking.QueueMessageIDKey] = "lala@caca.com"
-	result[tracking.ResultDeliveryTimeKey] = 3
+	result[tracking.ResultDeliveryTimeKey] = int64(3)
 	result[tracking.ResultRecipientLocalPartKey] = nil
 	result[tracking.ResultRecipientDomainPartKey] = nil
 	result[tracking.ResultOrigRecipientLocalPartKey] = nil
@@ -143,9 +81,10 @@ func buildDefaultResult() tracking.Result {
 	result[tracking.ResultDSNKey] = "2.0.0"
 	result[tracking.ResultStatusKey] = parser.SentStatus
 	result[tracking.ResultRelayNameKey] = "relay1.name"
-	result[tracking.ResultRelayIPKey] = "123.2.3.4"
-	result[tracking.ResultRelayPortKey] = 42
+	result[tracking.ResultRelayIPKey] = net.ParseIP("123.2.3.4")
+	result[tracking.ResultRelayPortKey] = int64(42)
 	result[tracking.ResultDeliveryServerKey] = "server"
+	result[tracking.ResultRecipientDomainPartKey] = "domain.name"
 	result[tracking.ResultMessageDirectionKey] = tracking.MessageDirectionOutbound
 	return result
 }
@@ -217,7 +156,7 @@ func TestEntriesInsertion(t *testing.T) {
 			r[tracking.ResultRecipientDomainPartKey] = recipientDomainPart
 			r[tracking.ResultDeliveryTimeKey] = t.Unix()
 			r[tracking.ResultStatusKey] = status
-			r[tracking.ResultMessageDirectionKey] = dir
+			r[tracking.ResultMessageDirectionKey] = tracking.MessageDirection(dir)
 			return r
 		}
 
