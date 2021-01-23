@@ -41,8 +41,8 @@ create table deliveries (
 	dsn text not null
 );
 
-create index deliveries_ts_index on deliveries(delivery_ts);
-create index deliveries_status_delivery_ts_index on deliveries(status, delivery_ts);
+create index deliveries_ts_index on deliveries(delivery_ts, direction);
+create index deliveries_status_delivery_ts_index on deliveries(status, delivery_ts, direction);
 
 create table messageids (
 	value text not null
