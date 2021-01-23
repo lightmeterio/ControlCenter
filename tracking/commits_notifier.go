@@ -57,55 +57,55 @@ var notifierStmtsText = map[notifierStmtKey]string{
 			select
 				messageids.value
 			from
-				messageids join queues on queues.messageid_id == messageids.rowid
+				messageids join queues on queues.messageid_id == messageids.id
 			where
-				queues.rowid = ?`,
-	selectQueueIdFromResult: `select queue_id from results where rowid = ?`,
+				queues.id = ?`,
+	selectQueueIdFromResult: `select queue_id from results where id = ?`,
 	selectPidHostByQueue: `
 			select
 				pids.host
 			from
-				queues join connections on queues.connection_id == connections.rowid
-				join pids on connections.pid_id == pids.rowid
+				queues join connections on queues.connection_id == connections.id
+				join pids on connections.pid_id == pids.id
 			where
-				queues.rowid == ?`,
+				queues.id == ?`,
 	selectKeyValueFromConnections: `
 			select
-				connection_data.rowid, key, value
+				connection_data.id, key, value
 			from
-				connection_data join connections on connection_data.connection_id = connections.rowid
-				join queues on queues.connection_id == connections.rowid
+				connection_data join connections on connection_data.connection_id = connections.id
+				join queues on queues.connection_id == connections.id
 			where
-				queues.rowid = ?`,
+				queues.id = ?`,
 	selectKeyValueFromQueues: `
 			select
 				queue_data.key, queue_data.key, queue_data.value
 			from
-				queue_data join queues on queue_data.queue_id = queues.rowid
+				queue_data join queues on queue_data.queue_id = queues.id
 			where
-				queues.rowid = ?`,
+				queues.id = ?`,
 	selectKeyValueFromQueuesByKeyType: `
 			select
-				queue_data.rowid, queue_data.key, queue_data.value
+				queue_data.id, queue_data.key, queue_data.value
 			from
-				queue_data join queues on queue_data.queue_id = queues.rowid
+				queue_data join queues on queue_data.queue_id = queues.id
 			where
-				queues.rowid = ? and queue_data.key = ?`,
+				queues.id = ? and queue_data.key = ?`,
 	selectResultsByQueue: `
 			select
-				results.rowid
+				results.id
 			from
-				results join queues on results.queue_id == queues.rowid
+				results join queues on results.queue_id == queues.id
 			where
-				queues.rowid == ?`,
+				queues.id == ?`,
 	selectKeyValueForResults: `
 				select
-					result_data.rowid, result_data.key, result_data.value
+					result_data.id, result_data.key, result_data.value
 				from
-					result_data join results on result_data.result_id = results.rowid
+					result_data join results on result_data.result_id = results.id
 				where
-					results.rowid == ?`,
-	selectQueryNameById: `select queue from queues where rowid = ?`,
+					results.id == ?`,
+	selectQueryNameById: `select queue from queues where id = ?`,
 }
 
 type notifierStmts [lastNotifierStmtKey]*sql.Stmt

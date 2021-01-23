@@ -113,9 +113,9 @@ type Tracker struct {
 }
 
 func (t *Tracker) MostRecentLogTime() time.Time {
-	queryConnection := `select value from connection_data where key in (?,?) order by rowid desc limit 1`
-	queryResult := `select value from result_data where key = ? order by rowid desc limit 1`
-	queryQueue := `select value from queue_data where key in (?,?) order by rowid desc limit 1`
+	queryConnection := `select value from connection_data where key in (?,?) order by id desc limit 1`
+	queryResult := `select value from result_data where key = ? order by id desc limit 1`
+	queryQueue := `select value from queue_data where key in (?,?) order by id desc limit 1`
 
 	exec := func(query string, args ...interface{}) int64 {
 		var ts int64

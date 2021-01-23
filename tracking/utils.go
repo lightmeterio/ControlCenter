@@ -110,11 +110,11 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error 
 
 	var (
 		dependencyQueueId int64
-		rowid             int64
+		id             int64
 	)
 
 	for rows.Next() {
-		err = rows.Scan(&rowid, &dependencyQueueId)
+		err = rows.Scan(&id, &dependencyQueueId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -124,7 +124,7 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error 
 			return errorutil.Wrap(err)
 		}
 
-		_, err = tx.Stmt(trackerStmts[deleteQueueParentingById]).Exec(rowid)
+		_, err = tx.Stmt(trackerStmts[deleteQueueParentingById]).Exec(id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -291,7 +291,7 @@ func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connecti
 func getQueueName(tx *sql.Tx, queueId int64) (string, error) {
 	var s string
 
-	if err := tx.QueryRow(`select queue from queues where rowid = ?`, queueId).Scan(&s); err != nil {
+	if err := tx.QueryRow(`select queue from queues where id = ?`, queueId).Scan(&s); err != nil {
 		return "", errorutil.Wrap(err)
 	}
 
