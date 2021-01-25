@@ -113,12 +113,18 @@ func main() {
 			return s, nil
 		}
 
-		s, err := filelogsource.New(os.Stdin, ws.MostRecentLogTime(), logYear)
-		if err != nil {
-			return nil, errorutil.Wrap(err)
+		if shouldWatchFromStdin {
+			s, err := filelogsource.New(os.Stdin, ws.MostRecentLogTime(), logYear)
+			if err != nil {
+				return nil, errorutil.Wrap(err)
+			}
+
+			return s, nil
 		}
 
-		return s, nil
+		errorutil.Dief(verbose, err, "You must use either -watch_dir or -stdin!")
+
+		return nil, nil
 	}()
 
 	if err != nil {
