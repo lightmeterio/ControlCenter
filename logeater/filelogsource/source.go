@@ -3,17 +3,17 @@ package filelogsource
 import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
-	"os"
+	"io"
 	"time"
 )
 
 type Source struct {
-	file        *os.File
+	file        io.Reader
 	initialTime time.Time
 	year        int
 }
 
-func New(file *os.File, initialTime time.Time, year int) (*Source, error) {
+func New(file io.Reader, initialTime time.Time, year int) (*Source, error) {
 	return &Source{
 		file:        file,
 		initialTime: initialTime,
