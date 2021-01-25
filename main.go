@@ -138,10 +138,15 @@ func main() {
 	// only import logs and exit when they end. Does not start web server.
 	// It's useful for benchmarking importing logs.
 	if importOnly {
-		logReader.Run()
+		err := logReader.Run()
+
+		if err != nil {
+			errorutil.Dief(verbose, err, "Error reading logs")
+		}
 
 		cancel()
-		err := done()
+
+		err = done()
 
 		errorutil.MustSucceed(err)
 
