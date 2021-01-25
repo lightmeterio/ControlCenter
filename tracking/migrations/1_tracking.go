@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("logtracker", "1_tracking.go", up, down)
+	migrator.AddMigration("logtracker", "1_tracking.go", upCreateTrackingTables, downCreateTrackingTables)
 }
 
-func up(tx *sql.Tx) error {
+func upCreateTrackingTables(tx *sql.Tx) error {
 	// TODO: investigate, via profiling, which fields deserve to have indexes apart from the obvious ones.
 	sql := `
 create table queues (
@@ -114,6 +114,6 @@ create index processed_queues_index on processed_queues(queue_id);
 	return nil
 }
 
-func down(tx *sql.Tx) error {
+func downCreateTrackingTables(tx *sql.Tx) error {
 	return nil
 }

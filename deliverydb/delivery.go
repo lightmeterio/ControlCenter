@@ -25,7 +25,7 @@ type DB struct {
 }
 
 const (
-	filename = "deliveries.db"
+	filename = "logs.db"
 )
 
 func New(workspace string) (*DB, error) {

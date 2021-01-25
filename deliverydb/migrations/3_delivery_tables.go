@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("deliverydb", "1_delivery_tables.go", up, down)
+	migrator.AddMigration("deliverydb", "3_delivery_tables.go", upCreateDeliveryTables, downCreateDeliveryTables)
 }
 
-func up(tx *sql.Tx) error {
+func upCreateDeliveryTables(tx *sql.Tx) error {
 	// TODO: investigate, via profiling, which fields deserve to have indexes apart from the obvious ones.
 	sql := `
 create table deliveries (
@@ -83,6 +83,6 @@ create index delivery_server_hostname_index on delivery_server(hostname);
 	return nil
 }
 
-func down(tx *sql.Tx) error {
+func downCreateDeliveryTables(tx *sql.Tx) error {
 	return nil
 }

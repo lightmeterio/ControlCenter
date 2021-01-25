@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -58,8 +57,6 @@ func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker,
 	dir, clearDir := testutil.TempDir(t)
 	tracker, err := New(dir, pub)
 	So(err, ShouldBeNil)
-
-	log.Println("Log Dir:", dir)
 
 	return pub, tracker, func() {
 		So(tracker.Close(), ShouldBeNil)
