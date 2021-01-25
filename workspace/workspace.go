@@ -151,9 +151,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			err := doneLogsRunner()
 			errorutil.MustSucceed(err)
 
-			doneMsgRbl()
-			doneSettings()
-			doneInsights()
+			// TODO: handle errors!
+			errorutil.MustSucceed(doneMsgRbl())
+			errorutil.MustSucceed(doneSettings())
+			errorutil.MustSucceed(doneInsights())
 
 			// TODO: return a combination of the "children" errors!
 			done <- nil
