@@ -4,13 +4,11 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/logdb"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
 	"testing"
-	"time"
 )
 
 func init() {
@@ -21,18 +19,17 @@ func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := NewWorkspace("/proc/lalala", logdb.Config{Location: time.UTC})
+			_, err := NewWorkspace("/proc/lalala")
 			So(err, ShouldNotBeNil)
 		})
 	})
 
 	Convey("Creation succeeds", t, func() {
 		Convey("Create Workspace", func() {
-
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			ws, err := NewWorkspace(dir)
 			So(err, ShouldBeNil)
 
 			defer ws.Close()
@@ -43,7 +40,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			ws, err := NewWorkspace(dir)
 			So(err, ShouldBeNil)
 			So(ws.HasLogs(), ShouldBeFalse)
 			So(ws.Close(), ShouldBeNil)
@@ -53,10 +50,11 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			ws1, err := NewWorkspace(dir)
+			So(err, ShouldBeNil)
 			ws1.Close()
 
-			ws2, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			ws2, err := NewWorkspace(dir)
 			So(err, ShouldBeNil)
 			ws2.Close()
 		})
@@ -65,7 +63,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws1, err := NewWorkspace(dir, logdb.Config{Location: time.UTC})
+			ws1, err := NewWorkspace(dir)
 			So(err, ShouldBeNil)
 
 			ws1.closes = []io.Closer{
@@ -82,6 +80,28 @@ func TestWorkspaceCreation(t *testing.T) {
 
 			err = ws1.Close()
 			So(err, ShouldNotBeNil)
+		})
+	})
+}
+
+func TestWorkspaceExecution(t *testing.T) {
+	Convey("Workspace execution", t, func() {
+		Convey("Nothing read", func() {
+			dir, clearDir := testutil.TempDir(t)
+			defer clearDir()
+
+			ws, err := NewWorkspace(dir)
+			So(err, ShouldBeNil)
+
+			defer ws.Close()
+
+			done, cancel := ws.Run()
+
+			cancel()
+
+			So(done(), ShouldBeNil)
+
+			So(ws.HasLogs(), ShouldBeFalse)
 		})
 	})
 }

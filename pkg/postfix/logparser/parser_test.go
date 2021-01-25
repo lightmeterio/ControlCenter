@@ -46,8 +46,7 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	})
 
 	Convey("Unsupported Log Line", t, func() {
-		_, p, err := Parse([]byte(`Feb 16 00:07:34 smtpnode07 postfix-10.20.30.40/qmgr[2342]: ` +
-			`3A1973E542: from=<redacted@phplist.com>, size=11737, nrcpt=1 (queue active)`))
+		_, p, err := Parse([]byte(`Feb 16 00:07:34 smtpnode07 postfix-10.20.30.40/something[2342]: unsupported message`))
 		So(p, ShouldBeNil)
 		So(err, ShouldEqual, ErrUnsupportedLogLine)
 	})
@@ -112,12 +111,12 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 	})
 
 	Convey("Unsupported Log Line with slash on process", t, func() {
-		h, p, err := Parse([]byte(`Mar  3 02:55:42 mail postfix/submission/smtpd[21543]: connect from unknown[11.22.33.44]`))
+		h, p, err := Parse([]byte(`Mar  3 02:55:42 mail process/daemon/with/slash[9708]: any content here`))
 		So(err, ShouldEqual, ErrUnsupportedLogLine)
 		So(p, ShouldBeNil)
-		So(h.Process, ShouldEqual, "postfix")
-		So(h.Daemon, ShouldEqual, "submission/smtpd")
-		So(h.PID, ShouldEqual, 21543)
+		So(h.Process, ShouldEqual, "process")
+		So(h.Daemon, ShouldEqual, "daemon/with/slash")
+		So(h.PID, ShouldEqual, 9708)
 	})
 
 	Convey("Unsupported opendkim line, but time is okay", t, func() {
@@ -273,7 +272,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(parsed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 		p, cast := parsed.(SmtpSentStatus)
-		So(cast, ShouldEqual, true)
+		So(cast, ShouldBeTrue)
 
 		So(header.Time.Day, ShouldEqual, 5)
 		So(header.Time.Month, ShouldEqual, time.May)
@@ -291,6 +290,17 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.OrigRecipientDomainPart, ShouldEqual, "example.com")
 		So(p.RelayName, ShouldEqual, "127.0.0.1")
 		So(p.Status, ShouldEqual, SentStatus)
+		So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`)
+
+		e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
+		So(cast, ShouldBeTrue)
+		So(e.Port, ShouldEqual, 10025)
+		So(e.IP, ShouldEqual, net.ParseIP("127.0.0.1"))
+		So(e.Queue, ShouldEqual, "2F01D1855DB2")
+
+		// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
+		So(e.SmtpCode, ShouldEqual, 250)
+		So(e.Dsn, ShouldEqual, "2.0.0")
 	})
 }
 
@@ -318,10 +328,60 @@ func TestQmgrParsing(t *testing.T) {
 	})
 }
 
+func TestLmtpParsing(t *testing.T) {
+	Convey("Lmtp uses the same struct as SmtpSentStatus", t, func() {
+		header, parsed, err := Parse([]byte(`Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, ` +
+			`relay=relay.example.com[/var/run/dovecot/lmtp], delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent ` +
+			`(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`))
+		So(parsed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+
+		So(header.Time.Day, ShouldEqual, 10)
+		So(header.Time.Month, ShouldEqual, time.January)
+		So(header.Time.Hour, ShouldEqual, 16)
+		So(header.Time.Minute, ShouldEqual, 15)
+		So(header.Time.Second, ShouldEqual, 30)
+		So(header.Host, ShouldEqual, "mail")
+		So(header.Process, ShouldEqual, "postfix")
+		So(header.Daemon, ShouldEqual, "lmtp")
+
+		So(p.Queue, ShouldEqual, "400643011B47")
+		So(p.RecipientLocalPart, ShouldEqual, "recipient")
+		So(p.RecipientDomainPart, ShouldEqual, "example.com")
+		So(p.RelayName, ShouldEqual, "relay.example.com")
+		So(p.RelayPath, ShouldEqual, "/var/run/dovecot/lmtp")
+		So(p.Status, ShouldEqual, SentStatus)
+		So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`)
+	})
+}
+
 func TestTimeConversion(t *testing.T) {
 	Convey("Convert to Unix timestamp on UTC", t, func() {
 		t := Time{Day: 25, Month: time.May, Hour: 5, Minute: 12, Second: 22}
 		ts := t.Unix(2008, time.UTC)
 		So(ts, ShouldEqual, 1211692342)
+	})
+}
+
+func TestCleanupProcessing(t *testing.T) {
+	Convey("Cleanup", t, func() {
+		Convey("e-mail like message-id", func() {
+			_, payload, err := Parse([]byte("Jun  3 10:40:57 mail postfix/sender-cleanup/cleanup[9709]: 4AA091855DA0: message-id=<ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com>"))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.MessageId, ShouldEqual, "ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com")
+		})
+
+		Convey("free form like message", func() {
+			_, payload, err := Parse([]byte("Jun  3 10:40:57 mail postfix/cleanup[9709]: 4AA091855DA0: message-id=656587JHGJHG"))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.MessageId, ShouldEqual, "656587JHGJHG")
+		})
+
 	})
 }

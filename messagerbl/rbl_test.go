@@ -24,7 +24,6 @@ func TestRBL(t *testing.T) {
 		settings := &fakeSettings{ip: ip}
 		detector := New(settings)
 		pub := detector.NewPublisher()
-		defer pub.Close()
 
 		done, cancel := detector.Run()
 

@@ -1,6 +1,11 @@
 //go:generate ragel -Z -G2 header.rl -o header.gen.go
 //go:generate ragel -Z -G2 smtp.rl -o smtp.gen.go
 //go:generate ragel -Z -G2 qmgr.rl -o qmgr.gen.go
+//go:generate ragel -Z -G2 cleanup.rl -o cleanup.gen.go
+//go:generate ragel -Z -G2 bounce.rl -o bounce.gen.go
+
+// TODO: move the go:generate comments to their respective go files
+// TODO: create a wrapper command to allows us to use ragel-7, which has a different interface.
 
 package rawparser
 

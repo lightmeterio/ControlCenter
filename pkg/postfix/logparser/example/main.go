@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
@@ -27,7 +28,17 @@ func main() {
 			continue
 		}
 
-		if j, err := json.Marshal([]interface{}{h, p}); err == nil {
+		name := func() string {
+			t := reflect.TypeOf(p)
+
+			if t == nil {
+				return "none"
+			}
+
+			return t.Name()
+		}()
+
+		if j, err := json.Marshal([]interface{}{h, name, p}); err == nil {
 			fmt.Println(string(j))
 		}
 	}

@@ -44,6 +44,7 @@ type SmtpSentStatus struct {
 	OrigRecipientLocalPart  string
 	OrigRecipientDomainPart string
 	RelayName               string
+	RelayPath               string
 	RelayIP                 net.IP
 	RelayPort               uint16
 	Delay                   float32
@@ -51,9 +52,22 @@ type SmtpSentStatus struct {
 	Dsn                     string
 	Status                  SmtpStatus
 	ExtraMessage            string
+	ExtraMessagePayload     Payload
 }
 
 func (SmtpSentStatus) isPayload() {
+	// required by Payload interface
+}
+
+type SmtpStatusExtraMessageSentQueued struct {
+	SmtpCode int
+	Dsn      string
+	IP       net.IP
+	Port     int
+	Queue    string
+}
+
+func (SmtpStatusExtraMessageSentQueued) isPayload() {
 	// required by Payload interface
 }
 
@@ -73,20 +87,7 @@ func parseStatus(s []byte) SmtpStatus {
 func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 	p := r.RawSmtpSentStatus
 
-	ip, err := func() (net.IP, error) {
-		if len(p.RelayIp) == 0 {
-			return nil, nil
-		}
-
-		ip := net.ParseIP(string(p.RelayIp))
-
-		if ip == nil {
-			return nil, &net.ParseError{Type: "IP Address", Text: "Invalid Relay IP"}
-		}
-
-		return ip, nil
-	}()
-
+	ip, err := parseIP(p.RelayIp)
 	if err != nil {
 		return SmtpSentStatus{}, err
 	}
@@ -141,6 +142,19 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 		return string(p.RelayName)
 	}()
 
+	relayPath := func() string {
+		if len(p.RelayPath) == 0 {
+			return ""
+		}
+
+		return string(p.RelayPath)
+	}()
+
+	parsedExtraMessage, err := parseSmtpSentStatusExtraMessage(p)
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
 	return SmtpSentStatus{
 		Queue:                   string(p.Queue),
 		RecipientLocalPart:      string(p.RecipientLocalPart),
@@ -148,6 +162,7 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 		OrigRecipientLocalPart:  string(p.OrigRecipientLocalPart),
 		OrigRecipientDomainPart: string(p.OrigRecipientDomainPart),
 		RelayName:               relayName,
+		RelayPath:               relayPath,
 		RelayIP:                 ip,
 		RelayPort:               uint16(relayPort),
 		Delay:                   delay,
@@ -157,8 +172,40 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			Qmgr:    qmgrDelay,
 			Smtp:    smtpDelay,
 		},
-		Dsn:          string(p.Dsn),
-		Status:       parseStatus(p.Status),
-		ExtraMessage: string(p.ExtraMessage),
+		Dsn:                 string(p.Dsn),
+		Status:              parseStatus(p.Status),
+		ExtraMessage:        string(p.ExtraMessage),
+		ExtraMessagePayload: parsedExtraMessage,
+	}, nil
+}
+
+func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, error) {
+	if s.ExtraMessagePayloadType != rawparser.PayloadTypeSmtpMessageStatusSentQueued {
+		return nil, nil
+	}
+
+	p := s.ExtraMessageSmtpSentStatusSentQueued
+
+	smtpCode, err := atoi(p.SmtpCode)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := atoi(p.Port)
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := parseIP(p.IP)
+	if err != nil {
+		return nil, err
+	}
+
+	return SmtpStatusExtraMessageSentQueued{
+		Dsn:      string(p.Dsn),
+		IP:       ip,
+		Port:     port,
+		Queue:    string(p.Queue),
+		SmtpCode: smtpCode,
 	}, nil
 }

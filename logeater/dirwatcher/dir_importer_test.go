@@ -40,9 +40,6 @@ func (this *fakePublisher) Publish(r data.Record) {
 	this.logs = append(this.logs, r)
 }
 
-func (fakePublisher) Close() {
-}
-
 func compress(content []byte) []byte {
 	var buf bytes.Buffer
 
