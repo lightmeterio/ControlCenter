@@ -114,6 +114,8 @@ func prepareNotifierRoStmts(conn dbconn.RoConn) (notifierStmts, error) {
 	stmts := notifierStmts{}
 
 	for k, v := range notifierStmtsText {
+		// The prepared queries are closed when the application ends
+		//nolint:sqlclosecheck
 		stmt, err := conn.Prepare(v)
 		if err != nil {
 			return notifierStmts{}, errorutil.Wrap(err)
@@ -260,12 +262,24 @@ func buildAndPublishResult(stmts notifierStmts,
 	}
 
 	deleteResultAction := func(tx *sql.Tx) error {
-		_, err := tx.Stmt(trackerStmts[deleteResultByIdKey]).Exec(resultInfo.id)
+		stmt := tx.Stmt(trackerStmts[deleteResultByIdKey])
+
+		defer func() {
+			errorutil.MustSucceed(stmt.Close())
+		}()
+
+		_, err := stmt.Exec(resultInfo.id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		_, err = tx.Stmt(trackerStmts[deleteResultDataByResultId]).Exec(resultInfo.id)
+		stmt = tx.Stmt(trackerStmts[deleteResultDataByResultId])
+
+		defer func() {
+			errorutil.MustSucceed(stmt.Close())
+		}()
+
+		_, err = stmt.Exec(resultInfo.id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

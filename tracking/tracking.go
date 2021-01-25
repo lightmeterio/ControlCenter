@@ -327,56 +327,101 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	return tx, nil
 }
 
+func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker) (*sql.Tx, error) {
+	var err error
+
+	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err = dispatchAllResults(t, t.resultsToNotify, tx); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err = commitTransactionIfNeeded(tx); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	tx = nil
+
+	return tx, nil
+}
+
+func commitTransactionIfNeeded(tx *sql.Tx) error {
+	if tx == nil {
+		return nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker) (*sql.Tx, error) {
+	var err error
+
+	if err = commitTransactionIfNeeded(tx); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	tx = nil
+
+	if tx, err = dispatchQueuesInTransaction(tx, t); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return tx, nil
+}
+
+func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.Tx, bool, error) {
+	var err error
+
+	if !ok {
+		if err = commitTransactionIfNeeded(tx); err != nil {
+			return nil, false, errorutil.Wrap(err)
+		}
+
+		return tx, false, nil
+	}
+
+	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
+		return nil, false, errorutil.Wrap(err)
+	}
+
+	txAction := recv.Interface().(func(*sql.Tx) error)
+
+	err = txAction(tx)
+
+	if err != nil {
+		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+			asDeletionError := err.(*DeletionError)
+			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
+			// but we should investigate and make and fix them!
+			// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
+			// and potentially making queries slower... :-(
+			log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+				asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
+
+			return tx, true, nil
+		}
+
+		errorutil.MustSucceed(err)
+
+		return nil, false, errorutil.Wrap(err)
+	}
+
+	return tx, true, nil
+}
+
 func runTracker(t *Tracker) error {
-	var tx *sql.Tx
-
-	commitTransactionIfNeeded := func() error {
-		if tx == nil {
-			return nil
-		}
-
-		if err := tx.Commit(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		tx = nil
-
-		return nil
-	}
-
-	dispatchQueuesInTransaction := func() error {
-		var err error
-
-		if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err = dispatchAllResults(t, t.resultsToNotify, tx); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err = commitTransactionIfNeeded(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	ensureMessagesArePersistedAndDispatchResults := func() error {
-		if err := commitTransactionIfNeeded(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err := dispatchQueuesInTransaction(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
+	var (
+		tx  *sql.Tx
+		err error
+	)
 
 	messagesTicker := time.NewTicker(500 * time.Millisecond)
-
-	var err error
 
 	txActionsAsValue := reflect.ValueOf(t.txActions)
 	tickerAsValue := reflect.ValueOf(messagesTicker.C)
@@ -394,47 +439,24 @@ loop:
 
 		switch chosen {
 		case 0:
-			if !ok {
-				if err := commitTransactionIfNeeded(); err != nil {
-					return errorutil.Wrap(err)
-				}
+			var shouldContinue bool
 
+			tx, shouldContinue, err = handleTxAction(tx, t, ok, recv)
+			if err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			if !shouldContinue {
 				break loop
 			}
-
-			if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			txAction := recv.Interface().(func(*sql.Tx) error)
-
-			err = txAction(tx)
-
-			if err != nil {
-				if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
-					asDeletionError := err.(*DeletionError)
-					// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
-					// but we should investigate and make and fix them!
-					// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
-					// and potentially making queries slower... :-(
-					log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
-						asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
-
-					break
-				}
-
-				errorutil.MustSucceed(err)
-
-				return errorutil.Wrap(err)
-			}
 		case 1:
-			if err := ensureMessagesArePersistedAndDispatchResults(); err != nil {
+			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {
 				return errorutil.Wrap(err)
 			}
 		case 2:
 			if !ok {
 				// cancel() has been called
-				if err := ensureMessagesArePersistedAndDispatchResults(); err != nil {
+				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {
 					return errorutil.Wrap(err)
 				}
 

@@ -46,12 +46,36 @@ func actionTypeForRecord(r data.Record) (ActionType, actionDataPair) {
 	return UnsupportedActionType, emptyActionDataPair
 }
 
-// TODO: prepare all queries during application startup
+func insertConnectionWithPid(tracker *Tracker, tx *sql.Tx, pidId int64) (int64, error) {
+	stmt := tx.Stmt(tracker.stmts[insertConnectionOnConnection])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(pidId)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	connectionId, err := result.LastInsertId()
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return connectionId, nil
+}
 
 func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error) {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
-	result, err := tx.Stmt(tracker.stmts[insertPidOnConnection]).Exec(r.Header.PID, r.Header.Host)
+	stmt := tx.Stmt(tracker.stmts[insertPidOnConnection])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(r.Header.PID, r.Header.Host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -66,12 +90,7 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error
 		return 0, errorutil.Wrap(err)
 	}
 
-	result, err = tx.Stmt(tracker.stmts[insertConnectionOnConnection]).Exec(pidId)
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	connectionId, err := result.LastInsertId()
+	connectionId, err := insertConnectionWithPid(tracker, tx, pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -90,7 +109,13 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 	// TODO: there might be other payloads about connection, so this cast is not always safe
 	payload := r.Payload.(parser.SmtpdConnect)
 
-	_, err = tx.Stmt(t.stmts[insertConnectionDataTwoRows]).Exec(
+	stmt := tx.Stmt(t.stmts[insertConnectionDataTwoRows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(
 		connectionId, ConnectionBeginKey, r.Time.Unix(),
 		connectionId, ConnectionClientHostnameKey, payload.Host)
 
@@ -105,7 +130,13 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 		return nil
 	}
 
-	_, err = tx.Stmt(t.stmts[insertConnectionData]).Exec(connectionId, ConnectionClientIPKey, payload.IP)
+	stmt = tx.Stmt(t.stmts[insertConnectionData])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(connectionId, ConnectionClientIPKey, payload.IP)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -119,8 +150,14 @@ func findConnectionIdAndUsageCounter(tx *sql.Tx, t *Tracker, h parser.Header) (i
 		usageCounter int
 	)
 
+	stmt := tx.Stmt(t.stmts[selectConnectionAndUsageCounterForPid])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
 	// find a connection entry for this
-	err := tx.Stmt(t.stmts[selectConnectionAndUsageCounterForPid]).QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
+	err := stmt.QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
 
 	if err != nil {
 		return 0, 0, errorutil.Wrap(err)
@@ -130,7 +167,13 @@ func findConnectionIdAndUsageCounter(tx *sql.Tx, t *Tracker, h parser.Header) (i
 }
 
 func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string) (int64, error) {
-	result, err := tx.Stmt(tracker.stmts[insertQueueForConnection]).Exec(connectionId, queue)
+	stmt := tx.Stmt(tracker.stmts[insertQueueForConnection])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(connectionId, queue)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -140,7 +183,13 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 		return 0, errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(tracker.stmts[insertQueueData]).Exec(queueId, QueueBeginKey, time.Unix())
+	stmt = tx.Stmt(tracker.stmts[insertQueueData])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(queueId, QueueBeginKey, time.Unix())
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -177,7 +226,13 @@ func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair act
 }
 
 func incrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
-	_, err := tx.Stmt(stmts[incrementConnectionUsageById]).Exec(connectionId)
+	stmt := tx.Stmt(stmts[incrementConnectionUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -186,7 +241,13 @@ func incrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 }
 
 func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
-	_, err := tx.Stmt(stmts[decrementConnectionUsageById]).Exec(connectionId)
+	stmt := tx.Stmt(stmts[decrementConnectionUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -197,7 +258,13 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted) (int64, error) {
 	var existingMessageId int64
 
-	err := tx.Stmt(t.stmts[selectMessageIdForMessage]).QueryRow(p.MessageId).Scan(&existingMessageId)
+	stmt := tx.Stmt(t.stmts[selectMessageIdForMessage])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(p.MessageId).Scan(&existingMessageId)
 	if err == nil {
 		err = incrementMessageIdUsage(tx, t.stmts, existingMessageId)
 
@@ -213,7 +280,13 @@ func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupM
 	}
 
 	// new message-id, just insert
-	result, err := tx.Stmt(t.stmts[insertMessageId]).Exec(p.MessageId)
+	stmt = tx.Stmt(t.stmts[insertMessageId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(p.MessageId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -265,7 +338,13 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(tracker.stmts[updateQueueWithMessageId]).Exec(messageidId, queueId)
+	stmt := tx.Stmt(tracker.stmts[updateQueueWithMessageId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(messageidId, queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -276,7 +355,13 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 func findQueueIdFromQueueValue(tx *sql.Tx, t *Tracker, h parser.Header, queue string) (int64, error) {
 	var queueId int64
 
-	err := tx.Stmt(t.stmts[selectQueueIdForQueue]).QueryRow(
+	stmt := tx.Stmt(t.stmts[selectQueueIdForQueue])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(
 		h.Host, queue).Scan(&queueId)
 
 	if err != nil {
@@ -301,7 +386,13 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPai
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(tracker.stmts[insertQueueDataFourRows]).Exec(
+	stmt := tx.Stmt(tracker.stmts[insertQueueDataFourRows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(
 		queueId, QueueSenderLocalPartKey, p.SenderLocalPart,
 		queueId, QueueSenderDomainPartKey, p.SenderDomainPart,
 		queueId, QueueOriginalMessageSizeKey, p.Size,
@@ -329,7 +420,13 @@ func disconnectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair acti
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(t.stmts[insertConnectionData]).Exec(
+	stmt := tx.Stmt(t.stmts[insertConnectionData])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(
 		connectionId, ConnectionEndKey, r.Time.Unix())
 
 	if err != nil {
@@ -431,7 +528,13 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 	// this is an e-mail that postfix sends to itself before trying to deliver.
 	// As it's moved to another queue to be delivered, we queue the original and
 	// the newly created queue
-	_, err = tx.Stmt(t.stmts[insertQueueParenting]).Exec(
+	stmt := tx.Stmt(t.stmts[insertQueueParenting])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(
 		origQueueId, newQueueId, queueParentingRelayType)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -441,7 +544,13 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair action
 }
 
 func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo) error {
-	_, err := tx.Stmt(tracker.stmts[insertNotificationQueue]).Exec(
+	stmt := tx.Stmt(tracker.stmts[insertNotificationQueue])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(
 		resultInfo.id, resultInfo.loc.Filename, resultInfo.loc.Line)
 
 	if err != nil {
@@ -465,7 +574,13 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(tracker.stmts[insertQueueData]).Exec(queueId, QueueEndKey, r.Time.Unix())
+	stmt := tx.Stmt(tracker.stmts[insertQueueData])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(queueId, QueueEndKey, r.Time.Unix())
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -487,7 +602,13 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.Record
 		return MessageDirectionOutbound
 	}()
 
-	_, err := tx.Stmt(tracker.stmts[insertResultData15Rows]).Exec(
+	stmt := tx.Stmt(tracker.stmts[insertResultData15Rows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(
 		resultId, ResultRecipientLocalPartKey, p.RecipientLocalPart,
 		resultId, ResultRecipientDomainPartKey, p.RecipientDomainPart,
 		resultId, ResultOrigRecipientLocalPartKey, p.OrigRecipientLocalPart,
@@ -514,7 +635,13 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.Record
 		return nil
 	}
 
-	_, err = tx.Stmt(tracker.stmts[insertResultData3Rows]).Exec(
+	stmt = tx.Stmt(tracker.stmts[insertResultData3Rows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(
 		resultId, ResultRelayNameKey, p.RelayName,
 		resultId, ResultRelayIPKey, p.RelayIP,
 		resultId, ResultRelayPortKey, p.RelayPort,
@@ -541,7 +668,13 @@ func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, erro
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	result, err := tx.Stmt(tracker.stmts[insertResult]).Exec(queueId)
+	stmt := tx.Stmt(tracker.stmts[insertResult])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(queueId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
@@ -603,7 +736,13 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(tracker.stmts[insertQueueParenting]).Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
+	stmt := tx.Stmt(tracker.stmts[insertQueueParenting])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

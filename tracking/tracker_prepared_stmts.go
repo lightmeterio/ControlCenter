@@ -154,6 +154,7 @@ func prepareTrackerRwStmts(conn dbconn.RwConn) (trackerStmts, error) {
 	stmts := trackerStmts{}
 
 	for k, v := range trackerStmtsText {
+		//nolint:sqlclosecheck
 		stmt, err := conn.Prepare(v)
 		if err != nil {
 			return trackerStmts{}, errorutil.Wrap(err)

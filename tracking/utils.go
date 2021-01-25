@@ -14,10 +14,15 @@ func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) 
 		value interface{}
 	)
 
+	//nolint:rowserrcheck
 	rows, err := stmt.Query(args...)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
+	defer func() {
+		errorutil.MustSucceed(rows.Close())
+	}()
 
 	for rows.Next() {
 		err = rows.Scan(&id, &key, &value)
@@ -72,7 +77,13 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	var usageCounter int
 
-	err = tx.Stmt(trackerStmts[queueUsageCounter]).QueryRow(queueId).Scan(&usageCounter)
+	stmt := tx.Stmt(trackerStmts[queueUsageCounter])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err = stmt.QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
@@ -85,7 +96,13 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 	// In such scenario, I cannot be deleted yet
 	var countDependentQueues int64
 
-	err = tx.Stmt(trackerStmts[countNewQueueFromParenting]).QueryRow(queueId).Scan(&countDependentQueues)
+	stmt = tx.Stmt(trackerStmts[countNewQueueFromParenting])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err = stmt.QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
@@ -103,14 +120,25 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 }
 
 func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
-	rows, err := tx.Stmt(trackerStmts[selectQueueFromParentingNewQueue]).Query(queueId)
+	stmt := tx.Stmt(trackerStmts[selectQueueFromParentingNewQueue])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	//nolint:rowserrcheck
+	rows, err := stmt.Query(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	defer func() {
+		errorutil.MustSucceed(rows.Close())
+	}()
+
 	var (
 		dependencyQueueId int64
-		id             int64
+		id                int64
 	)
 
 	for rows.Next() {
@@ -124,7 +152,13 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error 
 			return errorutil.Wrap(err)
 		}
 
-		_, err = tx.Stmt(trackerStmts[deleteQueueParentingById]).Exec(id)
+		stmt := tx.Stmt(trackerStmts[deleteQueueParentingById])
+
+		defer func() {
+			errorutil.MustSucceed(stmt.Close())
+		}()
+
+		_, err = stmt.Exec(id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -151,7 +185,13 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error 
 func countQueuesOnConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) (int, error) {
 	var connectionCounter int
 
-	err := tx.Stmt(trackerStmts[countConnectionUsageById]).QueryRow(connectionId).Scan(&connectionCounter)
+	stmt := tx.Stmt(trackerStmts[countConnectionUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(connectionId).Scan(&connectionCounter)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -162,7 +202,13 @@ func countQueuesOnConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId
 func tryToDeleteConnectionForQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	var connectionId int64
 
-	err := tx.Stmt(trackerStmts[connectionIdForQueue]).QueryRow(queueId).Scan(&connectionId)
+	stmt := tx.Stmt(trackerStmts[connectionIdForQueue])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(queueId).Scan(&connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -197,12 +243,24 @@ func deleteConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64)
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(trackerStmts[deleteConnectionDataByConnectionId]).Exec(connectionId)
+	stmt := tx.Stmt(trackerStmts[deleteConnectionDataByConnectionId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tx.Stmt(trackerStmts[deleteConnectionById]).Exec(connectionId)
+	stmt = tx.Stmt(trackerStmts[deleteConnectionById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -213,7 +271,13 @@ func deleteConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64)
 func countPidUsage(tx *sql.Tx, trackerStmts trackerStmts, pidId int64) (int, error) {
 	var count int
 
-	err := tx.Stmt(trackerStmts[countPidUsageByPidId]).QueryRow(pidId).Scan(&count)
+	stmt := tx.Stmt(trackerStmts[countPidUsageByPidId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(pidId).Scan(&count)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -222,7 +286,13 @@ func countPidUsage(tx *sql.Tx, trackerStmts trackerStmts, pidId int64) (int, err
 }
 
 func incrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
-	_, err := tx.Stmt(stmts[incrementPidUsageById]).Exec(pidId)
+	stmt := tx.Stmt(stmts[incrementPidUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -231,7 +301,13 @@ func incrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
 }
 
 func decrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
-	_, err := tx.Stmt(stmts[decrementPidUsageById]).Exec(pidId)
+	stmt := tx.Stmt(stmts[decrementPidUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -240,7 +316,13 @@ func decrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
 }
 
 func incrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
-	_, err := tx.Stmt(stmts[incrementMessageIdUsageById]).Exec(messageId)
+	stmt := tx.Stmt(stmts[incrementMessageIdUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(messageId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -249,7 +331,13 @@ func incrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) er
 }
 
 func decrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
-	_, err := tx.Stmt(stmts[decrementMessageIdUsageById]).Exec(messageId)
+	stmt := tx.Stmt(stmts[decrementMessageIdUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(messageId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -260,7 +348,13 @@ func decrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) er
 func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) error {
 	var pidId int64
 
-	err := tx.Stmt(trackerStmts[pidIdForConnection]).QueryRow(connectionId).Scan(&pidId)
+	stmt := tx.Stmt(trackerStmts[pidIdForConnection])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(connectionId).Scan(&pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -279,7 +373,13 @@ func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connecti
 		return nil
 	}
 
-	_, err = tx.Stmt(trackerStmts[deletePidById]).Exec(pidId)
+	stmt = tx.Stmt(trackerStmts[deletePidById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -304,7 +404,13 @@ func deleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	}
 
 	// delete the queue itself
-	queueResult, err := tx.Stmt(trackerStmts[deleteQueueById]).Exec(queueId)
+	stmt := tx.Stmt(trackerStmts[deleteQueueById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	queueResult, err := stmt.Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -315,7 +421,13 @@ func deleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	}
 
 	// delete all data
-	_, err = tx.Stmt(trackerStmts[deleteQueueDataById]).Exec(queueId)
+	stmt = tx.Stmt(trackerStmts[deleteQueueDataById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -326,7 +438,13 @@ func deleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	var messageId int64
 
-	err := tx.Stmt(trackerStmts[messageIdForQueue]).QueryRow(queueId).Scan(&messageId)
+	stmt := tx.Stmt(trackerStmts[messageIdForQueue])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(queueId).Scan(&messageId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -338,7 +456,13 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 
 	var queuesWithMessageIdCount int
 
-	err = tx.Stmt(trackerStmts[countWithMessageIdUsageById]).QueryRow(messageId).Scan(&queuesWithMessageIdCount)
+	stmt = tx.Stmt(trackerStmts[countWithMessageIdUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err = stmt.QueryRow(messageId).Scan(&queuesWithMessageIdCount)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -347,7 +471,13 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 		return nil
 	}
 
-	_, err = tx.Stmt(trackerStmts[deleteMessageId]).Exec(messageId)
+	stmt = tx.Stmt(trackerStmts[deleteMessageId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(messageId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -356,7 +486,13 @@ func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId in
 }
 
 func incrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
-	_, err := tx.Stmt(trackerStmts[incrementQueueUsageById]).Exec(queueId)
+	stmt := tx.Stmt(trackerStmts[incrementQueueUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -365,7 +501,13 @@ func incrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) e
 }
 
 func decrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
-	_, err := tx.Stmt(trackerStmts[decrementQueueUsageById]).Exec(queueId)
+	stmt := tx.Stmt(trackerStmts[decrementQueueUsageById])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

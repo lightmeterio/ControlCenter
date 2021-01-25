@@ -220,63 +220,44 @@ func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP interface{}, relayPor
 	return id, true, nil
 }
 
-func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
-	return func(tx *sql.Tx) error {
-		deliveryServerId, err := getUniqueDeliveryServerID(tx, tr[tracking.ResultDeliveryServerKey].(string))
-		if err != nil {
-			return errorutil.Wrap(err)
+func insertMandatoryResultFields(tx *sql.Tx, tr tracking.Result) (sql.Result, error) {
+	deliveryServerId, err := getUniqueDeliveryServerID(tx, tr[tracking.ResultDeliveryServerKey].(string))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.QueueSenderDomainPartKey].(string))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.ResultRecipientDomainPartKey].(string))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	messageId, err := getUniqueMessageId(tx, tr[tracking.QueueMessageIDKey].(string))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	dir := func() tracking.MessageDirection {
+		if asInt64, ok := tr[tracking.ResultMessageDirectionKey].(int64); ok {
+			return tracking.MessageDirection(asInt64)
 		}
 
-		senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.QueueSenderDomainPartKey].(string))
-		if err != nil {
-			return errorutil.Wrap(err)
+		return tr[tracking.ResultMessageDirectionKey].(tracking.MessageDirection)
+	}()
+
+	status := func() parser.SmtpStatus {
+		if asInt64, ok := tr[tracking.ResultStatusKey].(int64); ok {
+			return parser.SmtpStatus(asInt64)
 		}
 
-		recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.ResultRecipientDomainPartKey].(string))
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
+		return tr[tracking.ResultStatusKey].(parser.SmtpStatus)
+	}()
 
-		origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, tr[tracking.ResultOrigRecipientDomainPartKey])
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		messageId, err := getUniqueMessageId(tx, tr[tracking.QueueMessageIDKey].(string))
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		port := func() int64 {
-			if tr[tracking.ResultRelayPortKey] == nil {
-				return 0
-			}
-
-			return tr[tracking.ResultRelayPortKey].(int64)
-		}()
-
-		relayId, relayIdFound, err := getOptionalNextRelayId(tx, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		dir := func() tracking.MessageDirection {
-			if asInt64, ok := tr[tracking.ResultMessageDirectionKey].(int64); ok {
-				return tracking.MessageDirection(asInt64)
-			}
-
-			return tr[tracking.ResultMessageDirectionKey].(tracking.MessageDirection)
-		}()
-
-		status := func() parser.SmtpStatus {
-			if asInt64, ok := tr[tracking.ResultStatusKey].(int64); ok {
-				return parser.SmtpStatus(asInt64)
-			}
-
-			return tr[tracking.ResultStatusKey].(parser.SmtpStatus)
-		}()
-
-		result, err := tx.Exec(`
+	result, err := tx.Exec(`
 insert into deliveries(
 	status,
 	delivery_ts,
@@ -301,29 +282,48 @@ insert into deliveries(
 	client_ip,
 	dsn)
 values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			status,
-			tr[tracking.ResultDeliveryTimeKey].(int64),
-			dir,
-			senderDomainPartId,
-			recipientDomainPartId,
-			messageId,
-			tr[tracking.ConnectionBeginKey],
-			tr[tracking.QueueBeginKey],
-			tr[tracking.QueueOriginalMessageSizeKey].(int64),
-			tr[tracking.QueueProcessedMessageSizeKey].(int64),
-			tr[tracking.QueueNRCPTKey],
-			deliveryServerId,
-			tr[tracking.ResultDelayKey],
-			tr[tracking.ResultDelaySMTPDKey],
-			tr[tracking.ResultDelayCleanupKey],
-			tr[tracking.ResultDelayQmgrKey],
-			tr[tracking.ResultDelaySMTPKey],
-			tr[tracking.QueueSenderLocalPartKey].(string),
-			tr[tracking.ResultRecipientLocalPartKey],
-			tr[tracking.ConnectionClientHostnameKey],
-			tr[tracking.ConnectionClientIPKey],
-			tr[tracking.ResultDSNKey],
-		)
+		status,
+		tr[tracking.ResultDeliveryTimeKey].(int64),
+		dir,
+		senderDomainPartId,
+		recipientDomainPartId,
+		messageId,
+		tr[tracking.ConnectionBeginKey],
+		tr[tracking.QueueBeginKey],
+		tr[tracking.QueueOriginalMessageSizeKey].(int64),
+		tr[tracking.QueueProcessedMessageSizeKey].(int64),
+		tr[tracking.QueueNRCPTKey],
+		deliveryServerId,
+		tr[tracking.ResultDelayKey],
+		tr[tracking.ResultDelaySMTPDKey],
+		tr[tracking.ResultDelayCleanupKey],
+		tr[tracking.ResultDelayQmgrKey],
+		tr[tracking.ResultDelaySMTPKey],
+		tr[tracking.QueueSenderLocalPartKey].(string),
+		tr[tracking.ResultRecipientLocalPartKey],
+		tr[tracking.ConnectionClientHostnameKey],
+		tr[tracking.ConnectionClientIPKey],
+		tr[tracking.ResultDSNKey],
+	)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return result, nil
+}
+
+func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		result, err := insertMandatoryResultFields(tx, tr)
+
+		port := func() int64 {
+			if tr[tracking.ResultRelayPortKey] == nil {
+				return 0
+			}
+
+			return tr[tracking.ResultRelayPortKey].(int64)
+		}()
 
 		if err != nil {
 			log.Warn().Msgf("%v", tr)
@@ -335,11 +335,21 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			return errorutil.Wrap(err)
 		}
 
+		relayId, relayIdFound, err := getOptionalNextRelayId(tx, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		if relayIdFound {
 			_, err = tx.Exec(`update deliveries set next_relay_id = ? where id = ?`, relayId, rowId)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
+		}
+
+		origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, tr[tracking.ResultOrigRecipientDomainPartKey])
+		if err != nil {
+			return errorutil.Wrap(err)
 		}
 
 		if origRecipientDomainPartFound {
