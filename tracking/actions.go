@@ -566,7 +566,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v", p.Queue, r.Location.Filename, r.Location.Line)
+		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v", p.Queue, r.Location.Filename, r.Location.Line)
 		return nil
 	}
 
@@ -696,7 +696,7 @@ func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPa
 	err := createMailDeliveredResult(tracker, tx, r)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			r.Payload.(parser.SmtpSentStatus).Queue, r.Location.Filename, r.Location.Line)
 
 		return nil
@@ -714,7 +714,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 
 	bounceQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.ChildQueue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.ChildQueue, r.Location.Filename, r.Location.Line)
 
 		return nil
@@ -726,7 +726,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 
 	origQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Could not find queue %v for outbount e-mail, therefore ignoring it! On %v:%v",
+		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.Queue, r.Location.Filename, r.Location.Line)
 
 		return nil
