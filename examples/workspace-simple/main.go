@@ -1,18 +1,33 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
+	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
+	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"time"
 )
+
+func simpleDashboard(d dashboard.Dashboard) {
+	i, _ := data.ParseTimeInterval("0000-01-01", "5000-01-01", time.UTC)
+
+	for {
+		s, _ := d.DeliveryStatus(context.Background(), i)
+		fmt.Println(s)
+		time.Sleep(time.Second * 1)
+	}
+}
 
 func main() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
@@ -69,11 +84,17 @@ func main() {
 
 	errorutil.MustSucceed(err)
 
+	b := time.Now()
+
 	done, cancel := ws.Run()
 
 	pub := ws.NewPublisher()
 
 	logReader := logsource.NewReader(logSource, pub)
+
+	dashboard, _ := ws.Dashboard()
+
+	go simpleDashboard(dashboard)
 
 	err = logReader.Run()
 
@@ -81,6 +102,8 @@ func main() {
 
 	cancel()
 	done()
+
+	log.Println("Execution time:", time.Now().Sub(b))
 
 	// copied from https://golang.org/pkg/runtime/pprof/
 	if *memprofile != "" {
