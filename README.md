@@ -84,7 +84,11 @@ For more information about how the CA certificates are found, please check the c
 
 ### Install using Docker
 
-Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry). You can use the `latest` tag if desired. For usage see [Docker image](#docker-image).
+Docker images are generated for each release and are published in the Lightmeter [registry on Gitlab](https://gitlab.com/lightmeter/controlcenter/container_registry) and in the [Docker Hub](https://hub.docker.com/r/lightmeter/controlcenter).
+
+You can use the `latest` tag if desired. For usage see [Docker image](#docker-image).
+
+Additionally we publish every night (in UTC time) two docker images with the tags `nightly-master` and `nightly-develop`. `nightly-develop` consists on a build from the `develop` branch, containing the latest changes, very unstable and suitable for use in production. `nightly-master` is more stable, containing changes that will be included in the next release, but isn't recommended to be used in production either.
 
 ### Build from source code
 
