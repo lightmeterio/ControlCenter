@@ -319,4 +319,10 @@ export default {
   background-color: #0069d9;
   border-color: #0062cc;
 }
+
+.custom-control-label {
+  padding-top: 0.25rem;
+  font-size: 14px;
+}
+
 </style>
