@@ -101,7 +101,7 @@ func NewCustomEngine(
 
 		go func() {
 			runDatabaseWriterLoop(e)
-			done <- struct{}{}
+			done <- nil
 		}()
 	}
 

@@ -862,10 +862,6 @@ func (pub newLogsPublisher) Publish(r data.Record) {
 	pub.records <- r
 }
 
-func (pub newLogsPublisher) Close() {
-	close(pub.records)
-}
-
 type sortableRecord struct {
 	record parsedRecord
 	time   time.Time
@@ -1081,7 +1077,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 
 		flushHeap()
 
-		pub.Close()
+		close(pub.records)
 		done <- struct{}{}
 	}()
 

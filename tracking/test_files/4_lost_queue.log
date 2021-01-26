@@ -1,0 +1,66 @@
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: connect from unknown[68.183.218.8]
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: Anonymous TLS connection established from unknown[68.183.218.8]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: 99B222C0039E: client=unknown[68.183.218.8], sasl_method=LOGIN, sasl_username=hello@sender.example.com
+Feb  4 09:29:26 mail postfix/sender-cleanup/cleanup[6645]: 99B222C0039E: message-id=<21a4417e97f4021080c3d74f3b29f1d6@phplist.sender.example.com>
+Feb  4 09:29:26 mail postfix/sender-cleanup/cleanup[6645]: 99B222C0039E: replace: header MIME-Version: 1.0 from unknown[68.183.218.8]; from=<mail@sender2.example.com> to=<mail@sender2.example.com> proto=ESMTP helo=<phplist.sender.example.com>: Mime-Version: 1.0
+Feb  4 09:29:26 mail postfix/qmgr[964]: 99B222C0039E: from=<mail@sender2.example.com>, size=818, nrcpt=1 (queue active)
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: disconnect from unknown[68.183.218.8] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: connect from unknown[68.183.218.8]
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: Anonymous TLS connection established from unknown[68.183.218.8]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: CCA402C003AA: client=unknown[68.183.218.8], sasl_method=LOGIN, sasl_username=hello@sender.example.com
+Feb  4 09:29:26 mail postfix/smtpd[6648]: connect from localhost[127.0.0.1]
+Feb  4 09:29:26 mail postfix/sender-cleanup/cleanup[6645]: CCA402C003AA: message-id=<1503ea7747a8211041391452613f1186@phplist.sender.example.com>
+Feb  4 09:29:26 mail postfix/sender-cleanup/cleanup[6645]: CCA402C003AA: replace: header MIME-Version: 1.0 from unknown[68.183.218.8]; from=<mail@sender2.example.com> to=<recipient1@recipient.example.com> proto=ESMTP helo=<phplist.sender.example.com>: Mime-Version: 1.0
+Feb  4 09:29:26 mail postfix/smtpd[6648]: D37AE2C77B1E: client=localhost[127.0.0.1]
+Feb  4 09:29:26 mail postfix/cleanup[6650]: D37AE2C77B1E: message-id=<21a4417e97f4021080c3d74f3b29f1d6@phplist.sender.example.com>
+Feb  4 09:29:26 mail postfix/qmgr[964]: D37AE2C77B1E: from=<mail@sender2.example.com>, size=1527, nrcpt=1 (queue active)
+Feb  4 09:29:26 mail postfix/smtpd[6648]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Feb  4 09:29:26 mail postfix/smtp[6646]: 99B222C0039E: to=<mail@sender2.example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.28, delays=0.1/0.02/0/0.15, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as D37AE2C77B1E)
+Feb  4 09:29:26 mail postfix/qmgr[964]: 99B222C0039E: removed
+Feb  4 09:29:26 mail postfix/qmgr[964]: CCA402C003AA: from=<mail@sender2.example.com>, size=40951, nrcpt=1 (queue active)
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: disconnect from unknown[68.183.218.8] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: connect from unknown[68.183.218.8]
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: Anonymous TLS connection established from unknown[68.183.218.8]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:26 mail postfix/submission/smtpd[6640]: EDBD42C77B1F: client=unknown[68.183.218.8], sasl_method=LOGIN, sasl_username=hello@sender.example.com
+Feb  4 09:29:27 mail postfix/smtpd[6648]: connect from localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/smtpd[6648]: 027BD2C77B20: client=localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/cleanup[6650]: 027BD2C77B20: message-id=<1503ea7747a8211041391452613f1186@phplist.sender.example.com>
+Feb  4 09:29:27 mail postfix/qmgr[964]: 027BD2C77B20: from=<mail@sender2.example.com>, size=41701, nrcpt=1 (queue active)
+Feb  4 09:29:27 mail postfix/smtpd[6648]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Feb  4 09:29:27 mail postfix/smtp[6646]: CCA402C003AA: to=<recipient1@recipient.example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.19, delays=0.09/0/0/0.09, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 027BD2C77B20)
+Feb  4 09:29:27 mail postfix/sender-cleanup/cleanup[6645]: EDBD42C77B1F: message-id=<ee8be834e47ea255d41f3251412590bb@phplist.sender.example.com>
+Feb  4 09:29:27 mail postfix/sender-cleanup/cleanup[6645]: EDBD42C77B1F: replace: header MIME-Version: 1.0 from unknown[68.183.218.8]; from=<mail@sender2.example.com> to=<mail@sender2.example.com> proto=ESMTP helo=<phplist.sender.example.com>: Mime-Version: 1.0
+Feb  4 09:29:27 mail postfix/qmgr[964]: CCA402C003AA: removed
+Feb  4 09:29:27 mail postfix/qmgr[964]: EDBD42C77B1F: from=<mail@sender2.example.com>, size=821, nrcpt=1 (queue active)
+Feb  4 09:29:27 mail postfix/submission/smtpd[6640]: disconnect from unknown[68.183.218.8] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Feb  4 09:29:27 mail postfix/submission/smtpd[6640]: connect from unknown[68.183.218.8]
+Feb  4 09:29:27 mail postfix/submission/smtpd[6640]: Anonymous TLS connection established from unknown[68.183.218.8]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:27 mail postfix/submission/smtpd[6640]: 1E1A22C77B21: client=unknown[68.183.218.8], sasl_method=LOGIN, sasl_username=hello@sender.example.com
+Feb  4 09:29:27 mail postfix/sender-cleanup/cleanup[6645]: 1E1A22C77B21: message-id=<f3ac83bcf66260d1c47a65db2eed11ee@phplist.sender.example.com>
+Feb  4 09:29:27 mail postfix/sender-cleanup/cleanup[6645]: 1E1A22C77B21: replace: header MIME-Version: 1.0 from unknown[68.183.218.8]; from=<mail@sender2.example.com> to=<mail@sender2.example.com> proto=ESMTP helo=<phplist.sender.example.com>: Mime-Version: 1.0
+Feb  4 09:29:27 mail postfix/smtpd[6648]: connect from localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/smtpd[6648]: 2326B2C77B22: client=localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/cleanup[6650]: 2326B2C77B22: message-id=<ee8be834e47ea255d41f3251412590bb@phplist.sender.example.com>
+Feb  4 09:29:27 mail postfix/qmgr[964]: 2326B2C77B22: from=<mail@sender2.example.com>, size=1530, nrcpt=1 (queue active)
+Feb  4 09:29:27 mail postfix/smtp[6646]: EDBD42C77B1F: to=<mail@sender2.example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.2, delays=0.1/0/0/0.1, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2326B2C77B22)
+Feb  4 09:29:27 mail postfix/qmgr[964]: EDBD42C77B1F: removed
+Feb  4 09:29:27 mail postfix/qmgr[964]: 1E1A22C77B21: from=<mail@sender2.example.com>, size=1822, nrcpt=1 (queue active)
+Feb  4 09:29:27 mail postfix/submission/smtpd[6640]: disconnect from unknown[68.183.218.8] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Feb  4 09:29:27 mail postfix/smtp[6653]: Trusted TLS connection established to spool.mail.gandi.net[217.70.178.1]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:27 mail postfix/smtpd[6659]: connect from localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/smtpd[6659]: 49C582C77B1F: client=localhost[127.0.0.1]
+Feb  4 09:29:27 mail postfix/cleanup[6650]: 49C582C77B1F: message-id=<f3ac83bcf66260d1c47a65db2eed11ee@phplist.sender.example.com>
+Feb  4 09:29:27 mail postfix/qmgr[964]: 49C582C77B1F: from=<mail@sender2.example.com>, size=2531, nrcpt=1 (queue active)
+Feb  4 09:29:27 mail postfix/smtp[6646]: 1E1A22C77B21: to=<mail@sender2.example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.2, delays=0.09/0/0.01/0.09, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 49C582C77B1F)
+Feb  4 09:29:27 mail postfix/qmgr[964]: 1E1A22C77B21: removed
+Feb  4 09:29:27 mail postfix/smtp[6657]: Trusted TLS connection established to spool.mail.gandi.net[217.70.178.1]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:27 mail postfix/smtp[6653]: D37AE2C77B1E: to=<mail@sender2.example.com>, relay=spool.mail.gandi.net[217.70.178.1]:25, delay=0.66, delays=0.02/0.04/0.38/0.23, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 57521780484)
+Feb  4 09:29:27 mail postfix/qmgr[964]: D37AE2C77B1E: removed
+Feb  4 09:29:27 mail postfix/smtp[6660]: Trusted TLS connection established to spool.mail.gandi.net[217.70.178.1]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:27 mail postfix/smtp[6657]: 2326B2C77B22: to=<mail@sender2.example.com>, relay=spool.mail.gandi.net[217.70.178.1]:25, delay=0.53, delays=0/0.03/0.26/0.24, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 79501780497)
+Feb  4 09:29:27 mail postfix/qmgr[964]: 2326B2C77B22: removed
+Feb  4 09:29:27 mail postfix/smtp[6660]: 49C582C77B1F: to=<mail@sender2.example.com>, relay=spool.mail.gandi.net[217.70.178.1]:25, delay=0.57, delays=0/0.02/0.31/0.23, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as AE391AC0B4E)
+Feb  4 09:29:27 mail postfix/qmgr[964]: 49C582C77B1F: removed
+Feb  4 09:29:29 mail postfix/smtp[6655]: Anonymous TLS connection established to balzers.recipient.example.com[217.173.226.42]:25: TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits)
+Feb  4 09:29:33 mail postfix/smtp[6655]: 027BD2C77B20: to=<recipient1@recipient.example.com>, relay=balzers.recipient.example.com[217.173.226.42]:25, delay=6.9, delays=0.01/0.02/2.9/4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as ADCC76373)
+Feb  4 09:29:33 mail postfix/qmgr[964]: 027BD2C77B20: removed

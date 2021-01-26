@@ -17,9 +17,6 @@ func (f *FakePublisher) Publish(r data.Record) {
 	f.logs = append(f.logs, r)
 }
 
-func (FakePublisher) Close() {
-}
-
 func TestReadingLogs(t *testing.T) {
 	Convey("Read From Reader", t, func() {
 		pub := FakePublisher{}

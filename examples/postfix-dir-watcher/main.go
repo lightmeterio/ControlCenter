@@ -42,9 +42,6 @@ func (p *pub) Publish(r data.Record) {
 	fmt.Println(string(j))
 }
 
-func (p *pub) Close() {
-}
-
 func main() {
 	dirToWatch := flag.String("dir", "", "Directory to watch")
 

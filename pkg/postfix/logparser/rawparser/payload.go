@@ -8,7 +8,14 @@ package rawparser
 // so, although this struct will grow as newer payloads are supported,
 // copying will perform better than using virtual calls
 type RawPayload struct {
-	PayloadType          PayloadType
-	RawSmtpSentStatus    RawSmtpSentStatus
-	QmgrReturnedToSender QmgrReturnedToSender
+	PayloadType           PayloadType
+	RawSmtpSentStatus     RawSmtpSentStatus
+	QmgrReturnedToSender  QmgrReturnedToSender
+	QmgrMailQueued        QmgrMailQueued
+	QmgrRemoved           QmgrRemoved
+	SmtpdConnect          SmtpdConnect
+	SmtpdDisconnect       SmtpdDisconnect
+	SmtpdMailAccepted     SmtpdMailAccepted
+	CleanupMesageAccepted CleanupMessageAccepted
+	BounceCreated         BounceCreated
 }

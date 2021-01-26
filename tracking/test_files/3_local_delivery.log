@@ -1,0 +1,27 @@
+Jan 10 16:15:29 mail postfix/submission/smtpd[11985]: connect from i59F7FCE5.versanet.de[89.247.252.229]
+Jan 10 16:15:29 mail postfix/submission/smtpd[11985]: Anonymous TLS connection established from i59f7fce5.versanet.de[89.247.252.229]: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256
+Jan 10 16:15:30 mail postfix/submission/smtpd[11985]: 0B73130001FB: client=i59F7FCE5.versanet.de[89.247.252.229], sasl_method=PLAIN, sasl_username=sender@example.com
+Jan 10 16:15:30 mail postfix/sender-cleanup/cleanup[11989]: 0B73130001FB: message-id=<414300fb-b063-fa96-4fc6-2d35b3168d61@example.com>
+Jan 10 16:15:30 mail postfix/sender-cleanup/cleanup[11989]: 0B73130001FB: replace: header MIME-Version: 1.0 from i59F7FCE5.versanet.de[89.247.252.229]; from=<sender@example.com> to=<recipient@example.com> proto=ESMTP helo=<[192.168.0.170]>: Mime-Version: 1.0
+Jan 10 16:15:30 mail opendkim[289]: 0B73130001FB: DKIM-Signature field added (s=mail, d=example.com)
+Jan 10 16:15:30 mail postfix/qmgr[1789]: 0B73130001FB: from=<sender@example.com>, size=445, nrcpt=1 (queue active)
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) ESMTP :10024 /var/lib/amavis/tmp/amavis-20210110T080003-27886-gKqMuy1h: <sender@example.com> -> <recipient@example.com> SIZE=445 BODY=8BITMIME Received: from mail.example.com ([127.0.0.1]) by localhost (mail.example.com [127.0.0.1]) (amavisd-new, port 10024) with ESMTP for <recipient@example.com>; Sun, 10 Jan 2021 16:15:30 +0000 (UTC)
+Jan 10 16:15:30 mail postfix/submission/smtpd[11985]: disconnect from i59F7FCE5.versanet.de[89.247.252.229] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) Checking: rOEEAACEPVgB [89.247.252.229] <sender@example.com> -> <recipient@example.com>
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) p001 1 Content-Type: text/plain, 7bit, size: 38, SHA1 digest: 7ca2c6d6dd7fa365910cf0f32f116c8a27c84629
+Jan 10 16:15:30 mail postfix/smtpd[11992]: connect from localhost[127.0.0.1]
+Jan 10 16:15:30 mail postfix/smtpd[11992]: 400643011B47: client=localhost[127.0.0.1]
+Jan 10 16:15:30 mail postfix/cleanup[11994]: 400643011B47: message-id=<414300fb-b063-fa96-4fc6-2d35b3168d61@example.com>
+Jan 10 16:15:30 mail postfix/qmgr[1789]: 400643011B47: from=<sender@example.com>, size=1157, nrcpt=1 (queue active)
+Jan 10 16:15:30 mail postfix/smtpd[11992]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) rOEEAACEPVgB FWD from <sender@example.com> -> <recipient@example.com>, BODY=7BIT 250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 400643011B47
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) Passed CLEAN {RelayedInbound}, [89.247.252.229]:18342 [89.247.252.229] <sender@example.com> -> <recipient@example.com>, Queue-ID: 0B73130001FB, Message-ID: <414300fb-b063-fa96-4fc6-2d35b3168d61@example.com>, mail_id: rOEEAACEPVgB, Hits: -, size: 945, queued_as: 400643011B47, 102 ms
+Jan 10 16:15:30 mail postfix/smtp[11990]: 0B73130001FB: to=<recipient@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.27, delays=0.15/0.01/0/0.1, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 400643011B47)
+Jan 10 16:15:30 mail postfix/qmgr[1789]: 0B73130001FB: removed
+Jan 10 16:15:30 mail amavis[27886]: (27886-10) size: 945, TIMING [total 108 ms] - SMTP greeting: 1.1 (1%)1, SMTP EHLO: 0.5 (0%)2, SMTP pre-MAIL: 0.4 (0%)2, SMTP MAIL: 0.7 (1%)3, SMTP pre-DATA-flush: 0.7 (1%)3, SMTP DATA: 38 (35%)38, check_init: 0.4 (0%)39, digest_hdr: 0.3 (0%)39, digest_body: 0.1 (0%)39, collect_info: 0.6 (1%)39, mime_decode: 3.7 (3%)43, get-file-type1: 14 (13%)56, parts_decode: 0.1 (0%)56, check_header: 0.3 (0%)56, decide_mail_destiny: 0.6 (1%)57, notif-quar: 0.1 (0%)57, fwd-connect: 16 (15%)72, fwd-mail-pip: 13 (12%)84, fwd-rcpt-pip: 0.1 (0%)84, fwd-data-chkpnt: 0.0 (0%)84, write-header: 0.3 (0%)84, fwd-data-contents: 0.0 (0%)84, fwd-end-chkpnt: 8 (7%)91, prepare-dsn: 0.6 (1%)91, report: 0.8 (1%)92, main_log_entry: 2.3 (2%)94, update_snmp: 0.8 (1%)95, SMTP pre-response: 0.2 (0%)95, SMTP response: 0.1 (0%)95, unlink-1-files: 0.2 (0%)95, rundown: 4.9 (5%)100
+Jan 10 16:15:30 mail dovecot: lmtp(11997): Connect from local
+Jan 10 16:15:30 mail dovecot: lmtp(recipient@example.com)<11997><hz3kESIo+1/dLgAAWP5Hkg>: msgid=<414300fb-b063-fa96-4fc6-2d35b3168d61@example.com>: saved mail to INBOX
+Jan 10 16:15:30 mail dovecot: lmtp(11997): Disconnect from local: Client has quit the connection (state=READY)
+Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, relay=mail.example.com[/var/run/dovecot/lmtp], delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent (250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)
+Jan 10 16:15:30 mail postfix/qmgr[1789]: 400643011B47: removed
+Jan 10 16:15:30 mail dovecot: imap(sender@example.com)<11828><ZoUEF464n0dZ9/zl>: Connection closed (noop finished 0.051 secs ago) in=670 out=3687 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0

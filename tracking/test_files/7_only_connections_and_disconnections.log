@@ -1,0 +1,7 @@
+Jun  3 10:40:57 mail postfix/submission/smtpd[9708]: connect from some.domain.name[1.2.3.4]
+Jun  3 10:40:57 mail postfix/submission/smtpd[9708]: Anonymous TLS connection established from some.domain.name[1.2.3.4]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun  3 10:40:57 mail postfix/submission/smtpd[9708]: disconnect from some.domain.name[1.2.3.4] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Jun  3 10:40:57 mail postfix/smtpd[9715]: connect from localhost[127.0.0.1]
+Jun  3 10:40:57 mail postfix/smtpd[9715]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Jun  3 10:40:58 mail postfix/smtp[9890]: Trusted TLS connection established to mx.example.com[11.22.33.44]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun  3 10:40:59 mail dovecot: lmtp(9956): Disconnect from local: Client has quit the connection (state=READY)
