@@ -18,13 +18,13 @@ msgstr "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
 msgid "About"
 msgstr "About"
 
-#: frontend/controlcenter/src/views/index.vue:65
+#: frontend/controlcenter/src/views/index.vue:62
 msgid "All"
 msgstr "All"
 
-#: frontend/controlcenter/src/views/index.vue:26
-msgid "and welcome back"
-msgstr "and welcome back"
+#: frontend/controlcenter/src/views/index.vue:84
+msgid "and welcome back, %{username}"
+msgstr "and welcome back, %{username}"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:21
 msgid "Bounced Domains"
@@ -79,11 +79,11 @@ msgstr "Email"
 msgid "Enter ip address"
 msgstr "Enter ip address"
 
-#: frontend/controlcenter/src/lib/api.js:195
+#: frontend/controlcenter/src/lib/api.js:207
 msgid "Error: %{err}"
 msgstr "Error: %{err}"
 
-#: frontend/controlcenter/src/lib/api.js:98
+#: frontend/controlcenter/src/lib/api.js:104
 msgid "Error: %{error}."
 msgstr "Error: %{error}."
 
@@ -95,7 +95,7 @@ msgstr "Feature usage data is shared with a private Open Source analytics system
 msgid "Feedback"
 msgstr "Feedback"
 
-#: frontend/controlcenter/src/views/index.vue:59
+#: frontend/controlcenter/src/views/index.vue:56
 msgid "Filter"
 msgstr "Filter"
 
@@ -106,6 +106,10 @@ msgstr "Forgot password?"
 #: frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
 msgstr "General"
+
+#: frontend/controlcenter/src/views/index.vue:78
+msgid "Happy %{weekday}"
+msgstr "Happy %{weekday}"
 
 #: frontend/controlcenter/src/components/insights.vue:50
 msgid "High Bounce Rate"
@@ -123,7 +127,7 @@ msgstr "Info"
 msgid "Information"
 msgstr "Information"
 
-#: frontend/controlcenter/src/views/index.vue:42
+#: frontend/controlcenter/src/views/index.vue:39
 msgid "Insights"
 msgstr "Insights"
 
@@ -147,7 +151,7 @@ msgstr "Join us on the journey to better mailops! We're listening for your feedb
 msgid "Lightmeter website"
 msgstr "Lightmeter website"
 
-#: frontend/controlcenter/src/views/index.vue:72
+#: frontend/controlcenter/src/views/index.vue:69
 msgid "Local"
 msgstr "Local"
 
@@ -184,11 +188,11 @@ msgstr "Most of my mail is…"
 msgid "Name"
 msgstr "Name"
 
-#: frontend/controlcenter/src/views/index.vue:87
+#: frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
 msgstr "Newest"
 
-#: frontend/controlcenter/src/views/index.vue:78
+#: frontend/controlcenter/src/views/index.vue:75
 msgid "News"
 msgstr "News"
 
@@ -208,7 +212,7 @@ msgstr "No emails were sent between %{intFrom} and %{intTo}"
 msgid "Notifications"
 msgstr "Notifications"
 
-#: frontend/controlcenter/src/views/index.vue:93
+#: frontend/controlcenter/src/views/index.vue:90
 msgid "Oldest"
 msgstr "Oldest"
 
@@ -321,10 +325,10 @@ msgid "The Ip Address is invalid"
 msgstr "The Ip Address is invalid"
 
 #: frontend/controlcenter/src/components/insights.vue:5
-msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
-msgstr "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+msgid "These lists are recommending that emails from your server be blocked &ndash; check their messages for hints"
+msgstr "These lists are recommending that emails from your server be blocked &ndash; check their messages for hints"
 
-#: frontend/controlcenter/src/views/index.vue:48
+#: frontend/controlcenter/src/views/index.vue:45
 msgid "Time interval"
 msgstr "Time interval"
 
@@ -344,7 +348,7 @@ msgstr "User details"
 msgid "Version"
 msgstr "Version"
 
-#: frontend/controlcenter/src/lib/api.js:100
+#: frontend/controlcenter/src/lib/api.js:108
 msgid "Vulnerable to: %{description}."
 msgstr "Vulnerable to: %{description}."
 
