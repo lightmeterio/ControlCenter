@@ -13,12 +13,12 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:65
+#: ./frontend/controlcenter/src/views/index.vue:62
 msgid "All"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:26
-msgid "and welcome back"
+#: ./frontend/controlcenter/src/views/index.vue:84
+msgid "and welcome back, %{username}"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:21
@@ -74,11 +74,11 @@ msgstr ""
 msgid "Enter ip address"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:195
+#: ./frontend/controlcenter/src/lib/api.js:207
 msgid "Error: %{err}"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:98
+#: ./frontend/controlcenter/src/lib/api.js:104
 msgid "Error: %{error}."
 msgstr ""
 
@@ -90,7 +90,7 @@ msgstr ""
 msgid "Feedback"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:59
+#: ./frontend/controlcenter/src/views/index.vue:56
 msgid "Filter"
 msgstr ""
 
@@ -100,6 +100,10 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
+msgstr ""
+
+#: ./frontend/controlcenter/src/views/index.vue:78
+msgid "Happy %{weekday}"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:50
@@ -118,7 +122,7 @@ msgstr ""
 msgid "Information"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:42
+#: ./frontend/controlcenter/src/views/index.vue:39
 msgid "Insights"
 msgstr ""
 
@@ -142,7 +146,7 @@ msgstr ""
 msgid "Lightmeter website"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:72
+#: ./frontend/controlcenter/src/views/index.vue:69
 msgid "Local"
 msgstr ""
 
@@ -179,11 +183,11 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:87
+#: ./frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:78
+#: ./frontend/controlcenter/src/views/index.vue:75
 msgid "News"
 msgstr ""
 
@@ -203,7 +207,7 @@ msgstr ""
 msgid "Notifications"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:93
+#: ./frontend/controlcenter/src/views/index.vue:90
 msgid "Oldest"
 msgstr ""
 
@@ -316,10 +320,10 @@ msgid "The Ip Address is invalid"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:5
-msgid "These lists are recommending that your list be blocked &ndash; check their messages for hints"
+msgid "These lists are recommending that emails from your server be blocked &ndash; check their messages for hints"
 msgstr ""
 
-#: ./frontend/controlcenter/src/views/index.vue:48
+#: ./frontend/controlcenter/src/views/index.vue:45
 msgid "Time interval"
 msgstr ""
 
@@ -339,7 +343,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:100
+#: ./frontend/controlcenter/src/lib/api.js:108
 msgid "Vulnerable to: %{description}."
 msgstr ""
 
