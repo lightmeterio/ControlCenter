@@ -35,14 +35,14 @@ func DefaultTimeInYear(year int, tz *time.Location) time.Time {
 }
 
 func (c *TimeConverter) Convert(t Time) time.Time {
-	// Bump the year if we read something that looks like going backwards
-	// This is not a clever way to do it and can lead to many issues
-	// (one second backward will move to the next year!),
-	// but it works for now. A better way is inform the sysadmin about
-	// inconsistencies in the logs instead
-	// FIXME: c probably won't work for any time before the unix epoch (ts negative),
-	// but who will go back in time and run Postfix?
-	if c.lastTime.Unix(c.year, c.timezone) > t.Unix(c.year, c.timezone) {
+	diffInSeconds := c.lastTime.Unix(c.year, c.timezone) - t.Unix(c.year, c.timezone)
+
+	// Sometimes log lines are out of order (normally when created by different processes)
+	// and we should support such cases.
+	// such constant was chosen arbitrarily.
+	const maxOutOfOrderOffset = 5
+
+	if diffInSeconds > maxOutOfOrderOffset {
 		c.year++
 		c.newYearNotifier(c.year, c.lastTime, t)
 	}
