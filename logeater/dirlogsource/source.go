@@ -11,9 +11,12 @@ import (
 type Source struct {
 	initialTime time.Time
 	dir         dirwatcher.DirectoryContent
+
+	// should continue waiting for new results (tail -f)?
+	follow bool
 }
 
-func New(dirname string, initialTime time.Time) (*Source, error) {
+func New(dirname string, initialTime time.Time, follow bool) (*Source, error) {
 	dir, err := dirwatcher.NewDirectoryContent(dirname)
 
 	if err != nil {
@@ -38,7 +41,15 @@ func New(dirname string, initialTime time.Time) (*Source, error) {
 func (s *Source) PublishLogs(p data.Publisher) error {
 	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.initialTime)
 
-	if err := watcher.Run(); err != nil {
+	f := func() func() error {
+		if s.follow {
+			return watcher.Run
+		}
+
+		return watcher.ImportOnly
+	}()
+
+	if err := f(); err != nil {
 		return errorutil.Wrap(err)
 	}
 
