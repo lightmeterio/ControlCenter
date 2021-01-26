@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 1.1.0-RC1
+Lightmeter ControlCenter 1.1.0
 
  Example call: 
 
@@ -10,11 +10,11 @@ Lightmeter ControlCenter 1.1.0-RC1
   -email_reset string
     	Reset password for user (implies -password and depends on -workspace)
   -importonly
-    	Only import logs from stdin, exiting immediately, without running the full application. Implies -stdin
+    	Only import existing logs, exiting immediately, without running the full application.
   -listen string
     	Network address to listen to (default ":8080")
   -log_starting_year int
-    	Value to be used as initial year when it cannot be obtained fro the Postfix logs. Defaults to the current year. Requires -stdin. (default 2020)
+    	Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin. (default 2021)
   -migrate_down_to_database string
     	Database name only for migration
   -migrate_down_to_only
