@@ -499,6 +499,8 @@ type queueProcessor struct {
 	converter     *parser.TimeConverter
 	converterChan timeConverterChan
 	pattern       string
+	filename      string
+	line          uint64
 }
 
 type limitedFileReader struct {
@@ -680,7 +682,23 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 	return &converter, nil
 }
 
+func setFileLocationOnQueueProcessorIfNeeded(p *queueProcessor) {
+	if p.currentIndex >= len(p.readers) {
+		return
+	}
+
+	if p.line > 0 {
+		return
+	}
+
+	p.filename = path.Base(p.entries[p.currentIndex].filename)
+
+	log.Info().Msgf("Starting importing log file: %v", p.filename)
+}
+
 func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, error) {
+	setFileLocationOnQueueProcessorIfNeeded(p)
+
 	// tries to read something from the queue, ignoring it on the next iteration
 	// if nothing is left to be read
 	for {
@@ -700,13 +718,18 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 				return false, errorutil.Wrap(err)
 			}
 
-			log.Info().Msgf("Finished importing log file: %v", p.entries[p.currentIndex].filename)
+			log.Info().Msgf("Finished importing log file: %v", p.filename)
 
 			p.currentIndex++
+			p.line = 0
+
+			setFileLocationOnQueueProcessorIfNeeded(p)
 
 			// moves to the next file in the queue
 			continue
 		}
+
+		p.line++
 
 		// Successfully read
 		header, payload, err := parser.Parse(scanner.Bytes())
@@ -727,7 +750,15 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 
 		convertedTime := p.converter.Convert(header.Time)
 
-		p.record = data.Record{Header: header, Payload: payload, Time: convertedTime}
+		p.record = data.Record{
+			Header:  header,
+			Payload: payload,
+			Time:    convertedTime,
+			Location: data.RecordLocation{
+				Filename: p.filename,
+				Line:     p.line,
+			},
+		}
 
 		return true, nil
 	}
@@ -902,6 +933,8 @@ type parsedRecord struct {
 	// so we use extra values for sorting
 	queueIndex int
 	sequence   uint64
+
+	loc data.RecordLocation
 }
 
 // responsible for watching for new logs added to a file
@@ -1024,7 +1057,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 	flushHeap := func() {
 		for h.Len() > 0 {
 			s := heap.Pop(&h).(sortableRecord)
-			r := data.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time}
+			r := data.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
 			pub.Publish(r)
 		}
 	}

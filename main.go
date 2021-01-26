@@ -118,7 +118,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(dirToWatch) > 0 {
-			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime())
+			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), true)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}
