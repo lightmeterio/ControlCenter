@@ -258,7 +258,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st2
 	st2:
@@ -348,7 +348,7 @@ tr3:
 		}
 		goto tr9
 tr9:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st9
 	st9:
@@ -385,7 +385,7 @@ tr11:
 		}
 		goto tr12
 tr12:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st11
 	st11:
@@ -523,7 +523,7 @@ tr14:
 		}
 		goto tr27
 tr27:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st24
 	st24:
@@ -559,7 +559,7 @@ tr29:
 		}
 		goto tr30
 tr30:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st26
 	st26:
@@ -669,7 +669,7 @@ tr32:
 		}
 		goto tr40
 tr40:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st36
 	st36:
@@ -705,7 +705,7 @@ tr43:
 		}
 		goto tr44
 tr44:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st38
 	st38:
@@ -747,7 +747,7 @@ tr46:
 		}
 		goto st0
 tr48:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st41
 	st41:
@@ -843,7 +843,7 @@ tr49:
 		}
 		goto tr58
 tr58:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st50
 	st50:
@@ -945,7 +945,7 @@ tr60:
 		}
 		goto tr69
 tr69:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st60
 	st60:
@@ -1034,7 +1034,7 @@ tr71:
 		}
 		goto tr77
 tr77:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st67
 	st67:
@@ -1141,7 +1141,7 @@ tr79:
 		}
 		goto st0
 tr88:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st77
 	st77:
@@ -1222,7 +1222,7 @@ tr97:
 //line smtp.gen.go:1223
 		goto tr98
 tr98:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 //line smtp.rl:91
 
@@ -1245,7 +1245,7 @@ tr109:
 //line smtp.gen.go:1246
 		goto tr109
 tr89:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st85
 	st85:
@@ -1295,7 +1295,7 @@ tr89:
 		}
 		goto st0
 tr90:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st90
 	st90:
@@ -1327,7 +1327,7 @@ tr90:
 		}
 		goto st0
 tr41:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st93
 	st93:

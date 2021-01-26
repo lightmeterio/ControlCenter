@@ -160,7 +160,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st2
 	st2:
@@ -268,7 +268,7 @@ tr3:
 		}
 		goto tr11
 tr11:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st11
 	st11:
@@ -304,7 +304,7 @@ tr13:
 		}
 		goto tr14
 tr14:
-//line common.rl:13
+//line common.rl:17
  tokBeg = p 
 	goto st13
 	st13:
