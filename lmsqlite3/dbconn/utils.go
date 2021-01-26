@@ -38,7 +38,7 @@ func (c *ConnPair) Close() error {
 }
 
 func NewConnPair(filename string) (ConnPair, error) {
-	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL`)
+	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF`)
 
 	if err != nil {
 		return ConnPair{}, errorutil.Wrap(err)
@@ -50,7 +50,7 @@ func NewConnPair(filename string) (ConnPair, error) {
 		}
 	}()
 
-	reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL`)
+	reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF`)
 
 	if err != nil {
 		return ConnPair{}, errorutil.Wrap(err)
