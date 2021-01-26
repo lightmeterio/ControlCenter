@@ -109,6 +109,11 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		return Header{}, err
 	}
 
+	processIP, err := parseIP(h.ProcessIP)
+	if err != nil {
+		return Header{}, err
+	}
+
 	return Header{
 		Time: Time{
 			Day:    uint8(day),
@@ -121,6 +126,6 @@ func parseHeader(h rawparser.RawHeader) (Header, error) {
 		Process:   string(h.Process),
 		Daemon:    string(h.Daemon),
 		PID:       pid,
-		ProcessIP: net.ParseIP(string(h.ProcessIP)),
+		ProcessIP: processIP,
 	}, nil
 }

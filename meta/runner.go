@@ -25,7 +25,7 @@ func NewRunner(h *Handler) *Runner {
 
 		go func() {
 			runnerLoop(r.writer, r.requestsChan)
-			done <- struct{}{}
+			done <- nil
 		}()
 	})
 

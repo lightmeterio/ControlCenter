@@ -1,8 +1,17 @@
 package migrations
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+)
 
-func UpTableCreationForSmtpSentStatus(tx *sql.Tx) error {
+func init() {
+	migrator.AddMigration("deliverydb", "1_create_table_postfix_smtp_message_status.go", upCreateOldLogTables, downCreateOldLogTables)
+}
+
+func upCreateOldLogTables(tx *sql.Tx) error {
 	sql := `
 	create table if not exists postfix_smtp_message_status(
 		read_ts_sec           integer,
@@ -27,13 +36,12 @@ func UpTableCreationForSmtpSentStatus(tx *sql.Tx) error {
 
 	_, err := tx.Exec(sql)
 	if err != nil {
-		return err
+		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func DownTableCreationForSmtpSentStatus(tx *sql.Tx) error {
-	// In any case the table shouldn't use dropped
-	return nil
+func downCreateOldLogTables(tx *sql.Tx) error {
+	return errors.New(`Cannot migrate down from the first database schema`)
 }

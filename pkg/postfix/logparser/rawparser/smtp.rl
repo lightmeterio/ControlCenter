@@ -3,7 +3,7 @@
 package rawparser
 
 import (
-  "bytes"
+	"bytes"
 )
 
 %% machine smtpSentStatusPayload;
@@ -25,7 +25,6 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 	};
 
 	recipientLocalPart = bracketedEmailLocalPart >setTokBeg %{
-
 		r.RecipientLocalPart = normalizeMailLocalPart(data[tokBeg:p])
 	};
 
@@ -45,9 +44,13 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 		r.RelayName = data[tokBeg:p]
 	};
 
-	relayIp = [^,\]]+ >setTokBeg %{
+	relayIp = ipv4 >setTokBeg %{
 		r.RelayIp = data[tokBeg:p]
 	};
+
+  relayPath = ('/' (alnum+)?)+ >setTokBeg %{
+    r.RelayPath = data[tokBeg:p]
+  };
 
 	relayPort = digit+ >setTokBeg %{
 		r.RelayPort = data[tokBeg:p]
@@ -86,10 +89,55 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 	extraMessage = any+ >setTokBeg;
 
 	main := smtpQueueId ': to=<' recipientLocalPart '@' recipientDomainPart '>, '
-        ('orig_to=<' origRecipientLocalPart '@' origRecipientDomainPart '>, ')?
-        'relay=' ((relayName '[' relayIp ']:' relayPort)|'none') ', '
-			  'delay=' delay ', delays=' delays ', dsn=' dsn ', status=' status ' ' extraMessage @{
+	        ('orig_to=<' origRecipientLocalPart '@' origRecipientDomainPart '>, ')?
+	        'relay=' ((relayName '[' (relayIp | relayPath) ']' (':' relayPort)?)|'none') ', '
+	        'delay=' delay ', delays=' delays ', dsn=' dsn ', status=' status ' ' extraMessage @{
 		r.ExtraMessage = data[tokBeg:eof]
+		return r, true
+	};
+
+	write init;
+	write exec;
+}%%
+
+	return r, false
+}
+
+%% machine smtpSentStatusExtraMessageSentQueuedPayload;
+%% write data;
+
+func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtraMessageSentQueued , bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := SmtpSentStatusExtraMessageSentQueued{}
+
+%%{
+	include common "common.rl";
+
+	smtpCode = digit+ >setTokBeg %{
+		r.SmtpCode = data[tokBeg:p]
+	};
+
+	dsn = (digit+ dot digit+ dot digit+) > setTokBeg %{
+		r.Dsn = data[tokBeg:p]
+	};
+
+	ip = ipv4 >setTokBeg %{
+		r.IP = data[tokBeg:p]
+	};
+
+	port = digit+ >setTokBeg %{
+		r.Port = data[tokBeg:p]
+	};
+
+	queue = queueId > setTokBeg %{
+		r.Queue = data[tokBeg:p]
+	};
+
+	main := '(' smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): 250 2.0.0 Ok: queued as ' queue ')' %{
 		return r, true
 	};
 

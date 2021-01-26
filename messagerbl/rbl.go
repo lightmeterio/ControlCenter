@@ -46,9 +46,6 @@ func (p *Publisher) Publish(r data.Record) {
 	}
 }
 
-func (p *Publisher) Close() {
-}
-
 type Result struct {
 	Address net.IP
 	Host    string
@@ -96,7 +93,7 @@ func New(settings globalsettings.IPAddressGetter) *Detector {
 			}
 
 			close(d.resultsChan)
-			done <- struct{}{}
+			done <- nil
 		}()
 	}
 

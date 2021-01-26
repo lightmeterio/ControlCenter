@@ -1,10 +1,10 @@
 package runner
 
-type CancelChan chan struct{}
-type DoneChan chan struct{}
+type CancelChan <-chan struct{}
+type DoneChan chan<- error
 
 type CancelableRunner interface {
-	Run() (done func(), cancel func())
+	Run() (done func() error, cancel func())
 }
 
 func NewCancelableRunner(execute func(done DoneChan, cancel CancelChan)) CancelableRunner {
@@ -17,14 +17,14 @@ type cancelableRunner struct {
 	execute func(done DoneChan, cancel CancelChan)
 }
 
-func (r *cancelableRunner) Run() (func(), func()) {
-	cancel := make(CancelChan)
-	done := make(DoneChan)
+func (r *cancelableRunner) Run() (func() error, func()) {
+	cancel := make(chan struct{})
+	done := make(chan error)
 
 	r.execute(done, cancel)
 
-	return func() {
-			<-done
+	return func() error {
+			return <-done
 		}, func() {
 			cancel <- struct{}{}
 		}
