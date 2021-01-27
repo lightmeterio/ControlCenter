@@ -670,8 +670,10 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 			0,
 			initialTime.Location(),
 		),
-		func(int, parser.Time, parser.Time) {
-			log.Info().Msgf("Changed Year on log file: %v:%v", p.record.Location.Filename, p.record.Location.Line)
+		func(year int, from parser.Time, to parser.Time) {
+			log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v:%v",
+				year, from, to,
+				p.record.Location.Filename, p.record.Location.Line)
 		})
 
 	// workaround, make converter escape to the heap
