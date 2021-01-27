@@ -42,7 +42,20 @@ func (c *TimeConverter) Convert(t Time) time.Time {
 	// such constant was chosen arbitrarily.
 	const maxOutOfOrderOffset = 5
 
-	if diffInSeconds > maxOutOfOrderOffset {
+	isOutOfOrder := diffInSeconds > maxOutOfOrderOffset
+
+	oneHour := int64((time.Hour / time.Second))
+
+	// gives the converter a 10min tolerance for then the clock changes one hour backwards
+	// NOTE: this should work for most e-mail servers.
+	// This is a totally arbitrarily chosen number, though. It has to be something less than
+	// one hour, but is not expected to be too small, as I believe most servers are expected to
+	// output at least one log line every 10min.
+	somehowLessThanOneHour := int64((time.Minute * 50) / time.Second)
+
+	dstChanged := diffInSeconds <= oneHour && diffInSeconds >= somehowLessThanOneHour
+
+	if isOutOfOrder && !dstChanged {
 		c.year++
 		c.newYearNotifier(c.year, c.lastTime, t)
 	}

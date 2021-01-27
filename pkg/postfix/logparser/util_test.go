@@ -106,4 +106,32 @@ func TestPostfixTimeConverter(t *testing.T) {
 		So(c.year, ShouldEqual, 2000)
 	})
 
+	Convey("Regression: when daylight saving time ends, time moves one hour backward (damn syslog!)", t, func() {
+		/*
+			syslog moves time backwards when daylight saving time finishes (in places where it's used), what can mess up with tracking year...
+			Like in the example:
+
+			Oct 25 02:58:39 ucs postfix/smtpd[24944]: disconnect from unknown[11.172.110.172] ehlo=1 auth=0/1 rset=1 commands=2/3
+			Oct 25 02:59:46 ucs postfix/smtpd[24944]: connect from h-2dc03ed8c98dd0.h-038860858e95dc[209.170.217.165]
+			Oct 25 02:59:46 ucs postfix/smtpd[24944]: warning: SASL authentication failure: cannot connect to saslauthd server: Connection refused
+			Oct 25 02:59:46 ucs postfix/smtpd[24944]: warning: h-2dc03ed8c98dd0.h-038860858e95dc[209.170.217.165]: SASL LOGIN authentication failed: generic failure
+			Oct 25 02:59:46 ucs postfix/smtpd[24944]: disconnect from h-2dc03ed8c98dd0.h-038860858e95dc[209.170.217.165] ehlo=1 auth=0/1 quit=1 commands=2/3
+			Oct 25 02:00:03 ucs postfix/smtpd[24944]: connect from unknown[11.172.110.172]
+			Oct 25 02:00:34 ucs postfix/smtpd[24944]: warning: SASL authentication failure: cannot connect to saslauthd server: Connection refused
+			Oct 25 02:00:34 ucs postfix/smtpd[24944]: warning: unknown[11.172.110.172]: SASL LOGIN authentication failed: generic failure
+		*/
+
+		initialTime := time.Date(2000, time.January, 1, 0, 0, 0, 0, tz)
+		yearOffset := 0
+
+		c := NewTimeConverter(initialTime, func(int, Time, Time) { yearOffset++ })
+
+		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 59, Second: 45})
+		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 59, Second: 46})
+		// time is set one hour backwards here. Year should not change!
+		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 00, Second: 03})
+		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 00, Second: 34})
+
+		So(c.year, ShouldEqual, 2000)
+	})
 }
