@@ -48,4 +48,14 @@ func (m *Mapper) Resolve(domain string) string {
 	return r
 }
 
-var DefaultMapping *Mapper
+func (m *Mapper) ForEach(f func(string, string) error) error {
+	for k, v := range m.r {
+		if err := f(k, v); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+var DefaultMapping Mapper
