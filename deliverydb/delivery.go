@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -28,7 +29,33 @@ const (
 	filename = "logs.db"
 )
 
-func New(workspace string) (*DB, error) {
+func setupDomainMapping(conn dbconn.ConnPair, m *domainmapping.Mapper) error {
+	// FIXME: this is an ugly workaround. Ideally the domain mapping should come from a virtual table,
+	// computed from the domain mapped configuration.
+	if _, err := conn.RwConn.Exec(`
+	drop table if exists temp_domain_mapping;
+	create table temp_domain_mapping(orig text, mapped text);
+	create index temp_domain_mapping_index on temp_domain_mapping(orig, mapped);
+	`); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	f := func(orig, mapped string) error {
+		if _, err := conn.RwConn.Exec(`insert into temp_domain_mapping(orig, mapped) values(?, ?)`, orig, mapped); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	if err := m.ForEach(f); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 	dbFilename := path.Join(workspace, filename)
 
 	connPair, err := dbconn.NewConnPair(dbFilename)
@@ -44,6 +71,10 @@ func New(workspace string) (*DB, error) {
 	}()
 
 	if err := migrator.Run(connPair.RwConn.DB, "deliverydb"); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := setupDomainMapping(connPair, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 

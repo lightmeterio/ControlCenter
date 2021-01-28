@@ -35,10 +35,10 @@ func init() {
 	DefaultMapping = mustBeValidList()
 }
 
-func mustBeValidList() *Mapper {
+func mustBeValidList() Mapper {
 	m, err := Mapping(mustParse())
 	errorutil.MustSucceed(err, "Invalid Domain List")
-	return &m
+	return m
 }
 
 func mustParse() RawList {
