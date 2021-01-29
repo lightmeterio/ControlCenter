@@ -3,7 +3,9 @@ module gitlab.com/lightmeter/controlcenter
 go 1.15
 
 require (
+	github.com/PuerkitoBio/goquery v1.6.1 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
+	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3-0.20200705094307-42825e1d282c
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
@@ -18,6 +20,8 @@ require (
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mmcdole/gofeed v1.1.0
+	github.com/mmcdole/goxpp v0.0.0-20200921145534-2f3784f67354 // indirect
 	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
 	github.com/pkg/errors v0.8.1
 	github.com/pressly/goose v2.6.0+incompatible
@@ -34,8 +38,8 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
-	golang.org/x/text v0.3.3
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
+	golang.org/x/text v0.3.5
 	golang.org/x/tools v0.0.0-20200917221617-d56e4e40bc9d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
