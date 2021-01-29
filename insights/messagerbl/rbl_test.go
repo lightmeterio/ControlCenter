@@ -13,8 +13,8 @@ import (
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
 	"testing"
 	"time"
@@ -101,12 +101,7 @@ func TestMessageRBLInsight(t *testing.T) {
 		})
 
 		executeCyclesUntil := func(end time.Time, stepDuration time.Duration) {
-			for ; end.After(clock.Time); clock.Sleep(stepDuration) {
-				tx, err := accessor.ConnPair.RwConn.Begin()
-				So(err, ShouldBeNil)
-				So(detector.Step(clock, tx), ShouldBeNil)
-				So(tx.Commit(), ShouldBeNil)
-			}
+			insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, end, stepDuration)
 		}
 
 		executeCyclesUntil(testutil.MustParseTime(`2000-01-01 00:30:00 +0000`), time.Second*2)

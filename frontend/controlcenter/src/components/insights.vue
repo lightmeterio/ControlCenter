@@ -115,6 +115,20 @@ SPDX-License-Identifier: AGPL-3.0-only
               ></p>
 
               <p
+                v-if="insight.content_type === 'newsfeed_content'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-on:click="onNewsFeedMoreInfo(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+              </p>
+
+              <p
                 v-if="insight.content_type === 'mail_inactivity'"
                 class="card-text description"
                 v-html="insight.description"
@@ -221,6 +235,12 @@ export default {
       this.buildInsightMsgRblDetails(id);
       this.trackEvent("InsightDescription", "openHostBlockModal");
     },
+    onNewsFeedMoreInfo(insight) {
+      window.alert("Hello!" + insight)
+    },
+    newsfeed_content_title(insight) {
+      return "Feed: " + insight.content.title;
+    },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
     },
@@ -282,6 +302,9 @@ export default {
         id: i.id.toString(),
         message: message
       };
+    },
+    newsfeed_content_description(insight) {
+      return insight.content.description;
     },
     transformInsights(insights) {
       let vue = this;

@@ -8,6 +8,8 @@ package testutil
 import (
 	// required by the data migrator
 	"database/sql"
+	//nolint:golint
+	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -84,4 +86,27 @@ func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
 
 			removeDir()
 		}
+}
+
+func executeCyclesUntil(detector core.Detector, accessor *FakeAccessor, clock *FakeClock, end time.Time, stepDuration time.Duration) error {
+	for ; end.After(clock.Time); clock.Sleep(stepDuration) {
+		tx, err := accessor.ConnPair.RwConn.Begin()
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := detector.Step(clock, tx); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+func ExecuteCyclesUntil(detector core.Detector, accessor *FakeAccessor, clock *FakeClock, end time.Time, stepDuration time.Duration) {
+	So(executeCyclesUntil(detector, accessor, clock, end, stepDuration), ShouldBeNil)
 }
