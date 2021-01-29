@@ -30,13 +30,15 @@ When translations are done via such interface, a new merge request is created ba
 As many features might've been landed to `develop`, the process of landing then on master requires a bit more steps, but it's quite mechanical.
 It consists on cherry-picking only the commits of a given feature to be merged on `master`.
 
+### Method 1
+
 As develop will contain many merge commits and commits from multiple features interleaved, some cleaning will be needed to make it "cherry-pickeable".
 
-Let's suppose the feature I want to merge on master is between the commits `aaaaaaa` and `bbbbbbb` (with other unwanted commits in between):
+Let's suppose the feature I want to merge on master is between the commits `aaaaaaa` (with it included) and `bbbbbbb` (with other unwanted commits in between):
 
 ```sh
 master: git checkout -b temp-clean-feature-history bbbbbbb
-temp-clean-feature-history: git rebase -i aaaaaaa
+temp-clean-feature-history: git rebase -i aaaaaaa~1
 ```
 
 In the rebase editor, remove any commits not related to the feature you want to merge on master.
@@ -50,21 +52,34 @@ Now move back to the master branch and create a feature branch and cherry-pick s
 ```sh
 temp-clean-feature-history: git checkout master
 master: git checkout -b feature/XXX_my_super_feature
-feature/XXX_my_super_feature: git cherry-pick aaaaaaa~1..temp-clean-feature-history
+feature/XXX_my_super_feature: git cherry-pick -x aaaaaaa~1..temp-clean-feature-history
 ```
 
 ***NOTE***: notice the usage of `aaaaaaa~1`. It happens because `cherry-pick` the interval is open on its start, meaning that we are need to include `aaaaaa` to the merge request.
 
-Then delete the temporary branch...
+Then delete the temporary branch:
 
 ```sh
 feature/XXX_my_super_feature: git branch -D temp-clean-feature-history
 ```
 
-... and create the merge request from it. In the example, I'm using the [lab](https://github.com/zaquestion/lab) tool, but you can use use any other tool or the Gitlab UI:
+### Method 2
+
+Alternatively, in case you know exactly which commits to cherry-pick from develop, you can simplify the process.
+
+Let's suppose you want to cherry-pick the commits `aaaaaa` and `bbbbbb` from develop on a MR to master. Do as following:
 
 ```sh
-feature/XXX_my_super_feature: lab mr create
+master: git checkout -b feature/XXX_my_super_feature
+feature/XXX_my_super_feature: git cherry-pick -x aaaaaa bbbbbb
+```
+
+### Create a Merge request
+
+Finally create a MR from your branch to `master`. In the example, I'm using the [lab](https://github.com/zaquestion/lab) tool, but you can use use any other tool or the Gitlab UI:
+
+```sh
+feature/XXX_my_super_feature: lab mr create origin master -s
 ```
 
 Merge requests made on master ***must*** be squashed upon merging. It's necessary in order to make reverting changes easier.
