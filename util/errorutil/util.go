@@ -30,6 +30,7 @@ func MustSucceed(err error, msg ...string) {
 
 	log.Error().Msg(errorMsg)
 
+	//nolint:errorlint
 	if wrappedErr, ok := err.(*Error); ok {
 		panic("\n" + wrappedErr.Chain().Error())
 	}
@@ -58,6 +59,7 @@ func LogFatalf(err error, format string, args ...interface{}) {
 }
 
 func ExpandError(err error) interface{} {
+	//nolint:errorlint
 	if e, ok := err.(*Error); ok {
 		return e.Chain().JSON()
 	}

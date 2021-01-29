@@ -86,15 +86,15 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		return fmt.Errorf("Error parse media type: %v", err)
+		return fmt.Errorf("Error parse media type: %w", err)
 	}
 
 	if mediaType != "application/x-www-form-urlencoded" {
-		return fmt.Errorf("Error media type mismatch: %v", err)
+		return fmt.Errorf("Error media type mismatch: %w", err)
 	}
 
 	if err := r.ParseForm(); err != nil {
-		return fmt.Errorf("Error parse form: %v", err)
+		return fmt.Errorf("Error parse form: %w", err)
 	}
 
 	return nil
@@ -111,7 +111,7 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) er
 	authOk, userData, err := auth.auth.Authenticate(r.Context(), email, password)
 
 	if err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("authentication: %v", err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("authentication: %w", err))
 	}
 
 	if !authOk {
@@ -126,7 +126,7 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) er
 	session.Values["auth"] = SessionData{Email: email, Name: userData.Name, ID: userData.Id}
 
 	if err := session.Save(r, w); err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on login: %v", err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on login: %w", err))
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -145,6 +145,7 @@ func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request
 
 		Detailed: func() interface{} {
 			if e, ok := errorutil.ErrorAs(err, &auth.PasswordValidationError{}); ok {
+				//nolint:errorlint
 				d, _ := e.(*auth.PasswordValidationError)
 				return &d.Result
 			}
@@ -187,7 +188,7 @@ func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 	email, name, password, err := extractRegistrationFormInfo(r)
 
 	if err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Registration: %v", err))
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Registration: %w", err))
 	}
 
 	id, err := auth.auth.Register(r.Context(), email, name, password)
@@ -203,7 +204,7 @@ func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 	// Implicitly log in
 	session.Values["auth"] = SessionData{Email: email, Name: name, ID: int(id)}
 	if err := session.Save(r, w); err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %v", err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %w", err))
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -222,7 +223,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Sess
 	session.Values["auth"] = nil
 
 	if err := session.Save(r, w); err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %v", err))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("saving session on Login: %w", err))
 	}
 
 	return nil
@@ -232,7 +233,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Sess
 func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	hasAnyUser, err := auth.auth.HasAnyUser(r.Context())
 	if err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(fmt.Errorf("check has any users: %v", err)))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(fmt.Errorf("check has any users: %w", err)))
 	}
 
 	if !hasAnyUser {

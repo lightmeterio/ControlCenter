@@ -50,15 +50,15 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		return fmt.Errorf("Error parse media type: %v", err)
+		return fmt.Errorf("Error parse media type: %w", err)
 	}
 
 	if mediaType != "application/x-www-form-urlencoded" {
-		return fmt.Errorf("Error media type mismatch: %v", err)
+		return fmt.Errorf("Error media type mismatch: %w", err)
 	}
 
 	if err := r.ParseForm(); err != nil {
-		return fmt.Errorf("Error parse form: %v", err)
+		return fmt.Errorf("Error parse form: %w", err)
 	}
 
 	return nil

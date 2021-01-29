@@ -3,6 +3,8 @@ run:
   skip-files:
     - ".*\\.gen\\.go"
     - ".*\\.rl"
+    - ".*example.*"
+    - "^tools"
   skip-dirs:
     - examples
     - vendor
@@ -11,6 +13,10 @@ run:
 linters:
   enable-all: true
   disable:
+    - nolintlint
+    - thelper
+    - exhaustivestruct
+    - predeclared
     - testpackage
     - goerr113
     - godox
