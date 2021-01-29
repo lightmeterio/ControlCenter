@@ -35,6 +35,7 @@ func New(dirname string, initialTime time.Time, follow bool) (*Source, error) {
 	return &Source{
 		initialTime: initialTime,
 		dir:         dir,
+		follow:      follow,
 	}, nil
 }
 
