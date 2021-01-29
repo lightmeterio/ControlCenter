@@ -311,8 +311,8 @@ func runResultsNotifier(stmts notifierStmts, n *queuesCommitNotifier, trackerStm
 		}
 
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v",
-				resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
+			//nolint:errorlint
+			log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
 			continue
 		}
 

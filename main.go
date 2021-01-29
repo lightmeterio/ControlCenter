@@ -180,5 +180,6 @@ func main() {
 }
 
 func printVersion() {
+	//nolint:forbidigo
 	fmt.Printf("Lightmeter ControlCenter %s\n", version.Version)
 }

@@ -80,11 +80,14 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 		r = r.WithContext(ctx)
 
 		logger := LoggerWithHTTPContext(requestId)
+
 		//nolint:golint,staticcheck
 		ctx = context.WithValue(r.Context(), LoggerKey, &logger)
 		r = r.WithContext(ctx)
 
 		err := endpoint.ServeHTTP(w, r)
+
+		//nolint:errorlint
 		switch errType := err.(type) {
 		case httperror.XHTTPError:
 			if errType.StatusCode() >= 500 {
@@ -94,7 +97,6 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 			}
 
 			if errType.JSON() {
-
 				response := struct {
 					Error string
 				}{
