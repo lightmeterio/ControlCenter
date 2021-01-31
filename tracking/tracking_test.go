@@ -1,6 +1,7 @@
 package tracking
 
 import (
+	"bytes"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -10,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -98,6 +100,53 @@ func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
 			done()
 			So(len(pub.results), ShouldEqual, 0)
 		})
+	})
+}
+
+func computeLineOffsets(b []byte) []int {
+	offsets := []int{}
+
+	i := 0
+
+	for {
+		index := bytes.IndexByte(b[i:], byte('\n'))
+
+		if index == -1 {
+			break
+		}
+
+		i += index + 1
+
+		offsets = append(offsets, i)
+	}
+
+	return offsets
+}
+
+func TestReadingFromArbitraryLines(t *testing.T) {
+	Convey("Reading from arbitrary lines", t, func() {
+		file, err := os.Open("test_files/1_bounce_simple.log")
+		So(err, ShouldBeNil)
+
+		b, err := ioutil.ReadAll(file)
+		So(err, ShouldBeNil)
+
+		offsets := computeLineOffsets(b)
+
+		// Start reading from arbitrary lines in the file
+		for _, offset := range offsets {
+			_, t, clear := buildPublisherAndTempTracker(t)
+			defer clear()
+
+			done, cancel := t.Run()
+
+			content := b[offset:]
+			r := bytes.NewReader(content)
+
+			readFromTestReader(r, t.Publisher())
+			cancel()
+			done()
+		}
 	})
 }
 
