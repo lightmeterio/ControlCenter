@@ -20,12 +20,14 @@ msgstr "<b>%{bounceValue}%</b> taxa de bounces entre %{intFrom} e %{intTo}"
 msgid "About"
 msgstr "Sobre"
 
-#: frontend/controlcenter/src/views/index.vue:65
+#: frontend/controlcenter/src/views/index.vue:62
 msgid "All"
 msgstr "Todos"
 
-#: frontend/controlcenter/src/views/index.vue:26
-msgid "and welcome back"
+#: frontend/controlcenter/src/views/index.vue:84
+#, fuzzy
+#| msgid "and welcome back"
+msgid "and welcome back, %{username}"
 msgstr "e seja bem-vindo(a)"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:21
@@ -85,11 +87,11 @@ msgstr ""
 msgid "Enter ip address"
 msgstr "Entre endereço IP"
 
-#: frontend/controlcenter/src/lib/api.js:195
+#: frontend/controlcenter/src/lib/api.js:207
 msgid "Error: %{err}"
 msgstr "Erro: %{err}"
 
-#: frontend/controlcenter/src/lib/api.js:98
+#: frontend/controlcenter/src/lib/api.js:104
 msgid "Error: %{error}."
 msgstr "Erro: %{error}."
 
@@ -108,7 +110,7 @@ msgstr ""
 msgid "Feedback"
 msgstr ""
 
-#: frontend/controlcenter/src/views/index.vue:59
+#: frontend/controlcenter/src/views/index.vue:56
 msgid "Filter"
 msgstr "Filtro"
 
@@ -119,6 +121,10 @@ msgstr "Esqueceu a senha?"
 #: frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
 msgstr "Geral"
+
+#: frontend/controlcenter/src/views/index.vue:78
+msgid "Happy %{weekday}"
+msgstr ""
 
 #: frontend/controlcenter/src/components/insights.vue:50
 msgid "High Bounce Rate"
@@ -136,7 +142,7 @@ msgstr "Informações"
 msgid "Information"
 msgstr "Informação"
 
-#: frontend/controlcenter/src/views/index.vue:42
+#: frontend/controlcenter/src/views/index.vue:39
 msgid "Insights"
 msgstr ""
 
@@ -167,7 +173,7 @@ msgstr ""
 msgid "Lightmeter website"
 msgstr ""
 
-#: frontend/controlcenter/src/views/index.vue:72
+#: frontend/controlcenter/src/views/index.vue:69
 msgid "Local"
 msgstr ""
 
@@ -186,7 +192,8 @@ msgstr ""
 
 #: frontend/controlcenter/src/components/auth-page-footer.vue:3
 msgid "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
-msgstr "Feito com %{heart} por %{openLink}profissionais Open Source%{closeLink}"
+msgstr ""
+"Feito com %{heart} por %{openLink}profissionais Open Source%{closeLink}"
 
 #: frontend/controlcenter/src/components/insights.vue:53
 msgid "Mail Inactivity"
@@ -204,11 +211,11 @@ msgstr "A maior parte de meus e-mails é…"
 msgid "Name"
 msgstr "Nome"
 
-#: frontend/controlcenter/src/views/index.vue:87
+#: frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
 msgstr "Mais novos"
 
-#: frontend/controlcenter/src/views/index.vue:78
+#: frontend/controlcenter/src/views/index.vue:75
 msgid "News"
 msgstr "Notícias"
 
@@ -228,7 +235,7 @@ msgstr "Nenhum e-mail foi enviado entre %{intFrom} e %{intTo}"
 msgid "Notifications"
 msgstr "Notificações"
 
-#: frontend/controlcenter/src/views/index.vue:93
+#: frontend/controlcenter/src/views/index.vue:90
 msgid "Oldest"
 msgstr "Mais antigos"
 
@@ -352,14 +359,18 @@ msgid "The Ip Address is invalid"
 msgstr "O endereço IP é invalido"
 
 #: frontend/controlcenter/src/components/insights.vue:5
+#, fuzzy
+#| msgid ""
+#| "These lists are recommending that your list be blocked &ndash; check "
+#| "their messages for hints"
 msgid ""
-"These lists are recommending that your list be blocked &ndash; check their "
-"messages for hints"
+"These lists are recommending that emails from your server be blocked &ndash; "
+"check their messages for hints"
 msgstr ""
 "Estas listas informam um bloqueio &ndash; Cheque suas mensagens por mais "
 "informações"
 
-#: frontend/controlcenter/src/views/index.vue:48
+#: frontend/controlcenter/src/views/index.vue:45
 msgid "Time interval"
 msgstr "Intervalo de tempo"
 
@@ -379,7 +390,7 @@ msgstr "Detalhes de usuários"
 msgid "Version"
 msgstr "Versão"
 
-#: frontend/controlcenter/src/lib/api.js:100
+#: frontend/controlcenter/src/lib/api.js:108
 msgid "Vulnerable to: %{description}."
 msgstr "Vulnerável à: %{description}."
 
