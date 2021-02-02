@@ -120,11 +120,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               >
                 <span v-html="insight.description"></span>
                 <button
-                  v-on:click="onNewsFeedMoreInfo(insight)"
+                  v-on:click="onNewsFeedMoreInfo($event, insight)"
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
-                  <translate>Details</translate>
+                  <translate>Read more...</translate>
                 </button>
               </p>
 
@@ -235,11 +235,14 @@ export default {
       this.buildInsightMsgRblDetails(id);
       this.trackEvent("InsightDescription", "openHostBlockModal");
     },
-    onNewsFeedMoreInfo(insight) {
-      window.alert("Hello!" + insight)
+    onNewsFeedMoreInfo(event, insight) {
+      event.preventDefault();
+      this.trackClick("InsightNewsfeed", insight.content.link);
+      window.open(insight.content.link);
     },
     newsfeed_content_title(insight) {
-      return "Feed: " + insight.content.title;
+      let translation = this.$gettext("Feed: %{title}")
+      return this.$gettextInterpolate(translation, {title: insight.content.title})
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
@@ -304,7 +307,7 @@ export default {
       };
     },
     newsfeed_content_description(insight) {
-      return insight.content.description;
+      return insight.content.description.substr(0,65);
     },
     transformInsights(insights) {
       let vue = this;
