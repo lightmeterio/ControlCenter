@@ -13,10 +13,10 @@ import (
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, Content{
 		Title:       "Sample Newsfeed insight!!!",
-		Description: "A new threat has been discovered. Protect yourself. Or die trying...",
-		Link:        "http://lightmeter.io/updates",
+		Description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum vitae nunc lacinia, fermentum nisi vitae, iaculis est. In ut mi libero. Nullam ac varius velit, sed ullamcorper ipsum. Nulla sollicitudin, purus vel commodo venenatis, urna eros auctor odio, vel viverra arcu dui vel leo. Aenean mattis ut erat ac tempor.",
+		Link:        "https://example.com/posts/42",
 		Published:   time.Date(2020, time.February, 22, 1, 2, 3, 0, time.UTC),
-		GUID:        "http://lightmeter.io/?p=1",
+		GUID:        "https://example.com/?p=42",
 	}); err != nil {
 		return errorutil.Wrap(err)
 	}

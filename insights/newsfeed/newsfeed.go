@@ -16,6 +16,7 @@ type Options struct {
 	URL            string
 	UpdateInterval time.Duration
 	RetryTime      time.Duration
+	TimeLimit      time.Duration
 }
 
 type detector struct {
@@ -113,9 +114,14 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 			continue
 		}
 
-		// TODO: do not scan through all the newsfeed insights, but only through
-		// the ones in the time interval from the items in the feed
-		alreadyExists, err := insightAlreadyExists(context, tx, item.GUID)
+		timeLimit := now.Add(-d.options.TimeLimit)
+
+		if item.PublishedParsed.Before(timeLimit) {
+			// If the item is too old, do not consider it
+			continue
+		}
+
+		alreadyExists, err := insightAlreadyExists(context, tx, item.GUID, timeLimit)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -142,13 +148,10 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-// FIXME: calling this function for each item in a feed (considering a long feed)
-// will have almost quadratic execution time on the number of news insights already generated!!!
-// It should be optimized to be close to O(n)
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
-func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string) (bool, error) {
-	rows, err := tx.QueryContext(context, `select content from insights where content_type = ?`, ContentTypeId)
+func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string, timeLimit time.Time) (bool, error) {
+	rows, err := tx.QueryContext(context, `select content from insights where content_type = ? and time >= ?`, ContentTypeId, timeLimit.Unix())
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
