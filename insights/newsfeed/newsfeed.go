@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"sort"
 	"time"
 )
 
@@ -108,6 +109,9 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 
 		return nil
 	}
+
+	// sort by published time
+	sort.Sort(parsed)
 
 	for _, item := range parsed.Items {
 		if item.PublishedParsed == nil {
