@@ -213,6 +213,11 @@ func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair act
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
 	connectionId, _, err := findConnectionIdAndUsageCounter(tx, tracker, r.Header)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		log.Warn().Msgf("Connection for line %v not found", r.Location)
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

@@ -63,9 +63,13 @@ func main() {
 	// ensure workspace exists
 	errorutil.MustSucceed(os.MkdirAll(workspaceDir, os.ModePerm))
 
+	ws, err := workspace.NewWorkspace(workspaceDir)
+
+	errorutil.MustSucceed(err)
+
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, time.Time{}, false)
+			return dirlogsource.New(inputDirectory, ws.MostRecentLogTime(), false)
 		}
 
 		f, err := os.Open(inputFile)
@@ -75,12 +79,8 @@ func main() {
 
 		year := time.Now().Year()
 
-		return filelogsource.New(f, time.Time{}, year)
+		return filelogsource.New(f, ws.MostRecentLogTime(), year)
 	}()
-
-	errorutil.MustSucceed(err)
-
-	ws, err := workspace.NewWorkspace(workspaceDir)
 
 	errorutil.MustSucceed(err)
 
