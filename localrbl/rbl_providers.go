@@ -64,7 +64,6 @@ var DefaultRBLs = []string{
 	"rwl.choon.net",                         // choon.net IPv4 DNSWL
 	"ipv6.rbl.choon.net",                    // choon.net IPv6 DNSBL
 	"ipv6.rwl.choon.net",                    // choon.net IPv6 DNSWL
-	"zz.countries.nerd.dk",                  // countries.nerd.dk DNSBL (zz)
 	"dnsbl.cyberlogic.net",                  // Cyberlogic DNSBL
 	"bogons.cymru.com",                      // Cymru Bogon List
 	"v4.fullbogons.cymru.com",               // Cymru Fullbogon IPv4 List
@@ -194,7 +193,6 @@ var DefaultRBLs = []string{
 	"safe.dnsbl.prs.proofpoint.com",         // Proofpoint Dynamic Reputation
 	"psbl.surriel.com",                      // PSBL (Passive Spam Block List)
 	"whitelist.surriel.com",                 // PSBL whitelist
-	"rbl.rbldns.ru",                         // rbl.rbldns.ru
 	"rbl.schulte.org",                       // rbl.schulte.org
 	"rbl.zenon.net",                         // rbl.zenon.net
 	"rbl.realtimeblacklist.com",             // realtimeBLACKLIST.COM
@@ -282,7 +280,6 @@ var DefaultRBLs = []string{
 	"noptr.spamrats.com",                    // SpamRATS! NoPtr
 	"spam.spamrats.com",                     // SpamRATS! Spam
 	"spamsources.fabel.dk",                  // spamsources.fabel.dk
-	"dnsbl.spfbl.net",                       // SPFBL.net RBL
 	"score.spfbl.net",                       // SPFBL.net Score Service
 	"dnswl.spfbl.net",                       // SPFBL.net Whitelist
 	"dul.pacifier.net",                      // StopSpam.org dul
@@ -303,7 +300,6 @@ var DefaultRBLs = []string{
 	"rbl2.triumf.ca",                        // TRIUMF.ca DNSBL
 	"wbl.triumf.ca",                         // TRIUMF.ca DNSWL
 	"truncate.gbudb.net",                    // truncate.gbudb.net
-	"dunk.dnsbl.tuxad.de",                   // tuxad dunk.dnsbl
 	"dnsbl-0.uceprotect.net",                // UCEPROTECT Level 0
 	"dnsbl-1.uceprotect.net",                // UCEPROTECT Level 1
 	"dnsbl-2.uceprotect.net",                // UCEPROTECT Level 2
