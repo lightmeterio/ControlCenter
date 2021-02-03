@@ -5,6 +5,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -47,7 +48,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	deliveries, err := deliverydb.New(workspaceDirectory)
+	deliveries, err := deliverydb.New(workspaceDirectory, &domainmapping.DefaultMapping)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)

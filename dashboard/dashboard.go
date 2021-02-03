@@ -84,28 +84,36 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 		}
 	}()
 
-	byStatusWithStmtPart := `
-		with
-				resolve_domain_mapping(d, status, delivery_ts, direction)
-		as (
-        select
-              lm_resolve_domain_mapping(remote_domains.domain) as domain, deliveries.status, deliveries.delivery_ts, deliveries.direction
-        from
-              deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid 
-        )
+	domainMappingByRecipientDomainPartStmtPart := `
+with resolve_domain_mapping_view(domain, status, direction, delivery_ts)
+as
+(
+with
+	aux_domain_mapping(orig_domain, domain_mapped_to, status, direction, delivery_ts)
+as (
+select
+	remote_domains.domain, temp_domain_mapping.mapped, deliveries.status, deliveries.direction, deliveries.delivery_ts
+from
+	deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid
+	left join temp_domain_mapping on remote_domains.domain = temp_domain_mapping.orig
+) select
+	ifnull(domain_mapped_to, orig_domain) as domain, status, direction, delivery_ts
+from
+	aux_domain_mapping	
+)
 `
 
-	topDomainsByStatus, err := db.Prepare(byStatusWithStmtPart + `
+	topDomainsByStatus, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
 				select
-                d, count(d) as c
+                domain, count(domain) as c
         from
-                resolve_domain_mapping
+                resolve_domain_mapping_view
         where
                 status = ? and delivery_ts between ? and ? and direction = ?
         group by
-                d collate nocase
+                domain collate nocase
         order by
-                c desc, d collate nocase asc
+                c desc, domain collate nocase asc
         limit 20
 	`)
 
@@ -119,17 +127,17 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 		}
 	}()
 
-	topBusiestDomains, err := db.Prepare(byStatusWithStmtPart + `
+	topBusiestDomains, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
 				select
-                d, count(d) as c
+                domain, count(domain) as c
         from
-                resolve_domain_mapping
+                resolve_domain_mapping_view
         where
                 delivery_ts between ? and ? and direction = ?
         group by
-                d collate nocase
+                domain collate nocase
         order by
-                c desc, d collate nocase asc
+                c desc, domain collate nocase asc
         limit 20
 	`)
 

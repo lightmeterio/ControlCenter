@@ -7,7 +7,6 @@ package lmsqlite3
 import (
 	"database/sql"
 	sqlite "github.com/mattn/go-sqlite3"
-	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/crypto/bcrypt"
 	"net"
@@ -44,26 +43,6 @@ func compareBcryptValue(hash, v []byte) bool {
 
 type Options map[string]interface{}
 
-func registerDomainMapping(conn *sqlite.SQLiteConn, options Options) error {
-	mapper, ok := options["domain_mapping"].(*domainmapping.Mapper)
-
-	if !ok {
-		m, err := domainmapping.Mapping(domainmapping.RawList{})
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		mapper = &m
-	}
-
-	if err := conn.RegisterFunc("lm_resolve_domain_mapping", mapper.Resolve, true); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 var once sync.Once
 
 func Initialize(options Options) {
@@ -73,7 +52,6 @@ func Initialize(options Options) {
 				errorutil.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true))
-				errorutil.MustSucceed(registerDomainMapping(conn, options))
 
 				return nil
 			},
