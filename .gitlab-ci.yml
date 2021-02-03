@@ -26,6 +26,17 @@ stages:
     - if: '$CI_MERGE_REQUEST_EVENT_TYPE != null && $CI_MERGE_REQUEST_EVENT_TYPE != "detached"'
       when: always
 
+reuse-lint:
+  extends: .on-non-tag
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  stage: test
+  needs: []
+  allow_failure: true
+  script:
+    - reuse lint
+
 lint:
   extends: .on-non-tag
   image: golangci/golangci-lint:v1.36-alpine

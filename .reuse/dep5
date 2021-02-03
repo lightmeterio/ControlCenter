@@ -1,0 +1,20 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Lightmeter Control Center
+Upstream-Contact: Lightmeter Project <hello@lightemter.io>
+Source: https://lightmeter.io
+
+Files: vendor/* frontend/controlcenter/src/3rd/*
+License: CC0-1.0
+Copyright: 2021 Respective 3rd Party Authors
+
+Files: frontend/controlcenter/src/assets/fonts/inter/*
+License: OFL-1.1
+Copyright: Inter Font Developers
+
+Files: frontend/controlcenter/src/assets/fonts/open-sans/
+License: Apache-2.0
+Copyright: Open Sans Font Developers
+
+Files: acceptance_tests/* test_files/* docs/* po/* release_notes/* tools/* pkg/postfix/logparser/* recommendation/*.json screenshot.png sonar-project.properties go.* frontend/controlcenter/* .codeclimate.yml Makefile VERSION.txt .gitignore .adr-dir/* .gitlab/* .ignore .gitlab-ci.yml .dockerignore .golangci.yml CLA cli_usage.md .adr-dir ci/* tracking/test_files/* examples/mailtracking/to_json.sh domainmapping/*.json
+License: AGPL-3.0-or-later
+Copyright: Lightmeter Project <hello@lightmeter.io>
