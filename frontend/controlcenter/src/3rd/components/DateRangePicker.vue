@@ -273,8 +273,7 @@ td.disabled[data-v-aab6e828] {
   max-width: none;
   padding: 0;
   margin-top: 7px;
-  top: 100px;
-  left: 20px;
+  left: 10px;
   z-index: 3001;
   display: none;
   font-size: 15px;
