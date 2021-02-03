@@ -72,29 +72,39 @@ func (h *fakeRssHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentTemplate, err := template.New("feed").Parse(`<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0" xml:lang="en-US" xml:base="https://lightmeter.io/wp-atom.php">
-  <title type="text">Some News Source</title>
-  <subtitle type="text">Email deliverability for servers</subtitle>
-	<updated>{{.Updated}}</updated>
-  <id>https://lightmeter.io/feed/atom/</id>
-  <link rel="self" type="application/atom+xml" href="https://lightmeter.io/category/releases/feed/atom/"/>
-  <generator uri="https://wordpress.org/" version="5.6">WordPress</generator>
-	{{range .Entries}}
-  <entry>
-    <author>
-      <name>Author I Am</name>
-    </author>
-    <title type="html"><![CDATA[{{.Title}}]]></title>
-    <link rel="alternate" type="text/html" href="{{.Link}}"/>
-    <id>{{.Link}}</id>
-    <updated>{{.Published}}</updated>
-    <published>{{.Published}}</published>
-    <category scheme="https://lightmeter.io" term="chosen_category"/>
-    <summary type="html"><![CDATA[{{.Description}}]]></summary>
-    <content type="html" xml:base="{{.Link}}"><![CDATA[Some Useless Content here, not used by the insight]]></content>
-	</entry>
-	{{end}}
-</feed>`)
+<rss version="2.0"
+        xmlns:content="http://purl.org/rss/1.0/modules/content/"
+        xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+        xmlns:dc="http://purl.org/dc/elements/1.1/"
+        xmlns:atom="http://www.w3.org/2005/Atom"
+        xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+        xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+        xmlns:lightmeter="http://lightmeter.io/rss/controlcenter">
+  <channel>
+    <title>Control Center News Insights – Lightmeter</title>
+    <atom:link href="https://lightmeter.io/category/news-insights/feed/" rel="self" type="application/rss+xml"/>
+    <link>https://lightmeter.io</link>
+    <description>Email deliverability for servers</description>
+    <lastBuildDate>{{.Updated}}</lastBuildDate>
+    <language>en-US</language>
+    <sy:updatePeriod>hourly</sy:updatePeriod>
+    <sy:updateFrequency>1</sy:updateFrequency>
+    <generator>https://wordpress.org/?v=5.6</generator>
+    {{range .Entries}}
+    <item>
+      <title>{{.Title}}</title>
+      <link>{{.Link}}</link>
+      <dc:creator><![CDATA[Author Here]]></dc:creator>
+      <pubDate>{{.Published}}</pubDate>
+      <category><![CDATA[Control Center News Insights]]></category>
+      <guid isPermaLink="false">{{.Link}}</guid>
+      <description><![CDATA[unused description]]></description>
+      <content:encoded><![CDATA[unused content]]></content:encoded>
+      <lightmeter:newsInsightDescription>{{.Description}}</lightmeter:newsInsightDescription>
+    </item>
+    {{end}}
+  </channel>
+</rss>`)
 
 	errorutil.MustSucceed(err)
 

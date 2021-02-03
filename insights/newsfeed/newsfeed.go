@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/mmcdole/gofeed"
+	"github.com/mmcdole/gofeed/rss"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -18,6 +19,57 @@ type Options struct {
 	UpdateInterval time.Duration
 	RetryTime      time.Duration
 	TimeLimit      time.Duration
+}
+
+type rssTranslator struct {
+	defaultTranslator *gofeed.DefaultRSSTranslator
+}
+
+func (t *rssTranslator) Translate(feed interface{}) (*gofeed.Feed, error) {
+	rss, found := feed.(*rss.Feed)
+	if !found {
+		return nil, errors.New(`Invalid feed format. Expected RSS`)
+	}
+
+	f, err := t.defaultTranslator.Translate(rss)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if len(f.Items) == 0 {
+		return nil, errors.New(`Invalid feed. No items found`)
+	}
+
+	for i, item := range f.Items {
+		desc, err := descForItem(item)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		f.Items[i].Description = desc
+	}
+
+	return f, nil
+}
+
+func descForItem(item *gofeed.Item) (string, error) {
+	lm, ok := item.Extensions["lightmeter"]
+	if !ok {
+		log.Warn().Msgf("Failed obtaining custom description for RSS item %s", item.GUID)
+		return item.Description, nil
+	}
+
+	desc, ok := lm["newsInsightDescription"]
+	if !ok {
+		return "", errors.New(`Invalid feed. No custom description`)
+	}
+
+	if len(desc) == 0 {
+		return "", errors.New(`Invalid feed. No description found`)
+	}
+
+	return desc[0].Value, nil
 }
 
 type detector struct {
@@ -37,7 +89,11 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 		errorutil.MustSucceed(errors.New("Invalid detector options"))
 	}
 
-	return &detector{creator: creator, options: detectorOptions, parser: gofeed.NewParser()}
+	parser := gofeed.NewParser()
+
+	parser.RSSTranslator = &rssTranslator{defaultTranslator: &gofeed.DefaultRSSTranslator{}}
+
+	return &detector{creator: creator, options: detectorOptions, parser: parser}
 }
 
 // TODO: refactor this function to be reused across different insights instead of copy&pasted

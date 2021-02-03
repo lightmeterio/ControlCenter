@@ -42,7 +42,7 @@ func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker,
 		},
 
 		"newsfeed": newsfeedinsight.Options{
-			URL:            "https://lightmeter.io/category/news-insights?feed=atom",
+			URL:            "https://lightmeter.io/category/news-insights?feed=rss",
 			UpdateInterval: time.Hour * 2,
 			RetryTime:      time.Minute * 10,
 			TimeLimit:      oneDay * 2,
