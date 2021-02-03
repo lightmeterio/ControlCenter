@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0
+
 export function togglePasswordShow() {
   let attrValue = document
     .querySelector("#show_hide_password input")

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0
 
 //line smtp.rl:1
 // +build !codeanalysis

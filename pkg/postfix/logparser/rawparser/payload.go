@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0
+
 package rawparser
 
 // NOTE: Go does not have unions, and using interfaces implies on virtual calls

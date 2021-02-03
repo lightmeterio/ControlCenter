@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0
+
 package localrbl
 
 // List obtained from http://multirbl.valli.org/list/"

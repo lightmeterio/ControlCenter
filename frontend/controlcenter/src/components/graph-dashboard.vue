@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+
+SPDX-License-Identifier: AGPL-3.0
+-->
+
 <template>
   <div id="graph-dashboard" class="row">
     <div class="col-md-4">
