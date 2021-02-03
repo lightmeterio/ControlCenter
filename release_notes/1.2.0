@@ -1,0 +1,6 @@
+# ControlCenter 1.2.0
+
+New message tracing improves stats accuracy
+Breaking changes: existing imported log data is wiped and logfiles re-imported
+
+See separate release notes on https://lightmeter.io for full changes.
