@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2020,  Lightmeter <hello@lightmeter.io>
-SPDX-License-Identifier: AGPL-3.0
+SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
 # Lightmeter ControlCenter (Alpha)
@@ -374,4 +374,6 @@ Work on Lightmeter is supported by the European Commission's [Next Generation In
 
 ## License and Copyright information
 
-This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files. Copyright 2021,  Lightmeter <hello@lightmeter.io>
+This project is licensed under AGPL-3.0-or-later. However, some files are under different licenses, for accurate information, please check individual files and the file .reuse/dep5.
+
+Copyright 2021, Lightmeter <hello@lightmeter.io>

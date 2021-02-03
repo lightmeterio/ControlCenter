@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //go:generate ragel -Z -G2 header.rl -o header.gen.go
 //go:generate ragel -Z -G2 smtp.rl -o smtp.gen.go
