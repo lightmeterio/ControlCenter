@@ -1,0 +1,40 @@
+// +build !codeanalysis
+
+package rawparser
+
+%% machine pickup;
+%% write data;
+
+func parsePickup(data []byte) (Pickup, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := Pickup{}
+
+%%{
+	include common "common.rl";
+
+	pickupQueueId = queueId >setTokBeg %{
+		r.Queue = data[tokBeg:p]
+	};
+
+	pickupUid = digit+ >setTokBeg %{
+		r.Uid = data[tokBeg:p]
+	};
+
+	sender = [^>]* >setTokBeg %{
+		r.Sender = normalizeMailLocalPart(data[tokBeg:p])
+	};
+
+	main := pickupQueueId ': uid=' pickupUid ' from=<' sender '>' @{
+		return r, true
+	};
+
+	write init;
+	write exec;
+}%%
+
+	return r, false
+}

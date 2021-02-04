@@ -18,4 +18,5 @@ type RawPayload struct {
 	SmtpdMailAccepted     SmtpdMailAccepted
 	CleanupMesageAccepted CleanupMessageAccepted
 	BounceCreated         BounceCreated
+	Pickup                Pickup
 }
