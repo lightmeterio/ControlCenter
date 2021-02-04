@@ -124,7 +124,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
-                  <translate>Read more...</translate>
+                  <translate>Read more</translate>
                 </button>
               </p>
 
@@ -241,8 +241,7 @@ export default {
       window.open(insight.content.link);
     },
     newsfeed_content_title(insight) {
-      let translation = this.$gettext("Feed: %{title}")
-      return this.$gettextInterpolate(translation, {title: insight.content.title})
+      return insight.content.title
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
