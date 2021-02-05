@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /**
  * read log lines from stdin and pring the parsed result as JSON objects

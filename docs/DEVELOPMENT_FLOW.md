@@ -32,13 +32,13 @@ It's important that new files that we hold copyright to have the proper SPDX hea
 Such headers can be added using the [reuse tool](https://reuse.readthedocs.io/). For instance, for `.go` files, use:
 
 ```sh
-$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-or-later" list.go of.go files.go
+$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-only" list.go of.go files.go
 ```
 
 And for `.vue` files, use:
 
 ```sh
-$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-or-later" --style html list.vue of.vue files.vue
+$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-only" --style html list.vue of.vue files.vue
 ```
 
 If you are adding a third party component that we don't have onwership, please add the respective to the file `.reuse/dep5`.
