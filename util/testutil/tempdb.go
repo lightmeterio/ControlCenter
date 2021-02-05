@@ -17,7 +17,7 @@ import (
 // is removed.
 // basename is an optional value specifying the name for the database file,
 // without extension.
-func TempDBConnection(t *testing.T, basename ...string) (conn dbconn.ConnPair, removeDir func()) {
+func TempDBConnection(t *testing.T, basename ...string) (conn *dbconn.PooledPair, removeDir func()) {
 	dir, removeDir := TempDir(t)
 
 	filename := path.Join(dir, func() string {
@@ -28,7 +28,7 @@ func TempDBConnection(t *testing.T, basename ...string) (conn dbconn.ConnPair, r
 		return "database.db"
 	}())
 
-	conn, err := dbconn.NewConnPair(filename)
+	conn, err := dbconn.Open(filename, 5)
 
 	if err != nil {
 		log.Panic().Err(err).Msgf("Error creating temporary database")

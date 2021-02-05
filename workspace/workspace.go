@@ -39,6 +39,8 @@ type Workspace struct {
 	rblDetector    *messagerbl.Detector
 	rblChecker     localrbl.Checker
 
+	dashboard dashboard.Dashboard
+
 	NotificationCenter notification.Center
 
 	settingsMetaHandler *meta.Handler
@@ -69,7 +71,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	metadataConnPair, err := dbconn.NewConnPair(path.Join(workspaceDirectory, "master.db"))
+	metadataConnPair, err := dbconn.Open(path.Join(workspaceDirectory, "master.db"), 5)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -87,7 +89,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	dashboard, err := dashboard.New(deliveries.ReadConnection())
+	dashboard, err := dashboard.New(deliveries.ConnPool())
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -122,6 +124,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		auth:                auth,
 		rblDetector:         rblDetector,
 		rblChecker:          rblChecker,
+		dashboard:           dashboard,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		closes: closeutil.New(
@@ -177,8 +180,8 @@ func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
 }
 
-func (ws *Workspace) Dashboard() (dashboard.Dashboard, error) {
-	return dashboard.New(ws.deliveries.ReadConnection())
+func (ws *Workspace) Dashboard() dashboard.Dashboard {
+	return ws.dashboard
 }
 
 func (ws *Workspace) Auth() *auth.Auth {

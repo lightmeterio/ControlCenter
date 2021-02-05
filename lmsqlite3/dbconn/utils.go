@@ -27,25 +27,48 @@ func Rw(db *sql.DB) RwConn {
 	return RwConn{db}
 }
 
-type ConnPair struct {
-	RoConn  RoConn
-	RwConn  RwConn
-	closers closeutil.Closers
+type RoPooledConn struct {
+	closeutil.Closers
+	RoConn
+
+	LocalId int
+	Stmts   map[interface{}]*sql.Stmt
 }
 
-func (c *ConnPair) Close() error {
-	if err := c.closers.Close(); err != nil {
-		return errorutil.Wrap(err)
+type RoPool struct {
+	closeutil.Closers
+
+	conns []*RoPooledConn
+	pool  chan *RoPooledConn
+}
+
+func (p *RoPool) ForEach(f func(*RoPooledConn) error) error {
+	for _, v := range p.conns {
+		if err := f(v); err != nil {
+			return errorutil.Wrap(err)
+		}
 	}
 
 	return nil
 }
 
-func NewConnPair(filename string) (ConnPair, error) {
+func (p *RoPool) Acquire() (*RoPooledConn, func()) {
+	c := <-p.pool
+	return c, func() { p.pool <- c }
+}
+
+type PooledPair struct {
+	closeutil.Closers
+
+	RwConn     RwConn
+	RoConnPool *RoPool
+}
+
+func Open(filename string, poolSize int) (*PooledPair, error) {
 	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF`)
 
 	if err != nil {
-		return ConnPair{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
@@ -54,11 +77,29 @@ func NewConnPair(filename string) (ConnPair, error) {
 		}
 	}()
 
-	reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=shared&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF`)
-
-	if err != nil {
-		return ConnPair{}, errorutil.Wrap(err)
+	pool := &RoPool{
+		pool: make(chan *RoPooledConn, poolSize),
 	}
 
-	return ConnPair{RoConn: Ro(reader), RwConn: Rw(writer), closers: closeutil.New(reader, writer)}, nil
+	for i := 0; i < poolSize; i++ {
+		reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=private&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF`)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		conn := &RoPooledConn{
+			RoConn:  Ro(reader),
+			LocalId: i,
+			Stmts:   map[interface{}]*sql.Stmt{},
+			Closers: closeutil.New(),
+		}
+
+		pool.conns = append(pool.conns, conn)
+		pool.Closers = append(pool.Closers, conn)
+
+		pool.pool <- conn
+	}
+
+	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(writer, pool)}, nil
 }

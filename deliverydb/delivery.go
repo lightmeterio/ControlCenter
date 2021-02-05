@@ -15,6 +15,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
 	"time"
@@ -24,8 +25,9 @@ type dbAction func(*sql.Tx) error
 
 type DB struct {
 	runner.CancelableRunner
+	closeutil.Closers
 
-	connPair  dbconn.ConnPair
+	connPair  *dbconn.PooledPair
 	dbActions chan dbAction
 }
 
@@ -33,10 +35,10 @@ const (
 	filename = "logs.db"
 )
 
-func setupDomainMapping(conn dbconn.ConnPair, m *domainmapping.Mapper) error {
+func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	// FIXME: this is an ugly workaround. Ideally the domain mapping should come from a virtual table,
 	// computed from the domain mapped configuration.
-	if _, err := conn.RwConn.Exec(`
+	if _, err := conn.Exec(`
 	drop table if exists temp_domain_mapping;
 	create table temp_domain_mapping(orig text, mapped text);
 	create index temp_domain_mapping_index on temp_domain_mapping(orig, mapped);
@@ -45,7 +47,7 @@ func setupDomainMapping(conn dbconn.ConnPair, m *domainmapping.Mapper) error {
 	}
 
 	f := func(orig, mapped string) error {
-		if _, err := conn.RwConn.Exec(`insert into temp_domain_mapping(orig, mapped) values(?, ?)`, orig, mapped); err != nil {
+		if _, err := conn.Exec(`insert into temp_domain_mapping(orig, mapped) values(?, ?)`, orig, mapped); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -62,7 +64,7 @@ func setupDomainMapping(conn dbconn.ConnPair, m *domainmapping.Mapper) error {
 func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 	dbFilename := path.Join(workspace, filename)
 
-	connPair, err := dbconn.NewConnPair(dbFilename)
+	connPair, err := dbconn.Open(dbFilename, 10)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -78,7 +80,7 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err := setupDomainMapping(connPair, mapping); err != nil {
+	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -91,6 +93,7 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 	db := DB{
 		connPair:  connPair,
 		dbActions: dbActions,
+		Closers:   closeutil.New(connPair),
 	}
 
 	db.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -111,14 +114,6 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 	})
 
 	return &db, nil
-}
-
-func (db *DB) Close() error {
-	if err := db.connPair.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
 }
 
 type resultsPublisher struct {
@@ -407,17 +402,25 @@ func (db *DB) ResultsPublisher() tracking.ResultPublisher {
 }
 
 func (db *DB) HasLogs() bool {
+	conn, release := db.connPair.RoConnPool.Acquire()
+
+	defer release()
+
 	var count int
-	err := db.connPair.RoConn.QueryRow(`select count(*) from deliveries`).Scan(&count)
+	err := conn.QueryRow(`select count(*) from deliveries`).Scan(&count)
 	errorutil.MustSucceed(err)
 
 	return count > 0
 }
 
 func (db *DB) MostRecentLogTime() time.Time {
+	conn, release := db.connPair.RoConnPool.Acquire()
+
+	defer release()
+
 	var ts int64
 
-	err := db.connPair.RoConn.QueryRow(`select delivery_ts from deliveries order by id desc limit 1`).Scan(&ts)
+	err := conn.QueryRow(`select delivery_ts from deliveries order by id desc limit 1`).Scan(&ts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}
@@ -428,8 +431,8 @@ func (db *DB) MostRecentLogTime() time.Time {
 	return time.Unix(ts, 0).In(time.UTC)
 }
 
-func (db *DB) ReadConnection() dbconn.RoConn {
-	return db.connPair.RoConn
+func (db *DB) ConnPool() *dbconn.RoPool {
+	return db.connPair.RoConnPool
 }
 
 func fillDatabase(conn dbconn.RwConn, dbActions <-chan dbAction) error {

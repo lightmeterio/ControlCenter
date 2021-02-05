@@ -49,7 +49,7 @@ func TestDatabaseMigrationUp(t *testing.T) {
 
 			dbPath := path.Join(dir, "dummy.db")
 
-			connPair, err := dbconn.NewConnPair(dbPath)
+			connPair, err := dbconn.Open(dbPath, 5)
 			So(err, ShouldBeNil)
 
 			err = migrator.Run(connPair.RwConn.DB, "dummy")
