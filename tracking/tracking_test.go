@@ -328,6 +328,36 @@ func TestTrackingFromFiles(t *testing.T) {
 				So(countPids(), ShouldEqual, 0)
 				So(countMessageIds(), ShouldEqual, 0)
 			})
+
+			Convey("Two messages are sent. The first one for one destination and bounces, and the second one to multiples destinations", func() {
+				readFromTestFile("test_files/9_mixed_messages.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 8)
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
+
+			Convey("Pickup in action", func() {
+				readFromTestFile("test_files/10_pickup.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 1)
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
 		})
 
 		// we expected all results to have been consumed

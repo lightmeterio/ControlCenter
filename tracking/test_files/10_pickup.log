@@ -1,0 +1,20 @@
+Feb  1 13:17:02 mail postfix/pickup[28541]: 08ACF1541B01: uid=0 from=<root>
+Feb  1 13:17:02 mail postfix/cleanup[28690]: 08ACF1541B01: message-id=<h-9f09ba6382a7163a9a1f1da16cb@h-ac7182297368ddc0f.com>
+Feb  1 13:17:02 mail opendmarc[893]: 08ACF1541B01: SPF(mailfrom): h-dc76@h-ac7182297368ddc0f.com pass
+Feb  1 13:17:02 mail opendmarc[893]: 08ACF1541B01: h-ac7182297368ddc0f pass
+Feb  1 13:17:02 mail postfix/qmgr[20024]: 08ACF1541B01: from=<h-dc76@h-ac7182297368ddc0f.com>, size=829, nrcpt=1 (queue active)
+Feb  1 13:17:08 mail postfix/smtpd[28698]: connect from h-1080e7bf040f81bcd1628[127.0.0.1]
+Feb  1 13:17:08 mail postfix/smtpd[28698]: AED441541AFC: client=h-1080e7bf040f81bcd1628[127.0.0.1]
+Feb  1 13:17:08 mail postfix/cleanup[28690]: AED441541AFC: message-id=<h-9f09ba6382a7163a9a1f1da16cb@h-ac7182297368ddc0f.com>
+Feb  1 13:17:08 mail opendmarc[893]: AED441541AFC ignoring Authentication-Results at 6 from h-39d61745ca417a4ae
+Feb  1 13:17:08 mail opendmarc[893]: AED441541AFC: SPF(mailfrom): h-dc76@h-ac7182297368ddc0f.com pass
+Feb  1 13:17:08 mail opendmarc[893]: AED441541AFC: h-ac7182297368ddc0f pass
+Feb  1 13:17:08 mail postfix/qmgr[20024]: AED441541AFC: from=<h-dc76@h-ac7182297368ddc0f.com>, size=2387, nrcpt=1 (queue active)
+Feb  1 13:17:08 mail amavis[28236]: (28236-10) Passed,
+Feb  1 13:17:08 mail postfix/smtp[28692]: 08ACF1541B01: to=<h-06819@h-b4e62aa55116.com>, orig_to=<root>, relay=127.0.0.1[127.0.0.1]:10024, delay=6.8, delays=0.19/0.01/0/6.6, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as AED441541AFC)
+Feb  1 13:17:08 mail postfix/qmgr[20024]: 08ACF1541B01: removed
+Feb  1 13:17:08 mail dovecot: lmtp(28700): Connect from local
+Feb  1 13:17:08 mail dovecot: lmtp(h-06819@h-b4e62aa55116.com): wArTL0TxF2AccAAAYr7Zvw: sieve: msgid=<h-9f09ba6382a7163a9a1f1da16cb@h-ac7182297368ddc0f.com>: stored mail into mailbox 'INBOX'
+Feb  1 13:17:08 mail postfix/lmtp[28699]: AED441541AFC: to=<h-06819@h-b4e62aa55116.com>, relay=h-ac7182297368ddc0f[private/dovecot-lmtp], delay=0.21, delays=0.07/0.01/0.01/0.12, dsn=2.0.0, status=sent (250 2.0.0 <h-06819@h-b4e62aa55116.com> wArTL0TxF2AccAAAYr7Zvw Saved)
+Feb  1 13:17:08 mail dovecot: lmtp(28700): Disconnect from local: Successful quit
+Feb  1 13:17:08 mail postfix/qmgr[20024]: AED441541AFC: removed
