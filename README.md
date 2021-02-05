@@ -44,6 +44,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     - [Making user interfaces translatable (i18n)](#making-user-interfaces-translatable-i18n)
 - [Troubleshooting](#troubleshooting)
 - [Supported by](#supported-by)
+- [License and Copyright information](#license-and-copyright-information)
 
 ## Introduction
 
@@ -368,9 +369,13 @@ func (d *Block) String(s string) string {
 
 ## Supported by
 
-Work on Lightmeter is supported by the European Commission's [Next Generation Internet](https://www.ngi.eu/) [Zero fund](https://www.ngi.eu/ngi-projects/ngi-zero/) for Privacy Enhancing Technologies, managed by [NLnet](https://nlnet.nl/).
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-POINTER Project funded under grant agreement No 871528.
 
-![NGI Zero logo](https://lightmeter.io/wp-content/uploads/2020/12/ngi-zero-1.png)
+![NGI Pointer logo and EU flag symbol](https://lightmeter.io/wp-content/uploads/2021/02/ngi-pointer-eu-flag-300.png)
+
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-ZERO Project funded under grant agreement No 825310.
+
+![NGI Zero logo and EU flag symbol](https://lightmeter.io/wp-content/uploads/2021/02/ngi-zero-eu-flag-300.png)
 
 ## License and Copyright information
 
