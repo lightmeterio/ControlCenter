@@ -66,6 +66,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             :ranges="ranges"
             v-model="dateRange"
             :showCustomRangeCalendars="false"
+            :max-date="new Date()"
           >
           </DateRangePicker>
         </div>
