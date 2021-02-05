@@ -12,8 +12,7 @@ type RawSmtpSentStatus struct {
 	OrigRecipientLocalPart  []byte
 	OrigRecipientDomainPart []byte
 	RelayName               []byte
-	RelayPath               []byte
-	RelayIp                 []byte
+	RelayIpOrPath           []byte
 	RelayPort               []byte
 	Delay                   []byte
 	Delays                  [5][]byte

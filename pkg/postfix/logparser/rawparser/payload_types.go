@@ -13,6 +13,7 @@ const (
 	PayloadTypeSmtpdMailAccepted
 	PayloadTypeCleanupMessageAccepted
 	PayloadTypeBounceCreated
+	PayloadTypePickup
 
 	// types for SmtpMessageStatus extra message
 	PayloadTypeSmtpMessageStatusSentQueued

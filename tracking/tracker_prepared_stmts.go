@@ -28,6 +28,7 @@ const (
 	updateQueueWithMessageId
 	selectQueueIdForQueue
 	insertQueueDataFourRows
+	insertQueueDataTwoRows
 	insertQueueParenting
 	insertNotificationQueue
 	selectNewQueueFromParenting
@@ -93,11 +94,8 @@ var trackerStmtsText = map[trackerStmtKey]string{
 		join pids on connections.pid_id = pids.id
 	where
 		pids.host = ? and queues.queue = ?`,
-	insertQueueDataFourRows: `insert into queue_data(queue_id, key, value)
-		values(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?)`,
+	insertQueueDataFourRows:          `insert into queue_data(queue_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
+	insertQueueDataTwoRows:           `insert into queue_data(queue_id, key, value) values(?, ?, ?), (?, ?, ?)`,
 	insertQueueParenting:             `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, ?, ?)`,
 	selectNewQueueFromParenting:      `select new_queue_id from queue_parenting where orig_queue_id = ?`,
