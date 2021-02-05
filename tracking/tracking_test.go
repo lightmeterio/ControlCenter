@@ -161,58 +161,62 @@ func TestTrackingFromFiles(t *testing.T) {
 
 		done, cancel := t.Run()
 
+		queryConn, release := t.dbconn.RoConnPool.Acquire()
+
+		defer release()
+
 		countResults := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from results`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from results`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countResultData := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from result_data`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from result_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countQueues := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from queues`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from queues`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countQueueData := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from queue_data`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from queue_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countConnections := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from connections`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from connections`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countConnectionData := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from connection_data`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from connection_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countPids := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from pids`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from pids`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
 
 		countMessageIds := func() int {
 			var count int
-			err := t.dbconn.RoConn.QueryRow(`select count(*) from messageids`).Scan(&count)
+			err := queryConn.QueryRow(`select count(*) from messageids`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}

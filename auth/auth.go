@@ -38,7 +38,7 @@ type Options struct {
 
 type Auth struct {
 	options  Options
-	connPair dbconn.ConnPair
+	connPair *dbconn.PooledPair
 	meta     *meta.Handler
 }
 
@@ -145,7 +145,11 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
 	d := UserData{}
 
-	err := r.connPair.RoConn.
+	conn, release := r.connPair.RoConnPool.Acquire()
+
+	defer release()
+
+	err := conn.
 		QueryRowContext(ctx, "select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
 		Scan(&d.Id, &d.Email, &d.Name)
 
@@ -163,7 +167,11 @@ func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, 
 func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 	var count int
 
-	if err := r.connPair.RoConn.QueryRowContext(ctx, "select count(*) from users").Scan(&count); err != nil {
+	conn, release := r.connPair.RoConnPool.Acquire()
+
+	defer release()
+
+	if err := conn.QueryRowContext(ctx, "select count(*) from users").Scan(&count); err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
@@ -177,7 +185,11 @@ var (
 func (r *Auth) GetUserDataByID(ctx context.Context, id int) (*UserData, error) {
 	var userData UserData
 
-	err := r.connPair.RoConn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
+	conn, release := r.connPair.RoConnPool.Acquire()
+
+	defer release()
+
+	err := conn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalidUserId
@@ -231,7 +243,7 @@ func (r *Auth) SessionKeys() [][]byte {
 }
 
 func NewAuth(dirname string, options Options) (*Auth, error) {
-	connPair, err := dbconn.NewConnPair(path.Join(dirname, "auth.db"))
+	connPair, err := dbconn.Open(path.Join(dirname, "auth.db"), 5)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)

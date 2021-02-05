@@ -144,11 +144,10 @@ func TestEntriesInsertion(t *testing.T) {
 			done, cancel := db.Run()
 			pub := db.ResultsPublisher()
 
-			dashboard, err := dashboard.New(db.ReadConnection())
+			dashboard, err := dashboard.New(db.ConnPool())
 			So(err, ShouldBeNil)
 
 			return db, done, cancel, pub, dashboard, func() {
-				So(dashboard.Close(), ShouldBeNil)
 				So(db.Close(), ShouldBeNil)
 			}
 		}

@@ -22,11 +22,11 @@ var (
 )
 
 type Reader struct {
-	db dbconn.RoConn
+	pool *dbconn.RoPool
 }
 
 func (reader *Reader) Close() error {
-	return reader.db.Close()
+	return reader.pool.Close()
 }
 
 func (writer *Writer) Close() error {
@@ -52,12 +52,12 @@ func (h *Handler) Close() error {
 	return nil
 }
 
-func NewHandler(conn dbconn.ConnPair, databaseName string) (*Handler, error) {
+func NewHandler(conn *dbconn.PooledPair, databaseName string) (*Handler, error) {
 	if err := migrator.Run(conn.RwConn.DB, databaseName); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	reader := &Reader{conn.RoConn}
+	reader := &Reader{conn.RoConnPool}
 	writer := &Writer{conn.RwConn}
 
 	return &Handler{
@@ -122,7 +122,11 @@ func Store(tx *sql.Tx, items []Item) error {
 }
 
 func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
-	err := reader.db.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
+	conn, release := reader.pool.Acquire()
+
+	defer release()
+
+	err := conn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
 
 	if err == nil {
 		return nil

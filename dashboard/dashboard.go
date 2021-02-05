@@ -12,17 +12,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
 )
-
-type queries struct {
-	countByStatus      *sql.Stmt
-	deliveryStatus     *sql.Stmt
-	topBusiestDomains  *sql.Stmt
-	topDomainsByStatus *sql.Stmt
-}
 
 type Pair struct {
 	Key   interface{} `json:"key"`
@@ -32,8 +24,6 @@ type Pair struct {
 type Pairs []Pair
 
 type Dashboard interface {
-	Close() error
-
 	CountByStatus(context.Context, parser.SmtpStatus, data.TimeInterval) (int, error)
 	TopBusiestDomains(context.Context, data.TimeInterval) (Pairs, error)
 	TopBouncedDomains(context.Context, data.TimeInterval) (Pairs, error)
@@ -42,12 +32,12 @@ type Dashboard interface {
 }
 
 type sqlDashboard struct {
-	queries queries
-	closers closeutil.Closers
+	pool *dbconn.RoPool
 }
 
-func New(db dbconn.RoConn) (Dashboard, error) {
-	countByStatus, err := db.Prepare(`
+func New(pool *dbconn.RoPool) (Dashboard, error) {
+	setup := func(db *dbconn.RoPooledConn) error {
+		countByStatus, err := db.Prepare(`
 	select
 		count(*)
 	from
@@ -55,17 +45,17 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 	where
 		status = ? and delivery_ts between ? and ? and direction = ?`)
 
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(countByStatus.Close(), "Closing countByStatus")
+			return errorutil.Wrap(err)
 		}
-	}()
 
-	deliveryStatus, err := db.Prepare(`
+		defer func() {
+			if err != nil {
+				errorutil.MustSucceed(countByStatus.Close(), "Closing countByStatus")
+			}
+		}()
+
+		deliveryStatus, err := db.Prepare(`
 	select
 		status, count(status) as c
 	from
@@ -78,17 +68,17 @@ func New(db dbconn.RoConn) (Dashboard, error) {
 		status
 	`)
 
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(deliveryStatus.Close(), "Closing deliveryStatus")
+			return errorutil.Wrap(err)
 		}
-	}()
 
-	domainMappingByRecipientDomainPartStmtPart := `
+		defer func() {
+			if err != nil {
+				errorutil.MustSucceed(deliveryStatus.Close(), "Closing deliveryStatus")
+			}
+		}()
+
+		domainMappingByRecipientDomainPartStmtPart := `
 with resolve_domain_mapping_view(domain, status, direction, delivery_ts)
 as
 (
@@ -107,7 +97,7 @@ from
 )
 `
 
-	topDomainsByStatus, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
+		topDomainsByStatus, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
 				select
                 domain, count(domain) as c
         from
@@ -121,17 +111,17 @@ from
         limit 20
 	`)
 
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
+			return errorutil.Wrap(err)
 		}
-	}()
 
-	topBusiestDomains, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
+		defer func() {
+			if err != nil {
+				errorutil.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
+			}
+		}()
+
+		topBusiestDomains, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
 				select
                 domain, count(domain) as c
         from
@@ -145,62 +135,77 @@ from
         limit 20
 	`)
 
-	if err != nil {
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		defer func() {
+			if err != nil {
+				errorutil.MustSucceed(topBusiestDomains.Close(), "Closing topBusiestDomains")
+			}
+		}()
+
+		db.Closers = append(db.Closers, countByStatus, deliveryStatus, topBusiestDomains, topDomainsByStatus)
+
+		db.Stmts["countByStatus"] = countByStatus
+		db.Stmts["deliveryStatus"] = deliveryStatus
+		db.Stmts["topBusiestDomains"] = topBusiestDomains
+		db.Stmts["topDomainsByStatus"] = topDomainsByStatus
+
+		return nil
+	}
+
+	if err := pool.ForEach(setup); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(topBusiestDomains.Close(), "Closing topBusiestDomains")
-		}
-	}()
-
 	return &sqlDashboard{
-		queries: queries{
-			countByStatus:      countByStatus,
-			deliveryStatus:     deliveryStatus,
-			topBusiestDomains:  topBusiestDomains,
-			topDomainsByStatus: topDomainsByStatus,
-		},
-		closers: closeutil.New(
-			countByStatus,
-			deliveryStatus,
-			topBusiestDomains,
-			topDomainsByStatus,
-		),
+		pool: pool,
 	}, nil
 }
 
 var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries")
 
-func (d *sqlDashboard) Close() error {
-	if err := d.closers.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
-	return countByStatus(ctx, d.queries.countByStatus, status, interval)
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	return countByStatus(ctx, conn.Stmts["countByStatus"], status, interval)
 }
 
 func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topBusiestDomains, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.BouncedStatus,
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.BouncedStatus,
 		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return listDomainAndCount(ctx, d.queries.topDomainsByStatus, parser.DeferredStatus,
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.DeferredStatus,
 		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
-	return deliveryStatus(ctx, d.queries.deliveryStatus, interval)
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	return deliveryStatus(ctx, conn.Stmts["deliveryStatus"], interval)
 }
 
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {

@@ -23,7 +23,7 @@ type txAction func(*sql.Tx) error
 
 type Engine struct {
 	core              *core.Core
-	insightsStateConn dbconn.ConnPair
+	insightsStateConn *dbconn.PooledPair
 	txActions         chan txAction
 	fetcher           core.Fetcher
 	closers           closeutil.Closers
@@ -37,7 +37,7 @@ func NewCustomEngine(
 	buildDetectors func(*creator, core.Options) []core.Detector,
 	additionalActions func([]core.Detector, dbconn.RwConn) error,
 ) (*Engine, error) {
-	stateConn, err := dbconn.NewConnPair(path.Join(workspaceDir, "insights.db"))
+	stateConn, err := dbconn.Open(path.Join(workspaceDir, "insights.db"), 10)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -73,7 +73,7 @@ func NewCustomEngine(
 		return nil, errorutil.Wrap(err)
 	}
 
-	fetcher, err := newFetcher(stateConn.RoConn)
+	fetcher, err := newFetcher(stateConn.RoConnPool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -84,10 +84,7 @@ func NewCustomEngine(
 		insightsStateConn: stateConn,
 		txActions:         make(chan txAction, 1024),
 		fetcher:           fetcher,
-		closers: closeutil.New(
-			c,
-			fetcher,
-		),
+		closers:           closeutil.New(c),
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {

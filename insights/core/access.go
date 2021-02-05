@@ -146,7 +146,6 @@ type FetchOptions struct {
 
 type Fetcher interface {
 	FetchInsights(context.Context, FetchOptions) ([]FetchedInsight, error)
-	Close() error
 }
 
 type queryKey struct {
@@ -157,19 +156,16 @@ type queryKey struct {
 type paramBuilder func(FetchOptions) []interface{}
 
 type queryValue struct {
-	q *sql.Stmt
 	p paramBuilder
 }
 
 type fetcher struct {
+	pool    *dbconn.RoPool
 	queries map[queryKey]queryValue
 }
 
-// the queries are closed in the Close() method, which for some reason the linter cannot detect
-//nolint:sqlclosecheck
-func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
-	buildSelectStmt := func(where, order string) string {
-		return fmt.Sprintf(`
+func buildSelectStmt(where, order string) string {
+	return fmt.Sprintf(`
 	select
 		rowid, time, category, rating, content_type, content
 	from
@@ -181,56 +177,93 @@ func NewFetcher(conn dbconn.RoConn) (Fetcher, error) {
 	limit
 		?
 	`, where, order)
-	}
-
-	buildQuery := func(s string, p paramBuilder) queryValue {
-		q, err := conn.Prepare(s)
-		errorutil.MustSucceed(err, "Preparing query "+s)
-
-		return queryValue{q: q, p: p}
-	}
-
-	limit := func(o FetchOptions) int {
-		if o.MaxEntries == 0 {
-			return math.MaxInt32
-		}
-
-		return o.MaxEntries
-	}
-
-	return &fetcher{
-		queries: map[queryKey]queryValue{
-			{order: OrderByCreationDesc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time desc`),
-				func(o FetchOptions) []interface{} {
-					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-				}),
-
-			{order: OrderByCreationDesc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time desc`),
-				func(o FetchOptions) []interface{} {
-					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-				}),
-
-			{order: OrderByCreationAsc, filter: FilterByCategory}: buildQuery(buildSelectStmt(`category = ? and time between ? and ?`, `time asc`),
-				func(o FetchOptions) []interface{} {
-					return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-				}),
-
-			{order: OrderByCreationAsc, filter: NoFetchFilter}: buildQuery(buildSelectStmt(`time between ? and ?`, `time asc`),
-				func(o FetchOptions) []interface{} {
-					return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), limit(o)}
-				}),
-		},
-	}, nil
 }
 
-func (f *fetcher) Close() error {
-	for _, query := range f.queries {
-		if err := query.q.Close(); err != nil {
-			return errorutil.Wrap(err)
-		}
+func buildLimitForFetchOptions(o FetchOptions) int {
+	if o.MaxEntries == 0 {
+		return math.MaxInt32
 	}
 
-	return nil
+	return o.MaxEntries
+}
+
+func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
+	buildQuery := func(key queryKey, s string) error {
+		err := pool.ForEach(func(c *dbconn.RoPooledConn) error {
+			//nolint:sqlclosecheck
+			q, err := c.Prepare(s)
+			if err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			c.Stmts[key] = q
+
+			c.Closers = append(c.Closers, q)
+
+			return nil
+		})
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	type queriesBuilderPair struct {
+		key          queryKey
+		value        func(key queryKey) error
+		paramBuilder paramBuilder
+	}
+
+	queriesBuilders := []queriesBuilderPair{
+		{
+			key:   queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
+			value: func(key queryKey) error { return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time desc`)) },
+			paramBuilder: func(o FetchOptions) []interface{} {
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+			},
+		},
+		{
+			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time desc`))
+			},
+			paramBuilder: func(o FetchOptions) []interface{} {
+				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+			},
+		},
+		{
+			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time asc`))
+			},
+			paramBuilder: func(o FetchOptions) []interface{} {
+				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+			},
+		},
+		{
+			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time asc`))
+			},
+			paramBuilder: func(o FetchOptions) []interface{} {
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+			},
+		},
+	}
+
+	queries := map[queryKey]queryValue{}
+
+	for _, b := range queriesBuilders {
+		if err := b.value(b.key); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		queries[b.key] = queryValue{p: b.paramBuilder}
+	}
+
+	return &fetcher{queries: queries, pool: pool}, nil
 }
 
 type fetchedInsight struct {
@@ -269,13 +302,24 @@ func (f *fetchedInsight) Content() Content {
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
 func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]FetchedInsight, error) {
-	query, ok := f.queries[queryKey{order: options.OrderBy, filter: options.FilterBy}]
+	conn, release := f.pool.Acquire()
 
+	defer release()
+
+	key := queryKey{order: options.OrderBy, filter: options.FilterBy}
+
+	stmt, ok := conn.Stmts[key]
 	if !ok {
-		log.Panic().Msgf("Sql query for options %v not implemented!!!!", options)
+		log.Panic().Msgf("Sql stmt for options %v not implemented!!!!", options)
 	}
 
-	rows, err := query.q.QueryContext(ctx, query.p(options)...)
+	query := f.queries[key]
+
+	if !ok {
+		log.Panic().Msgf("Sql arguments for options %v not implemented!!!!", options)
+	}
+
+	rows, err := stmt.QueryContext(ctx, query.p(options)...)
 
 	if err != nil {
 		return []FetchedInsight{}, errorutil.Wrap(err)

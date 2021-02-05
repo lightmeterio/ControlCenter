@@ -110,22 +110,26 @@ type trackerStmts [lastTrackerStmtKey]*sql.Stmt
 type Tracker struct {
 	runner.CancelableRunner
 
-	stmts                trackerStmts
-	dbconn               dbconn.ConnPair
-	actions              chan actionTuple
-	txActions            <-chan func(*sql.Tx) error
-	resultsToNotify      chan resultInfo
-	queuesCommitNotifier *queuesCommitNotifier
+	stmts           trackerStmts
+	dbconn          *dbconn.PooledPair
+	actions         chan actionTuple
+	txActions       <-chan func(*sql.Tx) error
+	resultsToNotify chan resultInfo
+	resultsNotifier *resultsNotifier
 }
 
 func (t *Tracker) MostRecentLogTime() time.Time {
+	conn, release := t.dbconn.RoConnPool.Acquire()
+
+	defer release()
+
 	queryConnection := `select value from connection_data where key in (?,?) order by id desc limit 1`
 	queryResult := `select value from result_data where key = ? order by id desc limit 1`
 	queryQueue := `select value from queue_data where key in (?,?) order by id desc limit 1`
 
 	exec := func(query string, args ...interface{}) int64 {
 		var ts int64
-		err := t.dbconn.RoConn.QueryRow(query, args...).Scan(&ts)
+		err := conn.QueryRow(query, args...).Scan(&ts)
 
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0
@@ -172,7 +176,7 @@ func (t *Tracker) Close() error {
 }
 
 func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
-	conn, err := dbconn.NewConnPair(path.Join(workspaceDir, "logtracker.db"))
+	conn, err := dbconn.Open(path.Join(workspaceDir, "logtracker.db"), 5)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -195,7 +199,9 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	notifierStmts, err := prepareNotifierRoStmts(conn.RoConn)
+	notifierConn, releaseNotifierConn := conn.RoConnPool.Acquire()
+
+	notifierStmts, err := prepareNotifierRoStmts(notifierConn.RoConn)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -204,7 +210,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 
 	resultsToNotify := make(chan resultInfo, 1024*1000)
 
-	queuesCommitNotifier := &queuesCommitNotifier{
+	resultsNotifier := &resultsNotifier{
 		resultsToNotify: resultsToNotify,
 		publisher:       pub,
 	}
@@ -212,23 +218,25 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 	trackerActions := make(chan actionTuple, 1024*1000)
 
 	tracker := &Tracker{
-		stmts:                trackerStmts,
-		dbconn:               conn,
-		actions:              trackerActions,
-		txActions:            txActions,
-		resultsToNotify:      resultsToNotify,
-		queuesCommitNotifier: queuesCommitNotifier,
+		stmts:           trackerStmts,
+		dbconn:          conn,
+		actions:         trackerActions,
+		txActions:       txActions,
+		resultsToNotify: resultsToNotify,
+		resultsNotifier: resultsNotifier,
 	}
 
-	queuesCommitNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
+	resultsNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
 		go func() {
 			done <- func() error {
 				// will leave when resultsToNotify is closed
-				if err := runResultsNotifier(notifierStmts, queuesCommitNotifier, trackerStmts, txActions); err != nil {
+				if err := runResultsNotifier(notifierStmts, resultsNotifier, trackerStmts, txActions); err != nil {
 					return errorutil.Wrap(err)
 				}
 
 				close(txActions)
+
+				releaseNotifierConn()
 
 				return nil
 			}()
@@ -237,7 +245,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 
 	// TODO: cleanup this cancel/waitForDone code that is a total mess and impossible to understand!!!
 	tracker.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		notifierDone, _ := queuesCommitNotifier.Run()
+		notifierDone, _ := resultsNotifier.Run()
 
 		go func() {
 			<-cancel

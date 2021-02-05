@@ -17,8 +17,8 @@ type fetcher struct {
 	core.Fetcher
 }
 
-func newFetcher(conn dbconn.RoConn) (*fetcher, error) {
-	f, err := core.NewFetcher(conn)
+func newFetcher(pool *dbconn.RoPool) (*fetcher, error) {
+	f, err := core.NewFetcher(pool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
