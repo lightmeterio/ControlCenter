@@ -25,6 +25,24 @@ It's important that requests for new features not to include translated strings,
 
 When translations are done via such interface, a new merge request is created based on `master`. This happend because translations must be made on stable versions, and must not be done on development ones. See the file `TRANSLATION.md` for more information.
 
+### Licensing information
+
+It's important that new files that we hold copyright to have the proper SPDX headers on it.
+
+Such headers can be added using the [reuse tool](https://reuse.readthedocs.io/). For instance, for `.go` files, use:
+
+```sh
+$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-only" list.go of.go files.go
+```
+
+And for `.vue` files, use:
+
+```sh
+$ reuse addheader --copyright="Lightmeter <hello@lightmeter.io>" --license="AGPL-3.0-only" --style html list.vue of.vue files.vue
+```
+
+If you are adding a third party component that we don't have onwership, please add the respective to the file `.reuse/dep5`.
+
 ## Landing to master
 
 As many features might've been landed to `develop`, the process of landing then on master requires a bit more steps, but it's quite mechanical.

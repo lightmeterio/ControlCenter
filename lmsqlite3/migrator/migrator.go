@@ -1,8 +1,9 @@
-// This file contains some code from  https://github.com/pressly/goose:
-// Original work Copyright (c) 2012 Liam Staskawicz
-// Modified work Copyright (c) 2016 Vojtech Vitek
-// Modified work Copyright (c) 2020 Marcel Edmund Franke
-// LICENSE: https://github.com/pressly/goose/blob/master/LICENSE
+// Copyright (c) 2012 Liam Staskawicz
+// Copyright (c) 2016 Vojtech Vitek
+// Copyright (c) 2020 Marcel Edmund Franke
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: MIT
 
 package migrator
 
