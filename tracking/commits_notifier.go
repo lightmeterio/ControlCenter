@@ -23,7 +23,7 @@ type resultInfo struct {
 
 type resultsNotifier struct {
 	runner.CancelableRunner
-	resultsToNotify <-chan resultInfo
+	resultsToNotify <-chan resultInfos
 	publisher       ResultPublisher
 }
 
@@ -38,6 +38,7 @@ const (
 	selectQueueIdFromResult
 	selectPidHostByQueue
 	selectKeyValueFromConnections
+	selectConnectionIdForQueue
 	selectKeyValueFromQueues
 	selectKeyValueFromQueuesByKeyType
 	selectResultsByQueue
@@ -78,9 +79,15 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				connection_data.id, key, value
 			from
 				connection_data join connections on connection_data.connection_id = connections.id
-				join queues on queues.connection_id == connections.id
 			where
-				queues.id = ?`,
+				connections.id = ?`,
+	selectConnectionIdForQueue: `
+		select
+			connections.id
+		from
+			connections join queues on queues.connection_id = connections.id
+		where
+			queues.id = ?`,
 	selectKeyValueFromQueues: `
 			select
 				queue_data.key, queue_data.key, queue_data.value
@@ -173,6 +180,46 @@ func findConnectionAndDeliveryQueue(stmts notifierStmts, queueId int64, loc data
 	return findConnectionAndDeliveryQueue(stmts, origQueue, loc)
 }
 
+func collectConnectionKeyValueResults(stmts notifierStmts, connectionId int64) (Result, error) {
+	result := Result{}
+
+	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromConnections], connectionId); err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return result, nil
+}
+
+func collectQueuesKeyValueResults(stmts notifierStmts, queueId int64) (Result, error) {
+	result := Result{}
+
+	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromQueues], queueId); err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return result, nil
+}
+
+func collectQueuesOriginalMessageSizeKeyValueResults(stmts notifierStmts, queueId int64) (Result, error) {
+	result := Result{}
+
+	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromQueuesByKeyType], queueId, QueueOriginalMessageSizeKey); err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return result, nil
+}
+
+func collectResultKeyValueResults(stmts notifierStmts, resultId int64) (Result, error) {
+	result := Result{}
+
+	if err := collectKeyValueResult(&result, stmts[selectKeyValueForResults], resultId); err != nil {
+		return Result{}, errorutil.Wrap(err)
+	}
+
+	return result, nil
+}
+
 // FIXME: this method is way too long. Really. It deserves urgent refactoring
 func buildAndPublishResult(stmts notifierStmts,
 	resultInfo resultInfo,
@@ -206,26 +253,23 @@ func buildAndPublishResult(stmts notifierStmts,
 		return errorutil.Wrap(err)
 	}
 
-	// TODO: operate all on the same Result{}, except for the deliveryQueue stuff.
-	// It makes the mergeResults faster as it operates on less arrays!
-
-	connResult := Result{}
-
-	err = collectKeyValueResult(&connResult, stmts[selectKeyValueFromConnections], connQueueId)
+	var connectionId int64
+	err = stmts[selectConnectionIdForQueue].QueryRow(connQueueId).Scan(&connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	queueResult := Result{}
-
-	err = collectKeyValueResult(&queueResult, stmts[selectKeyValueFromQueues], connQueueId)
+	connResult, err := collectConnectionKeyValueResults(stmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	deliveryQueueResult := Result{}
+	queueResult, err := collectQueuesKeyValueResults(stmts, connQueueId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
-	err = collectKeyValueResult(&deliveryQueueResult, stmts[selectKeyValueFromQueuesByKeyType], deliveryQueueId, QueueOriginalMessageSizeKey)
+	deliveryQueueResult, err := collectQueuesOriginalMessageSizeKeyValueResults(stmts, deliveryQueueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -242,9 +286,7 @@ func buildAndPublishResult(stmts notifierStmts,
 
 	deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
 
-	resultResult := Result{}
-
-	err = collectKeyValueResult(&resultResult, stmts[selectKeyValueForResults], resultInfo.id)
+	resultResult, err := collectResultKeyValueResults(stmts, resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -307,20 +349,24 @@ func buildAndPublishResult(stmts notifierStmts,
 }
 
 func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
-	for resultInfo := range n.resultsToNotify {
-		err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
+	for resultInfos := range n.resultsToNotify {
+		for i := uint(0); i < resultInfos.size; i++ {
+			resultInfo := resultInfos.values[i]
 
-		if err == nil {
-			continue
+			err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
+
+			if err == nil {
+				continue
+			}
+
+			if errors.Is(err, sql.ErrNoRows) {
+				//nolint:errorlint
+				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
+				continue
+			}
+
+			return errorutil.Wrap(err)
 		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			//nolint:errorlint
-			log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
-			continue
-		}
-
-		return errorutil.Wrap(err)
 	}
 
 	return nil

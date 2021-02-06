@@ -11,7 +11,21 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfo, tx *sql.Tx) error {
+const resultInfosCapacity = 128
+
+type resultInfos struct {
+	size   uint
+	values [resultInfosCapacity]resultInfo
+}
+
+func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resultInfos) {
+	if resultInfos.size > 0 {
+		resultsToNotify <- *resultInfos
+		resultInfos.size = 0
+	}
+}
+
+func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx) error {
 	stmt := tx.Stmt(tracker.stmts[selectFromNotificationQueues])
 
 	defer func() {
@@ -38,8 +52,17 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfo, tx 
 	)
 
 	count := 0
+	resultInfos := resultInfos{}
 
-	for rows.Next() {
+	for {
+		if resultInfos.size == resultInfosCapacity {
+			tryToDispatchAndReset(&resultInfos, resultsToNotify)
+		}
+
+		if !rows.Next() {
+			break
+		}
+
 		count++
 
 		err = rows.Scan(&id, &resultId, &filename, &line)
@@ -47,10 +70,6 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfo, tx 
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		resultInfo := resultInfo{id: resultId, loc: data.RecordLocation{Line: line, Filename: filename}}
-
-		resultsToNotify <- resultInfo
 
 		// Yes, deleting while iterating over the results... That's supported by SQLite
 		stmt := tx.Stmt(tracker.stmts[deleteFromNotificationQueues])
@@ -63,14 +82,20 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfo, tx 
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
+
+		// TODO: encapsulate it on add()
+		resultInfos.values[resultInfos.size] = resultInfo{id: resultId, loc: data.RecordLocation{Line: line, Filename: filename}}
+		resultInfos.size++
+	}
+
+	tryToDispatchAndReset(&resultInfos, resultsToNotify)
+
+	if count > 0 {
+		log.Info().Msgf("Dispatched a total of %v", count)
 	}
 
 	if err := rows.Err(); err != nil {
 		return errorutil.Wrap(err)
-	}
-
-	if count > 0 {
-		log.Debug().Msgf("Tracker has dispatched %v messages", count)
 	}
 
 	return nil

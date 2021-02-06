@@ -114,7 +114,7 @@ type Tracker struct {
 	dbconn          *dbconn.PooledPair
 	actions         chan actionTuple
 	txActions       <-chan func(*sql.Tx) error
-	resultsToNotify chan resultInfo
+	resultsToNotify chan resultInfos
 	resultsNotifier *resultsNotifier
 }
 
@@ -208,7 +208,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 
 	txActions := make(chan func(*sql.Tx) error, 1024*1000)
 
-	resultsToNotify := make(chan resultInfo, 1024*1000)
+	resultsToNotify := make(chan resultInfos, 1024)
 
 	resultsNotifier := &resultsNotifier{
 		resultsToNotify: resultsToNotify,

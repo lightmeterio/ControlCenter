@@ -231,9 +231,12 @@ func TestTrackingFromFiles(t *testing.T) {
 
 				// the second message is a bounce back one
 				So(len(pub.results), ShouldEqual, 2)
+				So(pub.results[0][ConnectionClientHostnameKey], ShouldEqual, "some.domain.name")
 				So(pub.results[0][QueueSenderLocalPartKey], ShouldEqual, "user")
 				So(pub.results[0][QueueSenderDomainPartKey], ShouldEqual, "sender.com")
 				So(pub.results[0][QueueMessageIDKey], ShouldEqual, "ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com")
+				So(pub.results[0][QueueOriginalMessageSizeKey], ShouldEqual, 391)
+				So(pub.results[0][QueueProcessedMessageSizeKey], ShouldEqual, 1111)
 				So(pub.results[0][ResultRecipientLocalPartKey], ShouldEqual, "invalid.email")
 				So(pub.results[0][ResultRecipientDomainPartKey], ShouldEqual, "example.com")
 				So(pub.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
