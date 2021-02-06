@@ -1,16 +1,17 @@
+
+//line bounce.rl:1
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//line bounce.rl:1
 // +build !codeanalysis
 
 package rawparser
 
 
-//line bounce.rl:6
+//line bounce.rl:10
 
-//line bounce.gen.go:11
+//line bounce.gen.go:15
 const bounceCreated_start int = 1
 const bounceCreated_first_final int = 53
 const bounceCreated_error int = 0
@@ -18,7 +19,7 @@ const bounceCreated_error int = 0
 const bounceCreated_en_main int = 1
 
 
-//line bounce.rl:7
+//line bounce.rl:11
 
 func parseBounceCreated(data []byte) (BounceCreated, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -29,12 +30,12 @@ func parseBounceCreated(data []byte) (BounceCreated, bool) {
 	r := BounceCreated{}
 
 
-//line bounce.gen.go:30
+//line bounce.gen.go:34
 	{
 	cs = bounceCreated_start
 	}
 
-//line bounce.gen.go:35
+//line bounce.gen.go:39
 	{
 	if p == pe {
 		goto _test_eof
@@ -169,7 +170,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st2
 	st2:
@@ -177,7 +178,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line bounce.gen.go:178
+//line bounce.gen.go:182
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -195,7 +196,7 @@ tr0:
 		}
 		goto st0
 tr3:
-//line bounce.rl:19
+//line bounce.rl:23
 
 		r.Queue = data[tokBeg:p]
 	
@@ -205,7 +206,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line bounce.gen.go:206
+//line bounce.gen.go:210
 		if data[p] == 32 {
 			goto st4
 		}
@@ -565,16 +566,16 @@ tr3:
 		}
 		goto st0
 tr43:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
-//line bounce.rl:25
+//line bounce.rl:29
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
 	
 	goto st53
 tr54:
-//line bounce.rl:25
+//line bounce.rl:29
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -585,7 +586,7 @@ tr54:
 			goto _test_eof53
 		}
 	st_case_53:
-//line bounce.gen.go:586
+//line bounce.gen.go:590
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -756,7 +757,7 @@ tr54:
 	_out: {}
 	}
 
-//line bounce.rl:32
+//line bounce.rl:36
 
 
 	return r, false

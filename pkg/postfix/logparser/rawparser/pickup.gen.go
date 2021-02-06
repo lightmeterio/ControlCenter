@@ -1,13 +1,17 @@
 
 //line pickup.rl:1
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // +build !codeanalysis
 
 package rawparser
 
 
-//line pickup.rl:6
+//line pickup.rl:10
 
-//line pickup.gen.go:11
+//line pickup.gen.go:15
 const pickup_start int = 1
 const pickup_first_final int = 18
 const pickup_error int = 0
@@ -15,7 +19,7 @@ const pickup_error int = 0
 const pickup_en_main int = 1
 
 
-//line pickup.rl:7
+//line pickup.rl:11
 
 func parsePickup(data []byte) (Pickup, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -26,12 +30,12 @@ func parsePickup(data []byte) (Pickup, bool) {
 	r := Pickup{}
 
 
-//line pickup.gen.go:30
+//line pickup.gen.go:34
 	{
 	cs = pickup_start
 	}
 
-//line pickup.gen.go:35
+//line pickup.gen.go:39
 	{
 	if p == pe {
 		goto _test_eof
@@ -96,7 +100,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st2
 	st2:
@@ -104,7 +108,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line pickup.gen.go:108
+//line pickup.gen.go:112
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -122,7 +126,7 @@ tr0:
 		}
 		goto st0
 tr3:
-//line pickup.rl:19
+//line pickup.rl:23
 
 		r.Queue = data[tokBeg:p]
 	
@@ -132,7 +136,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line pickup.gen.go:136
+//line pickup.gen.go:140
 		if data[p] == 32 {
 			goto st4
 		}
@@ -183,7 +187,7 @@ tr3:
 		}
 		goto st0
 tr9:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st9
 	st9:
@@ -191,7 +195,7 @@ tr9:
 			goto _test_eof9
 		}
 	st_case_9:
-//line pickup.gen.go:195
+//line pickup.gen.go:199
 		if data[p] == 32 {
 			goto tr10
 		}
@@ -200,7 +204,7 @@ tr9:
 		}
 		goto st0
 tr10:
-//line pickup.rl:23
+//line pickup.rl:27
 
 		r.Uid = data[tokBeg:p]
 	
@@ -210,7 +214,7 @@ tr10:
 			goto _test_eof10
 		}
 	st_case_10:
-//line pickup.gen.go:214
+//line pickup.gen.go:218
 		if data[p] == 102 {
 			goto st11
 		}
@@ -270,7 +274,7 @@ tr10:
 		}
 		goto tr18
 tr18:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st17
 	st17:
@@ -278,29 +282,29 @@ tr18:
 			goto _test_eof17
 		}
 	st_case_17:
-//line pickup.gen.go:282
+//line pickup.gen.go:286
 		if data[p] == 62 {
 			goto tr21
 		}
 		goto st17
 tr19:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
-//line pickup.rl:27
+//line pickup.rl:31
 
 		r.Sender = normalizeMailLocalPart(data[tokBeg:p])
 	
-//line pickup.rl:31
+//line pickup.rl:35
 
 		return r, true
 	
 	goto st18
 tr21:
-//line pickup.rl:27
+//line pickup.rl:31
 
 		r.Sender = normalizeMailLocalPart(data[tokBeg:p])
 	
-//line pickup.rl:31
+//line pickup.rl:35
 
 		return r, true
 	
@@ -310,7 +314,7 @@ tr21:
 			goto _test_eof18
 		}
 	st_case_18:
-//line pickup.gen.go:314
+//line pickup.gen.go:318
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -335,7 +339,7 @@ tr21:
 	_out: {}
 	}
 
-//line pickup.rl:37
+//line pickup.rl:41
 
 
 	return r, false
