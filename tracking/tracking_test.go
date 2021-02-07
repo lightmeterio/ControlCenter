@@ -369,6 +369,108 @@ func TestTrackingFromFiles(t *testing.T) {
 				So(countPids(), ShouldEqual, 0)
 				So(countMessageIds(), ShouldEqual, 0)
 			})
+
+			Convey("Single delived message", func() {
+				readFromTestFile("test_files/11_single_successful_delivery.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 1)
+
+				So(pub.results[0][ConnectionClientHostnameKey], ShouldEqual, "client.example.com")
+				So(pub.results[0][QueueSenderLocalPartKey], ShouldEqual, "sender")
+				So(pub.results[0][QueueSenderDomainPartKey], ShouldEqual, "mydomain.com")
+				So(pub.results[0][QueueMessageIDKey], ShouldEqual, "264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com")
+				So(pub.results[0][QueueOriginalMessageSizeKey], ShouldEqual, 502)
+				So(pub.results[0][QueueProcessedMessageSizeKey], ShouldEqual, 1188)
+				So(pub.results[0][ResultRecipientLocalPartKey], ShouldEqual, "recipient1")
+				So(pub.results[0][ResultRecipientDomainPartKey], ShouldEqual, "dst1.example.com")
+				So(pub.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+				So(pub.results[0][ResultStatusKey], ShouldEqual, parser.SentStatus)
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
+
+			Convey("Two deliveries using the same smtp2 pid, processing in order", func() {
+				readFromTestFile("test_files/12_two_independent_deliveries_in_the_same_smtpd_process_in_order.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 2)
+
+				So(pub.results[0][ConnectionClientHostnameKey], ShouldEqual, "client.example.com")
+				So(pub.results[0][QueueSenderLocalPartKey], ShouldEqual, "sender")
+				So(pub.results[0][QueueSenderDomainPartKey], ShouldEqual, "mydomain.com")
+				So(pub.results[0][QueueOriginalMessageSizeKey], ShouldEqual, 502)
+				So(pub.results[0][QueueProcessedMessageSizeKey], ShouldEqual, 1188)
+				So(pub.results[0][ResultRecipientLocalPartKey], ShouldEqual, "recipient1")
+				So(pub.results[0][ResultRecipientDomainPartKey], ShouldEqual, "dst1.example.com")
+				So(pub.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+				So(pub.results[0][ResultStatusKey], ShouldEqual, parser.SentStatus)
+				So(pub.results[0][QueueMessageIDKey], ShouldEqual, "264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com")
+
+				So(pub.results[1][ConnectionClientHostnameKey], ShouldEqual, "client2.another.example.com")
+				So(pub.results[1][QueueSenderLocalPartKey], ShouldEqual, "sender2")
+				So(pub.results[1][QueueSenderDomainPartKey], ShouldEqual, "mydomain2.com")
+				So(pub.results[1][QueueOriginalMessageSizeKey], ShouldEqual, 503)
+				So(pub.results[1][QueueProcessedMessageSizeKey], ShouldEqual, 1189)
+				So(pub.results[1][ResultRecipientLocalPartKey], ShouldEqual, "dst2")
+				So(pub.results[1][ResultRecipientDomainPartKey], ShouldEqual, "dst2.com")
+				So(pub.results[1][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+				So(pub.results[1][ResultStatusKey], ShouldEqual, parser.SentStatus)
+				So(pub.results[1][QueueMessageIDKey], ShouldEqual, "lalalacacaca@lala.com")
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
+
+			Convey("Two deliveries using the same smtp2 pid, processing mixed", func() {
+				readFromTestFile("test_files/12_two_independent_deliveries_in_the_same_smtpd_process_mixed.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 2)
+
+				// the later message is sent before the second one
+
+				So(pub.results[0][ConnectionClientHostnameKey], ShouldEqual, "client2.another.example.com")
+				So(pub.results[0][QueueSenderLocalPartKey], ShouldEqual, "sender2")
+				So(pub.results[0][QueueSenderDomainPartKey], ShouldEqual, "mydomain2.com")
+				So(pub.results[0][QueueOriginalMessageSizeKey], ShouldEqual, 503)
+				So(pub.results[0][QueueProcessedMessageSizeKey], ShouldEqual, 1189)
+				So(pub.results[0][ResultRecipientLocalPartKey], ShouldEqual, "dst2")
+				So(pub.results[0][ResultRecipientDomainPartKey], ShouldEqual, "dst2.com")
+				So(pub.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+				So(pub.results[0][ResultStatusKey], ShouldEqual, parser.SentStatus)
+				So(pub.results[0][QueueMessageIDKey], ShouldEqual, "lalalacacaca@lala.com")
+
+				So(pub.results[1][ConnectionClientHostnameKey], ShouldEqual, "client.example.com")
+				So(pub.results[1][QueueSenderLocalPartKey], ShouldEqual, "sender")
+				So(pub.results[1][QueueSenderDomainPartKey], ShouldEqual, "mydomain.com")
+				So(pub.results[1][QueueOriginalMessageSizeKey], ShouldEqual, 502)
+				So(pub.results[1][QueueProcessedMessageSizeKey], ShouldEqual, 1188)
+				So(pub.results[1][ResultRecipientLocalPartKey], ShouldEqual, "recipient1")
+				So(pub.results[1][ResultRecipientDomainPartKey], ShouldEqual, "dst1.example.com")
+				So(pub.results[1][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
+				So(pub.results[1][ResultStatusKey], ShouldEqual, parser.SentStatus)
+				So(pub.results[1][QueueMessageIDKey], ShouldEqual, "264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com")
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
 		})
 
 		// we expected all results to have been consumed

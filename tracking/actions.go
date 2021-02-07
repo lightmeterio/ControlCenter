@@ -115,7 +115,7 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 	// TODO: there might be other payloads about connection, so this cast is not always safe
 	payload := r.Payload.(parser.SmtpdConnect)
 
-	stmt := tx.Stmt(t.stmts[insertConnectionDataTwoRows])
+	stmt := tx.Stmt(t.stmts[insertConnectionDataFourRows])
 
 	defer func() {
 		errorutil.MustSucceed(stmt.Close())
@@ -123,7 +123,10 @@ func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionD
 
 	_, err = stmt.Exec(
 		connectionId, ConnectionBeginKey, r.Time.Unix(),
-		connectionId, ConnectionClientHostnameKey, payload.Host)
+		connectionId, ConnectionClientHostnameKey, payload.Host,
+		connectionId, ConnectionFilenameKey, r.Location.Filename,
+		connectionId, ConnectionLineKey, r.Location.Line,
+	)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -172,7 +175,28 @@ func findConnectionIdAndUsageCounter(tx *sql.Tx, t *Tracker, h parser.Header) (i
 	return connectionId, usageCounter, nil
 }
 
-func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string) (int64, error) {
+type kvData struct {
+	key   uint
+	value interface{}
+}
+
+func insertQueueDataValues(tx *sql.Tx, stmts trackerStmts, queueId int64, values ...kvData) error {
+	stmt := tx.Stmt(stmts[insertQueueData])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	for _, v := range values {
+		if _, err := stmt.Exec(queueId, v.key, v.value); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string, loc data.RecordLocation) (int64, error) {
 	stmt := tx.Stmt(tracker.stmts[insertQueueForConnection])
 
 	defer func() {
@@ -189,13 +213,11 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 		return 0, errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(tracker.stmts[insertQueueData])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(queueId, QueueBeginKey, time.Unix())
+	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+		kvData{key: QueueBeginKey, value: time.Unix()},
+		kvData{key: QueueFilenameKey, value: loc.Filename},
+		kvData{key: QueueLineKey, value: loc.Line},
+	)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -211,10 +233,6 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 
 // assign a queue, just created.
 // find the connection with a given pid, and append the queue to the connection
-// TODO: handle cases where there are more than one queue for a given pid.
-// (but first, confirm whether that's possible)
-// In such cases, QueryRow() below will return multiple rows
-
 func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
@@ -228,7 +246,7 @@ func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair act
 		return errorutil.Wrap(err)
 	}
 
-	_, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue)
+	_, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue, r.Location)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -266,7 +284,7 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 	return nil
 }
 
-func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted) (int64, error) {
+func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted, loc data.RecordLocation) (int64, error) {
 	var existingMessageId int64
 
 	stmt := tx.Stmt(t.stmts[selectMessageIdForMessage])
@@ -297,7 +315,7 @@ func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupM
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	result, err := stmt.Exec(p.MessageId)
+	result, err := stmt.Exec(p.MessageId, loc.Filename, loc.Line)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -332,7 +350,7 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 
 		// Then a queue for it
 
-		queueId, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue)
+		queueId, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue, r.Location)
 		if err != nil {
 			return 0, errorutil.Wrap(err)
 		}
@@ -344,7 +362,7 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 		return errorutil.Wrap(err)
 	}
 
-	messageidId, err := getUniqueMessageIdOrCreateANewOne(tx, tracker, p)
+	messageidId, err := getUniqueMessageIdOrCreateANewOne(tx, tracker, p, r.Location)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -397,17 +415,11 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPai
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(tracker.stmts[insertQueueDataFourRows])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(
-		queueId, QueueSenderLocalPartKey, p.SenderLocalPart,
-		queueId, QueueSenderDomainPartKey, p.SenderDomainPart,
-		queueId, QueueOriginalMessageSizeKey, p.Size,
-		queueId, QueueNRCPTKey, p.Nrcpt,
+	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+		kvData{key: QueueSenderLocalPartKey, value: p.SenderLocalPart},
+		kvData{key: QueueSenderDomainPartKey, value: p.SenderDomainPart},
+		kvData{key: QueueOriginalMessageSizeKey, value: p.Size},
+		kvData{key: QueueNRCPTKey, value: p.Nrcpt},
 	)
 
 	if err != nil {
@@ -585,13 +597,12 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(tracker.stmts[insertQueueData])
+	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+		kvData{key: QueueEndKey, value: r.Time.Unix()},
+		kvData{key: QueueCommitFilenameKey, value: r.Location.Filename},
+		kvData{key: QueueCommitLineKey, value: r.Location.Line},
+	)
 
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(queueId, QueueEndKey, r.Time.Unix())
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -772,18 +783,16 @@ func pickupAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDa
 	}
 
 	// then the queue
-	queueId, err := createQueue(t, tx, r.Time, connectionId, p.Queue)
+	queueId, err := createQueue(t, tx, r.Time, connectionId, p.Queue, r.Location)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(t.stmts[insertQueueDataTwoRows])
+	err = insertQueueDataValues(tx, t.stmts, queueId,
+		kvData{key: PickupUidKey, value: p.Uid},
+		kvData{key: PickupSenderKey, value: p.Sender},
+	)
 
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(queueId, PickupUidKey, p.Uid, queueId, PickupSenderKey, p.Sender)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

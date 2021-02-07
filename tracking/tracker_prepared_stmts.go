@@ -17,7 +17,7 @@ const (
 
 	insertPidOnConnection
 	insertConnectionOnConnection
-	insertConnectionDataTwoRows
+	insertConnectionDataFourRows
 	insertConnectionData
 	selectConnectionAndUsageCounterForPid
 	insertQueueForConnection
@@ -31,8 +31,6 @@ const (
 	decrementMessageIdUsageById
 	updateQueueWithMessageId
 	selectQueueIdForQueue
-	insertQueueDataFourRows
-	insertQueueDataTwoRows
 	insertQueueParenting
 	insertNotificationQueue
 	selectNewQueueFromParenting
@@ -71,7 +69,7 @@ const (
 var trackerStmtsText = map[trackerStmtKey]string{
 	insertPidOnConnection:        `insert into pids(pid, host, usage_counter) values(?, ?, 0)`,
 	insertConnectionOnConnection: `insert into connections(pid_id, usage_counter) values(?, 0)`,
-	insertConnectionDataTwoRows:  `insert into connection_data(connection_id, key, value) values(?, ?, ?), (?, ?, ?)`,
+	insertConnectionDataFourRows: `insert into connection_data(connection_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
 	insertConnectionData:         `insert into connection_data(connection_id, key, value) values(?, ?, ?)`,
 	selectConnectionAndUsageCounterForPid: `select
 		connections.id, connections.usage_counter
@@ -79,7 +77,11 @@ var trackerStmtsText = map[trackerStmtKey]string{
 		connections join pids
 	where
 		connections.pid_id = pids.id 
-		and pids.host = ? and pids.pid = ?`,
+		and pids.host = ? and pids.pid = ?
+	order by
+		connections.id desc
+	limit 1
+	`,
 	// when a queue is created, the tracker is using it, therefore its counter is 1
 	insertQueueForConnection:    `insert into queues(connection_id, queue, usage_counter) values(?, ?, 1)`,
 	incrementQueueUsageById:     `update queues set usage_counter = usage_counter + 1 where id = ?`,
@@ -87,7 +89,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	queueUsageCounter:           `select usage_counter from queues where id = ?`,
 	insertQueueData:             `insert into queue_data(queue_id, key, value) values(?, ?, ?)`,
 	selectMessageIdForMessage:   `select id from messageids where value = ?`,
-	insertMessageId:             `insert into messageids(value, usage_counter) values(?, 1)`,
+	insertMessageId:             `insert into messageids(value, usage_counter, filename, line) values(?, 1, ?, ?)`,
 	incrementMessageIdUsageById: `update messageids set usage_counter = usage_counter + 1 where id = ?`,
 	decrementMessageIdUsageById: `update messageids set usage_counter = usage_counter - 1 where id = ?`,
 	updateQueueWithMessageId:    `update queues set messageid_id = ? where queues.id = ?`,
@@ -98,8 +100,6 @@ var trackerStmtsText = map[trackerStmtKey]string{
 		join pids on connections.pid_id = pids.id
 	where
 		pids.host = ? and queues.queue = ?`,
-	insertQueueDataFourRows:          `insert into queue_data(queue_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
-	insertQueueDataTwoRows:           `insert into queue_data(queue_id, key, value) values(?, ?, ?), (?, ?, ?)`,
 	insertQueueParenting:             `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, ?, ?)`,
 	selectNewQueueFromParenting:      `select new_queue_id from queue_parenting where orig_queue_id = ?`,
