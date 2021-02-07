@@ -7,9 +7,14 @@
 package rawparser
 
 func init() {
+	// from the standard postfix setup
 	registerHandler("postfix", "submission/smtpd", parseSmtpdPayload) // for remote connection
 	registerHandler("postfix", "smtpd", parseSmtpdPayload)            // for local connection
-	registerHandler("postfix", "amavisd/smtpd", parseSmtpdPayload)    // for some weird setups (zimbra, for instance)
+
+	// detected in some zimbra setups
+	registerHandler("postfix", "amavisd/smtpd", parseSmtpdPayload)
+	registerHandler("postfix", "dkimmilter/smtpd", parseSmtpdPayload)
+	registerHandler("postfix", "smtps/smtpd", parseSmtpdPayload)
 }
 
 type SmtpdConnect struct {
