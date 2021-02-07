@@ -72,7 +72,7 @@ func insertConnectionWithPid(tracker *Tracker, tx *sql.Tx, pidId int64) (int64, 
 	return connectionId, nil
 }
 
-func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error) {
+func insertPid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, error) {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
 	stmt := tx.Stmt(tracker.stmts[insertPidOnConnection])
@@ -81,7 +81,7 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	result, err := stmt.Exec(r.Header.PID, r.Header.Host)
+	result, err := stmt.Exec(pid, host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -91,7 +91,45 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error
 		return 0, errorutil.Wrap(err)
 	}
 
+	return pidId, nil
+}
+
+func acquirePid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, error) {
+	stmt := tx.Stmt(tracker.stmts[selectPidForPidAndHost])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	var pidId int64
+
+	err := stmt.QueryRow(pid, host).Scan(&pidId)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		// Create new pid
+		pidId, err := insertPid(tracker, tx, pid, host)
+
+		if err != nil {
+			return 0, errorutil.Wrap(err)
+		}
+
+		return pidId, nil
+	}
+
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
 	err = incrementPidUsage(tx, tracker.stmts, pidId)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	// reuse existing pid
+	return pidId, nil
+}
+
+func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error) {
+	pidId, err := acquirePid(tracker, tx, r.Header.PID, r.Header.Host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}

@@ -62,12 +62,13 @@ const (
 	countPidUsageByPidId
 	incrementPidUsageById
 	decrementPidUsageById
+	selectPidForPidAndHost
 
 	lastTrackerStmtKey
 )
 
 var trackerStmtsText = map[trackerStmtKey]string{
-	insertPidOnConnection:        `insert into pids(pid, host, usage_counter) values(?, ?, 0)`,
+	insertPidOnConnection:        `insert into pids(pid, host, usage_counter) values(?, ?, 1)`,
 	insertConnectionOnConnection: `insert into connections(pid_id, usage_counter) values(?, 0)`,
 	insertConnectionDataFourRows: `insert into connection_data(connection_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
 	insertConnectionData:         `insert into connection_data(connection_id, key, value) values(?, ?, ?)`,
@@ -149,6 +150,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	countPidUsageByPidId:               `select usage_counter from pids where id = ?`,
 	incrementPidUsageById:              `update pids set usage_counter = usage_counter + 1 where id = ?`,
 	decrementPidUsageById:              `update pids set usage_counter = usage_counter - 1 where id = ?`,
+	selectPidForPidAndHost:             `select id from pids where pid = ? and host = ?`,
 }
 
 // TODO: close such statements when the tracker is deleted!!!
