@@ -59,7 +59,7 @@ func (e *DeletionError) Error() string {
 }
 
 func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
-	deleted, err := tryToDeleteQueueNotIgnoringErrors(tx, trackerStmts, queueId)
+	deleted, err := tryToDeleteQueueNotIgnoringErrors(tx, trackerStmts, queueId, loc)
 
 	// Treat deletion errors (some queries return "norows") differently for now...
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -73,7 +73,7 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc 
 	return deleted, nil
 }
 
-func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) (bool, error) {
+func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
 	err := decrementQueueUsage(tx, trackerStmts, queueId)
 	if err != nil {
 		return false, errorutil.Wrap(err)
