@@ -11,7 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-const resultInfosCapacity = 128
+const resultInfosCapacity = 512
 
 type resultInfos struct {
 	size   uint

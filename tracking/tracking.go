@@ -437,7 +437,7 @@ func runTracker(t *Tracker) error {
 		err error
 	)
 
-	messagesTicker := time.NewTicker(500 * time.Millisecond)
+	messagesTicker := time.NewTicker(1000 * time.Millisecond)
 
 	txActionsAsValue := reflect.ValueOf(t.txActions)
 	tickerAsValue := reflect.ValueOf(messagesTicker.C)
