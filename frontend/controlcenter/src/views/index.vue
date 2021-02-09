@@ -41,7 +41,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <graphdashboard :graphDateRange="dateRange"></graphdashboard>
+      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
@@ -87,7 +87,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 form="insights-form"
                 v-model="insightsFilter"
                 style="width: 33%"
-                v-on:change="onFetchInsights"
+                v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
                 <option selected value="nofilter">
@@ -121,7 +121,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 form="insights-form"
                 v-model="insightsSort"
                 style="width: 38%"
-                v-on:change="onFetchInsights"
+                v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
                 <option
@@ -200,6 +200,14 @@ function formatDatePickerValue(obj) {
     moment(obj.endDate).format("D MMM");
 }
 
+function buildDefaultInterval() {
+  // past month
+  return {
+    startDate: moment().subtract(29, "days").format("YYYY-MM-DD"),
+    endDate: moment().format("YYYY-MM-DD"),
+  };
+}
+
 export default {
   name: "insight",
   components: { DateRangePicker },
@@ -207,19 +215,14 @@ export default {
   data() {
     return {
       username: "",
-      fetchInsightsInterval: null,
+      updateDashboardAndInsightsIntervalID: null,
       sessionInterval: null,
       triggerRefreshValue: false,
       autoApply: true,
       alwaysShowCalendars: false,
       singleDatePicker: false,
-      dateRange: {
-        startDate: moment()
-          .subtract(29, "days")
-          .format("YYYY-MM-DD"),
-        endDate: moment().format("YYYY-MM-DD"),
-        triggerUpdate: null
-      },
+      dateRange: buildDefaultInterval(),
+      dashboardInterval: buildDefaultInterval(),
       ranges: defaultRange(),
       opens: "right",
       insightsFilter: "nofilter",
@@ -248,6 +251,11 @@ export default {
       this.triggerRefreshValue = !this.triggerRefreshValue;
       return this.triggerRefreshValue;
     },
+    updateDashboardAndInsights() {
+      let vue = this;
+      vue.updateInsights();
+      vue.updateDashboard();
+    },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
         "onUpdateDateRangePicker",
@@ -256,58 +264,42 @@ export default {
       formatDatePickerValue(obj);
 
       let vue = this;
-      let s = moment(obj.startDate).format("YYYY-MM-DD");
-      let e = moment(obj.endDate).format("YYYY-MM-DD");
-      vue.dateRange.endDate = e;
-      vue.dateRange.startDate = s;
-      fetchInsights(s, e, vue.insightsFilter, vue.insightsSort).then(function(
+
+      vue.updateDashboardAndInsights();
+    },
+    buildDateInterval() {
+      let vue = this;
+      let start = moment(vue.dateRange.startDate).format("YYYY-MM-DD");
+      let end = moment(vue.dateRange.endDate).format("YYYY-MM-DD");
+
+      return {startDate: start, endDate: end};
+    },
+    updateInsights: function() {
+      let vue = this;
+
+      let interval = vue.buildDateInterval();
+
+      fetchInsights(interval.startDate, interval.endDate, vue.insightsFilter, vue.insightsSort).then(function(
         response
       ) {
         vue.insights = response.data;
       });
     },
-    onFetchInsights: function() {
+    updateDashboard: function() {
       let vue = this;
-      let s = moment(vue.dateRange.startDate).format("YYYY-MM-DD");
-      let e = moment(vue.dateRange.endDate).format("YYYY-MM-DD");
-
-      fetchInsights(s, e, vue.insightsFilter, vue.insightsSort).then(function(
-        response
-      ) {
-        vue.insights = response.data;
-      });
+      let interval = vue.buildDateInterval();
+      vue.dashboardInterval = interval;
     },
     initIndex: function() {
       this.sessionInterval = this.ValidSessionCheck();
-
       let vue = this;
 
-      fetchInsights(
-        vue.dateRange.startDate,
-        vue.dateRange.endDate,
-        vue.insightsFilter,
-        vue.insightsSort
-      ).then(function(response) {
-        vue.insights = response.data;
-      });
+      vue.updateDashboardAndInsights();
 
       formatDatePickerValue(vue.dateRange);
 
-      this.fetchInsightsInterval = setInterval(function() {
-        getIsNotLoginOrNotRegistered().then(function() {
-          // update graph component
-          vue.dateRange.triggerUpdate = vue.triggerRefresh();
-
-          // update insights component
-          fetchInsights(
-            vue.dateRange.startDate,
-            vue.dateRange.endDate,
-            vue.insightsFilter,
-            vue.insightsSort
-          ).then(function(response) {
-            vue.insights = response.data;
-          });
-        });
+      this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
+        getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
       }, 30000);
     }
   },
@@ -319,8 +311,8 @@ export default {
     });
   },
   destroyed() {
-    clearInterval(this.sessionInterval);
-    clearInterval(this.fetchInsightsInterval);
+    window.clearInterval(this.sessionInterval);
+    window.clearInterval(this.updateDashboardAndInsightsIntervalID);
   }
 };
 </script>
