@@ -142,7 +142,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <p class="card-text"
                v-translate
                render-html="true">
-               Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target="_blank" href="https://lightmeter.io/privacy-policy/">disabled</a> at any time
+               Feature usage data is shared with a private Open Source analytics system to improve your experience and may be %{openPrivacyLink}disabled%{closePrivacyLink} at any time
             </p>
           </div>
         </div>
@@ -185,11 +185,17 @@ export default {
     }
   },
   computed: {
+    openPrivacyLink() {
+      return `<a target="_blank" href="https://lightmeter.io/privacy-policy/">`;
+    },
+    closePrivacyLink() {
+      return `</a>`;
+    },
     openHelpLink() {
-      return `<a href="https://gitlab.com/lightmeter/controlcenter#upgrade"><translate class="get-help">`
+      return `<a href="https://gitlab.com/lightmeter/controlcenter#upgrade"><translate class="get-help">`;
     },
     closeHelpLink() {
-      return `</a>`
+      return `</a>`;
     },
     PostfixPublicIPInputPlaceholder() {
       return this.$gettext("Postfix public IP");
