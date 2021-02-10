@@ -12,12 +12,12 @@ import (
 	"path"
 )
 
-func InitConnPair(workspaceDirectory, filename string) (dbconn.ConnPair, func(), error) {
+func initConnPair(workspaceDirectory, filename string) (*dbconn.PooledPair, func(), error) {
 	dbFilename := path.Join(workspaceDirectory, filename)
 
-	connPair, err := dbconn.NewConnPair(dbFilename)
+	connPair, err := dbconn.Open(dbFilename, 5)
 	if err != nil {
-		return dbconn.ConnPair{}, nil, errorutil.Wrap(err)
+		return nil, nil, errorutil.Wrap(err)
 	}
 
 	f := func() {
@@ -28,7 +28,7 @@ func InitConnPair(workspaceDirectory, filename string) (dbconn.ConnPair, func(),
 }
 
 func MigratorRunDown(workspaceDirectory string, databaseName string, version int64) error {
-	connPair, closeHandler, err := InitConnPair(workspaceDirectory, databaseName+".db")
+	connPair, closeHandler, err := initConnPair(workspaceDirectory, databaseName+".db")
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

@@ -70,11 +70,7 @@ func (s *HttpServer) Start() error {
 
 	exposeProfiler(mux)
 
-	dashboard, err := s.Workspace.Dashboard()
-
-	if err != nil {
-		return errorutil.Wrap(err, "Error creating dashboard")
-	}
+	dashboard := s.Workspace.Dashboard()
 
 	insightsFetcher := s.Workspace.InsightsFetcher()
 

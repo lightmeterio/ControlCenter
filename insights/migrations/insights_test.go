@@ -10,10 +10,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 )
 
@@ -45,15 +43,12 @@ func init() {
 
 func TestDatabaseMigrationUp(t *testing.T) {
 	Convey("Migration succeeds", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
-
-		connPair, err := dbconn.NewConnPair(path.Join(dir, "insights.db"))
-		So(err, ShouldBeNil)
+		connPair, clear := testutil.TempDBConnection(t, "insights.db")
+		defer clear()
 
 		Convey("Test json names fixup", func() {
 			// Initial setup
-			err = migrator.Run(connPair.RwConn.DB, "insights")
+			err := migrator.Run(connPair.RwConn.DB, "insights")
 			So(err, ShouldBeNil)
 
 			// Then migrate back to version 1, before fixing the json values
@@ -85,8 +80,12 @@ func TestDatabaseMigrationUp(t *testing.T) {
 			err = migrator.Run(connPair.RwConn.DB, "insights")
 			So(err, ShouldBeNil)
 
+			conn, release := connPair.RoConnPool.Acquire()
+
+			defer release()
+
 			var content string
-			err = connPair.RoConn.QueryRow("select content from insights where rowid = ?", 1).Scan(&content)
+			err = conn.QueryRow("select content from insights where rowid = ?", 1).Scan(&content)
 			So(err, ShouldBeNil)
 
 			// From, CamelCase has been updated to from, snake_case

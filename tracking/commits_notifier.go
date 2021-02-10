@@ -21,7 +21,7 @@ type resultInfo struct {
 	loc data.RecordLocation
 }
 
-type queuesCommitNotifier struct {
+type resultsNotifier struct {
 	runner.CancelableRunner
 	resultsToNotify <-chan resultInfo
 	publisher       ResultPublisher
@@ -306,7 +306,7 @@ func buildAndPublishResult(stmts notifierStmts,
 	return nil
 }
 
-func runResultsNotifier(stmts notifierStmts, n *queuesCommitNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
+func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
 	for resultInfo := range n.resultsToNotify {
 		err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
 

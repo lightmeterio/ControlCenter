@@ -42,7 +42,7 @@ type FakeAccessor struct {
 	*core.DBCreator
 	core.Fetcher
 	Insights []int64
-	ConnPair dbconn.ConnPair
+	ConnPair *dbconn.PooledPair
 }
 
 func (c *FakeAccessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
@@ -71,7 +71,7 @@ func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
 		t.Fatal(err)
 	}
 
-	fetcher, err := core.NewFetcher(connPair.RoConn)
+	fetcher, err := core.NewFetcher(connPair.RoConnPool)
 	if err != nil {
 		t.Fatal(err)
 	}

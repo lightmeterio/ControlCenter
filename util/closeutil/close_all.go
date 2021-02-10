@@ -49,10 +49,6 @@ func maybeUpdateError(err error, typ io.Closer) error {
 }
 
 func (c *Closers) Close() error {
-	if len(*c) == 0 {
-		panic("close funcs are missing")
-	}
-
 	var err error
 
 	for _, typ := range *c {
