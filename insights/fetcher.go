@@ -29,10 +29,10 @@ func newFetcher(pool *dbconn.RoPool) (*fetcher, error) {
 
 type creator struct {
 	*core.DBCreator
-	notifier notification.Center
+	notifier *notification.Center
 }
 
-func newCreator(conn dbconn.RwConn, notifier notification.Center) (*creator, error) {
+func newCreator(conn dbconn.RwConn, notifier *notification.Center) (*creator, error) {
 	c, err := core.NewCreator(conn)
 
 	if err != nil {
@@ -49,10 +49,8 @@ func (c *creator) GenerateInsight(tx *sql.Tx, properties core.InsightProperties)
 		return errorutil.Wrap(err)
 	}
 
-	if properties.Rating == core.BadRating {
-		if err := c.notifier.Notify(notification.Notification{ID: id, Content: properties.Content}); err != nil {
-			return errorutil.Wrap(err)
-		}
+	if err := c.notifier.Notify(notification.Notification{ID: id, Content: properties}); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	return nil

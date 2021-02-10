@@ -6,202 +6,75 @@ package notification
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"github.com/slack-go/slack"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
-	"gitlab.com/lightmeter/controlcenter/notification/bus"
+	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
-
 	"time"
 )
 
-type Content interface {
-	fmt.Stringer
-	translator.TranslatableStringer
+type (
+	Notification = core.Notification
+	Notifier     = core.Notifier
+	Policy       = core.Policy
+	Policies     = core.Policies
+)
+
+type alwaysAllowPolicy struct{}
+
+func (alwaysAllowPolicy) Pass(core.Notification) (bool, error) {
+	return true, nil
 }
 
-type Notification struct {
-	ID      int64
-	Content Content
-	Rating  int64
+var AlwaysAllowPolicies = core.Policies{alwaysAllowPolicy{}}
+
+func NewWithCustomLanguageFetcher(translators translator.Translators, languageFetcher func() (language.Tag, error), notifiers []core.Notifier) *Center {
+	return &Center{
+		translators:   translators,
+		notifiers:     notifiers,
+		fetchLanguage: languageFetcher,
+	}
 }
 
-type Center interface {
-	Notify(Notification) error
-	AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error
-}
-
-func New(settingsReader *meta.Reader, translators translator.Translators) Center {
-	cp := &center{
-		bus:            bus.New(),
-		settingsReader: settingsReader,
-		translators:    translators,
-	}
-
-	if err := cp.init(); err != nil {
-		errorutil.LogErrorf(err, "init notifications")
-	}
-
-	return cp
-}
-
-type center struct {
-	bus            bus.Interface
-	settingsReader *meta.Reader
-	slackapi       Messenger
-	translators    translator.Translators
-}
-
-func (cp *center) init() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-
-	defer cancel()
-
-	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, cp.settingsReader)
-	if err != nil {
-		if errors.Is(err, meta.ErrNoSuchKey) {
-			return nil
-		}
-
-		return errorutil.Wrap(err)
-	}
-
-	if !slackSettings.Enabled {
-		return nil
-	}
-
-	languageTag, err := language.Parse(slackSettings.Language)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
-	translator := cp.translators.Translator(languageTag, time.Time{})
-
-	err = cp.slackapi.PostMessage(newConnectContent())
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	cp.bus.AddEventListener("slack", func(notification Notification) error {
-		translatedMessage, args, err := cp.Translate(slackSettings.Language, translator, notification)
+func New(reader *meta.Reader, translators translator.Translators, notifiers []core.Notifier) *Center {
+	return NewWithCustomLanguageFetcher(translators, func() (language.Tag, error) {
+		// TODO: get the settings from a "Notifications general settings" separated from Slack
+		settings, err := settings.GetSlackNotificationsSettings(context.Background(), reader)
 		if err != nil {
-			return errorutil.Wrap(err)
+			return language.Tag{}, errorutil.Wrap(err)
 		}
-		return cp.slackapi.PostMessage(Messagef(translatedMessage, args...))
-	})
 
-	return nil
-}
+		tag, err := language.Parse(settings.Language)
 
-func newConnectContent() Message {
-	return "Lightmeter ControlCenter successfully connected to Slack!"
-}
-
-func (cp *center) AddSlackNotifier(slackSettings settings.SlackNotificationsSettings) error {
-	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
-
-	if slackSettings.Enabled {
-		err := cp.slackapi.PostMessage(newConnectContent())
 		if err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	languageTag := language.MustParse(slackSettings.Language)
-
-	cp.slackapi = newSlack(slackSettings.BearerToken, slackSettings.Channel)
-	translator := cp.translators.Translator(languageTag, time.Time{})
-
-	cp.bus.UpdateEventListener("slack", func(notification Notification) error {
-		if !slackSettings.Enabled {
-			return nil
+			return language.Tag{}, errorutil.Wrap(err)
 		}
 
-		translatedMessage, args, err := cp.Translate(slackSettings.Language, translator, notification)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return cp.slackapi.PostMessage(Messagef(translatedMessage, args...))
-	})
-
-	return nil
+		return tag, nil
+	}, notifiers)
 }
 
-func (cp *center) Translate(language string, t translator.Translator, notification Notification) (string, []interface{}, error) {
-	transformed := translator.TransformTranslation(notification.Content.TplString())
-
-	translatedMessage, err := t.Translate(transformed)
-	if err != nil {
-		return "", nil, errorutil.Wrap(err)
-	}
-
-	args := notification.Content.Args()
-	for i, arg := range args {
-		t, ok := arg.(time.Time)
-		if ok {
-			args[i] = timeutil.PrettyFormatTime(t, language)
-		}
-	}
-
-	return translatedMessage, args, nil
+type Center struct {
+	translators   translator.Translators
+	notifiers     []core.Notifier
+	fetchLanguage func() (language.Tag, error)
 }
 
-func (cp *center) Notify(notification Notification) error {
-	err := cp.bus.Publish(notification)
+func (c *Center) Notify(notification core.Notification) error {
+	languageTag, err := c.fetchLanguage()
 	if err != nil {
-		if errors.Is(err, bus.ErrNoListeners) {
-			return nil
-		}
-
 		return errorutil.Wrap(err)
 	}
 
-	return nil
-}
+	translator := c.translators.Translator(languageTag, time.Time{})
 
-func Messagef(format string, a ...interface{}) Message {
-	return Message(fmt.Sprintf(format, a...))
-}
-
-type Message string
-
-func (s *Message) String() string {
-	return string(*s)
-}
-
-type Messenger interface {
-	PostMessage(stringer Message) error
-}
-
-func newSlack(token string, channel string) Messenger {
-	client := slack.New(token)
-
-	return &slackapi{
-		client:  client,
-		channel: channel,
-	}
-}
-
-type slackapi struct {
-	client  *slack.Client
-	channel string
-}
-
-func (s *slackapi) PostMessage(message Message) error {
-	_, _, err := s.client.PostMessage(
-		s.channel,
-		slack.MsgOptionText(message.String(), false),
-		slack.MsgOptionAsUser(true),
-	)
-	if err != nil {
-		return errorutil.Wrap(err)
+	for _, n := range c.notifiers {
+		if err := n.Notify(notification, translator); err != nil {
+			log.Warn().Msgf("Error notifying: (%v): %v", n, err)
+		}
 	}
 
 	return nil
