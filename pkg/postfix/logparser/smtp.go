@@ -87,10 +87,18 @@ func parseStatus(s []byte) SmtpStatus {
 func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 	p := r.RawSmtpSentStatus
 
-	ip, err := parseIP(p.RelayIp)
-	if err != nil {
-		return SmtpSentStatus{}, err
-	}
+	relayIp, relayPath := func() (net.IP, string) {
+		ip, err := parseIP(p.RelayIpOrPath)
+		if err == nil {
+			return ip, ""
+		}
+
+		if len(p.RelayIpOrPath) == 0 {
+			return nil, ""
+		}
+
+		return nil, string(p.RelayIpOrPath)
+	}()
 
 	relayPort, err := func() (int, error) {
 		if len(p.RelayPort) == 0 {
@@ -142,14 +150,6 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 		return string(p.RelayName)
 	}()
 
-	relayPath := func() string {
-		if len(p.RelayPath) == 0 {
-			return ""
-		}
-
-		return string(p.RelayPath)
-	}()
-
 	parsedExtraMessage, err := parseSmtpSentStatusExtraMessage(p)
 	if err != nil {
 		return SmtpSentStatus{}, err
@@ -163,7 +163,7 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 		OrigRecipientDomainPart: string(p.OrigRecipientDomainPart),
 		RelayName:               relayName,
 		RelayPath:               relayPath,
-		RelayIP:                 ip,
+		RelayIP:                 relayIp,
 		RelayPort:               uint16(relayPort),
 		Delay:                   delay,
 		Delays: Delays{

@@ -42,6 +42,9 @@ const (
 	ResultDeliveryServerKey
 	ResultMessageDirectionKey
 
+	PickupUidKey
+	PickupSenderKey
+
 	lastKey
 )
 
@@ -81,5 +84,8 @@ var (
 		ResultRelayPortKey:               "relay_port",
 		ResultDeliveryServerKey:          "delivery_server",
 		ResultMessageDirectionKey:        "message_direction",
+
+		PickupUidKey:    "pickup_uid",
+		PickupSenderKey: "pickup_sender",
 	}
 )

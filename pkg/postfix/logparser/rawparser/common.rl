@@ -6,7 +6,7 @@ queueId = xdigit+;
 
 anythingExceptComma = [^,]+;
 
-bracketedEmailLocalPart = [^@]+;
+bracketedEmailLocalPart = [^@>]+;
 
 bracketedEmailDomainPart = [^>]+;
 

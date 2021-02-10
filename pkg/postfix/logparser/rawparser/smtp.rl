@@ -44,13 +44,9 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 		r.RelayName = data[tokBeg:p]
 	};
 
-	relayIp = ipv4 >setTokBeg %{
-		r.RelayIp = data[tokBeg:p]
+	relayIpOrPath = [^\]]+ >setTokBeg %{
+		r.RelayIpOrPath = data[tokBeg:p]
 	};
-
-  relayPath = ('/' (alnum+)?)+ >setTokBeg %{
-    r.RelayPath = data[tokBeg:p]
-  };
 
 	relayPort = digit+ >setTokBeg %{
 		r.RelayPort = data[tokBeg:p]
@@ -89,8 +85,8 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 	extraMessage = any+ >setTokBeg;
 
 	main := smtpQueueId ': to=<' recipientLocalPart '@' recipientDomainPart '>, '
-	        ('orig_to=<' origRecipientLocalPart '@' origRecipientDomainPart '>, ')?
-	        'relay=' ((relayName '[' (relayIp | relayPath) ']' (':' relayPort)?)|'none') ', '
+	        ('orig_to=<' origRecipientLocalPart ('@' origRecipientDomainPart)? '>, ')?
+	        'relay=' ((relayName '[' relayIpOrPath ']' (':' relayPort)?)|'none') ', '
 	        'delay=' delay ', delays=' delays ', dsn=' dsn ', status=' status ' ' extraMessage @{
 		r.ExtraMessage = data[tokBeg:eof]
 		return r, true
