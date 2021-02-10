@@ -17,15 +17,13 @@ import (
 	"time"
 )
 
-func init() {
-	// NOTE: unfortunately the domain mapping code uses a singleton (to be accessed internally via sqlite)
-	// that outlives all the test cases, so it's more clear for it to be defined globally as well
-	m, err := domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
-	errorutil.MustSucceed(err)
+var fakeMapping domainmapping.Mapper
 
-	lmsqlite3.Initialize(lmsqlite3.Options{
-		"domain_mapping": &m,
-	})
+func init() {
+	var err error
+	fakeMapping, err = domainmapping.Mapping(domainmapping.RawList{"grouped": []string{"domaintobegrouped.com", "domaintobegrouped.de"}})
+	errorutil.MustSucceed(err)
+	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
 func TestDatabaseCreation(t *testing.T) {
@@ -36,7 +34,7 @@ func TestDatabaseCreation(t *testing.T) {
 		log.Println("database name:", ws)
 
 		Convey("Insert some values", func() {
-			db, err := New(ws)
+			db, err := New(ws, &fakeMapping)
 			So(err, ShouldBeNil)
 
 			done, cancel := db.Run()
@@ -137,10 +135,11 @@ func TestEntriesInsertion(t *testing.T) {
 		defer clearDir()
 
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard, func()) {
-			db, err := New(dir)
+			db, err := New(dir, &fakeMapping)
 			So(err, ShouldBeNil)
 			done, cancel := db.Run()
 			pub := db.ResultsPublisher()
+
 			dashboard, err := dashboard.New(db.ReadConnection())
 			So(err, ShouldBeNil)
 

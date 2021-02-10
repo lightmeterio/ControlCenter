@@ -24,6 +24,22 @@ func TestMapping(t *testing.T) {
 			So(l.Resolve("example.com"), ShouldEqual, "example")
 			So(l.Resolve("beispiel.de"), ShouldEqual, "example")
 			So(l.Resolve("exemplo.com.br"), ShouldEqual, "exemplo.com.br")
+
+			Convey("Build table", func() {
+				t := map[string]string{}
+
+				l.ForEach(func(orig, mapped string) error {
+					t[orig] = mapped
+					return nil
+				})
+
+				So(t, ShouldResemble, map[string]string{
+					"example.com":  "example",
+					"beispiel.de":  "example",
+					"provider.com": "provider",
+					"provider.de":  "provider",
+				})
+			})
 		})
 
 		Convey("Duplicate mapping", func() {
