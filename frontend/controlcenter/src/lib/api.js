@@ -158,7 +158,7 @@ export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
     setCategoryFilter(s[1]);
   }
 
-  formData.append("entries", "6");
+  formData.append("entries", "100");
   formData.append("order", sort);
 
   var params = new URLSearchParams(formData);
