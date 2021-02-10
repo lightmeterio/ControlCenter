@@ -10,7 +10,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: frontend/controlcenter/src/components/insights.vue:71
+#: frontend/controlcenter/src/components/insights.vue:79
 msgid "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
 msgstr "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
 
@@ -22,7 +22,7 @@ msgstr "About"
 msgid "All"
 msgstr "All"
 
-#: frontend/controlcenter/src/views/index.vue:84
+#: frontend/controlcenter/src/views/index.vue:87
 msgid "and welcome back, %{username}"
 msgstr "and welcome back, %{username}"
 
@@ -57,12 +57,12 @@ msgstr "Deferred Domains"
 msgid "Delivery attempts"
 msgstr "Delivery attempts"
 
-#: frontend/controlcenter/src/components/insights.vue:83
-#: frontend/controlcenter/src/components/insights.vue:90
+#: frontend/controlcenter/src/components/insights.vue:91
+#: frontend/controlcenter/src/components/insights.vue:98
 msgid "Details"
 msgstr "Details"
 
-#: frontend/controlcenter/src/views/register.vue:53
+#: frontend/controlcenter/src/views/register.vue:59
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr "Different types of mail perform differently. This helps show the most relevant information."
 
@@ -71,7 +71,7 @@ msgid "Direct (personal, office, one-to-one)"
 msgstr "Direct (personal, office, one-to-one)"
 
 #: frontend/controlcenter/src/views/login.vue:21
-#: frontend/controlcenter/src/views/register.vue:47
+#: frontend/controlcenter/src/views/register.vue:53
 msgid "Email"
 msgstr "Email"
 
@@ -79,17 +79,17 @@ msgstr "Email"
 msgid "Enter ip address"
 msgstr "Enter ip address"
 
-#: frontend/controlcenter/src/lib/api.js:207
+#: frontend/controlcenter/src/lib/api.js:211
 msgid "Error: %{err}"
 msgstr "Error: %{err}"
 
-#: frontend/controlcenter/src/lib/api.js:104
+#: frontend/controlcenter/src/lib/api.js:108
 msgid "Error: %{error}."
 msgstr "Error: %{error}."
 
 #: frontend/controlcenter/src/views/register.vue:77
-msgid "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target=\"_blank\" href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at any time"
-msgstr "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target=\"_blank\" href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at any time"
+msgid "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be %{openPrivacyLink}disabled%{closePrivacyLink} at any time"
+msgstr "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be %{openPrivacyLink}disabled%{closePrivacyLink} at any time"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:8
 msgid "Feedback"
@@ -107,11 +107,11 @@ msgstr "Forgot password?"
 msgid "General"
 msgstr "General"
 
-#: frontend/controlcenter/src/views/index.vue:78
+#: frontend/controlcenter/src/views/index.vue:81
 msgid "Happy %{weekday}"
 msgstr "Happy %{weekday}"
 
-#: frontend/controlcenter/src/components/insights.vue:50
+#: frontend/controlcenter/src/components/insights.vue:58
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
 
@@ -131,19 +131,19 @@ msgstr "Information"
 msgid "Insights"
 msgstr "Insights"
 
-#: frontend/controlcenter/src/components/insights.vue:72
+#: frontend/controlcenter/src/components/insights.vue:80
 msgid "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
 msgstr "Insights reveal mailops problems in real time &ndash; both here, and via notifications"
 
-#: frontend/controlcenter/src/components/insights.vue:66
+#: frontend/controlcenter/src/components/insights.vue:74
 msgid "IP blocked by %{host}"
 msgstr "IP blocked by %{host}"
 
-#: frontend/controlcenter/src/components/insights.vue:63
+#: frontend/controlcenter/src/components/insights.vue:71
 msgid "IP on shared blocklist"
 msgstr "IP on shared blocklist"
 
-#: frontend/controlcenter/src/components/insights.vue:76
+#: frontend/controlcenter/src/components/insights.vue:84
 msgid "Join us on the journey to better mailops! We're listening for your feedback"
 msgstr "Join us on the journey to better mailops! We're listening for your feedback"
 
@@ -164,7 +164,7 @@ msgstr "Log out"
 msgid "Login"
 msgstr "Login"
 
-#: frontend/controlcenter/src/router/index.js:47
+#: frontend/controlcenter/src/router/index.js:51
 msgid "Login - %{mainPageTitle}"
 msgstr "Login - %{mainPageTitle}"
 
@@ -172,7 +172,7 @@ msgstr "Login - %{mainPageTitle}"
 msgid "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
 msgstr "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
 
-#: frontend/controlcenter/src/components/insights.vue:53
+#: frontend/controlcenter/src/components/insights.vue:61
 msgid "Mail Inactivity"
 msgstr "Mail Inactivity"
 
@@ -184,7 +184,7 @@ msgstr "Marketing (newsletters, adverts)"
 msgid "Most of my mail is…"
 msgstr "Most of my mail is…"
 
-#: frontend/controlcenter/src/views/register.vue:44
+#: frontend/controlcenter/src/views/register.vue:50
 msgid "Name"
 msgstr "Name"
 
@@ -204,7 +204,7 @@ msgstr "Newsletter"
 msgid "No"
 msgstr "No"
 
-#: frontend/controlcenter/src/components/insights.vue:81
+#: frontend/controlcenter/src/components/insights.vue:89
 msgid "No emails were sent between %{intFrom} and %{intTo}"
 msgstr "No emails were sent between %{intFrom} and %{intTo}"
 
@@ -216,12 +216,12 @@ msgstr "Notifications"
 msgid "Oldest"
 msgstr "Oldest"
 
-#: frontend/controlcenter/src/components/insights.vue:204
+#: frontend/controlcenter/src/components/insights.vue:215
 msgid "Original response from %{recipient} (%{host})"
 msgstr "Original response from %{recipient} (%{host})"
 
 #: frontend/controlcenter/src/views/login.vue:18
-#: frontend/controlcenter/src/views/register.vue:50
+#: frontend/controlcenter/src/views/register.vue:56
 msgid "Password"
 msgstr "Password"
 
@@ -237,7 +237,7 @@ msgstr "Please enter api token"
 msgid "Please enter slack channel name"
 msgstr "Please enter slack channel name"
 
-#: frontend/controlcenter/src/views/register.vue:41
+#: frontend/controlcenter/src/views/register.vue:47
 #: frontend/controlcenter/src/views/settingspage.vue:50
 msgid "Postfix public IP"
 msgstr "Postfix public IP"
@@ -246,15 +246,19 @@ msgstr "Postfix public IP"
 msgid "Privacy Policy"
 msgstr "Privacy Policy"
 
-#: frontend/controlcenter/src/components/insights.vue:174
+#: frontend/controlcenter/src/components/insights.vue:185
 msgid "RBLS for %{address}"
 msgstr "RBLS for %{address}"
+
+#: frontend/controlcenter/src/components/insights.vue:73
+msgid "Read more"
+msgstr "Read more"
 
 #: frontend/controlcenter/src/views/register.vue:66
 msgid "Register"
 msgstr "Register"
 
-#: frontend/controlcenter/src/router/index.js:46
+#: frontend/controlcenter/src/router/index.js:50
 msgid "Registration - %{mainPageTitle}"
 msgstr "Registration - %{mainPageTitle}"
 
@@ -263,11 +267,11 @@ msgstr "Registration - %{mainPageTitle}"
 msgid "Save"
 msgstr "Save"
 
-#: frontend/controlcenter/src/lib/api.js:16
+#: frontend/controlcenter/src/lib/api.js:20
 msgid "Saved general settings"
 msgstr "Saved general settings"
 
-#: frontend/controlcenter/src/lib/api.js:42
+#: frontend/controlcenter/src/lib/api.js:46
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
@@ -276,7 +280,7 @@ msgstr "Saved notification settings"
 msgid "Settings"
 msgstr "Settings"
 
-#: frontend/controlcenter/src/router/index.js:45
+#: frontend/controlcenter/src/router/index.js:49
 msgid "Settings - %{mainPageTitle}"
 msgstr "Settings - %{mainPageTitle}"
 
@@ -312,11 +316,11 @@ msgstr "Telemetry enabled"
 msgid "Thank you for using Lightmeter"
 msgstr "Thank you for using Lightmeter"
 
-#: frontend/controlcenter/src/components/insights.vue:102
+#: frontend/controlcenter/src/components/insights.vue:110
 msgid "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
 msgstr "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
 
-#: frontend/controlcenter/src/components/insights.vue:91
+#: frontend/controlcenter/src/components/insights.vue:99
 msgid "The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 msgstr "The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
 
@@ -332,7 +336,7 @@ msgstr "These lists are recommending that emails from your server be blocked &nd
 msgid "Time interval"
 msgstr "Time interval"
 
-#: frontend/controlcenter/src/components/insights.vue:149
+#: frontend/controlcenter/src/components/insights.vue:160
 msgid "Title for %{content}"
 msgstr "Title for %{content}"
 
@@ -348,7 +352,7 @@ msgstr "User details"
 msgid "Version"
 msgstr "Version"
 
-#: frontend/controlcenter/src/lib/api.js:108
+#: frontend/controlcenter/src/lib/api.js:112
 msgid "Vulnerable to: %{description}."
 msgstr "Vulnerable to: %{description}."
 
@@ -360,7 +364,7 @@ msgstr "Website"
 msgid "Welcome"
 msgstr "Welcome"
 
-#: frontend/controlcenter/src/components/insights.vue:59
+#: frontend/controlcenter/src/components/insights.vue:67
 msgid "Welcome to Lightmeter %{version}"
 msgstr "Welcome to Lightmeter %{version}"
 
@@ -368,6 +372,6 @@ msgstr "Welcome to Lightmeter %{version}"
 msgid "Yes"
 msgstr "Yes"
 
-#: frontend/controlcenter/src/components/insights.vue:56
+#: frontend/controlcenter/src/components/insights.vue:64
 msgid "Your first Insight"
 msgstr "Your first Insight"
