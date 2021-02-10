@@ -71,7 +71,7 @@ func generateLinksList(links []Link) []byte {
 
 	for _, l := range links {
 		if _, err := url.Parse(l.Link); err != nil {
-			log.Info().Msgf("url is bad: %v", err)
+			log.Info().Msgf("url is bad: %w", err)
 		}
 
 		// nolint:noctx

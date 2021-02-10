@@ -1,7 +1,9 @@
 package parser
 
 import (
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strconv"
 )
 
@@ -14,21 +16,21 @@ func atoi(s []byte) (int, error) {
 }
 
 func atof(s []byte) (float32, error) {
-	r, e := strconv.ParseFloat(string(s), 32)
+	r, err := strconv.ParseFloat(string(s), 32)
 
-	if e == nil {
-		return float32(r), nil
+	if err != nil {
+		return 0, errorutil.Wrap(err)
 	}
 
-	return 0, e
+	return float32(r), nil
 }
 
 func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Payload, error) {
-	if err == rawparser.ErrInvalidHeaderLine {
+	if errors.Is(err, rawparser.ErrInvalidHeaderLine) {
 		return Header{}, nil, err
 	}
 
-	if err != rawparser.ErrUnsupportedLogLine {
+	if !errors.Is(err, rawparser.ErrUnsupportedLogLine) {
 		panic("This is a bug; maybe more error types have been added, but not handled. Who knows?!")
 	}
 
