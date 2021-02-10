@@ -1,13 +1,17 @@
 
 //line header.rl:1
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // +build !codeanalysis
 
 package rawparser
 
 
-//line header.rl:6
+//line header.rl:10
 
-//line header.gen.go:11
+//line header.gen.go:15
 const headerPostfixPart_start int = 1
 const headerPostfixPart_first_final int = 30
 const headerPostfixPart_error int = 0
@@ -15,7 +19,7 @@ const headerPostfixPart_error int = 0
 const headerPostfixPart_en_main int = 1
 
 
-//line header.rl:7
+//line header.rl:11
 
 func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -24,12 +28,12 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	_ = eof
 
 
-//line header.gen.go:28
+//line header.gen.go:32
 	{
 	cs = headerPostfixPart_start
 	}
 
-//line header.gen.go:33
+//line header.gen.go:37
 	{
 	if p == pe {
 		goto _test_eof
@@ -107,7 +111,7 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 		}
 		goto tr0
 tr0:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st2
 	st2:
@@ -115,13 +119,13 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line header.gen.go:119
+//line header.gen.go:123
 		if data[p] == 32 {
 			goto tr3
 		}
 		goto st2
 tr3:
-//line header.rl:17
+//line header.rl:21
 
 		h.Host = data[tokBeg:p]
 	
@@ -131,7 +135,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line header.gen.go:135
+//line header.gen.go:139
 		switch data[p] {
 		case 45:
 			goto tr4
@@ -156,7 +160,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr4:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st4
 	st4:
@@ -164,7 +168,7 @@ tr4:
 			goto _test_eof4
 		}
 	st_case_4:
-//line header.gen.go:168
+//line header.gen.go:172
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -189,7 +193,7 @@ tr4:
 		}
 		goto st0
 tr6:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
@@ -199,7 +203,7 @@ tr6:
 			goto _test_eof5
 		}
 	st_case_5:
-//line header.gen.go:203
+//line header.gen.go:207
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -226,23 +230,23 @@ tr6:
 		}
 		goto st0
 tr7:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
 	goto st6
 tr30:
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
 	goto st6
 tr41:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
@@ -252,13 +256,13 @@ tr41:
 			goto _test_eof6
 		}
 	st_case_6:
-//line header.gen.go:256
+//line header.gen.go:260
 		if data[p] == 93 {
 			goto st0
 		}
 		goto tr13
 tr13:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st7
 	st7:
@@ -266,7 +270,7 @@ tr13:
 			goto _test_eof7
 		}
 	st_case_7:
-//line header.gen.go:270
+//line header.gen.go:274
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -277,7 +281,7 @@ tr13:
 		}
 		goto st7
 tr15:
-//line header.rl:33
+//line header.rl:37
 
 		h.Daemon = data[tokBeg:p]
 	
@@ -287,7 +291,7 @@ tr15:
 			goto _test_eof8
 		}
 	st_case_8:
-//line header.gen.go:291
+//line header.gen.go:295
 		switch data[p] {
 		case 32:
 			goto tr17
@@ -300,7 +304,7 @@ tr15:
 		}
 		goto st7
 tr17:
-//line header.rl:43
+//line header.rl:47
 
 		return p, true
 	
@@ -310,7 +314,7 @@ tr17:
 			goto _test_eof30
 		}
 	st_case_30:
-//line header.gen.go:314
+//line header.gen.go:318
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -321,7 +325,7 @@ tr17:
 		}
 		goto st7
 tr16:
-//line header.rl:33
+//line header.rl:37
 
 		h.Daemon = data[tokBeg:p]
 	
@@ -331,7 +335,7 @@ tr16:
 			goto _test_eof9
 		}
 	st_case_9:
-//line header.gen.go:335
+//line header.gen.go:339
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -345,7 +349,7 @@ tr16:
 		}
 		goto st7
 tr18:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st10
 	st10:
@@ -353,7 +357,7 @@ tr18:
 			goto _test_eof10
 		}
 	st_case_10:
-//line header.gen.go:357
+//line header.gen.go:361
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -367,7 +371,7 @@ tr18:
 		}
 		goto st7
 tr20:
-//line header.rl:37
+//line header.rl:41
 
 		h.ProcessID = data[tokBeg:p]
 	
@@ -377,29 +381,29 @@ tr20:
 			goto _test_eof11
 		}
 	st_case_11:
-//line header.gen.go:381
+//line header.gen.go:385
 		if data[p] == 58 {
 			goto st12
 		}
 		goto st0
 tr9:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
 	goto st12
 tr31:
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
 	goto st12
 tr42:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
@@ -409,13 +413,13 @@ tr42:
 			goto _test_eof12
 		}
 	st_case_12:
-//line header.gen.go:413
+//line header.gen.go:417
 		if data[p] == 32 {
 			goto tr22
 		}
 		goto st0
 tr22:
-//line header.rl:43
+//line header.rl:47
 
 		return p, true
 	
@@ -425,10 +429,10 @@ tr22:
 			goto _test_eof31
 		}
 	st_case_31:
-//line header.gen.go:429
+//line header.gen.go:433
 		goto st0
 tr11:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st13
 	st13:
@@ -436,7 +440,7 @@ tr11:
 			goto _test_eof13
 		}
 	st_case_13:
-//line header.gen.go:440
+//line header.gen.go:444
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -531,23 +535,23 @@ tr11:
 		}
 		goto st0
 tr10:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
 	goto st20
 tr32:
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
 	goto st20
 tr43:
-//line header.rl:24
+//line header.rl:28
 
 		h.Process = data[tokBeg:p]
 	
-//line header.rl:29
+//line header.rl:33
 
 		h.ProcessIP = data[tokBeg:p]
 	
@@ -557,13 +561,13 @@ tr43:
 			goto _test_eof20
 		}
 	st_case_20:
-//line header.gen.go:561
+//line header.gen.go:565
 		if 48 <= data[p] && data[p] <= 57 {
 			goto tr33
 		}
 		goto st0
 tr33:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st21
 	st21:
@@ -571,7 +575,7 @@ tr33:
 			goto _test_eof21
 		}
 	st_case_21:
-//line header.gen.go:575
+//line header.gen.go:579
 		if data[p] == 93 {
 			goto tr20
 		}
@@ -580,7 +584,7 @@ tr33:
 		}
 		goto st0
 tr12:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st22
 	st22:
@@ -588,7 +592,7 @@ tr12:
 			goto _test_eof22
 		}
 	st_case_22:
-//line header.gen.go:592
+//line header.gen.go:596
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -849,7 +853,7 @@ tr12:
 	_out: {}
 	}
 
-//line header.rl:49
+//line header.rl:53
 
 
 	return 0, false
