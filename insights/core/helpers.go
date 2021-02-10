@@ -2,6 +2,7 @@ package core
 
 import (
 	"database/sql"
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -15,7 +16,7 @@ func StoreLastDetectorExecution(tx *sql.Tx, kind string, time time.Time) error {
 	err := tx.QueryRow(`select rowid, ts from last_detector_execution where kind = ?`, kind).Scan(&id, &ts)
 
 	query, args := func() (string, []interface{}) {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return `update last_detector_execution set ts = ? where rowid = ?`, []interface{}{time.Unix(), id}
 		}
 
@@ -33,7 +34,7 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 	var ts int64
 	err := tx.QueryRow(`select ts from last_detector_execution where kind = ?`, kind).Scan(&ts)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}, nil
 	}
 

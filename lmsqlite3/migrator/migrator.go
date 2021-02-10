@@ -8,17 +8,16 @@ package migrator
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/pkg/errors"
 	"github.com/pressly/goose"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"math"
 	"path/filepath"
-	"time"
-
 	"sort"
+	"time"
 )
 
 func Run(database *sql.DB, databaseName string) error {
@@ -77,21 +76,21 @@ func Up(db *sql.DB, databaseName string) error {
 	for {
 		current, err := goose.GetDBVersion(db)
 		if err != nil {
-			return err
+			return errorutil.Wrap(err)
 		}
 
 		next, err := migrations.Next(current)
 		if err != nil {
-			if err == goose.ErrNoNextVersion {
+			if errors.Is(err, goose.ErrNoNextVersion) {
 				log.Info().Msgf("no migrations to run. current version: %d", current)
 				return nil
 			}
 
-			return err
+			return errorutil.Wrap(err)
 		}
 
 		if err = next.Up(db); err != nil {
-			return err
+			return errorutil.Wrap(err)
 		}
 	}
 }
@@ -121,7 +120,7 @@ func DownTo(db *sql.DB, version int64, databaseName string) error {
 		}
 
 		if err = current.Down(db); err != nil {
-			return err
+			return errorutil.Wrap(err)
 		}
 	}
 }
@@ -136,7 +135,7 @@ func CollectMigrations(current, target int64, databaseName string) (goose.Migrat
 		v, err := goose.NumericComponent(migration.Source)
 
 		if err != nil {
-			return nil, err
+			return nil, errorutil.Wrap(err)
 		}
 
 		if versionFilter(v, current, target) {
@@ -185,12 +184,12 @@ func Status(db *sql.DB, databaseName string) error {
 	// collect all migrations
 	migrations, err := CollectMigrations(minVersion, maxVersion, databaseName)
 	if err != nil {
-		return errors.Wrap(err, "failed to collect migrations")
+		return errorutil.Wrap(err, "failed to collect migrations")
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, err := goose.EnsureDBVersion(db); err != nil {
-		return errors.Wrap(err, "failed to ensure DB version")
+		return errorutil.Wrap(err, "failed to ensure DB version")
 	}
 
 	log.Info().Msgf("    Database name               %v", databaseName)
@@ -199,7 +198,7 @@ func Status(db *sql.DB, databaseName string) error {
 
 	for _, migration := range migrations {
 		if err := printMigrationStatus(db, migration.Version, filepath.Base(migration.Source)); err != nil {
-			return errors.Wrap(err, "failed to print status")
+			return errorutil.Wrap(err, "failed to print status")
 		}
 	}
 
@@ -213,8 +212,8 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	var row goose.MigrationRecord
 
 	err := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
-	if err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "failed to query the latest migration")
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return errorutil.Wrap(err, "failed to query the latest migration")
 	}
 
 	appliedAt := func() string {

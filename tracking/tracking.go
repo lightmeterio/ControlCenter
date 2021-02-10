@@ -310,6 +310,7 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 
 	if err = action(t, tx, actionTuple.record, actionDataPair); err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+			//nolint:errorlint
 			asDeletionError := err.(*DeletionError)
 			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
 			// but we should investigate and make and fix them!
@@ -396,6 +397,7 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 
 	if err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+			//nolint:errorlint
 			asDeletionError := err.(*DeletionError)
 			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
 			// but we should investigate and make and fix them!

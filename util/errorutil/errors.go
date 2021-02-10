@@ -49,10 +49,12 @@ func TryToUnwrap(err error) error {
 		return nil
 	}
 
+	//nolint:errorlint
 	if e, ok := err.(*Error); ok {
 		return TryToUnwrap(e.Err)
 	}
 
+	//nolint:errorlint
 	if chainable, ok := err.(Chainable); ok {
 		chain := chainable.Chain()
 		return TryToUnwrap(chain[len(chain)-1])
@@ -96,6 +98,7 @@ func Chain(c Chainable) ErrorChain {
 }
 
 func BuildChain(outer, inner error) ErrorChain {
+	//nolint:errorlint
 	if err, ok := inner.(Chainable); ok {
 		return append(ErrorChain{outer}, err.Chain()...)
 	}
@@ -110,6 +113,7 @@ func (e *Error) Chain() ErrorChain {
 type ErrorChain []error
 
 func errInChain(err error) string {
+	//nolint:errorlint
 	e, ok := err.(*Error)
 
 	if !ok {
@@ -150,6 +154,7 @@ func (chain ErrorChain) JSON() []JsonErrorObject {
 }
 
 func errInJsonChain(err error) JsonErrorObject {
+	//nolint:errorlint
 	e, ok := err.(*Error)
 	if !ok {
 		return JsonErrorObject{Error: err.Error()}

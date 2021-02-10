@@ -29,6 +29,20 @@ func New(closers ...io.Closer) Closers {
 
 type Closers []io.Closer
 
+func maybeUpdateError(err error, typ io.Closer) error {
+	nestedErr := typ.Close()
+
+	if nestedErr == nil {
+		return err
+	}
+
+	if err == nil {
+		return errorutil.Wrap(nestedErr)
+	}
+
+	return errorutil.BuildChain(nestedErr, err)
+}
+
 func (c *Closers) Close() error {
 	if len(*c) == 0 {
 		panic("close funcs are missing")
@@ -41,19 +55,7 @@ func (c *Closers) Close() error {
 			panic("closer is nil")
 		}
 
-		err = func() error {
-			nestedErr := typ.Close()
-
-			if nestedErr == nil {
-				return err
-			}
-
-			if err == nil {
-				return nestedErr
-			}
-
-			return errorutil.BuildChain(nestedErr, err)
-		}()
+		err = maybeUpdateError(err, typ)
 	}
 
 	return err

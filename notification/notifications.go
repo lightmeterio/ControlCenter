@@ -64,7 +64,7 @@ func (cp *center) init() error {
 			return nil
 		}
 
-		return err
+		return errorutil.Wrap(err)
 	}
 
 	if !slackSettings.Enabled {
