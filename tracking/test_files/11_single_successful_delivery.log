@@ -1,0 +1,17 @@
+Dec  9 10:18:23 mail postfix/submission/smtpd[20040]: connect from client.example.com[89.247.252.52]
+Dec  9 10:18:23 mail postfix/submission/smtpd[20040]: Anonymous TLS connection established from i59f7fc34.versanet.de[89.247.252.52]: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature RSA-PSS (2048 bits)
+Dec  9 10:18:23 mail postfix/submission/smtpd[20040]: BA8F630001DA: client=client.example.com[89.247.252.52], sasl_method=PLAIN, sasl_username=sender@mydomain.com
+Dec  9 10:18:23 mail postfix/sender-cleanup/cleanup[20048]: BA8F630001DA: message-id=<264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com>
+Dec  9 10:18:23 mail postfix/sender-cleanup/cleanup[20048]: BA8F630001DA: replace: header MIME-Version: 1.0 from client.example.com[89.247.252.52]; from=<sender@mydomain.com> to=<recipient1@dst2.example.com> proto=ESMTP helo=<[192.168.0.170]>: Mime-Version: 1.0
+Dec  9 10:18:23 mail postfix/qmgr[3398]: BA8F630001DA: from=<sender@mydomain.com>, size=502, nrcpt=5 (queue active)
+Dec  9 10:18:23 mail postfix/submission/smtpd[20040]: disconnect from client.example.com[89.247.252.52] ehlo=2 starttls=1 auth=1 mail=1 rcpt=5 data=1 quit=1 commands=12
+Dec  9 10:18:24 mail postfix/smtpd[20051]: connect from localhost[127.0.0.1]
+Dec  9 10:18:24 mail postfix/smtpd[20051]: 1310930001DB: client=localhost[127.0.0.1]
+Dec  9 10:18:24 mail postfix/cleanup[20052]: 1310930001DB: message-id=<264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com>
+Dec  9 10:18:24 mail postfix/smtpd[20051]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=5 data=1 quit=1 commands=9
+Dec  9 10:18:24 mail postfix/qmgr[3398]: 1310930001DB: from=<sender@mydomain.com>, size=1188, nrcpt=5 (queue active)
+Dec  9 10:18:24 mail postfix/smtp[20049]: BA8F630001DA: to=<recipient1@dst1.example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.38, delays=0.23/0.02/0/0.13, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 1310930001DB)
+Dec  9 10:18:24 mail postfix/qmgr[3398]: BA8F630001DA: removed
+Dec  9 10:18:24 mail postfix/smtp[20053]: Trusted TLS connection established to aspmx.l.google.com[74.125.143.26]:25: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature ECDSA (P-256) server-digest SHA256
+Dec  9 10:18:24 mail postfix/smtp[20055]: 1310930001DB: to=<recipient1@dst1.example.com>, relay=gmail-smtp-in.l.google.com[74.125.206.26]:25, delay=0.55, delays=0.02/0.06/0.16/0.31, dsn=2.0.0, status=sent (250 2.0.0 OK  1607509104 z6si1138927wrp.107 - gsmtp)
+Dec  9 10:18:26 mail postfix/qmgr[3398]: 1310930001DB: removed

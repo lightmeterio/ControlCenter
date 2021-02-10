@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-type dbAction func(*sql.Tx) error
+type dbAction func(*sql.Tx, preparedStmts) error
 
 type DB struct {
 	runner.CancelableRunner
@@ -29,11 +29,87 @@ type DB struct {
 
 	connPair  *dbconn.PooledPair
 	dbActions chan dbAction
+	stmts     preparedStmts
 }
 
 const (
 	filename = "logs.db"
 )
+
+type stmtKey uint
+
+const (
+	selectIdFromRemoteDomain stmtKey = iota
+	insertRemoteDomain
+	selectDeliveryServerByHostname
+	insertDeliveryServer
+	selectMessageIdsByValue
+	insertMessageId
+	selectNextRelays
+	insertNextRelay
+	insertDelivery
+	updateDeliveryWithRelay
+	updateDeliveryWithOrigRecipient
+
+	lastStmtKey
+)
+
+type preparedStmts [lastStmtKey]*sql.Stmt
+
+var stmtsText = map[stmtKey]string{
+	selectIdFromRemoteDomain:       `select id from remote_domains where domain = ?`,
+	insertRemoteDomain:             `insert into remote_domains(domain) values(?)`,
+	selectDeliveryServerByHostname: `select id from delivery_server where hostname = ?`,
+	insertDeliveryServer:           `insert into delivery_server(hostname) values(?)`,
+	selectMessageIdsByValue:        `select id from messageids where value = ?`,
+	insertMessageId:                `insert into messageids(value) values(?)`,
+	selectNextRelays:               `select id from next_relays where hostname = ? and ip = ? and port = ?`,
+	insertNextRelay:                `insert into next_relays(hostname, ip, port) values(?, ?, ?)`,
+	insertDelivery: `
+insert into deliveries(
+	status,
+	delivery_ts,
+	direction,
+	sender_domain_part_id,
+	recipient_domain_part_id,
+	message_id,
+	conn_ts_begin,
+	queue_ts_begin,
+	orig_msg_size,
+	processed_msg_size,
+	nrcpt,
+	delivery_server_id,
+	delay,
+	delay_smtpd,
+	delay_cleanup,
+	delay_qmgr,
+	delay_smtp,
+	sender_local_part,
+	recipient_local_part,
+	client_hostname,
+	client_ip,
+	dsn)
+values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	updateDeliveryWithRelay:         `update deliveries set next_relay_id = ? where id = ?`,
+	updateDeliveryWithOrigRecipient: `update deliveries set orig_recipient_domain_part_id = ? where id = ?`,
+}
+
+// TODO: close such statements when the tracker is deleted!!!
+func prepareRwStmts(conn dbconn.RwConn) (preparedStmts, error) {
+	stmts := preparedStmts{}
+
+	for k, v := range stmtsText {
+		//nolint:sqlclosecheck
+		stmt, err := conn.Prepare(v)
+		if err != nil {
+			return preparedStmts{}, errorutil.Wrap(err)
+		}
+
+		stmts[k] = stmt
+	}
+
+	return stmts, nil
+}
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	// FIXME: this is an ugly workaround. Ideally the domain mapping should come from a virtual table,
@@ -88,12 +164,18 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	stmts, err := prepareRwStmts(connPair.RwConn)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	dbActions := make(chan dbAction, 1024*1000)
 
 	db := DB{
 		connPair:  connPair,
 		dbActions: dbActions,
 		Closers:   closeutil.New(connPair),
+		stmts:     stmts,
 	}
 
 	db.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -104,7 +186,7 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 
 		go func() {
 			done <- func() error {
-				if err := fillDatabase(connPair.RwConn, dbActions); err != nil {
+				if err := fillDatabase(connPair.RwConn, stmts, dbActions); err != nil {
 					return errorutil.Wrap(err)
 				}
 
@@ -120,11 +202,16 @@ type resultsPublisher struct {
 	dbActions chan<- dbAction
 }
 
-// TODO: cache all queries when application starts!
-
-func getUniqueRemoteDomainNameId(tx *sql.Tx, domainName string) (int64, error) {
+func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.Stmt, args ...interface{}) (int64, error) {
 	var id int64
-	err := tx.QueryRow(`select id from remote_domains where domain = ?`, domainName).Scan(&id)
+
+	stmt := tx.Stmt(selectStmt)
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	err := stmt.QueryRow(args...).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -134,8 +221,13 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, domainName string) (int64, error) {
 		return 0, errorutil.Wrap(err)
 	}
 
-	// new domain. Should insert it
-	result, err := tx.Exec(`insert into remote_domains(domain) values(?)`, domainName)
+	stmt = tx.Stmt(insertStmt)
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(args...)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -148,7 +240,17 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, domainName string) (int64, error) {
 	return id, nil
 }
 
-func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, domainName interface{}) (id int64, ok bool, err error) {
+func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectIdFromRemoteDomain], stmts[insertRemoteDomain], domainName)
+
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return id, nil
+}
+
+func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName interface{}) (id int64, ok bool, err error) {
 	if domainName == nil {
 		return 0, false, nil
 	}
@@ -159,7 +261,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, domainName interface{}) (id
 		return 0, false, nil
 	}
 
-	id, err = getUniqueRemoteDomainNameId(tx, domainAsString)
+	id, err = getUniqueRemoteDomainNameId(tx, stmts, domainAsString)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -167,26 +269,8 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, domainName interface{}) (id
 	return id, true, nil
 }
 
-func getUniqueDeliveryServerID(tx *sql.Tx, hostname string) (int64, error) {
-	// FIXME: this is almost copy&paste from getUniqueRemoteDomainNameId()!!!
-	var id int64
-	err := tx.QueryRow(`select id from delivery_server where hostname = ?`, hostname).Scan(&id)
-
-	if err == nil {
-		return id, nil
-	}
-
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, errorutil.Wrap(err)
-	}
-
-	// new domain. Should insert it
-	result, err := tx.Exec(`insert into delivery_server(hostname) values(?)`, hostname)
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	id, err = result.LastInsertId()
+func getUniqueDeliveryServerID(tx *sql.Tx, stmts preparedStmts, hostname string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectDeliveryServerByHostname], stmts[insertDeliveryServer], hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -194,25 +278,9 @@ func getUniqueDeliveryServerID(tx *sql.Tx, hostname string) (int64, error) {
 	return id, nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, messageId string) (int64, error) {
-	// FIXME: this is almost copy&paste from getUniqueRemoteDomainNameId()!!!
-	var id int64
-	err := tx.QueryRow(`select id from messageids where value = ?`, messageId).Scan(&id)
+func getUniqueMessageId(tx *sql.Tx, stmts preparedStmts, messageId string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectMessageIdsByValue], stmts[insertMessageId], messageId)
 
-	if err == nil {
-		return id, nil
-	}
-
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, errorutil.Wrap(err)
-	}
-
-	result, err := tx.Exec(`insert into messageids(value) values(?)`, messageId)
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	id, err = result.LastInsertId()
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -220,29 +288,13 @@ func getUniqueMessageId(tx *sql.Tx, messageId string) (int64, error) {
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP interface{}, relayPort int64) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP interface{}, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName == nil || relayIP == nil {
 		return 0, false, nil
 	}
 
-	var id int64
-	err := tx.QueryRow(`select id from next_relays where hostname = ? and ip = ? and port = ?`, relayName, relayIP, relayPort).Scan(&id)
-
-	if err == nil {
-		return id, true, nil
-	}
-
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, false, errorutil.Wrap(err)
-	}
-
-	result, err := tx.Exec(`insert into next_relays(hostname, ip, port) values(?, ?, ?)`, relayName.(string), relayIP, relayPort)
-	if err != nil {
-		return 0, false, errorutil.Wrap(err)
-	}
-
-	id, err = result.LastInsertId()
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectNextRelays], stmts[insertNextRelay], relayName, relayIP, relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -250,23 +302,23 @@ func getOptionalNextRelayId(tx *sql.Tx, relayName, relayIP interface{}, relayPor
 	return id, true, nil
 }
 
-func insertMandatoryResultFields(tx *sql.Tx, tr tracking.Result) (sql.Result, error) {
-	deliveryServerId, err := getUniqueDeliveryServerID(tx, tr[tracking.ResultDeliveryServerKey].(string))
+func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Result) (sql.Result, error) {
+	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].(string))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.QueueSenderDomainPartKey].(string))
+	senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.QueueSenderDomainPartKey].(string))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, tr[tracking.ResultRecipientDomainPartKey].(string))
+	recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultRecipientDomainPartKey].(string))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	messageId, err := getUniqueMessageId(tx, tr[tracking.QueueMessageIDKey].(string))
+	messageId, err := getUniqueMessageId(tx, stmts, tr[tracking.QueueMessageIDKey].(string))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -287,32 +339,13 @@ func insertMandatoryResultFields(tx *sql.Tx, tr tracking.Result) (sql.Result, er
 		return tr[tracking.ResultStatusKey].(parser.SmtpStatus)
 	}()
 
-	result, err := tx.Exec(`
-insert into deliveries(
-	status,
-	delivery_ts,
-	direction,
-	sender_domain_part_id,
-	recipient_domain_part_id,
-	message_id,
-	conn_ts_begin,
-	queue_ts_begin,
-	orig_msg_size,
-	processed_msg_size,
-	nrcpt,
-	delivery_server_id,
-	delay,
-	delay_smtpd,
-	delay_cleanup,
-	delay_qmgr,
-	delay_smtp,
-	sender_local_part,
-	recipient_local_part,
-	client_hostname,
-	client_ip,
-	dsn)
-values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		status,
+	stmt := tx.Stmt(stmts[insertDelivery])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(status,
 		tr[tracking.ResultDeliveryTimeKey].(int64),
 		dir,
 		senderDomainPartId,
@@ -343,9 +376,9 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	return result, nil
 }
 
-func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
-	return func(tx *sql.Tx) error {
-		result, err := insertMandatoryResultFields(tx, tr)
+func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
+	return func(tx *sql.Tx, stmts preparedStmts) error {
+		result, err := insertMandatoryResultFields(tx, stmts, tr)
 
 		port := func() int64 {
 			if tr[tracking.ResultRelayPortKey] == nil {
@@ -365,25 +398,37 @@ func buildAction(tr tracking.Result) func(tx *sql.Tx) error {
 			return errorutil.Wrap(err)
 		}
 
-		relayId, relayIdFound, err := getOptionalNextRelayId(tx, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
+		relayId, relayIdFound, err := getOptionalNextRelayId(tx, stmts, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
 		if relayIdFound {
-			_, err = tx.Exec(`update deliveries set next_relay_id = ? where id = ?`, relayId, rowId)
+			stmt := tx.Stmt(stmts[updateDeliveryWithRelay])
+
+			defer func() {
+				errorutil.MustSucceed(stmt.Close())
+			}()
+
+			_, err = stmt.Exec(relayId, rowId)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
 		}
 
-		origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, tr[tracking.ResultOrigRecipientDomainPartKey])
+		origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultOrigRecipientDomainPartKey])
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
 		if origRecipientDomainPartFound {
-			_, err = tx.Exec(`update deliveries set orig_recipient_domain_part_id = ? where id = ?`, origRecipientDomainPartId, rowId)
+			stmt := tx.Stmt(stmts[updateDeliveryWithOrigRecipient])
+
+			defer func() {
+				errorutil.MustSucceed(stmt.Close())
+			}()
+
+			_, err = stmt.Exec(origRecipientDomainPartId, rowId)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
@@ -435,7 +480,7 @@ func (db *DB) ConnPool() *dbconn.RoPool {
 	return db.connPair.RoConnPool
 }
 
-func fillDatabase(conn dbconn.RwConn, dbActions <-chan dbAction) error {
+func fillDatabase(conn dbconn.RwConn, stmts preparedStmts, dbActions <-chan dbAction) error {
 	var (
 		tx                  *sql.Tx = nil
 		countPerTransaction int64
@@ -476,7 +521,7 @@ func fillDatabase(conn dbconn.RwConn, dbActions <-chan dbAction) error {
 			}
 		}
 
-		if err := action(tx); err != nil {
+		if err := action(tx, stmts); err != nil {
 			return errorutil.Wrap(err)
 		}
 

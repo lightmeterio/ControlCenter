@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# jsonxf is a very fast json formatter written in rust:
+# https://github.com/gamache/jsonxf
+
 while read line; do
-  json_pp <<< "$line"
+  jsonxf <<< "$line"
 done
