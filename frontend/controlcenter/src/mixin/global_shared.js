@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { trackEvent, trackCLick, trackEventArray } from "@/lib/util";
+import { trackEvent, trackClick, trackEventArray } from "@/lib/util";
 
 export default {
   methods: {
-    trackClick: trackCLick,
+    trackClick: trackClick,
     trackEvent: trackEvent,
     trackEventArray: trackEventArray
   }

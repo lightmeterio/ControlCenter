@@ -31,6 +31,6 @@ export function trackEventArray(eventName, value) {
   window._paq.push(["trackEvent", eventName, value].concat(value));
 }
 
-export function trackCLick(eventName, value) {
+export function trackClick(eventName, value) {
   window._paq.push(["trackEvent", eventName, value]);
 }
