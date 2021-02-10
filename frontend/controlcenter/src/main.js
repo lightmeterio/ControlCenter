@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import Vue from "vue";
 import App from "./App.vue";
 import router from "./router";

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Postfix Log Parser Go Library
 
 This is an eternal work in progress Postfix Log Parser used by Lightmeter Control Center.

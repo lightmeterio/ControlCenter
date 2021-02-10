@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Lightmeter ControlCenter (Alpha)
 
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
@@ -366,3 +371,9 @@ func (d *Block) String(s string) string {
 Work on Lightmeter is supported by the European Commission's [Next Generation Internet](https://www.ngi.eu/) [Zero fund](https://www.ngi.eu/ngi-projects/ngi-zero/) for Privacy Enhancing Technologies, managed by [NLnet](https://nlnet.nl/).
 
 ![NGI Zero logo](https://lightmeter.io/wp-content/uploads/2020/12/ngi-zero-1.png)
+
+## License and Copyright information
+
+This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files and the file .reuse/dep5.
+
+Copyright 2021, Lightmeter <hello@lightmeter.io>

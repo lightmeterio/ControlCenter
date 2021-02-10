@@ -1,13 +1,17 @@
 
 //line cleanup.rl:1
+// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // +build !codeanalysis
 
 package rawparser
 
 
-//line cleanup.rl:6
+//line cleanup.rl:10
 
-//line cleanup.gen.go:11
+//line cleanup.gen.go:15
 const cleanupMessageAccepted_start int = 1
 const cleanupMessageAccepted_first_final int = 18
 const cleanupMessageAccepted_error int = 0
@@ -15,7 +19,7 @@ const cleanupMessageAccepted_error int = 0
 const cleanupMessageAccepted_en_main int = 1
 
 
-//line cleanup.rl:7
+//line cleanup.rl:11
 
 func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -26,12 +30,12 @@ func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 	r := CleanupMessageAccepted{}
 
 
-//line cleanup.gen.go:30
+//line cleanup.gen.go:34
 	{
 	cs = cleanupMessageAccepted_start
 	}
 
-//line cleanup.gen.go:35
+//line cleanup.gen.go:39
 	{
 	if p == pe {
 		goto _test_eof
@@ -98,7 +102,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st2
 	st2:
@@ -106,7 +110,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line cleanup.gen.go:110
+//line cleanup.gen.go:114
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -124,7 +128,7 @@ tr0:
 		}
 		goto st0
 tr3:
-//line cleanup.rl:19
+//line cleanup.rl:23
 
 		r.Queue = data[tokBeg:p]
 	
@@ -134,7 +138,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line cleanup.gen.go:138
+//line cleanup.gen.go:142
 		if data[p] == 32 {
 			goto st4
 		}
@@ -255,23 +259,23 @@ tr3:
 		}
 		goto tr16
 tr16:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
-//line cleanup.rl:27
+//line cleanup.rl:31
 
     r.MessageId = data[tokBeg:eof]
   
-//line cleanup.rl:31
+//line cleanup.rl:35
 
 		return r, true
 	
 	goto st18
 tr21:
-//line cleanup.rl:27
+//line cleanup.rl:31
 
     r.MessageId = data[tokBeg:eof]
   
-//line cleanup.rl:31
+//line cleanup.rl:35
 
 		return r, true
 	
@@ -281,7 +285,7 @@ tr21:
 			goto _test_eof18
 		}
 	st_case_18:
-//line cleanup.gen.go:285
+//line cleanup.gen.go:289
 		switch data[p] {
 		case 32:
 			goto st0
@@ -303,7 +307,7 @@ tr21:
 		}
 		goto tr18
 tr18:
-//line common.rl:19
+//line common.rl:23
  tokBeg = p 
 	goto st17
 	st17:
@@ -311,17 +315,17 @@ tr18:
 			goto _test_eof17
 		}
 	st_case_17:
-//line cleanup.gen.go:315
+//line cleanup.gen.go:319
 		if data[p] == 62 {
 			goto tr20
 		}
 		goto st17
 tr20:
-//line cleanup.rl:23
+//line cleanup.rl:27
 
     r.MessageId = data[tokBeg:p]
   
-//line cleanup.rl:31
+//line cleanup.rl:35
 
 		return r, true
 	
@@ -331,7 +335,7 @@ tr20:
 			goto _test_eof19
 		}
 	st_case_19:
-//line cleanup.gen.go:335
+//line cleanup.gen.go:339
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -357,7 +361,7 @@ tr20:
 	_out: {}
 	}
 
-//line cleanup.rl:37
+//line cleanup.rl:41
 
 
 	return r, false
