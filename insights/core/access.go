@@ -392,6 +392,21 @@ type InsightProperties struct {
 	Content     Content   `json:"content"`
 }
 
+// implements notification.Content
+func (p InsightProperties) String() string {
+	return p.Content.String()
+}
+
+// implements notification.Content
+func (p InsightProperties) TplString() string {
+	return p.Content.TplString()
+}
+
+// implements notification.Content
+func (p InsightProperties) Args() []interface{} {
+	return p.Content.Args()
+}
+
 type Creator interface {
 	GenerateInsight(*sql.Tx, InsightProperties) error
 }

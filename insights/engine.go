@@ -32,7 +32,7 @@ type Engine struct {
 
 func NewCustomEngine(
 	workspaceDir string,
-	notificationCenter notification.Center,
+	notificationCenter *notification.Center,
 	options core.Options,
 	buildDetectors func(*creator, core.Options) []core.Detector,
 	additionalActions func([]core.Detector, dbconn.RwConn) error,

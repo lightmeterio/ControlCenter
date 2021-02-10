@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/rs/zerolog/log"
+	slackAPI "github.com/slack-go/slack"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -15,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -39,26 +41,26 @@ func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	return nil
 }
 
-type fakeNotificationCenter struct {
-	shouldFailToAddSlackNotifier bool
+type fakeNotifier struct {
 }
 
-func (c *fakeNotificationCenter) Notify(center notification.Notification) error {
+func (c *fakeNotifier) Notify(notification.Notification, translator.Translator) error {
 	log.Info().Msg("send notification")
-	return nil
-}
-
-func (c *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
-	log.Info().Msg("Add slack")
-	if c.shouldFailToAddSlackNotifier {
-		return errors.New("Invalid slack notifier")
-	}
-
 	return nil
 }
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
+
+type fakeSlackPoster struct {
+	err error
+}
+
+var fakeSlackError = errors.New(`Some Slack Error`)
+
+func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgOption) (string, string, error) {
+	return "", "", p.err
 }
 
 func TestInitialSetup(t *testing.T) {
@@ -78,10 +80,20 @@ func TestInitialSetup(t *testing.T) {
 
 		writer := runner.Writer()
 
-		fakeCenter := &fakeNotificationCenter{}
 		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
 
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
+		fakeNotifier := &fakeNotifier{}
+
+		slackNotifier := slack.New(notification.AlwaysAllowPolicies, m.Reader)
+
+		// don't use slack api, mocking the PostMessage call
+		slackNotifier.MessagePosterBuilder = func(client *slackAPI.Client) slack.MessagePoster {
+			return &fakeSlackPoster{}
+		}
+
+		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), []notification.Notifier{slackNotifier, fakeNotifier})
+
+		setup := NewSettings(writer, m.Reader, initialSetupSettings, center, slackNotifier)
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -196,10 +208,20 @@ func TestSettingsSetup(t *testing.T) {
 		defer func() { cancel(); done() }()
 		writer := runner.Writer()
 
-		fakeCenter := &fakeNotificationCenter{}
 		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
 
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
+		fakeNotifier := &fakeNotifier{}
+
+		slackNotifier := slack.New(notification.AlwaysAllowPolicies, m.Reader)
+
+		// don't use slack api, mocking the PostMessage call
+		slackNotifier.MessagePosterBuilder = func(client *slackAPI.Client) slack.MessagePoster {
+			return &fakeSlackPoster{}
+		}
+
+		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), []notification.Notifier{slackNotifier, fakeNotifier})
+
+		setup := NewSettings(writer, m.Reader, initialSetupSettings, center, slackNotifier)
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -294,7 +316,6 @@ func (c *fakeContent) TplString() string {
 	return "Hell world!, Mister Donutloop 2"
 }
 
-// todo(marcel) before we create a release stub out the slack api
 func TestIntegrationSettingsSetup(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
 		conn, closeConn := testutil.TempDBConnection(t)
@@ -310,12 +331,20 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 		defer func() { cancel(); done() }()
 		writer := runner.Writer()
 
-		fakeCenter := &fakeNotificationCenter{}
 		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
 
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
+		slackNotifier := slack.New(notification.AlwaysAllowPolicies, m.Reader)
 
-		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()))
+		fakeSlackPoster := &fakeSlackPoster{err: nil}
+
+		// don't use slack api, mocking the PostMessage call
+		slackNotifier.MessagePosterBuilder = func(client *slackAPI.Client) slack.MessagePoster {
+			return fakeSlackPoster
+		}
+
+		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), []notification.Notifier{slackNotifier})
+
+		setup := NewSettings(writer, m.Reader, initialSetupSettings, center, slackNotifier)
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -330,7 +359,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 			Convey("send valid values", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":     {"slack"},
-					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_token":    {"some_valid_key"},
 					"messenger_channel":  {"general"},
 					"messenger_enabled":  {"true"},
 					"messenger_language": {"de"},
@@ -341,7 +370,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 
 				r, err = c.PostForm(settingsURL, url.Values{
 					"messenger_kind":     {"slack"},
-					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_token":    {"some_valid_key"},
 					"messenger_channel":  {"general"},
 					"messenger_enabled":  {"true"},
 					"messenger_language": {"en"},
@@ -355,7 +384,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
-				So(mo.BearerToken, ShouldEqual, "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6")
+				So(mo.BearerToken, ShouldEqual, "some_valid_key")
 
 				content := new(fakeContent)
 				notification := notification.Notification{
@@ -368,11 +397,11 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 			})
 
 			Convey("Fails if slack validations fail", func() {
-				fakeCenter.shouldFailToAddSlackNotifier = true
+				fakeSlackPoster.err = fakeSlackError
 
 				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
-					"messenger_token":   {"sjdfklsjdfkljfs"},
+					"messenger_token":   {"some_invalid_key"},
 					"messenger_channel": {"donutloop"},
 					"messenger_enabled": {"true"},
 				})
@@ -384,7 +413,6 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
 				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
 			})
-
 		})
 	})
 }
