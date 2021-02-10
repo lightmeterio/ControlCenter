@@ -269,8 +269,8 @@ func TestSMTPParsing(t *testing.T) {
 		header, parsed, err := Parse([]byte(`May  5 00:00:00 mail postfix/smtp[17709]: AB5501855DA0: to=<to@mail.com>, ` +
 			`orig_to=<orig_to@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.87, delays=0.68/0.01/0/0.18, ` +
 			`dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`))
-		So(parsed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
+		So(parsed, ShouldNotBeNil)
 		p, cast := parsed.(SmtpSentStatus)
 		So(cast, ShouldBeTrue)
 
@@ -302,6 +302,19 @@ func TestSMTPParsing(t *testing.T) {
 		So(e.SmtpCode, ShouldEqual, 250)
 		So(e.Dsn, ShouldEqual, "2.0.0")
 	})
+
+	Convey("Log line with optional orig_to as root", t, func() {
+		_, parsed, err := Parse([]byte(`May  5 00:00:00 mail postfix/smtp[17709]: AB5501855DA0: to=<to@mail.com>, ` +
+			`orig_to=<root>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.87, delays=0.68/0.01/0/0.18, ` +
+			`dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`))
+		So(err, ShouldBeNil)
+		So(parsed, ShouldNotBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+
+		So(p.OrigRecipientLocalPart, ShouldEqual, "root")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "")
+	})
 }
 
 func TestQmgrParsing(t *testing.T) {
@@ -330,30 +343,42 @@ func TestQmgrParsing(t *testing.T) {
 
 func TestLmtpParsing(t *testing.T) {
 	Convey("Lmtp uses the same struct as SmtpSentStatus", t, func() {
-		header, parsed, err := Parse([]byte(`Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, ` +
-			`relay=relay.example.com[/var/run/dovecot/lmtp], delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent ` +
-			`(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`))
-		So(parsed, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		p, cast := parsed.(SmtpSentStatus)
-		So(cast, ShouldBeTrue)
+		Convey("Example1", func() {
+			header, parsed, err := Parse([]byte(`Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, ` +
+				`relay=relay.example.com[/var/run/dovecot/lmtp], delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent ` +
+				`(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`))
+			So(parsed, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
 
-		So(header.Time.Day, ShouldEqual, 10)
-		So(header.Time.Month, ShouldEqual, time.January)
-		So(header.Time.Hour, ShouldEqual, 16)
-		So(header.Time.Minute, ShouldEqual, 15)
-		So(header.Time.Second, ShouldEqual, 30)
-		So(header.Host, ShouldEqual, "mail")
-		So(header.Process, ShouldEqual, "postfix")
-		So(header.Daemon, ShouldEqual, "lmtp")
+			So(header.Time.Day, ShouldEqual, 10)
+			So(header.Time.Month, ShouldEqual, time.January)
+			So(header.Time.Hour, ShouldEqual, 16)
+			So(header.Time.Minute, ShouldEqual, 15)
+			So(header.Time.Second, ShouldEqual, 30)
+			So(header.Host, ShouldEqual, "mail")
+			So(header.Process, ShouldEqual, "postfix")
+			So(header.Daemon, ShouldEqual, "lmtp")
 
-		So(p.Queue, ShouldEqual, "400643011B47")
-		So(p.RecipientLocalPart, ShouldEqual, "recipient")
-		So(p.RecipientDomainPart, ShouldEqual, "example.com")
-		So(p.RelayName, ShouldEqual, "relay.example.com")
-		So(p.RelayPath, ShouldEqual, "/var/run/dovecot/lmtp")
-		So(p.Status, ShouldEqual, SentStatus)
-		So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`)
+			So(p.Queue, ShouldEqual, "400643011B47")
+			So(p.RecipientLocalPart, ShouldEqual, "recipient")
+			So(p.RecipientDomainPart, ShouldEqual, "example.com")
+			So(p.RelayName, ShouldEqual, "relay.example.com")
+			So(p.RelayPath, ShouldEqual, "/var/run/dovecot/lmtp")
+			So(p.Status, ShouldEqual, SentStatus)
+			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`)
+		})
+
+		Convey("Example2", func() {
+			_, parsed, err := Parse([]byte(`Feb  1 13:17:08 mail postfix/lmtp[28699]: AED441541AFC: to=<h-06819@h-b4e62aa55116.com>, relay=h-ac7182297368ddc0f[private/dovecot-lmtp], delay=0.21, delays=0.07/0.01/0.01/0.12, dsn=2.0.0, status=sent (250 2.0.0 <h-06819@h-b4e62aa55116.com> wArTL0TxF2AccAAAYr7Zvw Saved)`))
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
+			So(p.Queue, ShouldEqual, "AED441541AFC")
+		})
+
 	})
 }
 
@@ -383,5 +408,17 @@ func TestCleanupProcessing(t *testing.T) {
 			So(p.MessageId, ShouldEqual, "656587JHGJHG")
 		})
 
+	})
+}
+
+func TestPickup(t *testing.T) {
+	Convey("Pickup", t, func() {
+		_, payload, err := Parse([]byte(`Feb  1 13:17:02 mail postfix/pickup[28541]: 08ACF1541B01: uid=42 from=<someone>`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(Pickup)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, `08ACF1541B01`)
+		So(p.Uid, ShouldEqual, 42)
+		So(p.Sender, ShouldEqual, "someone")
 	})
 }

@@ -41,6 +41,8 @@ func actionTypeForRecord(r data.Record) (ActionType, actionDataPair) {
 		return CleanupProcessingActionType, emptyActionDataPair
 	case parser.QmgrRemoved:
 		return CommitActionType, emptyActionDataPair
+	case parser.Pickup:
+		return PickupActionType, emptyActionDataPair
 	}
 
 	return UnsupportedActionType, emptyActionDataPair
@@ -748,6 +750,36 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 	}()
 
 	_, err = stmt.Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+// Mail submitted locally on the machine via sendmail is being picked up
+func pickupAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+	p := r.Payload.(parser.Pickup)
+
+	// create a dummy connection for it, as there was no connection to it
+	connectionId, err := createConnection(t, tx, r)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// then the queue
+	queueId, err := createQueue(t, tx, r.Time, connectionId, p.Queue)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	stmt := tx.Stmt(t.stmts[insertQueueDataTwoRows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(queueId, PickupUidKey, p.Uid, queueId, PickupSenderKey, p.Sender)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
