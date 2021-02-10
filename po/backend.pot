@@ -10,19 +10,19 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: insights/highrate/high_status_rate_insight.go:177
+#: insights/highrate/high_status_rate_insight.go:182
 msgid "%v percent bounce rate between %v and %v"
 msgstr "%v percent bounce rate between %v and %v"
 
-#: insights/mailinactivity/mail_inactivity_insight.go:24
+#: insights/mailinactivity/mail_inactivity_insight.go:29
 msgid "No emails were sent between %v and %v"
 msgstr "No emails were sent between %v and %v"
 
-#: insights/messagerbl/rbl.go:45
+#: insights/messagerbl/rbl.go:50
 msgid "The IP %v cannot deliver to %v (%v)"
 msgstr "The IP %v cannot deliver to %v (%v)"
 
-#: insights/localrbl/rbl.go:35
+#: insights/localrbl/rbl.go:40
 msgid "The IP address %v is listed by %v RBLs"
 msgstr "The IP address %v is listed by %v RBLs"
 
