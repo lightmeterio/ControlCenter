@@ -11,6 +11,7 @@ import (
 	localrblinsight "gitlab.com/lightmeter/controlcenter/insights/localrbl"
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
+	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"time"
@@ -38,6 +39,13 @@ func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker,
 		"messagerbl": messagerblinsight.Options{
 			Detector:                    rblDetector,
 			MinTimeToGenerateNewInsight: oneWeek / 2,
+		},
+
+		"newsfeed": newsfeedinsight.Options{
+			URL:            "https://lightmeter.io/category/news-insights?feed=rss",
+			UpdateInterval: time.Hour * 2,
+			RetryTime:      time.Minute * 10,
+			TimeLimit:      oneDay * 2,
 		},
 	}
 }
