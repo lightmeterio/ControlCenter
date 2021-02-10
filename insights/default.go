@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/localrbl"
 	"gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	"gitlab.com/lightmeter/controlcenter/insights/messagerbl"
+	"gitlab.com/lightmeter/controlcenter/insights/newsfeed"
 	"gitlab.com/lightmeter/controlcenter/insights/welcome"
 	"gitlab.com/lightmeter/controlcenter/notification"
 )
@@ -22,6 +23,7 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 		welcome.NewDetector(creator),
 		localrblinsight.NewDetector(creator, options),
 		messagerblinsight.NewDetector(creator, options),
+		newsfeed.NewDetector(creator, options),
 	}
 }
 
