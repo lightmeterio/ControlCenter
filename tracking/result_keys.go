@@ -49,6 +49,17 @@ const (
 	PickupUidKey
 	PickupSenderKey
 
+	ConnectionFilenameKey
+	ConnectionLineKey
+	DisconnectionFilenameKey
+	DisconnectionLineKey
+	QueueFilenameKey
+	QueueLineKey
+	QueueCommitFilenameKey
+	QueueCommitLineKey
+	MessageIdFilenameKey
+	MessageIdLineKey
+
 	lastKey
 )
 
@@ -91,5 +102,16 @@ var (
 
 		PickupUidKey:    "pickup_uid",
 		PickupSenderKey: "pickup_sender",
+
+		ConnectionFilenameKey:    "connection_filename",
+		ConnectionLineKey:        "connection_line",
+		DisconnectionFilenameKey: "disconnection_filename",
+		DisconnectionLineKey:     "disconnection_line",
+		QueueFilenameKey:         "queue_filename",
+		QueueLineKey:             "queue_line",
+		QueueCommitFilenameKey:   "queue_commit_filename",
+		QueueCommitLineKey:       "queue_commit_line",
+		MessageIdFilenameKey:     "messageid_filename",
+		MessageIdLineKey:         "messageid_line",
 	}
 )
