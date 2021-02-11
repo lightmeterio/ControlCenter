@@ -3,12 +3,15 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: \n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2021-02-12 01:03+0000\n"
+"Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
+"Language-Team: Greek <https://translate.lightmeter.io/projects/controlcenter/"
+"backend/el/>\n"
 "Language: el\n"
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #: insights/highrate/high_status_rate_insight.go:177
 msgid "%v percent bounce rate between %v and %v"
@@ -16,12 +19,12 @@ msgstr ""
 
 #: insights/mailinactivity/mail_inactivity_insight.go:24
 msgid "No emails were sent between %v and %v"
-msgstr ""
+msgstr "Δεν στάλθηκαν email μεταξύ %v και %v"
 
 #: insights/messagerbl/rbl.go:45
 msgid "The IP %v cannot deliver to %v (%v)"
-msgstr ""
+msgstr "Το IP %v δεν μπορεί να παραδοθεί στο %v (%v)"
 
 #: insights/localrbl/rbl.go:35
 msgid "The IP address %v is listed by %v RBLs"
-msgstr ""
+msgstr "Η διεύθυνση IP %v αναφέρεται από %v RBLs"
