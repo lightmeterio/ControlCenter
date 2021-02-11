@@ -1,9 +1,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
+"PO-Revision-Date: 2021-02-12 01:03+0000\n"
+"Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
+"Language-Team: Greek <https://translate.lightmeter.io/projects/controlcenter/"
+"frontend/el/>\n"
 "Language: el\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
 "Generated-By: easygettext\n"
 
 #: ./frontend/controlcenter/src/components/insights.vue:71
@@ -12,19 +18,19 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:28
 msgid "About"
-msgstr ""
+msgstr "Σχετικά με"
 
 #: ./frontend/controlcenter/src/views/index.vue:62
 msgid "All"
-msgstr ""
+msgstr "Ολα"
 
 #: ./frontend/controlcenter/src/views/index.vue:84
 msgid "and welcome back, %{username}"
-msgstr ""
+msgstr "και καλωσορίσατε πίσω, %{όνομα χρήστη}"
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:21
 msgid "Bounced Domains"
-msgstr ""
+msgstr "Περιορισμένοι τομείς"
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:18
 msgid "Busiest Domains"
@@ -33,17 +39,17 @@ msgstr ""
 #: ./frontend/controlcenter/src/views/settingspage.vue:38
 #: ./frontend/controlcenter/src/views/settingspage.vue:60
 msgid "Cancel"
-msgstr ""
+msgstr "Ματαίωση"
 
 #: ./frontend/controlcenter/src/components/insights.vue:25
 #: ./frontend/controlcenter/src/components/insights.vue:41
 #: ./frontend/controlcenter/src/components/mainheader.vue:55
 msgid "Close"
-msgstr ""
+msgstr "Κλείσε"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:24
 msgid "Commit"
-msgstr ""
+msgstr "Διαπράττω"
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:24
 msgid "Deferred Domains"
@@ -51,16 +57,18 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/graph-dashboard.vue:6
 msgid "Delivery attempts"
-msgstr ""
+msgstr "Προσπάθειες παράδοσης"
 
 #: ./frontend/controlcenter/src/components/insights.vue:83
 #: ./frontend/controlcenter/src/components/insights.vue:90
 msgid "Details"
-msgstr ""
+msgstr "Λεπτομέριες"
 
 #: ./frontend/controlcenter/src/views/register.vue:53
 msgid "Different types of mail perform differently. This helps show the most relevant information."
 msgstr ""
+"Οι διαφορετικοί τύποι αλληλογραφίας αποδίδουν διαφορετικά. Αυτό βοηθά στην "
+"εμφάνιση των πιο σχετικών πληροφοριών."
 
 #: ./frontend/controlcenter/src/views/register.vue:33
 msgid "Direct (personal, office, one-to-one)"
@@ -73,15 +81,15 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:53
 msgid "Enter ip address"
-msgstr ""
+msgstr "Εισαγάγετε τη διεύθυνση IP"
 
 #: ./frontend/controlcenter/src/lib/api.js:207
 msgid "Error: %{err}"
-msgstr ""
+msgstr "Σφάλμα: %{err}"
 
 #: ./frontend/controlcenter/src/lib/api.js:104
 msgid "Error: %{error}."
-msgstr ""
+msgstr "Σφάλμα: %{σφάλμα}."
 
 #: ./frontend/controlcenter/src/views/register.vue:77
 msgid "Feature usage data is shared with a private Open Source analytics system to improve your experience and may be <a target=\"_blank\" href=\"https://lightmeter.io/privacy-policy/\">disabled</a> at any time"
@@ -93,15 +101,15 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/index.vue:56
 msgid "Filter"
-msgstr ""
+msgstr "Φίλτρο"
 
 #: ./frontend/controlcenter/src/views/login.vue:20
 msgid "Forgot password?"
-msgstr ""
+msgstr "Ξεχάσατε τον κωδικό?"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
-msgstr ""
+msgstr "Γενικά"
 
 #: ./frontend/controlcenter/src/views/index.vue:78
 msgid "Happy %{weekday}"
@@ -113,7 +121,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:16
 msgid "Home"
-msgstr ""
+msgstr "Σπίτι"
 
 #: ./frontend/controlcenter/src/components/insights.vue:20
 msgid "Info"
@@ -121,7 +129,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Information"
-msgstr ""
+msgstr "Πληροφορία"
 
 #: ./frontend/controlcenter/src/views/index.vue:39
 msgid "Insights"
@@ -145,20 +153,20 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/auth-page-footer.vue:19
 msgid "Lightmeter website"
-msgstr ""
+msgstr "Ιστοσελίδα Lightmeter"
 
 #: ./frontend/controlcenter/src/views/index.vue:69
 msgid "Local"
-msgstr ""
+msgstr "Τοπικός"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:25
 msgid "Log out"
-msgstr ""
+msgstr "Αποσύνδεση"
 
 #: ./frontend/controlcenter/src/views/login.vue:5
 #: ./frontend/controlcenter/src/views/login.vue:26
 msgid "Login"
-msgstr ""
+msgstr "Σύνδεση"
 
 #: ./frontend/controlcenter/src/router/index.js:47
 msgid "Login - %{mainPageTitle}"
@@ -181,24 +189,25 @@ msgid "Most of my mail is…"
 msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:44
+#, fuzzy
 msgid "Name"
-msgstr ""
+msgstr "Ονομα"
 
 #: ./frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
-msgstr ""
+msgstr "Νεότερο"
 
 #: ./frontend/controlcenter/src/views/index.vue:75
 msgid "News"
-msgstr ""
+msgstr "Νέα"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:43
 msgid "Newsletter"
-msgstr ""
+msgstr "Ενημερωτικό δελτίο"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:41
 msgid "No"
-msgstr ""
+msgstr "Όχι"
 
 #: ./frontend/controlcenter/src/components/insights.vue:81
 msgid "No emails were sent between %{intFrom} and %{intTo}"
@@ -294,7 +303,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:57
 msgid "System details"
-msgstr ""
+msgstr "Λεπτομέρειες συστήματος"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:25
 msgid "Tag/branch"
@@ -306,7 +315,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainfooter.vue:6
 msgid "Thank you for using Lightmeter"
-msgstr ""
+msgstr "Σας ευχαριστούμε που χρησιμοποιήσατε το Lightmeter"
 
 #: ./frontend/controlcenter/src/components/insights.vue:102
 msgid "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
@@ -318,7 +327,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:61
 msgid "The Ip Address is invalid"
-msgstr ""
+msgstr "Η διεύθυνση Ip δεν είναι έγκυρη"
 
 #: ./frontend/controlcenter/src/components/insights.vue:5
 msgid "These lists are recommending that emails from your server be blocked &ndash; check their messages for hints"
@@ -330,7 +339,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:149
 msgid "Title for %{content}"
-msgstr ""
+msgstr "Τίτλος για %{περιεχόμενο}"
 
 #: ./frontend/controlcenter/src/views/register.vue:37
 msgid "Transactional (notifications, apps)"
@@ -338,11 +347,11 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/views/register.vue:13
 msgid "User details"
-msgstr ""
+msgstr "Στοιχεία χρήστη"
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Version"
-msgstr ""
+msgstr "Εκδοχή"
 
 #: ./frontend/controlcenter/src/lib/api.js:108
 msgid "Vulnerable to: %{description}."
@@ -350,7 +359,7 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:34
 msgid "Website"
-msgstr ""
+msgstr "Ιστοσελίδα"
 
 #: ./frontend/controlcenter/src/views/register.vue:4
 msgid "Welcome"
@@ -358,11 +367,11 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:59
 msgid "Welcome to Lightmeter %{version}"
-msgstr ""
+msgstr "Καλώς ορίσατε στο Lightmeter %{εκδοχή}"
 
 #: ./frontend/controlcenter/src/views/settingspage.vue:41
 msgid "Yes"
-msgstr ""
+msgstr "Ναί"
 
 #: ./frontend/controlcenter/src/components/insights.vue:56
 msgid "Your first Insight"
