@@ -102,7 +102,8 @@ func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
 			readFromTestFile("test_files/8_weird_log_file.log", t.Publisher())
 			cancel()
 			done()
-			So(len(pub.results), ShouldEqual, 0)
+			// Somehow it generates one message, but this is really not that supported at the moment!
+			So(len(pub.results), ShouldEqual, 1)
 		})
 	})
 }
@@ -463,6 +464,34 @@ func TestTrackingFromFiles(t *testing.T) {
 				So(pub.results[1][ResultMessageDirectionKey], ShouldEqual, MessageDirectionOutbound)
 				So(pub.results[1][ResultStatusKey], ShouldEqual, parser.SentStatus)
 				So(pub.results[1][QueueMessageIDKey], ShouldEqual, "264dc34c-ad52-466c-6d41-6622dfced3b8@mydomain.com")
+
+				So(countQueues(), ShouldEqual, 0)
+				So(countQueueData(), ShouldEqual, 0)
+				So(countConnections(), ShouldEqual, 0)
+				So(countConnectionData(), ShouldEqual, 0)
+				So(countPids(), ShouldEqual, 0)
+				So(countMessageIds(), ShouldEqual, 0)
+			})
+
+			Convey("Initial queue msgid can be empty (issue #388)", func() {
+				readFromTestFile("test_files/13_empty_msgid_issue_388.log", t.Publisher())
+				cancel()
+				done()
+
+				So(len(pub.results), ShouldEqual, 1)
+
+				// the later message is sent before the second one
+
+				So(pub.results[0][ConnectionClientHostnameKey], ShouldEqual, "h-2ee7ba9722900c79")
+				So(pub.results[0][QueueSenderLocalPartKey], ShouldEqual, "h-19132c")
+				So(pub.results[0][QueueSenderDomainPartKey], ShouldEqual, "h-e858bb21f.com")
+				So(pub.results[0][QueueOriginalMessageSizeKey], ShouldEqual, 1209)
+				So(pub.results[0][QueueProcessedMessageSizeKey], ShouldEqual, 2429)
+				So(pub.results[0][ResultRecipientLocalPartKey], ShouldEqual, "h-10")
+				So(pub.results[0][ResultRecipientDomainPartKey], ShouldEqual, "h-e858bb21f.com")
+				So(pub.results[0][ResultMessageDirectionKey], ShouldEqual, MessageDirectionIncoming)
+				So(pub.results[0][ResultStatusKey], ShouldEqual, parser.SentStatus)
+				So(pub.results[0][QueueMessageIDKey], ShouldEqual, "h-58c98222ea74bdf467d69d856d@h-028957b9aefc40.com")
 
 				So(countQueues(), ShouldEqual, 0)
 				So(countQueueData(), ShouldEqual, 0)

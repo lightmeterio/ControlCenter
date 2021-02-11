@@ -24,7 +24,7 @@ func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 		r.Queue = data[tokBeg:p]
 	};
 
-  messageIdInBrackets = [^>]+ > setTokBeg %{
+  messageIdInBrackets = [^>]* > setTokBeg %{
     r.MessageId = data[tokBeg:p]
   };
 
