@@ -733,11 +733,17 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 
 		p.line++
 
+		loc := data.RecordLocation{
+			Filename: p.filename,
+			Line:     p.line,
+		}
+
 		// Successfully read
 		header, payload, err := parser.Parse(scanner.Bytes())
 
 		if !parser.IsRecoverableError(err) {
-			return false, errorutil.Wrap(err)
+			log.Warn().Msgf("Could not parse log line in %v", loc)
+			continue
 		}
 
 		if p.converter == nil {
@@ -753,13 +759,10 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 		convertedTime := p.converter.Convert(header.Time)
 
 		p.record = data.Record{
-			Header:  header,
-			Payload: payload,
-			Time:    convertedTime,
-			Location: data.RecordLocation{
-				Filename: p.filename,
-				Line:     p.line,
-			},
+			Header:   header,
+			Payload:  payload,
+			Time:     convertedTime,
+			Location: loc,
 		}
 
 		return true, nil
