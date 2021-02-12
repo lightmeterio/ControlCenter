@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
@@ -28,16 +29,25 @@ type Settings struct {
 	reader *meta.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
-	notificationCenter   notification.Center
+	notificationCenter   *notification.Center
 	handlers             map[string]func(http.ResponseWriter, *http.Request) error
+
+	slackNotifier *slack.Notifier
 }
 
 func NewSettings(writer *meta.AsyncWriter,
 	reader *meta.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
-	notificationCenter notification.Center,
+	notificationCenter *notification.Center,
+	slackNotifier *slack.Notifier,
 ) *Settings {
-	s := &Settings{writer: writer, reader: reader, initialSetupSettings: initialSetupSettings, notificationCenter: notificationCenter}
+	s := &Settings{
+		writer:               writer,
+		reader:               reader,
+		initialSetupSettings: initialSetupSettings,
+		notificationCenter:   notificationCenter,
+		slackNotifier:        slackNotifier,
+	}
 	s.handlers = map[string]func(http.ResponseWriter, *http.Request) error{
 		"initSetup":    s.InitialSetupHandler,
 		"notification": s.NotificationSettingsHandler,
@@ -358,7 +368,11 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		Language:    messengerLanguage,
 	}
 
-	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
+	testNotifier := h.slackNotifier.DeriveNotifierWithCustomSettingsFetcher(notification.AlwaysAllowPolicies, func() (*settings.SlackNotificationsSettings, error) {
+		return &slackNotificationsSettings, nil
+	})
+
+	if err := testNotifier.SendTestNotification(); err != nil {
 		err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
