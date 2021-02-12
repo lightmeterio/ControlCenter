@@ -32,8 +32,16 @@ func (*publisher) Publish(r tracking.Result) {
 	s := map[string]interface{}{}
 
 	for i, v := range r {
-		if v != nil {
-			s[tracking.KeysToLabels[i]] = v
+		switch v.Type {
+		case tracking.ResultEntryTypeBlob:
+			s[tracking.KeysToLabels[i]] = v.AsBlob
+		case tracking.ResultEntryTypeFloat64:
+			s[tracking.KeysToLabels[i]] = v.AsFloat64
+		case tracking.ResultEntryTypeString:
+			s[tracking.KeysToLabels[i]] = v.AsString
+		case tracking.ResultEntryTypeInt64:
+			s[tracking.KeysToLabels[i]] = v.AsInt64
+		default:
 		}
 	}
 

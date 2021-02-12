@@ -35,7 +35,7 @@ func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) 
 		}
 
 		// TODO: abort if the key is not a valid result key (out of index)
-		result[key] = value
+		result[key] = ResultEntryFromValue(value)
 	}
 
 	if err := rows.Err(); err != nil {

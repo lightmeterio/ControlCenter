@@ -228,8 +228,8 @@ func buildAndPublishResult(stmts notifierStmts,
 	resultInfo := resultInfo{
 		id: resultId,
 		loc: data.RecordLocation{
-			Line:     uint64(resultResult[ResultDeliveryFileLineKey].(int64)),
-			Filename: resultResult[ResultDeliveryFilenameKey].(string),
+			Line:     uint64(resultResult[ResultDeliveryFileLineKey].AsInt64),
+			Filename: resultResult[ResultDeliveryFilenameKey].AsString,
 		},
 	}
 
@@ -281,7 +281,7 @@ func buildAndPublishResult(stmts notifierStmts,
 	}
 
 	deliveryQueueResult[QueueProcessedMessageSizeKey] = deliveryQueueResult[QueueOriginalMessageSizeKey]
-	deliveryQueueResult[QueueOriginalMessageSizeKey] = nil
+	deliveryQueueResult[QueueOriginalMessageSizeKey] = ResultEntryNone()
 
 	var deliveryQueueName string
 
@@ -290,14 +290,14 @@ func buildAndPublishResult(stmts notifierStmts,
 		return errorutil.Wrap(err)
 	}
 
-	deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
+	deliveryQueueResult[QueueDeliveryNameKey] = ResultEntryString(deliveryQueueName)
 
 	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
-	mergedResults[MessageIdFilenameKey] = messageIdFilename
-	mergedResults[MessageIdLineKey] = messageIdLine
-	mergedResults[QueueMessageIDKey] = messageId
-	mergedResults[ResultDeliveryServerKey] = deliveryServer
+	mergedResults[MessageIdFilenameKey] = ResultEntryString(messageIdFilename)
+	mergedResults[MessageIdLineKey] = ResultEntryInt64(messageIdLine)
+	mergedResults[QueueMessageIDKey] = ResultEntryString(messageId)
+	mergedResults[ResultDeliveryServerKey] = ResultEntryString(deliveryServer)
 
 	pub.Publish(mergedResults)
 
@@ -375,7 +375,7 @@ func mergeResults(results ...Result) Result {
 	// TODO: consider rewritting this loop to be cache friendlier (by iterating on the same index in all arrays)
 	for _, r := range results {
 		for i, v := range r {
-			if v != nil {
+			if v.Type != ResultEntryTypeNone {
 				m[i] = v
 			}
 		}
