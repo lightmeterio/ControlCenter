@@ -7,7 +7,6 @@ package tracking
 import (
 	"database/sql"
 	"errors"
-	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -215,13 +214,26 @@ func collectResultKeyValueResults(stmts notifierStmts, resultId int64) (Result, 
 
 // FIXME: this method is way too long. Really. It deserves urgent refactoring
 func buildAndPublishResult(stmts notifierStmts,
-	resultInfo resultInfo,
+	resultId int64,
 	pub ResultPublisher,
 	trackerStmts trackerStmts,
 	actions chan<- func(*sql.Tx) error) error {
 	var queueId int64
 
-	err := stmts[selectQueueIdFromResult].QueryRow(&resultInfo.id).Scan(&queueId)
+	resultResult, err := collectResultKeyValueResults(stmts, resultId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	resultInfo := resultInfo{
+		id: resultId,
+		loc: data.RecordLocation{
+			Line:     uint64(resultResult[ResultDeliveryFileLineKey].(int64)),
+			Filename: resultResult[ResultDeliveryFilenameKey].(string),
+		},
+	}
+
+	err = stmts[selectQueueIdFromResult].QueryRow(resultId).Scan(&queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -279,11 +291,6 @@ func buildAndPublishResult(stmts notifierStmts,
 	}
 
 	deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
-
-	resultResult, err := collectResultKeyValueResults(stmts, resultInfo.id)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
 
 	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
@@ -352,12 +359,6 @@ func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts tr
 			err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
 
 			if err == nil {
-				continue
-			}
-
-			if errors.Is(err, sql.ErrNoRows) {
-				//nolint:errorlint
-				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
 				continue
 			}
 

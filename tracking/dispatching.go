@@ -7,7 +7,6 @@ package tracking
 import (
 	"database/sql"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
@@ -15,7 +14,7 @@ const resultInfosCapacity = 512
 
 type resultInfos struct {
 	size   uint
-	values [resultInfosCapacity]resultInfo
+	values [resultInfosCapacity]int64
 }
 
 func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resultInfos) {
@@ -46,8 +45,6 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 
 	var (
 		resultId int64
-		line     uint64 // NOTE: it's stored as an int64 in SQLite... :-(
-		filename string
 		id       int64
 	)
 
@@ -65,7 +62,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 
 		count++
 
-		err = rows.Scan(&id, &resultId, &filename, &line)
+		err = rows.Scan(&id, &resultId)
 
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -84,7 +81,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 		}
 
 		// TODO: encapsulate it on add()
-		resultInfos.values[resultInfos.size] = resultInfo{id: resultId, loc: data.RecordLocation{Line: line, Filename: filename}}
+		resultInfos.values[resultInfos.size] = resultId
 		resultInfos.size++
 	}
 

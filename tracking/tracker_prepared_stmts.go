@@ -101,8 +101,9 @@ var trackerStmtsText = map[trackerStmtKey]string{
 		join pids on connections.pid_id = pids.id
 	where
 		pids.host = ? and queues.queue = ?`,
-	insertQueueParenting:             `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
-	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, ?, ?)`,
+	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
+	// TODO: perform a migration that remove filename and line fields
+	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
 	selectNewQueueFromParenting:      `select new_queue_id from queue_parenting where orig_queue_id = ?`,
 	countNewQueueFromParenting:       `select count(new_queue_id) from queue_parenting where orig_queue_id = ?`,
 	selectQueueFromParentingNewQueue: `select id, orig_queue_id from queue_parenting where new_queue_id = ?`,
@@ -129,7 +130,7 @@ var trackerStmtsText = map[trackerStmtKey]string{
 					(?, ?, ?),
 					(?, ?, ?)`,
 	insertResult:                       `insert into results(queue_id) values(?)`,
-	selectFromNotificationQueues:       `select id, result_id, filename, line from notification_queues`,
+	selectFromNotificationQueues:       `select id, result_id from notification_queues`,
 	deleteFromNotificationQueues:       `delete from notification_queues where id = ?`,
 	deleteResultByIdKey:                `delete from results where id = ?`,
 	deleteResultDataByResultId:         `delete from result_data where result_id = ?`,

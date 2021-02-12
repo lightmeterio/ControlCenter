@@ -611,8 +611,7 @@ func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo)
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	_, err := stmt.Exec(
-		resultInfo.id, resultInfo.loc.Filename, resultInfo.loc.Line)
+	_, err := stmt.Exec(resultInfo.id)
 
 	if err != nil {
 		return errorutil.Wrap(err)
