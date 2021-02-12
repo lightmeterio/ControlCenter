@@ -270,7 +270,7 @@ tr16:
 		return r, true
 	
 	goto st18
-tr21:
+tr22:
 //line cleanup.rl:31
 
     r.MessageId = data[tokBeg:eof]
@@ -296,14 +296,14 @@ tr21:
 		case 62:
 			goto st0
 		}
-		goto tr21
+		goto tr22
 	st16:
 		if p++; p == pe {
 			goto _test_eof16
 		}
 	st_case_16:
 		if data[p] == 62 {
-			goto st0
+			goto tr19
 		}
 		goto tr18
 tr18:
@@ -317,10 +317,22 @@ tr18:
 	st_case_17:
 //line cleanup.gen.go:319
 		if data[p] == 62 {
-			goto tr20
+			goto tr21
 		}
 		goto st17
-tr20:
+tr19:
+//line common.rl:23
+ tokBeg = p 
+//line cleanup.rl:27
+
+    r.MessageId = data[tokBeg:p]
+  
+//line cleanup.rl:35
+
+		return r, true
+	
+	goto st19
+tr21:
 //line cleanup.rl:27
 
     r.MessageId = data[tokBeg:p]
@@ -335,7 +347,7 @@ tr20:
 			goto _test_eof19
 		}
 	st_case_19:
-//line cleanup.gen.go:339
+//line cleanup.gen.go:351
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof

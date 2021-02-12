@@ -1,0 +1,14 @@
+Feb  7 03:40:14 vsrv-postfix postfix/submission/smtpd[1437567]: connect from h-2ee7ba9722900c79[222.162.214.254]
+Feb  7 03:40:14 vsrv-postfix postfix/submission/smtpd[1437567]: BABABABABABA: client=h-2ee7ba9722900c79[222.162.214.254], sasl_method=PLAIN, sasl_username=h-09ff0f75467ee7f00f@h-e858bb21f.com
+Feb  7 03:40:14 vsrv-postfix postfix/cleanup[1437571]: BABABABABABA: message-id=<>
+Feb  7 03:40:14 vsrv-postfix postfix/qmgr[681617]: BABABABABABA: from=<h-19132c@h-e858bb21f.com>, size=1209, nrcpt=1 (queue active)
+Feb  7 03:40:14 vsrv-postfix postfix/submission/smtpd[1437567]: disconnect from h-2ee7ba9722900c79[222.162.214.254] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Feb  7 03:40:15 vsrv-postfix postfix/smtpd[1437574]: connect from localhost[127.0.0.1]
+Feb  7 03:40:15 vsrv-postfix postfix/smtpd[1437574]: CACACACA: client=localhost[127.0.0.1]
+Feb  7 03:40:15 vsrv-postfix postfix/cleanup[1437571]: CACACACA: message-id=<h-58c98222ea74bdf467d69d856d@h-028957b9aefc40.com>
+Feb  7 03:40:15 vsrv-postfix postfix/qmgr[681617]: CACACACA: from=<h-19132c@h-e858bb21f.com>, size=2429, nrcpt=1 (queue active)
+Feb  7 03:40:15 vsrv-postfix postfix/smtpd[1437574]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Feb  7 03:40:15 vsrv-postfix postfix/smtp[1437572]: BABABABABABA: to=<h-10@h-e858bb21f.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=1.1, delays=0.22/0.02/0/0.81, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as CACACACA)
+Feb  7 03:40:15 vsrv-postfix postfix/qmgr[681617]: BABABABABABA: removed
+Feb  7 03:40:15 vsrv-postfix postfix/lmtp[1437575]: CACACACA: to=<h-10@h-e858bb21f.com>, relay=222.162.207.23[222.162.207.23]:2003, delay=0.49, delays=0.12/0.05/0.06/0.27, dsn=2.1.5, status=sent (250 2.1.5 h-10@h-e858bb21f.com Ok)
+Feb  7 03:40:15 vsrv-postfix postfix/qmgr[681617]: CACACACA: removed
