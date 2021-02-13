@@ -96,9 +96,7 @@ func main() {
 
 	logReader := logsource.NewReader(logSource, pub)
 
-	dashboard := ws.Dashboard()
-
-	go simpleDashboard(dashboard)
+	//go simpleDashboard(ws.Dashboard())
 
 	err = logReader.Run()
 

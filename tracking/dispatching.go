@@ -8,23 +8,29 @@ import (
 	"database/sql"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"time"
 )
 
-const resultInfosCapacity = 512
+const resultInfosCapacity = 4
 
 type resultInfos struct {
-	size   uint
-	values [resultInfosCapacity]int64
+	batchId int64
+	id      int64
+	size    uint
+	values  [resultInfosCapacity]int64
 }
 
 func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resultInfos) {
 	if resultInfos.size > 0 {
 		resultsToNotify <- *resultInfos
 		resultInfos.size = 0
+		resultInfos.id++
 	}
 }
 
-func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx) error {
+func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx, batchId int64) error {
+	start := time.Now()
+
 	stmt := tx.Stmt(tracker.stmts[selectFromNotificationQueues])
 
 	defer func() {
@@ -49,7 +55,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 	)
 
 	count := 0
-	resultInfos := resultInfos{}
+	resultInfos := resultInfos{batchId: batchId}
 
 	for {
 		if resultInfos.size == resultInfosCapacity {
@@ -88,7 +94,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 	tryToDispatchAndReset(&resultInfos, resultsToNotify)
 
 	if count > 0 {
-		log.Info().Msgf("Dispatched a total of %v", count)
+		log.Info().Msgf("Dispatched a total of %v on batch %v in %v", count, batchId, time.Now().Sub(start))
 	}
 
 	if err := rows.Err(); err != nil {

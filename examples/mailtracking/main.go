@@ -27,6 +27,7 @@ type publisher struct {
 var counter uint64 = 0
 
 func (*publisher) Publish(r tracking.Result) {
+	return
 	counter++
 
 	s := map[string]interface{}{}
@@ -106,6 +107,10 @@ func main() {
 	pub := publisher{}
 
 	t, err := tracking.New(workspace, &pub)
+
+	defer func() {
+		errorutil.MustSucceed(t.Close())
+	}()
 
 	errorutil.MustSucceed(err)
 

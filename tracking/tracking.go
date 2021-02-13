@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -107,20 +108,35 @@ var actions = map[ActionType]actionRecord{
 
 type trackerStmts [lastTrackerStmtKey]*sql.Stmt
 
+func (t trackerStmts) Close() error {
+	for _, stmt := range t {
+		if stmt == nil {
+			continue
+		}
+
+		if err := stmt.Close(); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
 type txActions struct {
 	size    uint
 	actions [resultInfosCapacity]func(*sql.Tx) error
 }
+type resultsNotifiers []*resultsNotifier
 
 type Tracker struct {
 	runner.CancelableRunner
 
-	stmts           trackerStmts
-	dbconn          *dbconn.PooledPair
-	actions         chan actionTuple
-	txActions       <-chan txActions
-	resultsToNotify chan resultInfos
-	resultsNotifier *resultsNotifier
+	stmts            trackerStmts
+	dbconn           *dbconn.PooledPair
+	actions          chan actionTuple
+	txActions        <-chan txActions
+	resultsToNotify  chan resultInfos
+	resultsNotifiers resultsNotifiers
 }
 
 func (t *Tracker) MostRecentLogTime() time.Time {
@@ -173,6 +189,10 @@ func (t *Tracker) Publisher() *Publisher {
 }
 
 func (t *Tracker) Close() error {
+	if err := t.stmts.Close(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	if err := t.dbconn.Close(); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -180,8 +200,51 @@ func (t *Tracker) Close() error {
 	return nil
 }
 
+func buildResultsNotifier(
+	id int,
+	wg *sync.WaitGroup,
+	pool *dbconn.RoPool,
+	resultsToNotify <-chan resultInfos,
+	pub ResultPublisher,
+	trackerStmts trackerStmts,
+	txActions chan txActions,
+) *resultsNotifier {
+	resultsNotifier := &resultsNotifier{
+		resultsToNotify: resultsToNotify,
+		publisher:       pub,
+		id:              id,
+	}
+
+	roConn, releaseConn := pool.Acquire()
+
+	resultsNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
+		go func() {
+			done <- func() error {
+				log.Debug().Msgf("Tracking notifier %d has just started!", resultsNotifier.id)
+
+				// will leave when resultsToNotify is closed
+				if err := runResultsNotifier(roConn, resultsNotifier, trackerStmts, txActions); err != nil {
+					return errorutil.Wrap(err)
+				}
+
+				wg.Done()
+
+				releaseConn()
+
+				log.Debug().Msgf("Tracking notifier %d has just ended with %v processed", resultsNotifier.id, resultsNotifier.counter)
+
+				return nil
+			}()
+		}()
+	})
+
+	return resultsNotifier
+}
+
+const numberOfNotifiers = 6
+
 func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
-	conn, err := dbconn.Open(path.Join(workspaceDir, "logtracker.db"), 5)
+	conn, err := dbconn.Open(path.Join(workspaceDir, "logtracker.db"), numberOfNotifiers+5)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -204,23 +267,18 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	notifierConn, releaseNotifierConn := conn.RoConnPool.Acquire()
-
-	notifierStmts, err := prepareNotifierRoStmts(notifierConn.RoConn)
+	err = conn.RoConnPool.ForEach(prepareCommitterConnection)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	txActions := make(chan txActions, 1024)
-
-	resultsToNotify := make(chan resultInfos, 1024)
-
-	resultsNotifier := &resultsNotifier{
-		resultsToNotify: resultsToNotify,
-		publisher:       pub,
-	}
-
+	txActions := make(chan txActions, 1024*10)
+	resultsToNotify := make(chan resultInfos, 1024*10)
 	trackerActions := make(chan actionTuple, 1024*1000)
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(numberOfNotifiers)
 
 	tracker := &Tracker{
 		stmts:           trackerStmts,
@@ -228,29 +286,21 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		actions:         trackerActions,
 		txActions:       txActions,
 		resultsToNotify: resultsToNotify,
-		resultsNotifier: resultsNotifier,
 	}
 
-	resultsNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
-		go func() {
-			done <- func() error {
-				// will leave when resultsToNotify is closed
-				if err := runResultsNotifier(notifierStmts, resultsNotifier, trackerStmts, txActions); err != nil {
-					return errorutil.Wrap(err)
-				}
-
-				close(txActions)
-
-				releaseNotifierConn()
-
-				return nil
-			}()
-		}()
-	})
+	// it should be refactored ASAP!!!!
+	for i := 0; i < numberOfNotifiers; i++ {
+		resultsNotifier := buildResultsNotifier(i, &wg, conn.RoConnPool, resultsToNotify, pub, trackerStmts, txActions)
+		tracker.resultsNotifiers = append(tracker.resultsNotifiers, resultsNotifier)
+	}
 
 	// TODO: cleanup this cancel/waitForDone code that is a total mess and impossible to understand!!!
 	tracker.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		notifierDone, _ := resultsNotifier.Run()
+		go func() {
+			wg.Wait()
+
+			close(txActions)
+		}()
 
 		go func() {
 			<-cancel
@@ -259,39 +309,40 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		}()
 
 		go func() {
-			runTrackerChan := make(chan error)
-			waitNotifierChan := make(chan error)
+			wg := sync.WaitGroup{}
 
+			// +1 because of the tracker run
+			wg.Add(numberOfNotifiers + 1)
+
+			notifiersDones := make(chan func() error, numberOfNotifiers)
+
+			// run tracker
 			go func() {
-				runTrackerChan <- func() error {
-					if err := runTracker(tracker); err != nil {
-						return errorutil.Wrap(err)
-					}
-
-					return nil
-				}()
-
-				runTrackerChan <- err
+				err := runTracker(tracker)
+				errorutil.MustSucceed(err)
+				wg.Done()
 			}()
 
+			// start each notifier
 			go func() {
-				waitNotifierChan <- notifierDone()
+				for _, resultsNotifier := range tracker.resultsNotifiers {
+					notifierDone, _ := resultsNotifier.Run()
+					notifiersDones <- notifierDone
+				}
 			}()
 
-			var err error
+			// wait for notifiers to finish
+			go func() {
+				for done := range notifiersDones {
+					err := done()
+					errorutil.MustSucceed(err)
+					wg.Done()
+				}
+			}()
 
-			select {
-			case e := <-runTrackerChan:
-				err = e
-				errorutil.MustSucceed(<-waitNotifierChan)
-			case e := <-waitNotifierChan:
-				err = e
-				errorutil.MustSucceed(<-runTrackerChan)
-			}
+			wg.Wait()
 
-			errorutil.MustSucceed(err)
-
-			done <- err
+			done <- nil
 		}()
 	})
 
@@ -347,14 +398,14 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	return tx, nil
 }
 
-func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker) (*sql.Tx, error) {
+func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker, batchId int64) (*sql.Tx, error) {
 	var err error
 
 	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = dispatchAllResults(t, t.resultsToNotify, tx); err != nil {
+	if err = dispatchAllResults(t, t.resultsToNotify, tx, batchId); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -372,14 +423,18 @@ func commitTransactionIfNeeded(tx *sql.Tx) error {
 		return nil
 	}
 
+	beforeCommit := time.Now()
+
 	if err := tx.Commit(); err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	log.Info().Msgf("Tracking commit took %v", time.Now().Sub(beforeCommit))
+
 	return nil
 }
 
-func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker) (*sql.Tx, error) {
+func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker, batchId int64) (*sql.Tx, error) {
 	var err error
 
 	if err = commitTransactionIfNeeded(tx); err != nil {
@@ -388,7 +443,7 @@ func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker) (*sql.
 
 	tx = nil
 
-	if tx, err = dispatchQueuesInTransaction(tx, t); err != nil {
+	if tx, err = dispatchQueuesInTransaction(tx, t, batchId); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -446,7 +501,7 @@ func runTracker(t *Tracker) error {
 		err error
 	)
 
-	messagesTicker := time.NewTicker(1000 * time.Millisecond)
+	messagesTicker := time.NewTicker(500 * time.Millisecond)
 
 	txActionsAsValue := reflect.ValueOf(t.txActions)
 	tickerAsValue := reflect.ValueOf(messagesTicker.C)
@@ -457,6 +512,8 @@ func runTracker(t *Tracker) error {
 		{Dir: reflect.SelectRecv, Chan: tickerAsValue},
 		{Dir: reflect.SelectRecv, Chan: messageActionsAsValue},
 	}
+
+	batchId := int64(0)
 
 loop:
 	for {
@@ -477,14 +534,15 @@ loop:
 			}
 		case 1:
 			// ticker timeout
-			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {
+			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId); err != nil {
 				return errorutil.Wrap(err)
 			}
+			batchId++
 		case 2:
 			// new action from the logs
 			if !ok {
 				// cancel() has been called
-				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {
+				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId); err != nil {
 					return errorutil.Wrap(err)
 				}
 
@@ -570,7 +628,7 @@ func ResultEntryFromValue(i interface{}) ResultEntry {
 	return ResultEntry{Type: ResultEntryTypeNone}
 }
 
-type Result [lastKey]ResultEntry
+type Result [lasResulttKey]ResultEntry
 
 type ResultPublisher interface {
 	Publish(Result)

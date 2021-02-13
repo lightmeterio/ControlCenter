@@ -1045,7 +1045,7 @@ const (
 	// While the importing of the archived logs has not finished,
 	// how many new parsed logs do we keep in memory, received by
 	// postfix in realtime?
-	maxNumberOfCachedElementsInTheHeap = 500000
+	maxNumberOfCachedElementsInTheHeap = 2048
 )
 
 func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogsPublisher) <-chan struct{} {
