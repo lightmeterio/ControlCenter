@@ -215,7 +215,7 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 
 			c.Stmts[key] = q
 
-			c.Closers = append(c.Closers, q)
+			c.Closers.Add(q)
 
 			return nil
 		})

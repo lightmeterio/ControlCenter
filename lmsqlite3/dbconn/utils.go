@@ -78,7 +78,8 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 	}()
 
 	pool := &RoPool{
-		pool: make(chan *RoPooledConn, poolSize),
+		pool:    make(chan *RoPooledConn, poolSize),
+		Closers: closeutil.New(),
 	}
 
 	for i := 0; i < poolSize; i++ {
@@ -96,7 +97,7 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		}
 
 		pool.conns = append(pool.conns, conn)
-		pool.Closers = append(pool.Closers, conn)
+		pool.Closers.Add(conn)
 
 		pool.pool <- conn
 	}
