@@ -107,13 +107,18 @@ var actions = map[ActionType]actionRecord{
 
 type trackerStmts [lastTrackerStmtKey]*sql.Stmt
 
+type txActions struct {
+	size    uint
+	actions [resultInfosCapacity]func(*sql.Tx) error
+}
+
 type Tracker struct {
 	runner.CancelableRunner
 
 	stmts           trackerStmts
 	dbconn          *dbconn.PooledPair
 	actions         chan actionTuple
-	txActions       <-chan func(*sql.Tx) error
+	txActions       <-chan txActions
 	resultsToNotify chan resultInfos
 	resultsNotifier *resultsNotifier
 }
@@ -206,7 +211,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	txActions := make(chan func(*sql.Tx) error, 1024*1000)
+	txActions := make(chan txActions, 1024)
 
 	resultsToNotify := make(chan resultInfos, 1024)
 
@@ -405,27 +410,31 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 		return nil, false, errorutil.Wrap(err)
 	}
 
-	txAction := recv.Interface().(func(*sql.Tx) error)
+	txActions := recv.Interface().(txActions)
 
-	err = txAction(tx)
+	for i := uint(0); i < txActions.size; i++ {
+		txAction := txActions.actions[i]
+		err = txAction(tx)
 
-	if err != nil {
-		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
-			//nolint:errorlint
-			asDeletionError := err.(*DeletionError)
-			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
-			// but we should investigate and make and fix them!
-			// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
-			// and potentially making queries slower... :-(
-			log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
-				asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
+		if err != nil {
+			if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
+				//nolint:errorlint
+				asDeletionError := err.(*DeletionError)
+				// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
+				// but we should investigate and make and fix them!
+				// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
+				// and potentially making queries slower... :-(
+				log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+					asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
 
-			return tx, true, nil
+				return tx, true, nil
+			}
+
+			errorutil.MustSucceed(err)
+
+			return nil, false, errorutil.Wrap(err)
 		}
 
-		errorutil.MustSucceed(err)
-
-		return nil, false, errorutil.Wrap(err)
 	}
 
 	return tx, true, nil
@@ -454,6 +463,7 @@ loop:
 		chosen, recv, ok := reflect.Select(branches)
 
 		switch chosen {
+		// actions from the notifier
 		case 0:
 			var shouldContinue bool
 
@@ -466,10 +476,12 @@ loop:
 				break loop
 			}
 		case 1:
+			// ticker timeout
 			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {
 				return errorutil.Wrap(err)
 			}
 		case 2:
+			// new action from the logs
 			if !ok {
 				// cancel() has been called
 				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t); err != nil {

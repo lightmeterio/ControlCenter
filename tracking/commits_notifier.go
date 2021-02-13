@@ -217,7 +217,7 @@ func buildAndPublishResult(stmts notifierStmts,
 	resultId int64,
 	pub ResultPublisher,
 	trackerStmts trackerStmts,
-	actions chan<- func(*sql.Tx) error) error {
+	actions *txActions) error {
 	var queueId int64
 
 	resultResult, err := collectResultKeyValueResults(stmts, resultId)
@@ -336,7 +336,7 @@ func buildAndPublishResult(stmts notifierStmts,
 		return nil
 	}
 
-	actions <- func(tx *sql.Tx) error {
+	actions.actions[actions.size] = func(tx *sql.Tx) error {
 		if err := deleteResultAction(tx); err != nil {
 			return errorutil.Wrap(err, resultInfo.loc)
 		}
@@ -348,15 +348,19 @@ func buildAndPublishResult(stmts notifierStmts,
 		return nil
 	}
 
+	actions.size++
+
 	return nil
 }
 
-func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
+func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts trackerStmts, actionsChan chan<- txActions) error {
 	for resultInfos := range n.resultsToNotify {
+		actions := txActions{}
+
 		for i := uint(0); i < resultInfos.size; i++ {
 			resultInfo := resultInfos.values[i]
 
-			err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
+			err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, &actions)
 
 			if err == nil {
 				continue
@@ -364,6 +368,8 @@ func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts tr
 
 			return errorutil.Wrap(err)
 		}
+
+		actionsChan <- actions
 	}
 
 	return nil
