@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2021-02-12 01:03+0000\n"
+"PO-Revision-Date: 2021-02-14 01:12+0000\n"
 "Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
 "Language-Team: Greek <https://translate.lightmeter.io/projects/controlcenter/"
 "backend/el/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 
 #: insights/highrate/high_status_rate_insight.go:177
 msgid "%v percent bounce rate between %v and %v"
-msgstr ""
+msgstr "Ποσοστό εγκατάλειψης% v της εκατό μεταξύ %v και %v"
 
 #: insights/mailinactivity/mail_inactivity_insight.go:24
 msgid "No emails were sent between %v and %v"
