@@ -311,27 +311,27 @@ Create a app on your slack account go to https://api.slack.com/
 
 Click on "Create New APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
 
-![create new app screenshot](./images/create_app.png)
+![create new app screenshot](./docs/assets/create_app.png)
 
 Choose a "Development Slack Workspace" and give your app a name.
 
-![configure new app screenshot](./images/app_config.png)
+![configure new app screenshot](./docs/assets/app_config.png)
 
 Create a oauth token for your app (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![create new token screenshot](./images/create_token.png) 
+![create new token screenshot](./docs/assets/create_token.png) 
 
 Add "write to channel" permission to your previously created token (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![add permission screenshot](./images/add_permission.png)
+![add permission screenshot](./docs/assets/add_permission.png)
 
 Invite the bot into your channel
 
-![invite bot screenshot](./images/invite_bot.png)
+![invite bot screenshot](./docs/assets/invite_bot.png)
 
 Add the token and channel details to lightmeter go to the settings page
 
-![add token control screenshot](./images/add_token_control.png)
+![add token control screenshot](./docs/assets/add_token_control.png)
 
 Congrats you successfully configured the slack notifications
 
@@ -371,11 +371,11 @@ func (d *Block) String(s string) string {
 
 This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-POINTER Project funded under grant agreement No 871528.
 
-![NGI Pointer logo and EU flag symbol](https://lightmeter.io/wp-content/uploads/2021/02/ngi-pointer-eu-flag-300.png)
+<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/ngi-pointer-eu-flag-300.png" />
 
 This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-ZERO Project funded under grant agreement No 825310.
 
-![NGI Zero logo and EU flag symbol](https://lightmeter.io/wp-content/uploads/2021/02/ngi-zero-eu-flag-300.png)
+<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/ngi-zero-eu-flag-300.png" />
 
 ## License and Copyright information
 
