@@ -379,6 +379,6 @@ This project has received funding from the European Union’s Horizon 2020 resea
 
 ## License and Copyright information
 
-This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files and the file .reuse/dep5.
+This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files and the file `.reuse/dep5`.
 
 Copyright 2021, Lightmeter <hello@lightmeter.io>
