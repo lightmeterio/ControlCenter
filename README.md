@@ -371,11 +371,11 @@ func (d *Block) String(s string) string {
 
 This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-POINTER Project funded under grant agreement No 871528.
 
-<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/ngi-pointer-eu-flag-300.png" />
+![NGI Pointer logo](./docs/assets/ngi-pointer-eu-flag-300.png)
 
 This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-ZERO Project funded under grant agreement No 825310.
 
-<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/ngi-zero-eu-flag-300.png" />
+![NGI Zero logo](./docs/assets/ngi-zero-eu-flag-300.png)
 
 ## License and Copyright information
 
