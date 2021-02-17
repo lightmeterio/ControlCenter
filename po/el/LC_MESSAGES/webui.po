@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"PO-Revision-Date: 2021-02-12 01:03+0000\n"
-"Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
+"PO-Revision-Date: 2021-02-17 12:26+0000\n"
+"Last-Translator: Ergis <ehotza35@gmail.com>\n"
 "Language-Team: Greek <https://translate.lightmeter.io/projects/controlcenter/"
 "frontend/el/>\n"
 "Language: el\n"
@@ -15,6 +15,7 @@ msgstr ""
 #: frontend/controlcenter/src/components/insights.vue:79
 msgid "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
 msgstr ""
+"<b>%{bounceValue}%</b> ποσοστό εγκατάλειψης μεταξύ %{intFrom} και %{intTo}"
 
 #: frontend/controlcenter/src/components/mainheader.vue:28
 msgid "About"
@@ -34,7 +35,7 @@ msgstr "Περιορισμένοι τομείς"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:18
 msgid "Busiest Domains"
-msgstr ""
+msgstr "Πολυσύχναστοι τομείς"
 
 #: frontend/controlcenter/src/views/settingspage.vue:38
 #: frontend/controlcenter/src/views/settingspage.vue:60
@@ -53,7 +54,7 @@ msgstr "Διαπράττω"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:24
 msgid "Deferred Domains"
-msgstr ""
+msgstr "Αναβαλλόμενοι τομείς"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:6
 msgid "Delivery attempts"
@@ -62,7 +63,7 @@ msgstr "Προσπάθειες παράδοσης"
 #: frontend/controlcenter/src/components/insights.vue:91
 #: frontend/controlcenter/src/components/insights.vue:98
 msgid "Details"
-msgstr "Λεπτομέριες"
+msgstr "Λεπτομέρειες"
 
 #: frontend/controlcenter/src/views/register.vue:59
 msgid ""
@@ -74,12 +75,12 @@ msgstr ""
 
 #: frontend/controlcenter/src/views/register.vue:33
 msgid "Direct (personal, office, one-to-one)"
-msgstr ""
+msgstr "Άμεση (προσωπικό, γραφείο, ένα προς ένα)"
 
 #: frontend/controlcenter/src/views/login.vue:21
 #: frontend/controlcenter/src/views/register.vue:53
 msgid "Email"
-msgstr ""
+msgstr "Ηλεκτρονική Διεύθυνση"
 
 #: frontend/controlcenter/src/views/settingspage.vue:53
 msgid "Enter ip address"
@@ -99,10 +100,14 @@ msgid ""
 "improve your experience and may be %{openPrivacyLink}disabled"
 "%{closePrivacyLink} at any time"
 msgstr ""
+"Τα δεδομένα χρήσης δυνατοτήτων κοινοποιούνται σε ένα ιδιωτικό σύστημα "
+"ανάλυσης ανοιχτού κώδικα για να  βελτίωσει την εμπειρίας σας και ενδέχεται "
+"να είναι% {άνοιγμα συνδέσμου απορρήτου} απενεργοποιημένα% {κλείσιμο "
+"συνδέσμου  απορρήτου} ανά πάσα στιγμή"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:8
 msgid "Feedback"
-msgstr ""
+msgstr "Ανατροφοδότηση"
 
 #: frontend/controlcenter/src/views/index.vue:56
 msgid "Filter"
@@ -118,7 +123,7 @@ msgstr "Γενικά"
 
 #: frontend/controlcenter/src/views/index.vue:81
 msgid "Happy %{weekday}"
-msgstr ""
+msgstr "Ευτυχισμένο %{καθημερινή μερα}"
 
 #: frontend/controlcenter/src/components/insights.vue:58
 msgid "High Bounce Rate"
@@ -130,7 +135,7 @@ msgstr "Σπίτι"
 
 #: frontend/controlcenter/src/components/insights.vue:20
 msgid "Info"
-msgstr ""
+msgstr "Πληροφορίες"
 
 #: frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Information"
@@ -138,21 +143,23 @@ msgstr "Πληροφορία"
 
 #: frontend/controlcenter/src/views/index.vue:39
 msgid "Insights"
-msgstr ""
+msgstr "Πληροφορίες"
 
 #: frontend/controlcenter/src/components/insights.vue:80
 msgid ""
 "Insights reveal mailops problems in real time &ndash; both here, and via "
 "notifications"
 msgstr ""
+"Οι πληροφορίες αποκαλύπτουν προβλήματα αλληλογραφίας σε πραγματικό χρόνο "
+"&ndash; τόσο εδώ, όσο και μέσω ειδοποιήσεων"
 
 #: frontend/controlcenter/src/components/insights.vue:74
 msgid "IP blocked by %{host}"
-msgstr ""
+msgstr "Η IP μπλοκαρίστηκε από %{host}"
 
 #: frontend/controlcenter/src/components/insights.vue:71
 msgid "IP on shared blocklist"
-msgstr ""
+msgstr "IP σε κοινόχρηστο λίστα των μπλοκαρισμένων"
 
 #: frontend/controlcenter/src/components/insights.vue:84
 msgid ""
@@ -178,28 +185,29 @@ msgstr "Σύνδεση"
 
 #: frontend/controlcenter/src/router/index.js:51
 msgid "Login - %{mainPageTitle}"
-msgstr ""
+msgstr "Σύνδεση - %{κύριασελίδαΤίτλος}"
 
 #: frontend/controlcenter/src/components/auth-page-footer.vue:3
 msgid "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
 msgstr ""
+"Δημιουργήθηκε με %{με αγάπη} από %{ανοίξτεΣύνδεσμο} Επαγγελματίες Ανοιχτού "
+"κώδικα %{κλείστεΣύνδεσμος}"
 
 #: frontend/controlcenter/src/components/insights.vue:61
 msgid "Mail Inactivity"
-msgstr ""
+msgstr "Αδράνεια αλληλογραφίας"
 
 #: frontend/controlcenter/src/views/register.vue:41
 msgid "Marketing (newsletters, adverts)"
-msgstr ""
+msgstr "Marketing  (ενημερωτικά δελτία, διαφημίσεις)"
 
 #: frontend/controlcenter/src/views/register.vue:29
 msgid "Most of my mail is…"
-msgstr ""
+msgstr "Το μεγαλύτερο μέρος της αλληλογραφίας μου είναι…"
 
 #: frontend/controlcenter/src/views/register.vue:50
-#, fuzzy
 msgid "Name"
-msgstr "Ονομα"
+msgstr "Όνομα"
 
 #: frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
@@ -220,23 +228,24 @@ msgstr "Όχι"
 #: frontend/controlcenter/src/components/insights.vue:89
 msgid "No emails were sent between %{intFrom} and %{intTo}"
 msgstr ""
+"Δεν εστάλησαν μηνύματα ηλεκτρονικού ταχυδρομείου μεταξύ %{intΑπο} και %{σΕ}"
 
 #: frontend/controlcenter/src/views/settingspage.vue:12
 msgid "Notifications"
-msgstr ""
+msgstr "Ειδοποιήσεις"
 
 #: frontend/controlcenter/src/views/index.vue:90
 msgid "Oldest"
-msgstr ""
+msgstr "Παλαιότερα"
 
 #: frontend/controlcenter/src/components/insights.vue:215
 msgid "Original response from %{recipient} (%{host})"
-msgstr ""
+msgstr "Πρωτότυπη απάντηση απο %{recipient} (%{host})"
 
 #: frontend/controlcenter/src/views/login.vue:18
 #: frontend/controlcenter/src/views/register.vue:56
 msgid "Password"
-msgstr ""
+msgstr "Κωδικός πρόσβασης"
 
 #: frontend/controlcenter/src/views/register.vue:6
 msgid ""
@@ -244,77 +253,82 @@ msgid ""
 "%{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if "
 "you've done it before."
 msgstr ""
+"Σας παρακαλούμε δημιουργήστε έναν νέο λογαριασμό διαχειριστή - αυτό είναι "
+"απαραίτητο για να συνδεθείτε. %{ανοίξτετοΣύνδεσμοΒοήθειας} Λάβετε "
+"βοήθεια%{κλείσιμοΣύνδεσμοςΒοήθειας} για να αποφύγετε την επανάληψη αυτού του "
+"βήματος εάν το έχετε κάνει πριν."
 
 #: frontend/controlcenter/src/views/settingspage.vue:47
 msgid "Please enter api token"
-msgstr ""
+msgstr "Εισαγάγετε το διακριτικό api"
 
 #: frontend/controlcenter/src/views/settingspage.vue:35
 msgid "Please enter slack channel name"
-msgstr ""
+msgstr "Εισαγάγετε το χαλαρό όνομα καναλιού"
 
 #: frontend/controlcenter/src/views/register.vue:47
 #: frontend/controlcenter/src/views/settingspage.vue:50
 msgid "Postfix public IP"
-msgstr ""
+msgstr "Δημόσια IP μετά την επιδιόρθωση"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:7
 msgid "Privacy Policy"
-msgstr ""
+msgstr "Πολιτική απορρήτου"
 
 #: frontend/controlcenter/src/components/insights.vue:185
 msgid "RBLS for %{address}"
-msgstr ""
+msgstr "RBLS για %{διεύθυνση}"
 
 #: frontend/controlcenter/src/components/insights.vue:73
 msgid "Read more"
-msgstr ""
+msgstr "Διαβάστε περισσότερα"
 
 #: frontend/controlcenter/src/views/register.vue:66
 msgid "Register"
-msgstr ""
+msgstr "Κάνε εγγραφή"
 
 #: frontend/controlcenter/src/router/index.js:50
 msgid "Registration - %{mainPageTitle}"
-msgstr ""
+msgstr "Εγγραφή - %{κύριαΣελίδαΤίτλος}"
 
 #: frontend/controlcenter/src/views/settingspage.vue:34
 #: frontend/controlcenter/src/views/settingspage.vue:56
 msgid "Save"
-msgstr ""
+msgstr "Αποθηκεύσετε"
 
 #: frontend/controlcenter/src/lib/api.js:20
 msgid "Saved general settings"
-msgstr ""
+msgstr "Αποθηκεύθηκαν οι γενικές ρυθμίσεις"
 
 #: frontend/controlcenter/src/lib/api.js:46
 msgid "Saved notification settings"
-msgstr ""
+msgstr "Αποθηκευμένες ρυθμίσεις ειδοποιήσεων"
 
 #: frontend/controlcenter/src/components/mainheader.vue:19
 #: frontend/controlcenter/src/views/settingspage.vue:7
 msgid "Settings"
-msgstr ""
+msgstr "Ρυθμίσεις"
 
 #: frontend/controlcenter/src/router/index.js:49
 msgid "Settings - %{mainPageTitle}"
-msgstr ""
+msgstr "Ρυθμίσεις - %{κύριαΣελίδαΤίτλου}"
 
 #: frontend/controlcenter/src/views/settingspage.vue:44
+#, fuzzy
 msgid "Slack API token"
-msgstr ""
+msgstr "Διακριτικό API Slack"
 
 #: frontend/controlcenter/src/views/settingspage.vue:32
 msgid "Slack channel"
-msgstr ""
+msgstr "Χαλαρό κανάλι"
 
 #: frontend/controlcenter/src/views/settingspage.vue:38
 msgid "Slack notifications"
-msgstr ""
+msgstr "Χαλαρες ειδοποιήσεις"
 
 #: frontend/controlcenter/src/views/register.vue:53
 msgid "Subscribe to newsletter"
-msgstr ""
+msgstr "Εγγραφείτε στο ενημερωτικό δελτίο"
 
 #: frontend/controlcenter/src/views/register.vue:57
 msgid "System details"
@@ -322,11 +336,11 @@ msgstr "Λεπτομέρειες συστήματος"
 
 #: frontend/controlcenter/src/components/mainheader.vue:25
 msgid "Tag/branch"
-msgstr ""
+msgstr "Ετικέτα/υποκατάστημα"
 
 #: frontend/controlcenter/src/views/register.vue:74
 msgid "Telemetry enabled"
-msgstr ""
+msgstr "Η τηλεμετρία ενεργοποιήθηκε"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:6
 msgid "Thank you for using Lightmeter"
@@ -351,10 +365,13 @@ msgid ""
 "These lists are recommending that emails from your server be blocked &ndash; "
 "check their messages for hints"
 msgstr ""
+"Αυτές οι λίστες προτείνουν τον αποκλεισμό των μηνυμάτων ηλεκτρονικού "
+"ταχυδρομείου από τον διακομιστή σας &ndash; ελέγξτε τα μηνύματά τους για "
+"συμβουλές"
 
 #: frontend/controlcenter/src/views/index.vue:45
 msgid "Time interval"
-msgstr ""
+msgstr "Χρονικό διάστημα"
 
 #: frontend/controlcenter/src/components/insights.vue:160
 msgid "Title for %{content}"
@@ -362,7 +379,7 @@ msgstr "Τίτλος για %{περιεχόμενο}"
 
 #: frontend/controlcenter/src/views/register.vue:37
 msgid "Transactional (notifications, apps)"
-msgstr ""
+msgstr "Συναλλαγές (ειδοποιήσεις, εφαρμογές)"
 
 #: frontend/controlcenter/src/views/register.vue:13
 msgid "User details"
@@ -374,7 +391,7 @@ msgstr "Εκδοχή"
 
 #: frontend/controlcenter/src/lib/api.js:112
 msgid "Vulnerable to: %{description}."
-msgstr ""
+msgstr "Ευάλωτο σε: %{περιγραφή}."
 
 #: frontend/controlcenter/src/components/mainheader.vue:34
 msgid "Website"
@@ -382,7 +399,7 @@ msgstr "Ιστοσελίδα"
 
 #: frontend/controlcenter/src/views/register.vue:4
 msgid "Welcome"
-msgstr ""
+msgstr "Καλώς ορίσατε"
 
 #: frontend/controlcenter/src/components/insights.vue:67
 msgid "Welcome to Lightmeter %{version}"
@@ -394,4 +411,4 @@ msgstr "Ναί"
 
 #: frontend/controlcenter/src/components/insights.vue:64
 msgid "Your first Insight"
-msgstr ""
+msgstr "Η πρώτη σας Eικόνα"

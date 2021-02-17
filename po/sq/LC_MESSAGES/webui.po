@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"PO-Revision-Date: 2021-01-05 22:27+0000\n"
-"Last-Translator: Weblate Admin <hello@lightmeter.io>\n"
+"PO-Revision-Date: 2021-02-17 05:14+0000\n"
+"Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
 "Language-Team: Albanian <https://translate.lightmeter.io/projects/"
 "controlcenter/frontend/sq/>\n"
 "Language: sq\n"
@@ -27,10 +27,8 @@ msgid "All"
 msgstr "Të gjitha"
 
 #: frontend/controlcenter/src/views/index.vue:87
-#, fuzzy
-#| msgid "and welcome back"
 msgid "and welcome back, %{username}"
-msgstr "dhe mirësevini përsëri"
+msgstr "dhe mirësevini përsëri, %{emri i përdoruesit}"
 
 #: frontend/controlcenter/src/components/graph-dashboard.vue:21
 msgid "Bounced Domains"
@@ -127,11 +125,11 @@ msgstr "Harruat fjalëkalimin?"
 
 #: frontend/controlcenter/src/views/settingspage.vue:45
 msgid "General"
-msgstr ""
+msgstr "Në përgjithësi"
 
 #: frontend/controlcenter/src/views/index.vue:81
 msgid "Happy %{weekday}"
-msgstr ""
+msgstr "Gëzuar %{ditën e javës}"
 
 #: frontend/controlcenter/src/components/insights.vue:58
 msgid "High Bounce Rate"
@@ -139,7 +137,7 @@ msgstr ""
 
 #: frontend/controlcenter/src/components/mainheader.vue:16
 msgid "Home"
-msgstr ""
+msgstr "Shtëpi"
 
 #: frontend/controlcenter/src/components/insights.vue:20
 msgid "Info"
@@ -178,7 +176,7 @@ msgstr ""
 
 #: frontend/controlcenter/src/views/index.vue:69
 msgid "Local"
-msgstr ""
+msgstr "Lokal"
 
 #: frontend/controlcenter/src/components/mainheader.vue:25
 msgid "Log out"
@@ -187,7 +185,7 @@ msgstr ""
 #: frontend/controlcenter/src/views/login.vue:5
 #: frontend/controlcenter/src/views/login.vue:26
 msgid "Login"
-msgstr ""
+msgstr "Hyrja"
 
 #: frontend/controlcenter/src/router/index.js:51
 msgid "Login - %{mainPageTitle}"
