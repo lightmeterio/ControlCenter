@@ -6,6 +6,7 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
@@ -43,6 +44,11 @@ func New(reader *meta.Reader, translators translator.Translators, notifiers []co
 	return NewWithCustomLanguageFetcher(translators, func() (language.Tag, error) {
 		// TODO: get the settings from a "Notifications general settings" separated from Slack
 		settings, err := slack.GetSettings(context.Background(), reader)
+		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+			// setting not found
+			return language.English, nil
+		}
+
 		if err != nil {
 			return language.Tag{}, errorutil.Wrap(err)
 		}
