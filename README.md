@@ -44,6 +44,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     - [Making user interfaces translatable (i18n)](#making-user-interfaces-translatable-i18n)
 - [Troubleshooting](#troubleshooting)
 - [Supported by](#supported-by)
+- [License and Copyright information](#license-and-copyright-information)
 
 ## Introduction
 
@@ -310,27 +311,27 @@ Create a app on your slack account go to https://api.slack.com/
 
 Click on "Create New APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
 
-![create new app screenshot](./images/create_app.png)
+![create new app screenshot](./docs/assets/create_app.png)
 
 Choose a "Development Slack Workspace" and give your app a name.
 
-![configure new app screenshot](./images/app_config.png)
+![configure new app screenshot](./docs/assets/app_config.png)
 
 Create a oauth token for your app (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![create new token screenshot](./images/create_token.png) 
+![create new token screenshot](./docs/assets/create_token.png) 
 
 Add "write to channel" permission to your previously created token (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
 
-![add permission screenshot](./images/add_permission.png)
+![add permission screenshot](./docs/assets/add_permission.png)
 
 Invite the bot into your channel
 
-![invite bot screenshot](./images/invite_bot.png)
+![invite bot screenshot](./docs/assets/invite_bot.png)
 
 Add the token and channel details to lightmeter go to the settings page
 
-![add token control screenshot](./images/add_token_control.png)
+![add token control screenshot](./docs/assets/add_token_control.png)
 
 Congrats you successfully configured the slack notifications
 
@@ -368,12 +369,16 @@ func (d *Block) String(s string) string {
 
 ## Supported by
 
-Work on Lightmeter is supported by the European Commission's [Next Generation Internet](https://www.ngi.eu/) [Zero fund](https://www.ngi.eu/ngi-projects/ngi-zero/) for Privacy Enhancing Technologies, managed by [NLnet](https://nlnet.nl/).
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-POINTER Project funded under grant agreement No 871528.
 
-![NGI Zero logo](https://lightmeter.io/wp-content/uploads/2020/12/ngi-zero-1.png)
+![NGI Pointer logo](./docs/assets/ngi-pointer-eu-flag-300.png)
+
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme within the framework of the NGI-ZERO Project funded under grant agreement No 825310.
+
+![NGI Zero logo](./docs/assets/ngi-zero-eu-flag-300.png)
 
 ## License and Copyright information
 
-This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files and the file .reuse/dep5.
+This project is licensed under AGPL-3.0. However, some files are under different licenses, for accurate information, please check individual files and the file `.reuse/dep5`.
 
 Copyright 2021, Lightmeter <hello@lightmeter.io>
