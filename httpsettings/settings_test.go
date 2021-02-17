@@ -290,8 +290,8 @@ func TestSettingsSetup(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-					mo := new(settings.SlackNotificationsSettings)
-					err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+					mo := new(slack.Settings)
+					err = m.Reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 					So(err, ShouldBeNil)
 
 					So(mo.Channel, ShouldEqual, "donutloop")
@@ -379,8 +379,8 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-				mo := new(settings.SlackNotificationsSettings)
-				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+				mo := new(slack.Settings)
+				err = m.Reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
@@ -409,8 +409,8 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
-				mo := new(settings.SlackNotificationsSettings)
-				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+				mo := new(slack.Settings)
+				err = m.Reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
 			})
 		})

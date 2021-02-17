@@ -10,7 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
-	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/text/language"
 	"time"
@@ -42,7 +42,7 @@ func NewWithCustomLanguageFetcher(translators translator.Translators, languageFe
 func New(reader *meta.Reader, translators translator.Translators, notifiers []core.Notifier) *Center {
 	return NewWithCustomLanguageFetcher(translators, func() (language.Tag, error) {
 		// TODO: get the settings from a "Notifications general settings" separated from Slack
-		settings, err := settings.GetSlackNotificationsSettings(context.Background(), reader)
+		settings, err := slack.GetSettings(context.Background(), reader)
 		if err != nil {
 			return language.Tag{}, errorutil.Wrap(err)
 		}

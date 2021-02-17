@@ -27,14 +27,6 @@ var (
 	ErrInvalidMailKindOption         = errors.New(`Invalid Mail Kind`)
 )
 
-type SlackNotificationsSettings struct {
-	BearerToken string `json:"bearer_token"`
-	Kind        string `json:"-"`
-	Channel     string `json:"channel"`
-	Enabled     bool   `json:"enabled"`
-	Language    string `json:"language"`
-}
-
 type InitialOptions struct {
 	SubscribeToNewsletter bool
 	MailKind              SetupMailKind
@@ -82,36 +74,4 @@ func (c *InitialSetupSettings) Set(ctx context.Context, writer *meta.AsyncWriter
 	case <-ctx.Done():
 		return errorutil.Wrap(ctx.Err())
 	}
-}
-
-func SetSlackNotificationsSettings(ctx context.Context, writer *meta.AsyncWriter, slackNotificationsSettings SlackNotificationsSettings) error {
-	result := writer.StoreJson("messenger_slack",
-		SlackNotificationsSettings{
-			BearerToken: slackNotificationsSettings.BearerToken,
-			Channel:     slackNotificationsSettings.Channel,
-			Enabled:     slackNotificationsSettings.Enabled,
-			Language:    slackNotificationsSettings.Language,
-		})
-
-	select {
-	case err := <-result.Done():
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	case <-ctx.Done():
-		return errorutil.Wrap(ctx.Err())
-	}
-}
-
-func GetSlackNotificationsSettings(ctx context.Context, reader *meta.Reader) (*SlackNotificationsSettings, error) {
-	slackSettings := &SlackNotificationsSettings{}
-
-	err := reader.RetrieveJson(ctx, "messenger_slack", slackSettings)
-	if err != nil {
-		return nil, errorutil.Wrap(err, "could get slack settings")
-	}
-
-	return slackSettings, nil
 }
