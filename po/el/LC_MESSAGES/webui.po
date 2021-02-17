@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"PO-Revision-Date: 2021-02-14 01:12+0000\n"
-"Last-Translator: Kristina Qejvanaj <kristina.qejvanaj@protonmail.com>\n"
+"PO-Revision-Date: 2021-02-17 12:26+0000\n"
+"Last-Translator: Ergis <ehotza35@gmail.com>\n"
 "Language-Team: Greek <https://translate.lightmeter.io/projects/controlcenter/"
 "frontend/el/>\n"
 "Language: el\n"
@@ -63,7 +63,7 @@ msgstr "Προσπάθειες παράδοσης"
 #: frontend/controlcenter/src/components/insights.vue:91
 #: frontend/controlcenter/src/components/insights.vue:98
 msgid "Details"
-msgstr "Λεπτομέριες"
+msgstr "Λεπτομέρειες"
 
 #: frontend/controlcenter/src/views/register.vue:59
 msgid ""
@@ -75,12 +75,12 @@ msgstr ""
 
 #: frontend/controlcenter/src/views/register.vue:33
 msgid "Direct (personal, office, one-to-one)"
-msgstr "Άμεση (προσωπικο, γραφείο, ένα προς ένα)"
+msgstr "Άμεση (προσωπικό, γραφείο, ένα προς ένα)"
 
 #: frontend/controlcenter/src/views/login.vue:21
 #: frontend/controlcenter/src/views/register.vue:53
 msgid "Email"
-msgstr "Ηλεκτρονικη Διευθυνση"
+msgstr "Ηλεκτρονική Διεύθυνση"
 
 #: frontend/controlcenter/src/views/settingspage.vue:53
 msgid "Enter ip address"
@@ -102,8 +102,8 @@ msgid ""
 msgstr ""
 "Τα δεδομένα χρήσης δυνατοτήτων κοινοποιούνται σε ένα ιδιωτικό σύστημα "
 "ανάλυσης ανοιχτού κώδικα για να  βελτίωσει την εμπειρίας σας και ενδέχεται "
-"να είναι% {ανοιγμα συνδεσμου απορριτου} απενεργοποιημένα% {κλεισιμο "
-"συνδεσμου  απορρριτου} ανά πάσα στιγμή"
+"να είναι% {άνοιγμα συνδέσμου απορρήτου} απενεργοποιημένα% {κλείσιμο "
+"συνδέσμου  απορρήτου} ανά πάσα στιγμή"
 
 #: frontend/controlcenter/src/components/mainfooter.vue:8
 msgid "Feedback"
@@ -150,12 +150,12 @@ msgid ""
 "Insights reveal mailops problems in real time &ndash; both here, and via "
 "notifications"
 msgstr ""
-"Οι πληροφορίες αποκαλύπτουν προβλήματα αλληλογραφίας σε πραγματικό χρόνο & "
-"ndash; τόσο εδώ, όσο και μέσω ειδοποιήσεων"
+"Οι πληροφορίες αποκαλύπτουν προβλήματα αλληλογραφίας σε πραγματικό χρόνο "
+"&ndash; τόσο εδώ, όσο και μέσω ειδοποιήσεων"
 
 #: frontend/controlcenter/src/components/insights.vue:74
 msgid "IP blocked by %{host}"
-msgstr "Η IP μπλοκαριστηκε από %{host}"
+msgstr "Η IP μπλοκαρίστηκε από %{host}"
 
 #: frontend/controlcenter/src/components/insights.vue:71
 msgid "IP on shared blocklist"
@@ -207,7 +207,7 @@ msgstr "Το μεγαλύτερο μέρος της αλληλογραφίας �
 
 #: frontend/controlcenter/src/views/register.vue:50
 msgid "Name"
-msgstr "Ονομα"
+msgstr "Όνομα"
 
 #: frontend/controlcenter/src/views/index.vue:84
 msgid "Newest"
@@ -240,7 +240,7 @@ msgstr "Παλαιότερα"
 
 #: frontend/controlcenter/src/components/insights.vue:215
 msgid "Original response from %{recipient} (%{host})"
-msgstr ""
+msgstr "Πρωτότυπη απάντηση απο %{recipient} (%{host})"
 
 #: frontend/controlcenter/src/views/login.vue:18
 #: frontend/controlcenter/src/views/register.vue:56
