@@ -50,7 +50,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 Welcome to Lightmeter Control Center, the Open Source mailops monitoring application.
 
-<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/screenshot.png"  width="600"/>
+<img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/screenshot.png"  width="600"/>
 
 ## Quickstart
 
