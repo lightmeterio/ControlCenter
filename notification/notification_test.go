@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/po"
-	"gitlab.com/lightmeter/controlcenter/settings"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 	"sync/atomic"
@@ -69,13 +68,13 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Translators, slackSettings *settings.SlackNotificationsSettings) *Center {
+func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Translators, slackSettings *slack.Settings) *Center {
 	notifiers := func() []core.Notifier {
 		if slackSettings == nil {
 			return []core.Notifier{}
 		}
 
-		slackNotifier := slack.NewWithCustomSettingsFetcher(core.Policies{&dummyPolicy{}}, func() (*settings.SlackNotificationsSettings, error) {
+		slackNotifier := slack.NewWithCustomSettingsFetcher(core.Policies{&dummyPolicy{}}, func() (*slack.Settings, error) {
 			return slackSettings, nil
 		})
 
@@ -98,8 +97,8 @@ func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Tr
 	return center
 }
 
-func buildSlackSettings(lang string, enabled bool) settings.SlackNotificationsSettings {
-	return settings.SlackNotificationsSettings{
+func buildSlackSettings(lang string, enabled bool) slack.Settings {
+	return slack.Settings{
 		Channel:     "general",
 		Kind:        "slack",
 		BearerToken: "some_slack_key",

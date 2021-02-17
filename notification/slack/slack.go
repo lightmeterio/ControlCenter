@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
-	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 	"sync"
@@ -33,17 +32,17 @@ type Notifier struct {
 	// this mutex protects the access to the settings and the slack api client
 	clientMutex     sync.Mutex
 	client          *slack.Client
-	currentSettings *settings.SlackNotificationsSettings
+	currentSettings *Settings
 
-	fetchSettings func() (*settings.SlackNotificationsSettings, error)
+	fetchSettings func() (*Settings, error)
 	policies      core.Policies
 
 	MessagePosterBuilder func(client *slack.Client) MessagePoster
 }
 
 func New(policies core.Policies, reader *meta.Reader) *Notifier {
-	return NewWithCustomSettingsFetcher(policies, func() (*settings.SlackNotificationsSettings, error) {
-		s := settings.SlackNotificationsSettings{}
+	return NewWithCustomSettingsFetcher(policies, func() (*Settings, error) {
+		s := Settings{}
 
 		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
 			return nil, errorutil.Wrap(err)
@@ -53,7 +52,7 @@ func New(policies core.Policies, reader *meta.Reader) *Notifier {
 	})
 }
 
-func NewWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*settings.SlackNotificationsSettings, error)) *Notifier {
+func NewWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*Settings, error)) *Notifier {
 	return &Notifier{
 		fetchSettings:        settingsFetcher,
 		policies:             policies,
@@ -61,7 +60,7 @@ func NewWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func()
 	}
 }
 
-func clientAndSettingsForMessenger(m *Notifier) (*slack.Client, *settings.SlackNotificationsSettings, error) {
+func clientAndSettingsForMessenger(m *Notifier) (*slack.Client, *Settings, error) {
 	updatedSettings, err := m.fetchSettings()
 
 	if err != nil {
@@ -113,7 +112,15 @@ func tryToNotifyMessage(m *Notifier, message core.Message) error {
 	return nil
 }
 
-func (m *Notifier) DeriveNotifierWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*settings.SlackNotificationsSettings, error)) *Notifier {
+type Settings struct {
+	BearerToken string `json:"bearer_token"`
+	Kind        string `json:"-"`
+	Channel     string `json:"channel"`
+	Enabled     bool   `json:"enabled"`
+	Language    string `json:"language"`
+}
+
+func (m *Notifier) DeriveNotifierWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*Settings, error)) *Notifier {
 	return &Notifier{
 		fetchSettings:        settingsFetcher,
 		policies:             policies,
@@ -142,4 +149,36 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 	}
 
 	return nil
+}
+
+func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+	result := writer.StoreJson(SettingKey,
+		Settings{
+			BearerToken: settings.BearerToken,
+			Channel:     settings.Channel,
+			Enabled:     settings.Enabled,
+			Language:    settings.Language,
+		})
+
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	case <-ctx.Done():
+		return errorutil.Wrap(ctx.Err())
+	}
+}
+
+func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+	slackSettings := &Settings{}
+
+	err := reader.RetrieveJson(ctx, SettingKey, slackSettings)
+	if err != nil {
+		return nil, errorutil.Wrap(err, "could get slack settings")
+	}
+
+	return slackSettings, nil
 }

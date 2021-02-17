@@ -132,7 +132,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	ctx := r.Context()
 
-	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, h.reader)
+	slackSettings, err := slack.GetSettings(ctx, h.reader)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -360,7 +360,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	slackNotificationsSettings := settings.SlackNotificationsSettings{
+	slackNotificationsSettings := slack.Settings{
 		Kind:        messengerKind,
 		BearerToken: messengerToken,
 		Channel:     messengerChannel,
@@ -368,7 +368,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		Language:    messengerLanguage,
 	}
 
-	testNotifier := h.slackNotifier.DeriveNotifierWithCustomSettingsFetcher(notification.AlwaysAllowPolicies, func() (*settings.SlackNotificationsSettings, error) {
+	testNotifier := h.slackNotifier.DeriveNotifierWithCustomSettingsFetcher(notification.AlwaysAllowPolicies, func() (*slack.Settings, error) {
 		return &slackNotificationsSettings, nil
 	})
 
@@ -377,7 +377,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
+	if err := slack.SetSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
 		err := errorutil.Wrap(err, "Error notification setting options")
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
