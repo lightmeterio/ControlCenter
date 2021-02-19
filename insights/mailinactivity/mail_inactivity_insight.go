@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -21,16 +22,46 @@ type content struct {
 	Interval data.TimeInterval `json:"interval"`
 }
 
-func (c content) String() string {
-	return translator.Stringfy(c)
+func (c content) Title() notificationCore.ContentComponent {
+	return &title{}
 }
 
-func (c content) TplString() string {
+func (c content) Description() notificationCore.ContentComponent {
+	return &description{c}
+}
+
+func (c content) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type title struct{}
+
+func (t title) String() string {
+	return translator.Stringfy(t)
+}
+
+func (title) TplString() string {
+	return translator.I18n("Mail Inactivity")
+}
+
+func (title) Args() []interface{} {
+	return nil
+}
+
+type description struct {
+	c content
+}
+
+func (d description) String() string {
+	return translator.Stringfy(d)
+}
+
+func (d description) TplString() string {
 	return translator.I18n("No emails were sent between %v and %v")
 }
 
-func (c content) Args() []interface{} {
-	return []interface{}{c.Interval.From, c.Interval.To}
+func (d description) Args() []interface{} {
+	return []interface{}{d.c.Interval.From, d.c.Interval.To}
 }
 
 func (c content) HelpLink(urlContainer core.URLContainer) string {

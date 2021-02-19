@@ -6,6 +6,7 @@ package translator
 
 import (
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
@@ -70,4 +71,25 @@ func newTranslator(tag language.Tag, c catalog.Catalog) *translator {
 
 func (t *translator) Translate(s string, args ...interface{}) (string, error) {
 	return t.printer.Sprintf(message.Key(s, s), args), nil
+}
+
+func Translate(t Translator, c TranslatableStringer) (string, error) {
+	transformed := TransformTranslation(c.TplString())
+
+	translated, err := t.Translate(transformed)
+	if err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	args := c.Args()
+
+	// TODO: restore this, or better, rely on the translator!
+	// for i, arg := range args {
+	// 	t, ok := arg.(time.Time)
+	// 	if ok {
+	// 		args[i] = timeutil.PrettyFormatTime(t, language)
+	// 	}
+	// }
+
+	return fmt.Sprintf(translated, args...), nil
 }

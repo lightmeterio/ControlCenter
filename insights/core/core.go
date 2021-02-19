@@ -7,8 +7,7 @@ package core
 
 import (
 	"database/sql"
-	"fmt"
-	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -50,8 +49,7 @@ func (c *Core) Close() error {
 }
 
 type Content interface {
-	fmt.Stringer
-	translator.TranslatableStringer
+	notificationCore.Content
 }
 
 type URLContainer interface {

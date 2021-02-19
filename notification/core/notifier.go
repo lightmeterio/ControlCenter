@@ -25,7 +25,15 @@ type Notification struct {
 	Content Content
 }
 
-type Content interface {
+type ContentMetadata = map[string]ContentComponent
+
+type ContentComponent interface {
 	fmt.Stringer
 	translator.TranslatableStringer
+}
+
+type Content interface {
+	Title() ContentComponent
+	Description() ContentComponent
+	Metadata() ContentMetadata
 }

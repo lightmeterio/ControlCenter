@@ -5,38 +5,42 @@
 package core
 
 import (
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func Messagef(format string, a ...interface{}) Message {
-	return Message(fmt.Sprintf(format, a...))
+// Similar to Content{}, but already translated
+type Message struct {
+	Title       string
+	Description string
+	Metadata    map[string]string
 }
 
-type Message string
-
-func (s *Message) String() string {
-	return string(*s)
-}
-
-func TranslateNotification(notification Notification, t translator.Translator) (Message, error) {
-	transformed := translator.TransformTranslation(notification.Content.TplString())
-
-	translatedMessage, err := t.Translate(transformed)
+func TranslateNotification(n Notification, t translator.Translator) (Message, error) {
+	title, err := translator.Translate(t, n.Content.Title())
 	if err != nil {
-		return "", errorutil.Wrap(err)
+		return Message{}, errorutil.Wrap(err)
 	}
 
-	args := notification.Content.Args()
+	description, err := translator.Translate(t, n.Content.Description())
+	if err != nil {
+		return Message{}, errorutil.Wrap(err)
+	}
 
-	// TODO: restore this, or better, rely on the translator!
-	// for i, arg := range args {
-	// 	t, ok := arg.(time.Time)
-	// 	if ok {
-	// 		args[i] = timeutil.PrettyFormatTime(t, language)
-	// 	}
-	// }
+	message := Message{
+		Title:       title,
+		Description: description,
+		Metadata:    map[string]string{},
+	}
 
-	return Messagef(translatedMessage, args...), nil
+	for k, m := range n.Content.Metadata() {
+		v, err := translator.Translate(t, m)
+		if err != nil {
+			return Message{}, errorutil.Wrap(err)
+		}
+
+		message.Metadata[k] = v
+	}
+
+	return message, nil
 }

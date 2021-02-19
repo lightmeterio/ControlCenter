@@ -8,28 +8,54 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"gitlab.com/lightmeter/controlcenter/version"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 	"io/ioutil"
+	"net"
+	"strings"
 	"testing"
 	"time"
 )
 
-type fakeContent struct {
+type fakeContentComponent string
+
+func (c fakeContentComponent) String() string {
+	return string(c)
 }
 
-func (c fakeContent) String() string {
-	return "some fake content!"
+func (c fakeContentComponent) Args() []interface{} {
+	return nil
 }
 
-func (c fakeContent) TplString() string {
+func (c fakeContentComponent) TplString() string {
 	return c.String()
 }
 
-func (c fakeContent) Args() []interface{} {
-	return nil
+type fakeContent struct {
+}
+
+func (c fakeContent) Title() core.ContentComponent {
+	return fakeContentComponent("some fake content")
+}
+
+func (c fakeContent) Description() core.ContentComponent {
+	return fakeContentComponent("some fake description")
+}
+
+func (c fakeContent) Metadata() map[string]core.ContentComponent {
+	return map[string]core.ContentComponent{
+		"category": fakeContentComponent("Intel"),
+		"priority": fakeContentComponent("Low"),
+	}
+}
+
+func init() {
+	// fake application version
+	version.Version = "1.0.0"
 }
 
 func TestSendEmail(t *testing.T) {
@@ -50,6 +76,12 @@ func TestSendEmail(t *testing.T) {
 			So(dtor(), ShouldBeNil)
 		}()
 
+		globalSettings := globalsettings.Settings{
+			LocalIP:     net.ParseIP("127.0.0.1"),
+			PublicURL:   "https://example.com/lightmeter/",
+			APPLanguage: "en",
+		}
+
 		Convey("Fails", func() {
 			settings := Settings{
 				Sender:       "sender@example.com",
@@ -67,8 +99,8 @@ func TestSendEmail(t *testing.T) {
 			})
 
 			Convey("Fail to Send", func() {
-				notifier := newWithCustomSettingsFetcherAndClock(core.PassPolicy, func() (*Settings, error) {
-					return &settings, nil
+				notifier := newWithCustomSettingsFetcherAndClock(core.PassPolicy, func() (*Settings, *globalsettings.Settings, error) {
+					return &settings, &globalSettings, nil
 				}, &clock)
 
 				err := notifier.Notify(core.Notification{
@@ -98,12 +130,12 @@ func TestSendEmail(t *testing.T) {
 			})
 
 			Convey("Succeds to Send", func() {
-				notifier := newWithCustomSettingsFetcherAndClock(core.PassPolicy, func() (*Settings, error) {
-					return &settings, nil
+				notifier := newWithCustomSettingsFetcherAndClock(core.PassPolicy, func() (*Settings, *globalsettings.Settings, error) {
+					return &settings, &globalSettings, nil
 				}, &clock)
 
 				err := notifier.Notify(core.Notification{
-					ID:      1,
+					ID:      42,
 					Content: fakeContent{},
 				}, translator)
 
@@ -121,7 +153,19 @@ func TestSendEmail(t *testing.T) {
 
 				content, err := ioutil.ReadAll(msg.Body)
 				So(err, ShouldBeNil)
-				So(len(content), ShouldBeGreaterThan, 0)
+
+				expectedContent := `
+Title: some fake content
+Description: some fake description
+Category: Intel
+Priority: Low
+DetailsURL: https://example.com/lightmeter/#/insight-42
+PreferencesURL: https://example.com/lightmeter/#/settings
+Version: 1.0.0
+
+`
+
+				So(strings.ReplaceAll(string(content), "\r\n", "\n"), ShouldEqual, expectedContent)
 			})
 		})
 	})
