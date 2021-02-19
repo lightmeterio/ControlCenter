@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"path"
 	"time"
 )
@@ -175,15 +176,7 @@ func engineCycle(e *Engine) (bool, error) {
 	return true, nil
 }
 
-type realClock struct{}
-
-func (realClock) Now() time.Time {
-	return time.Now()
-}
-
-func (realClock) Sleep(d time.Duration) {
-	time.Sleep(d)
-}
+type realClock = timeutil.RealClock
 
 func runDatabaseWriterLoop(e *Engine) {
 	// one thread, owning access to the database

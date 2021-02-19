@@ -11,13 +11,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
-type Clock interface {
-	Now() time.Time
-	Sleep(time.Duration)
-}
+type Clock = timeutil.Clock
 
 type Detector interface {
 	Step(Clock, *sql.Tx) error
