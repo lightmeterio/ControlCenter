@@ -9,6 +9,7 @@ require (
 	github.com/chai2010/gettext-go v1.0.3-0.20200705094307-42825e1d282c
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
+	github.com/emersion/go-smtp v0.14.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-openapi/spec v0.19.9 // indirect
 	github.com/go-openapi/swag v0.19.9 // indirect
@@ -23,7 +24,6 @@ require (
 	github.com/mmcdole/gofeed v1.1.0
 	github.com/mmcdole/goxpp v0.0.0-20200921145534-2f3784f67354 // indirect
 	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
-	github.com/pkg/errors v0.8.1
 	github.com/pressly/goose v2.6.0+incompatible
 	github.com/rs/zerolog v1.20.0
 	github.com/satori/go.uuid v1.2.0
@@ -43,5 +43,4 @@ require (
 	golang.org/x/tools v0.0.0-20200917221617-d56e4e40bc9d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
