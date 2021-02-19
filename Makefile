@@ -32,7 +32,7 @@ dev_headless_pre_build: mocks translations swag static_www postfix_parser domain
 
 dev_pre_build: npminstall mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
 
-pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go
+pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go email_notification_template
 
 pre_release: pre_build recommendation_release
 
@@ -51,6 +51,9 @@ static_release_bin: pre_release
 
 static_www:
 	go generate -tags="include" gitlab.com/lightmeter/controlcenter/staticdata
+
+email_notification_template:
+	go generate gitlab.com/lightmeter/controlcenter/notification/email
 
 domain_mapping_list: domainmapping/generated_list.go
 

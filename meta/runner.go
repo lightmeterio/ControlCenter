@@ -7,6 +7,7 @@ package meta
 import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
@@ -90,6 +91,21 @@ func (w *AsyncWriter) StoreJson(key, value interface{}) *AsyncWriteResult {
 	w.runner.requestsChan <- storeRequest{jsonKey: key, jsonValue: value, errChan: c}
 
 	return &AsyncWriteResult{errChan: c}
+}
+
+func (w *AsyncWriter) StoreJsonSync(ctx context.Context, key, value interface{}) error {
+	result := w.StoreJson(key, value)
+
+	select {
+	case err := <-result.Done():
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	case <-ctx.Done():
+		return errorutil.Wrap(ctx.Err())
+	}
 }
 
 func handleRequest(ctx context.Context, writer *Writer, req storeRequest) {

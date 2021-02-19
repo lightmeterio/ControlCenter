@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
@@ -43,7 +44,6 @@ type Workspace struct {
 	dashboard dashboard.Dashboard
 
 	NotificationCenter *notification.Center
-	SlackNotifier      *slack.Notifier
 
 	settingsMetaHandler *meta.Handler
 	settingsRunner      *meta.Runner
@@ -101,9 +101,14 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
 
-	slackNotifier := slack.New(notificationPolicies, m.Reader)
+	notifiers := map[string]notification.Notifier{
+		slack.SettingKey: slack.New(notificationPolicies, m.Reader),
+		email.SettingKey: email.New(notificationPolicies, m.Reader),
+	}
 
-	notificationCenter := notification.New(m.Reader, translators, []notification.Notifier{slackNotifier})
+	policy := &insights.DefaultNotificationPolicy{}
+
+	notificationCenter := notification.New(m.Reader, translators, policy, notifiers)
 
 	rblChecker := localrbl.NewChecker(m.Reader, localrbl.Options{
 		NumberOfWorkers:  10,
@@ -141,7 +146,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			m,
 		),
 		NotificationCenter: notificationCenter,
-		SlackNotifier:      slackNotifier,
 	}
 
 	ws.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {

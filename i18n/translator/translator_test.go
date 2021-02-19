@@ -9,7 +9,6 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 	"testing"
-	"time"
 )
 
 func TestTranslators(t *testing.T) {
@@ -18,7 +17,7 @@ func TestTranslators(t *testing.T) {
 		translators := New(b)
 
 		Convey("No strings translated. Get value itself", func() {
-			t := translators.Translator(language.English, time.Time{})
+			t := translators.Translator(language.English)
 			s, err := t.Translate("Hello")
 			So(err, ShouldBeNil)
 			So(s, ShouldEqual, "Hello")
@@ -28,14 +27,14 @@ func TestTranslators(t *testing.T) {
 		b.SetString(language.English, "Hello World!", "Hello World!")
 
 		Convey("Translate to the same value", func() {
-			t := translators.Translator(language.English, time.Time{})
+			t := translators.Translator(language.English)
 			s, err := t.Translate("Hello World!")
 			So(err, ShouldBeNil)
 			So(s, ShouldEqual, "Hello World!")
 		})
 
 		Convey("Translate to another language", func() {
-			t := translators.Translator(language.Spanish, time.Time{})
+			t := translators.Translator(language.Spanish)
 			s, err := t.Translate("Hello World!")
 			So(err, ShouldBeNil)
 			So(s, ShouldEqual, "Hola Mundo!")

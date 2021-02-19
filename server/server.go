@@ -53,7 +53,7 @@ func (s *HttpServer) Start() error {
 
 	writer, reader := s.Workspace.SettingsAcessors()
 
-	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter, s.Workspace.SlackNotifier)
+	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter)
 
 	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
 

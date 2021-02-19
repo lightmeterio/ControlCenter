@@ -12,7 +12,7 @@ import (
 type DefaultNotificationPolicy struct {
 }
 
-func (DefaultNotificationPolicy) Pass(n notification.Notification) (bool, error) {
+func (DefaultNotificationPolicy) Reject(n notification.Notification) (bool, error) {
 	p, ok := n.Content.(core.InsightProperties)
-	return ok && p.Rating == core.BadRating, nil
+	return !ok || p.Rating != core.BadRating, nil
 }

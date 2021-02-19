@@ -54,8 +54,8 @@ func (c fakeContent) Args() []interface{} {
 type dummyPolicy struct {
 }
 
-func (dummyPolicy) Pass(core.Notification) (bool, error) {
-	return true, nil
+func (dummyPolicy) Reject(core.Notification) (bool, error) {
+	return false, nil
 }
 
 type fakeSlackPoster struct {
@@ -68,10 +68,10 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Translators, slackSettings *slack.Settings) *Center {
-	notifiers := func() []core.Notifier {
+func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Translators, settings *Settings, slackSettings *slack.Settings) *Center {
+	notifiers := func() map[string]core.Notifier {
 		if slackSettings == nil {
-			return []core.Notifier{}
+			return nil
 		}
 
 		slackNotifier := slack.NewWithCustomSettingsFetcher(core.Policies{&dummyPolicy{}}, func() (*slack.Settings, error) {
@@ -83,12 +83,12 @@ func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Tr
 			return &fakeSlackPoster{}
 		}
 
-		return []core.Notifier{slackNotifier}
+		return map[string]core.Notifier{slack.SettingKey: slackNotifier}
 	}()
 
-	center := NewWithCustomLanguageFetcher(translators, func() (language.Tag, error) {
-		if slackSettings != nil {
-			return language.Parse(slackSettings.Language)
+	center := NewWithCustomLanguageFetcher(translators, PassPolicy, func() (language.Tag, error) {
+		if settings != nil {
+			return language.Parse(settings.Language)
 		}
 
 		return language.English, nil
@@ -97,14 +97,15 @@ func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Tr
 	return center
 }
 
-func buildSlackSettings(lang string, enabled bool) slack.Settings {
-	return slack.Settings{
-		Channel:     "general",
-		Kind:        "slack",
-		BearerToken: "some_slack_key",
-		Enabled:     enabled,
-		Language:    lang,
-	}
+func buildFakeSettings(lang string, enabled bool) (Settings, slack.Settings) {
+	return Settings{
+			Language: lang,
+		},
+		slack.Settings{
+			Channel:     "general",
+			BearerToken: "some_slack_key",
+			Enabled:     enabled,
+		}
 }
 
 func TestSendNotification(t *testing.T) {
@@ -120,9 +121,9 @@ func TestSendNotification(t *testing.T) {
 				cat.SetString(lang, content.TplString(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
 
 				translators := translator.New(cat)
-				s := buildSlackSettings("de", true)
+				settings, slackSettings := buildFakeSettings("de", true)
 
-				center := centerWithTranslatorsAndDummyPolicy(t, translators, &s)
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSettings)
 
 				notification := core.Notification{
 					ID:      0,
@@ -139,8 +140,8 @@ func TestSendNotification(t *testing.T) {
 				cat.SetString(lang, content.TplString(), content.TplString())
 
 				translators := translator.New(cat)
-				s := buildSlackSettings("en", true)
-				center := centerWithTranslatorsAndDummyPolicy(t, translators, &s)
+				settings, slackSetting := buildFakeSettings("en", true)
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSetting)
 
 				notification := core.Notification{
 					ID:      0,
@@ -157,8 +158,8 @@ func TestSendNotification(t *testing.T) {
 				cat.SetString(lang, content.TplString(), content.TplString())
 
 				translators := translator.New(cat)
-				s := buildSlackSettings("pt_BR", true)
-				center := centerWithTranslatorsAndDummyPolicy(t, translators, &s)
+				settings, slackSettings := buildFakeSettings("pt_BR", true)
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSettings)
 
 				notification := core.Notification{
 					ID:      0,
@@ -175,7 +176,7 @@ func TestSendNotification(t *testing.T) {
 func TestSendNotificationMissingConf(t *testing.T) {
 	Convey("Notification", t, func() {
 		translators := translator.New(po.DefaultCatalog)
-		center := centerWithTranslatorsAndDummyPolicy(t, translators, nil)
+		center := centerWithTranslatorsAndDummyPolicy(t, translators, nil, nil)
 
 		content := new(fakeContent)
 		notification := core.Notification{
@@ -203,6 +204,10 @@ func (s *fakeapi) Notify(n core.Notification, _ translator.Translator) error {
 	return nil
 }
 
+func (m *fakeapi) ValidateSettings(s core.Settings) error {
+	return nil
+}
+
 func TestFakeSendNotification(t *testing.T) {
 	Convey("Notification", t, func() {
 		fakeapi := &fakeapi{t: t}
@@ -212,7 +217,7 @@ func TestFakeSendNotification(t *testing.T) {
 		cat.SetString(lang, `%v bounce rate between %v and %v`, `%v bounce rate ist zwischen %v und %v`)
 		translators := translator.New(cat)
 
-		center := NewWithCustomLanguageFetcher(translators, func() (language.Tag, error) { return language.German, nil }, []core.Notifier{fakeapi})
+		center := NewWithCustomLanguageFetcher(translators, PassPolicy, func() (language.Tag, error) { return language.German, nil }, map[string]core.Notifier{"fake": fakeapi})
 
 		content := new(fakeContent)
 

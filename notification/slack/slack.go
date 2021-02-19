@@ -28,20 +28,35 @@ func messagePosterBuilder(client *slack.Client) MessagePoster {
 	return client
 }
 
+type SettingsFetcher func() (*Settings, error)
+
 type Notifier struct {
 	// this mutex protects the access to the settings and the slack api client
 	clientMutex     sync.Mutex
 	client          *slack.Client
 	currentSettings *Settings
 
-	fetchSettings func() (*Settings, error)
-	policies      core.Policies
+	fetchSettings SettingsFetcher
+	policy        core.Policy
 
 	MessagePosterBuilder func(client *slack.Client) MessagePoster
 }
 
-func New(policies core.Policies, reader *meta.Reader) *Notifier {
-	return NewWithCustomSettingsFetcher(policies, func() (*Settings, error) {
+type disabledFromSettingsPolicy struct {
+	settingsFetcher SettingsFetcher
+}
+
+func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
+	s, err := p.settingsFetcher()
+	if err != nil {
+		return true, errorutil.Wrap(err)
+	}
+
+	return !s.Enabled, nil
+}
+
+func New(policy core.Policy, reader *meta.Reader) *Notifier {
+	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
 		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
@@ -49,13 +64,17 @@ func New(policies core.Policies, reader *meta.Reader) *Notifier {
 		}
 
 		return &s, nil
-	})
+	}
+
+	policies := core.Policies{policy, &disabledFromSettingsPolicy{settingsFetcher: fetchSettings}}
+
+	return NewWithCustomSettingsFetcher(policies, fetchSettings)
 }
 
-func NewWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*Settings, error)) *Notifier {
+func NewWithCustomSettingsFetcher(policy core.Policy, settingsFetcher func() (*Settings, error)) *Notifier {
 	return &Notifier{
 		fetchSettings:        settingsFetcher,
-		policies:             policies,
+		policy:               policy,
 		MessagePosterBuilder: messagePosterBuilder,
 	}
 }
@@ -114,28 +133,44 @@ func tryToNotifyMessage(m *Notifier, message core.Message) error {
 
 type Settings struct {
 	BearerToken string `json:"bearer_token"`
-	Kind        string `json:"-"`
 	Channel     string `json:"channel"`
 	Enabled     bool   `json:"enabled"`
-	Language    string `json:"language"`
 }
 
-func (m *Notifier) DeriveNotifierWithCustomSettingsFetcher(policies core.Policies, settingsFetcher func() (*Settings, error)) *Notifier {
+func (m *Notifier) ValidateSettings(s core.Settings) error {
+	settings, ok := s.(Settings)
+
+	if !ok {
+		return core.ErrInvalidSettings
+	}
+
+	d := m.deriveNotifierWithCustomSettingsFetcher(core.PassPolicy, func() (*Settings, error) {
+		return &settings, nil
+	})
+
+	if err := d.SendTestNotification(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func (m *Notifier) deriveNotifierWithCustomSettingsFetcher(policy core.Policy, settingsFetcher func() (*Settings, error)) *Notifier {
 	return &Notifier{
 		fetchSettings:        settingsFetcher,
-		policies:             policies,
+		policy:               policy,
 		MessagePosterBuilder: m.MessagePosterBuilder,
 	}
 }
 
 // implement Notifier
 func (m *Notifier) Notify(n core.Notification, translator translator.Translator) error {
-	pass, err := m.policies.Pass(n)
+	reject, err := m.policy.Reject(n)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if !pass {
+	if reject {
 		return nil
 	}
 
@@ -152,33 +187,20 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 }
 
 func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
-	result := writer.StoreJson(SettingKey,
-		Settings{
-			BearerToken: settings.BearerToken,
-			Channel:     settings.Channel,
-			Enabled:     settings.Enabled,
-			Language:    settings.Language,
-		})
-
-	select {
-	case err := <-result.Done():
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	case <-ctx.Done():
-		return errorutil.Wrap(ctx.Err())
+	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
+		return errorutil.Wrap(err)
 	}
+
+	return nil
 }
 
 func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
-	slackSettings := &Settings{}
+	settings := &Settings{}
 
-	err := reader.RetrieveJson(ctx, SettingKey, slackSettings)
+	err := reader.RetrieveJson(ctx, SettingKey, settings)
 	if err != nil {
-		return nil, errorutil.Wrap(err, "could get slack settings")
+		return nil, errorutil.Wrap(err, "could not get slack settings")
 	}
 
-	return slackSettings, nil
+	return settings, nil
 }

@@ -9,24 +9,32 @@ import (
 )
 
 type Policy interface {
-	// Can a notification be notified according to this policy?
-	Pass(Notification) (bool, error)
+	// Should a notification be rejected by a policy?
+	Reject(Notification) (bool, error)
 }
 
 type Policies []Policy
 
-func (policies Policies) Pass(n Notification) (bool, error) {
+func (policies Policies) Reject(n Notification) (bool, error) {
 	for _, p := range policies {
-		pass, err := p.Pass(n)
+		rejected, err := p.Reject(n)
 
 		if err != nil {
-			return false, errorutil.Wrap(err)
+			return true, errorutil.Wrap(err)
 		}
 
-		if pass {
+		if rejected {
 			return true, nil
 		}
 	}
 
 	return false, nil
 }
+
+type alwaysAllowPolicy struct{}
+
+func (alwaysAllowPolicy) Reject(Notification) (bool, error) {
+	return false, nil
+}
+
+var PassPolicy = alwaysAllowPolicy{}

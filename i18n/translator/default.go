@@ -10,7 +10,6 @@ import (
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
 	"strings"
-	"time"
 )
 
 // Allows extractions of language keys
@@ -41,7 +40,7 @@ type Translator interface {
 }
 
 type Translators interface {
-	Translator(language.Tag, time.Time) Translator
+	Translator(language.Tag) Translator
 	Matcher() language.Matcher
 }
 
@@ -49,8 +48,8 @@ type translators struct {
 	catalog catalog.Catalog
 }
 
-func (t *translators) Translator(tag language.Tag, accessTime time.Time) Translator {
-	return newTranslator(tag, t.catalog, accessTime)
+func (t *translators) Translator(tag language.Tag) Translator {
+	return newTranslator(tag, t.catalog)
 }
 
 func (t *translators) Matcher() language.Matcher {
@@ -65,7 +64,7 @@ type translator struct {
 	printer *message.Printer
 }
 
-func newTranslator(tag language.Tag, c catalog.Catalog, accessTime time.Time) *translator {
+func newTranslator(tag language.Tag, c catalog.Catalog) *translator {
 	return &translator{printer: message.NewPrinter(tag, message.Catalog(c))}
 }
 

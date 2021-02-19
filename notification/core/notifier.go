@@ -5,19 +5,24 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 )
 
+type Settings interface{}
+
+var ErrInvalidSettings = errors.New(`Invalid Settings`)
+
 // TODO: a notifier should be notified asynchronously!!!
 type Notifier interface {
 	Notify(Notification, translator.Translator) error
+	ValidateSettings(Settings) error
 }
 
 type Notification struct {
 	ID      int64
 	Content Content
-	Rating  int64
 }
 
 type Content interface {

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
@@ -52,17 +53,11 @@ type fakeNotifier struct {
 	notifications []notification.Notification
 }
 
+func (*fakeNotifier) ValidateSettings(notificationCore.Settings) error {
+	return nil
+}
+
 func (f *fakeNotifier) Notify(n notification.Notification, _ translator.Translator) error {
-	pass, err := DefaultNotificationPolicy{}.Pass(n)
-
-	if err != nil {
-		return err
-	}
-
-	if !pass {
-		return nil
-	}
-
 	f.notifications = append(f.notifications, n)
 	return nil
 }
@@ -148,9 +143,9 @@ func TestEngine(t *testing.T) {
 
 		notifier := &fakeNotifier{}
 
-		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), func() (language.Tag, error) {
+		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), DefaultNotificationPolicy{}, func() (language.Tag, error) {
 			return language.English, nil
-		}, []notification.Notifier{notifier})
+		}, map[string]notification.Notifier{"fake": notifier})
 
 		detector := &fakeDetector{t: t}
 
