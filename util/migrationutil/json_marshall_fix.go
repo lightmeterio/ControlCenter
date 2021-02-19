@@ -3,19 +3,19 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package migrations
+package migrationutil
 
 // Given an object, if it has any maps[string]interface{} in it,
 // Returns a new object with the key values transformed using a custom function
 // NOTE: It does not handle pointer cycles
-func fixKeyNames(o interface{}, fixup func(string) string) (interface{}, error) {
+func FixKeyNames(o interface{}, fixup func(string) string) (interface{}, error) {
 	if asMap, ok := o.(map[string]interface{}); ok {
 		newMap := map[string]interface{}{}
 
 		for k, v := range asMap {
 			fixedKey := fixup(k)
 
-			fixedValue, err := fixKeyNames(v, fixup)
+			fixedValue, err := FixKeyNames(v, fixup)
 
 			if err != nil {
 				return nil, err
@@ -31,7 +31,7 @@ func fixKeyNames(o interface{}, fixup func(string) string) (interface{}, error) 
 		newSlice := []interface{}{}
 
 		for _, v := range asSlice {
-			newValue, err := fixKeyNames(v, fixup)
+			newValue, err := FixKeyNames(v, fixup)
 
 			if err != nil {
 				return nil, err
