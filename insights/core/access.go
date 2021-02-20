@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"math"
 	"time"
@@ -36,6 +37,14 @@ func (c Category) String() string {
 		log.Panic().Msgf("Invalid category: %d", int(c))
 		return ""
 	}
+}
+
+func (Category) Args() []interface{} {
+	return nil
+}
+
+func (c Category) TplString() string {
+	return c.String()
 }
 
 const (
@@ -97,6 +106,14 @@ func (r Rating) String() string {
 		log.Panic().Msgf("Invalid/Unknown rating value: %d", int(r))
 		return ""
 	}
+}
+
+func (Rating) Args() []interface{} {
+	return nil
+}
+
+func (r Rating) TplString() string {
+	return r.String()
 }
 
 // The rating values are spaced in order to allow newer values to be added between existing ones
@@ -392,19 +409,19 @@ type InsightProperties struct {
 	Content     Content   `json:"content"`
 }
 
-// implements notification.Content
-func (p InsightProperties) String() string {
-	return p.Content.String()
+func (p InsightProperties) Title() notificationCore.ContentComponent {
+	return p.Content.Title()
 }
 
-// implements notification.Content
-func (p InsightProperties) TplString() string {
-	return p.Content.TplString()
+func (p InsightProperties) Description() notificationCore.ContentComponent {
+	return p.Content.Description()
 }
 
-// implements notification.Content
-func (p InsightProperties) Args() []interface{} {
-	return p.Content.Args()
+func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
+	return notificationCore.ContentMetadata{
+		"category": p.Category,
+		"priority": p.Rating,
+	}
 }
 
 type Creator interface {

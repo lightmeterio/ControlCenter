@@ -35,20 +35,50 @@ type TimeInterval struct {
 	To   time.Time
 }
 
+func (c TimeInterval) String() string {
+	return fmt.Sprintf("No emails were sent between %v and %v", c.Args()...)
+}
+
+func (c TimeInterval) Args() []interface{} {
+	return []interface{}{c.From, c.To}
+}
+
+func (c TimeInterval) TplString() string {
+	return "No emails were sent between %v and %v"
+}
+
+type fakeContentComponent string
+
+func (c fakeContentComponent) String() string {
+	return string(c)
+}
+
+func (c fakeContentComponent) Args() []interface{} {
+	return nil
+}
+
+func (c fakeContentComponent) TplString() string {
+	return c.String()
+}
+
+func (c fakeContentComponent) Metadata() core.ContentMetadata {
+	return nil
+}
+
 type fakeContent struct {
 	Interval TimeInterval
 }
 
-func (c fakeContent) String() string {
-	return fmt.Sprintf("No emails were sent between %v and %v", c.Args()...)
+func (c fakeContent) Title() core.ContentComponent {
+	return &c.Interval
 }
 
-func (c fakeContent) TplString() string {
-	return "No emails were sent between %v and %v"
+func (c fakeContent) Description() core.ContentComponent {
+	return &c.Interval
 }
 
-func (c fakeContent) Args() []interface{} {
-	return []interface{}{c.Interval.From, c.Interval.To}
+func (c fakeContent) Metadata() core.ContentMetadata {
+	return nil
 }
 
 type dummyPolicy struct {
@@ -118,7 +148,7 @@ func TestSendNotification(t *testing.T) {
 			Convey("Do subscribe (german)", func() {
 				cat := catalog.NewBuilder()
 				lang := language.MustParse("de")
-				cat.SetString(lang, content.TplString(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
+				cat.SetString(lang, content.Description().String(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
 
 				translators := translator.New(cat)
 				settings, slackSettings := buildFakeSettings("de", true)
@@ -137,7 +167,7 @@ func TestSendNotification(t *testing.T) {
 			Convey("Do subscribe (english)", func() {
 				cat := catalog.NewBuilder()
 				lang := language.MustParse("en")
-				cat.SetString(lang, content.TplString(), content.TplString())
+				cat.SetString(lang, content.Description().TplString(), content.Description().TplString())
 
 				translators := translator.New(cat)
 				settings, slackSetting := buildFakeSettings("en", true)
@@ -155,7 +185,7 @@ func TestSendNotification(t *testing.T) {
 			Convey("Do subscribe (pt_BR)", func() {
 				cat := catalog.NewBuilder()
 				lang := language.MustParse("pt_BR")
-				cat.SetString(lang, content.TplString(), content.TplString())
+				cat.SetString(lang, content.Description().TplString(), content.Description().TplString())
 
 				translators := translator.New(cat)
 				settings, slackSettings := buildFakeSettings("pt_BR", true)

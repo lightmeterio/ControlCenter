@@ -8,10 +8,13 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
@@ -260,22 +263,22 @@ func TestNewsFeedInsights(t *testing.T) {
 			So(insights[0].ContentType(), ShouldEqual, "newsfeed_content")
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`))
 			So(insights[0].Content(), ShouldResemble, &Content{
-				Title:       `Some First News`,
-				Description: `Description of the First Item`,
-				Link:        `https://example.com/news/1`,
-				Published:   testutil.MustParseTime(`1999-12-20 00:00:00 +0000`),
-				GUID:        `https://example.com/news/1`,
+				TitleValue:       `Some First News`,
+				DescriptionValue: `Description of the First Item`,
+				Link:             `https://example.com/news/1`,
+				Published:        testutil.MustParseTime(`1999-12-20 00:00:00 +0000`),
+				GUID:             `https://example.com/news/1`,
 			})
 
 			So(insights[1].ID(), ShouldEqual, 2)
 			So(insights[1].ContentType(), ShouldEqual, "newsfeed_content")
 			So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-02 12:00:30 +0000`))
 			So(insights[1].Content(), ShouldResemble, &Content{
-				Title:       `The Second News`,
-				Description: `Another description`,
-				Link:        `https://example.com/news/2`,
-				Published:   testutil.MustParseTime(`2000-01-02 11:59:00 +0000`),
-				GUID:        `https://example.com/news/2`,
+				TitleValue:       `The Second News`,
+				DescriptionValue: `Another description`,
+				Link:             `https://example.com/news/2`,
+				Published:        testutil.MustParseTime(`2000-01-02 11:59:00 +0000`),
+				GUID:             `https://example.com/news/2`,
 			})
 		})
 
@@ -307,23 +310,46 @@ func TestNewsFeedInsights(t *testing.T) {
 			So(insights[0].ContentType(), ShouldEqual, "newsfeed_content")
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-05 12:00:00 +0000`))
 			So(insights[0].Content(), ShouldResemble, &Content{
-				Title:       `The Third News`,
-				Description: `Some Third Description`,
-				Link:        `https://example.com/news/3`,
-				Published:   testutil.MustParseTime(`2000-01-05 11:59:00 +0000`),
-				GUID:        `https://example.com/news/3`,
+				TitleValue:       `The Third News`,
+				DescriptionValue: `Some Third Description`,
+				Link:             `https://example.com/news/3`,
+				Published:        testutil.MustParseTime(`2000-01-05 11:59:00 +0000`),
+				GUID:             `https://example.com/news/3`,
 			})
 
 			So(insights[1].ID(), ShouldEqual, 2)
 			So(insights[1].ContentType(), ShouldEqual, "newsfeed_content")
 			So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-06 12:00:00 +0000`))
 			So(insights[1].Content(), ShouldResemble, &Content{
-				Title:       `The Forth News`,
-				Description: `Some Forth Description`,
-				Link:        `https://example.com/news/4`,
-				Published:   testutil.MustParseTime(`2000-01-06 11:59:00 +0000`),
-				GUID:        `https://example.com/news/4`,
+				TitleValue:       `The Forth News`,
+				DescriptionValue: `Some Forth Description`,
+				Link:             `https://example.com/news/4`,
+				Published:        testutil.MustParseTime(`2000-01-06 11:59:00 +0000`),
+				GUID:             `https://example.com/news/4`,
 			})
+		})
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID: 1,
+			Content: Content{
+				TitleValue:       "some title",
+				DescriptionValue: "some description",
+				Link:             "https://example.com",
+				Published:        testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				GUID:             "uuid",
+			},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "some title",
+			Description: "some description",
+			Metadata:    map[string]string{},
 		})
 	})
 }

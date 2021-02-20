@@ -104,7 +104,13 @@ func clientAndSettingsForMessenger(m *Notifier) (*slack.Client, *Settings, error
 }
 
 func (m *Notifier) SendTestNotification() error {
-	if err := tryToNotifyMessage(m, core.Message("Lightmeter ControlCenter successfully connected to Slack!")); err != nil {
+	msg := core.Message{
+		Title:       "",
+		Description: "Lightmeter ControlCenter successfully connected to Slack!",
+		Metadata:    map[string]string{},
+	}
+
+	if err := tryToNotifyMessage(m, msg); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -123,7 +129,7 @@ func tryToNotifyMessage(m *Notifier, message core.Message) error {
 
 	poster := m.MessagePosterBuilder(client)
 
-	_, _, err = poster.PostMessage(settings.Channel, slack.MsgOptionText(message.String(), false), slack.MsgOptionAsUser(true))
+	_, _, err = poster.PostMessage(settings.Channel, slack.MsgOptionText(message.Description, false), slack.MsgOptionAsUser(true))
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

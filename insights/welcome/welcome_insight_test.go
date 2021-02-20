@@ -9,10 +9,13 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 	"time"
@@ -71,6 +74,23 @@ func TestWelcomeInsights(t *testing.T) {
 			So(insights[1].ContentType(), ShouldEqual, "insights_introduction_content")
 			So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour*24))
 			So(insights[1].Content(), ShouldResemble, &content{})
+		})
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID:      1,
+			Content: content{},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "",
+			Description: "",
+			Metadata:    map[string]string{},
 		})
 	})
 }

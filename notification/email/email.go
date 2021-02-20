@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -31,13 +32,13 @@ import (
 
 // this message template is used only by the tests
 var messageTemplate = `
-	<html>
-	<body>
-		Description: {{.Description}} <br/>
-		Version: {{appVersion}} <br/>
-		Translatable: {{translate "Error"}} <br/>
-	</body>
-	</html>
+Title: {{.Title}}
+Description: {{.Description}}
+Category: {{.Category}}
+Priority: {{.Priority}}
+DetailsURL: {{.DetailsURL}}
+PreferencesURL: {{.PreferencesURL}}
+Version: {{appVersion}}
 `
 
 const SettingKey = "messenger_email"
@@ -140,7 +141,7 @@ func addrFromSettings(s Settings) string {
 	return fmt.Sprintf("%s:%d", s.ServerName, s.ServerPort)
 }
 
-type SettingsFetcher func() (*Settings, error)
+type SettingsFetcher func() (*Settings, *globalsettings.Settings, error)
 
 type Notifier struct {
 	policy          core.Policy
@@ -236,7 +237,7 @@ type disabledFromSettingsPolicy struct {
 }
 
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
-	s, err := p.settingsFetcher()
+	s, _, err := p.settingsFetcher()
 	if err != nil {
 		return true, errorutil.Wrap(err)
 	}
@@ -246,14 +247,18 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 
 // FIXME: this function is copied from notification/slack!!!
 func New(policy core.Policy, reader *meta.Reader) *Notifier {
-	fetcher := func() (*Settings, error) {
-		s := Settings{}
-
-		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
-			return nil, errorutil.Wrap(err)
+	fetcher := func() (*Settings, *globalsettings.Settings, error) {
+		settings, err := GetSettings(context.Background(), reader)
+		if err != nil {
+			return nil, nil, errorutil.Wrap(err)
 		}
 
-		return &s, nil
+		globalSettings, err := globalsettings.GetSettings(context.Background(), reader)
+		if err != nil {
+			return nil, nil, errorutil.Wrap(err)
+		}
+
+		return settings, globalSettings, nil
 	}
 
 	policies := core.Policies{policy, &disabledFromSettingsPolicy{settingsFetcher: fetcher}}
@@ -263,7 +268,45 @@ func New(policy core.Policy, reader *meta.Reader) *Notifier {
 
 var ErrInvalidEmail = errors.New(`Invalid mail value`)
 
-func buildMessageProperties(translator translator.Translator, n core.Notification, m *Notifier, settings *Settings) (io.Reader, []string, error) {
+type templateValues struct {
+	Title          string
+	Description    string
+	Category       string
+	Priority       string
+	DetailsURL     string
+	PreferencesURL string
+}
+
+func buildTemplateValues(id int64, message core.Message, globalSettings *globalsettings.Settings) templateValues {
+	detailsURL := fmt.Sprintf("%s#/insight-%v", globalSettings.PublicURL, id)
+	preferencesURL := fmt.Sprintf("%s#/settings", globalSettings.PublicURL)
+
+	t := templateValues{
+		Title:          message.Title,
+		Description:    message.Description,
+		DetailsURL:     detailsURL,
+		PreferencesURL: preferencesURL,
+	}
+
+	// fill the blanks
+	for k, v := range message.Metadata {
+		switch k {
+		case "category":
+			t.Category = v
+		case "priority":
+			t.Priority = v
+		}
+	}
+
+	return t
+}
+
+func buildMessageProperties(translator translator.Translator,
+	n core.Notification,
+	clock timeutil.Clock,
+	settings *Settings,
+	globalSettings *globalsettings.Settings,
+) (io.Reader, []string, error) {
 	template, err := template.New("root").Funcs(template.FuncMap{
 		"appVersion": func() string { return version.Version },
 		"translate":  translator.Translate,
@@ -273,12 +316,12 @@ func buildMessageProperties(translator translator.Translator, n core.Notificatio
 		return nil, nil, errorutil.Wrap(err)
 	}
 
-	description, err := core.TranslateNotification(n, translator)
+	message, err := core.TranslateNotification(n, translator)
 	if err != nil {
 		return nil, nil, errorutil.Wrap(err)
 	}
 
-	date := m.clock.Now().Format(time.RFC1123Z)
+	date := clock.Now().Format(time.RFC1123Z)
 
 	recipients, err := func() ([]string, error) {
 		a, err := mail.ParseAddressList(settings.Recipients)
@@ -298,15 +341,11 @@ func buildMessageProperties(translator translator.Translator, n core.Notificatio
 		return nil, nil, errorutil.Wrap(err)
 	}
 
-	// TODO: maybe use a different property for the email subject?
-	// Or use a constant?
-	subject := n.Content.String()
-
 	headers := map[string]string{
 		"To":                        settings.Recipients,
 		"From":                      settings.Sender,
 		"Date":                      date,
-		"Subject":                   subject,
+		"Subject":                   message.Title,
 		"User-Agent":                fmt.Sprintf("Lightmeter ControlCenter %v (%v)", version.Version, version.Commit),
 		"MIME-Version":              "1.0",
 		"Content-Type":              "text/html; charset=UTF-8",
@@ -314,7 +353,7 @@ func buildMessageProperties(translator translator.Translator, n core.Notificatio
 		"Content-Transfer-Encoding": "7bit",
 	}
 
-	message, err := func() (string, error) {
+	payload, err := func() (string, error) {
 		var b strings.Builder
 
 		for k, v := range headers {
@@ -326,13 +365,7 @@ func buildMessageProperties(translator translator.Translator, n core.Notificatio
 
 		b.WriteString("\r\n")
 
-		err := template.Execute(&b, struct {
-			Title       string
-			Description string
-		}{
-			Title:       subject,
-			Description: description.String(),
-		})
+		err := template.Execute(&b, buildTemplateValues(n.ID, message, globalSettings))
 
 		if err != nil {
 			return "", errorutil.Wrap(err)
@@ -347,9 +380,17 @@ func buildMessageProperties(translator translator.Translator, n core.Notificatio
 		return nil, nil, errorutil.Wrap(err)
 	}
 
-	reader := strings.NewReader(message)
+	reader := strings.NewReader(payload)
 
 	return reader, recipients, nil
+}
+
+func validateEmail(s string) error {
+	if strings.Contains(s, "\r\n") {
+		return ErrInvalidEmail
+	}
+
+	return nil
 }
 
 // implement Notifier
@@ -364,24 +405,16 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 		return nil
 	}
 
-	settings, err := m.settingsFetcher()
+	settings, globalSettings, err := m.settingsFetcher()
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if settings == nil {
+	if settings == nil || globalSettings == nil {
 		panic("Settings cannot be nil!")
 	}
 
 	onClient := func(c *smtp.Client) error {
-		validateEmail := func(s string) error {
-			if strings.Contains(s, "\r\n") {
-				return ErrInvalidEmail
-			}
-
-			return nil
-		}
-
 		if err := validateEmail(settings.Sender); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -390,7 +423,7 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 			return errorutil.Wrap(err)
 		}
 
-		bodyReader, recipients, err := buildMessageProperties(translator, n, m, settings)
+		bodyReader, recipients, err := buildMessageProperties(translator, n, m.clock, settings, globalSettings)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

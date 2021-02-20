@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"time"
@@ -32,16 +33,48 @@ type content struct {
 	RBLs         []localrbl.ContentElement `json:"rbls"`
 }
 
-func (c content) String() string {
-	return translator.Stringfy(c)
+func (c content) Title() notificationCore.ContentComponent {
+	return &title{c}
 }
 
-func (c content) TplString() string {
+func (c content) Description() notificationCore.ContentComponent {
+	return &description{c}
+}
+
+func (c content) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type title struct {
+	c content
+}
+
+func (t title) String() string {
+	return translator.Stringfy(t)
+}
+
+func (t title) TplString() string {
+	return translator.I18n("IP on shared blocklist")
+}
+
+func (t title) Args() []interface{} {
+	return nil
+}
+
+type description struct {
+	c content
+}
+
+func (d description) String() string {
+	return translator.Stringfy(d)
+}
+
+func (d description) TplString() string {
 	return translator.I18n("The IP address %v is listed by %v RBLs")
 }
 
-func (c content) Args() []interface{} {
-	return []interface{}{c.Address, len(c.RBLs)}
+func (d description) Args() []interface{} {
+	return []interface{}{d.c.Address, len(d.c.RBLs)}
 }
 
 func (c content) HelpLink(urlContainer core.URLContainer) string {

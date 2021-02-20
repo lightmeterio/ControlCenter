@@ -254,18 +254,33 @@ func TestAppSettings(t *testing.T) {
 	})
 }
 
-type fakeContent struct{}
+type fakeContentComponent string
 
-func (c *fakeContent) String() string {
-	return "Hell world!, Mister Donutloop 2"
+func (c fakeContentComponent) String() string {
+	return string(c)
 }
 
-func (c *fakeContent) Args() []interface{} {
+func (c fakeContentComponent) Args() []interface{} {
 	return nil
 }
 
-func (c *fakeContent) TplString() string {
-	return "Hell world!, Mister Donutloop 2"
+func (c fakeContentComponent) TplString() string {
+	return c.String()
+}
+
+type fakeContent struct {
+}
+
+func (c fakeContent) Title() notificationCore.ContentComponent {
+	return fakeContentComponent("some fake content")
+}
+
+func (c fakeContent) Description() notificationCore.ContentComponent {
+	return fakeContentComponent("some fake description")
+}
+
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
+	return nil
 }
 
 func TestSlackNotifications(t *testing.T) {
@@ -393,8 +408,15 @@ func TestSlackNotifications(t *testing.T) {
 
 func TestEmailNotifications(t *testing.T) {
 	Convey("Email Notifications", t, func() {
-		setup, _, _, center, _, clear := buildTestSetup(t)
+		setup, w, _, center, _, clear := buildTestSetup(t)
 		defer clear()
+
+		// set some basic global settings required by the email notifier
+		err := globalsettings.SetSettings(dummyContext, w, globalsettings.Settings{
+			PublicURL: "https://example.com/lightmeter",
+		})
+
+		So(err, ShouldBeNil)
 
 		emailBackend := &email.FakeMailBackend{ExpectedUser: "user@example.com", ExpectedPassword: "super_password"}
 
