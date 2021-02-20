@@ -9,10 +9,13 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
@@ -173,5 +176,29 @@ func TestMessageRBLInsight(t *testing.T) {
 				Time:      baseTime.Add(time.Second * 72),
 			})
 		}
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID: 1,
+			Content: content{
+				Address:   net.ParseIP(`127.0.0.1`),
+				Recipient: "lala@caca.com",
+				Host:      "google",
+				Status:    "bounced",
+				Message:   "some message",
+				Time:      testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+			},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "IP blocked by google",
+			Description: "The IP 127.0.0.1 cannot deliver to lala@caca.com (google)",
+			Metadata:    map[string]string{},
+		})
 	})
 }

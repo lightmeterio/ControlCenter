@@ -46,8 +46,8 @@ func (c fakeContent) Description() core.ContentComponent {
 	return fakeContentComponent("some fake description")
 }
 
-func (c fakeContent) Metadata() map[string]core.ContentComponent {
-	return map[string]core.ContentComponent{
+func (c fakeContent) Metadata() core.ContentMetadata {
+	return core.ContentMetadata{
 		"category": fakeContentComponent("Intel"),
 		"priority": fakeContentComponent("Low"),
 	}

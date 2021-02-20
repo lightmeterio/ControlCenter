@@ -25,7 +25,7 @@ type Notification struct {
 	Content Content
 }
 
-type ContentMetadata = map[string]ContentComponent
+type ContentMetadata map[string]ContentComponent
 
 type ContentComponent interface {
 	fmt.Stringer

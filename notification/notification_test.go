@@ -61,7 +61,7 @@ func (c fakeContentComponent) TplString() string {
 	return c.String()
 }
 
-func (c fakeContentComponent) Metadata() map[string]core.ContentComponent {
+func (c fakeContentComponent) Metadata() core.ContentMetadata {
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (c fakeContent) Description() core.ContentComponent {
 	return &c.Interval
 }
 
-func (c fakeContent) Metadata() map[string]core.ContentComponent {
+func (c fakeContent) Metadata() core.ContentMetadata {
 	return nil
 }
 

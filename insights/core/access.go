@@ -417,8 +417,8 @@ func (p InsightProperties) Description() notificationCore.ContentComponent {
 	return p.Content.Description()
 }
 
-func (p InsightProperties) Metadata() map[string]notificationCore.ContentComponent {
-	return map[string]notificationCore.ContentComponent{
+func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
+	return notificationCore.ContentMetadata{
 		"category": p.Category,
 		"priority": p.Rating,
 	}

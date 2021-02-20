@@ -93,3 +93,9 @@ func Translate(t Translator, c TranslatableStringer) (string, error) {
 
 	return fmt.Sprintf(translated, args...), nil
 }
+
+type DummyTranslator struct{}
+
+func (DummyTranslator) Translate(f string, args ...interface{}) (string, error) {
+	return fmt.Sprintf(f, args...), nil
+}

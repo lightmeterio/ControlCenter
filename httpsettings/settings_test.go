@@ -279,7 +279,7 @@ func (c fakeContent) Description() notificationCore.ContentComponent {
 	return fakeContentComponent("some fake description")
 }
 
-func (c fakeContent) Metadata() map[string]notificationCore.ContentComponent {
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 

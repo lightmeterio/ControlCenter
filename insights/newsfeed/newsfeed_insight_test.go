@@ -8,10 +8,13 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
@@ -324,6 +327,29 @@ func TestNewsFeedInsights(t *testing.T) {
 				Published:        testutil.MustParseTime(`2000-01-06 11:59:00 +0000`),
 				GUID:             `https://example.com/news/4`,
 			})
+		})
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID: 1,
+			Content: Content{
+				TitleValue:       "some title",
+				DescriptionValue: "some description",
+				Link:             "https://example.com",
+				Published:        testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				GUID:             "uuid",
+			},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "some title",
+			Description: "some description",
+			Metadata:    map[string]string{},
 		})
 	})
 }
