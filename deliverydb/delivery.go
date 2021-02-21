@@ -254,7 +254,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domain
 		return 0, false, nil
 	}
 
-	domainAsString := domainName.AsString
+	domainAsString := domainName.Text()
 
 	if len(domainAsString) == 0 {
 		return 0, false, nil
@@ -293,7 +293,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP 
 		return 0, false, nil
 	}
 
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectNextRelays], stmts[insertNextRelay], relayName.AsString, relayIP.AsBlob, relayPort)
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectNextRelays], stmts[insertNextRelay], relayName.Text(), relayIP.Blob(), relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -302,29 +302,29 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP 
 }
 
 func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Result) (sql.Result, error) {
-	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].AsString)
+	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.QueueSenderDomainPartKey].AsString)
+	senderDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.QueueSenderDomainPartKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultRecipientDomainPartKey].AsString)
+	recipientDomainPartId, err := getUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultRecipientDomainPartKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	messageId, err := getUniqueMessageId(tx, stmts, tr[tracking.QueueMessageIDKey].AsString)
+	messageId, err := getUniqueMessageId(tx, stmts, tr[tracking.QueueMessageIDKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	dir := tr[tracking.ResultMessageDirectionKey].AsInt64
+	dir := tr[tracking.ResultMessageDirectionKey].Int64()
 
-	status := tr[tracking.ResultStatusKey].AsInt64
+	status := tr[tracking.ResultStatusKey].Int64()
 
 	stmt := tx.Stmt(stmts[insertDelivery])
 
@@ -334,27 +334,27 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 
 	result, err := stmt.Exec(
 		status,
-		tr[tracking.ResultDeliveryTimeKey].AsInt64,
+		tr[tracking.ResultDeliveryTimeKey].Int64(),
 		dir,
 		senderDomainPartId,
 		recipientDomainPartId,
 		messageId,
-		tr[tracking.ConnectionBeginKey].AsInt64,
-		tr[tracking.QueueBeginKey].AsInt64,
-		tr[tracking.QueueOriginalMessageSizeKey].AsInt64,
-		tr[tracking.QueueProcessedMessageSizeKey].AsInt64,
-		tr[tracking.QueueNRCPTKey].AsInt64,
+		tr[tracking.ConnectionBeginKey].Int64(),
+		tr[tracking.QueueBeginKey].Int64(),
+		tr[tracking.QueueOriginalMessageSizeKey].Int64(),
+		tr[tracking.QueueProcessedMessageSizeKey].Int64(),
+		tr[tracking.QueueNRCPTKey].Int64(),
 		deliveryServerId,
-		tr[tracking.ResultDelayKey].AsFloat64,
-		tr[tracking.ResultDelaySMTPDKey].AsFloat64,
-		tr[tracking.ResultDelayCleanupKey].AsFloat64,
-		tr[tracking.ResultDelayQmgrKey].AsFloat64,
-		tr[tracking.ResultDelaySMTPKey].AsFloat64,
-		tr[tracking.QueueSenderLocalPartKey].AsString,
-		tr[tracking.ResultRecipientLocalPartKey].AsString,
-		tr[tracking.ConnectionClientHostnameKey].AsString,
-		tr[tracking.ConnectionClientIPKey].AsBlob,
-		tr[tracking.ResultDSNKey].AsString,
+		tr[tracking.ResultDelayKey].Float64(),
+		tr[tracking.ResultDelaySMTPDKey].Float64(),
+		tr[tracking.ResultDelayCleanupKey].Float64(),
+		tr[tracking.ResultDelayQmgrKey].Float64(),
+		tr[tracking.ResultDelaySMTPKey].Float64(),
+		tr[tracking.QueueSenderLocalPartKey].Text(),
+		tr[tracking.ResultRecipientLocalPartKey].Text(),
+		tr[tracking.ConnectionClientHostnameKey].Text(),
+		tr[tracking.ConnectionClientIPKey].Blob(),
+		tr[tracking.ResultDSNKey].Text(),
 	)
 
 	if err != nil {
@@ -373,7 +373,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 				return 0
 			}
 
-			return tr[tracking.ResultRelayPortKey].AsInt64
+			return tr[tracking.ResultRelayPortKey].Int64()
 		}()
 
 		if err != nil {

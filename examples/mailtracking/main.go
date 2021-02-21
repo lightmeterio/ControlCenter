@@ -33,17 +33,7 @@ func (*publisher) Publish(r tracking.Result) {
 	s := map[string]interface{}{}
 
 	for i, v := range r {
-		switch v.Type {
-		case tracking.ResultEntryTypeBlob:
-			s[tracking.KeysToLabels[i]] = v.AsBlob
-		case tracking.ResultEntryTypeFloat64:
-			s[tracking.KeysToLabels[i]] = v.AsFloat64
-		case tracking.ResultEntryTypeString:
-			s[tracking.KeysToLabels[i]] = v.AsString
-		case tracking.ResultEntryTypeInt64:
-			s[tracking.KeysToLabels[i]] = v.AsInt64
-		default:
-		}
+		s[tracking.KeysToLabels[i]] = v.Value()
 	}
 
 	j, err := json.Marshal(s)
