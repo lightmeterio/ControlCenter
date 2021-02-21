@@ -33,7 +33,6 @@ const (
 	selectQueueIdForQueue
 	insertQueueParenting
 	insertNotificationQueue
-	selectNewQueueFromParenting
 	countNewQueueFromParenting
 	selectQueueFromParentingNewQueue
 	deleteQueueParentingById
@@ -104,7 +103,6 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	// TODO: perform a migration that remove filename and line fields
 	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
-	selectNewQueueFromParenting:      `select new_queue_id from queue_parenting where orig_queue_id = ?`,
 	countNewQueueFromParenting:       `select count(new_queue_id) from queue_parenting where orig_queue_id = ?`,
 	selectQueueFromParentingNewQueue: `select id, orig_queue_id from queue_parenting where new_queue_id = ?`,
 	deleteQueueParentingById:         `delete from queue_parenting where id = ?`,

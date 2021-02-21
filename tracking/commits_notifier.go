@@ -230,8 +230,8 @@ func buildAndPublishResult(
 	resultInfo := resultInfo{
 		id: resultId,
 		loc: data.RecordLocation{
-			Line:     uint64(resultResult[ResultDeliveryFileLineKey].AsInt64),
-			Filename: resultResult[ResultDeliveryFilenameKey].AsString,
+			Line:     uint64(resultResult[ResultDeliveryFileLineKey].Int64()),
+			Filename: resultResult[ResultDeliveryFilenameKey].Text(),
 		},
 	}
 
@@ -292,14 +292,14 @@ func buildAndPublishResult(
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	deliveryQueueResult[QueueDeliveryNameKey] = ResultEntryString(deliveryQueueName)
+	deliveryQueueResult[QueueDeliveryNameKey] = ResultEntryText(deliveryQueueName)
 
 	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
-	mergedResults[MessageIdFilenameKey] = ResultEntryString(messageIdFilename)
+	mergedResults[MessageIdFilenameKey] = ResultEntryText(messageIdFilename)
 	mergedResults[MessageIdLineKey] = ResultEntryInt64(messageIdLine)
-	mergedResults[QueueMessageIDKey] = ResultEntryString(messageId)
-	mergedResults[ResultDeliveryServerKey] = ResultEntryString(deliveryServer)
+	mergedResults[QueueMessageIDKey] = ResultEntryText(messageId)
+	mergedResults[ResultDeliveryServerKey] = ResultEntryText(deliveryServer)
 
 	pub.Publish(mergedResults)
 
@@ -396,7 +396,7 @@ func mergeResults(results ...Result) Result {
 	// TODO: consider rewritting this loop to be cache friendlier (by iterating on the same index in all arrays)
 	for _, r := range results {
 		for i, v := range r {
-			if v.Type != ResultEntryTypeNone {
+			if !v.IsNone() {
 				m[i] = v
 			}
 		}
