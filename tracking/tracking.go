@@ -241,7 +241,7 @@ func buildResultsNotifier(
 	return resultsNotifier
 }
 
-const numberOfNotifiers = 6
+const numberOfNotifiers = 1
 
 func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 	conn, err := dbconn.Open(path.Join(workspaceDir, "logtracker.db"), numberOfNotifiers+5)
@@ -386,7 +386,7 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 			// but we should investigate and make and fix them!
 			// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
 			// and potentially making queries slower... :-(
-			log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+			log.Warn().Msgf("--------- (action) Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
 				asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
 
 			return tx, nil
@@ -429,7 +429,7 @@ func commitTransactionIfNeeded(tx *sql.Tx) error {
 		return errorutil.Wrap(err)
 	}
 
-	log.Info().Msgf("Tracking commit took %v", time.Now().Sub(beforeCommit))
+	log.Info().Msgf("Tracking commit took %v", time.Since(beforeCommit))
 
 	return nil
 }
@@ -479,8 +479,12 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 				// but we should investigate and make and fix them!
 				// As a result, we are keeping old data, that failed to be deleted, to accumulate in the database
 				// and potentially making queries slower... :-(
-				log.Warn().Msgf("--------- Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
+				log.Warn().Msgf("--------- (txAction) Ignoring error deleting data triggered by log on file: %v:%v, message: %v",
 					asDeletionError.Loc.Filename, asDeletionError.Loc.Line, asDeletionError)
+
+				for _, v := range asDeletionError.Err.Chain().JSON() {
+					log.Debug().Msgf("%v -> %v:%v", v.Error, v.File, v.Line)
+				}
 
 				return tx, true, nil
 			}
@@ -489,7 +493,6 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 
 			return nil, false, errorutil.Wrap(err)
 		}
-
 	}
 
 	return tx, true, nil

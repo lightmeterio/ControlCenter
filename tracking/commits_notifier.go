@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	//"time"
 )
 
 type resultInfo struct {
@@ -37,16 +36,15 @@ const (
 	firstNotifierStmtKey notifierStmtKey = iota
 
 	selectParentingQueueByNewQueue
-	selectAllMessageIdsByQueue
 	selectQueueIdFromResult
 	selectPidHostByQueue
 	selectKeyValueFromConnections
 	selectKeyValueFromQueues
-	selectKeyValueFromQueuesByKeyType
 	selectResultsByQueue
 	selectKeyValueForResults
 	selectQueryNameById
 
+	//nolint
 	lastNotifierStmtKey
 )
 
@@ -60,13 +58,6 @@ var notifierStmtsText = map[notifierStmtKey]string{
 			new_queue_id = ?
 		group by
 			orig_queue_id, new_queue_id, parenting_type`,
-	selectAllMessageIdsByQueue: `
-			select
-				messageids.value, messageids.filename, messageids.line
-			from
-				messageids join queues on queues.messageid_id == messageids.id
-			where
-				queues.id = ?`,
 	selectQueueIdFromResult: `select queue_id from results where id = ?`,
 	selectPidHostByQueue: `
 			select
@@ -91,13 +82,6 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queue_data join queues on queue_data.queue_id = queues.id
 			where
 				queues.id = ?`,
-	selectKeyValueFromQueuesByKeyType: `
-			select
-				queue_data.id, queue_data.key, queue_data.value
-			from
-				queue_data join queues on queue_data.queue_id = queues.id
-			where
-				queues.id = ? and queue_data.key = ?`,
 	selectResultsByQueue: `
 			select
 				results.id
@@ -193,16 +177,6 @@ func collectQueuesKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Res
 	return result, nil
 }
 
-func collectQueuesOriginalMessageSizeKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Result, error) {
-	result := Result{}
-
-	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueFromQueuesByKeyType], queueId, QueueOriginalMessageSizeKey); err != nil {
-		return Result{}, errorutil.Wrap(err)
-	}
-
-	return result, nil
-}
-
 func collectResultKeyValueResults(conn *dbconn.RoPooledConn, resultId int64) (Result, error) {
 	result := Result{}
 
@@ -219,7 +193,9 @@ func buildAndPublishResult(
 	resultId int64,
 	pub ResultPublisher,
 	trackerStmts trackerStmts,
-	actions *txActions) (resultInfo, error) {
+	actions *txActions,
+	notifierId int,
+) (resultInfo, error) {
 	var queueId int64
 
 	resultResult, err := collectResultKeyValueResults(conn, resultId)
@@ -246,17 +222,6 @@ func buildAndPublishResult(
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	var (
-		messageId         string
-		messageIdFilename string
-		messageIdLine     int64
-	)
-
-	err = conn.Stmts[selectAllMessageIdsByQueue].QueryRow(deliveryQueueId).Scan(&messageId, &messageIdFilename, &messageIdLine)
-	if err != nil {
-		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
-	}
-
 	var deliveryServer string
 
 	err = conn.Stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
@@ -277,7 +242,7 @@ func buildAndPublishResult(
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	deliveryQueueResult, err := collectQueuesOriginalMessageSizeKeyValueResults(conn, deliveryQueueId)
+	deliveryQueueResult, err := collectQueuesKeyValueResults(conn, deliveryQueueId)
 	if err != nil {
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
@@ -296,20 +261,17 @@ func buildAndPublishResult(
 
 	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
-	mergedResults[MessageIdFilenameKey] = ResultEntryText(messageIdFilename)
-	mergedResults[MessageIdLineKey] = ResultEntryInt64(messageIdLine)
-	mergedResults[QueueMessageIDKey] = ResultEntryText(messageId)
 	mergedResults[ResultDeliveryServerKey] = ResultEntryText(deliveryServer)
 
 	pub.Publish(mergedResults)
 
 	actions.actions[actions.size] = func(tx *sql.Tx) error {
 		if err := deleteResultAction(tx, trackerStmts, resultInfo); err != nil {
-			return errorutil.Wrap(err, resultInfo.loc)
+			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
 
 		if err := deleteQueueAction(tx, trackerStmts, resultInfo, queueId); err != nil {
-			return errorutil.Wrap(err, resultInfo.loc)
+			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
 
 		return nil
@@ -338,7 +300,7 @@ func deleteResultAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo result
 
 	_, err := stmt.Exec(resultInfo.id)
 	if err != nil {
-		return errorutil.Wrap(err, resultInfo.loc)
+		return errorutil.Wrap(err, resultInfo.loc, "a")
 	}
 
 	stmt = tx.Stmt(trackerStmts[deleteResultDataByResultId])
@@ -349,7 +311,7 @@ func deleteResultAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo result
 
 	_, err = stmt.Exec(resultInfo.id)
 	if err != nil {
-		return errorutil.Wrap(err, resultInfo.loc)
+		return errorutil.Wrap(err, resultInfo.loc, "b")
 	}
 
 	return nil
@@ -359,21 +321,21 @@ func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, trackerSt
 	for resultInfos := range n.resultsToNotify {
 		actions := txActions{}
 
-		//log.Info().Msgf("Notifier %v started notifying batch %v:%v", n.id, resultInfos.batchId, resultInfos.id)
+		// log.Info().Msgf("Notifier %v started notifying batch %v:%v", n.id, resultInfos.batchId, resultInfos.id)
 
-		//start := time.Now()
+		// start := time.Now()
 
 		for i := uint(0); i < resultInfos.size; i++ {
 			id := resultInfos.values[i]
 
-			resultInfo, err := buildAndPublishResult(conn, id, n.publisher, trackerStmts, &actions)
+			resultInfo, err := buildAndPublishResult(conn, id, n.publisher, trackerStmts, &actions, n.id)
 
 			if err == nil {
 				continue
 			}
 
 			if errors.Is(err, sql.ErrNoRows) {
-				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
+				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err)
 				continue
 			}
 
@@ -382,7 +344,7 @@ func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, trackerSt
 
 		n.counter++
 
-		//log.Info().Msgf("Notifier %v has notified %v actions in batch %v:%v in %v", n.id, actions.size, resultInfos.batchId, resultInfos.id, time.Now().Sub(start))
+		// log.Info().Msgf("Notifier %v has notified %v actions in batch %v:%v in %v", n.id, actions.size, resultInfos.batchId, resultInfos.id, time.Now().Sub(start))
 
 		actionsChan <- actions
 	}

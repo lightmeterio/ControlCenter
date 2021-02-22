@@ -7,6 +7,7 @@ package tracking
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -76,7 +77,7 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc 
 func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
 	err := decrementQueueUsage(tx, trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, "h")
 	}
 
 	var usageCounter int
@@ -89,7 +90,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = stmt.QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, "i")
 	}
 
 	if usageCounter > 0 {
@@ -108,7 +109,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = stmt.QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, "j")
 	}
 
 	if countDependentQueues > 0 {
@@ -117,7 +118,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = deleteQueueRec(tx, trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, "k")
 	}
 
 	return true, nil
@@ -319,36 +320,6 @@ func decrementPidUsage(tx *sql.Tx, stmts trackerStmts, pidId int64) error {
 	return nil
 }
 
-func incrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
-	stmt := tx.Stmt(stmts[incrementMessageIdUsageById])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(messageId)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
-func decrementMessageIdUsage(tx *sql.Tx, stmts trackerStmts, messageId int64) error {
-	stmt := tx.Stmt(stmts[decrementMessageIdUsageById])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(messageId)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts trackerStmts, connectionId int64) error {
 	var pidId int64
 
@@ -403,10 +374,6 @@ func getQueueName(tx *sql.Tx, queueId int64) (string, error) {
 }
 
 func deleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
-	if err := tryToDeleteQueueMessageId(tx, trackerStmts, queueId); err != nil {
-		return errorutil.Wrap(err)
-	}
-
 	// delete the queue itself
 	stmt := tx.Stmt(trackerStmts[deleteQueueById])
 
@@ -439,56 +406,6 @@ func deleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	return nil
 }
 
-func tryToDeleteQueueMessageId(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
-	var messageId int64
-
-	stmt := tx.Stmt(trackerStmts[messageIdForQueue])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err := stmt.QueryRow(queueId).Scan(&messageId)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	err = decrementMessageIdUsage(tx, trackerStmts, messageId)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	var queuesWithMessageIdCount int
-
-	stmt = tx.Stmt(trackerStmts[countWithMessageIdUsageById])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err = stmt.QueryRow(messageId).Scan(&queuesWithMessageIdCount)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if queuesWithMessageIdCount > 0 {
-		return nil
-	}
-
-	stmt = tx.Stmt(trackerStmts[deleteMessageId])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(messageId)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func incrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	stmt := tx.Stmt(trackerStmts[incrementQueueUsageById])
 
@@ -511,9 +428,18 @@ func decrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) e
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	_, err := stmt.Exec(queueId)
+	r, err := stmt.Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
+	}
+
+	a, err := r.RowsAffected()
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if a != 1 {
+		return errorutil.Wrap(fmt.Errorf("Wrong number of affected lines: %v", a))
 	}
 
 	return nil

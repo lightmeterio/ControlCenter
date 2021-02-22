@@ -322,50 +322,6 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 	return nil
 }
 
-func getUniqueMessageIdOrCreateANewOne(tx *sql.Tx, t *Tracker, p parser.CleanupMessageAccepted, loc data.RecordLocation) (int64, error) {
-	var existingMessageId int64
-
-	stmt := tx.Stmt(t.stmts[selectMessageIdForMessage])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err := stmt.QueryRow(p.MessageId).Scan(&existingMessageId)
-	if err == nil {
-		err = incrementMessageIdUsage(tx, t.stmts, existingMessageId)
-
-		if err != nil {
-			return 0, errorutil.Wrap(err)
-		}
-
-		return existingMessageId, nil
-	}
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, errorutil.Wrap(err)
-	}
-
-	// new message-id, just insert
-	stmt = tx.Stmt(t.stmts[insertMessageId])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(p.MessageId, loc.Filename, loc.Line)
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	messageidId, err := result.LastInsertId()
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	return messageidId, nil
-}
-
 // associate a queue to a message-id
 func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.CleanupMessageAccepted)
@@ -400,18 +356,12 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, action
 		return errorutil.Wrap(err)
 	}
 
-	messageidId, err := getUniqueMessageIdOrCreateANewOne(tx, tracker, p, r.Location)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
+	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+		kvData{key: QueueMessageIDKey, value: p.MessageId},
+		kvData{key: MessageIdFilenameKey, value: r.Location.Filename},
+		kvData{key: MessageIdLineKey, value: r.Location.Line},
+	)
 
-	stmt := tx.Stmt(tracker.stmts[updateQueueWithMessageId])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(messageidId, queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

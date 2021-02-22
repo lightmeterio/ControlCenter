@@ -22,6 +22,8 @@ import (
 	"time"
 )
 
+var _ = parser.Parse
+
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
@@ -128,6 +130,8 @@ func computeLineOffsets(b []byte) []int {
 	return offsets
 }
 
+var _ = ioutil.TempDir
+
 func TestReadingFromArbitraryLines(t *testing.T) {
 	Convey("Reading from arbitrary lines", t, func() {
 		file, err := os.Open("test_files/1_bounce_simple.log")
@@ -158,6 +162,7 @@ func TestReadingFromArbitraryLines(t *testing.T) {
 func TestTrackingFromFiles(t *testing.T) {
 	Convey("Tracking From Files", t, func() {
 		pub, t, clear := buildPublisherAndTempTracker(t)
+		_ = pub
 		defer clear()
 
 		done, cancel := t.Run()
@@ -173,12 +178,16 @@ func TestTrackingFromFiles(t *testing.T) {
 			return count
 		}
 
+		_ = countResults
+
 		countResultData := func() int {
 			var count int
 			err := queryConn.QueryRow(`select count(*) from result_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
+
+		_ = countResultData
 
 		countQueues := func() int {
 			var count int
@@ -187,12 +196,16 @@ func TestTrackingFromFiles(t *testing.T) {
 			return count
 		}
 
+		_ = countQueues
+
 		countQueueData := func() int {
 			var count int
 			err := queryConn.QueryRow(`select count(*) from queue_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
+
+		_ = countQueueData
 
 		countConnections := func() int {
 			var count int
@@ -201,12 +214,16 @@ func TestTrackingFromFiles(t *testing.T) {
 			return count
 		}
 
+		_ = countConnections
+
 		countConnectionData := func() int {
 			var count int
 			err := queryConn.QueryRow(`select count(*) from connection_data`).Scan(&count)
 			So(err, ShouldBeNil)
 			return count
 		}
+
+		_ = countConnectionData
 
 		countPids := func() int {
 			var count int
@@ -215,12 +232,7 @@ func TestTrackingFromFiles(t *testing.T) {
 			return count
 		}
 
-		countMessageIds := func() int {
-			var count int
-			err := queryConn.QueryRow(`select count(*) from messageids`).Scan(&count)
-			So(err, ShouldBeNil)
-			return count
-		}
+		_ = countPids
 
 		// TODO: check each field of the results for the right values!!!
 
@@ -249,12 +261,13 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Five messages, two bounced", func() {
 					Convey("Complete log, with last 'remove' available", func() {
-						readFromTestFile("test_files/2_multiple_recipieints_some_bounces.log", t.Publisher())
+						// FIXME: this test sporadically misbehaves and fails when the number of notifiers is > 1
+						// - some results (if not all!) fail to be notified, as the deletion for their queues fail!
+						readFromTestFile("test_files/2_multiple_recipients_some_bounces.log", t.Publisher())
 						cancel()
 						done()
 						So(len(pub.results), ShouldEqual, 6)
@@ -264,11 +277,10 @@ func TestTrackingFromFiles(t *testing.T) {
 						So(countConnections(), ShouldEqual, 0)
 						So(countConnectionData(), ShouldEqual, 0)
 						So(countPids(), ShouldEqual, 0)
-						So(countMessageIds(), ShouldEqual, 0)
 					})
 
 					Convey("Complete log, with last 'remove' missing", func() {
-						readFromTestFile("test_files/2_multiple_recipieints_some_bounces_no_last_remove.log", t.Publisher())
+						readFromTestFile("test_files/2_multiple_recipients_some_bounces_no_last_remove.log", t.Publisher())
 						cancel()
 						done()
 						So(len(pub.results), ShouldEqual, 6)
@@ -339,7 +351,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Two messages are sent. The first one for one destination and bounces, and the second one to multiples destinations", func() {
@@ -354,7 +365,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Pickup in action", func() {
@@ -369,7 +379,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Single delived message", func() {
@@ -395,7 +404,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Two deliveries using the same smtp2 pid, processing in order", func() {
@@ -432,7 +440,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Two deliveries using the same smtp2 pid, processing mixed", func() {
@@ -471,7 +478,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 
 				Convey("Initial queue msgid can be empty (issue #388)", func() {
@@ -492,6 +498,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(pub.results[0][ResultRecipientDomainPartKey].Text(), ShouldEqual, "h-e858bb21f.com")
 					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
 					So(pub.results[0][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "CACACACA")
 					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "h-58c98222ea74bdf467d69d856d@h-028957b9aefc40.com")
 
 					So(countQueues(), ShouldEqual, 0)
@@ -499,7 +506,6 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnections(), ShouldEqual, 0)
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
-					So(countMessageIds(), ShouldEqual, 0)
 				})
 			})
 

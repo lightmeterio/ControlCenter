@@ -37,6 +37,8 @@ func (e ResultEntry) Value() interface{} {
 		return e.asText
 	case ResultEntryTypeInt64:
 		return e.asInt64
+	case ResultEntryTypeNone:
+		fallthrough
 	default:
 		panic("Invalid type")
 	}
@@ -109,9 +111,8 @@ func ResultEntryFromValue(i interface{}) ResultEntry {
 	case float64:
 		return ResultEntryFloat64(v)
 	default:
-		panic("Invalid type!")
+		return ResultEntryNone()
 	}
-	return ResultEntry{typ: ResultEntryTypeNone}
 }
 
 type Result [lasResulttKey]ResultEntry
