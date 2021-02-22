@@ -278,7 +278,7 @@ type templateValues struct {
 }
 
 func buildTemplateValues(id int64, message core.Message, globalSettings *globalsettings.Settings) templateValues {
-	detailsURL := fmt.Sprintf("%s#/insight-%v", globalSettings.PublicURL, id)
+	detailsURL := fmt.Sprintf("%s#/insight-card/%v", globalSettings.PublicURL, id)
 	preferencesURL := fmt.Sprintf("%s#/settings", globalSettings.PublicURL)
 
 	t := templateValues{

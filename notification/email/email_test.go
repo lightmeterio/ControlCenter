@@ -159,7 +159,7 @@ Title: some fake content
 Description: some fake description
 Category: Intel
 Priority: Low
-DetailsURL: https://example.com/lightmeter/#/insight-42
+DetailsURL: https://example.com/lightmeter/#/insight-card/42
 PreferencesURL: https://example.com/lightmeter/#/settings
 Version: 1.0.0
 
