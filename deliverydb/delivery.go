@@ -6,7 +6,9 @@ package deliverydb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -339,7 +341,7 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 		senderDomainPartId,
 		recipientDomainPartId,
 		messageId,
-		tr[tracking.ConnectionBeginKey].Int64(),
+		valueOrNil(tr[tracking.ConnectionBeginKey]),
 		tr[tracking.QueueBeginKey].Int64(),
 		tr[tracking.QueueOriginalMessageSizeKey].Int64(),
 		tr[tracking.QueueProcessedMessageSizeKey].Int64(),
@@ -352,8 +354,8 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 		tr[tracking.ResultDelaySMTPKey].Float64(),
 		tr[tracking.QueueSenderLocalPartKey].Text(),
 		tr[tracking.ResultRecipientLocalPartKey].Text(),
-		tr[tracking.ConnectionClientHostnameKey].Text(),
-		tr[tracking.ConnectionClientIPKey].Blob(),
+		valueOrNil(tr[tracking.ConnectionClientHostnameKey]),
+		valueOrNil(tr[tracking.ConnectionClientIPKey]),
 		tr[tracking.ResultDSNKey].Text(),
 	)
 
@@ -364,8 +366,27 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 	return result, nil
 }
 
+// FIXME: this is a workaround due an issue in the parser on obtaining the connection
+// information on NOQUEUE, afaik
+func valueOrNil(e tracking.ResultEntry) interface{} {
+	if e.IsNone() {
+		return nil
+	}
+
+	return e.Value()
+}
+
 func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 	return func(tx *sql.Tx, stmts preparedStmts) error {
+		defer func() {
+			if r := recover(); r != nil {
+				j, err := json.Marshal(tr)
+				errorutil.MustSucceed(err)
+				fmt.Println(string(j))
+				panic(r)
+			}
+		}()
+
 		result, err := insertMandatoryResultFields(tx, stmts, tr)
 
 		port := func() int64 {

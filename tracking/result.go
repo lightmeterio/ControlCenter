@@ -5,6 +5,7 @@
 package tracking
 
 import (
+	"encoding/json"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,7 +28,7 @@ type ResultEntry struct {
 	typ       ResultEntryType
 }
 
-func (e ResultEntry) Value() interface{} {
+func (e ResultEntry) ValueOrNil() interface{} {
 	switch e.typ {
 	case ResultEntryTypeBlob:
 		return e.asBlob
@@ -38,10 +39,20 @@ func (e ResultEntry) Value() interface{} {
 	case ResultEntryTypeInt64:
 		return e.asInt64
 	case ResultEntryTypeNone:
-		fallthrough
+		return nil
 	default:
 		panic("Invalid type")
 	}
+}
+
+func (e ResultEntry) Value() interface{} {
+	v := e.ValueOrNil()
+
+	if v == nil {
+		panic("Invalid type")
+	}
+
+	return v
 }
 
 func (e ResultEntry) IsNone() bool {
@@ -115,7 +126,41 @@ func ResultEntryFromValue(i interface{}) ResultEntry {
 	}
 }
 
+func (e ResultEntry) MarshalJSON() ([]byte, error) {
+	t := func() string {
+		switch e.typ {
+		case ResultEntryTypeBlob:
+			return "blob"
+		case ResultEntryTypeFloat64:
+			return "float64"
+		case ResultEntryTypeInt64:
+			return "int64"
+		case ResultEntryTypeText:
+			return "text"
+		case ResultEntryTypeNone:
+			return "none"
+		default:
+			panic("invalid type!")
+		}
+	}()
+
+	return json.Marshal(map[string]interface{}{"type": t, "value": e.ValueOrNil()})
+}
+
 type Result [lasResulttKey]ResultEntry
+
+func (r Result) MarshalJSON() ([]byte, error) {
+	s := map[string]interface{}{}
+
+	// omit "none" values
+	for i, v := range r {
+		if !v.IsNone() {
+			s[KeysToLabels[i]] = v
+		}
+	}
+
+	return json.Marshal(s)
+}
 
 type ResultPublisher interface {
 	Publish(Result)
