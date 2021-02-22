@@ -23,15 +23,19 @@ SPDX-License-Identifier: AGPL-3.0-only
           @submit="onNotificationSettingsSubmit"
           id="notifications-form-container"
         >
-          <b-form-group :label="NotificationLanguage" class="notification-language">
-            <b-form-select
-              class="pt-2"
-              required
-              v-model="settings.notifications.language"
-              :options="languages"
-              stacked
-            ></b-form-select>
-          </b-form-group>
+          <b-form-row>
+            <b-col cols="6">
+              <b-form-group :label="NotificationLanguage" class="notification-language">
+                <b-form-select
+                  class="pt-2"
+                  required
+                  v-model="settings.notifications.language"
+                  :options="languages"
+                  stacked
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+          </b-form-row>
 
           <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
             <b-form-radio-group
@@ -40,57 +44,72 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="settings.email_notifications.enabled"
               :options="EmailNotificationsEnabledSwitchOptions"
             ></b-form-radio-group>
-
-            <b-form-group
-              class="mail-server-name"
-              :label="EmailServerName"
-              label-for="mailServerName"
-            >
-              <b-form-input
-                name="mail_server_name"
-                id="mailServerName"
-                v-model="settings.email_notifications.server_name"
-                :placeholder="EmailServerNameInputPlaceholder"
-                maxlength="255"
-                :required="EmailFieldRequired"
-              ></b-form-input>
-            </b-form-group>
-
-            <b-form-group
-              class="mail-server-port"
-              :label="EmailServerPort"
-              label-for="mailServerPort"
-            >
-              <b-form-input
-                type="number"
-                name="mail_server_port"
-                id="mailServerPort"
-                v-model="settings.email_notifications.server_port"
-                maxlength="255"
-                :required="EmailPortFieldRequired"
-                min="0"
-                max="65536"
-              ></b-form-input>
-            </b-form-group>
-
-            <b-form-group
-              class="mail-server-auth-method"
-              :label="EmailServerSecurityType"
-              label-for="mailServerSecurityType"
-            >
-              <b-form-select
-                name="mail_server_security_type"
-                id="mailServerSecurityType"
-                v-model="settings.email_notifications.security_type"
-                :options="EmailNotificationsSecurityTypeOptions"
-              ></b-form-select>
-            </b-form-group>
-
-            <b-form-group
-              class="mail-server-auth-method"
-              :label="EmailServerAuthMethod"
-              label-for="mailServerAuthMethod"
-            >
+          <b-form-row>
+            <b-col cols="6">
+              <b-form-group
+                class="mail-server-name"
+                :label="EmailServerName"
+                label-for="mailServerName"
+              >
+                <b-form-input
+                  name="mail_server_name"
+                  id="mailServerName"
+                  v-model="settings.email_notifications.server_name"
+                  :placeholder="EmailServerNameInputPlaceholder"
+                  maxlength="255"
+                  :required="EmailFieldRequired"
+                ></b-form-input>
+              </b-form-group>
+            </b-col>
+          <b-col cols="6">
+            <b-form-row>
+              <b-col cols="6">
+                <b-form-group
+                  class="mail-server-port"
+                  :label="EmailServerPort"
+                  label-for="mailServerPort"
+                >
+                  <b-form-input
+                    type="number"
+                    name="mail_server_port"
+                    id="mailServerPort"
+                    v-model="settings.email_notifications.server_port"
+                    maxlength="255"
+                    :required="EmailPortFieldRequired"
+                    min="0"
+                    max="65536"
+                  ></b-form-input>
+                </b-form-group>
+              </b-col>
+              <b-col class="align-self-center" cols="6">
+                <b-form-text id="mailServerPort-help-block">
+                  Default: 587
+                </b-form-text>
+              </b-col>
+            </b-form-row>
+          </b-col>
+          </b-form-row>
+          <b-form-row>
+            <b-col cols="6">
+              <b-form-group
+                class="mail-server-auth-method"
+                :label="EmailServerSecurityType"
+                label-for="mailServerSecurityType"
+              >
+                <b-form-select
+                  name="mail_server_security_type"
+                  id="mailServerSecurityType"
+                  v-model="settings.email_notifications.security_type"
+                  :options="EmailNotificationsSecurityTypeOptions"
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+            <b-col cols="6">
+              <b-form-group
+                class="mail-server-auth-method"
+                :label="EmailServerAuthMethod"
+                label-for="mailServerAuthMethod"
+              >
               <b-form-select
                 name="mail_server_auth_method"
                 id="mailServerAuthMethod"
@@ -98,7 +117,10 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :options="EmailNotificationsAuthOptions"
               ></b-form-select>
             </b-form-group>
-
+           </b-col>
+          </b-form-row>
+          
+          
             <b-form-group
               class="mail-server-auth-username"
               :label="EmailServerUsername"
@@ -200,28 +222,30 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="SlackFieldRequired"
               ></b-form-input>
             </b-form-group>
+            
+            <!-- FIXME: add bootstrap rows for styling margins of these buttons -->
+            <div class="button-group">
+              <b-button variant="primary" class="general-save" type="submit">
+                <!-- prettier-ignore -->
+                <translate>Save</translate>
+              </b-button>
+              <b-button
+                variant="primary"
+                class="general-cancel btn-cancel"
+                type="submit"
+              >
+                <!-- prettier-ignore -->
+                <translate>Cancel</translate>
+              </b-button>
+            </div>
+          
           </b-form-group>
-
-          <div class="button-group">
-            <b-button variant="primary" class="general-save" type="submit">
-              <!-- prettier-ignore -->
-              <translate>Save</translate>
-            </b-button>
-            <b-button
-              variant="primary"
-              class="general-cancel btn-cancel"
-              type="submit"
-            >
-              <!-- prettier-ignore -->
-              <translate>Cancel</translate>
-            </b-button>
-          </div>
         </b-form>
 
-        <h6 class="form-heading">
+        <h5 class="form-heading">
           <!-- prettier-ignore -->
           <translate>General</translate>
-        </h6>
+        </h5>
 
         <b-form @submit="onGeneralSettingsSubmit" id="general-form-container">
           <b-form-group
@@ -487,6 +511,39 @@ export default {
 <style lang="less">
 .settings-page .main-content {
   text-align: left;
+  max-width: 568px;
+  margin-bottom: 1rem; /* FIXME: this will be redundant when bootstrap rows are used more extensively */
+}
+
+h2.form-heading {
+  font-size: 32px;
+}
+
+h5.form-heading {
+  font-size: 18px;
+}
+
+.form-row
+, .form-container form label {
+  font-size: 16px;
+}
+
+.form-group input
+, .form-group select {
+  font-size: 16px;
+}
+
+.form-container form legend {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+form fieldset.form-group {
+    margin: 1rem 0;
+}
+
+form .form-group {
+  margin: 0.5rem 0;
 }
 
 .settings-page .btn-cancel {
@@ -534,16 +591,6 @@ export default {
   opacity: 1;
 }
 
-.settings-page #notifications-form-container {
-  margin-top: 2em;
-  margin-bottom: 2em;
-}
-
-.settings-page #general-form-container {
-  margin-top: 2em;
-  margin-bottom: 2em;
-}
-
 .settings-page .form-heading {
   margin-bottom: 0.5em;
   margin-top: 0.5em;
@@ -557,11 +604,22 @@ export default {
 
 .settings-page .button-group button,
 .settings-page .button-group .btn-cancel {
-  width: 10%;
+  width: 20%;
   margin-left: 1em;
   margin-right: 1em;
   display: flex;
   justify-content: center;
+}
+
+.custom-control .custom-control-input:checked ~ .custom-control-label::before {
+  border-color: #1D8CAF;
+  background-color: #1D8CAF;
+}
+
+form .form-control:focus
+, form .custom-select:focus {
+  border-color: #32ABE4;
+  box-shadow: 0 0 0 0.2rem #DCF1FB;
 }
 
 @media (max-width: 768px) {
