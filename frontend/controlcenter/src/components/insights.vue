@@ -79,7 +79,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       v-bind:key="insight.id"
       class="col-card col-md-6 h-25"
     >
-      <div class="card">
+      <div class="card" v-bind:class="[insight.highlightedClass]">
         <div class="row">
           <div
             class="col-lg-1 col-md-2 col-sm-1 col-2 rating"
@@ -209,6 +209,15 @@ export default {
       return this.$gettext("Info");
     }
   },
+  updated() {
+    let i = document.querySelector(".insight-highlighted")
+
+    if (i == undefined) {
+      return
+    }
+
+    i.scrollIntoView()
+  },
   mounted() {
     let vue = this;
     getApplicationInfo().then(function(response) {
@@ -310,18 +319,33 @@ export default {
     },
     transformInsights(insights) {
       let vue = this;
+
       if (insights === null) {
         return;
       }
 
       let insightsTransformed = [];
+
+      let highlightedClass = function(id) {
+        if (vue.$route.params.id == undefined) {
+          return ""
+        }
+
+        return vue.$route.params.id == id ? "insight-highlighted" : ""
+      }
+
       for (let insight of insights) {
-        insight.category = vue.buildInsightCategory(insight);
-        insight.modTime = vue.buildInsightTime(insight);
-        insight.title = vue.buildInsightTitle(insight);
-        insight.ratingClass = vue.buildInsightRating(insight);
-        insight.description = vue.buildInsightDescriptionValues(insight);
-        insightsTransformed.push(insight);
+        let transformed = insight
+
+        transformed.id = insight.id;
+        transformed.category = vue.buildInsightCategory(insight);
+        transformed.modTime = vue.buildInsightTime(insight);
+        transformed.title = vue.buildInsightTitle(insight);
+        transformed.ratingClass = vue.buildInsightRating(insight);
+        transformed.description = vue.buildInsightDescriptionValues(insight);
+        transformed.highlightedClass = highlightedClass(insight.id);
+
+        insightsTransformed.push(transformed);
       }
 
       return insightsTransformed;
@@ -431,6 +455,11 @@ function formatInsightDescriptionDateTime(d) {
 }
 </script>
 <style>
+
+.insight-highlighted {
+  box-shadow: 2px 2px 1px 2px black !important;
+}
+
 .insights {
   margin-bottom: 1em;
   margin-top: 0.9rem;
