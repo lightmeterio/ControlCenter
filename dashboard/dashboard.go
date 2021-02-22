@@ -11,7 +11,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
 )
@@ -35,6 +34,9 @@ type sqlDashboard struct {
 	pool *dbconn.RoPool
 }
 
+// direction: 0 is outbound, 1 is inbound (as defined by the tracking package)
+const directionQueryFragment = ` and (direction = 0 || (direction = 1 and sender_domain_part_id = recipient_domain_part_id))`
+
 func New(pool *dbconn.RoPool) (Dashboard, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		countByStatus, err := db.Prepare(`
@@ -43,7 +45,7 @@ func New(pool *dbconn.RoPool) (Dashboard, error) {
 	from
 		deliveries
 	where
-		status = ? and delivery_ts between ? and ? and direction = ?`)
+		status = ? and delivery_ts between ? and ?` + directionQueryFragment)
 
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -59,9 +61,9 @@ func New(pool *dbconn.RoPool) (Dashboard, error) {
 	select
 		status, count(status) as c
 	from
-		deliveries	
+		deliveries
 	where
-		delivery_ts between ? and ? and direction = ?
+		delivery_ts between ? and ?` + directionQueryFragment + `
 	group by
 		status
 	order by
@@ -79,21 +81,22 @@ func New(pool *dbconn.RoPool) (Dashboard, error) {
 		}()
 
 		domainMappingByRecipientDomainPartStmtPart := `
-with resolve_domain_mapping_view(domain, status, direction, delivery_ts)
+with resolve_domain_mapping_view(domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
 as
 (
 with
-	aux_domain_mapping(orig_domain, domain_mapped_to, status, direction, delivery_ts)
+	aux_domain_mapping(orig_domain, domain_mapped_to, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
 as (
 select
-	remote_domains.domain, temp_domain_mapping.mapped, deliveries.status, deliveries.direction, deliveries.delivery_ts
+	remote_domains.domain, temp_domain_mapping.mapped, deliveries.status,
+	deliveries.direction, deliveries.sender_domain_part_id, deliveries.recipient_domain_part_id, deliveries.delivery_ts
 from
 	deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid
 	left join temp_domain_mapping on remote_domains.domain = temp_domain_mapping.orig
 ) select
-	ifnull(domain_mapped_to, orig_domain) as domain, status, direction, delivery_ts
+	ifnull(domain_mapped_to, orig_domain) as domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts
 from
-	aux_domain_mapping	
+	aux_domain_mapping
 )
 `
 
@@ -103,7 +106,7 @@ from
         from
                 resolve_domain_mapping_view
         where
-                status = ? and delivery_ts between ? and ? and direction = ?
+                status = ? and delivery_ts between ? and ?` + directionQueryFragment + `
         group by
                 domain collate nocase
         order by
@@ -127,7 +130,7 @@ from
         from
                 resolve_domain_mapping_view
         where
-                delivery_ts between ? and ? and direction = ?
+                delivery_ts between ? and ? ` + directionQueryFragment + `
         group by
                 domain collate nocase
         order by
@@ -179,7 +182,7 @@ func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval data.TimeI
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
+	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
@@ -188,7 +191,7 @@ func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeI
 	defer release()
 
 	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.BouncedStatus,
-		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
+		interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
@@ -197,7 +200,7 @@ func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.Time
 	defer release()
 
 	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.DeferredStatus,
-		interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
+		interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
@@ -211,7 +214,7 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInte
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
 	countValue := 0
 
-	if err := stmt.QueryRowContext(ctx, status, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound).
+	if err := stmt.QueryRowContext(ctx, status, interval.From.Unix(), interval.To.Unix()).
 		Scan(&countValue); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -266,7 +269,7 @@ func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}
 func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval data.TimeInterval) (Pairs, error) {
 	r := Pairs{}
 
-	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), tracking.MessageDirectionOutbound)
+	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix())
 
 	if err != nil {
 		return Pairs{}, errorutil.Wrap(err)

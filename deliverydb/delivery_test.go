@@ -170,6 +170,18 @@ func TestEntriesInsertion(t *testing.T) {
 			return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionIncoming)
 		}
 
+		fakeIncomingMessageWithSenderAndRecipient := func(status parser.SmtpStatus, t time.Time, senderLocalPart, senderDomainPart, recipientLocalPart, recipientDomainPart string) tracking.Result {
+			r := buildDefaultResult()
+			r[tracking.ResultRecipientLocalPartKey] = recipientLocalPart
+			r[tracking.QueueSenderLocalPartKey] = senderLocalPart
+			r[tracking.QueueSenderDomainPartKey] = senderDomainPart
+			r[tracking.ResultRecipientDomainPartKey] = recipientDomainPart
+			r[tracking.ResultDeliveryTimeKey] = t.Unix()
+			r[tracking.ResultStatusKey] = status
+			r[tracking.ResultMessageDirectionKey] = tracking.MessageDirection(tracking.MessageDirectionIncoming)
+			return r
+		}
+
 		smtpStatusRecord := func(status parser.SmtpStatus, t time.Time) tracking.Result {
 			return fakeOutboundMessageWithRecipient(status, t, "recipient", "test.com")
 		}
@@ -212,6 +224,42 @@ func TestEntriesInsertion(t *testing.T) {
 				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
 
 				So(db.MostRecentLogTime(), ShouldResemble, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`))
+			})
+
+			Convey("Local messages with same domain sender are shown", func() {
+				db, done, cancel, pub, d, dtor := buildWs()
+				defer dtor()
+
+				pub.Publish(smtpStatusIncomingRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
+				pub.Publish(smtpStatusIncomingRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-02 13:10:11 +0000`)))
+				pub.Publish(fakeIncomingMessageWithSenderAndRecipient(parser.BouncedStatus, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`), "sender", "example.com", "recipient", "example.com"))
+				pub.Publish(smtpStatusIncomingRecord(parser.BouncedStatus, testutil.MustParseTime(`1999-12-02 13:10:20 +0000`)))
+				pub.Publish(fakeIncomingMessageWithSenderAndRecipient(parser.DeferredStatus, testutil.MustParseTime(`1999-12-02 13:10:30 +0000`), "sender2", "example2.com", "recipient2", "example2.com"))
+				pub.Publish(fakeIncomingMessageWithSenderAndRecipient(parser.BouncedStatus, testutil.MustParseTime(`1999-12-02 13:10:30 +0000`), "sender3", "example2.com", "recipient2", "example2.com"))
+
+				cancel()
+				So(done(), ShouldBeNil)
+
+				interval := parseTimeInterval("1999-12-02", "2000-01-03")
+
+				So(db.HasLogs(), ShouldBeTrue)
+				So(countByStatus(d, parser.BouncedStatus, interval), ShouldEqual, 2)
+				So(countByStatus(d, parser.DeferredStatus, interval), ShouldEqual, 1)
+				So(countByStatus(d, parser.SentStatus, interval), ShouldEqual, 0)
+
+				So(topBusiestDomains(d, interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example2.com", Value: 2},
+					dashboard.Pair{Key: "example.com", Value: 1},
+				})
+
+				So(topBouncedDomains(d, interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example.com", Value: 1},
+					dashboard.Pair{Key: "example2.com", Value: 1},
+				})
+
+				So(topDeferredDomains(d, interval), ShouldResemble, dashboard.Pairs{
+					dashboard.Pair{Key: "example2.com", Value: 1},
+				})
 			})
 
 			Convey("Inserts one log entry", func() {
