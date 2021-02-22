@@ -456,8 +456,9 @@ function formatInsightDescriptionDateTime(d) {
 </script>
 <style>
 
-.insight-highlighted {
-  box-shadow: 2px 2px 1px 2px black !important;
+.insights .card.insight-highlighted {
+  border: 2px solid #5ec4eb;
+  box-shadow: 0px 0px 20px #0003;
 }
 
 .insights {
