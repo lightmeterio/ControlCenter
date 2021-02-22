@@ -6,6 +6,7 @@ package slack
 
 import (
 	"context"
+	"errors"
 	"github.com/slack-go/slack"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/meta"
@@ -48,6 +49,11 @@ type disabledFromSettingsPolicy struct {
 
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	s, err := p.settingsFetcher()
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return true, nil
+	}
+
 	if err != nil {
 		return true, errorutil.Wrap(err)
 	}
