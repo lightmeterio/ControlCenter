@@ -24,13 +24,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           id="notifications-form-container"
         >
           <b-form-group :label="NotificationLanguage" class="notification-language">
-            <b-form-radio-group
+            <b-form-select
               class="pt-2"
               required
               v-model="settings.notifications.language"
               :options="languages"
               stacked
-            ></b-form-radio-group>
+            ></b-form-select>
           </b-form-group>
 
           <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
