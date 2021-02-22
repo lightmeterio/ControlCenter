@@ -23,15 +23,19 @@ SPDX-License-Identifier: AGPL-3.0-only
           @submit="onNotificationSettingsSubmit"
           id="notifications-form-container"
         >
-          <b-form-group :label="NotificationLanguage" class="notification-language">
-            <b-form-select
-              class="pt-2"
-              required
-              v-model="settings.notifications.language"
-              :options="languages"
-              stacked
-            ></b-form-select>
-          </b-form-group>
+          <b-form-row>
+            <b-col cols="6">
+              <b-form-group :label="NotificationLanguage" class="notification-language">
+                <b-form-select
+                  class="pt-2"
+                  required
+                  v-model="settings.notifications.language"
+                  :options="languages"
+                  stacked
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+          </b-form-row>
 
           <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
             <b-form-radio-group
@@ -218,22 +222,24 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="SlackFieldRequired"
               ></b-form-input>
             </b-form-group>
+            
+            <!-- FIXME: add bootstrap rows for styling margins of these buttons -->
+            <div class="button-group">
+              <b-button variant="primary" class="general-save" type="submit">
+                <!-- prettier-ignore -->
+                <translate>Save</translate>
+              </b-button>
+              <b-button
+                variant="primary"
+                class="general-cancel btn-cancel"
+                type="submit"
+              >
+                <!-- prettier-ignore -->
+                <translate>Cancel</translate>
+              </b-button>
+            </div>
+          
           </b-form-group>
-
-          <div class="button-group">
-            <b-button variant="primary" class="general-save" type="submit">
-              <!-- prettier-ignore -->
-              <translate>Save</translate>
-            </b-button>
-            <b-button
-              variant="primary"
-              class="general-cancel btn-cancel"
-              type="submit"
-            >
-              <!-- prettier-ignore -->
-              <translate>Cancel</translate>
-            </b-button>
-          </div>
         </b-form>
 
         <h5 class="form-heading">
@@ -506,6 +512,7 @@ export default {
 .settings-page .main-content {
   text-align: left;
   max-width: 568px;
+  margin-bottom: 1rem; /* FIXME: this will be redundant when bootstrap rows are used more extensively */
 }
 
 h2.form-heading {
@@ -582,15 +589,6 @@ form .form-group {
   border: 1px solid #e6e7e7;
   border-radius: 5px;
   opacity: 1;
-}
-
-.settings-page #notifications-form-container {
-  margin: 1em 0;
-}
-
-.settings-page #general-form-container {
-  margin-top: 2em;
-  margin-bottom: 2em;
 }
 
 .settings-page .form-heading {
