@@ -372,16 +372,22 @@ func buildEmailSettingsFromForm(form url.Values) (email.Settings, bool, error) {
 		return email.Settings{}, false, errorutil.Wrap(err)
 	}
 
+	skipCertCheck, err := strconv.ParseBool(form.Get("email_notification_skip_cert_check"))
+	if err != nil {
+		return email.Settings{}, false, errorutil.Wrap(err)
+	}
+
 	return email.Settings{
-		Enabled:      enabled,
-		Sender:       sender,
-		Recipients:   recipients,
-		ServerName:   serverName,
-		ServerPort:   int(port),
-		SecurityType: security,
-		AuthMethod:   auth,
-		Username:     username,
-		Password:     password,
+		Enabled:       enabled,
+		Sender:        sender,
+		Recipients:    recipients,
+		ServerName:    serverName,
+		ServerPort:    int(port),
+		SecurityType:  security,
+		AuthMethod:    auth,
+		Username:      username,
+		Password:      password,
+		SkipCertCheck: skipCertCheck,
 	}, true, nil
 }
 

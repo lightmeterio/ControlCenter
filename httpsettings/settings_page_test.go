@@ -25,19 +25,20 @@ func init() {
 func notificationValuesToPost(values url.Values) url.Values {
 	// something always posted by the notifications form
 	var defaultValues = url.Values{
-		"messenger_enabled":                {"false"},
-		"messenger_token":                  {""},
-		"messenger_channel":                {""},
-		"notification_language":            {""},
-		"email_notification_server_name":   {""},
-		"email_notification_port":          {"0"},
-		"email_notification_username":      {""},
-		"email_notification_password":      {""},
-		"email_notification_sender":        {""},
-		"email_notification_recipients":    {""},
-		"email_notification_security_type": {"none"},
-		"email_notification_auth_method":   {"none"},
-		"email_notification_enabled":       {"false"},
+		"messenger_enabled":                  {"false"},
+		"messenger_token":                    {""},
+		"messenger_channel":                  {""},
+		"notification_language":              {""},
+		"email_notification_server_name":     {""},
+		"email_notification_skip_cert_check": {"false"},
+		"email_notification_port":            {"0"},
+		"email_notification_username":        {""},
+		"email_notification_password":        {""},
+		"email_notification_sender":          {""},
+		"email_notification_recipients":      {""},
+		"email_notification_security_type":   {"none"},
+		"email_notification_auth_method":     {"none"},
+		"email_notification_enabled":         {"false"},
 	}
 
 	for k, v := range defaultValues {
@@ -71,15 +72,16 @@ func TestSettingsPage(t *testing.T) {
 
 			expected := map[string]interface{}{
 				"email_notifications": map[string]interface{}{
-					"auth_method":   "none",
-					"enabled":       false,
-					"password":      "",
-					"recipients":    "",
-					"security_type": "none",
-					"sender":        "",
-					"server_name":   "",
-					"server_port":   float64(0),
-					"username":      ""},
+					"skip_cert_check": false,
+					"auth_method":     "none",
+					"enabled":         false,
+					"password":        "",
+					"recipients":      "",
+					"security_type":   "none",
+					"sender":          "",
+					"server_name":     "",
+					"server_port":     float64(0),
+					"username":        ""},
 				"general": map[string]interface{}{
 					"app_language":      "",
 					"postfix_public_ip": "",
@@ -133,15 +135,16 @@ func TestSettingsPage(t *testing.T) {
 
 			expected := map[string]interface{}{
 				"email_notifications": map[string]interface{}{
-					"auth_method":   "none",
-					"enabled":       false,
-					"password":      "",
-					"recipients":    "",
-					"security_type": "none",
-					"sender":        "",
-					"server_name":   "",
-					"server_port":   float64(0),
-					"username":      ""},
+					"skip_cert_check": false,
+					"auth_method":     "none",
+					"enabled":         false,
+					"password":        "",
+					"recipients":      "",
+					"security_type":   "none",
+					"sender":          "",
+					"server_name":     "",
+					"server_port":     float64(0),
+					"username":        ""},
 				"general": map[string]interface{}{
 					"app_language":      "en",
 					"postfix_public_ip": "11.22.33.44",
@@ -183,15 +186,16 @@ func TestSettingsPage(t *testing.T) {
 
 			expected := map[string]interface{}{
 				"email_notifications": map[string]interface{}{
-					"auth_method":   "none",
-					"enabled":       false,
-					"password":      "",
-					"recipients":    "",
-					"security_type": "none",
-					"sender":        "",
-					"server_name":   "",
-					"server_port":   float64(0),
-					"username":      ""},
+					"skip_cert_check": false,
+					"auth_method":     "none",
+					"enabled":         false,
+					"password":        "",
+					"recipients":      "",
+					"security_type":   "none",
+					"sender":          "",
+					"server_name":     "",
+					"server_port":     float64(0),
+					"username":        ""},
 				"general": map[string]interface{}{
 					"app_language":      "",
 					"postfix_public_ip": "",
@@ -221,16 +225,17 @@ func TestSettingsPage(t *testing.T) {
 				// fails to test connection
 				r, err := c.PostForm(settingsServer.URL+"?setting=notification",
 					notificationValuesToPost(url.Values{
-						"email_notification_server_name":   {"mail.example.com"},
-						"email_notification_username":      {"user@mail.example.com"},
-						"email_notification_password":      {"super_password"},
-						"email_notification_sender":        {"sender@example.com"},
-						"email_notification_recipients":    {"recipient@example.com"},
-						"email_notification_security_type": {"STARTTLS"},
-						"email_notification_auth_method":   {"password"},
-						"email_notification_port":          {"999"},
-						"email_notification_enabled":       {"true"},
-						"notification_language":            {"en"},
+						"email_notification_server_name":     {"mail.example.com"},
+						"email_notification_skip_cert_check": {"false"},
+						"email_notification_username":        {"user@mail.example.com"},
+						"email_notification_password":        {"super_password"},
+						"email_notification_sender":          {"sender@example.com"},
+						"email_notification_recipients":      {"recipient@example.com"},
+						"email_notification_security_type":   {"STARTTLS"},
+						"email_notification_auth_method":     {"password"},
+						"email_notification_port":            {"999"},
+						"email_notification_enabled":         {"true"},
+						"notification_language":              {"en"},
 					}))
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
@@ -248,16 +253,17 @@ func TestSettingsPage(t *testing.T) {
 				{
 					r, err := c.PostForm(settingsServer.URL+"?setting=notification",
 						notificationValuesToPost(url.Values{
-							"email_notification_server_name":   {"localhost"},
-							"email_notification_username":      {"user@example.com"},
-							"email_notification_password":      {"super_password"},
-							"email_notification_sender":        {"sender@example.com"},
-							"email_notification_recipients":    {"recipient@example.com"},
-							"email_notification_security_type": {"none"},
-							"email_notification_auth_method":   {"password"},
-							"email_notification_port":          {"2055"},
-							"email_notification_enabled":       {"true"},
-							"notification_language":            {"de"},
+							"email_notification_server_name":     {"localhost"},
+							"email_notification_skip_cert_check": {"false"},
+							"email_notification_username":        {"user@example.com"},
+							"email_notification_password":        {"super_password"},
+							"email_notification_sender":          {"sender@example.com"},
+							"email_notification_recipients":      {"recipient@example.com"},
+							"email_notification_security_type":   {"none"},
+							"email_notification_auth_method":     {"password"},
+							"email_notification_port":            {"2055"},
+							"email_notification_enabled":         {"true"},
+							"notification_language":              {"de"},
 						}))
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -272,15 +278,16 @@ func TestSettingsPage(t *testing.T) {
 
 				expected := map[string]interface{}{
 					"email_notifications": map[string]interface{}{
-						"auth_method":   "password",
-						"enabled":       true,
-						"password":      "super_password",
-						"recipients":    "recipient@example.com",
-						"security_type": "none",
-						"sender":        "sender@example.com",
-						"server_name":   "localhost",
-						"server_port":   float64(2055),
-						"username":      "user@example.com"},
+						"skip_cert_check": false,
+						"auth_method":     "password",
+						"enabled":         true,
+						"password":        "super_password",
+						"recipients":      "recipient@example.com",
+						"security_type":   "none",
+						"sender":          "sender@example.com",
+						"server_name":     "localhost",
+						"server_port":     float64(2055),
+						"username":        "user@example.com"},
 					"general": map[string]interface{}{
 						"app_language":      "en",
 						"postfix_public_ip": "11.22.33.44",

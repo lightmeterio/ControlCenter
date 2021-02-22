@@ -121,8 +121,9 @@ const (
 )
 
 type Settings struct {
-	// TODO: use this flag in the policy for the Notifier
 	Enabled bool `json:"enabled"`
+
+	SkipCertCheck bool `json:"skip_cert_check"`
 
 	Sender     string `json:"sender"`
 	Recipients string `json:"recipients"`
@@ -150,7 +151,11 @@ type Notifier struct {
 }
 
 func buildTLSConfigFromSettings(settings Settings) *tls.Config {
-	// TODO: allow the user to pass custom TLS config, such as custom certificates and CA
+	if settings.SkipCertCheck {
+		//nolint:gosec
+		return &tls.Config{InsecureSkipVerify: true}
+	}
+
 	return nil
 }
 
