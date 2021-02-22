@@ -27,16 +27,9 @@ type publisher struct {
 var counter uint64 = 0
 
 func (*publisher) Publish(r tracking.Result) {
-	return
 	counter++
 
-	s := map[string]interface{}{}
-
-	for i, v := range r {
-		s[tracking.KeysToLabels[i]] = v.Value()
-	}
-
-	j, err := json.Marshal(s)
+	j, err := json.Marshal(r)
 
 	errorutil.MustSucceed(err)
 

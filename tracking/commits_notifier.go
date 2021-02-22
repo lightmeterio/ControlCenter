@@ -40,7 +40,6 @@ const (
 	selectPidHostByQueue
 	selectKeyValueFromConnections
 	selectKeyValueFromQueues
-	selectResultsByQueue
 	selectKeyValueForResults
 	selectQueryNameById
 
@@ -77,18 +76,14 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.id = ?`,
 	selectKeyValueFromQueues: `
 			select
-				queue_data.id, queue_data.key, queue_data.value
+				id, key, value
 			from
-				queue_data join queues on queue_data.queue_id = queues.id
+				queue_data
 			where
-				queues.id = ?`,
-	selectResultsByQueue: `
-			select
-				results.id
-			from
-				results join queues on results.queue_id == queues.id
-			where
-				queues.id == ?`,
+				queue_id = ?
+			group by
+				key
+			`,
 	selectKeyValueForResults: `
 				select
 					result_data.id, result_data.key, result_data.value

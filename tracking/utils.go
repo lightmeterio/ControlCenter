@@ -7,7 +7,6 @@ package tracking
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -63,7 +62,7 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc 
 	deleted, err := tryToDeleteQueueNotIgnoringErrors(tx, trackerStmts, queueId, loc)
 
 	// Treat deletion errors (some queries return "norows") differently for now...
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && (errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrInvalidAffectedLines)) {
 		return false, &DeletionError{Err: errorutil.Wrap(err), Loc: loc}
 	}
 
@@ -421,6 +420,8 @@ func incrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) e
 	return nil
 }
 
+var ErrInvalidAffectedLines = errors.New(`Wrong number of affected lines`)
+
 func decrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) error {
 	stmt := tx.Stmt(trackerStmts[decrementQueueUsageById])
 
@@ -439,7 +440,7 @@ func decrementQueueUsage(tx *sql.Tx, trackerStmts trackerStmts, queueId int64) e
 	}
 
 	if a != 1 {
-		return errorutil.Wrap(fmt.Errorf("Wrong number of affected lines: %v", a))
+		return ErrInvalidAffectedLines
 	}
 
 	return nil
