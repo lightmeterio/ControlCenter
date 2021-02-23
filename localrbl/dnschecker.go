@@ -163,6 +163,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 	}
 
 	if len(rbls) == 0 {
+		log.Info().Msg("RBL scan finished with no results")
 		return
 	}
 
