@@ -82,9 +82,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </b-form-group>
               </b-col>
               <b-col class="align-self-center" cols="6">
-                <b-form-text id="mailServerPort-help-block">
-                  <translate>Default</translate>: 587
-                </b-form-text>
+                <b-form-text id="mailServerPort-help-block">{{EmailNotificationDefaultPortLabel}}</b-form-text>
               </b-col>
             </b-form-row>
           </b-col>
@@ -242,7 +240,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="SlackFieldRequired"
               ></b-form-input>
             </b-form-group>
-            
+
             <!-- FIXME: add bootstrap rows for styling margins of these buttons -->
             <div class="button-group">
               <b-button variant="primary" class="general-save" type="submit">
@@ -258,7 +256,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <translate>Cancel</translate>
               </b-button>
             </div>
-          
+
           </b-form-group>
         </b-form>
 
@@ -416,10 +414,22 @@ export default {
     },
     EmailNotificationsSecurityTypeOptions: function() {
       return [
-        {text: this.$gettext("None"), value: "none"}, 
-        {text: "STARTTLS", value: "STARTTLS", defaultPort: 587}, 
-        {text: "TLS", value: "TLS", defaultPort: 465}
+        {text: this.$gettext("None"), value: "none"},
+        {text: "STARTTLS", value: "STARTTLS"},
+        {text: "TLS", value: "TLS"}
       ];
+    },
+    EmailNotificationDefaultPortLabel: function() {
+      let options = {"STARTTLS": 587, "TLS": 465};
+      let selected = options[this.settings.email_notifications.security_type]
+
+      if (selected == undefined) {
+        return ""
+      }
+
+      let translation = this.$gettext("Default: %{port}")
+
+      return this.$gettextInterpolate(translation, {"port": selected})
     },
     EmailNotificationsAuthOptions: function() {
       return [{text: this.$gettext("No Authentication"), value: "none"}, {text: this.$gettext("Password"), value: "password"}];
