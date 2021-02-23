@@ -122,7 +122,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
             <b-form-group
               class="mail-server-auth-skip-cert-check"
-              :label="EmailServerSkipCertCheck"
               label-for="mailServerSkipCertCheck"
             >
               <b-form-checkbox
@@ -130,8 +129,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 id="mailServerSkipCertCheck"
                 v-model="settings.email_notifications.skip_cert_check"
               >
-              <!-- prettier-ignore -->
-              <translate>Accept insecure TLS connections (use with caution!)</translate>
+                <!-- prettier-ignore -->
+                <translate>Allow insecure TLS</translate>
+                &nbsp;
+                <span
+                  v-b-tooltip.hover
+                  :title="InsecureTlsHelpText"
+                >
+                  <i class="fa fa-info-circle insight-help-button"></i>
+                </span>
               </b-form-checkbox>
             </b-form-group>
 
@@ -461,6 +467,9 @@ export default {
     },
     PublicURLPlaceholder: function() {
       return this.$gettext("Enter Public URL");
+    },
+    InsecureTlsHelpText() {
+      return this.$gettext("Certificates will be used but not validated, allowing insecure connections");
     }
   },
   methods: {
