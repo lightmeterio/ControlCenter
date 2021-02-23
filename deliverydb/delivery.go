@@ -6,9 +6,7 @@ package deliverydb
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -369,21 +367,17 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 // FIXME: this is a workaround due an issue in the parser on obtaining the connection
 // information on NOQUEUE, afaik
 func valueOrNil(e tracking.ResultEntry) interface{} {
-	if e.IsNone() {
-		return nil
-	}
-
-	return e.Value()
+	return e.ValueOrNil()
 }
 
 func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
-	return func(tx *sql.Tx, stmts preparedStmts) error {
+	return func(tx *sql.Tx, stmts preparedStmts) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				j, err := json.Marshal(tr)
-				errorutil.MustSucceed(err)
-				fmt.Println(string(j))
-				panic(r)
+				log.Error().Object("result", tr).Msg("Failed to store delivery message")
+
+				// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
+				err = nil
 			}
 		}()
 
