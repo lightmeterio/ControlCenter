@@ -94,7 +94,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 	tryToDispatchAndReset(&resultInfos, resultsToNotify)
 
 	if count > 0 {
-		log.Info().Msgf("Dispatched a total of %v on batch %v in %v", count, batchId, time.Since(start))
+		log.Debug().Msgf("Dispatched a total of %v on batch %v in %v", count, batchId, time.Since(start))
 	}
 
 	if err := rows.Err(); err != nil {
