@@ -83,7 +83,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               </b-col>
               <b-col class="align-self-center" cols="6">
                 <b-form-text id="mailServerPort-help-block">
-                  Default: 587
+                  <translate>Default</translate>: 587
                 </b-form-text>
               </b-col>
             </b-form-row>
