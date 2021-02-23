@@ -28,11 +28,22 @@ func (c *closer) Close() error {
 	return c.CloseFunc()
 }
 
-func New(closers ...io.Closer) Closers {
-	return closers
+func New(c ...io.Closer) Closers {
+	closers := closers{}
+
+	for _, v := range c {
+		closers.Add(v)
+	}
+
+	return &closers
 }
 
-type Closers []io.Closer
+type Closers interface {
+	io.Closer
+	Add(cs ...io.Closer)
+}
+
+type closers []io.Closer
 
 func maybeUpdateError(err error, typ io.Closer) error {
 	nestedErr := typ.Close()
@@ -48,7 +59,7 @@ func maybeUpdateError(err error, typ io.Closer) error {
 	return errorutil.BuildChain(nestedErr, err)
 }
 
-func (c *Closers) Close() error {
+func (c *closers) Close() error {
 	var err error
 
 	for _, typ := range *c {
@@ -62,7 +73,7 @@ func (c *Closers) Close() error {
 	return err
 }
 
-func (c *Closers) Add(cs ...io.Closer) {
+func (c *closers) Add(cs ...io.Closer) {
 	if len(cs) == 0 {
 		panic("close funcs are missing")
 	}

@@ -148,7 +148,7 @@ from
 			}
 		}()
 
-		db.Closers = append(db.Closers, countByStatus, deliveryStatus, topBusiestDomains, topDomainsByStatus)
+		db.Closers.Add(countByStatus, deliveryStatus, topBusiestDomains, topDomainsByStatus)
 
 		db.Stmts["countByStatus"] = countByStatus
 		db.Stmts["deliveryStatus"] = deliveryStatus

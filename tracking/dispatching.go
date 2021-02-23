@@ -7,25 +7,30 @@ package tracking
 import (
 	"database/sql"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"time"
 )
 
-const resultInfosCapacity = 512
+const resultInfosCapacity = 4
 
 type resultInfos struct {
-	size   uint
-	values [resultInfosCapacity]resultInfo
+	batchId int64
+	id      int64
+	size    uint
+	values  [resultInfosCapacity]int64
 }
 
 func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resultInfos) {
 	if resultInfos.size > 0 {
 		resultsToNotify <- *resultInfos
 		resultInfos.size = 0
+		resultInfos.id++
 	}
 }
 
-func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx) error {
+func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx, batchId int64) error {
+	start := time.Now()
+
 	stmt := tx.Stmt(tracker.stmts[selectFromNotificationQueues])
 
 	defer func() {
@@ -46,13 +51,11 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 
 	var (
 		resultId int64
-		line     uint64 // NOTE: it's stored as an int64 in SQLite... :-(
-		filename string
 		id       int64
 	)
 
 	count := 0
-	resultInfos := resultInfos{}
+	resultInfos := resultInfos{batchId: batchId}
 
 	for {
 		if resultInfos.size == resultInfosCapacity {
@@ -65,7 +68,7 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 
 		count++
 
-		err = rows.Scan(&id, &resultId, &filename, &line)
+		err = rows.Scan(&id, &resultId)
 
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -84,14 +87,14 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 		}
 
 		// TODO: encapsulate it on add()
-		resultInfos.values[resultInfos.size] = resultInfo{id: resultId, loc: data.RecordLocation{Line: line, Filename: filename}}
+		resultInfos.values[resultInfos.size] = resultId
 		resultInfos.size++
 	}
 
 	tryToDispatchAndReset(&resultInfos, resultsToNotify)
 
 	if count > 0 {
-		log.Info().Msgf("Dispatched a total of %v", count)
+		log.Debug().Msgf("Dispatched a total of %v on batch %v in %v", count, batchId, time.Since(start))
 	}
 
 	if err := rows.Err(); err != nil {

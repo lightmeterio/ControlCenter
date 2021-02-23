@@ -65,7 +65,7 @@ type PooledPair struct {
 }
 
 func Open(filename string, poolSize int) (*PooledPair, error) {
-	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF`)
+	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -78,11 +78,12 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 	}()
 
 	pool := &RoPool{
-		pool: make(chan *RoPooledConn, poolSize),
+		pool:    make(chan *RoPooledConn, poolSize),
+		Closers: closeutil.New(),
 	}
 
 	for i := 0; i < poolSize; i++ {
-		reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=private&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF`)
+		reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=private&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
@@ -96,7 +97,7 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		}
 
 		pool.conns = append(pool.conns, conn)
-		pool.Closers = append(pool.Closers, conn)
+		pool.Closers.Add(conn)
 
 		pool.pool <- conn
 	}
