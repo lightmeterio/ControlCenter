@@ -429,7 +429,7 @@ func commitTransactionIfNeeded(tx *sql.Tx) error {
 		return errorutil.Wrap(err)
 	}
 
-	log.Info().Msgf("Tracking commit took %v", time.Since(beforeCommit))
+	log.Debug().Msgf("Tracking commit took %v", time.Since(beforeCommit))
 
 	return nil
 }

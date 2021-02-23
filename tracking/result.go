@@ -6,6 +6,7 @@ package tracking
 
 import (
 	"encoding/json"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -49,7 +50,7 @@ func (e ResultEntry) Value() interface{} {
 	v := e.ValueOrNil()
 
 	if v == nil {
-		panic("Invalid type")
+		log.Panic().Msg("Invalid type")
 	}
 
 	return v
@@ -126,25 +127,42 @@ func ResultEntryFromValue(i interface{}) ResultEntry {
 	}
 }
 
-func (e ResultEntry) MarshalJSON() ([]byte, error) {
-	t := func() string {
-		switch e.typ {
-		case ResultEntryTypeBlob:
-			return "blob"
-		case ResultEntryTypeFloat64:
-			return "float64"
-		case ResultEntryTypeInt64:
-			return "int64"
-		case ResultEntryTypeText:
-			return "text"
-		case ResultEntryTypeNone:
-			return "none"
-		default:
-			panic("invalid type!")
-		}
-	}()
+func resultTypeAsString(e ResultEntry) string {
+	switch e.typ {
+	case ResultEntryTypeBlob:
+		return "blob"
+	case ResultEntryTypeFloat64:
+		return "float64"
+	case ResultEntryTypeInt64:
+		return "int64"
+	case ResultEntryTypeText:
+		return "text"
+	case ResultEntryTypeNone:
+		return "none"
+	default:
+		panic("invalid type!")
+	}
+}
 
-	return json.Marshal(map[string]interface{}{"type": t, "value": e.ValueOrNil()})
+func (e ResultEntry) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"type": resultTypeAsString(e), "value": e.ValueOrNil()})
+}
+
+func (e ResultEntry) MarshalZerologObject(event *zerolog.Event) {
+	switch e.typ {
+	case ResultEntryTypeBlob:
+		event.Bytes("blob", e.asBlob)
+	case ResultEntryTypeFloat64:
+		event.Float64("float64", e.asFloat64)
+	case ResultEntryTypeInt64:
+		event.Int64("int64", e.asInt64)
+	case ResultEntryTypeText:
+		event.Str("text", e.asText)
+	case ResultEntryTypeNone:
+		event.Bool("none", true)
+	default:
+		panic("invalid type!")
+	}
 }
 
 type Result [lasResulttKey]ResultEntry
@@ -160,6 +178,15 @@ func (r Result) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(s)
+}
+
+func (r Result) MarshalZerologObject(e *zerolog.Event) {
+	// omit "none" values
+	for i, v := range r {
+		if !v.IsNone() {
+			e.Object(KeysToLabels[i], v)
+		}
+	}
 }
 
 type ResultPublisher interface {
