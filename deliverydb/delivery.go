@@ -391,11 +391,6 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 			return tr[tracking.ResultRelayPortKey].Int64()
 		}()
 
-		if err != nil {
-			log.Warn().Msgf("%v", tr)
-			return errorutil.Wrap(err)
-		}
-
 		rowId, err := result.LastInsertId()
 		if err != nil {
 			return errorutil.Wrap(err)

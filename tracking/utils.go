@@ -76,7 +76,7 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc 
 func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
 	err := decrementQueueUsage(tx, trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err, "h")
+		return false, errorutil.Wrap(err)
 	}
 
 	var usageCounter int
@@ -89,7 +89,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = stmt.QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
-		return false, errorutil.Wrap(err, "i")
+		return false, errorutil.Wrap(err)
 	}
 
 	if usageCounter > 0 {
@@ -108,7 +108,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = stmt.QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
-		return false, errorutil.Wrap(err, "j")
+		return false, errorutil.Wrap(err)
 	}
 
 	if countDependentQueues > 0 {
@@ -117,7 +117,7 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, qu
 
 	err = deleteQueueRec(tx, trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err, "k")
+		return false, errorutil.Wrap(err)
 	}
 
 	return true, nil
