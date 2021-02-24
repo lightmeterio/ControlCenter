@@ -9,6 +9,7 @@ require (
 	github.com/chai2010/gettext-go v1.0.3-0.20200705094307-42825e1d282c
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
+	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
 	github.com/emersion/go-smtp v0.14.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-openapi/spec v0.19.9 // indirect
@@ -20,7 +21,7 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/mmcdole/gofeed v1.1.0
 	github.com/mmcdole/goxpp v0.0.0-20200921145534-2f3784f67354 // indirect
 	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6

@@ -25,6 +25,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
 # github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
+## explicit
 github.com/emersion/go-sasl
 # github.com/emersion/go-smtp v0.14.0
 ## explicit
@@ -85,7 +86,7 @@ github.com/jtolds/gls
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-sqlite3 v1.14.2
+# github.com/mattn/go-sqlite3 v1.14.5
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/mmcdole/gofeed v1.1.0

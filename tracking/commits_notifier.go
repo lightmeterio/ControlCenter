@@ -25,6 +25,8 @@ type resultsNotifier struct {
 	runner.CancelableRunner
 	resultsToNotify <-chan resultInfos
 	publisher       ResultPublisher
+	counter         uint64
+	id              int
 }
 
 type notifierStmtKey uint
@@ -34,16 +36,14 @@ const (
 	firstNotifierStmtKey notifierStmtKey = iota
 
 	selectParentingQueueByNewQueue
-	selectAllMessageIdsByQueue
 	selectQueueIdFromResult
 	selectPidHostByQueue
 	selectKeyValueFromConnections
 	selectKeyValueFromQueues
-	selectKeyValueFromQueuesByKeyType
-	selectResultsByQueue
 	selectKeyValueForResults
 	selectQueryNameById
 
+	//nolint
 	lastNotifierStmtKey
 )
 
@@ -57,13 +57,6 @@ var notifierStmtsText = map[notifierStmtKey]string{
 			new_queue_id = ?
 		group by
 			orig_queue_id, new_queue_id, parenting_type`,
-	selectAllMessageIdsByQueue: `
-			select
-				messageids.value, messageids.filename, messageids.line
-			from
-				messageids join queues on queues.messageid_id == messageids.id
-			where
-				queues.id = ?`,
 	selectQueueIdFromResult: `select queue_id from results where id = ?`,
 	selectPidHostByQueue: `
 			select
@@ -75,7 +68,7 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.id == ?`,
 	selectKeyValueFromConnections: `
 			select
-				connection_data.id, key, value
+				connection_data.id, connection_data.key, connection_data.value
 			from
 				connection_data join connections on connection_data.connection_id = connections.id
 				join queues on queues.connection_id == connections.id
@@ -83,25 +76,14 @@ var notifierStmtsText = map[notifierStmtKey]string{
 				queues.id = ?`,
 	selectKeyValueFromQueues: `
 			select
-				queue_data.key, queue_data.key, queue_data.value
+				id, key, value
 			from
-				queue_data join queues on queue_data.queue_id = queues.id
+				queue_data
 			where
-				queues.id = ?`,
-	selectKeyValueFromQueuesByKeyType: `
-			select
-				queue_data.id, queue_data.key, queue_data.value
-			from
-				queue_data join queues on queue_data.queue_id = queues.id
-			where
-				queues.id = ? and queue_data.key = ?`,
-	selectResultsByQueue: `
-			select
-				results.id
-			from
-				results join queues on results.queue_id == queues.id
-			where
-				queues.id == ?`,
+				queue_id = ?
+			group by
+				key
+			`,
 	selectKeyValueForResults: `
 				select
 					result_data.id, result_data.key, result_data.value
@@ -112,33 +94,14 @@ var notifierStmtsText = map[notifierStmtKey]string{
 	selectQueryNameById: `select queue from queues where id = ?`,
 }
 
-type notifierStmts [lastNotifierStmtKey]*sql.Stmt
-
-func prepareNotifierRoStmts(conn dbconn.RoConn) (notifierStmts, error) {
-	stmts := notifierStmts{}
-
-	for k, v := range notifierStmtsText {
-		// The prepared queries are closed when the application ends
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
-			return notifierStmts{}, errorutil.Wrap(err)
-		}
-
-		stmts[k] = stmt
-	}
-
-	return stmts, nil
-}
-
-func findOrigQueueForQueueParenting(stmts notifierStmts, queueId int64) (int64, queueParentingType, error) {
+func findOrigQueueForQueueParenting(conn *dbconn.RoPooledConn, queueId int64) (int64, queueParentingType, error) {
 	// first try to obtain the original queue which is not caused by a bounce
 	var (
 		origQueue     int64
 		parentingType queueParentingType
 	)
 
-	err := stmts[selectParentingQueueByNewQueue].QueryRow(queueId).Scan(&origQueue, &parentingType)
+	err := conn.Stmts[selectParentingQueueByNewQueue].QueryRow(queueId).Scan(&origQueue, &parentingType)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, 0, errorutil.Wrap(err)
@@ -151,8 +114,24 @@ func findOrigQueueForQueueParenting(stmts notifierStmts, queueId int64) (int64, 
 	return origQueue, parentingType, errorutil.Wrap(err)
 }
 
-func findConnectionAndDeliveryQueue(stmts notifierStmts, queueId int64, loc data.RecordLocation) (connQueueId int64, deliveryQueueId int64, err error) {
-	origQueue, parentingType, err := findOrigQueueForQueueParenting(stmts, queueId)
+func prepareCommitterConnection(conn *dbconn.RoPooledConn) error {
+	for k, v := range notifierStmtsText {
+		//nolint:sqlclosecheck
+		stmt, err := conn.Prepare(v)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		conn.Stmts[k] = stmt
+
+		conn.Closers.Add(stmt)
+	}
+
+	return nil
+}
+
+func findConnectionAndDeliveryQueue(conn *dbconn.RoPooledConn, queueId int64, loc data.RecordLocation) (connQueueId int64, deliveryQueueId int64, err error) {
+	origQueue, parentingType, err := findOrigQueueForQueueParenting(conn, queueId)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, 0, errorutil.Wrap(err)
@@ -170,43 +149,33 @@ func findConnectionAndDeliveryQueue(stmts notifierStmts, queueId int64, loc data
 
 	// this is a bounce parenting relationship. I need to find the original one from it.
 	// This is a, ugly recursive call, but we expect it to be execute at most twice, so that's ok.
-	return findConnectionAndDeliveryQueue(stmts, origQueue, loc)
+	return findConnectionAndDeliveryQueue(conn, origQueue, loc)
 }
 
-func collectConnectionKeyValueResults(stmts notifierStmts, queueId int64) (Result, error) {
+func collectConnectionKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromConnections], queueId); err != nil {
+	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueFromConnections], queueId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
 	return result, nil
 }
 
-func collectQueuesKeyValueResults(stmts notifierStmts, queueId int64) (Result, error) {
+func collectQueuesKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromQueues], queueId); err != nil {
+	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueFromQueues], queueId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
 	return result, nil
 }
 
-func collectQueuesOriginalMessageSizeKeyValueResults(stmts notifierStmts, queueId int64) (Result, error) {
+func collectResultKeyValueResults(conn *dbconn.RoPooledConn, resultId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, stmts[selectKeyValueFromQueuesByKeyType], queueId, QueueOriginalMessageSizeKey); err != nil {
-		return Result{}, errorutil.Wrap(err)
-	}
-
-	return result, nil
-}
-
-func collectResultKeyValueResults(stmts notifierStmts, resultId int64) (Result, error) {
-	result := Result{}
-
-	if err := collectKeyValueResult(&result, stmts[selectKeyValueForResults], resultId); err != nil {
+	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueForResults], resultId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
@@ -214,155 +183,165 @@ func collectResultKeyValueResults(stmts notifierStmts, resultId int64) (Result, 
 }
 
 // FIXME: this method is way too long. Really. It deserves urgent refactoring
-func buildAndPublishResult(stmts notifierStmts,
-	resultInfo resultInfo,
+func buildAndPublishResult(
+	conn *dbconn.RoPooledConn,
+	resultId int64,
 	pub ResultPublisher,
 	trackerStmts trackerStmts,
-	actions chan<- func(*sql.Tx) error) error {
+	actions *txActions,
+	notifierId int,
+) (resultInfo, error) {
 	var queueId int64
 
-	err := stmts[selectQueueIdFromResult].QueryRow(&resultInfo.id).Scan(&queueId)
+	resultResult, err := collectResultKeyValueResults(conn, resultId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo{}, errorutil.Wrap(err)
+	}
+
+	resultInfo := resultInfo{
+		id: resultId,
+		loc: data.RecordLocation{
+			Line:     uint64(resultResult[ResultDeliveryFileLineKey].Int64()),
+			Filename: resultResult[ResultDeliveryFilenameKey].Text(),
+		},
+	}
+
+	err = conn.Stmts[selectQueueIdFromResult].QueryRow(resultId).Scan(&queueId)
+	if err != nil {
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
 	// find connection queue and delivery queue
-	connQueueId, deliveryQueueId, err := findConnectionAndDeliveryQueue(stmts, queueId, resultInfo.loc)
+	connQueueId, deliveryQueueId, err := findConnectionAndDeliveryQueue(conn, queueId, resultInfo.loc)
 	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	var (
-		messageId         string
-		messageIdFilename string
-		messageIdLine     int64
-	)
-
-	err = stmts[selectAllMessageIdsByQueue].QueryRow(deliveryQueueId).Scan(&messageId, &messageIdFilename, &messageIdLine)
-	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
 	var deliveryServer string
 
-	err = stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
+	err = conn.Stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
 	// TODO: operate all on the same Result{}, except for the deliveryQueue stuff.
 	// It makes the mergeResults faster as it operates on less arrays!
 
-	connResult, err := collectConnectionKeyValueResults(stmts, connQueueId)
+	connResult, err := collectConnectionKeyValueResults(conn, connQueueId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	queueResult, err := collectQueuesKeyValueResults(stmts, connQueueId)
+	queueResult, err := collectQueuesKeyValueResults(conn, connQueueId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	deliveryQueueResult, err := collectQueuesOriginalMessageSizeKeyValueResults(stmts, deliveryQueueId)
+	deliveryQueueResult, err := collectQueuesKeyValueResults(conn, deliveryQueueId)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
 	deliveryQueueResult[QueueProcessedMessageSizeKey] = deliveryQueueResult[QueueOriginalMessageSizeKey]
-	deliveryQueueResult[QueueOriginalMessageSizeKey] = nil
+	deliveryQueueResult[QueueOriginalMessageSizeKey] = ResultEntryNone()
 
 	var deliveryQueueName string
 
-	err = stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
+	err = conn.Stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
 	if err != nil {
-		return errorutil.Wrap(err)
+		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
 
-	deliveryQueueResult[QueueDeliveryNameKey] = deliveryQueueName
-
-	resultResult, err := collectResultKeyValueResults(stmts, resultInfo.id)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
+	deliveryQueueResult[QueueDeliveryNameKey] = ResultEntryText(deliveryQueueName)
 
 	mergedResults := mergeResults(resultResult, queueResult, connResult, deliveryQueueResult)
 
-	mergedResults[MessageIdFilenameKey] = messageIdFilename
-	mergedResults[MessageIdLineKey] = messageIdLine
-	mergedResults[QueueMessageIDKey] = messageId
-	mergedResults[ResultDeliveryServerKey] = deliveryServer
+	mergedResults[ResultDeliveryServerKey] = ResultEntryText(deliveryServer)
 
 	pub.Publish(mergedResults)
 
-	deleteQueueAction := func(tx *sql.Tx) error {
-		_, err := tryToDeleteQueue(tx, trackerStmts, queueId, resultInfo.loc)
-		if err != nil {
-			return errorutil.Wrap(err)
+	actions.actions[actions.size] = func(tx *sql.Tx) error {
+		if err := deleteResultAction(tx, trackerStmts, resultInfo); err != nil {
+			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
+		}
+
+		if err := deleteQueueAction(tx, trackerStmts, resultInfo, queueId); err != nil {
+			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
 
 		return nil
 	}
 
-	deleteResultAction := func(tx *sql.Tx) error {
-		stmt := tx.Stmt(trackerStmts[deleteResultByIdKey])
+	actions.size++
 
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
+	return resultInfo, nil
+}
 
-		_, err := stmt.Exec(resultInfo.id)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		stmt = tx.Stmt(trackerStmts[deleteResultDataByResultId])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(resultInfo.id)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	actions <- func(tx *sql.Tx) error {
-		if err := deleteResultAction(tx); err != nil {
-			return errorutil.Wrap(err, resultInfo.loc)
-		}
-
-		if err := deleteQueueAction(tx); err != nil {
-			return errorutil.Wrap(err, resultInfo.loc)
-		}
-
-		return nil
+func deleteQueueAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo resultInfo, queueId int64) error {
+	_, err := tryToDeleteQueue(tx, trackerStmts, queueId, resultInfo.loc)
+	if err != nil {
+		return errorutil.Wrap(err, resultInfo.loc)
 	}
 
 	return nil
 }
 
-func runResultsNotifier(stmts notifierStmts, n *resultsNotifier, trackerStmts trackerStmts, actions chan<- func(*sql.Tx) error) error {
-	for resultInfos := range n.resultsToNotify {
-		for i := uint(0); i < resultInfos.size; i++ {
-			resultInfo := resultInfos.values[i]
+func deleteResultAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo resultInfo) error {
+	stmt := tx.Stmt(trackerStmts[deleteResultByIdKey])
 
-			err := buildAndPublishResult(stmts, resultInfo, n.publisher, trackerStmts, actions)
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err := stmt.Exec(resultInfo.id)
+	if err != nil {
+		return errorutil.Wrap(err, resultInfo.loc, "a")
+	}
+
+	stmt = tx.Stmt(trackerStmts[deleteResultDataByResultId])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	_, err = stmt.Exec(resultInfo.id)
+	if err != nil {
+		return errorutil.Wrap(err, resultInfo.loc, "b")
+	}
+
+	return nil
+}
+
+func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, trackerStmts trackerStmts, actionsChan chan<- txActions) error {
+	for resultInfos := range n.resultsToNotify {
+		actions := txActions{}
+
+		// log.Info().Msgf("Notifier %v started notifying batch %v:%v", n.id, resultInfos.batchId, resultInfos.id)
+
+		// start := time.Now()
+
+		for i := uint(0); i < resultInfos.size; i++ {
+			id := resultInfos.values[i]
+
+			resultInfo, err := buildAndPublishResult(conn, id, n.publisher, trackerStmts, &actions, n.id)
 
 			if err == nil {
 				continue
 			}
 
 			if errors.Is(err, sql.ErrNoRows) {
-				//nolint:errorlint
-				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err.(*errorutil.Error).Chain())
+				log.Warn().Msgf("Ignoring error notifying result: %v:%v, error: %v", resultInfo.loc.Filename, resultInfo.loc.Line, err)
 				continue
 			}
 
 			return errorutil.Wrap(err)
 		}
+
+		n.counter++
+
+		// log.Info().Msgf("Notifier %v has notified %v actions in batch %v:%v in %v", n.id, actions.size, resultInfos.batchId, resultInfos.id, time.Now().Sub(start))
+
+		actionsChan <- actions
 	}
 
 	return nil
@@ -374,7 +353,7 @@ func mergeResults(results ...Result) Result {
 	// TODO: consider rewritting this loop to be cache friendlier (by iterating on the same index in all arrays)
 	for _, r := range results {
 		for i, v := range r {
-			if v != nil {
+			if !v.IsNone() {
 				m[i] = v
 			}
 		}

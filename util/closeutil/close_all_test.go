@@ -36,7 +36,7 @@ func TestCloseAll(t *testing.T) {
 
 func TestCloseAllAdd(t *testing.T) {
 	Convey("CloseAll", t, func() {
-		closers := New()
+		closers := closers{}
 		close := ConvertToCloser(func() error {
 			return errorutil.Wrap(errors.New("closes 3"))
 		})

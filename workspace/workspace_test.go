@@ -5,13 +5,9 @@
 package workspace
 
 import (
-	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"io"
 	"testing"
 )
 
@@ -61,29 +57,6 @@ func TestWorkspaceCreation(t *testing.T) {
 			ws2, err := NewWorkspace(dir)
 			So(err, ShouldBeNil)
 			ws2.Close()
-		})
-
-		Convey("Close workspace failed", func() {
-			dir, clearDir := testutil.TempDir(t)
-			defer clearDir()
-
-			ws1, err := NewWorkspace(dir)
-			So(err, ShouldBeNil)
-
-			ws1.closes = []io.Closer{
-				closeutil.ConvertToCloser(func() error {
-					return errorutil.Wrap(errors.New("closes 1"))
-				}),
-				closeutil.ConvertToCloser(func() error {
-					return errorutil.Wrap(errors.New("closes 2"))
-				}),
-				closeutil.ConvertToCloser(func() error {
-					return errorutil.Wrap(errors.New("closes 3"))
-				}),
-			}
-
-			err = ws1.Close()
-			So(err, ShouldNotBeNil)
 		})
 	})
 }
