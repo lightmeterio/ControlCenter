@@ -27,11 +27,11 @@ type Core struct {
 
 func New(detectors []Detector) (*Core, error) {
 	Detectors := []Detector{}
-	closers := closeutil.Closers{}
+	closers := closeutil.New()
 
 	for _, d := range detectors {
 		Detectors = append(Detectors, d)
-		closers = append(closers, d)
+		closers.Add(d)
 	}
 
 	return &Core{

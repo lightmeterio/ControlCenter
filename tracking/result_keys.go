@@ -9,7 +9,7 @@ const (
 	// therefore never change their order or remove elements.
 	// you can add new elements in the end, before "lastKey", though.
 	//nolint
-	firstKey = iota
+	firstResultKey = iota
 
 	ConnectionBeginKey
 	ConnectionEndKey
@@ -60,7 +60,7 @@ const (
 	MessageIdFilenameKey
 	MessageIdLineKey
 
-	lastKey
+	lasResulttKey
 )
 
 var (
