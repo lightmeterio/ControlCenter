@@ -44,7 +44,7 @@ func (f *fakeRegistrar) Register(ctx context.Context, email, name, password stri
 	f.name = name
 	f.email = email
 	f.password = password
-	return  1, nil
+	return 1, nil
 }
 
 func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
@@ -74,7 +74,6 @@ func (f *fakeRegistrar) Authenticate(ctx context.Context, email, password string
 func (f *fakeRegistrar) CookieStore() sessions.Store {
 	return sessions.NewCookieStore(f.sessionKey)
 }
-
 
 func TestHTTPAuthV2(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
@@ -150,7 +149,6 @@ func TestHTTPAuthV2(t *testing.T) {
 				So(response.Error, ShouldEqual, "Invalid email address or password")
 			})
 
-
 			Convey("User registrations fails", func() {
 				Convey("Invalid HTTP method", func() {
 					req, err := http.NewRequest(http.MethodDelete, s.URL+"/register", nil)
@@ -195,7 +193,7 @@ func TestHTTPAuthV2(t *testing.T) {
 
 				Convey("No password provided", func() {
 					r, err := c.PostForm(s.URL+"/register", url.Values{
-						"name":     {"donutloop"},
+						"name":  {"donutloop"},
 						"email": {"alice@example.com"},
 					})
 
@@ -255,14 +253,14 @@ func TestHTTPAuthV2(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					// get fake user data
-					r, err = c.Get(s.URL+"/api/v0/userInfo")
+					r, err = c.Get(s.URL + "/api/v0/userInfo")
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 				})
 
 				Convey("get fake user data after registration", func() {
 					// get fake user data
-					r, err = c.Get(s.URL+"/api/v0/userInfo")
+					r, err = c.Get(s.URL + "/api/v0/userInfo")
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
@@ -299,7 +297,7 @@ func TestHTTPAuthV2(t *testing.T) {
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 						// check login
-						r, err = c.Get(s.URL+"/auth/check")
+						r, err = c.Get(s.URL + "/auth/check")
 						So(err, ShouldBeNil)
 						So(r.StatusCode, ShouldEqual, http.StatusOK)
 					})
@@ -315,7 +313,7 @@ func TestHTTPAuthV2(t *testing.T) {
 			registrar.name = "Sakura"
 
 			// check login
-			r, err := c.Get(s.URL+"/auth/check")
+			r, err := c.Get(s.URL + "/auth/check")
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 		})
@@ -325,7 +323,7 @@ func TestHTTPAuthV2(t *testing.T) {
 			defer c.CloseIdleConnections()
 
 			// check registered
-			r, err := c.Get(s.URL+"/auth/check")
+			r, err := c.Get(s.URL + "/auth/check")
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusForbidden)
 		})

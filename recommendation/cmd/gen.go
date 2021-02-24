@@ -10,11 +10,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"go/format"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"github.com/rs/zerolog/log"
 )
 
 type Link struct {
