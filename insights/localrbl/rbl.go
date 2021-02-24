@@ -10,12 +10,12 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"time"
 )
@@ -28,7 +28,7 @@ type Options struct {
 }
 
 type content struct {
-	ScanInterval data.TimeInterval         `json:"scan_interval"`
+	ScanInterval timeutil.TimeInterval     `json:"scan_interval"`
 	Address      net.IP                    `json:"address"`
 	RBLs         []localrbl.ContentElement `json:"rbls"`
 }

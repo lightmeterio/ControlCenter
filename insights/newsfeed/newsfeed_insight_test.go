@@ -7,7 +7,6 @@ package newsfeed
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
@@ -17,6 +16,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -129,7 +129,7 @@ func (h *fakeRssHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func buildFakeHandlerWithClock(clock *insighttestsutil.FakeClock) *fakeRssHandler {
 	return &fakeRssHandler{clock: clock, responses: []*fakeRssNewsResponse{
-		&fakeRssNewsResponse{
+		{
 			time:       testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 			shouldFail: false,
 			updated:    `1999-12-20T00:00:00Z`,
@@ -142,13 +142,13 @@ func buildFakeHandlerWithClock(clock *insighttestsutil.FakeClock) *fakeRssHandle
 				},
 			},
 		},
-		&fakeRssNewsResponse{
+		{
 			// a request fails
 			time:       testutil.MustParseTime(`2000-01-02 12:00:00 +0000`),
 			shouldFail: true,
 		},
 
-		&fakeRssNewsResponse{
+		{
 			// and 30 seconds later it succeeds
 			time:       testutil.MustParseTime(`2000-01-02 12:00:30 +0000`),
 			shouldFail: false,
@@ -169,7 +169,7 @@ func buildFakeHandlerWithClock(clock *insighttestsutil.FakeClock) *fakeRssHandle
 			},
 		},
 
-		&fakeRssNewsResponse{
+		{
 			time:       testutil.MustParseTime(`2000-01-05 12:00:00 +0000`),
 			shouldFail: false,
 			updated:    `2000-01-05T12:00:00Z`,
@@ -195,7 +195,7 @@ func buildFakeHandlerWithClock(clock *insighttestsutil.FakeClock) *fakeRssHandle
 			},
 		},
 
-		&fakeRssNewsResponse{
+		{
 			time:       testutil.MustParseTime(`2000-01-06 12:00:00 +0000`),
 			shouldFail: false,
 			updated:    `2000-01-06T12:00:00Z`,
@@ -250,7 +250,7 @@ func TestNewsFeedInsights(t *testing.T) {
 
 			So(accessor.Insights, ShouldResemble, []int64{1, 2})
 
-			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 48),
 			}, OrderBy: core.OrderByCreationAsc})
@@ -297,7 +297,7 @@ func TestNewsFeedInsights(t *testing.T) {
 
 			So(accessor.Insights, ShouldResemble, []int64{1, 2})
 
-			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-10 00:00:00 +0000`),
 			}, OrderBy: core.OrderByCreationAsc})

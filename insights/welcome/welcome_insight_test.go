@@ -8,7 +8,6 @@ package welcome
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
@@ -17,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
 )
@@ -56,7 +56,7 @@ func TestWelcomeInsights(t *testing.T) {
 
 			So(accessor.Insights, ShouldResemble, []int64{1, 2})
 
-			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 24).Add(time.Hour * 24),
 			}, OrderBy: core.OrderByCreationAsc})

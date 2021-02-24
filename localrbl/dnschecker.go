@@ -9,10 +9,10 @@ import (
 	"errors"
 	"github.com/mrichman/godnsbl"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"sync"
 	"time"
 )
@@ -169,7 +169,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 	log.Info().Msgf("RBL scan finished with list blockings %d", len(rbls))
 
 	checker.checkerResultsChan <- Results{
-		Interval: data.TimeInterval{From: t, To: t.Add(scanElapsedTime)},
+		Interval: timeutil.TimeInterval{From: t, To: t.Add(scanElapsedTime)},
 		RBLs:     rbls,
 	}
 }

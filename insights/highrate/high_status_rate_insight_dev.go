@@ -9,9 +9,9 @@ package highrate
 
 import (
 	"database/sql"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
 // Executed only on development builds, for better developer experience
@@ -21,7 +21,7 @@ func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error
 
 		content := bounceRateContent{
 			Value:    0.9,
-			Interval: data.TimeInterval{From: now.Add(g.checkTimespan * -1), To: now},
+			Interval: timeutil.TimeInterval{From: now.Add(g.checkTimespan * -1), To: now},
 		}
 
 		if err := generateInsight(tx, c, g.creator, content); err != nil {

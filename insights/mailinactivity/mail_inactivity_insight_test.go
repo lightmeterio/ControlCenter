@@ -11,7 +11,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
@@ -20,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
 )
@@ -61,7 +61,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// there was no data available two days prior, not enough data to generate an insight
-			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange * -1),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 			}).Return(dashboard.Pairs{
@@ -72,7 +72,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			// no activity in the past day, no insight is to be generated, as it's caused by not data being available
 			// during such time
-			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
 			}).Return(dashboard.Pairs{
@@ -91,7 +91,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
 
 			// some activity, no insights should be generated
-			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
 			}).Return(dashboard.Pairs{
@@ -103,7 +103,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			// 8 hours later, check and realized there's been no activity for the past 24h
 			{
 				// the required "previous range"
-				d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+				d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8).Add(lookupRange * -1),
 					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8).Add(lookupRange * -1),
 				}).Return(dashboard.Pairs{
@@ -113,7 +113,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 				}, nil)
 
 				// actual check
-				d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+				d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
 					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
 				}).Return(dashboard.Pairs{
@@ -124,7 +124,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			}
 
 			// 8 hours later, there's activity again
-			d.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 16),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 16),
 			}).Return(dashboard.Pairs{
@@ -148,7 +148,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 1)
 
-			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(lookupRange),
 			}})
@@ -161,7 +161,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour*8))
 			So(insights[0].Content(), ShouldResemble, &content{
-				Interval: data.TimeInterval{
+				Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
 					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
 				}})
@@ -176,7 +176,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		n := notification.Notification{
 			ID: 1,
 			Content: content{
-				Interval: data.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
+				Interval: timeutil.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 			},
 		}
 

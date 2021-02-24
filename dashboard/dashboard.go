@@ -8,10 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"strings"
 )
 
@@ -23,11 +23,11 @@ type Pair struct {
 type Pairs []Pair
 
 type Dashboard interface {
-	CountByStatus(context.Context, parser.SmtpStatus, data.TimeInterval) (int, error)
-	TopBusiestDomains(context.Context, data.TimeInterval) (Pairs, error)
-	TopBouncedDomains(context.Context, data.TimeInterval) (Pairs, error)
-	TopDeferredDomains(context.Context, data.TimeInterval) (Pairs, error)
-	DeliveryStatus(context.Context, data.TimeInterval) (Pairs, error)
+	CountByStatus(context.Context, parser.SmtpStatus, timeutil.TimeInterval) (int, error)
+	TopBusiestDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
+	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
+	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
+	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
 }
 
 type sqlDashboard struct {
@@ -169,7 +169,7 @@ from
 
 var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries")
 
-func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
+func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
@@ -177,7 +177,7 @@ func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatu
 	return countByStatus(ctx, conn.Stmts["countByStatus"], status, interval)
 }
 
-func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
@@ -185,7 +185,7 @@ func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval data.TimeI
 	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix())
 }
 
-func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
@@ -194,7 +194,7 @@ func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval data.TimeI
 		interval.From.Unix(), interval.To.Unix())
 }
 
-func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
@@ -203,7 +203,7 @@ func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval data.Time
 		interval.From.Unix(), interval.To.Unix())
 }
 
-func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInterval) (Pairs, error) {
+func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
@@ -211,7 +211,7 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval data.TimeInte
 	return deliveryStatus(ctx, conn.Stmts["deliveryStatus"], interval)
 }
 
-func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval data.TimeInterval) (int, error) {
+func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
 	countValue := 0
 
 	if err := stmt.QueryRowContext(ctx, status, interval.From.Unix(), interval.To.Unix()).
@@ -266,7 +266,7 @@ func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}
 // rowserrcheck is buggy and unable to see that the query errors are being checked
 // when query.Close() is inside a closure
 //nolint:rowserrcheck
-func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval data.TimeInterval) (Pairs, error) {
+func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval timeutil.TimeInterval) (Pairs, error) {
 	r := Pairs{}
 
 	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix())

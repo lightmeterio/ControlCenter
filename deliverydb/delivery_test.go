@@ -8,7 +8,7 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -91,8 +91,8 @@ func buildDefaultResult() tracking.Result {
 	return result
 }
 
-func parseTimeInterval(from, to string) data.TimeInterval {
-	interval, err := data.ParseTimeInterval(from, to, time.UTC)
+func parseTimeInterval(from, to string) timeutil.TimeInterval {
+	interval, err := timeutil.ParseTimeInterval(from, to, time.UTC)
 	if err != nil {
 		panic("pasring interval")
 	}
@@ -103,31 +103,31 @@ var (
 	dummyContext = context.Background()
 )
 
-func countByStatus(dashboard dashboard.Dashboard, status parser.SmtpStatus, interval data.TimeInterval) int {
+func countByStatus(dashboard dashboard.Dashboard, status parser.SmtpStatus, interval timeutil.TimeInterval) int {
 	v, err := dashboard.CountByStatus(dummyContext, status, interval)
 	So(err, ShouldBeNil)
 	return v
 }
 
-func topBusiestDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+func topBusiestDomains(dashboard dashboard.Dashboard, interval timeutil.TimeInterval) dashboard.Pairs {
 	pairs, err := dashboard.TopBusiestDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
-func topBouncedDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+func topBouncedDomains(dashboard dashboard.Dashboard, interval timeutil.TimeInterval) dashboard.Pairs {
 	pairs, err := dashboard.TopBouncedDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
-func topDeferredDomains(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+func topDeferredDomains(dashboard dashboard.Dashboard, interval timeutil.TimeInterval) dashboard.Pairs {
 	pairs, err := dashboard.TopDeferredDomains(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs
 }
 
-func deliveryStatus(dashboard dashboard.Dashboard, interval data.TimeInterval) dashboard.Pairs {
+func deliveryStatus(dashboard dashboard.Dashboard, interval timeutil.TimeInterval) dashboard.Pairs {
 	pairs, err := dashboard.DeliveryStatus(dummyContext, interval)
 	So(err, ShouldBeNil)
 	return pairs

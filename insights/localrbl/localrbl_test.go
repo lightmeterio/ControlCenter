@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
@@ -23,6 +22,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"strings"
 	"testing"
@@ -94,7 +94,7 @@ func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) err
 		}()
 
 		r := withResults(localrbl.Results{
-			Interval: data.TimeInterval{From: c.scanStartTime, To: now},
+			Interval: timeutil.TimeInterval{From: c.scanStartTime, To: now},
 			RBLs:     []localrbl.ContentElement{{RBL: url, Text: "Something Really Bad"}},
 		})
 
@@ -203,7 +203,7 @@ func TestLocalRBL(t *testing.T) {
 
 				So(accessor.Insights, ShouldResemble, []int64{1})
 
-				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 				}})
@@ -294,7 +294,7 @@ func TestLocalRBL(t *testing.T) {
 						clock.Sleep(time.Second * 20)
 						cycle(clock)
 
-						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 							From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 							To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 						}, OrderBy: core.OrderByCreationAsc})
@@ -308,7 +308,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].ContentType(), ShouldEqual, ContentType)
 						So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
 						So(insights[0].Content(), ShouldResemble, &content{
-							ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
+							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 						})
@@ -319,7 +319,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].ContentType(), ShouldEqual, ContentType)
 						So(insights[1].Time(), ShouldEqual, baseTime.Add(time.Second*68))
 						So(insights[1].Content(), ShouldResemble, &content{
-							ScanInterval: data.TimeInterval{From: baseTime.Add(time.Second * 48), To: baseTime.Add(time.Second * 68)},
+							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 48), To: baseTime.Add(time.Second * 68)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 						})
@@ -353,7 +353,7 @@ func TestLocalRBL(t *testing.T) {
 						clock.Sleep(time.Second * 3)
 						cycle(clock)
 
-						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 							From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 							To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 						}, OrderBy: core.OrderByCreationAsc})
@@ -367,7 +367,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].ContentType(), ShouldEqual, ContentType)
 						So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
 						So(insights[0].Content(), ShouldResemble, &content{
-							ScanInterval: data.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
+							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
 						})
@@ -378,7 +378,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].ContentType(), ShouldEqual, ContentType)
 						So(insights[1].Time(), ShouldEqual, baseTime.Add(time.Second*37))
 						So(insights[1].Content(), ShouldResemble, &content{
-							ScanInterval: data.TimeInterval{From: baseTime.Add(time.Second * 24), To: baseTime.Add(time.Second * 37)},
+							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 24), To: baseTime.Add(time.Second * 37)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "2.some.other.checker.de", Text: "Something Really Bad"}},
 						})
@@ -440,7 +440,7 @@ func TestLocalRBL(t *testing.T) {
 
 					So(accessor.Insights, ShouldResemble, []int64{1})
 
-					insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+					insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 					}})
@@ -460,9 +460,9 @@ func TestLocalRBL(t *testing.T) {
 					So(c.ScanInterval.From, ShouldResemble, baseTime)
 					So(c.Address, ShouldResemble, net.ParseIP("11.22.33.44"))
 					So(c.RBLs, ShouldResemble, []localrbl.ContentElement{
-						localrbl.ContentElement{RBL: "rbl1-blocked", Text: "Some Error"},
-						localrbl.ContentElement{RBL: "rbl3-blocked", Text: "Some Error"},
-						localrbl.ContentElement{RBL: "rbl4-blocked", Text: "Some Error"}})
+						{RBL: "rbl1-blocked", Text: "Some Error"},
+						{RBL: "rbl3-blocked", Text: "Some Error"},
+						{RBL: "rbl4-blocked", Text: "Some Error"}})
 				})
 			})
 		})
@@ -474,7 +474,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		n := notification.Notification{
 			ID: 1,
 			Content: content{
-				ScanInterval: data.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
+				ScanInterval: timeutil.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Address:      net.ParseIP(`127.0.0.1`),
 				RBLs: []localrbl.ContentElement{
 					{RBL: "example.com", Text: "Some error message"},

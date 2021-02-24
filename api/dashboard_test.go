@@ -12,7 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -46,7 +46,7 @@ func TestDashboard(t *testing.T) {
 		})
 
 		Convey("Success", func() {
-			interval, err := data.ParseTimeInterval("1999-01-01", "1999-12-31", time.UTC)
+			interval, err := timeutil.ParseTimeInterval("1999-01-01", "1999-12-31", time.UTC)
 			So(err, ShouldBeNil)
 
 			m.EXPECT().CountByStatus(gomock.Any(), parser.SentStatus, interval).Return(4, nil)
@@ -73,7 +73,7 @@ func TestDashboard(t *testing.T) {
 		s := httptest.NewServer(chain.WithEndpoint(deliveryStatusHandler{dashboard: m}))
 
 		Convey("Success", func() {
-			m.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			m.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-02 23:59:59 +0000`),
 			}).Return(dashboard.Pairs{
@@ -101,7 +101,7 @@ func TestDashboard(t *testing.T) {
 		})
 
 		Convey("Internal error", func() {
-			m.EXPECT().DeliveryStatus(gomock.Any(), data.TimeInterval{
+			m.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-02 23:59:59 +0000`),
 			}).Return(dashboard.Pairs{}, errors.New("Some Internal Dashboard Error"))

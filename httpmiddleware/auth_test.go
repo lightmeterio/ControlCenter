@@ -15,7 +15,6 @@ import (
 	"testing"
 )
 
-
 func withAuth(auth *auth.Authenticator, middleware ...Middleware) Chain {
 	middleware = append([]Middleware{RequestWithSession(auth)}, middleware...)
 	return New(middleware...)
@@ -35,7 +34,7 @@ func TestSession(t *testing.T) {
 				return &http.Client{Jar: jar}
 			}
 
-			loginHandler := func(w http.ResponseWriter, r *http.Request)  {
+			loginHandler := func(w http.ResponseWriter, r *http.Request) {
 				session, err := authenticator.Store.New(r, auth.SessionName)
 				if err != nil {
 					t.Log("Error creating new session:", errorutil.Wrap(err))
@@ -105,5 +104,3 @@ func TestSession(t *testing.T) {
 		})
 	})
 }
-
-

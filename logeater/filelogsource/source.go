@@ -5,8 +5,8 @@
 package filelogsource
 
 import (
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"io"
 	"time"
 )

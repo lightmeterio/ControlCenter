@@ -6,8 +6,8 @@ package dirlogsource
 
 import (
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
