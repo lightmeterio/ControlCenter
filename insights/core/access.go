@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"math"
 	"time"
@@ -36,6 +37,14 @@ func (c Category) String() string {
 		log.Panic().Msgf("Invalid category: %d", int(c))
 		return ""
 	}
+}
+
+func (Category) Args() []interface{} {
+	return nil
+}
+
+func (c Category) TplString() string {
+	return c.String()
 }
 
 const (
@@ -97,6 +106,14 @@ func (r Rating) String() string {
 		log.Panic().Msgf("Invalid/Unknown rating value: %d", int(r))
 		return ""
 	}
+}
+
+func (Rating) Args() []interface{} {
+	return nil
+}
+
+func (r Rating) TplString() string {
+	return r.String()
 }
 
 // The rating values are spaced in order to allow newer values to be added between existing ones
@@ -390,6 +407,21 @@ type InsightProperties struct {
 	Rating      Rating    `json:"rating"`
 	ContentType string    `json:"content_type"`
 	Content     Content   `json:"content"`
+}
+
+func (p InsightProperties) Title() notificationCore.ContentComponent {
+	return p.Content.Title()
+}
+
+func (p InsightProperties) Description() notificationCore.ContentComponent {
+	return p.Content.Description()
+}
+
+func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
+	return notificationCore.ContentMetadata{
+		"category": p.Category,
+		"priority": p.Rating,
+	}
 }
 
 type Creator interface {

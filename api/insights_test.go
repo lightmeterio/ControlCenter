@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	mock_insights_fetcher "gitlab.com/lightmeter/controlcenter/insights/core/mock"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/recommendation"
 	"net/http"
 	"net/http/httptest"
@@ -58,15 +59,29 @@ type content struct {
 	ContentType string `json:"content_type"`
 }
 
-func (c content) String() string {
-	return c.V
+func (content) Title() notificationCore.ContentComponent {
+	return fakeComponent{}
 }
 
-func (c content) TplString() string {
-	return c.V
+func (content) Description() notificationCore.ContentComponent {
+	return fakeComponent{}
 }
 
-func (c content) Args() []interface{} {
+func (content) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type fakeComponent struct{}
+
+func (fakeComponent) String() string {
+	return ""
+}
+
+func (fakeComponent) TplString() string {
+	return ""
+}
+
+func (fakeComponent) Args() []interface{} {
 	return nil
 }
 

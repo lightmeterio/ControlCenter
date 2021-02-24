@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -174,16 +175,46 @@ type bounceRateContent struct {
 	Interval data.TimeInterval `json:"interval"`
 }
 
-func (c bounceRateContent) String() string {
-	return translator.Stringfy(c)
+func (c bounceRateContent) Title() notificationCore.ContentComponent {
+	return &title{}
 }
 
-func (c bounceRateContent) TplString() string {
+func (c bounceRateContent) Description() notificationCore.ContentComponent {
+	return &description{c}
+}
+
+func (c bounceRateContent) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type title struct{}
+
+func (t title) String() string {
+	return translator.Stringfy(t)
+}
+
+func (title) TplString() string {
+	return translator.I18n("High Bounce Rate")
+}
+
+func (title) Args() []interface{} {
+	return nil
+}
+
+type description struct {
+	c bounceRateContent
+}
+
+func (d description) String() string {
+	return translator.Stringfy(d)
+}
+
+func (d description) TplString() string {
 	return translator.I18n("%v percent bounce rate between %v and %v")
 }
 
-func (c bounceRateContent) Args() []interface{} {
-	return []interface{}{int(c.Value * 100), c.Interval.From, c.Interval.To}
+func (d description) Args() []interface{} {
+	return []interface{}{int(d.c.Value * 100), d.c.Interval.From, d.c.Interval.To}
 }
 
 func (c bounceRateContent) HelpLink(urlContainer core.URLContainer) string {

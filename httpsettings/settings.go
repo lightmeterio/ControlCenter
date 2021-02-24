@@ -12,6 +12,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/notification/email"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
@@ -21,6 +23,8 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 type Settings struct {
@@ -28,16 +32,21 @@ type Settings struct {
 	reader *meta.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
-	notificationCenter   notification.Center
+	notificationCenter   *notification.Center
 	handlers             map[string]func(http.ResponseWriter, *http.Request) error
 }
 
 func NewSettings(writer *meta.AsyncWriter,
 	reader *meta.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
-	notificationCenter notification.Center,
+	notificationCenter *notification.Center,
 ) *Settings {
-	s := &Settings{writer: writer, reader: reader, initialSetupSettings: initialSetupSettings, notificationCenter: notificationCenter}
+	s := &Settings{
+		writer:               writer,
+		reader:               reader,
+		initialSetupSettings: initialSetupSettings,
+		notificationCenter:   notificationCenter,
+	}
 	s.handlers = map[string]func(http.ResponseWriter, *http.Request) error{
 		"initSetup":    s.InitialSetupHandler,
 		"notification": s.NotificationSettingsHandler,
@@ -108,44 +117,48 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
 	// also supporting optional settings
 	allCurrentSettings := struct {
-		SlackNotificationSettings struct {
-			BearerToken string `json:"bearer_token"`
-			Channel     string `json:"channel"`
-			Enabled     *bool  `json:"enabled"`
-			Language    string `json:"language"`
-		} `json:"slack_notifications"`
-		GeneralSettings struct {
-			PostfixPublicIP net.IP `json:"postfix_public_ip"`
-			AppLanguage     string `json:"app_language"`
-		} `json:"general"`
+		SlackNotification slack.Settings          `json:"slack_notifications"`
+		EmailNotification email.Settings          `json:"email_notifications"`
+		Notification      notification.Settings   `json:"notifications"`
+		General           globalsettings.Settings `json:"general"`
 	}{}
 
 	ctx := r.Context()
 
-	slackSettings, err := settings.GetSlackNotificationsSettings(ctx, h.reader)
+	slackSettings, err := slack.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
 
+	emailSettings, err := email.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	notificationSettings, err := notification.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	globalSettings, err := globalsettings.GetSettings(ctx, h.reader)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if slackSettings != nil {
-		allCurrentSettings.SlackNotificationSettings.BearerToken = slackSettings.BearerToken
-		allCurrentSettings.SlackNotificationSettings.Channel = slackSettings.Channel
-		allCurrentSettings.SlackNotificationSettings.Enabled = &slackSettings.Enabled
-		allCurrentSettings.SlackNotificationSettings.Language = slackSettings.Language
+		allCurrentSettings.SlackNotification = *slackSettings
 	}
 
-	var globalSettings globalsettings.Settings
-
-	err = h.reader.RetrieveJson(ctx, globalsettings.SettingsKey, &globalSettings)
-
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	if notificationSettings != nil {
+		allCurrentSettings.Notification = *notificationSettings
 	}
 
-	if err == nil {
-		allCurrentSettings.GeneralSettings.PostfixPublicIP = globalSettings.LocalIP
-		allCurrentSettings.GeneralSettings.AppLanguage = globalSettings.APPLanguage
+	if emailSettings != nil {
+		allCurrentSettings.EmailNotification = *emailSettings
+	}
+
+	if globalSettings != nil {
+		allCurrentSettings.General = *globalSettings
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
@@ -161,7 +174,6 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 
 	if appLanguage == "" && localIPRaw == "" {
 		err := errorutil.Wrap(errors.New("values are missing"))
-
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
@@ -175,36 +187,36 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 
 	if appLanguage != "" && !po.IsLanguageSupported(appLanguage) {
 		err := errorutil.Wrap(fmt.Errorf("Error app language option is bad %v", appLanguage))
-
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	currentSettings := globalsettings.Settings{}
+	publicURL := r.Form.Get("public_url")
 
-	err := h.reader.RetrieveJson(r.Context(), globalsettings.SettingsKey, &currentSettings)
+	currentSettings, err := func() (globalsettings.Settings, error) {
+		s, err := globalsettings.GetSettings(r.Context(), h.reader)
+
+		if err != nil {
+			return globalsettings.Settings{}, errorutil.Wrap(err)
+		}
+
+		return *s, nil
+	}()
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 
-	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage}
+	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage, PublicURL: publicURL}
 
 	if err := mergo.Merge(&s, currentSettings); err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error handling settings"))
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err, "Error handling settings"))
 	}
 
-	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
-
-	select {
-	case err := <-result.Done():
-		if err != nil {
-			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
-		}
-
-		return nil
-	case <-r.Context().Done():
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("Failed to store global settings"))
+	if err := globalsettings.SetSettings(r.Context(), h.writer, s); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
+
+	return nil
 }
 
 func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) error {
@@ -295,7 +307,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		s = globalsettings.Settings{APPLanguage: appLanguage, LocalIP: localIP}
 	}
 
-	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
+	result := h.writer.StoreJson(globalsettings.SettingKey, &s)
 
 	select {
 	case err := <-result.Done():
@@ -309,63 +321,170 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 	}
 }
 
+func buildEmailSettingsFromForm(form url.Values) (email.Settings, bool, error) {
+	serverName := form.Get("email_notification_server_name")
+	username := form.Get("email_notification_username")
+	password := form.Get("email_notification_password")
+	sender := form.Get("email_notification_sender")
+	recipients := form.Get("email_notification_recipients")
+
+	securityStr := form.Get("email_notification_security_type")
+	authStr := form.Get("email_notification_auth_method")
+	portStr := form.Get("email_notification_port")
+
+	argsAreEmpty := func(s ...string) bool {
+		for _, s := range s {
+			if len(s) != 0 {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	if argsAreEmpty(serverName, username, password, sender, recipients, securityStr, authStr, portStr) {
+		return email.Settings{}, false, nil
+	}
+
+	security, err := email.ParseSecurityType(securityStr)
+	if err != nil {
+		return email.Settings{}, false, errorutil.Wrap(err)
+	}
+
+	auth, err := email.ParseAuthMethod(authStr)
+	if err != nil {
+		return email.Settings{}, false, errorutil.Wrap(err)
+	}
+
+	if (portStr == "0" || portStr == "") && auth == email.AuthMethodNone &&
+		security == email.SecurityTypeNone &&
+		argsAreEmpty(serverName, username, password, sender, recipients) {
+		return email.Settings{}, false, nil
+	}
+
+	port, err := strconv.ParseInt(portStr, 10, 16)
+	if err != nil {
+		return email.Settings{}, false, errorutil.Wrap(err)
+	}
+
+	enabled, err := strconv.ParseBool(form.Get("email_notification_enabled"))
+	if err != nil {
+		return email.Settings{}, false, errorutil.Wrap(err)
+	}
+
+	return email.Settings{
+		Enabled:      enabled,
+		Sender:       sender,
+		Recipients:   recipients,
+		ServerName:   serverName,
+		ServerPort:   int(port),
+		SecurityType: security,
+		AuthMethod:   auth,
+		Username:     username,
+		Password:     password,
+	}, true, nil
+}
+
+func buildSlackSettingsFromForm(form url.Values) (slack.Settings, bool, error) {
+	if len(form.Get("messenger_channel")) == 0 && len(form.Get("messenger_token")) == 0 {
+		return slack.Settings{}, false, nil
+	}
+
+	messengerToken := form.Get("messenger_token")
+	if messengerToken == "" {
+		return slack.Settings{}, false, errorutil.Wrap(fmt.Errorf("Error messenger token option is bad %v", messengerToken))
+	}
+
+	messengerChannel := form.Get("messenger_channel")
+	if messengerChannel == "" {
+		return slack.Settings{}, false, errorutil.Wrap(fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
+	}
+
+	messengerEnabled, err := strconv.ParseBool(form.Get("messenger_enabled"))
+	if err != nil {
+		return slack.Settings{}, false, errorutil.Wrap(err)
+	}
+
+	return slack.Settings{
+		BearerToken: messengerToken,
+		Channel:     messengerChannel,
+		Enabled:     messengerEnabled,
+	}, true, nil
+}
+
+func buildNotificationSettingsFromForm(form url.Values) (notification.Settings, bool, error) {
+	language := form.Get("notification_language")
+
+	if language == "" {
+		return notification.Settings{}, false, nil
+	}
+
+	// TODO: move this check to the i18n package!
+	if !po.IsLanguageSupported(language) {
+		return notification.Settings{}, false, errorutil.Wrap(fmt.Errorf("Invalid language: %v", language))
+	}
+
+	return notification.Settings{
+		Language: language,
+	}, true, nil
+}
+
 func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
-	messengerKind := r.Form.Get("messenger_kind")
-	if messengerKind != "slack" {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger kind option is bad %v", messengerKind))
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	slackSettings, shouldSetSlack, err := buildSlackSettingsFromForm(r.Form)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	messengerToken := r.Form.Get("messenger_token")
-	if messengerToken == "" {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger token option is bad %v", messengerToken))
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	mailSettings, shouldSetEmail, err := buildEmailSettingsFromForm(r.Form)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	messengerChannel := r.Form.Get("messenger_channel")
-	if messengerChannel == "" {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger channel option is bad %v", messengerChannel))
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	notificationSettings, shouldSetNotification, err := buildNotificationSettingsFromForm(r.Form)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	messengerEnabled := r.Form.Get("messenger_enabled")
-	if messengerEnabled != "false" && messengerEnabled != "true" {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger enabled option is bad %v", messengerEnabled))
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	if shouldSetSlack {
+		slackNotifier, err := h.notificationCenter.Notifier(slack.SettingKey)
+		if err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		if err := slackNotifier.ValidateSettings(slackSettings); err != nil {
+			err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
+			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		}
+
+		if err := slack.SetSettings(r.Context(), h.writer, slackSettings); err != nil {
+			err := errorutil.Wrap(err, "Error notification setting options")
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		}
 	}
 
-	messengerLanguage := r.Form.Get("messenger_language")
-	if messengerLanguage == "" {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is missing %v", messengerLanguage))
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	if shouldSetEmail {
+		emailNotifier, err := h.notificationCenter.Notifier(email.SettingKey)
+		if err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		if err := emailNotifier.ValidateSettings(mailSettings); err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+		}
+
+		if err := email.SetSettings(r.Context(), h.writer, mailSettings); err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
 	}
 
-	if !po.IsLanguageSupported(messengerLanguage) {
-		err := errorutil.Wrap(fmt.Errorf("Error messenger language option is bad %v", messengerLanguage))
-
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
-	}
-
-	slackNotificationsSettings := settings.SlackNotificationsSettings{
-		Kind:        messengerKind,
-		BearerToken: messengerToken,
-		Channel:     messengerChannel,
-		Enabled:     messengerEnabled == "true",
-		Language:    messengerLanguage,
-	}
-
-	if err := h.notificationCenter.AddSlackNotifier(slackNotificationsSettings); err != nil {
-		err := errorutil.Wrap(err, "Error register slack notifier "+err.Error())
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
-	}
-
-	if err := settings.SetSlackNotificationsSettings(r.Context(), h.writer, slackNotificationsSettings); err != nil {
-		err := errorutil.Wrap(err, "Error notification setting options")
-		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+	if shouldSetNotification {
+		if err := notification.SetSettings(r.Context(), h.writer, notificationSettings); err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
 	}
 
 	return nil

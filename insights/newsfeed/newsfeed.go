@@ -13,6 +13,7 @@ import (
 	"github.com/mmcdole/gofeed/rss"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"sort"
 	"time"
@@ -117,24 +118,52 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content Con
 	return nil
 }
 
+type title string
+
+func (t title) String() string {
+	return string(t)
+}
+
+func (t title) TplString() string {
+	return "%s"
+}
+
+func (t title) Args() []interface{} {
+	return []interface{}{string(t)}
+}
+
+type description string
+
+func (d description) String() string {
+	return string(d)
+}
+
+func (d description) TplString() string {
+	return "%s"
+}
+
+func (d description) Args() []interface{} {
+	return []interface{}{string(d)}
+}
+
 type Content struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Link        string    `json:"link"`
-	Published   time.Time `json:"date_published"`
-	GUID        string    `json:"guid"`
+	TitleValue       title       `json:"title"`
+	DescriptionValue description `json:"description"`
+	Link             string      `json:"link"`
+	Published        time.Time   `json:"date_published"`
+	GUID             string      `json:"guid"`
 }
 
-func (c Content) String() string {
-	return c.Description
+func (c Content) Title() notificationCore.ContentComponent {
+	return c.TitleValue
 }
 
-func (c Content) Args() []interface{} {
+func (c Content) Description() notificationCore.ContentComponent {
+	return c.DescriptionValue
+}
+
+func (c Content) Metadata() notificationCore.ContentMetadata {
 	return nil
-}
-
-func (c Content) TplString() string {
-	return c.Description
 }
 
 const kind = "newsfeed_last_exec"
@@ -195,11 +224,11 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		}
 
 		if err := generateInsight(tx, c, d.creator, Content{
-			Title:       item.Title,
-			Description: item.Description,
-			Link:        item.Link,
-			Published:   *item.PublishedParsed,
-			GUID:        item.GUID,
+			TitleValue:       title(item.Title),
+			DescriptionValue: description(item.Description),
+			Link:             item.Link,
+			Published:        *item.PublishedParsed,
+			GUID:             item.GUID,
 		}); err != nil {
 			return errorutil.Wrap(err)
 		}

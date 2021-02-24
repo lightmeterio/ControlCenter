@@ -14,61 +14,192 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Settings</translate>
       </h2>
       <div class="form-container">
-        <h6 class="form-heading">
+        <h5 class="form-heading">
           <!-- prettier-ignore -->
           <translate>Notifications</translate>
-        </h6>
+        </h5>
+
         <b-form
           @submit="onNotificationSettingsSubmit"
           id="notifications-form-container"
         >
-          <b-form-group :label="SlackNotifications" class="slack-disabler">
+          <b-form-group :label="NotificationLanguage" class="notification-language">
+            <b-form-select
+              class="pt-2"
+              required
+              v-model="settings.notifications.language"
+              :options="languages"
+              stacked
+            ></b-form-select>
+          </b-form-group>
+
+          <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
+            <b-form-radio-group
+              class="pt-2"
+              required
+              v-model="settings.email_notifications.enabled"
+              :options="EmailNotificationsEnabledSwitchOptions"
+            ></b-form-radio-group>
+
+            <b-form-group
+              class="mail-server-name"
+              :label="EmailServerName"
+              label-for="mailServerName"
+            >
+              <b-form-input
+                name="mail_server_name"
+                id="mailServerName"
+                v-model="settings.email_notifications.server_name"
+                :placeholder="EmailServerNameInputPlaceholder"
+                maxlength="255"
+                :required="EmailFieldRequired"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-port"
+              :label="EmailServerPort"
+              label-for="mailServerPort"
+            >
+              <b-form-input
+                type="number"
+                name="mail_server_port"
+                id="mailServerPort"
+                v-model="settings.email_notifications.server_port"
+                maxlength="255"
+                :required="EmailPortFieldRequired"
+                min="0"
+                max="65536"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-method"
+              :label="EmailServerSecurityType"
+              label-for="mailServerSecurityType"
+            >
+              <b-form-select
+                name="mail_server_security_type"
+                id="mailServerSecurityType"
+                v-model="settings.email_notifications.security_type"
+                :options="EmailNotificationsSecurityTypeOptions"
+              ></b-form-select>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-method"
+              :label="EmailServerAuthMethod"
+              label-for="mailServerAuthMethod"
+            >
+              <b-form-select
+                name="mail_server_auth_method"
+                id="mailServerAuthMethod"
+                v-model="settings.email_notifications.auth_method"
+                :options="EmailNotificationsAuthOptions"
+              ></b-form-select>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-username"
+              :label="EmailServerUsername"
+              label-for="mailServerUsername"
+            >
+              <b-form-input
+                name="mail_server_username"
+                id="mailServerUsername"
+                v-model="settings.email_notifications.username"
+                :placeholder="EmailServerUsernameInputPlaceholder"
+                maxlength="255"
+                :required="EmailAuthenticationIsRequired"
+                :disabled="!EmailAuthenticationIsRequired"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-password"
+              :label="EmailServerPassword"
+              label-for="mailServerPassword"
+            >
+              <b-form-input
+                name="mail_server_password"
+                id="mailServerPassword"
+                v-model="settings.email_notifications.password"
+                :placeholder="EmailServerPasswordInputPlaceholder"
+                maxlength="255"
+                :required="EmailAuthenticationIsRequired"
+                type="password"
+                :disabled="!EmailAuthenticationIsRequired"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-sender"
+              :label="EmailServerSender"
+              label-for="mailServerSender"
+            >
+              <b-form-input
+                name="mail_server_sender"
+                id="mailServerSender"
+                v-model="settings.email_notifications.sender"
+                :placeholder="EmailServerSenderInputPlaceholder"
+                maxlength="255"
+                :required="EmailFieldRequired"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+              class="mail-server-auth-recipients"
+              :label="EmailServerRecipients"
+              label-for="mailServerRecipients"
+            >
+              <b-form-input
+                name="mail_server_recipients"
+                id="mailServerRecipients"
+                v-model="settings.email_notifications.recipients"
+                :placeholder="EmailServerRecipientsInputPlaceholder"
+                maxlength="255"
+                :required="EmailFieldRequired"
+              ></b-form-input>
+            </b-form-group>
+          </b-form-group>
+
+          <b-form-group :label="SlackNotificationsEnabled" class="slack-disabler">
             <b-form-radio-group
               class="pt-2"
               required
               v-model="settings.slack_notifications.enabled"
-              :options="SlackNotificationsSwitchOptions"
+              :options="SlackNotificationsEnabledSwitchOptions"
             ></b-form-radio-group>
-          </b-form-group>
 
-          <b-form-group label="Slack message language" class="slack-language">
-            <b-form-radio-group
-              class="pt-2"
-              required
-              v-model="settings.slack_notifications.language"
-              :options="languages"
-              stacked
-            ></b-form-radio-group>
-          </b-form-group>
+            <b-form-group
+              class="slack-channel"
+              :label="SlackChannel"
+              label-for="slackChannel"
+            >
+              <b-form-input
+                name="messenger_channel"
+                id="slackChannel"
+                v-model="settings.slack_notifications.channel"
+                :placeholder="SlackChannelInputPlaceholder"
+                maxlength="255"
+                :required="SlackFieldRequired"
+              ></b-form-input>
+            </b-form-group>
 
-          <b-form-group
-            class="slack-channel"
-            :label="SlackChannel"
-            label-for="slackChannel"
-          >
-            <b-form-input
-              name="messenger_channel"
-              id="slackChannel"
-              v-model="settings.slack_notifications.channel"
-              required
-              :placeholder="SlackChannelInputPlaceholder"
-              maxlength="255"
-            ></b-form-input>
-          </b-form-group>
-
-          <b-form-group
-            class="slack-token"
-            :label="SlackAPItoken"
-            label-for="slackApiToken"
-          >
-            <b-form-input
-              name="messenger_token"
-              id="slackApiToken"
-              v-model="settings.slack_notifications.bearer_token"
-              required
-              :placeholder="SlackAPItokenPlacefolder"
-              maxlength="255"
-            ></b-form-input>
+            <b-form-group
+              class="slack-token"
+              :label="SlackAPItoken"
+              label-for="slackApiToken"
+            >
+              <b-form-input
+                name="messenger_token"
+                id="slackApiToken"
+                v-model="settings.slack_notifications.bearer_token"
+                :placeholder="SlackAPItokenPlacefolder"
+                maxlength="255"
+                :required="SlackFieldRequired"
+              ></b-form-input>
+            </b-form-group>
           </b-form-group>
 
           <div class="button-group">
@@ -107,6 +238,22 @@ SPDX-License-Identifier: AGPL-3.0-only
               maxlength="255"
             ></b-form-input>
           </b-form-group>
+
+          <b-form-group
+            class="publicURL"
+            :label="PublicURL"
+            label-for="publicURL"
+          >
+            <b-form-input
+              name="publicURL"
+              id="publicURL"
+              v-model="settings.general.public_url"
+              required
+              :placeholder="PublicURLPlaceholder"
+              maxlength="255"
+            ></b-form-input>
+          </b-form-group>
+
 
           <div class="button-group">
             <b-button variant="primary" class="general-save" type="submit">
@@ -147,42 +294,134 @@ export default {
         slack_notifications: {
           bearer_token: "",
           channel: "",
-          enabled: null,
-          language: "",
-          kind: "slack"
+          enabled: false,
+        },
+        email_notifications: {
+          server_name: "",
+          server_port: 0,
+          sender: "",
+          recipients: "",
+          security_type: "none",
+          auth_method: "none",
+          username: "",
+          password: "",
+          enabled: false,
+        },
+        notifications: {
+          // TODO: move this to a global state
+          language: "en",
         },
         general: {
           postfix_public_ip: "",
-          app_language: ""
+          app_language: "",
+          public_url: ""
         }
       },
       languages: []
     };
   },
   computed: {
+    NotificationLanguage: function() {
+      return this.$gettext("Language");
+    },
+    EmailNotificationsEnabled: function() {
+      return this.$gettext("Email Notifications");
+    },
+    EmailServerName: function() {
+      return this.$gettext("Server Name");
+    },
+    EmailServerNameInputPlaceholder: function() {
+      return this.$gettext("Name or IP address");
+    },
+    EmailServerPort: function() {
+      return this.$gettext("Port");
+    },
+    EmailServerSecurityType: function() {
+      return this.$gettext("Connection SecurityType");
+    },
+    EmailServerAuthMethod: function() {
+      return this.$gettext("Authentication Method");
+    },
+    EmailServerUsername: function() {
+      return this.$gettext("Username");
+    },
+    EmailServerUsernameInputPlaceholder: function() {
+      return this.$gettext("Username");
+    },
+    EmailServerPassword: function() {
+      return this.$gettext("Password");
+    },
+    EmailServerPasswordInputPlaceholder: function() {
+      return this.$gettext("Password");
+    },
+    EmailServerSender: function() {
+      return this.$gettext("Sender");
+    },
+    EmailServerSenderInputPlaceholder: function() {
+      return this.$gettext("Used in the From: header");
+    },
+    EmailServerRecipients: function() {
+      return this.$gettext("Recipients");
+    },
+    EmailServerRecipientsInputPlaceholder: function() {
+      return this.$gettext("Used in the To: header");
+    },
+    EmailNotificationsEnabledSwitchOptions: function() {
+      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
+    },
+    EmailNotificationsSecurityTypeOptions: function() {
+      return [
+        {text: this.$gettext("None"), value: "none"}, 
+        {text: "STARTTLS", value: "STARTTLS", defaultPort: 587}, 
+        {text: "TLS", value: "TLS", defaultPort: 465}
+      ];
+    },
+    EmailNotificationsAuthOptions: function() {
+      return [{text: this.$gettext("No Authentication"), value: "none"}, {text: this.$gettext("Password"), value: "password"}];
+    },
+    EmailFieldRequired: function() {
+      return this.settings.email_notifications.enabled
+        || this.settings.email_notifications.auth_method != "none"
+        || this.settings.email_notifications.server_port != "0";
+    },
+    EmailPortFieldRequired: function() {
+      return this.settings.email_notifications.enabled || this.settings.email_notifications.auth_method != "none";
+    },
+    EmailAuthenticationIsRequired: function() {
+      return this.settings.email_notifications.auth_method != "none";
+    },
     SlackChannel: function() {
       return this.$gettext("Slack channel");
     },
     SlackChannelInputPlaceholder: function() {
-      return this.$gettext("Please enter slack channel name");
+      return this.$gettext("Please enter Slack channel name");
     },
-    SlackNotifications: function() {
-      return this.$gettext("Slack notifications");
+    SlackNotificationsEnabled: function() {
+      return this.$gettext("Slack Notifications");
     },
-    SlackNotificationsSwitchOptions: function() {
-      return [this.$gettext("Yes"), this.$gettext("No")];
+    SlackNotificationsEnabledSwitchOptions: function() {
+      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
     },
     SlackAPItoken: function() {
       return this.$gettext("Slack API token");
     },
     SlackAPItokenPlacefolder: function() {
-      return this.$gettext("Please enter api token");
+      return this.$gettext("Please enter API token");
+    },
+    SlackFieldRequired: function() {
+      return this.settings.slack_notifications.enabled;
     },
     PostfixPublicIP: function() {
       return this.$gettext("Postfix public IP");
     },
+    PublicURL: function() {
+      return this.$gettext("Public URL");
+    },
     EnterIpAddress: function() {
-      return this.$gettext("Enter ip address");
+      return this.$gettext("Enter IP address");
+    },
+    PublicURLPlaceholder: function() {
+      return this.$gettext("Enter Public URL");
     }
   },
   methods: {
@@ -192,7 +431,8 @@ export default {
 
       const data = {
         postfixPublicIP: vue.settings.general.postfix_public_ip,
-        app_language: this.$language.current
+        app_language: this.$language.current,
+        public_url: vue.settings.general.public_url
       };
 
       submitGeneralForm(data, true);
@@ -201,28 +441,24 @@ export default {
       event.preventDefault();
 
       const data = {
-        messenger_enabled: this.MapEnabled(
-          this.settings.slack_notifications.enabled
-        ),
+        messenger_enabled: this.settings.slack_notifications.enabled,
         messenger_token: this.settings.slack_notifications.bearer_token,
-        messenger_kind: "slack",
         messenger_channel: this.settings.slack_notifications.channel,
-        messenger_language: this.settings.slack_notifications.language
+
+        notification_language: this.settings.notifications.language,
+
+        email_notification_server_name: this.settings.email_notifications.server_name,
+        email_notification_port: this.settings.email_notifications.server_port,
+        email_notification_username: this.settings.email_notifications.username,
+        email_notification_password: this.settings.email_notifications.password,
+        email_notification_sender: this.settings.email_notifications.sender,
+        email_notification_recipients: this.settings.email_notifications.recipients,
+        email_notification_security_type: this.settings.email_notifications.security_type,
+        email_notification_auth_method: this.settings.email_notifications.auth_method,
+        email_notification_enabled: this.settings.email_notifications.enabled,
       };
 
       submitNotificationsSettingsForm(data);
-    },
-    MapEnabled(value) {
-      if (false === value) {
-        return "No";
-      } else if (true === value) {
-        return "Yes";
-      } else if ("No" === value) {
-        return false;
-      } else if ("Yes" === value) {
-        return true;
-      }
-      return "";
     }
   },
   mounted() {
@@ -237,9 +473,9 @@ export default {
     });
     getSettings().then(function(response) {
       vue.settings = response.data;
-      vue.settings.slack_notifications.enabled = vue.MapEnabled(
-        vue.settings.slack_notifications.enabled
-      );
+      if (vue.settings.notifications.language === "") {
+        vue.settings.notifications.language = "en";
+      }
     });
   },
   destroyed() {

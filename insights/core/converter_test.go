@@ -8,6 +8,7 @@ package core_test
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"sync"
 	"testing"
 )
@@ -16,11 +17,31 @@ type fakeContent struct {
 	B string `json:"b"`
 }
 
-func (c fakeContent) String() string { return ""}
+func (c fakeContent) Title() notificationCore.ContentComponent {
+	return fakeComponent{}
+}
 
-func (c fakeContent) TplString() string { return "" }
+func (c fakeContent) Description() notificationCore.ContentComponent {
+	return fakeComponent{}
+}
 
-func (c fakeContent) Args() []interface{} { return []interface{}{} }
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type fakeComponent struct{}
+
+func (c fakeComponent) String() string {
+	return ""
+}
+
+func (c fakeComponent) TplString() string {
+	return ""
+}
+
+func (c fakeComponent) Args() []interface{} {
+	return nil
+}
 
 func TestDefaultContentTypeDecoder(t *testing.T) {
 	Convey("DefaultContentTypeDecoder", t, func(c C) {

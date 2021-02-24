@@ -13,25 +13,17 @@ import (
 )
 
 const (
-	SettingsKey = "global"
+	SettingKey = "global"
 )
 
 type Settings struct {
-	LocalIP     net.IP `json:"local_ip"`
+	LocalIP     net.IP `json:"postfix_public_ip"`
 	APPLanguage string `json:"app_language"`
-}
-
-type AppLanguageGetter interface {
-	AppLanguage(ctx context.Context) string
+	PublicURL   string `json:"public_url"`
 }
 
 type IPAddressGetter interface {
 	IPAddress(context.Context) net.IP
-}
-
-type Getter interface {
-	IPAddressGetter
-	AppLanguageGetter
 }
 
 type MetaReaderGetter struct {
@@ -43,8 +35,7 @@ func New(m *meta.Reader) *MetaReaderGetter {
 }
 
 func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
-	var settings Settings
-	err := r.meta.RetrieveJson(ctx, SettingsKey, &settings)
+	settings, err := GetSettings(ctx, r.meta)
 
 	if err != nil {
 		if !errors.Is(err, meta.ErrNoSuchKey) {
@@ -57,17 +48,22 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 	return settings.LocalIP
 }
 
-func (r *MetaReaderGetter) AppLanguage(ctx context.Context) string {
-	var settings Settings
-	err := r.meta.RetrieveJson(ctx, SettingsKey, &settings)
-
-	if err != nil {
-		if !errors.Is(err, meta.ErrNoSuchKey) {
-			errorutil.LogErrorf(errorutil.Wrap(err), "obtaining APP language from global settings")
-		}
-
-		return ""
+func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
+		return errorutil.Wrap(err)
 	}
 
-	return settings.APPLanguage
+	return nil
+}
+
+func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+	var settings Settings
+
+	err := reader.RetrieveJson(ctx, SettingKey, &settings)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &settings, nil
 }

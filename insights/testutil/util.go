@@ -16,29 +16,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"sync"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
 )
 
-type FakeClock struct {
-	// Locking used just to prevent the race detector of triggering errors during tests
-	sync.Mutex
-	time.Time
-}
-
-func (t *FakeClock) Now() time.Time {
-	t.Lock()
-	defer t.Unlock()
-
-	return t.Time
-}
-
-func (t *FakeClock) Sleep(d time.Duration) {
-	t.Lock()
-	defer t.Unlock()
-	t.Time = t.Time.Add(d)
-}
+type FakeClock = timeutil.FakeClock
 
 type FakeAccessor struct {
 	*core.DBCreator

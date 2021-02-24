@@ -10,13 +10,16 @@ import (
 	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/notification"
-	"gitlab.com/lightmeter/controlcenter/settings"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message/catalog"
 	"sync"
 	"testing"
 	"time"
@@ -31,31 +34,46 @@ func init() {
 }
 
 type content struct {
-	V string `json:"v"`
+	T string `json:"title"`
+	D string `json:"description"`
 }
 
-func (c content) String() string {
-	return c.V
+func (c content) Title() notificationCore.ContentComponent {
+	return fakeContentComponent(c.T)
 }
 
-func (c content) TplString() string {
-	return c.V
+func (c content) Description() notificationCore.ContentComponent {
+	return fakeContentComponent(c.D)
 }
 
-func (c content) Args() []interface{} {
+func (c content) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
-type fakeNotificationCenter struct {
+type fakeContentComponent string
+
+func (c fakeContentComponent) String() string {
+	return translator.Stringfy(c)
+}
+
+func (c fakeContentComponent) TplString() string {
+	return "%s"
+}
+
+func (c fakeContentComponent) Args() []interface{} {
+	return []interface{}{c}
+}
+
+type fakeNotifier struct {
 	notifications []notification.Notification
 }
 
-func (f *fakeNotificationCenter) Notify(n notification.Notification) error {
-	f.notifications = append(f.notifications, n)
+func (*fakeNotifier) ValidateSettings(notificationCore.Settings) error {
 	return nil
 }
 
-func (f *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
+func (f *fakeNotifier) Notify(n notification.Notification, _ translator.Translator) error {
+	f.notifications = append(f.notifications, n)
 	return nil
 }
 
@@ -98,7 +116,7 @@ func (d *fakeDetector) GenerateSampleInsight(tx *sql.Tx, clock core.Clock) error
 		Time:        clock.Now(),
 		Category:    core.IntelCategory,
 		ContentType: "fake_insight_type",
-		Content:     &content{V: "hi"},
+		Content:     &content{T: "title", D: "description"},
 		Rating:      core.BadRating,
 	})
 }
@@ -138,9 +156,13 @@ func TestEngine(t *testing.T) {
 		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
-		nc := &fakeNotificationCenter{}
+		notifier := &fakeNotifier{}
 
-		detector := &fakeDetector{t:t}
+		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), DefaultNotificationPolicy{}, func() (language.Tag, error) {
+			return language.English, nil
+		}, map[string]notification.Notifier{"fake": notifier})
+
+		detector := &fakeDetector{t: t}
 
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn) error { return nil }
 
@@ -185,12 +207,12 @@ func TestEngine(t *testing.T) {
 
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.LocalCategory, Content: content{"42"}, Rating: core.BadRating})
+			genInsight(fakeValue{Category: core.LocalCategory, Content: content{T: "42"}, Rating: core.BadRating})
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.IntelCategory, Content: content{"35"}, Rating: core.BadRating})
+			genInsight(fakeValue{Category: core.IntelCategory, Content: content{T: "35"}, Rating: core.OkRating})
 			nopStep()
-			genInsight(fakeValue{Category: core.ComparativeCategory, Content: content{"13"}, Rating: core.BadRating})
+			genInsight(fakeValue{Category: core.ComparativeCategory, Content: content{T: "13"}, Rating: core.BadRating})
 
 			// stop main loop
 			close(e.txActions)
@@ -199,11 +221,22 @@ func TestEngine(t *testing.T) {
 
 			So(ok, ShouldBeTrue)
 
-			So(nc.notifications, ShouldResemble, []notification.Notification{
-				{ID: 1, Content: content{"42"}},
-				{ID: 2, Content: content{"35"}},
-				{ID: 3, Content: content{"13"}},
-			})
+			// Notify only bad-rating insights
+			So(len(notifier.notifications), ShouldEqual, 2)
+
+			{
+				n, ok := notifier.notifications[0].Content.(core.InsightProperties)
+				So(ok, ShouldBeTrue)
+				So(notifier.notifications[0].ID, ShouldEqual, 1)
+				So(n.Content, ShouldResemble, content{T: "42"})
+			}
+
+			{
+				n, ok := notifier.notifications[1].Content.(core.InsightProperties)
+				So(ok, ShouldBeTrue)
+				So(notifier.notifications[1].ID, ShouldEqual, 3)
+				So(n.Content, ShouldResemble, content{T: "13"})
+			}
 
 			fetcher := e.Fetcher()
 
@@ -220,19 +253,19 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 3)
 
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[0].Content().(*content).V, ShouldEqual, "13")
+				So(insights[0].Content().(*content).T, ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).V, ShouldEqual, "35")
+				So(insights[1].Content().(*content).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Rating(), ShouldEqual, core.BadRating)
+				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
-				So(insights[2].Content().(*content).V, ShouldEqual, "42")
+				So(insights[2].Content().(*content).T, ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
@@ -252,15 +285,15 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 2)
 
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[0].Content().(*content).V, ShouldEqual, "13")
+				So(insights[0].Content().(*content).T, ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).V, ShouldEqual, "35")
+				So(insights[1].Content().(*content).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Rating(), ShouldEqual, core.BadRating)
+				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 			})
 
@@ -278,19 +311,19 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 3)
 
 				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
-				So(insights[0].Content().(*content).V, ShouldEqual, "42")
+				So(insights[0].Content().(*content).T, ShouldEqual, "42")
 				So(insights[0].ID(), ShouldEqual, 1)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).V, ShouldEqual, "35")
+				So(insights[1].Content().(*content).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
-				So(insights[1].Rating(), ShouldEqual, core.BadRating)
+				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[2].Content().(*content).V, ShouldEqual, "13")
+				So(insights[2].Content().(*content).T, ShouldEqual, "13")
 				So(insights[2].ID(), ShouldEqual, 3)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
@@ -312,9 +345,9 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 1)
 
 				So(insights[0].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[0].Content().(*content).V, ShouldEqual, "35")
+				So(insights[0].Content().(*content).T, ShouldEqual, "35")
 				So(insights[0].ID(), ShouldEqual, 2)
-				So(insights[0].Rating(), ShouldEqual, core.BadRating)
+				So(insights[0].Rating(), ShouldEqual, core.OkRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 			})
 		})
@@ -358,7 +391,7 @@ func TestEngine(t *testing.T) {
 			}()
 
 			// Generate one insight, on the first cycle
-			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: content{"content"}, Rating: core.BadRating})
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: content{D: "content"}, Rating: core.BadRating})
 
 			done, cancel := e.Run()
 
@@ -367,9 +400,11 @@ func TestEngine(t *testing.T) {
 			cancel()
 			done()
 
-			So(nc.notifications, ShouldResemble, []notification.Notification{
-				{ID: 1, Content: content{"content"}},
-			})
+			So(len(notifier.notifications), ShouldEqual, 1)
+
+			n, ok := notifier.notifications[0].Content.(core.InsightProperties)
+			So(ok, ShouldBeTrue)
+			So(n.Content, ShouldResemble, content{D: "content"})
 		})
 	})
 }

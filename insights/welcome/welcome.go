@@ -8,6 +8,7 @@ package welcome
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -46,18 +47,32 @@ func tryToGenerateWelcomeInsight(d *detector, tx *sql.Tx, kind string, propertie
 	return nil
 }
 
-type content struct{}
+type emptyComponent struct{}
 
-func (c content) String() string {
+func (emptyComponent) String() string {
 	return ""
 }
 
-func (c content) Args() []interface{} {
+func (emptyComponent) TplString() string {
+	return ""
+}
+
+func (emptyComponent) Args() []interface{} {
 	return nil
 }
 
-func (c content) TplString() string {
-	return ""
+type content struct{}
+
+func (content) Title() notificationCore.ContentComponent {
+	return &emptyComponent{}
+}
+
+func (content) Description() notificationCore.ContentComponent {
+	return &emptyComponent{}
+}
+
+func (content) Metadata() notificationCore.ContentMetadata {
+	return nil
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
