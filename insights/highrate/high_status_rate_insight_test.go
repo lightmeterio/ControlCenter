@@ -108,7 +108,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			So(len(insights), ShouldEqual, 1)
 
 			So(insights[0].ID(), ShouldEqual, 1)
-			So(insights[0].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+			So(insights[0].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 			So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
 			So(insights[0].Content(), ShouldResemble, &bounceRateContent{Value: 0.3, Interval: interval})
 		})
@@ -176,7 +176,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			// more recent insights first
 			{
 				So(insights[0].ID(), ShouldEqual, 2)
-				So(insights[0].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+				So(insights[0].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 				So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange).Add(threeHours*3).Add(time.Second*1))
 				So(insights[0].Content(), ShouldResemble, &bounceRateContent{
 					Value: 0.5,
@@ -188,7 +188,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			{
 				So(insights[1].ID(), ShouldEqual, 1)
-				So(insights[1].ContentType(), ShouldEqual, highBaseBounceRateContentType)
+				So(insights[1].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 				So(insights[1].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
 				So(insights[1].Content(), ShouldResemble, &bounceRateContent{
 					Value: 0.3,

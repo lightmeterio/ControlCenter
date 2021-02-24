@@ -18,8 +18,9 @@ import (
 	"time"
 )
 
-var (
-	highBaseBounceRateContentType = "high_bounce_rate"
+const (
+	HighBaseBounceRateContentType   = "high_bounce_rate"
+	HighBaseBounceRateContentTypeId = 1
 )
 
 type Options struct {
@@ -218,7 +219,7 @@ func (d description) Args() []interface{} {
 }
 
 func (c bounceRateContent) HelpLink(urlContainer core.URLContainer) string {
-	return urlContainer.Get(highBaseBounceRateContentType)
+	return urlContainer.Get(HighBaseBounceRateContentType)
 }
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
@@ -226,7 +227,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
 		Rating:      core.BadRating,
-		ContentType: highBaseBounceRateContentType,
+		ContentType: HighBaseBounceRateContentType,
 		Content:     content,
 	}
 
@@ -238,5 +239,5 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 }
 
 func init() {
-	core.RegisterContentType(highBaseBounceRateContentType, 1, core.DefaultContentTypeDecoder(&bounceRateContent{}))
+	core.RegisterContentType(HighBaseBounceRateContentType, HighBaseBounceRateContentTypeId, core.DefaultContentTypeDecoder(&bounceRateContent{}))
 }

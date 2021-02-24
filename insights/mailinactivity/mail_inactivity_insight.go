@@ -77,7 +77,10 @@ func (*generator) Close() error {
 	return nil
 }
 
-const ContentType = "mail_inactivity"
+const (
+	ContentType   = "mail_inactivity"
+	ContentTypeId = 0
+)
 
 type Options struct {
 	LookupRange               time.Duration
@@ -244,5 +247,5 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 }
 
 func init() {
-	core.RegisterContentType(ContentType, 0, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
 }
