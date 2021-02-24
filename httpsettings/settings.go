@@ -169,7 +169,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	localIPRaw := r.Form.Get("postfixPublicIP")
+	localIPRaw := r.Form.Get("postfix_public_ip")
 	appLanguage := r.Form.Get("app_language")
 
 	if appLanguage == "" && localIPRaw == "" {
