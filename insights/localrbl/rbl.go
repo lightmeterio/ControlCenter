@@ -172,8 +172,8 @@ func contentsHaveDifferentLists(a, b []localrbl.ContentElement) bool {
 		return true
 	}
 
-	for i, v := range a {
-		if v != b[i] {
+	for i := range a {
+		if a[i].RBL != b[i].RBL {
 			return true
 		}
 	}
