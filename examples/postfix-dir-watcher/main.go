@@ -14,7 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -27,7 +27,7 @@ import (
 type pub struct {
 }
 
-func (p *pub) Publish(r data.Record) {
+func (p *pub) Publish(r postfix.Record) {
 	if r.Payload == nil {
 		return
 	}

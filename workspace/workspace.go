@@ -7,7 +7,7 @@ package workspace
 import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -210,7 +210,7 @@ func (ws *Workspace) MostRecentLogTime() time.Time {
 	return mostRecentDeliverTime
 }
 
-func (ws *Workspace) NewPublisher() data.Publisher {
+func (ws *Workspace) NewPublisher() postfix.Publisher {
 	return data.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
 }
 

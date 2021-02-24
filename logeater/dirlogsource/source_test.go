@@ -6,7 +6,7 @@ package dirlogsource
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -19,10 +19,10 @@ import (
 
 type fakePublisher struct {
 	sync.Mutex
-	records []data.Record
+	records []postfix.Record
 }
 
-func (f *fakePublisher) Publish(r data.Record) {
+func (f *fakePublisher) Publish(r postfix.Record) {
 	f.Lock()
 	defer f.Unlock()
 	f.records = append(f.records, r)

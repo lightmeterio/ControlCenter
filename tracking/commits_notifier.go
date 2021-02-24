@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -18,7 +18,7 @@ type resultInfo struct {
 	id int64
 
 	// a helper for debugging!
-	loc data.RecordLocation
+	loc postfix.RecordLocation
 }
 
 type resultsNotifier struct {
@@ -130,7 +130,7 @@ func prepareCommitterConnection(conn *dbconn.RoPooledConn) error {
 	return nil
 }
 
-func findConnectionAndDeliveryQueue(conn *dbconn.RoPooledConn, queueId int64, loc data.RecordLocation) (connQueueId int64, deliveryQueueId int64, err error) {
+func findConnectionAndDeliveryQueue(conn *dbconn.RoPooledConn, queueId int64, loc postfix.RecordLocation) (connQueueId int64, deliveryQueueId int64, err error) {
 	origQueue, parentingType, err := findOrigQueueForQueueParenting(conn, queueId)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -200,7 +200,7 @@ func buildAndPublishResult(
 
 	resultInfo := resultInfo{
 		id: resultId,
-		loc: data.RecordLocation{
+		loc: postfix.RecordLocation{
 			Line:     uint64(resultResult[ResultDeliveryFileLineKey].Int64()),
 			Filename: resultResult[ResultDeliveryFilenameKey].Text(),
 		},

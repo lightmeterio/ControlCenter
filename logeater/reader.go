@@ -7,13 +7,13 @@ package logeater
 import (
 	"bufio"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"io"
 	"time"
 )
 
-func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
+func ReadFromReader(reader io.Reader, pub postfix.Publisher, ts time.Time) {
 	lineNo := uint64(0)
 
 	scanner := bufio.NewScanner(reader)
@@ -31,7 +31,7 @@ func ReadFromReader(reader io.Reader, pub data.Publisher, ts time.Time) {
 	}
 }
 
-func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *parser.TimeConverter, lineNo uint64) {
+func tryToParseAndPublish(line []byte, publisher postfix.Publisher, converter *parser.TimeConverter, lineNo uint64) {
 	h, p, err := parser.Parse(line)
 
 	if !parser.IsRecoverableError(err) {
@@ -39,18 +39,18 @@ func tryToParseAndPublish(line []byte, publisher data.Publisher, converter *pars
 		return
 	}
 
-	publisher.Publish(data.Record{
+	publisher.Publish(postfix.Record{
 		Time:    converter.Convert(h.Time),
 		Header:  h,
 		Payload: p,
-		Location: data.RecordLocation{
+		Location: postfix.RecordLocation{
 			Line:     lineNo,
 			Filename: "unknown",
 		},
 	})
 }
 
-func ParseLogsFromReader(publisher data.Publisher, ts time.Time, reader io.Reader) {
+func ParseLogsFromReader(publisher postfix.Publisher, ts time.Time, reader io.Reader) {
 	ReadFromReader(reader, publisher, ts)
 }
 

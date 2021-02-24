@@ -6,7 +6,7 @@ package dirlogsource
 
 import (
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -43,7 +43,7 @@ func New(dirname string, initialTime time.Time, follow bool) (*Source, error) {
 	}, nil
 }
 
-func (s *Source) PublishLogs(p data.Publisher) error {
+func (s *Source) PublishLogs(p postfix.Publisher) error {
 	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.initialTime)
 
 	f := func() func() error {
