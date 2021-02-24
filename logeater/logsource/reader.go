@@ -5,16 +5,16 @@
 package logsource
 
 import (
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 type Reader struct {
 	source Source
-	pub    data.Publisher
+	pub    postfix.Publisher
 }
 
-func NewReader(source Source, pub data.Publisher) Reader {
+func NewReader(source Source, pub postfix.Publisher) Reader {
 	return Reader{source: source, pub: pub}
 }
 

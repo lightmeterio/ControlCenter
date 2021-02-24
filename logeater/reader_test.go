@@ -6,7 +6,7 @@ package logeater
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"strings"
 	"testing"
@@ -14,10 +14,10 @@ import (
 )
 
 type FakePublisher struct {
-	logs []data.Record
+	logs []postfix.Record
 }
 
-func (f *FakePublisher) Publish(r data.Record) {
+func (f *FakePublisher) Publish(r postfix.Record) {
 	f.logs = append(f.logs, r)
 }
 

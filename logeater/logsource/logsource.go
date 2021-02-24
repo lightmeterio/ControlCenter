@@ -5,9 +5,9 @@
 package logsource
 
 import (
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 )
 
 type Source interface {
-	PublishLogs(data.Publisher) error
+	PublishLogs(postfix.Publisher) error
 }

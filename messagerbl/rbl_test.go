@@ -7,7 +7,7 @@ package messagerbl
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"net"
 	"testing"
@@ -33,18 +33,18 @@ func TestRBL(t *testing.T) {
 
 		converter := parser.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), func(int, parser.Time, parser.Time) {})
 
-		record := func(s string) data.Record {
+		record := func(s string) postfix.Record {
 			h, p, err := parser.Parse([]byte(s))
 			So(err, ShouldBeNil)
 
-			return data.Record{
+			return postfix.Record{
 				Time:    converter.Convert(h.Time),
 				Header:  h,
 				Payload: p,
 			}
 		}
 
-		records := []data.Record{
+		records := []postfix.Record{
 			// Microsoft
 			record(`Jan 10 00:00:56 node postfix/smtp[12357]: 375593D395: to=<recipient@example.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=bounced (host [254.112.150.90] said: 550 5.7.606 Access denied, banned sending IP [239.58.50.50]. To request removal from this list please visit https://sender.office.com/ and follow the directions. For more information please go to  http://go.microsoft.com/fwlink/?LinkID=526655 (AS16012609) (in reply to RCPT TO command))`),
 			// No match, status=sent

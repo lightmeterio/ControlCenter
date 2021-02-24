@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -441,13 +441,13 @@ type DirectoryContent interface {
 
 type DirectoryImporter struct {
 	content     DirectoryContent
-	pub         data.Publisher
+	pub         postfix.Publisher
 	initialTime time.Time
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
-	pub data.Publisher,
+	pub postfix.Publisher,
 	initialTime time.Time,
 ) DirectoryImporter {
 	return DirectoryImporter{content, pub, initialTime}
@@ -498,7 +498,7 @@ type queueProcessor struct {
 	readers       []fileReader
 	scanners      []*bufio.Scanner
 	entries       fileEntryList
-	record        data.Record
+	record        postfix.Record
 	currentIndex  int
 	converter     *parser.TimeConverter
 	converterChan timeConverterChan
@@ -733,7 +733,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 
 		p.line++
 
-		loc := data.RecordLocation{
+		loc := postfix.RecordLocation{
 			Filename: p.filename,
 			Line:     p.line,
 		}
@@ -758,7 +758,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 
 		convertedTime := p.converter.Convert(header.Time)
 
-		p.record = data.Record{
+		p.record = postfix.Record{
 			Header:   header,
 			Payload:  payload,
 			Time:     convertedTime,
@@ -817,7 +817,7 @@ func importExistingLogs(
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
 	queues fileQueues,
-	pub data.Publisher,
+	pub postfix.Publisher,
 	initialTime time.Time,
 ) error {
 	initialImportTime := time.Now()
@@ -864,10 +864,10 @@ func importExistingLogs(
 type newLogsPublisher struct {
 	// a temporary buffer for the new lines that arrive before the archived logs are imported
 	// so we publish them in chronological order
-	records chan data.Record
+	records chan postfix.Record
 }
 
-func (pub newLogsPublisher) Publish(r data.Record) {
+func (pub newLogsPublisher) Publish(r postfix.Record) {
 	pub.records <- r
 }
 
@@ -935,7 +935,7 @@ type parsedRecord struct {
 	queueIndex int
 	sequence   uint64
 
-	loc data.RecordLocation
+	loc postfix.RecordLocation
 }
 
 // responsible for watching for new logs added to a file
@@ -1058,7 +1058,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 	flushHeap := func() {
 		for h.Len() > 0 {
 			s := heap.Pop(&h).(sortableRecord)
-			r := data.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
+			r := postfix.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
 			pub.Publish(r)
 		}
 	}
@@ -1188,7 +1188,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		return errorutil.Wrap(err)
 	}
 
-	newLogsPublisher := newLogsPublisher{records: make(chan data.Record)}
+	newLogsPublisher := newLogsPublisher{records: make(chan postfix.Record)}
 
 	converterChans := timeConverterChansFromQueues(queues)
 

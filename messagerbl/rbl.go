@@ -6,7 +6,7 @@ package messagerbl
 
 import (
 	"context"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -41,7 +41,7 @@ func (m matcher) match(r record) bool {
 
 type matchers []matcher
 
-func (p *Publisher) Publish(r data.Record) {
+func (p *Publisher) Publish(r postfix.Record) {
 	// NOTE: We do the filtering here as writing to the channel is potentially blocking,
 	// and this `if` is deterministic in behaviour, whereas the proper filtering
 	// will happen in the other side of the channel is not and can block.

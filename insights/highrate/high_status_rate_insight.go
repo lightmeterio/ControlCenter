@@ -10,11 +10,11 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -52,7 +52,7 @@ func (g *bounceRateGenerator) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-func (g *bounceRateGenerator) generate(interval data.TimeInterval, value float32) {
+func (g *bounceRateGenerator) generate(interval timeutil.TimeInterval, value float32) {
 	g.value = &bounceRateContent{Value: value, Interval: interval}
 }
 
@@ -115,7 +115,7 @@ func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator
 		return nil
 	}
 
-	interval := data.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
+	interval := timeutil.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
 
 	pairs, err := d.DeliveryStatus(ctx, interval)
 
@@ -171,8 +171,8 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 type bounceRateContent struct {
-	Value    float32           `json:"value"`
-	Interval data.TimeInterval `json:"interval"`
+	Value    float32               `json:"value"`
+	Interval timeutil.TimeInterval `json:"interval"`
 }
 
 func (c bounceRateContent) Title() notificationCore.ContentComponent {

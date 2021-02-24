@@ -10,16 +10,16 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
 type content struct {
-	Interval data.TimeInterval `json:"interval"`
+	Interval timeutil.TimeInterval `json:"interval"`
 }
 
 func (c content) Title() notificationCore.ContentComponent {
@@ -70,7 +70,7 @@ func (c content) HelpLink(urlContainer core.URLContainer) string {
 
 type generator struct {
 	creator  core.Creator
-	interval *data.TimeInterval
+	interval *timeutil.TimeInterval
 }
 
 func (*generator) Close() error {
@@ -101,7 +101,7 @@ func (g *generator) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-func (g *generator) generate(interval data.TimeInterval) {
+func (g *generator) generate(interval timeutil.TimeInterval) {
 	g.interval = &interval
 }
 
@@ -148,7 +148,7 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 		return errorutil.Wrap(err)
 	}
 
-	interval := data.TimeInterval{
+	interval := timeutil.TimeInterval{
 		From: now.Add(-d.options.LookupRange),
 		To:   now,
 	}
@@ -188,7 +188,7 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 
 	if lastExecTime.IsZero() {
 		// pottentially first insight generation
-		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, data.TimeInterval{
+		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, timeutil.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),
 		}))
@@ -225,7 +225,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval data.TimeInterval) error {
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval timeutil.TimeInterval) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
