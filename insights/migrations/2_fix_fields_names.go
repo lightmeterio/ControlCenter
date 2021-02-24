@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/migrationutil"
 )
 
 func init() {
@@ -57,7 +58,7 @@ func updateContent(tx *sql.Tx, fixup func(string) string) (err error) {
 			return errorutil.Wrap(err)
 		}
 
-		fixedContent, err := fixKeyNames(v, fixup)
+		fixedContent, err := migrationutil.FixKeyNames(v, fixup)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

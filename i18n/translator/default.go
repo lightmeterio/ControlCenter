@@ -7,10 +7,12 @@ package translator
 import (
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
 	"strings"
+	"time"
 )
 
 // Allows extractions of language keys
@@ -38,6 +40,7 @@ func Stringfy(s TranslatableStringer) string {
 
 type Translator interface {
 	Translate(string, ...interface{}) (string, error)
+	PrettyFormatTime(time.Time) string
 }
 
 type Translators interface {
@@ -63,14 +66,20 @@ func New(catalog catalog.Catalog) Translators {
 
 type translator struct {
 	printer *message.Printer
+	tag     language.Tag
 }
 
 func newTranslator(tag language.Tag, c catalog.Catalog) *translator {
-	return &translator{printer: message.NewPrinter(tag, message.Catalog(c))}
+	return &translator{printer: message.NewPrinter(tag, message.Catalog(c)), tag: tag}
 }
 
 func (t *translator) Translate(s string, args ...interface{}) (string, error) {
 	return t.printer.Sprintf(message.Key(s, s), args), nil
+}
+
+func (t *translator) PrettyFormatTime(time time.Time) string {
+	// TODO: we should rely on go-text instead!
+	return timeutil.PrettyFormatTime(time, t.tag.String())
 }
 
 func Translate(t Translator, c TranslatableStringer) (string, error) {
@@ -83,13 +92,11 @@ func Translate(t Translator, c TranslatableStringer) (string, error) {
 
 	args := c.Args()
 
-	// TODO: restore this, or better, rely on the translator!
-	// for i, arg := range args {
-	// 	t, ok := arg.(time.Time)
-	// 	if ok {
-	// 		args[i] = timeutil.PrettyFormatTime(t, language)
-	// 	}
-	// }
+	for i, arg := range args {
+		if a, ok := arg.(time.Time); ok {
+			args[i] = t.PrettyFormatTime(a)
+		}
+	}
 
 	return fmt.Sprintf(translated, args...), nil
 }
@@ -98,4 +105,8 @@ type DummyTranslator struct{}
 
 func (DummyTranslator) Translate(f string, args ...interface{}) (string, error) {
 	return fmt.Sprintf(f, args...), nil
+}
+
+func (DummyTranslator) PrettyFormatTime(time time.Time) string {
+	return time.String()
 }

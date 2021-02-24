@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package migrations
+package migrationutil
 
 import (
 	"encoding/json"
@@ -51,7 +51,7 @@ func TestFixingJsonMarshalling(t *testing.T) {
 			return m[s]
 		}
 
-		fixedValue, err := fixKeyNames(oldValue, nameFixup)
+		fixedValue, err := FixKeyNames(oldValue, nameFixup)
 		So(err, ShouldBeNil)
 
 		encodedOldValue, err := json.Marshal(fixedValue)

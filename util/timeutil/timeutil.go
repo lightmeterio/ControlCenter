@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// TODO: remove this function (see gitlab issue #259)
 func PrettyFormatTime(time time.Time, language string) string {
 	switch language {
 	case "en":

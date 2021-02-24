@@ -103,9 +103,9 @@ func TestSettingsPage(t *testing.T) {
 			{
 				r, err := c.PostForm(settingsServer.URL+"?setting=general",
 					url.Values{
-						"postfixPublicIP": {"11.22.33.44"},
-						"app_language":    {"en"},
-						"public_url":      {"https://example.com/lightmeter"},
+						"postfix_public_ip": {"11.22.33.44"},
+						"app_language":      {"en"},
+						"public_url":        {"https://example.com/lightmeter"},
 					})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -213,7 +213,7 @@ func TestSettingsPage(t *testing.T) {
 		Convey("Email notifications", func() {
 			// sets some basic configs
 			r, err := c.PostForm(settingsServer.URL+"?setting=general",
-				url.Values{"postfixPublicIP": {"11.22.33.44"}, "app_language": {"en"}})
+				url.Values{"postfix_public_ip": {"11.22.33.44"}, "app_language": {"en"}})
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
