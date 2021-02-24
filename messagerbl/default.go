@@ -20,4 +20,5 @@ var defaultMatchers = matchers{
 	{host: "Mimecast", pattern: regexp.MustCompile(`http:\/\/kb\.mimecast\.com\/Mimecast_Knowledge_Base`)},
 	{host: "Yahoo", pattern: regexp.MustCompile(`\[TS03\]`)},
 	{host: "Tend Micro", dsn: "5.7.1", pattern: regexp.MustCompile(`blocked using Trend Micro`)},
+	{host: "Microsoft", dsn: "5.7.1", pattern: regexp.MustCompile(`Unfortunately, messages from .* weren't sent\. Please contact your Internet service provider since part of their network is on our block list \(S3140\)\. You can also refer your provider to http:\/\/mail\.live\.com`)},
 }
