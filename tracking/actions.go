@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
@@ -17,7 +17,7 @@ import (
 
 var emptyActionDataPair = actionDataPair{connectionActionData: nil, resultActionData: nil}
 
-func actionTypeForRecord(r data.Record) (ActionType, actionDataPair) {
+func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 	// FIXME: this function will get uglier over time :-(
 	switch p := r.Payload.(type) {
 	case parser.SmtpSentStatus:
@@ -128,7 +128,7 @@ func acquirePid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, erro
 	return pidId, nil
 }
 
-func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error) {
+func createConnection(tracker *Tracker, tx *sql.Tx, r postfix.Record) (int64, error) {
 	pidId, err := acquirePid(tracker, tx, r.Header.PID, r.Header.Host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -142,7 +142,7 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r data.Record) (int64, error
 	return connectionId, nil
 }
 
-func connectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
 	connectionId, err := createConnection(t, tx, r)
@@ -234,7 +234,7 @@ func insertQueueDataValues(tx *sql.Tx, stmts trackerStmts, queueId int64, values
 	return nil
 }
 
-func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string, loc data.RecordLocation) (int64, error) {
+func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string, loc postfix.RecordLocation) (int64, error) {
 	stmt := tx.Stmt(tracker.stmts[insertQueueForConnection])
 
 	defer func() {
@@ -271,7 +271,7 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 
 // assign a queue, just created.
 // find the connection with a given pid, and append the queue to the connection
-func cloneAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func cloneAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
 	connectionId, _, err := findConnectionIdAndUsageCounter(tx, tracker, r.Header)
@@ -323,7 +323,7 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 }
 
 // associate a queue to a message-id
-func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.CleanupMessageAccepted)
 
 	queueId, err := func() (int64, error) {
@@ -388,7 +388,7 @@ func findQueueIdFromQueueValue(tx *sql.Tx, t *Tracker, h parser.Header, queue st
 	return queueId, nil
 }
 
-func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// I have the queue id and need to set the e-mail sender, size and nrcpt
 	p := r.Payload.(parser.QmgrMailQueued)
 
@@ -417,7 +417,7 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPai
 	return nil
 }
 
-func disconnectAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func disconnectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	connectionId, usageCounter, err := findConnectionIdAndUsageCounter(tx, t, r.Header)
 
 	// it's possible for a "disconnect" not to have a "connect", if I started reading the log
@@ -469,7 +469,7 @@ const (
 	queueParentingBounceCreationType = 1
 )
 
-func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r data.Record) error {
+func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r postfix.Record) error {
 	resultInfo, err := createResult(t, tx, r)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -483,7 +483,7 @@ func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r data.Record) error {
 	return nil
 }
 
-func mailSentAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// Check if message has been forwarded to the an internal relay
 	p := r.Payload.(parser.SmtpSentStatus)
 
@@ -570,7 +570,7 @@ func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo)
 	return nil
 }
 
-func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.QmgrRemoved)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
@@ -602,7 +602,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair ac
 	return nil
 }
 
-func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
+func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
 	direction := func() MessageDirection {
 		if strings.HasSuffix(h.Daemon, "lmtp") {
 			return MessageDirectionIncoming
@@ -663,7 +663,7 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc data.Record
 	return nil
 }
 
-func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, error) {
+func createResult(tracker *Tracker, tx *sql.Tx, r postfix.Record) (resultInfo, error) {
 	p := r.Payload.(parser.SmtpSentStatus)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
@@ -701,7 +701,7 @@ func createResult(tracker *Tracker, tx *sql.Tx, r data.Record) (resultInfo, erro
 	return resultInfo{id: resultId, loc: r.Location}, nil
 }
 
-func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	err := createMailDeliveredResult(tracker, tx, r)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -718,7 +718,7 @@ func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPa
 	return nil
 }
 
-func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.BounceCreated)
 
 	bounceQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.ChildQueue)
@@ -760,7 +760,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r data.Record, actionData
 }
 
 // Mail submitted locally on the machine via sendmail is being picked up
-func pickupAction(t *Tracker, tx *sql.Tx, r data.Record, actionDataPair actionDataPair) error {
+func pickupAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	p := r.Payload.(parser.Pickup)
 
 	// create a dummy connection for it, as there was no connection to it

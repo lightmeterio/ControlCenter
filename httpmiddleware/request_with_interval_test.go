@@ -7,7 +7,7 @@ package httpmiddleware
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 )
 
@@ -21,7 +21,7 @@ func TestGetTimeIntervalFromContext(t *testing.T) {
 
 		Convey("valid", func() {
 			ctx := context.Background()
-			ctx = context.WithValue(ctx, Interval("interval"), data.TimeInterval{})
+			ctx = context.WithValue(ctx, Interval("interval"), timeutil.TimeInterval{})
 			_, err := getIntervalFromContext(ctx)
 			So(err, ShouldBeNil)
 		})

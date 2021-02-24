@@ -32,11 +32,10 @@ func TestSettingsPage(t *testing.T) {
 			err = dec.Decode(&body)
 			So(err, ShouldBeNil)
 
-			expected := map[string]interface{}{"languages":[]interface{}{map[string]interface{}{"key":"English", "value":"en"}, map[string]interface{}{"key":"Deutsch", "value":"de"}, map[string]interface{}{"key":"Português do Brasil", "value":"pt_BR"}}}
+			expected := map[string]interface{}{"languages": []interface{}{map[string]interface{}{"key": "English", "value": "en"}, map[string]interface{}{"key": "Deutsch", "value": "de"}, map[string]interface{}{"key": "Português do Brasil", "value": "pt_BR"}}}
 
 			So(body, ShouldResemble, expected)
 		})
 
 	})
 }
-

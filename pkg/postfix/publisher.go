@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package data
+package postfix
 
 import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"

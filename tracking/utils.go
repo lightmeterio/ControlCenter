@@ -7,7 +7,7 @@ package tracking
 import (
 	"database/sql"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
@@ -47,7 +47,7 @@ func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) 
 
 type DeletionError struct {
 	Err *errorutil.Error
-	Loc data.RecordLocation
+	Loc postfix.RecordLocation
 }
 
 func (e *DeletionError) Unwrap() error {
@@ -58,7 +58,7 @@ func (e *DeletionError) Error() string {
 	return e.Err.Error()
 }
 
-func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
+func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
 	deleted, err := tryToDeleteQueueNotIgnoringErrors(tx, trackerStmts, queueId, loc)
 
 	// Treat deletion errors (some queries return "norows") differently for now...
@@ -73,7 +73,7 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc 
 	return deleted, nil
 }
 
-func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc data.RecordLocation) (bool, error) {
+func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts trackerStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
 	err := decrementQueueUsage(tx, trackerStmts, queueId)
 	if err != nil {
 		return false, errorutil.Wrap(err)

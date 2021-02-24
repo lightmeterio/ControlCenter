@@ -8,9 +8,9 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
@@ -56,7 +56,7 @@ const (
 
 type actionTuple struct {
 	actionType     ActionType
-	record         data.Record
+	record         postfix.Record
 	actionDataPair actionDataPair
 }
 
@@ -69,7 +69,7 @@ type Publisher struct {
 	actions chan<- actionTuple
 }
 
-func (p *Publisher) Publish(r data.Record) {
+func (p *Publisher) Publish(r postfix.Record) {
 	actionType, actionDataPair := actionTypeForRecord(r)
 
 	if actionType != UnsupportedActionType {
@@ -81,7 +81,7 @@ func (p *Publisher) Publish(r data.Record) {
 	}
 }
 
-type actionImpl func(*Tracker, *sql.Tx, data.Record, actionDataPair) error
+type actionImpl func(*Tracker, *sql.Tx, postfix.Record, actionDataPair) error
 
 type actionData func(*Tracker, int64, *sql.Tx, parser.Payload) error
 
