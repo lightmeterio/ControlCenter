@@ -110,7 +110,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <b-form-group>
               <h4><translate>System details</translate></h4>
               <b-form-input
-                name="postfixPublicIP"
+                name="postfix_public_ip"
                 id="postfixPublicIP"
                 v-model="$v.form.postfix_public_ip.$model"
                 type="text"

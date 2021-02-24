@@ -272,7 +272,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             label-for="postfixPublicIP"
           >
             <b-form-input
-              name="postfixPublicIP"
+              name="postfix_public_ip"
               id="postfixPublicIP"
               v-model="settings.general.postfix_public_ip"
               required
@@ -488,7 +488,7 @@ export default {
       let vue = this;
 
       const data = {
-        postfixPublicIP: vue.settings.general.postfix_public_ip,
+        postfix_public_ip: vue.settings.general.postfix_public_ip,
         app_language: this.$language.current,
         public_url: vue.settings.general.public_url
       };
