@@ -11,12 +11,15 @@ import (
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -44,7 +47,7 @@ type fakeChecker struct {
 	scanIsInProgress               bool
 	scanResultsShouldChange        bool
 	scanCount                      int
-	t *testing.T
+	t                              *testing.T
 }
 
 func (c *fakeChecker) Close() error {
@@ -132,7 +135,7 @@ func TestLocalRBL(t *testing.T) {
 		Convey("Use Fake Checker", func() {
 			checker := &fakeChecker{
 				timeToCompleteScan: time.Second * 10,
-				t: t,
+				t:                  t,
 			}
 
 			d := NewDetector(accessor, core.Options{
@@ -397,7 +400,7 @@ func TestLocalRBL(t *testing.T) {
 							LocalIP: net.ParseIP("11.22.33.44"),
 						}
 
-						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingsKey, &settings)
+						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)
 
 						So(err, ShouldBeNil)
 					}
@@ -462,6 +465,29 @@ func TestLocalRBL(t *testing.T) {
 						localrbl.ContentElement{RBL: "rbl4-blocked", Text: "Some Error"}})
 				})
 			})
+		})
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID: 1,
+			Content: content{
+				ScanInterval: data.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
+				Address:      net.ParseIP(`127.0.0.1`),
+				RBLs: []localrbl.ContentElement{
+					{RBL: "example.com", Text: "Some error message"},
+				},
+			},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "IP on shared blocklist",
+			Description: "The IP address 127.0.0.1 is listed by 1 RBLs",
+			Metadata:    map[string]string{},
 		})
 	})
 }

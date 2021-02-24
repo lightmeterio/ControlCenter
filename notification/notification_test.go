@@ -6,15 +6,15 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	slackAPI "github.com/slack-go/slack"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/po"
-	"gitlab.com/lightmeter/controlcenter/settings"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 	"sync/atomic"
@@ -35,94 +35,145 @@ type TimeInterval struct {
 	To   time.Time
 }
 
+func (c TimeInterval) String() string {
+	return fmt.Sprintf("No emails were sent between %v and %v", c.Args()...)
+}
+
+func (c TimeInterval) Args() []interface{} {
+	return []interface{}{c.From, c.To}
+}
+
+func (c TimeInterval) TplString() string {
+	return "No emails were sent between %v and %v"
+}
+
+type fakeContentComponent string
+
+func (c fakeContentComponent) String() string {
+	return string(c)
+}
+
+func (c fakeContentComponent) Args() []interface{} {
+	return nil
+}
+
+func (c fakeContentComponent) TplString() string {
+	return c.String()
+}
+
+func (c fakeContentComponent) Metadata() core.ContentMetadata {
+	return nil
+}
+
 type fakeContent struct {
 	Interval TimeInterval
 }
 
-func (c fakeContent) String() string {
-	return fmt.Sprintf("No emails were sent between %v and %v", c.Args()...)
+func (c fakeContent) Title() core.ContentComponent {
+	return &c.Interval
 }
 
-func (c fakeContent) TplString() string {
-	return "No emails were sent between %v and %v"
+func (c fakeContent) Description() core.ContentComponent {
+	return &c.Interval
 }
 
-func (c fakeContent) Args() []interface{} {
-	return []interface{}{c.Interval.From, c.Interval.To}
+func (c fakeContent) Metadata() core.ContentMetadata {
+	return nil
+}
+
+type dummyPolicy struct {
+}
+
+func (dummyPolicy) Reject(core.Notification) (bool, error) {
+	return false, nil
+}
+
+type fakeSlackPoster struct {
+	err error
+}
+
+var fakeSlackError = errors.New(`Some Slack Error`)
+
+func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgOption) (string, string, error) {
+	return "", "", p.err
+}
+
+func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Translators, settings *Settings, slackSettings *slack.Settings) *Center {
+	notifiers := func() map[string]core.Notifier {
+		if slackSettings == nil {
+			return nil
+		}
+
+		slackNotifier := slack.NewWithCustomSettingsFetcher(core.Policies{&dummyPolicy{}}, func() (*slack.Settings, error) {
+			return slackSettings, nil
+		})
+
+		// don't use slack api, mocking the PostMessage call
+		slackNotifier.MessagePosterBuilder = func(client *slackAPI.Client) slack.MessagePoster {
+			return &fakeSlackPoster{}
+		}
+
+		return map[string]core.Notifier{slack.SettingKey: slackNotifier}
+	}()
+
+	center := NewWithCustomLanguageFetcher(translators, PassPolicy, func() (language.Tag, error) {
+		if settings != nil {
+			return language.Parse(settings.Language)
+		}
+
+		return language.English, nil
+	}, notifiers)
+
+	return center
+}
+
+func buildFakeSettings(lang string, enabled bool) (Settings, slack.Settings) {
+	return Settings{
+			Language: lang,
+		},
+		slack.Settings{
+			Channel:     "general",
+			BearerToken: "some_slack_key",
+			Enabled:     enabled,
+		}
 }
 
 func TestSendNotification(t *testing.T) {
-
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-		defer func() { cancel(); done() }()
-		writer := runner.Writer()
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
 		content := new(fakeContent)
 		content.Interval.To = time.Now()
 		content.Interval.From = time.Now()
 
 		Convey("Success", func() {
 			Convey("Do subscribe (german)", func() {
-
-				slackSettings := settings.SlackNotificationsSettings{
-					Channel:     "general",
-					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
-					Enabled:     true,
-					Language:    "de",
-				}
-
-				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
-				So(err, ShouldBeNil)
-
-				DefaultCatalog := catalog.NewBuilder()
+				cat := catalog.NewBuilder()
 				lang := language.MustParse("de")
-				DefaultCatalog.SetString(lang, content.TplString(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
+				cat.SetString(lang, content.Description().String(), `Zwischen %v und %v wurden keine E-Mails gesendet`)
 
-				translators := translator.New(DefaultCatalog)
-				center := New(m.Reader, translators)
-				So(err, ShouldBeNil)
+				translators := translator.New(cat)
+				settings, slackSettings := buildFakeSettings("de", true)
 
-				notification := Notification{
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSettings)
+
+				notification := core.Notification{
 					ID:      0,
 					Content: content,
 				}
+
 				err := center.Notify(notification)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Do subscribe (english)", func() {
-
-				slackSettings := settings.SlackNotificationsSettings{
-					Channel:     "general",
-					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
-					Enabled:     true,
-					Language:    "en",
-				}
-
-				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
-				So(err, ShouldBeNil)
-
-				DefaultCatalog := catalog.NewBuilder()
+				cat := catalog.NewBuilder()
 				lang := language.MustParse("en")
-				DefaultCatalog.SetString(lang, content.TplString(), content.TplString())
+				cat.SetString(lang, content.Description().TplString(), content.Description().TplString())
 
-				translators := translator.New(DefaultCatalog)
-				center := New(m.Reader, translators)
-				So(err, ShouldBeNil)
+				translators := translator.New(cat)
+				settings, slackSetting := buildFakeSettings("en", true)
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSetting)
 
-				notification := Notification{
+				notification := core.Notification{
 					ID:      0,
 					Content: content,
 				}
@@ -132,27 +183,15 @@ func TestSendNotification(t *testing.T) {
 			})
 
 			Convey("Do subscribe (pt_BR)", func() {
-
-				slackSettings := settings.SlackNotificationsSettings{
-					Channel:     "general",
-					Kind:        "slack",
-					BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
-					Enabled:     true,
-					Language:    "pt_BR",
-				}
-
-				err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
-				So(err, ShouldBeNil)
-
-				DefaultCatalog := catalog.NewBuilder()
+				cat := catalog.NewBuilder()
 				lang := language.MustParse("pt_BR")
-				DefaultCatalog.SetString(lang, content.TplString(), content.TplString())
+				cat.SetString(lang, content.Description().TplString(), content.Description().TplString())
 
-				translators := translator.New(DefaultCatalog)
-				center := New(m.Reader, translators)
-				So(err, ShouldBeNil)
+				translators := translator.New(cat)
+				settings, slackSettings := buildFakeSettings("pt_BR", true)
+				center := centerWithTranslatorsAndDummyPolicy(t, translators, &settings, &slackSettings)
 
-				notification := Notification{
+				notification := core.Notification{
 					ID:      0,
 					Content: content,
 				}
@@ -165,23 +204,12 @@ func TestSendNotification(t *testing.T) {
 }
 
 func TestSendNotificationMissingConf(t *testing.T) {
-
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
 		translators := translator.New(po.DefaultCatalog)
-		center := New(m.Reader, translators)
-
-		So(err, ShouldBeNil)
+		center := centerWithTranslatorsAndDummyPolicy(t, translators, nil, nil)
 
 		content := new(fakeContent)
-		notification := Notification{
+		notification := core.Notification{
 			ID:      0,
 			Content: content,
 		}
@@ -196,115 +224,43 @@ func TestSendNotificationMissingConf(t *testing.T) {
 }
 
 type fakeapi struct {
-	t *testing.T
+	t       *testing.T
 	Counter int32
 }
 
-func (s *fakeapi) PostMessage(stringer Message) error {
-	s.t.Log(stringer)
+func (s *fakeapi) Notify(n core.Notification, _ translator.Translator) error {
+	s.t.Log(n)
 	atomic.AddInt32(&s.Counter, 1)
 	return nil
 }
 
-func TestFakeSendNotification(t *testing.T) {
-
-	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-		defer func() { cancel(); done() }()
-		writer := runner.Writer()
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		slackSettings := settings.SlackNotificationsSettings{
-			Channel:     "general",
-			Kind:        "slack",
-			BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
-			Enabled:     true,
-			Language:    "de",
-		}
-
-		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
-		So(err, ShouldBeNil)
-
-		fakeapi := &fakeapi{t: t}
-
-		DefaultCatalog := catalog.NewBuilder()
-		lang := language.MustParse("de")
-		DefaultCatalog.SetString(lang, `%v bounce rate between %v and %v`, `%v bounce rate ist zwischen %v und %v`)
-		translators := translator.New(DefaultCatalog)
-
-		centerInterface := New(m.Reader, translators)
-		c := centerInterface.(*center)
-		c.slackapi = fakeapi
-
-		content := new(fakeContent)
-		Notification := Notification{
-			ID:      0,
-			Content: content,
-		}
-
-		Convey("Success", func() {
-			Convey("Do subscribe", func() {
-				err := c.Notify(Notification)
-				So(err, ShouldBeNil)
-				So(fakeapi.Counter, ShouldEqual, 1)
-			})
-		})
-	})
+func (m *fakeapi) ValidateSettings(s core.Settings) error {
+	return nil
 }
 
-func TestFakeSendNotificationDisabled(t *testing.T) {
-
+func TestFakeSendNotification(t *testing.T) {
 	Convey("Notification", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
+		fakeapi := &fakeapi{t: t}
 
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
+		cat := catalog.NewBuilder()
+		lang := language.MustParse("de")
+		cat.SetString(lang, `%v bounce rate between %v and %v`, `%v bounce rate ist zwischen %v und %v`)
+		translators := translator.New(cat)
 
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-		defer func() { cancel(); done() }()
-		writer := runner.Writer()
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		slackSettings := settings.SlackNotificationsSettings{
-			Channel:     "general",
-			Kind:        "slack",
-			BearerToken: "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6",
-			Enabled:     false,
-			Language:    "en",
-		}
-
-		err = settings.SetSlackNotificationsSettings(dummyContext, writer, slackSettings)
-		So(err, ShouldBeNil)
-
-		fakeapi := &fakeapi{}
-		translators := translator.New(po.DefaultCatalog)
-		centerInterface := New(m.Reader, translators)
-
-		c := centerInterface.(*center)
-		c.slackapi = fakeapi
+		center := NewWithCustomLanguageFetcher(translators, PassPolicy, func() (language.Tag, error) { return language.German, nil }, map[string]core.Notifier{"fake": fakeapi})
 
 		content := new(fakeContent)
-		Notification := Notification{
+
+		notification := core.Notification{
 			ID:      0,
 			Content: content,
 		}
 
 		Convey("Success", func() {
 			Convey("Do subscribe", func() {
-				err := c.Notify(Notification)
+				err := center.Notify(notification)
 				So(err, ShouldBeNil)
-				So(fakeapi.Counter, ShouldEqual, 0)
+				So(fakeapi.Counter, ShouldEqual, 1)
 			})
 		})
 	})

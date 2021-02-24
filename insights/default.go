@@ -29,7 +29,7 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 
 func NewEngine(
 	workspaceDir string,
-	notificationCenter notification.Center,
+	notificationCenter *notification.Center,
 	options core.Options,
 ) (*Engine, error) {
 	return NewCustomEngine(workspaceDir, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)

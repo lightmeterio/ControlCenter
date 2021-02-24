@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -25,16 +26,30 @@ type fakeContent struct {
 	From string `json:"From"`
 }
 
-func (c fakeContent) String() string {
-	return ""
+func (c fakeContent) Title() notificationCore.ContentComponent {
+	return fakeComponent{}
 }
 
-func (c fakeContent) Args() []interface{} {
+func (c fakeContent) Description() notificationCore.ContentComponent {
+	return fakeComponent{}
+}
+
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
-func (c fakeContent) TplString() string {
+type fakeComponent struct{}
+
+func (c fakeComponent) String() string {
 	return ""
+}
+
+func (c fakeComponent) TplString() string {
+	return ""
+}
+
+func (c fakeComponent) Args() []interface{} {
+	return nil
 }
 
 func init() {

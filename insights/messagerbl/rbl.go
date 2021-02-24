@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"time"
@@ -42,16 +43,48 @@ type content struct {
 	Time      time.Time `json:"log_time"`
 }
 
-func (c content) String() string {
-	return translator.Stringfy(c)
+func (c content) Title() notificationCore.ContentComponent {
+	return &title{c}
 }
 
-func (c content) TplString() string {
+func (c content) Description() notificationCore.ContentComponent {
+	return &description{c}
+}
+
+func (c content) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+type title struct {
+	c content
+}
+
+func (t title) String() string {
+	return translator.Stringfy(t)
+}
+
+func (t title) TplString() string {
+	return translator.I18n("IP blocked by %v")
+}
+
+func (t title) Args() []interface{} {
+	return []interface{}{t.c.Host}
+}
+
+type description struct {
+	c content
+}
+
+func (d description) String() string {
+	return translator.Stringfy(d)
+}
+
+func (d description) TplString() string {
 	return translator.I18n("The IP %v cannot deliver to %v (%v)")
 }
 
-func (c content) Args() []interface{} {
-	return []interface{}{c.Address, c.Recipient, c.Host}
+func (d description) Args() []interface{} {
+	return []interface{}{d.c.Address, d.c.Recipient, d.c.Host}
 }
 
 func (c content) HelpLink(urlContainer core.URLContainer) string {

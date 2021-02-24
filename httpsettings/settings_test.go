@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/rs/zerolog/log"
+	slackAPI "github.com/slack-go/slack"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -15,6 +16,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/notification/email"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -39,21 +43,15 @@ func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	return nil
 }
 
-type fakeNotificationCenter struct {
-	shouldFailToAddSlackNotifier bool
+type fakeNotifier struct {
 }
 
-func (c *fakeNotificationCenter) Notify(center notification.Notification) error {
-	log.Info().Msg("send notification")
+func (c *fakeNotifier) ValidateSettings(notificationCore.Settings) error {
 	return nil
 }
 
-func (c *fakeNotificationCenter) AddSlackNotifier(notificationsSettings settings.SlackNotificationsSettings) error {
-	log.Info().Msg("Add slack")
-	if c.shouldFailToAddSlackNotifier {
-		return errors.New("Invalid slack notifier")
-	}
-
+func (c *fakeNotifier) Notify(notification.Notification, translator.Translator) error {
+	log.Info().Msg("send notification")
 	return nil
 }
 
@@ -61,27 +59,64 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
+type fakeSlackPoster struct {
+	err error
+}
+
+var fakeSlackError = errors.New(`Some Slack Error`)
+
+func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgOption) (string, string, error) {
+	return "", "", p.err
+}
+
+func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *notification.Center, *fakeSlackPoster, func()) {
+	conn, closeConn := testutil.TempDBConnection(t)
+
+	m, err := meta.NewHandler(conn, "master")
+	So(err, ShouldBeNil)
+
+	runner := meta.NewRunner(m)
+	done, cancel := runner.Run()
+
+	writer := runner.Writer()
+
+	initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
+
+	fakeNotifier := &fakeNotifier{}
+
+	slackNotifier := slack.New(notification.PassPolicy, m.Reader)
+
+	fakeSlackPoster := &fakeSlackPoster{}
+
+	// don't use slack api, mocking the PostMessage call
+	slackNotifier.MessagePosterBuilder = func(client *slackAPI.Client) slack.MessagePoster {
+		return fakeSlackPoster
+	}
+
+	emailNotifier := email.New(notification.PassPolicy, m.Reader)
+
+	notifiers := map[string]notification.Notifier{
+		slack.SettingKey: slackNotifier,
+		email.SettingKey: emailNotifier,
+		"fake":           fakeNotifier,
+	}
+
+	center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), notification.PassPolicy, notifiers)
+
+	setup := NewSettings(writer, m.Reader, initialSetupSettings, center)
+
+	return setup, writer, m.Reader, center, fakeSlackPoster, func() {
+		cancel()
+		done()
+		errorutil.MustSucceed(m.Close())
+		closeConn()
+	}
+}
+
 func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-
-		defer func() { cancel(); done() }()
-
-		writer := runner.Writer()
-
-		fakeCenter := &fakeNotificationCenter{}
-		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
-
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
+		setup, _, _, _, _, clear := buildTestSetup(t)
+		defer clear()
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -182,24 +217,10 @@ func TestInitialSetup(t *testing.T) {
 	})
 }
 
-func TestSettingsSetup(t *testing.T) {
+func TestAppSettings(t *testing.T) {
 	Convey("Settings Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-		defer func() { cancel(); done() }()
-		writer := runner.Writer()
-
-		fakeCenter := &fakeNotificationCenter{}
-		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
-
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
+		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		defer clear()
 
 		chain := httpmiddleware.New()
 		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
@@ -209,7 +230,7 @@ func TestSettingsSetup(t *testing.T) {
 
 		Convey("Do not clean IP settings when updating the language", func() {
 			// First set an IP address manually
-			writer.StoreJson(globalsettings.SettingsKey, &globalsettings.Settings{
+			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
 				LocalIP:     net.ParseIP("127.0.0.1"),
 				APPLanguage: "en",
 			}).Wait()
@@ -224,14 +245,59 @@ func TestSettingsSetup(t *testing.T) {
 
 			// The IP address must be intact
 			settings := globalsettings.Settings{}
-			err = m.Reader.RetrieveJson(context.Background(), globalsettings.SettingsKey, &settings)
+			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.APPLanguage, ShouldEqual, "de")
 			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
 		})
+	})
+}
 
-		Convey("Notifications", func() {
+type fakeContentComponent string
+
+func (c fakeContentComponent) String() string {
+	return string(c)
+}
+
+func (c fakeContentComponent) Args() []interface{} {
+	return nil
+}
+
+func (c fakeContentComponent) TplString() string {
+	return c.String()
+}
+
+type fakeContent struct {
+}
+
+func (c fakeContent) Title() notificationCore.ContentComponent {
+	return fakeContentComponent("some fake content")
+}
+
+func (c fakeContent) Description() notificationCore.ContentComponent {
+	return fakeContentComponent("some fake description")
+}
+
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
+	return nil
+}
+
+func TestSlackNotifications(t *testing.T) {
+	Convey("Integration Settings Setup", t, func() {
+		setup, _, reader, center, fakeSlackPoster, clear := buildTestSetup(t)
+		defer clear()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL + querySettingsParameter
+
+		Convey("Settings", func() {
 			querySettingsParameter := "?setting=notification"
 			settingsURL := s.URL + querySettingsParameter
 
@@ -268,8 +334,8 @@ func TestSettingsSetup(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-					mo := new(settings.SlackNotificationsSettings)
-					err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+					mo := new(slack.Settings)
+					err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 					So(err, ShouldBeNil)
 
 					So(mo.Channel, ShouldEqual, "donutloop")
@@ -277,60 +343,12 @@ func TestSettingsSetup(t *testing.T) {
 				})
 			})
 		})
-	})
-}
-
-type fakeContent struct{}
-
-func (c *fakeContent) String() string {
-	return "Hell world!, Mister Donutloop 2"
-}
-
-func (c *fakeContent) Args() []interface{} {
-	return nil
-}
-
-func (c *fakeContent) TplString() string {
-	return "Hell world!, Mister Donutloop 2"
-}
-
-// todo(marcel) before we create a release stub out the slack api
-func TestIntegrationSettingsSetup(t *testing.T) {
-	Convey("Integration Settings Setup", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
-		defer func() { cancel(); done() }()
-		writer := runner.Writer()
-
-		fakeCenter := &fakeNotificationCenter{}
-		initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
-
-		setup := NewSettings(writer, m.Reader, initialSetupSettings, fakeCenter)
-
-		center := notification.New(m.Reader, translator.New(catalog.NewBuilder()))
-
-		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
-
-		c := &http.Client{}
-
-		s := httptest.NewServer(handler)
-		querySettingsParameter := "?setting=notification"
-		settingsURL := s.URL + querySettingsParameter
 
 		Convey("Success", func() {
 			Convey("send valid values", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":     {"slack"},
-					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_token":    {"some_valid_key"},
 					"messenger_channel":  {"general"},
 					"messenger_enabled":  {"true"},
 					"messenger_language": {"de"},
@@ -341,7 +359,7 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 
 				r, err = c.PostForm(settingsURL, url.Values{
 					"messenger_kind":     {"slack"},
-					"messenger_token":    {"xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6"},
+					"messenger_token":    {"some_valid_key"},
 					"messenger_channel":  {"general"},
 					"messenger_enabled":  {"true"},
 					"messenger_language": {"en"},
@@ -350,12 +368,12 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-				mo := new(settings.SlackNotificationsSettings)
-				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+				mo := new(slack.Settings)
+				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
-				So(mo.BearerToken, ShouldEqual, "xoxb-1388191062644-1385067635637-iXfDIfcPO3HKHEjLZY2seVX6")
+				So(mo.BearerToken, ShouldEqual, "some_valid_key")
 
 				content := new(fakeContent)
 				notification := notification.Notification{
@@ -368,11 +386,11 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 			})
 
 			Convey("Fails if slack validations fail", func() {
-				fakeCenter.shouldFailToAddSlackNotifier = true
+				fakeSlackPoster.err = fakeSlackError
 
 				r, err := c.PostForm(settingsURL, url.Values{
 					"messenger_kind":    {"slack"},
-					"messenger_token":   {"sjdfklsjdfkljfs"},
+					"messenger_token":   {"some_invalid_key"},
 					"messenger_channel": {"donutloop"},
 					"messenger_enabled": {"true"},
 				})
@@ -380,11 +398,113 @@ func TestIntegrationSettingsSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
-				mo := new(settings.SlackNotificationsSettings)
-				err = m.Reader.RetrieveJson(dummyContext, "messenger_slack", mo)
+				mo := new(slack.Settings)
+				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
 				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
 			})
+		})
+	})
+}
 
+func TestEmailNotifications(t *testing.T) {
+	Convey("Email Notifications", t, func() {
+		setup, w, _, center, _, clear := buildTestSetup(t)
+		defer clear()
+
+		// set some basic global settings required by the email notifier
+		err := globalsettings.SetSettings(dummyContext, w, globalsettings.Settings{
+			PublicURL: "https://example.com/lightmeter",
+		})
+
+		So(err, ShouldBeNil)
+
+		emailBackend := &email.FakeMailBackend{ExpectedUser: "user@example.com", ExpectedPassword: "super_password"}
+
+		stop := email.StartFakeServer(emailBackend, ":10027")
+		defer stop()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL + querySettingsParameter
+
+		Convey("Fail due wrong configuration (username)", func() {
+			r, err := c.PostForm(settingsURL, url.Values{
+				"email_notification_enabled":       {"true"},
+				"email_notification_server_name":   {"localhost"},
+				"email_notification_port":          {"10027"},
+				"email_notification_security_type": {"none"},
+				"email_notification_auth_method":   {"password"},
+				"email_notification_username":      {"wronguser@example.com"},
+				"email_notification_password":      {"super_password"},
+				"email_notification_sender":        {"sender@example.com"},
+				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+			So(len(emailBackend.Messages), ShouldEqual, 0)
+		})
+
+		Convey("Succeeds, but it's disabled", func() {
+			r, err := c.PostForm(settingsURL, url.Values{
+				"email_notification_enabled":       {"false"},
+				"email_notification_server_name":   {"localhost"},
+				"email_notification_port":          {"10027"},
+				"email_notification_security_type": {"none"},
+				"email_notification_auth_method":   {"password"},
+				"email_notification_username":      {"user@example.com"},
+				"email_notification_password":      {"super_password"},
+				"email_notification_sender":        {"sender@example.com"},
+				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			err = center.Notify(notification.Notification{
+				ID:      0,
+				Content: &fakeContent{},
+			})
+
+			So(err, ShouldBeNil)
+
+			So(len(emailBackend.Messages), ShouldEqual, 0)
+		})
+
+		Convey("Succeeds to setup and sends one notification", func() {
+			r, err := c.PostForm(settingsURL, url.Values{
+				"email_notification_enabled":       {"true"},
+				"email_notification_server_name":   {"localhost"},
+				"email_notification_port":          {"10027"},
+				"email_notification_security_type": {"none"},
+				"email_notification_auth_method":   {"password"},
+				"email_notification_username":      {"user@example.com"},
+				"email_notification_password":      {"super_password"},
+				"email_notification_sender":        {"sender@example.com"},
+				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			err = center.Notify(notification.Notification{
+				ID:      0,
+				Content: &fakeContent{},
+			})
+
+			So(err, ShouldBeNil)
+
+			So(len(emailBackend.Messages), ShouldEqual, 1)
+			msg := emailBackend.Messages[0]
+
+			So(msg.Header.Get("From"), ShouldEqual, "sender@example.com")
+			So(msg.Header.Get("To"), ShouldEqual, "Some Person <some.person@example.com>, Someone Else <someone@else.example.com>")
 		})
 	})
 }

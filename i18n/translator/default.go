@@ -6,11 +6,11 @@ package translator
 
 import (
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
 	"strings"
-	"time"
 )
 
 // Allows extractions of language keys
@@ -41,7 +41,7 @@ type Translator interface {
 }
 
 type Translators interface {
-	Translator(language.Tag, time.Time) Translator
+	Translator(language.Tag) Translator
 	Matcher() language.Matcher
 }
 
@@ -49,8 +49,8 @@ type translators struct {
 	catalog catalog.Catalog
 }
 
-func (t *translators) Translator(tag language.Tag, accessTime time.Time) Translator {
-	return newTranslator(tag, t.catalog, accessTime)
+func (t *translators) Translator(tag language.Tag) Translator {
+	return newTranslator(tag, t.catalog)
 }
 
 func (t *translators) Matcher() language.Matcher {
@@ -65,10 +65,37 @@ type translator struct {
 	printer *message.Printer
 }
 
-func newTranslator(tag language.Tag, c catalog.Catalog, accessTime time.Time) *translator {
+func newTranslator(tag language.Tag, c catalog.Catalog) *translator {
 	return &translator{printer: message.NewPrinter(tag, message.Catalog(c))}
 }
 
 func (t *translator) Translate(s string, args ...interface{}) (string, error) {
 	return t.printer.Sprintf(message.Key(s, s), args), nil
+}
+
+func Translate(t Translator, c TranslatableStringer) (string, error) {
+	transformed := TransformTranslation(c.TplString())
+
+	translated, err := t.Translate(transformed)
+	if err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	args := c.Args()
+
+	// TODO: restore this, or better, rely on the translator!
+	// for i, arg := range args {
+	// 	t, ok := arg.(time.Time)
+	// 	if ok {
+	// 		args[i] = timeutil.PrettyFormatTime(t, language)
+	// 	}
+	// }
+
+	return fmt.Sprintf(translated, args...), nil
+}
+
+type DummyTranslator struct{}
+
+func (DummyTranslator) Translate(f string, args ...interface{}) (string, error) {
+	return fmt.Sprintf(f, args...), nil
 }

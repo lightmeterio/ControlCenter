@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -57,15 +58,15 @@ func TestMessengerSettings(t *testing.T) {
 		defer func() { cancel(); done() }()
 
 		Convey("valid messenger settings", func() {
-			s := SlackNotificationsSettings{
+			s := slack.Settings{
 				Channel:     "donutloop",
 				BearerToken: "fjslfjjsdfljlskjfkdjs",
 			}
 
-			err := SetSlackNotificationsSettings(context, writer, s)
+			err := slack.SetSettings(context, writer, s)
 			So(err, ShouldBeNil)
 
-			retrievedSetting, err := GetSlackNotificationsSettings(dummyContext, m.Reader)
+			retrievedSetting, err := slack.GetSettings(dummyContext, m.Reader)
 			So(err, ShouldBeNil)
 
 			So(retrievedSetting, ShouldResemble, &s)
