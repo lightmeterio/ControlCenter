@@ -1,0 +1,93 @@
+<mjml>
+  <mj-head>
+    <mj-preview>Control Center Notification</mj-preview>
+    <mj-attributes>
+      <mj-all padding="0px"></mj-all>
+      <mj-text font-family="Open Sans, Helvetica, Arial, sans-serif" padding="0 30px" font-size="16px" line-height="2"></mj-text>
+      <mj-social-element padding="0 8px"></mj-social-element>
+    </mj-attributes>
+    <mj-style inline="inline">
+      a { text-decoration: none; color: #1d8caf }
+      a:hover { text-decoration: underline; }
+      .box-shadow {box-shadow: 0px 2px 6px #00000029;}
+      .heading { font-family: montserrat, Arial, sans-serif; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#F9F9F9">
+    <mj-wrapper padding-top="30px">
+      <mj-section>
+        <mj-column width="100%">
+          <mj-divider border-width="5px" border-color="#2C9CD6"></mj-divider>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+    <mj-wrapper background-color="#ffffff" css-class="box-shadow">
+      <mj-section>
+        <mj-column width="50%">
+          <mj-image src="https://lightmeter.io/wp-content/uploads/2020/01/Logo_color@4x-1024x203.png" alt="Logo Image" padding-top="37px" padding-bottom="37px"></mj-image>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-column width="100%">
+          <mj-text font-family="Open Sans" font-weight="normal" font-size="26px" color="#000000" align="center">IP on shared blocklist</mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-group>
+          <mj-column width="50%">
+            <mj-button width="120px" height="25px" align="right" padding="15px" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 12px" background-color="#E2F5FC" color="#2F2F2F">Category: Local</mj-button>
+          </mj-column>
+          <mj-column width="50%">
+            <mj-button width="120px" height="25px" padding="15px" align="left" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 16px" background-color="#F65E5E" color="#FFFFFF">Priority: High</mj-button>
+          </mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding-top="20px" padding-bottom="40px">
+        <mj-column width="100%">
+          <mj-text font-family="Open Sans" font-weight="normal" font-size="16px" color="#202324" align="center">The IP 79.106.69.106 cannot deliver to typographus.de (Microsoft)</mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-column width="100%">
+          <mj-button width="150px" height="50px" align="center" padding="15px" border="1px solid #185A8D4D" padding-bottom="40px" font-size="16px" font-family="Open Sans" font-weight="bold" inner-padding="4px 12px" background-color="#FFFFFF" color="#227AAF"><a href="{{.DetailsURL}}">More details</a></mj-button>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+    <mj-wrapper padding-top="10px">
+      <mj-section background-color="#F9F9F9" padding="34px">
+        <mj-column>
+          <mj-text align="center" font-family="Open Sans, Semibold" font-weight="600" font-size="16px" color="#202324">Why am I getting these emails?</mj-text>
+          <mj-text align="center" font-family="opensans-regular" font-size="14px" color="#202324">You are receiving these emails because you subscribed at <a href="https://lightmeter.io/">lightmeter.io.</a></mj-text>
+          <mj-text align="center" font-size="12px" color="#414445" padding-top="15px"><a href="{{.PreferencesURL}}">Manage preferences</a></mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-column>
+          <mj-social font-size="15px" icon-size="30px" mode="horizontal">
+            <mj-social-element name="twitter" href="https://twitter.com/lightmeterio" src="/docs/assets/twitter.png">
+
+            </mj-social-element>
+            <mj-social-element name="linkedin" href="https://www.linkedin.com/company/lightmeter" src="/docs/assets/linkedin.png">
+
+            </mj-social-element>
+            <mj-social-element name="telegram" href="https://t.me/joinchat/BYUM5BOaC-CkYgQXhfFY4Q" src="/docs/assets/telegram.png">
+
+            </mj-social-element>
+            <mj-social-element name="gitlab" href="https://gitlab.com/lightmeter" src="/docs/assets/gitlab.png">
+
+            </mj-social-element>
+
+            <mj-social-element name="mastodon" href="https://mastodon.social/web/accounts/979769" src="/docs/assets/mastodon.png">
+
+            </mj-social-element>
+          </mj-social>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-column>
+          <mj-text align="center" font-size="12px" color="#202324" padding-top="15px">Copyright &copy; 2021 Lightmeter. Made in Berlin.</mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>
