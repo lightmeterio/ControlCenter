@@ -9,12 +9,12 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 	"log"
 	"os"
@@ -24,7 +24,7 @@ import (
 )
 
 func simpleDashboard(d dashboard.Dashboard) {
-	i, _ := data.ParseTimeInterval("0000-01-01", "5000-01-01", time.UTC)
+	i, _ := timeutil.ParseTimeInterval("0000-01-01", "5000-01-01", time.UTC)
 
 	for {
 		s, _ := d.DeliveryStatus(context.Background(), i)

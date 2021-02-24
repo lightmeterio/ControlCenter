@@ -15,7 +15,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 )
@@ -37,10 +37,10 @@ func readFromReader(reader io.Reader,
 }
 
 type fakePublisher struct {
-	logs []data.Record
+	logs []postfix.Record
 }
 
-func (this *fakePublisher) Publish(r data.Record) {
+func (this *fakePublisher) Publish(r postfix.Record) {
 	this.logs = append(this.logs, r)
 }
 

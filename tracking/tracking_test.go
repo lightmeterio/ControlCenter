@@ -7,10 +7,10 @@ package tracking
 import (
 	"bytes"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -42,19 +42,19 @@ func (p *fakeResultPublisher) Publish(r Result) {
 	p.results = append(p.results, r)
 }
 
-func readFromTestReader(reader io.Reader, pub data.Publisher) {
+func readFromTestReader(reader io.Reader, pub postfix.Publisher) {
 	s, err := filelogsource.New(reader, time.Time{}, 2020)
 	errorutil.MustSucceed(err)
 	r := logsource.NewReader(s, pub)
 	r.Run()
 }
 
-func readFromTestFile(name string, pub data.Publisher) {
+func readFromTestFile(name string, pub postfix.Publisher) {
 	f := openFile(name)
 	readFromTestReader(f, pub)
 }
 
-func readFromTestContent(content string, pub data.Publisher) {
+func readFromTestContent(content string, pub postfix.Publisher) {
 	r := strings.NewReader(content)
 	readFromTestReader(r, pub)
 }

@@ -8,7 +8,6 @@ package messagerblinsight
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
@@ -18,6 +17,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"testing"
 	"time"
@@ -111,7 +111,7 @@ func TestMessageRBLInsight(t *testing.T) {
 
 		So(accessor.Insights, ShouldResemble, []int64{1, 2, 3})
 
-		insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: data.TimeInterval{
+		insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 			From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 		},

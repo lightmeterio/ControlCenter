@@ -5,8 +5,8 @@
 package localrbl
 
 import (
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
 	"time"
 )
@@ -24,7 +24,7 @@ type ContentElement struct {
 
 type Results struct {
 	Err      error
-	Interval data.TimeInterval
+	Interval timeutil.TimeInterval
 	RBLs     []ContentElement
 }
 

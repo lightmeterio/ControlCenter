@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	mock_insights_fetcher "gitlab.com/lightmeter/controlcenter/insights/core/mock"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/recommendation"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -89,8 +89,8 @@ func (c content) HelpLink(container core.URLContainer) string {
 	return container.Get(c.ContentType)
 }
 
-func parseTimeInterval(from, to string) data.TimeInterval {
-	i, err := data.ParseTimeInterval(from, to, time.UTC)
+func parseTimeInterval(from, to string) timeutil.TimeInterval {
+	i, err := timeutil.ParseTimeInterval(from, to, time.UTC)
 
 	if err != nil {
 		panic("invalid time interval!!!")

@@ -101,10 +101,14 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-var WelcomeContentType string = "welcome_content"
-var InsightsIntroductionContentType string = "insights_introduction_content"
+const (
+	WelcomeContentType                = "welcome_content"
+	WelcomeContentTypeId              = 2
+	InsightsIntroductionContentType   = "insights_introduction_content"
+	InsightsIntroductionContentTypeId = 3
+)
 
 func init() {
-	core.RegisterContentType(WelcomeContentType, 2, core.DefaultContentTypeDecoder(&content{}))
-	core.RegisterContentType(InsightsIntroductionContentType, 3, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(WelcomeContentType, WelcomeContentTypeId, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(InsightsIntroductionContentType, InsightsIntroductionContentTypeId, core.DefaultContentTypeDecoder(&content{}))
 }

@@ -11,10 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"math"
 	"time"
 )
@@ -154,7 +154,7 @@ const (
 )
 
 type FetchOptions struct {
-	Interval   data.TimeInterval
+	Interval   timeutil.TimeInterval
 	FilterBy   FetchFilter
 	OrderBy    FetchOrder
 	MaxEntries int

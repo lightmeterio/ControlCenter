@@ -5,8 +5,8 @@
 package filelogsource
 
 import (
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"io"
 	"time"
 )
@@ -25,7 +25,7 @@ func New(file io.Reader, initialTime time.Time, year int) (*Source, error) {
 	}, nil
 }
 
-func (s *Source) PublishLogs(p data.Publisher) error {
+func (s *Source) PublishLogs(p postfix.Publisher) error {
 	initialLogsTime := logeater.BuildInitialLogsTime(s.initialTime, s.year)
 	logeater.ParseLogsFromReader(p, initialLogsTime, s.file)
 

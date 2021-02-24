@@ -10,16 +10,17 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
-var (
-	highBaseBounceRateContentType = "high_bounce_rate"
+const (
+	HighBaseBounceRateContentType   = "high_bounce_rate"
+	HighBaseBounceRateContentTypeId = 1
 )
 
 type Options struct {
@@ -52,7 +53,7 @@ func (g *bounceRateGenerator) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-func (g *bounceRateGenerator) generate(interval data.TimeInterval, value float32) {
+func (g *bounceRateGenerator) generate(interval timeutil.TimeInterval, value float32) {
 	g.value = &bounceRateContent{Value: value, Interval: interval}
 }
 
@@ -115,7 +116,7 @@ func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator
 		return nil
 	}
 
-	interval := data.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
+	interval := timeutil.TimeInterval{From: now.Add(gen.checkTimespan * -1), To: now}
 
 	pairs, err := d.DeliveryStatus(ctx, interval)
 
@@ -171,8 +172,8 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 type bounceRateContent struct {
-	Value    float32           `json:"value"`
-	Interval data.TimeInterval `json:"interval"`
+	Value    float32               `json:"value"`
+	Interval timeutil.TimeInterval `json:"interval"`
 }
 
 func (c bounceRateContent) Title() notificationCore.ContentComponent {
@@ -218,7 +219,7 @@ func (d description) Args() []interface{} {
 }
 
 func (c bounceRateContent) HelpLink(urlContainer core.URLContainer) string {
-	return urlContainer.Get(highBaseBounceRateContentType)
+	return urlContainer.Get(HighBaseBounceRateContentType)
 }
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
@@ -226,7 +227,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
 		Rating:      core.BadRating,
-		ContentType: highBaseBounceRateContentType,
+		ContentType: HighBaseBounceRateContentType,
 		Content:     content,
 	}
 
@@ -238,5 +239,5 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 }
 
 func init() {
-	core.RegisterContentType(highBaseBounceRateContentType, 1, core.DefaultContentTypeDecoder(&bounceRateContent{}))
+	core.RegisterContentType(HighBaseBounceRateContentType, HighBaseBounceRateContentTypeId, core.DefaultContentTypeDecoder(&bounceRateContent{}))
 }

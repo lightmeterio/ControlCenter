@@ -7,7 +7,6 @@ package workspace
 import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
-	"gitlab.com/lightmeter/controlcenter/data"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -20,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -210,8 +210,8 @@ func (ws *Workspace) MostRecentLogTime() time.Time {
 	return mostRecentDeliverTime
 }
 
-func (ws *Workspace) NewPublisher() data.Publisher {
-	return data.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
+func (ws *Workspace) NewPublisher() postfix.Publisher {
+	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
 }
 
 func (ws *Workspace) Close() error {

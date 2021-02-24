@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 	"sync/atomic"
@@ -26,13 +27,10 @@ var (
 	dummyContext = context.Background()
 )
 
+type TimeInterval timeutil.TimeInterval
+
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-type TimeInterval struct {
-	From time.Time
-	To   time.Time
 }
 
 func (c TimeInterval) String() string {
