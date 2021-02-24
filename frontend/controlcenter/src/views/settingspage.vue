@@ -82,9 +82,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </b-form-group>
               </b-col>
               <b-col class="align-self-center" cols="6">
-                <b-form-text id="mailServerPort-help-block">
-                  Default: 587
-                </b-form-text>
+                <b-form-text id="mailServerPort-help-block">{{EmailNotificationDefaultPortLabel}}</b-form-text>
               </b-col>
             </b-form-row>
           </b-col>
@@ -119,8 +117,28 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-form-group>
            </b-col>
           </b-form-row>
-          
-          
+
+            <b-form-group
+              class="mail-server-auth-skip-cert-check"
+              label-for="mailServerSkipCertCheck"
+            >
+              <b-form-checkbox
+                name="mail_server_skip_cert_check"
+                id="mailServerSkipCertCheck"
+                v-model="settings.email_notifications.skip_cert_check"
+              >
+                <!-- prettier-ignore -->
+                <translate>Allow insecure TLS</translate>
+                &nbsp;
+                <span
+                  v-b-tooltip.hover
+                  :title="InsecureTlsHelpText"
+                >
+                  <i class="fa fa-info-circle insight-help-button"></i>
+                </span>
+              </b-form-checkbox>
+            </b-form-group>
+
             <b-form-group
               class="mail-server-auth-username"
               :label="EmailServerUsername"
@@ -222,7 +240,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="SlackFieldRequired"
               ></b-form-input>
             </b-form-group>
-            
+
             <!-- FIXME: add bootstrap rows for styling margins of these buttons -->
             <div class="button-group">
               <b-button variant="primary" class="general-save" type="submit">
@@ -238,7 +256,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <translate>Cancel</translate>
               </b-button>
             </div>
-          
+
           </b-form-group>
         </b-form>
 
@@ -322,6 +340,7 @@ export default {
         },
         email_notifications: {
           server_name: "",
+          skip_cert_check: false,
           server_port: 0,
           sender: "",
           recipients: "",
@@ -361,7 +380,7 @@ export default {
       return this.$gettext("Port");
     },
     EmailServerSecurityType: function() {
-      return this.$gettext("Connection SecurityType");
+      return this.$gettext("Connection Security Type");
     },
     EmailServerAuthMethod: function() {
       return this.$gettext("Authentication Method");
@@ -395,10 +414,22 @@ export default {
     },
     EmailNotificationsSecurityTypeOptions: function() {
       return [
-        {text: this.$gettext("None"), value: "none"}, 
-        {text: "STARTTLS", value: "STARTTLS", defaultPort: 587}, 
-        {text: "TLS", value: "TLS", defaultPort: 465}
+        {text: this.$gettext("None"), value: "none"},
+        {text: "STARTTLS", value: "STARTTLS"},
+        {text: "TLS", value: "TLS"}
       ];
+    },
+    EmailNotificationDefaultPortLabel: function() {
+      let options = {"STARTTLS": 587, "TLS": 465};
+      let selected = options[this.settings.email_notifications.security_type]
+
+      if (selected == undefined) {
+        return ""
+      }
+
+      let translation = this.$gettext("Default: %{port}")
+
+      return this.$gettextInterpolate(translation, {"port": selected})
     },
     EmailNotificationsAuthOptions: function() {
       return [{text: this.$gettext("No Authentication"), value: "none"}, {text: this.$gettext("Password"), value: "password"}];
@@ -446,6 +477,9 @@ export default {
     },
     PublicURLPlaceholder: function() {
       return this.$gettext("Enter Public URL");
+    },
+    InsecureTlsHelpText() {
+      return this.$gettext("Certificates will be used but not validated, allowing insecure connections");
     }
   },
   methods: {
@@ -472,6 +506,7 @@ export default {
         notification_language: this.settings.notifications.language,
 
         email_notification_server_name: this.settings.email_notifications.server_name,
+        email_notification_skip_cert_check: this.settings.email_notifications.skip_cert_check,
         email_notification_port: this.settings.email_notifications.server_port,
         email_notification_username: this.settings.email_notifications.username,
         email_notification_password: this.settings.email_notifications.password,

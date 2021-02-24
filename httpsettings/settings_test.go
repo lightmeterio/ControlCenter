@@ -434,15 +434,16 @@ func TestEmailNotifications(t *testing.T) {
 
 		Convey("Fail due wrong configuration (username)", func() {
 			r, err := c.PostForm(settingsURL, url.Values{
-				"email_notification_enabled":       {"true"},
-				"email_notification_server_name":   {"localhost"},
-				"email_notification_port":          {"10027"},
-				"email_notification_security_type": {"none"},
-				"email_notification_auth_method":   {"password"},
-				"email_notification_username":      {"wronguser@example.com"},
-				"email_notification_password":      {"super_password"},
-				"email_notification_sender":        {"sender@example.com"},
-				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+				"email_notification_enabled":         {"true"},
+				"email_notification_skip_cert_check": {"false"},
+				"email_notification_server_name":     {"localhost"},
+				"email_notification_port":            {"10027"},
+				"email_notification_security_type":   {"none"},
+				"email_notification_auth_method":     {"password"},
+				"email_notification_username":        {"wronguser@example.com"},
+				"email_notification_password":        {"super_password"},
+				"email_notification_sender":          {"sender@example.com"},
+				"email_notification_recipients":      {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
 			})
 
 			So(err, ShouldBeNil)
@@ -453,15 +454,16 @@ func TestEmailNotifications(t *testing.T) {
 
 		Convey("Succeeds, but it's disabled", func() {
 			r, err := c.PostForm(settingsURL, url.Values{
-				"email_notification_enabled":       {"false"},
-				"email_notification_server_name":   {"localhost"},
-				"email_notification_port":          {"10027"},
-				"email_notification_security_type": {"none"},
-				"email_notification_auth_method":   {"password"},
-				"email_notification_username":      {"user@example.com"},
-				"email_notification_password":      {"super_password"},
-				"email_notification_sender":        {"sender@example.com"},
-				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+				"email_notification_enabled":         {"false"},
+				"email_notification_skip_cert_check": {"false"},
+				"email_notification_server_name":     {"localhost"},
+				"email_notification_port":            {"10027"},
+				"email_notification_security_type":   {"none"},
+				"email_notification_auth_method":     {"password"},
+				"email_notification_username":        {"user@example.com"},
+				"email_notification_password":        {"super_password"},
+				"email_notification_sender":          {"sender@example.com"},
+				"email_notification_recipients":      {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
 			})
 
 			So(err, ShouldBeNil)
@@ -479,15 +481,16 @@ func TestEmailNotifications(t *testing.T) {
 
 		Convey("Succeeds to setup and sends one notification", func() {
 			r, err := c.PostForm(settingsURL, url.Values{
-				"email_notification_enabled":       {"true"},
-				"email_notification_server_name":   {"localhost"},
-				"email_notification_port":          {"10027"},
-				"email_notification_security_type": {"none"},
-				"email_notification_auth_method":   {"password"},
-				"email_notification_username":      {"user@example.com"},
-				"email_notification_password":      {"super_password"},
-				"email_notification_sender":        {"sender@example.com"},
-				"email_notification_recipients":    {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+				"email_notification_enabled":         {"true"},
+				"email_notification_skip_cert_check": {"false"},
+				"email_notification_server_name":     {"localhost"},
+				"email_notification_port":            {"10027"},
+				"email_notification_security_type":   {"none"},
+				"email_notification_auth_method":     {"password"},
+				"email_notification_username":        {"user@example.com"},
+				"email_notification_password":        {"super_password"},
+				"email_notification_sender":          {"sender@example.com"},
+				"email_notification_recipients":      {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
 			})
 
 			So(err, ShouldBeNil)
