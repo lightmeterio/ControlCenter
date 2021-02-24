@@ -517,7 +517,12 @@ export default {
         email_notification_enabled: this.settings.email_notifications.enabled,
       };
 
-      submitNotificationsSettingsForm(data);
+      let slackTrackingOptions = {true: "SlackEnabled", false: "SlackDisabled"}
+      let emailTrackingOptions = {true: "EmailEnabled", false: "EmailDisabled"}
+
+      let trackingInfo = [slackTrackingOptions[this.settings.slack_notifications.enabled], emailTrackingOptions[this.settings.email_notifications.enabled]];
+
+      submitNotificationsSettingsForm(data, trackingInfo);
     }
   },
   mounted() {
