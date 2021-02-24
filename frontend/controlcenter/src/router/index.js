@@ -34,6 +34,11 @@ const routes = [
     component: settingspage
   },
   {
+    path: "/insight-card/:id",
+    name: "insight-card",
+    component: index
+  },
+  {
     path: "*",
     name: "any",
     redirect: { name: "index" }
