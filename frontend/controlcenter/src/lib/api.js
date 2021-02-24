@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
-import { trackEvent } from "@/lib/util";
+import { trackEvent, trackEventArray } from "@/lib/util";
 
 import axios from "axios";
 axios.defaults.withCredentials = true;
@@ -33,7 +33,7 @@ export function submitLoginForm(formData, callback) {
     .catch(builderErrorHandler("login"));
 }
 
-export function submitNotificationsSettingsForm(data) {
+export function submitNotificationsSettingsForm(data, trackingInfo) {
   let notificationsSettingsFormData = getFormData(data);
 
   return axios
@@ -42,7 +42,7 @@ export function submitNotificationsSettingsForm(data) {
       new URLSearchParams(notificationsSettingsFormData)
     )
     .then(function() {
-      trackEvent("SaveNotificationSettings", "success");
+      trackEventArray("SaveNotificationSettings", ["success"].concat(trackingInfo));
       alert(Vue.prototype.$gettext("Saved notification settings"));
     })
     .catch(builderErrorHandler("settings"));
