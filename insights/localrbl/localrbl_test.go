@@ -48,6 +48,7 @@ type fakeChecker struct {
 	scanResultsShouldChange        bool
 	scanCount                      int
 	t                              *testing.T
+	textCounter                    int
 }
 
 func (c *fakeChecker) Close() error {
@@ -93,9 +94,13 @@ func (c *fakeChecker) Step(now time.Time, withResults func(localrbl.Results) err
 			return "some.rbl.checker.com"
 		}()
 
+		text := fmt.Sprintf("Something Really Bad with counter = %d", c.textCounter)
+
+		c.textCounter++
+
 		r := withResults(localrbl.Results{
 			Interval: timeutil.TimeInterval{From: c.scanStartTime, To: now},
-			RBLs:     []localrbl.ContentElement{{RBL: url, Text: "Something Really Bad"}},
+			RBLs:     []localrbl.ContentElement{{RBL: url, Text: text}},
 		})
 
 		return r
@@ -310,7 +315,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].Content(), ShouldResemble, &content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
-							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 0"}},
 						})
 
 						// this insight is generated with the same content as it's generated after
@@ -321,7 +326,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].Content(), ShouldResemble, &content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 48), To: baseTime.Add(time.Second * 68)},
 							Address:      net.ParseIP("11.22.33.44"),
-							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 2"}},
 						})
 					})
 
@@ -369,7 +374,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].Content(), ShouldResemble, &content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
-							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad"}},
+							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 0"}},
 						})
 
 						// generated as its content differs from the content from the previous insight
@@ -380,7 +385,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].Content(), ShouldResemble, &content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 24), To: baseTime.Add(time.Second * 37)},
 							Address:      net.ParseIP("11.22.33.44"),
-							RBLs:         []localrbl.ContentElement{{RBL: "2.some.other.checker.de", Text: "Something Really Bad"}},
+							RBLs:         []localrbl.ContentElement{{RBL: "2.some.other.checker.de", Text: "Something Really Bad with counter = 1"}},
 						})
 					})
 				})
