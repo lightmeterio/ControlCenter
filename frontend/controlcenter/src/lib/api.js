@@ -42,7 +42,10 @@ export function submitNotificationsSettingsForm(data, trackingInfo) {
       new URLSearchParams(notificationsSettingsFormData)
     )
     .then(function() {
-      trackEventArray("SaveNotificationSettings", ["success"].concat(trackingInfo));
+      for (let i in trackingInfo) {
+        trackEventArray("SaveNotificationSettings", [i, trackingInfo[i]]);
+      }
+
       alert(Vue.prototype.$gettext("Saved notification settings"));
     })
     .catch(builderErrorHandler("settings"));
