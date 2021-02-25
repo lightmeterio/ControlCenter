@@ -15,6 +15,7 @@ const (
 	PayloadTypeSmtpdConnect
 	PayloadTypeSmtpdDisconnect
 	PayloadTypeSmtpdMailAccepted
+	PayloadTypeSmtpdReject
 	PayloadTypeCleanupMessageAccepted
 	PayloadTypeBounceCreated
 	PayloadTypePickup

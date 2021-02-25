@@ -111,3 +111,36 @@ func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
 
   return r, false
 }
+
+%% machine smtpdReject;
+%% write data;
+
+// TODO: accept additional metadata (sasl_method and sasl_username)
+func parseSmtpdReject(data []byte) (SmtpdReject, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := SmtpdReject{}
+
+%%{
+	include common "common.rl";
+
+  queue = queueId >setTokBeg %{
+    r.Queue = data[tokBeg:p] 
+  };
+
+  extraMessage = any+ >setTokBeg;
+
+  main := queue ': reject: ' extraMessage @{
+    r.ExtraMessage = data[tokBeg:eof] 
+    return r, true
+  };
+
+  write init;
+  write exec;
+}%%
+
+  return r, false
+}

@@ -591,3 +591,14 @@ func TestCleanupMilterReject(t *testing.T) {
 		So(p.ExtraMessage, ShouldEqual, `END-OF-MESSAGE from h-ca74a0a011076cd81347f8f11e[254.65.43.194]: 4.7.1 Try again later; from=<bounce+1b6a63.922c68-user=h-ffd2115d4f@h-79b594737831a5d176dabf9.com> to=<h-7abde52c2@h-ffd2115d4f.com> proto=ESMTP helo=<h-ca74a0a011076cd81347f8f11e>`)
 	})
 }
+
+func TestSmtpdReject(t *testing.T) {
+	Convey("Smtpd reject", t, func() {
+		_, payload, err := Parse([]byte(`Feb  8 21:28:47 mx postfix/smtps/smtpd[1036]: DE81A2E2DAA: reject: RCPT from unknown[2a02:168:636a::15e2]: 550 5.1.1 <h-c715634009216@h-14dc4a6d.com>: Recipient address rejected: User unknown in virtual mailbox table; from=<h-d2315d@h-24e89d.com> to=<h-c715634009216@h-14dc4a6d.com> proto=ESMTP helo=<[IPv6:2a02:168:636a::15e2]>`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(SmtpdReject)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, "DE81A2E2DAA")
+		So(p.ExtraMessage, ShouldEqual, `RCPT from unknown[2a02:168:636a::15e2]: 550 5.1.1 <h-c715634009216@h-14dc4a6d.com>: Recipient address rejected: User unknown in virtual mailbox table; from=<h-d2315d@h-24e89d.com> to=<h-c715634009216@h-14dc4a6d.com> proto=ESMTP helo=<[IPv6:2a02:168:636a::15e2]>`)
+	})
+}

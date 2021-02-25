@@ -49,6 +49,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		return PickupActionType, emptyActionDataPair
 	case parser.CleanupMilterReject:
 		return MilterRejectActionType, emptyActionDataPair
+	case parser.SmtpdReject:
+		return RejectActionType, emptyActionDataPair
 	}
 
 	return UnsupportedActionType, emptyActionDataPair
@@ -362,6 +364,7 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, act
 		kvData{key: QueueMessageIDKey, value: p.MessageId},
 		kvData{key: MessageIdFilenameKey, value: r.Location.Filename},
 		kvData{key: MessageIdLineKey, value: r.Location.Line},
+		kvData{key: MessageIdIsCorruptedKey, value: p.Corrupted},
 	)
 
 	if err != nil {
@@ -797,6 +800,30 @@ func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 	log.Warn().Msgf("Mail rejected by milter, queue: %s on %s:%v", p.Queue, r.Location.Filename, r.Location.Line)
 
 	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if _, err := tryToDeleteQueue(tx, t.stmts, queueId, r.Location); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	// TODO: Notify someone about the rejected message
+	// FIXME: this is almost copy&paste from milterRejectAction!!!
+
+	p := r.Payload.(parser.SmtpdReject)
+
+	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		log.Err(err).Msgf("Message probably already rejected with queue %s at %v", p.Queue, r.Location)
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

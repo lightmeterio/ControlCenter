@@ -13,6 +13,7 @@ func init() {
 	registerHandler(rawparser.PayloadTypeSmtpdConnect, convertSmtpdConnect)
 	registerHandler(rawparser.PayloadTypeSmtpdDisconnect, convertSmtpdDisconnect)
 	registerHandler(rawparser.PayloadTypeSmtpdMailAccepted, convertSmtpdMailAccepted)
+	registerHandler(rawparser.PayloadTypeSmtpdReject, convertSmtpdReject)
 }
 
 type SmtpdConnect struct {
@@ -85,5 +86,23 @@ func convertSmtpdMailAccepted(r rawparser.RawPayload) (Payload, error) {
 		Host:  string(p.Host),
 		IP:    ip,
 		Queue: string(p.Queue),
+	}, nil
+}
+
+type SmtpdReject struct {
+	Queue        string
+	ExtraMessage string
+}
+
+func (SmtpdReject) isPayload() {
+	// required by Payload interface
+}
+
+func convertSmtpdReject(r rawparser.RawPayload) (Payload, error) {
+	p := r.SmtpdReject
+
+	return SmtpdReject{
+		Queue:        string(p.Queue),
+		ExtraMessage: string(p.ExtraMessage),
 	}, nil
 }

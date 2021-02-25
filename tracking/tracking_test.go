@@ -500,6 +500,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(pub.results[0][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)
 					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "CACACACA")
 					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "h-58c98222ea74bdf467d69d856d@h-028957b9aefc40.com")
+					So(pub.results[0][MessageIdIsCorruptedKey].Int64(), ShouldEqual, 0)
 
 					So(countQueues(), ShouldEqual, 0)
 					So(countQueueData(), ShouldEqual, 0)
@@ -529,6 +530,22 @@ func TestTrackingFromFiles(t *testing.T) {
 					cancel()
 					done()
 
+					So(len(pub.results), ShouldEqual, 1)
+
+					So(pub.results[0][MessageIdIsCorruptedKey].Int64(), ShouldEqual, 1)
+
+					So(countQueues(), ShouldEqual, 0)
+					So(countQueueData(), ShouldEqual, 0)
+					So(countConnections(), ShouldEqual, 0)
+					So(countConnectionData(), ShouldEqual, 0)
+					So(countPids(), ShouldEqual, 0)
+				})
+
+				Convey("Message rejected by smtpd", func() {
+					readFromTestFile("test_files/17-smtpd-reject.log", t.Publisher())
+					cancel()
+					done()
+
 					So(len(pub.results), ShouldEqual, 0)
 
 					So(countQueues(), ShouldEqual, 0)
@@ -538,6 +555,21 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countPids(), ShouldEqual, 0)
 				})
 
+				Convey("Message rejected by smtpd before milter-reject", func() {
+					// I don't know why, probably it was an attack, as the messageid can be set by the smtp client
+					// or maybe syslog just failed to log the right message?!
+					readFromTestFile("test_files/17-smtpd-reject-with-milter-reject.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 0)
+
+					So(countQueues(), ShouldEqual, 0)
+					So(countQueueData(), ShouldEqual, 0)
+					So(countConnections(), ShouldEqual, 0)
+					So(countConnectionData(), ShouldEqual, 0)
+					So(countPids(), ShouldEqual, 0)
+				})
 			})
 
 			// we expected all results to have been consumed

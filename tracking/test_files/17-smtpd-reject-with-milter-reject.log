@@ -1,0 +1,7 @@
+Feb 16 22:23:09 mx postfix/smtpd[17727]: connect from h-72f555a0840e4b9553[117.165.155.187]
+Feb 16 22:23:11 mx postfix/smtpd[17727]: 769FF2E0760: client=h-72f555a0840e4b9553[117.165.155.187]
+Feb 16 22:23:11 mx postfix/smtpd[17727]: 769FF2E0760: reject: RCPT from h-72f555a0840e4b9553[117.165.155.187]: 550 5.1.1 <h-f91a317fd08716dbf2@h-ff6b5e9182fd933.com>: Recipient address rejected: User unknown in virtual mailbox table; from=<h-59bd@h-183bcda0e2fe4.com> to=<h-f91a317fd08716dbf2@h-ff6b5e9182fd933.com> proto=ESMTP helo=<h-72f555a0840e4b9553>
+Feb 16 22:23:11 mx postfix/smtpd[17727]: 769FF2E0760: reject: RCPT from h-72f555a0840e4b9553[117.165.155.187]: 550 5.1.1 <h-0b38f31d8f5146498e8862@h-ff6b5e9182fd933.com>: Recipient address rejected: User unknown in virtual mailbox table; from=<h-59bd@h-183bcda0e2fe4.com> to=<h-0b38f31d8f5146498e8862@h-ff6b5e9182fd933.com> proto=ESMTP helo=<h-72f555a0840e4b9553>
+Feb 16 22:23:11 mx postfix/cleanup[9060]: 769FF2E0760: message-id=<h-ac2fba55336db185e4f958de4fc@h-72f555a0840e4b9553.com>
+Feb 16 22:23:12 mx postfix/cleanup[9060]: 769FF2E0760: milter-reject: END-OF-MESSAGE from h-72f555a0840e4b9553[117.165.155.187]: 5.7.1 Spam message rejected; from=<h-59bd@h-183bcda0e2fe4.com> to=<h-688f0f21f362894034ba55@h-ff6b5e9182fd933.com> proto=ESMTP helo=<h-72f555a0840e4b9553>
+
