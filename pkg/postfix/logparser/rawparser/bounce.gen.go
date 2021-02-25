@@ -170,7 +170,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st2
 	st2:
@@ -566,7 +566,7 @@ tr3:
 		}
 		goto st0
 tr43:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 //line bounce.rl:29
 

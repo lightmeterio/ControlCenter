@@ -24,7 +24,7 @@ func parseSmtpdConnect(data []byte) (SmtpdConnect, bool) {
     r.Host = data[tokBeg:p] 
   }; 
 
-  ip = ipv4 >setTokBeg %{
+  ip = squareBracketedValue >setTokBeg %{
     r.IP = data[tokBeg:p] 
   };
 
@@ -57,7 +57,7 @@ func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
     r.Host = data[tokBeg:p] 
   }; 
 
-  ip = ipv4 >setTokBeg %{
+  ip = squareBracketedValue >setTokBeg %{
     r.IP = data[tokBeg:p] 
   };
 
@@ -96,7 +96,7 @@ func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
     r.Host = data[tokBeg:p] 
   }; 
 
-  ip = ipv4 >setTokBeg %{
+  ip = squareBracketedValue >setTokBeg %{
     r.IP = data[tokBeg:p] 
   };
 

@@ -303,7 +303,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					readFromTestFile("test_files/4_lost_queue.log", t.Publisher())
 					cancel()
 					done()
-					So(len(pub.results), ShouldEqual, 3)
+					So(len(pub.results), ShouldEqual, 0)
 				})
 
 				Convey("A mail sent with zimbra and amavisd", func() {
@@ -507,6 +507,37 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
 				})
+
+				Convey("Message rejected by milter-reject", func() {
+					readFromTestFile("test_files/15_milter-reject.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 0)
+
+					So(countQueues(), ShouldEqual, 0)
+					So(countQueueData(), ShouldEqual, 0)
+					So(countConnections(), ShouldEqual, 0)
+					So(countConnectionData(), ShouldEqual, 0)
+					So(countPids(), ShouldEqual, 0)
+				})
+
+				Convey("Message rejected due corrupted messageid", func() {
+					// I don't know why, probably it was an attack, as the messageid can be set by the smtp client
+					// or maybe syslog just failed to log the right message?!
+					readFromTestFile("test_files/16_corrupted_messageid.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 0)
+
+					So(countQueues(), ShouldEqual, 0)
+					So(countQueueData(), ShouldEqual, 0)
+					So(countConnections(), ShouldEqual, 0)
+					So(countConnectionData(), ShouldEqual, 0)
+					So(countPids(), ShouldEqual, 0)
+				})
+
 			})
 
 			// we expected all results to have been consumed

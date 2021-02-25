@@ -269,42 +269,70 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.Status, ShouldEqual, BouncedStatus)
 	})
 
-	Convey("Log line with optional orig_to", t, func() {
-		header, parsed, err := Parse([]byte(`May  5 00:00:00 mail postfix/smtp[17709]: AB5501855DA0: to=<to@mail.com>, ` +
-			`orig_to=<orig_to@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.87, delays=0.68/0.01/0/0.18, ` +
-			`dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`))
-		So(err, ShouldBeNil)
-		So(parsed, ShouldNotBeNil)
-		p, cast := parsed.(SmtpSentStatus)
-		So(cast, ShouldBeTrue)
+	Convey("Log line with extra message: queued", t, func() {
+		Convey("Optional orig_to filled", func() {
+			header, parsed, err := Parse([]byte(`May  5 00:00:00 mail postfix/smtp[17709]: AB5501855DA0: to=<to@mail.com>, ` +
+				`orig_to=<orig_to@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.87, delays=0.68/0.01/0/0.18, ` +
+				`dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`))
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
 
-		So(header.Time.Day, ShouldEqual, 5)
-		So(header.Time.Month, ShouldEqual, time.May)
-		So(header.Time.Hour, ShouldEqual, 0)
-		So(header.Time.Minute, ShouldEqual, 0)
-		So(header.Time.Second, ShouldEqual, 0)
-		So(header.Host, ShouldEqual, "mail")
-		So(header.Process, ShouldEqual, "postfix")
-		So(header.Daemon, ShouldEqual, "smtp")
+			So(header.Time.Day, ShouldEqual, 5)
+			So(header.Time.Month, ShouldEqual, time.May)
+			So(header.Time.Hour, ShouldEqual, 0)
+			So(header.Time.Minute, ShouldEqual, 0)
+			So(header.Time.Second, ShouldEqual, 0)
+			So(header.Host, ShouldEqual, "mail")
+			So(header.Process, ShouldEqual, "postfix")
+			So(header.Daemon, ShouldEqual, "smtp")
 
-		So(p.Queue, ShouldEqual, "AB5501855DA0")
-		So(p.RecipientLocalPart, ShouldEqual, "to")
-		So(p.RecipientDomainPart, ShouldEqual, "mail.com")
-		So(p.OrigRecipientLocalPart, ShouldEqual, "orig_to")
-		So(p.OrigRecipientDomainPart, ShouldEqual, "example.com")
-		So(p.RelayName, ShouldEqual, "127.0.0.1")
-		So(p.Status, ShouldEqual, SentStatus)
-		So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`)
+			So(p.Queue, ShouldEqual, "AB5501855DA0")
+			So(p.RecipientLocalPart, ShouldEqual, "to")
+			So(p.RecipientDomainPart, ShouldEqual, "mail.com")
+			So(p.OrigRecipientLocalPart, ShouldEqual, "orig_to")
+			So(p.OrigRecipientDomainPart, ShouldEqual, "example.com")
+			So(p.RelayName, ShouldEqual, "127.0.0.1")
+			So(p.Status, ShouldEqual, SentStatus)
+			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`)
 
-		e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
-		So(cast, ShouldBeTrue)
-		So(e.Port, ShouldEqual, 10025)
-		So(e.IP, ShouldEqual, net.ParseIP("127.0.0.1"))
-		So(e.Queue, ShouldEqual, "2F01D1855DB2")
+			e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
+			So(cast, ShouldBeTrue)
+			So(e.Port, ShouldEqual, 10025)
+			So(e.IP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(e.Queue, ShouldEqual, "2F01D1855DB2")
 
-		// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
-		So(e.SmtpCode, ShouldEqual, 250)
-		So(e.Dsn, ShouldEqual, "2.0.0")
+			// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
+			So(e.SmtpCode, ShouldEqual, 250)
+			So(e.Dsn, ShouldEqual, "2.0.0")
+		})
+
+		Convey("Apparently shorted extra message (I still don't know why...)", func() {
+			_, parsed, err := Parse([]byte(`Jan 25 20:11:27 mx postfix/smtp[8038]: D1CB62E0A23: to=<h-5c3@h-092c585d.com>, ` +
+				`relay=h-bf6f84bb0157e81a7fa40b[135.55.127.35]:25, delay=0.61, delays=0.21/0.01/0.28/0.11, dsn=2.0.0, status=sent ` +
+				`(250 2.0.0 Ok: queued as 5744140325)`))
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, "D1CB62E0A23")
+			So(p.RecipientLocalPart, ShouldEqual, "h-5c3")
+			So(p.RecipientDomainPart, ShouldEqual, "h-092c585d.com")
+			So(p.RelayName, ShouldEqual, "h-bf6f84bb0157e81a7fa40b")
+			So(p.RelayPort, ShouldEqual, 25)
+			So(p.Status, ShouldEqual, SentStatus)
+			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 Ok: queued as 5744140325)`)
+
+			e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
+			So(cast, ShouldBeTrue)
+			So(e.Queue, ShouldEqual, "5744140325")
+
+			// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
+			So(e.SmtpCode, ShouldEqual, 250)
+			So(e.Dsn, ShouldEqual, "2.0.0")
+		})
 	})
 
 	Convey("Log line with optional orig_to as root", t, func() {
@@ -342,6 +370,25 @@ func TestQmgrParsing(t *testing.T) {
 		So(p.SenderLocalPart, ShouldEqual, "redacted")
 		So(p.SenderDomainPart, ShouldEqual, "company.com")
 		So(p.Queue, ShouldEndWith, "B54DA300087")
+	})
+}
+
+func TestPipe(t *testing.T) {
+	Convey("Pipe has the same struct as smtp delivery message", t, func() {
+		Convey("Example1", func() {
+			_, parsed, err := Parse([]byte(`Jan 25 19:25:19 mx postfix/pipe[6221]: 03EAC2E0EDD: to=<h-7abde52c2@h-ffd2115d4f.com>, relay=dovecot, delay=5.5, delays=5.3/0.01/0/0.16, dsn=2.0.0, status=sent (delivered via dovecot service)`))
+			So(parsed, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, "03EAC2E0EDD")
+			So(p.RecipientLocalPart, ShouldEqual, "h-7abde52c2")
+			So(p.RecipientDomainPart, ShouldEqual, "h-ffd2115d4f.com")
+			So(p.RelayName, ShouldEqual, "dovecot")
+			So(p.Status, ShouldEqual, SentStatus)
+			So(p.ExtraMessage, ShouldEqual, `(delivered via dovecot service)`)
+		})
 	})
 }
 
@@ -402,6 +449,7 @@ func TestCleanupProcessing(t *testing.T) {
 			p, cast := payload.(CleanupMessageAccepted)
 			So(cast, ShouldBeTrue)
 			So(p.MessageId, ShouldEqual, "ca10035e-2951-bfd5-ec7e-1a5773fce1cd@mail.sender.com")
+			So(p.Corrupted, ShouldBeFalse)
 		})
 
 		Convey("free form like message", func() {
@@ -409,9 +457,47 @@ func TestCleanupProcessing(t *testing.T) {
 			So(err, ShouldBeNil)
 			p, cast := payload.(CleanupMessageAccepted)
 			So(cast, ShouldBeTrue)
+			So(p.Corrupted, ShouldBeFalse)
 			So(p.MessageId, ShouldEqual, "656587JHGJHG")
 		})
 
+		Convey("free form like message, with a datetime?!", func() {
+			_, payload, err := Parse([]byte(`Jan 25 10:00:04 mx postfix/cleanup[21978]: AF98F2E0768: message-id=2021-01-25 10:00:05.006274`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.Corrupted, ShouldBeFalse)
+			So(p.MessageId, ShouldEqual, `2021-01-25 10:00:05.006274`)
+		})
+
+		Convey("A very suspicious line, with text after the bracket", func() {
+			_, payload, err := Parse([]byte(`Jan 26 04:27:34 mx postfix/cleanup[1525]: 59DC92E2BB8: message-id=<h-22b35ef986ae4024dffa0@h-70550910e99892.com>+29A6080B6290BF43`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.Corrupted, ShouldBeTrue)
+			So(p.MessageId, ShouldEqual, `h-22b35ef986ae4024dffa0@h-70550910e99892.com`)
+		})
+
+		Convey("totally empty messageid. it should not happen, but does. and it's an error", func() {
+			_, payload, err := Parse([]byte(`Jan 29 17:27:21 mx postfix/cleanup[22582]: A55EA2E01B5: message-id=`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.Corrupted, ShouldBeTrue)
+			So(p.MessageId, ShouldEqual, ``)
+		})
+
+		Convey("corrupted bracketed messageid", func() {
+			// maybe this was an attack attempt (the messageid can be set via smtp by the sender),
+			// or just syslog that cropped the message. Who knows?
+			_, payload, err := Parse([]byte(`Jan 26 15:50:21 mx postfix/cleanup[22403]: 1A3642E0C5C: message-id=<eyJyZXBseV90byI6Im5ldWZlcnRAaW5ub3YuZW5lcmd5IiwiYnhfbXNnX2lkIjoiODUwNmViOTYtMzNlNS00ZWI4LWE4NzItZDI2NjBiMWMyZWJiIiwiYnhfY29tcGFueV9pZCI6ImpwdHdkdjNxNWVzayIsInN1YmplY3QiOiJBbmdlYm90IHNhbGlkb21vIDkgb2huZSBOb3RzdHJvbS9VU1YgfCBQcm9qZWt0IERvYmxlciIsImJvZHkiOiJTZWhyIGdlZWhydGUvciBIZXJyIFJlbsOpIELDvGNoaSxcclxuXHJcbnZpZWxlbiBEYW5rIGbDvHIgSWhyZSBBbmZyYWdlIHVuZCBkYXMgZGFtaXQgdmVyYnVuZGVuZSBJbnRlcmVzc2UgYW4gdW5zZXJlbSBzYWxpZG9tby1TYWx6YmF0dGVyaWVzcGVpY2hlcnN5c3RlbS4gXHJcblxyXG5HZXJuZSB1bnRlcmJyZWl0ZW4gd2lyIElobmVuIHVuc2VyIEFuZ2Vib3QgS0QtQUdCLTIwMjEtMDEtMjYtMTAzMDkwLTAyMSB2b20gMjYuMDEuMjAyMSDDvGJlciBDSEYgMTcnNjQxLjI2LlxyXG5cclxuVW50ZXIgZm9sZ2VuZGVtIExpbmsga8O2bm5lbiBTaWUgZGFzIGdlc2FtdGUgQW5nZWJvdCBhbnNlaGVuOlxyXG5odHRwczovL25ldHdvcmsuYmV4aW8uY29tL29mZmVyLzU0MGQyYTcyNzBiYTE2YjFjNGQwZTgzMWVmOTA4YjZjZmU4YWFmOGFhZWQwZDBkMzliYzdhOGZkNzY5ZjY1Y2RcclxuXHJcblp1ciBBdXNsw7ZzdW5nIGRlcyBBdWZ0cmFncyBiZXN0w6R0aWdlbiBTaWUgYml0dGUgaW0gSGVhZGVyIGRlcyBPbmxpbmUtQW5nZWJvdGVzIGRlbiBBa3plcHRpZXJlb? i1CdXR0b24uIFNpZSBlcmhhbHRlbiBkYW5uIHVtZ2VoZW5kIHZvbiB1bnMgZWluZSBBdWZ0cmFnc2Jlc3TDpHRpZ3VuZy5cclxuXHJcbldpciBob2ZmZW4sIGRhc3MgZGFzIEFuZ2Vib3QgSWhyZW4gQW5mb3JkZXJ1bmdlbiBlbnRzcHJpY2h0IHVuZCBmcmV1ZW4gdW5zIGF1ZiBkaWUgWnVzYW1tZW5hcmJlaXQuIEbDvHIgUsO8Y2tmcmFnZW4gdW5kIHdlaXRlcmUgSW5mb3JtYXRpb25lbiBzdGVoZW4gd2lyIGdlcm4genVyIFZlcmbDvGd1bmc6IFxyXG5vZmZlcnRlQGlubm92LmVuZXJneSBvZGVyICs0MSAzMyA1NTIgMTAgMTBcclxuXHJcbk1pdCBmcmV1bmRsaWNoZW4gR3LDvHNzZW5cclxuXHJcbk1heCBVcnNpbiAvIFBldGVyIFJ1dGhcclxuSW5ub3ZlbmVyZ3kgR21iSFxyXG5fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1xyXG5cclxuV2VpdGVyZSBJbmZvcm1hdGlvbmVuIHp1IGlubm92ZW5lcmd5IHVuZCBkZW4gU2FsemJhdHRlcmllc3BlaWNoZXJsw7ZzdW5nZW4gZmluZGVuIFNpZSB1bnRlcjogXHJcbnd3dy5pbm5vdi5lbmVyZ3lcclxuX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18iLCJzbXRwX2lkIjoiPDE2NjE5NzExMDMuNzEyLjE2MTE2NzI2MTkzMTdAZW1haWwtc2VydmljZS05Nm? Y3ZmI`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(CleanupMessageAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.MessageId, ShouldEqual, `eyJyZXBseV90byI6Im5ldWZlcnRAaW5ub3YuZW5lcmd5IiwiYnhfbXNnX2lkIjoiODUwNmViOTYtMzNlNS00ZWI4LWE4NzItZDI2NjBiMWMyZWJiIiwiYnhfY29tcGFueV9pZCI6ImpwdHdkdjNxNWVzayIsInN1YmplY3QiOiJBbmdlYm90IHNhbGlkb21vIDkgb2huZSBOb3RzdHJvbS9VU1YgfCBQcm9qZWt0IERvYmxlciIsImJvZHkiOiJTZWhyIGdlZWhydGUvciBIZXJyIFJlbsOpIELDvGNoaSxcclxuXHJcbnZpZWxlbiBEYW5rIGbDvHIgSWhyZSBBbmZyYWdlIHVuZCBkYXMgZGFtaXQgdmVyYnVuZGVuZSBJbnRlcmVzc2UgYW4gdW5zZXJlbSBzYWxpZG9tby1TYWx6YmF0dGVyaWVzcGVpY2hlcnN5c3RlbS4gXHJcblxyXG5HZXJuZSB1bnRlcmJyZWl0ZW4gd2lyIElobmVuIHVuc2VyIEFuZ2Vib3QgS0QtQUdCLTIwMjEtMDEtMjYtMTAzMDkwLTAyMSB2b20gMjYuMDEuMjAyMSDDvGJlciBDSEYgMTcnNjQxLjI2LlxyXG5cclxuVW50ZXIgZm9sZ2VuZGVtIExpbmsga8O2bm5lbiBTaWUgZGFzIGdlc2FtdGUgQW5nZWJvdCBhbnNlaGVuOlxyXG5odHRwczovL25ldHdvcmsuYmV4aW8uY29tL29mZmVyLzU0MGQyYTcyNzBiYTE2YjFjNGQwZTgzMWVmOTA4YjZjZmU4YWFmOGFhZWQwZDBkMzliYzdhOGZkNzY5ZjY1Y2RcclxuXHJcblp1ciBBdXNsw7ZzdW5nIGRlcyBBdWZ0cmFncyBiZXN0w6R0aWdlbiBTaWUgYml0dGUgaW0gSGVhZGVyIGRlcyBPbmxpbmUtQW5nZWJvdGVzIGRlbiBBa3plcHRpZXJlb? i1CdXR0b24uIFNpZSBlcmhhbHRlbiBkYW5uIHVtZ2VoZW5kIHZvbiB1bnMgZWluZSBBdWZ0cmFnc2Jlc3TDpHRpZ3VuZy5cclxuXHJcbldpciBob2ZmZW4sIGRhc3MgZGFzIEFuZ2Vib3QgSWhyZW4gQW5mb3JkZXJ1bmdlbiBlbnRzcHJpY2h0IHVuZCBmcmV1ZW4gdW5zIGF1ZiBkaWUgWnVzYW1tZW5hcmJlaXQuIEbDvHIgUsO8Y2tmcmFnZW4gdW5kIHdlaXRlcmUgSW5mb3JtYXRpb25lbiBzdGVoZW4gd2lyIGdlcm4genVyIFZlcmbDvGd1bmc6IFxyXG5vZmZlcnRlQGlubm92LmVuZXJneSBvZGVyICs0MSAzMyA1NTIgMTAgMTBcclxuXHJcbk1pdCBmcmV1bmRsaWNoZW4gR3LDvHNzZW5cclxuXHJcbk1heCBVcnNpbiAvIFBldGVyIFJ1dGhcclxuSW5ub3ZlbmVyZ3kgR21iSFxyXG5fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1xyXG5cclxuV2VpdGVyZSBJbmZvcm1hdGlvbmVuIHp1IGlubm92ZW5lcmd5IHVuZCBkZW4gU2FsemJhdHRlcmllc3BlaWNoZXJsw7ZzdW5nZW4gZmluZGVuIFNpZSB1bnRlcjogXHJcbnd3dy5pbm5vdi5lbmVyZ3lcclxuX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18iLCJzbXRwX2lkIjoiPDE2NjE5NzExMDMuNzEyLjE2MTE2NzI2MTkzMTdAZW1haWwtc2VydmljZS05Nm? Y3ZmI`)
+			So(p.Corrupted, ShouldBeTrue)
+		})
 	})
 }
 
@@ -424,5 +510,84 @@ func TestPickup(t *testing.T) {
 		So(p.Queue, ShouldEqual, `08ACF1541B01`)
 		So(p.Uid, ShouldEqual, 42)
 		So(p.Sender, ShouldEqual, "someone")
+	})
+}
+
+func TestSmtpdConnect(t *testing.T) {
+	Convey("Test smtpd Connect", t, func() {
+		Convey("ipv4", func() {
+			_, payload, err := Parse([]byte(`Jan 25 20:17:06 mx postfix/smtpd[3946]: connect from unknown[224.93.112.97]`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdConnect)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`224.93.112.97`))
+		})
+
+		Convey("ipv6", func() {
+			_, payload, err := Parse([]byte(`Jan 25 20:12:52 mx postfix/smtps/smtpd[8377]: connect from unknown[1002:1712:4e2b:d061:5dff:19f:c85f:a48f]`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdConnect)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`1002:1712:4e2b:d061:5dff:19f:c85f:a48f`))
+		})
+	})
+}
+
+func TestSmtpdDisconnect(t *testing.T) {
+	Convey("Test smtpd Disconnect", t, func() {
+		Convey("ipv4", func() {
+			_, payload, err := Parse([]byte(`Jan 25 20:17:06 mx postfix/smtpd[3946]: disconnect from unknown[224.93.112.97] ehlo=1 auth=0/1 rset=1 quit=1 commands=3/4`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdDisconnect)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`224.93.112.97`))
+		})
+
+		Convey("ipv6", func() {
+			_, payload, err := Parse([]byte(`Jan 25 20:12:52 mx postfix/smtps/smtpd[8377]: disconnect from unknown[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 rset=1 quit=1 commands=3/4`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdDisconnect)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`1002:1712:4e2b:d061:5dff:19f:c85f:a48f`))
+		})
+	})
+}
+
+func TestSmtpdMailAccepted(t *testing.T) {
+	Convey("Test smtpd mail accepted", t, func() {
+		Convey("ipv4", func() {
+			_, payload, err := Parse([]byte(`Jan 25 06:32:43 mx postfix/smtpd[26382]: 477832E0134: client=h-a4984b7e1cf68ab295d77c5df3[224.93.112.97]`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdMailAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`224.93.112.97`))
+		})
+
+		Convey("ipv6", func() {
+			_, payload, err := Parse([]byte(`Jan 25 06:32:43 mx postfix/smtpd[26382]: 477832E0134: client=h-a4984b7e1cf68ab295d77c5df3[2aff:d7f:d:a::aaa]`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdMailAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`2aff:d7f:d:a::aaa`))
+		})
+
+		Convey("ipv6, short", func() {
+			_, payload, err := Parse([]byte(`Jan 25 18:50:11 mx postfix/smtpd[5178]: 0DAFB2E2D27: client=localhost[::1]`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdMailAccepted)
+			So(cast, ShouldBeTrue)
+			So(p.IP, ShouldEqual, net.ParseIP(`::1`))
+		})
+	})
+}
+
+func TestCleanupMilterReject(t *testing.T) {
+	Convey("Milter reject", t, func() {
+		_, payload, err := Parse([]byte(`Jan 25 18:54:51 mx postfix/cleanup[8966]: B37FD2E05B9: milter-reject: END-OF-MESSAGE from h-ca74a0a011076cd81347f8f11e[254.65.43.194]: 4.7.1 Try again later; from=<bounce+1b6a63.922c68-user=h-ffd2115d4f@h-79b594737831a5d176dabf9.com> to=<h-7abde52c2@h-ffd2115d4f.com> proto=ESMTP helo=<h-ca74a0a011076cd81347f8f11e>`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(CleanupMilterReject)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, "B37FD2E05B9")
+		So(p.ExtraMessage, ShouldEqual, `END-OF-MESSAGE from h-ca74a0a011076cd81347f8f11e[254.65.43.194]: 4.7.1 Try again later; from=<bounce+1b6a63.922c68-user=h-ffd2115d4f@h-79b594737831a5d176dabf9.com> to=<h-7abde52c2@h-ffd2115d4f.com> proto=ESMTP helo=<h-ca74a0a011076cd81347f8f11e>`)
 	})
 }

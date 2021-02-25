@@ -52,6 +52,7 @@ const (
 	MailBouncedActionType
 	BounceCreatedActionType
 	PickupActionType
+	MilterRejectActionType
 )
 
 type actionTuple struct {
@@ -104,6 +105,7 @@ var actions = map[ActionType]actionRecord{
 	MailBouncedActionType:       {impl: mailBouncedAction},
 	BounceCreatedActionType:     {impl: bounceCreatedAction},
 	PickupActionType:            {impl: pickupAction},
+	MilterRejectActionType:      {impl: milterRejectAction},
 }
 
 type trackerStmts [lastTrackerStmtKey]*sql.Stmt
