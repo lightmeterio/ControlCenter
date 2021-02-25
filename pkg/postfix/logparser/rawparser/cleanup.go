@@ -31,7 +31,6 @@ func parseCleanup(header RawHeader, payloadLine []byte) (RawPayload, error) {
 	}
 
 	return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
-
 }
 
 type CleanupMilterReject struct {

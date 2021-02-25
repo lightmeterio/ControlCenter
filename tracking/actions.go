@@ -814,7 +814,6 @@ func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// TODO: Notify someone about the rejected message
 	// FIXME: this is almost copy&paste from milterRejectAction!!!
-
 	p := r.Payload.(parser.SmtpdReject)
 
 	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)

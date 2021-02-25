@@ -376,7 +376,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 			if r := recover(); r != nil {
 				log.Error().Object("result", tr).Msg("Failed to store delivery message")
 
-				panic(r)
+				// panic(r)
 
 				// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
 				err = nil
