@@ -533,6 +533,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(len(pub.results), ShouldEqual, 1)
 
 					So(pub.results[0][MessageIdIsCorruptedKey].Int64(), ShouldEqual, 1)
+					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, int64(MessageDirectionIncoming))
 
 					So(countQueues(), ShouldEqual, 0)
 					So(countQueueData(), ShouldEqual, 0)
