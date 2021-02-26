@@ -609,7 +609,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 
 func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
 	direction := func() MessageDirection {
-		if strings.HasSuffix(h.Daemon, "lmtp") {
+		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") {
 			return MessageDirectionIncoming
 		}
 
