@@ -164,7 +164,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st2
 	st2:
@@ -272,7 +272,7 @@ tr3:
 		}
 		goto tr11
 tr11:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st11
 	st11:
@@ -305,7 +305,7 @@ tr13:
 		}
 		goto tr14
 tr14:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st13
 	st13:
@@ -871,7 +871,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st2
 	st2:
@@ -979,7 +979,7 @@ tr3:
 		}
 		goto tr11
 tr11:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st11
 	st11:
@@ -1012,7 +1012,7 @@ tr14:
 		}
 		goto tr15
 tr15:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st13
 	st13:
@@ -1105,7 +1105,7 @@ tr17:
 		}
 		goto st0
 tr25:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st22
 	st22:
@@ -1201,7 +1201,7 @@ tr26:
 		}
 		goto st0
 tr35:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st31
 	st31:
@@ -1499,7 +1499,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st2
 	st2:

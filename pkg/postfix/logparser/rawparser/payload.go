@@ -20,7 +20,9 @@ type RawPayload struct {
 	SmtpdConnect          SmtpdConnect
 	SmtpdDisconnect       SmtpdDisconnect
 	SmtpdMailAccepted     SmtpdMailAccepted
+	SmtpdReject           SmtpdReject
 	CleanupMesageAccepted CleanupMessageAccepted
+	CleanupMilterReject   CleanupMilterReject
 	BounceCreated         BounceCreated
 	Pickup                Pickup
 }

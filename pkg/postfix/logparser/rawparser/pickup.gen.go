@@ -100,7 +100,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr0:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st2
 	st2:
@@ -187,7 +187,7 @@ tr3:
 		}
 		goto st0
 tr9:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st9
 	st9:
@@ -274,7 +274,7 @@ tr10:
 		}
 		goto tr18
 tr18:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 	goto st17
 	st17:
@@ -288,7 +288,7 @@ tr18:
 		}
 		goto st17
 tr19:
-//line common.rl:23
+//line common.rl:25
  tokBeg = p 
 //line pickup.rl:31
 

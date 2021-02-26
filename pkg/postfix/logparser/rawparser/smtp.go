@@ -7,6 +7,7 @@ package rawparser
 func init() {
 	registerHandler("postfix", "smtp", parseSmtpPayload)
 	registerHandler("postfix", "lmtp", parseSmtpPayload)
+	registerHandler("postfix", "pipe", parseSmtpPayload)
 }
 
 type RawSmtpSentStatus struct {
