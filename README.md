@@ -25,18 +25,22 @@ SPDX-License-Identifier: AGPL-3.0-only
 ## Contents
 
 - [Introduction](#introduction)
+- [Supported Mail Transfer Agents](#supported-mail-transfer-agents)
 - [Quickstart](#quickstart)
 - [Install](#install)
+    - [Install from binaries](#install-from-binaries)
+    - [Docker image](#docker-image)
+    - [NixOS Package and Module](#nixos-package-and-module)
 - [Upgrade](#upgrade)
 - [Usage](#usage)
     - [Rotated files](#rotated-files)
     - [Imported logs](#imported-logs)
-    - [Docker image](#docker-image)
-    - [NixOS Package and Module](#nixos-package-and-module)
     - [API](#api)
     - [Headless mode](#headless-mode-no-web-ui)
     - [Authentication](#authentication)
-- [Feature details](#feature-details)
+- [Feature documentation](#feature-documentation)
+    - [Notifications](#notifications)
+    - [Domain mapping](#domain-mapping)
 - [Known issues](#known-issues)
 - [Development](#development)
     - [Frontend development with VueJs](#frontend-development-with-vuejs)
@@ -52,6 +56,10 @@ Welcome to Lightmeter Control Center, the Open Source mailops monitoring applica
 
 <img src="https://gitlab.com/lightmeter/controlcenter/-/raw/master/docs/assets/screenshot.png"  width="600"/>
 
+## Supported Mail Transfer Agents
+
+Currently Postfix MTA is supported. Future support for additional MTAs is planned.
+
 ## Quickstart
 
 1. Install Lightmeter Control Center as you prefer:
@@ -64,29 +72,7 @@ Welcome to Lightmeter Control Center, the Open Source mailops monitoring applica
 4. Open `http://localhost:8080/` to see the web interface
 5. If necessary, change the date range to see charts for the period of the logs you just imported
 
-## Supported Mail Transfer Agents
-
-Currently Postfix MTA is supported. Future support for additional MTAs is planned.
-
-## Install
-
-### Install from binaries
-
-We provide pre-build architecture dependent binaries at [Bintray](https://bintray.com/lightmeter/controlcenter/controlcenter) that
-should run on any modern Linux distribution. Just download them, set them as executable and executed as described in [Usage](##Usage).
-
-Your operating system should provide certificate authority certificates (ca-certificates package in many distributions) by default,
-but in case you are keeping your own CA certificates, you'll need to set the environment variable `SSL_CERT_DIR` to it.
-
-For instance, on Alpine linux, you can use, before executing the binary:
-
-```sh
-export SSL_CERT_DIR=/usr/share/ca-certificates/mozilla
-```
-
-But this is almost always not needed as Control Center is able to properly find them.
-
-For more information about how the CA certificates are found, please check the correspondent [Go source code](https://golang.org/src/crypto/x509/root_unix.go).
+## Installation
 
 ### Install using Docker
 
@@ -147,54 +133,25 @@ See 'Usage' on how to specify which workspace directory Lightmeter should use.
 We have planned support for [on-the-fly backup](https://gitlab.com/lightmeter/controlcenter/-/issues/170) for future releases,
 where this procedure will become easier, safer and more flexible.
 
-## Usage
+## Install
 
-For detailed information, check [Usage](cli_usage.md).
+### Install from binaries
 
-- Run `lightmeter -help` to show a list of all available commands
-- Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
-- The web UI authenticated sessions last 1 week by default
-- To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
-- To supply single logs file, use the command line argument `-stdin` like `tail -f /path-to-file.log | lightmeter -stdin`.
-- Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
-- As Postfix logs don't contain a year as part of the date of each line, when using `-stdin`, the year for processed logs is assumed to be the current one. To override this and specify a year manually, use the `-log_starting_year` flag like `-log_starting_year 2018`
-- Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
-(even if compressed with gzip) and waiting new log files that happen after such import.
-To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
-Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
-- You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
+We provide pre-build architecture dependent binaries at [Bintray](https://bintray.com/lightmeter/controlcenter/controlcenter) that
+should run on any modern Linux distribution. Just download them, set them as executable and executed as described in [Usage](##Usage).
 
-Currently the following patterns for log files are "watched":
-  - mail.log
-  - mail.warn
-  - mail.err
+Your operating system should provide certificate authority certificates (ca-certificates package in many distributions) by default,
+but in case you are keeping your own CA certificates, you'll need to set the environment variable `SSL_CERT_DIR` to it.
 
-### Rotated files
+For instance, on Alpine linux, you can use, before executing the binary:
 
-We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
-Currently only `gzip`ped and uncompressed files are supported.
-
-The suffixes on the archived log files that are supported are:
-
-- mail.log.2.gz and similar, where the suffix number gets higher as files get older.
-- mail.log-20030102.gz where the suffix number is a date, where the lower the value, the older the file is.
-
-Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
-
-### Importing logs
-
-The importing process will take a long time, depending on how many files you have and how big they are.
-
-It's important not to use `-watch_dir` with other ways of obtaining logs, and future versions of Lightmeter will disable such behaviour.
-
-In case you are having an error similar to:
-
-```
-2020/05/29 13:45:05 Missing file mail.log . Instead, found:  /var/log/mail/mail.log.2.gz
-
+```sh
+export SSL_CERT_DIR=/usr/share/ca-certificates/mozilla
 ```
 
-This means you should have a file `mail.log`, which means you should check your Postfix installation and ensure it's emitting logs properly.
+But this is almost always not needed as Control Center is able to properly find them.
+
+For more information about how the CA certificates are found, please check the correspondent [Go source code](https://golang.org/src/crypto/x509/root_unix.go).
 
 ### Docker image
 
@@ -248,7 +205,84 @@ You can reset the administrator password using the command line:
 - Delete all users by deleting `<workspace-name>/auth.db*`. E.g.: `rm -rf /var/lib/lightmeter_workspace/auth.db*`.
 - Delete a single user manually using sqlite using `sqlite3 <workspace-name>/auth.db 'delete from users where email = "<admin email address>"'`. E.g.: `sqlite3 /var/lib/lightmeter_workspace/auth.db 'delete from users where email = "admin@email-address.com"'`.
 
-## Feature details
+## Usage
+
+For detailed information, check [Usage](cli_usage.md).
+
+- Run `lightmeter -help` to show a list of all available commands
+- Following compilation (or download) of Lightmeter Control Center you should run the binary `lightmeter` to read logs and launch a local webserver, which allows viewing Lightmeter Control Center via a Web UI in a browser on the same network on port 8080, eg. [http://localhost:8080/](http://localhost:8080/). You can use `-listen ":9999"` for instance to use a different port or network interface, in this case all interfaces on port 9999.
+- The web UI authenticated sessions last 1 week by default
+- To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
+- To supply single logs file, use the command line argument `-stdin` like `tail -f /path-to-file.log | lightmeter -stdin`.
+- Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
+- As Postfix logs don't contain a year as part of the date of each line, when using `-stdin`, the year for processed logs is assumed to be the current one. To override this and specify a year manually, use the `-log_starting_year` flag like `-log_starting_year 2018`
+- Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
+(even if compressed with gzip) and waiting new log files that happen after such import.
+To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
+Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
+- You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
+
+Currently the following patterns for log files are "watched":
+  - mail.log
+  - mail.warn
+  - mail.err
+
+### Rotated files
+
+We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
+Currently only `gzip`ped and uncompressed files are supported.
+
+The suffixes on the archived log files that are supported are:
+
+- mail.log.2.gz and similar, where the suffix number gets higher as files get older.
+- mail.log-20030102.gz where the suffix number is a date, where the lower the value, the older the file is.
+
+Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
+
+### Importing logs
+
+The importing process will take a long time, depending on how many files you have and how big they are.
+
+It's important not to use `-watch_dir` with other ways of obtaining logs, and future versions of Lightmeter will disable such behaviour.
+
+In case you are having an error similar to:
+
+```
+2020/05/29 13:45:05 Missing file mail.log . Instead, found:  /var/log/mail/mail.log.2.gz
+
+```
+
+This means you should have a file `mail.log`, which means you should check your Postfix installation and ensure it's emitting logs properly.
+
+## Feature documentation
+
+### Notifications 
+
+#### Integrate slack 
+
+Create a app on your slack account go to https://api.slack.com/
+
+- Click on "Create Custom APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
+
+![create new app screenshot](./docs/assets/create_app.png)
+
+- Choose a "Development Slack Workspace" and give your app a name.
+
+![configure new app screenshot](./docs/assets/app_config.png)
+
+- Click the "Permissions" card or in the sidebar click "OAuth & Permissions".
+- Under "Scopes" click "Add an OAuth Scope".
+- Add "chat:write" from the dropdown menu.
+- Under "OAuth Tokens & Redirect URLs" click "Install to Workspace.
+- On the following page click "Allow"
+- Copy the newly generated OAuth token somewhere safe
+- Invite the bot to your channel by typing into the desired channel: `/invite @bot-name` (replace the name, and use auto-complete for hints)
+
+Add the token and channel details to lightmeter go to the settings page
+
+![add token control screenshot](./docs/assets/add_token_control.png)
+
+Congrats you successfully configured the slack notifications
 
 ### Domain Mapping
 
@@ -302,38 +336,6 @@ Please refer to the specific documentation on how run them manually in the file 
 ### Making user interfaces translatable (i18n)
 
 The following command will look for translatable words inside interface files (currently files within the `www` directory) and generate a `.po` file for the English language: `make code2po`
-
-## Notifications 
-
-### Integrate slack 
-
-Create a app on your slack account go to https://api.slack.com/
-
-Click on "Create New APP" after that you will see a popup for configuring your app (https://api.slack.com/apps).
-
-![create new app screenshot](./docs/assets/create_app.png)
-
-Choose a "Development Slack Workspace" and give your app a name.
-
-![configure new app screenshot](./docs/assets/app_config.png)
-
-Create a oauth token for your app (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
-
-![create new token screenshot](./docs/assets/create_token.png) 
-
-Add "write to channel" permission to your previously created token (https://api.slack.com/apps/{{REPLACE_ME}}/oauth).
-
-![add permission screenshot](./docs/assets/add_permission.png)
-
-Invite the bot into your channel
-
-![invite bot screenshot](./docs/assets/invite_bot.png)
-
-Add the token and channel details to lightmeter go to the settings page
-
-![add token control screenshot](./docs/assets/add_token_control.png)
-
-Congrats you successfully configured the slack notifications
 
 ### Making backend strings translatable (i18n)
 
