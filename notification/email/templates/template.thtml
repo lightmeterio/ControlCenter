@@ -88,7 +88,7 @@
 </head>
 
 <body style="background-color:#F9F9F9;">
-  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;"> Control Center Notification </div>
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">{{.Title}} </div>
   <div style="background-color:#F9F9F9;">
     <!--[if mso | IE]>
       <table
