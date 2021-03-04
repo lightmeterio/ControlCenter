@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/socketsource"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -40,6 +41,7 @@ func main() {
 		passwordToReset           string
 		timezone                  *time.Location = time.UTC
 		logYear                   int
+		socket                    string
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -58,6 +60,7 @@ func main() {
 	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
+	flag.StringVar(&socket, "socket", "", "Receive logs via a socket. E.g. unix;/tmp/lightemter.sock or tcp;localhost:9999")
 
 	flag.Usage = func() {
 		printVersion()
@@ -98,7 +101,7 @@ func main() {
 		return
 	}
 
-	if len(dirToWatch) == 0 && !shouldWatchFromStdin && !importOnly {
+	if len(dirToWatch) == 0 && !shouldWatchFromStdin && !importOnly && len(socket) == 0 {
 		errorutil.Dief(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
 	}
 
@@ -127,7 +130,16 @@ func main() {
 			return s, nil
 		}
 
-		errorutil.Dief(verbose, err, "You must use either -watch_dir or -stdin!")
+		if len(socket) > 0 {
+			s, err := socketsource.New(socket, ws.MostRecentLogTime(), logYear)
+			if err != nil {
+				return nil, errorutil.Wrap(err)
+			}
+
+			return s, nil
+		}
+
+		errorutil.Dief(verbose, err, "You must use either -watch_dir or -stdin or -socket!")
 
 		return nil, nil
 	}()
