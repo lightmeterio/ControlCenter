@@ -6,24 +6,24 @@ package dirwatcher
 
 import (
 	"fmt"
+	"github.com/hpcloud/tail"
 	"github.com/rs/zerolog/log"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"time"
-
-	"github.com/hpcloud/tail"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
 type localDirectoryContent struct {
 	dir     string
 	entries fileEntryList
+	rsynced bool
 }
 
-func NewDirectoryContent(dir string) (DirectoryContent, error) {
+func NewDirectoryContent(dir string, rsynced bool) (DirectoryContent, error) {
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
@@ -81,6 +81,10 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 }
 
 func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
+	if f.rsynced {
+		return &rsyncedFileWatcher{filename, offset}, nil
+	}
+
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
 		ReOpen:    true,
@@ -90,7 +94,7 @@ func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (
 	})
 
 	if err != nil {
-		return &localFileWatcher{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	return &localFileWatcher{t, filename}, nil

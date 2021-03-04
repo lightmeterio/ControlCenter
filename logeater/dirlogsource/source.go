@@ -20,8 +20,8 @@ type Source struct {
 	follow bool
 }
 
-func New(dirname string, initialTime time.Time, follow bool) (*Source, error) {
-	dir, err := dirwatcher.NewDirectoryContent(dirname)
+func New(dirname string, initialTime time.Time, follow bool, rsynced bool) (*Source, error) {
+	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
