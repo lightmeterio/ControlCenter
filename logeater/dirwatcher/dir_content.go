@@ -37,7 +37,7 @@ func NewDirectoryContent(dir string, rsynced bool) (DirectoryContent, error) {
 		entries = append(entries, fileEntry{filename: name, modificationTime: i.ModTime()})
 	}
 
-	return &localDirectoryContent{dir: dir, entries: entries}, nil
+	return &localDirectoryContent{dir: dir, entries: entries, rsynced: rsynced}, nil
 }
 
 func (f *localDirectoryContent) dirName() string {
