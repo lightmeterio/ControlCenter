@@ -71,7 +71,7 @@ func main() {
 		log.Fatal().Msg("-dir is mandatory!")
 	}
 
-	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), false)
+	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), false, false)
 	if err != nil {
 		errorutil.LogFatalf(err, "could not init content")
 	}

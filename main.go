@@ -28,6 +28,7 @@ func main() {
 		shouldWatchFromStdin      bool
 		workspaceDirectory        string
 		importOnly                bool
+		rsyncedDir                bool
 		migrateDownToOnly         bool
 		migrateDownToVersion      int
 		migrateDownToDatabaseName string
@@ -45,6 +46,7 @@ func main() {
 	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
+	flag.BoolVar(&rsyncedDir, "rsync", false, "Log directory is updated by rsync")
 	flag.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
 	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
@@ -108,7 +110,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(dirToWatch) > 0 {
-			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly)
+			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly, rsyncedDir)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}

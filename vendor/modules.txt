@@ -32,6 +32,7 @@ github.com/emersion/go-sasl
 github.com/emersion/go-smtp
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
+github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/go-openapi/jsonpointer v0.19.3
@@ -60,6 +61,9 @@ github.com/gorilla/securecookie
 github.com/gorilla/sessions
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
+# github.com/hlubek/readercomp v0.0.0-20210106164045-ffcdb292b4e8
+## explicit
+github.com/hlubek/readercomp
 # github.com/hpcloud/tail v1.0.0
 ## explicit
 github.com/hpcloud/tail

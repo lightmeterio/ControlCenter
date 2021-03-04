@@ -43,7 +43,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		pub := fakePublisher{}
 
 		Convey("Only import from beginning", func() {
-			s, err := New(logDir, time.Time{}, false)
+			s, err := New(logDir, time.Time{}, false, false)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 			So(r.Run(), ShouldBeNil)
@@ -51,7 +51,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		})
 
 		Convey("Import logs and watch for changes", func() {
-			s, err := New(logDir, time.Time{}, true)
+			s, err := New(logDir, time.Time{}, true, false)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 
