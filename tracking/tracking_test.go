@@ -10,6 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -43,7 +44,9 @@ func (p *fakeResultPublisher) Publish(r Result) {
 }
 
 func readFromTestReader(reader io.Reader, pub postfix.Publisher) {
-	s, err := filelogsource.New(reader, time.Time{}, 2020)
+	builder, err := transform.Get("default", 2020)
+	errorutil.MustSucceed(err)
+	s, err := filelogsource.New(reader, builder)
 	errorutil.MustSucceed(err)
 	r := logsource.NewReader(s, pub)
 	r.Run()

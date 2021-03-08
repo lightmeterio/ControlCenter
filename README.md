@@ -171,7 +171,7 @@ $ docker run -p 8080:8080 -v "<path_to_workspace>:/workspace:rw" -v "/var/log/:/
 
 ```
 
-Where `<path_to_workspace>` is a directory where Control Center will keep data that has to be persisted accross restarts. 
+Where `<path_to_workspace>` is a directory where Control Center will keep data that has to be persisted accross restarts.
 
 Then open your browser on http://localhost:8080 to access the web based user interface.
 
@@ -183,7 +183,7 @@ You can find the released  pkg, module, testbed and an instruction for "How to b
 
 ### API
 
-Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI. 
+Lightmeter ships with a simple REST API designed for user interfaces. It is used by the Web UI.
 
 Swagger-based API documentation and experimentation pages are generated automatically on development builds. Access them via `http://lightmeter-address:8080/api`, eg. [http://localhost:8080/api](http://localhost:8080/api).
 
@@ -195,7 +195,7 @@ Running headless mode requires building ControlCenter for this purpose:
 
 ```
 make devheadless # Build ControlCenter
-./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build) 
+./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build)
 ```
 
 ### Authentication
@@ -266,11 +266,57 @@ In case you are having an error similar to:
 
 This means you should have a file `mail.log`, which means you should check your Postfix installation and ensure it's emitting logs properly.
 
+### Reading from Logstash
+
+**NOTE**: this is a very experimental support, not well tested or supported. It can eat your logs!
+
+Control Center can read logs via a network or unix domain sockets, and this can be used to receive logs from Logstash.
+
+It's important to notice that this support does not support any authentication or security, so be sure to use it in a secure network or provide your own
+security layer (VPN, SSH tunnel, etc.).
+
+First, start Control Center with the option `-socket tcp=:9999`, to listen in the TCP port 9999, or `-socket unix=/path/to/socket.sock`.
+
+Additionally, add the command line option `-log_format prepend-rfc3339`, meaning that it expects a time to come in the beginning of each log line.
+
+Then configure Logstash to something similar to the following (Thank you Alexander Landmesser for the help :-)):
+
+```
+filter {
+  if [log][file][path] == "/var/log/mail.log" {
+      clone {
+        add_field => { "log-type" => "mail" }
+        clones => ["lightmeter"]
+      }
+  }
+}
+
+output {
+  if [log-type] == "mail" and [type] == "lightmeter"{
+        tcp {
+            host => "address-of-control-center-host"
+            port => 9999
+            codec => line {
+                format => "{[@timestamp]} %{[message]}"
+            }
+        }
+    }
+}
+
+```
+
+***IMPORTANT***: Control Center expects to receive **ALL** Postfix logs, so don't filter any log out using Logstash or ElasticSearch,
+otherwise Control Center won't work properly.
+
+Such mechanism is very powerful and we are just starting exploring it. In case your Postfix logs are wrapped in other formats (JSON, Protobuf, etc.),
+you should be able to easily add support for it. Please have a look at the file `logeater/transform/prepend-rfc3339.go` for the implementation
+of the `-log_format prepend-rfc3339` used above.
+
 ## Feature documentation
 
-### Notifications 
+### Notifications
 
-#### Integrate slack 
+#### Integrate slack
 
 Create a app on your slack account go to https://api.slack.com/
 
