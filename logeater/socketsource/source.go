@@ -6,25 +6,23 @@ package socketsource
 
 import (
 	"fmt"
-	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 type Source struct {
-	listener    net.Listener
-	initialTime time.Time
-	year        int
-	closed      bool
-	closeErr    error
+	listener net.Listener
+	builder  transform.Builder
+	closed   bool
+	closeErr error
 }
 
-func New(socketDesc string, initialTime time.Time, year int) (*Source, error) {
-	c := strings.Split(socketDesc, ";")
+func New(socketDesc string, builder transform.Builder) (*Source, error) {
+	c := strings.Split(socketDesc, "=")
 
 	if len(c) != 2 {
 		return nil, fmt.Errorf(`Invalid socket description: %v. It should have the form "unix;/path/to/socket_file" or "tcp;:9999"`, socketDesc)
@@ -45,9 +43,8 @@ func New(socketDesc string, initialTime time.Time, year int) (*Source, error) {
 	}
 
 	return &Source{
-		listener:    l,
-		initialTime: initialTime,
-		year:        year,
+		listener: l,
+		builder:  builder,
 	}, nil
 }
 
@@ -68,8 +65,6 @@ func (s *Source) Close() error {
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	initialLogsTime := logeater.BuildInitialLogsTime(s.initialTime, s.year)
-
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -77,7 +72,7 @@ func (s *Source) PublishLogs(p postfix.Publisher) error {
 		}
 
 		go func() {
-			logeater.ParseLogsFromReader(p, initialLogsTime, conn)
+			errorutil.MustSucceed(transform.ReadFromReader(conn, p, s.builder))
 		}()
 	}
 }

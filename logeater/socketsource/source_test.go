@@ -7,6 +7,7 @@ package socketsource
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -26,9 +27,7 @@ type pub struct {
 
 func (pub *pub) Publish(r postfix.Record) {
 	pub.Lock()
-
 	defer pub.Unlock()
-
 	pub.logs = append(pub.logs, r)
 }
 
@@ -40,23 +39,26 @@ func TestListenLogsOnSocket(t *testing.T) {
 
 		pub := &pub{}
 
+		transformer, err := transform.Get("default", 2000)
+		So(err, ShouldBeNil)
+
 		Convey("Wrong socket description", func() {
-			_, err := New("something invalid", time.Time{}, 2000)
+			_, err := New("something invalid", transformer)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Invalid network type", func() {
-			_, err := New("magic;/tmp/lalala", time.Time{}, 2000)
+			_, err := New("magic=/tmp/lalala", transformer)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Error opening socket (permission denied)", func() {
-			_, err := New("unix;/proc/something", time.Time{}, 2000)
+			_, err := New("unix=/proc/something", transformer)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Use unix socket", func() {
-			source, err := New("unix;"+path.Join(dir, "logs.sock"), time.Time{}, 2000)
+			source, err := New("unix="+path.Join(dir, "logs.sock"), transformer)
 			So(err, ShouldBeNil)
 
 			done := make(chan error)
