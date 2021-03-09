@@ -6,6 +6,7 @@
 package welcome
 
 import (
+	"context"
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
@@ -36,7 +37,7 @@ func tryToGenerateWelcomeInsight(d *detector, tx *sql.Tx, kind string, propertie
 		return nil
 	}
 
-	if err := d.creator.GenerateInsight(tx, properties); err != nil {
+	if err := d.creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -121,10 +121,12 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsEngine, err := insights.NewEngine(
-		workspaceDirectory,
-		notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
+	insightsAcessor, err := insights.NewAccessor(workspaceDirectory)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
+	insightsEngine, err := insights.NewEngine(insightsAcessor, notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -150,6 +152,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			deliveries,
 			insightsEngine,
 			m,
+			insightsAcessor,
 		),
 		NotificationCenter: notificationCenter,
 	}

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -24,13 +25,15 @@ type Category int
 func (c Category) String() string {
 	switch c {
 	case LocalCategory:
-		return "local"
+		return translator.I18n("local")
 	case ComparativeCategory:
-		return "comparative"
+		return translator.I18n("comparative")
 	case NewsCategory:
-		return "news"
+		return translator.I18n("news")
 	case IntelCategory:
-		return "intel"
+		return translator.I18n("intel")
+	case ArchivedCategory:
+		return translator.I18n("archived")
 	case NoCategory:
 		fallthrough
 	default:
@@ -53,6 +56,7 @@ const (
 	NewsCategory        Category = 2
 	ComparativeCategory Category = 3
 	IntelCategory       Category = 4
+	ArchivedCategory    Category = 5
 )
 
 func BuildCategoryByName(n string) Category {
@@ -65,6 +69,8 @@ func BuildCategoryByName(n string) Category {
 		return NewsCategory
 	case "intel":
 		return IntelCategory
+	case "archived":
+		return ArchivedCategory
 	default:
 		return NoCategory
 	}
@@ -182,13 +188,14 @@ type fetcher struct {
 }
 
 func buildSelectStmt(where, order string) string {
+	// filter out any archived insight
 	return fmt.Sprintf(`
 	select
-		rowid, time, category, rating, content_type, content
+		insights.rowid, insights.time, insights.category, insights.rating, insights.content_type, insights.content
 	from
-		insights
+		insights left join insights_status on insights.rowid = insights_status.insight_id
 	where
-		%s
+		%s and insights_status.id is null
 	order by
 		%s
 	limit
@@ -235,8 +242,10 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 
 	queriesBuilders := []queriesBuilderPair{
 		{
-			key:   queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
-			value: func(key queryKey) error { return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time desc`)) },
+			key: queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(`insights.time between ? and ?`, `insights.time desc`))
+			},
 			paramBuilder: func(o FetchOptions) []interface{} {
 				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
 			},
@@ -244,7 +253,7 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time desc`))
+				return buildQuery(key, buildSelectStmt(`insights.category = ? and insights.time between ? and ?`, `insights.time desc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
 				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
@@ -253,7 +262,7 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(`insights.category = ? and insights.time between ? and ?`, `insights.time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
 				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
@@ -262,7 +271,7 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(`insights.time between ? and ?`, `insights.time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
 				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
@@ -425,10 +434,10 @@ func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
 }
 
 type Creator interface {
-	GenerateInsight(*sql.Tx, InsightProperties) error
+	GenerateInsight(context.Context, *sql.Tx, InsightProperties) error
 }
 
-func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
+func GenerateInsight(ctx context.Context, tx *sql.Tx, properties InsightProperties) (int64, error) {
 	contentBytes, err := json.Marshal(properties.Content)
 
 	if err != nil {
@@ -443,7 +452,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 		return 0, errorutil.Wrap(err)
 	}
 
-	result, err := tx.Exec(
+	result, err := tx.ExecContext(ctx,
 		`insert into insights(time, category, rating, content_type, content) values(?, ?, ?, ?, ?)`,
 		properties.Time.Unix(),
 		properties.Category,
@@ -456,8 +465,11 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	}
 
 	id, err := result.LastInsertId()
-
 	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	if err := ArchiveInsightIfHistoricalImportIsRunning(ctx, tx, id, properties.Time); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 

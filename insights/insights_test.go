@@ -34,20 +34,20 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-type content struct {
+type fakeContent struct {
 	T string `json:"title"`
 	D string `json:"description"`
 }
 
-func (c content) Title() notificationCore.ContentComponent {
+func (c fakeContent) Title() notificationCore.ContentComponent {
 	return fakeContentComponent(c.T)
 }
 
-func (c content) Description() notificationCore.ContentComponent {
+func (c fakeContent) Description() notificationCore.ContentComponent {
 	return fakeContentComponent(c.D)
 }
 
-func (c content) Metadata() notificationCore.ContentMetadata {
+func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
@@ -104,6 +104,9 @@ func (d *fakeDetector) setValue(v *fakeValue) {
 	d.fakeValue = v
 }
 
+func (fakeDetector) IsHistoricalDetector() {
+}
+
 func (*fakeDetector) Close() error {
 	return nil
 }
@@ -113,17 +116,17 @@ func (d *fakeDetector) Setup(*sql.Tx) error {
 }
 
 func (d *fakeDetector) GenerateSampleInsight(tx *sql.Tx, clock core.Clock) error {
-	return d.creator.GenerateInsight(tx, core.InsightProperties{
+	return d.creator.GenerateInsight(context.Background(), tx, core.InsightProperties{
 		Time:        clock.Now(),
 		Category:    core.IntelCategory,
 		ContentType: "fake_insight_type",
-		Content:     &content{T: "title", D: "description"},
+		Content:     &fakeContent{T: "title", D: "description"},
 		Rating:      core.BadRating,
 	})
 }
 
 func init() {
-	core.RegisterContentType("fake_insight_type", 200, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType("fake_insight_type", 200, core.DefaultContentTypeDecoder(&fakeContent{}))
 }
 
 func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
@@ -137,7 +140,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 	d.t.Log("New Fake Insight at time ", clock.Now())
 
-	if err := d.creator.GenerateInsight(tx, core.InsightProperties{
+	if err := d.creator.GenerateInsight(context.Background(), tx, core.InsightProperties{
 		Time:        clock.Now(),
 		Category:    v.Category,
 		ContentType: "fake_insight_type",
@@ -147,6 +150,7 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 		return err
 	}
 
+	// reset value to prevent it of being generated on every cycle
 	d.setValue(nil)
 
 	return nil
@@ -157,18 +161,21 @@ func TestEngine(t *testing.T) {
 		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
+		c, err := NewAccessor(dir)
+		So(err, ShouldBeNil)
+
 		notifier := &fakeNotifier{}
 
-		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), DefaultNotificationPolicy{}, func() (language.Tag, error) {
+		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), c.NotificationPolicy(), func() (language.Tag, error) {
 			return language.English, nil
 		}, map[string]notification.Notifier{"fake": notifier})
 
 		detector := &fakeDetector{t: t}
 
-		noAdditionalActions := func([]core.Detector, dbconn.RwConn) error { return nil }
+		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
 		Convey("Test Insights Generation", func() {
-			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			}, noAdditionalActions)
@@ -208,12 +215,12 @@ func TestEngine(t *testing.T) {
 
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.LocalCategory, Content: content{T: "42"}, Rating: core.BadRating})
+			genInsight(fakeValue{Category: core.LocalCategory, Content: fakeContent{T: "42"}, Rating: core.BadRating})
 			nopStep()
 			nopStep()
-			genInsight(fakeValue{Category: core.IntelCategory, Content: content{T: "35"}, Rating: core.OkRating})
+			genInsight(fakeValue{Category: core.IntelCategory, Content: fakeContent{T: "35"}, Rating: core.OkRating})
 			nopStep()
-			genInsight(fakeValue{Category: core.ComparativeCategory, Content: content{T: "13"}, Rating: core.BadRating})
+			genInsight(fakeValue{Category: core.ComparativeCategory, Content: fakeContent{T: "13"}, Rating: core.BadRating})
 
 			// stop main loop
 			close(e.txActions)
@@ -229,14 +236,14 @@ func TestEngine(t *testing.T) {
 				n, ok := notifier.notifications[0].Content.(core.InsightProperties)
 				So(ok, ShouldBeTrue)
 				So(notifier.notifications[0].ID, ShouldEqual, 1)
-				So(n.Content, ShouldResemble, content{T: "42"})
+				So(n.Content, ShouldResemble, fakeContent{T: "42"})
 			}
 
 			{
 				n, ok := notifier.notifications[1].Content.(core.InsightProperties)
 				So(ok, ShouldBeTrue)
 				So(notifier.notifications[1].ID, ShouldEqual, 3)
-				So(n.Content, ShouldResemble, content{T: "13"})
+				So(n.Content, ShouldResemble, fakeContent{T: "13"})
 			}
 
 			fetcher := e.Fetcher()
@@ -254,19 +261,19 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 3)
 
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[0].Content().(*content).T, ShouldEqual, "13")
+				So(insights[0].Content().(*fakeContent).T, ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).T, ShouldEqual, "35")
+				So(insights[1].Content().(*fakeContent).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
-				So(insights[2].Content().(*content).T, ShouldEqual, "42")
+				So(insights[2].Content().(*fakeContent).T, ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
@@ -286,13 +293,13 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 2)
 
 				So(insights[0].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[0].Content().(*content).T, ShouldEqual, "13")
+				So(insights[0].Content().(*fakeContent).T, ShouldEqual, "13")
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).T, ShouldEqual, "35")
+				So(insights[1].Content().(*fakeContent).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
@@ -312,19 +319,19 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 3)
 
 				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
-				So(insights[0].Content().(*content).T, ShouldEqual, "42")
+				So(insights[0].Content().(*fakeContent).T, ShouldEqual, "42")
 				So(insights[0].ID(), ShouldEqual, 1)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[1].Content().(*content).T, ShouldEqual, "35")
+				So(insights[1].Content().(*fakeContent).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
 
 				So(insights[2].Category(), ShouldEqual, core.ComparativeCategory)
-				So(insights[2].Content().(*content).T, ShouldEqual, "13")
+				So(insights[2].Content().(*fakeContent).T, ShouldEqual, "13")
 				So(insights[2].ID(), ShouldEqual, 3)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
@@ -346,7 +353,7 @@ func TestEngine(t *testing.T) {
 				So(len(insights), ShouldEqual, 1)
 
 				So(insights[0].Category(), ShouldEqual, core.IntelCategory)
-				So(insights[0].Content().(*content).T, ShouldEqual, "35")
+				So(insights[0].Content().(*fakeContent).T, ShouldEqual, "35")
 				So(insights[0].ID(), ShouldEqual, 2)
 				So(insights[0].Rating(), ShouldEqual, core.OkRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
@@ -354,7 +361,7 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test Insights Samples generated when the application starts", func() {
-			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -362,6 +369,13 @@ func TestEngine(t *testing.T) {
 			)
 
 			So(err, ShouldBeNil)
+
+			done, cancel := e.Run()
+
+			announcer.Skip(e.ImportAnnouncer())
+
+			cancel()
+			So(done(), ShouldBeNil)
 
 			fetcher := e.Fetcher()
 
@@ -378,7 +392,7 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test engine loop", func() {
-			e, err := NewCustomEngine(dir, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -391,20 +405,12 @@ func TestEngine(t *testing.T) {
 				So(e.Close(), ShouldBeNil)
 			}()
 
-			go func() {
-				n := announcer.NewNotifier(e.ImportAnnouncer(), 10)
-
-				n.Start(time.Now())
-				n.Step(time.Now())
-				n.End(time.Now())
-			}()
-
-			// Generate one insight, on the first cycle
-			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: content{D: "content"}, Rating: core.BadRating})
-
 			done, cancel := e.Run()
 
-			time.Sleep(time.Second * 3)
+			announcer.Skip(e.ImportAnnouncer())
+
+			// Generate one insight, on the first cycle
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "content"}, Rating: core.BadRating})
 
 			cancel()
 			done()
@@ -413,7 +419,94 @@ func TestEngine(t *testing.T) {
 
 			n, ok := notifier.notifications[0].Content.(core.InsightProperties)
 			So(ok, ShouldBeTrue)
-			So(n.Content, ShouldResemble, content{D: "content"})
+			So(n.Content, ShouldResemble, fakeContent{D: "content"})
+		})
+
+		Convey("Test importing Historical insights", func() {
+			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+				detector.creator = c
+				return []core.Detector{detector}
+			},
+				noAdditionalActions,
+			)
+
+			So(err, ShouldBeNil)
+
+			defer func() {
+				So(e.Close(), ShouldBeNil)
+			}()
+
+			control := make(chan struct{})
+
+			go func() {
+				notifier := announcer.NewNotifier(e.ImportAnnouncer(), 10)
+
+				<-control
+				notifier.Start(timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`))
+
+				//<-control
+				//notifier.Step(timeutil.MustParseTime(`2000-01-15 00:00:00 +0000`))
+
+				<-control
+				notifier.End(timeutil.MustParseTime(`2000-01-31 23:59:59 +0000`))
+			}()
+
+			errChan := make(chan error)
+
+			go func() {
+				errChan <- runOnHistoricalData(e)
+			}()
+
+			// unlock Start()
+			control <- struct{}{}
+
+			// Generate one insight, still during import. It'll be set as archived upon creation time
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "I am historical, therefore archived"}, Rating: core.BadRating})
+			control <- struct{}{}
+
+			//detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "Another historical insight"}, Rating: core.BadRating})
+			//control <- struct{}{}
+
+			// wait until historical import ends
+			err = <-errChan
+
+			So(err, ShouldBeNil)
+
+			mainLoopChain := make(chan struct{})
+
+			go func() {
+				<-control
+				runDatabaseWriterLoop(e)
+				mainLoopChain <- struct{}{}
+			}()
+
+			// generate a non historical insight
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "A non historical insight"}, Rating: core.BadRating})
+			control <- struct{}{}
+
+			execOnDetectors(e.txActions, []core.Detector{detector}, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-02-05 00:00:00 +0000`)})
+
+			// stop main loop
+			close(e.txActions)
+
+			<-mainLoopChain
+
+			insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.TimeInterval{
+					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+				},
+				OrderBy: core.OrderByCreationAsc,
+			})
+
+			So(err, ShouldBeNil)
+
+			// one fakeInsight and one summary insight
+			So(len(insights), ShouldEqual, 2)
+
+			So(len(notifier.notifications), ShouldEqual, 1)
+			So(notifier.notifications[0].ID, ShouldEqual, 3)
+			So(notifier.notifications[0].Content.Description(), ShouldEqual, "A non historical insight")
 		})
 	})
 }

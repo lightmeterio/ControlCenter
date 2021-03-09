@@ -235,7 +235,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 		Content:     content,
 	}
 
-	if err := creator.GenerateInsight(tx, properties); err != nil {
+	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

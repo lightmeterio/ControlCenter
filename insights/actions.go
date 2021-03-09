@@ -16,7 +16,7 @@ import (
 // adding some sample insights when the application starts, for making tests
 // and experimentation easier
 //nolint:deadcode,unused
-func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn) error {
+func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn, clock core.Clock) error {
 	tx, err := conn.Begin()
 
 	if err != nil {
@@ -28,8 +28,6 @@ func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn) error {
 			errorutil.MustSucceed(tx.Rollback())
 		}
 	}()
-
-	clock := &realClock{}
 
 	//nolint:unused
 	type sampleInsightGenerator interface {

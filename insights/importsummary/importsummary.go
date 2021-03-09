@@ -115,7 +115,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		},
 	}
 
-	if _, err := core.GenerateInsight(tx, properties); err != nil {
+	if _, err := core.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

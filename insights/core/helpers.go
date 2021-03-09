@@ -6,11 +6,72 @@
 package core
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
+
+const HistoricalImportKey = "historical_import_running"
+
+func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
+	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
+	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
+	var running bool
+
+	err := meta.Retrieve(ctx, tx, HistoricalImportKey, &running)
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	return running, nil
+}
+
+func ArchiveInsight(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {
+	if _, err := tx.ExecContext(ctx, "insert into insights_status(insight_id, status, timestamp) values(?, ?, ?)", id, ArchivedCategory, time.Unix()); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func ArchiveInsightIfHistoricalImportIsRunning(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {
+	running, err := IsHistoricalImportRunning(ctx, tx)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if !running {
+		return nil
+	}
+
+	if err := ArchiveInsight(ctx, tx, id, time); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
 
 func StoreLastDetectorExecution(tx *sql.Tx, kind string, time time.Time) error {
 	var (

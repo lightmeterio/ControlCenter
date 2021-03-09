@@ -6,7 +6,9 @@
 package insights
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/importsummary"
@@ -14,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -42,24 +45,12 @@ func (a *importAnnouncer) AnnounceProgress(p announcer.Progress) {
 	}
 }
 
-type Engine struct {
-	core              *core.Core
-	insightsStateConn *dbconn.PooledPair
-	txActions         chan txAction
-	fetcher           core.Fetcher
-	closers           closeutil.Closers
-	runner.CancelableRunner
-	importAnnouncer    importAnnouncer
-	notificationCenter *notification.Center
+type Accessor struct {
+	closeutil.Closers
+	conn *dbconn.PooledPair
 }
 
-func NewCustomEngine(
-	workspaceDir string,
-	notificationCenter *notification.Center,
-	options core.Options,
-	buildDetectors func(*creator, core.Options) []core.Detector,
-	additionalActions func([]core.Detector, dbconn.RwConn) error,
-) (*Engine, error) {
+func NewAccessor(workspaceDir string) (*Accessor, error) {
 	stateConn, err := dbconn.Open(path.Join(workspaceDir, "insights.db"), 10)
 
 	if err != nil {
@@ -76,7 +67,31 @@ func NewCustomEngine(
 		return nil, errorutil.Wrap(err)
 	}
 
-	creator, err := newCreator(stateConn.RwConn, notificationCenter)
+	return &Accessor{conn: stateConn, Closers: closeutil.New(stateConn)}, nil
+}
+
+func (c *Accessor) NotificationPolicy() notification.Policy {
+	return notification.Policies{&doNotGenerateNotificationsDuringImportPolicy{pool: c.conn.RoConnPool}, &DefaultNotificationPolicy{}}
+}
+
+type Engine struct {
+	runner.CancelableRunner
+	accessor        *Accessor
+	core            *core.Core
+	txActions       chan txAction
+	fetcher         core.Fetcher
+	closers         closeutil.Closers
+	importAnnouncer importAnnouncer
+}
+
+func NewCustomEngine(
+	c *Accessor,
+	notificationCenter *notification.Center,
+	options core.Options,
+	buildDetectors func(*creator, core.Options) []core.Detector,
+	additionalActions func([]core.Detector, dbconn.RwConn, core.Clock) error,
+) (*Engine, error) {
+	creator, err := newCreator(c.conn.RwConn, notificationCenter)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -84,19 +99,13 @@ func NewCustomEngine(
 
 	detectors := buildDetectors(creator, options)
 
-	err = additionalActions(detectors, stateConn.RwConn)
+	core, err := core.New(detectors)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	c, err := core.New(detectors)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	fetcher, err := newFetcher(stateConn.RoConnPool)
+	fetcher, err := newFetcher(c.conn.RoConnPool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -108,21 +117,19 @@ func NewCustomEngine(
 	}
 
 	e := &Engine{
-		core:               c,
-		insightsStateConn:  stateConn,
-		txActions:          make(chan txAction, 1024),
-		fetcher:            fetcher,
-		closers:            closeutil.New(c),
-		importAnnouncer:    announcer,
-		notificationCenter: notificationCenter,
+		accessor:        c,
+		core:            core,
+		txActions:       make(chan txAction, 1024),
+		fetcher:         fetcher,
+		closers:         closeutil.New(c, core),
+		importAnnouncer: announcer,
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
 		cancelInsightsJob := make(chan struct{})
 
-		clock := &realClock{}
 		// start generating insights
-		go spawnInsightsJob(clock, e, cancelInsightsJob)
+		go spawnInsightsJob(&realClock{}, e, cancelInsightsJob)
 
 		go func() {
 			<-cancel
@@ -132,6 +139,10 @@ func NewCustomEngine(
 		}()
 
 		go func() {
+			err := runOnHistoricalData(e)
+			errorutil.MustSucceed(err)
+			err = additionalActions(detectors, c.conn.RwConn, &realClock{})
+			errorutil.MustSucceed(err)
 			runDatabaseWriterLoop(e)
 			done <- nil
 		}()
@@ -175,8 +186,8 @@ func execOnDetectors(txActions chan<- txAction, steppers []core.Detector, clock 
 }
 
 // whether a new cycle is possible or the execution should finish
-func engineCycle(e *Engine) (bool, error) {
-	tx, err := e.insightsStateConn.RwConn.Begin()
+func engineCycle(e *Engine) (shouldContinue bool, err error) {
+	tx, err := e.accessor.conn.RwConn.Begin()
 
 	if err != nil {
 		return false, errorutil.Wrap(err)
@@ -241,28 +252,69 @@ func (c *historicalClock) Sleep(d time.Duration) {
 	c.current = c.current.Add(d)
 }
 
-// TODO: error handling here!!!
-func runOnHistoricalData(e *Engine) {
-	interval := importHistoricalInsights(e)
-
-	if !interval.To.IsZero() {
-		generateImportSummaryInsight(e, interval)
-	}
+type doNotGenerateNotificationsDuringImportPolicy struct {
+	pool *dbconn.RoPool
 }
 
-func importHistoricalInsights(e *Engine) timeutil.TimeInterval {
+func (p *doNotGenerateNotificationsDuringImportPolicy) Reject(n notification.Notification) (bool, error) {
+	v, err := meta.NewReader(p.pool).Retrieve(context.Background(), core.HistoricalImportKey)
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	// NOTE: Meh, SQLite converts bool into int64...
+	return v.(int64) != 0, nil
+}
+
+func runOnHistoricalData(e *Engine) error {
+	interval, err := importHistoricalInsights(e)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if interval.To.IsZero() {
+		return nil
+	}
+
+	if err := generateImportSummaryInsight(e, interval); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
+	{
+		tx, err := e.accessor.conn.RwConn.Begin()
+		if err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+	}
+
 	log.Info().Msg("Waiting for import announcement!")
 
 	importStartTime := time.Now()
 
 	start := <-e.importAnnouncer.start
 
+	finish := start
+
 	log.Info().Msgf("Starting insights on historical data starting with %v", start)
 
 	clock := historicalClock{current: start}
-
-	tx, err := e.insightsStateConn.RwConn.Begin()
-	errorutil.MustSucceed(err)
 
 	historicalDetectors := []core.HistoricalDetector{}
 
@@ -272,14 +324,19 @@ func importHistoricalInsights(e *Engine) timeutil.TimeInterval {
 		}
 	}
 
-	finish := start
+	tx, err := e.accessor.conn.RwConn.Begin()
+	if err != nil {
+		return timeutil.TimeInterval{}, errorutil.Wrap(err)
+	}
 
 	for progress := range e.importAnnouncer.progress {
 		log.Info().Msgf("Before: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
 
 		for clock.current.Before(progress.Time) {
 			for _, h := range historicalDetectors {
-				errorutil.MustSucceed(h.Step(&clock, tx))
+				if err := h.Step(&clock, tx); err != nil {
+					return timeutil.TimeInterval{}, errorutil.Wrap(err)
+				}
 			}
 
 			clock.Sleep(time.Minute * 20)
@@ -293,58 +350,49 @@ func importHistoricalInsights(e *Engine) timeutil.TimeInterval {
 		}
 	}
 
-	errorutil.MustSucceed(tx.Commit())
+	if err := tx.Commit(); err != nil {
+		return timeutil.TimeInterval{}, errorutil.Wrap(err)
+	}
+
+	{
+		tx, err := e.accessor.conn.RwConn.Begin()
+		if err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		if err := core.DisableHistoricalImportFlag(context.Background(), tx); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+	}
 
 	log.Debug().Msgf("Importing historical insights from %v to %v took %v", start, finish, time.Since(importStartTime))
 
-	return timeutil.TimeInterval{From: start, To: finish}
+	return timeutil.TimeInterval{From: start, To: finish}, nil
 }
 
-func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) {
-	tx, err := e.insightsStateConn.RwConn.Begin()
-	errorutil.MustSucceed(err)
+func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) error {
+	tx, err := e.accessor.conn.RwConn.Begin()
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	// Single shot detector
 	summaryInsightDetector := importsummary.NewDetector(e.fetcher, interval)
 
 	// Generate an import summary insight
-	errorutil.MustSucceed(summaryInsightDetector.Step(&timeutil.RealClock{}, tx))
+	if err := summaryInsightDetector.Step(&timeutil.RealClock{}, tx); err != nil {
+		return errorutil.Wrap(err)
+	}
 
-	errorutil.MustSucceed(tx.Commit())
-}
+	if err := tx.Commit(); err != nil {
+		return errorutil.Wrap(err)
+	}
 
-// TODO: turn this into a runner.CancellableRunner!!!
-func (e *Engine) Run() (func() error, func()) {
-	doneRun := make(chan error)
-
-	go func() {
-		runOnHistoricalData(e)
-		runDatabaseWriterLoop(e)
-		doneRun <- nil
-	}()
-
-	cancelInsightsJob := make(chan struct{})
-
-	// start generating insights
-	go spawnInsightsJob(&realClock{}, e, cancelInsightsJob)
-
-	cancelRun := make(chan struct{})
-
-	go func() {
-		<-cancelRun
-		cancelInsightsJob <- struct{}{}
-
-		close(e.txActions)
-	}()
-
-	// TODO: start user actions thread
-	// something that reads user actions (resolve insights, etc.)
-
-	return func() error {
-			return <-doneRun
-		}, func() {
-			cancelRun <- struct{}{}
-		}
+	return nil
 }
 
 func (e *Engine) Fetcher() core.Fetcher {
