@@ -148,7 +148,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           </form>
         </div>
       </div>
-      <insights class="row" :insights="insights"></insights>
+      <insights class="row" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -198,6 +198,11 @@ function formatDatePickerValue(obj) {
     moment(obj.startDate).format("D MMM") +
     " - " +
     moment(obj.endDate).format("D MMM");
+}
+
+function updateSelectedInterval(vue, obj) {
+  vue.updateDashboardAndInsights();
+  formatDatePickerValue(obj);
 }
 
 function buildDefaultInterval() {
@@ -256,16 +261,18 @@ export default {
       vue.updateInsights();
       vue.updateDashboard();
     },
+    handleExternalDateIntervalChanged(obj) {
+      this.dateRange = obj;
+      updateSelectedInterval(this, obj);
+      console.log(obj)
+    },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
         "onUpdateDateRangePicker",
         obj.startDate + "-" + obj.endDate
       );
-      formatDatePickerValue(obj);
 
-      let vue = this;
-
-      vue.updateDashboardAndInsights();
+      updateSelectedInterval(this, obj);
     },
     buildDateInterval() {
       let vue = this;
@@ -292,11 +299,10 @@ export default {
     },
     initIndex: function() {
       this.sessionInterval = this.ValidSessionCheck();
+
       let vue = this;
 
-      vue.updateDashboardAndInsights();
-
-      formatDatePickerValue(vue.dateRange);
+      updateSelectedInterval(vue, vue.dateRange);
 
       this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);

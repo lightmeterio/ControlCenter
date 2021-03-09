@@ -108,6 +108,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </span>
               </div>
               <h6 class="card-title title">{{ insight.title }}</h6>
+
+              <!-- TODO: extract each kind of card to its own component and remove this giant if-then... -->
               <p
                 v-if="insight.content_type === 'high_bounce_rate'"
                 class="card-text description"
@@ -125,6 +127,20 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >
                   <!-- prettier-ignore -->
                   <translate>Read more</translate>
+                </button>
+              </p>
+
+              <p
+                v-if="insight.content_type === 'import_summary'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-on:click="applySummaryInterval(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>See them</translate>
                 </button>
               </p>
 
@@ -261,6 +277,9 @@ export default {
     welcome_content_title() {
       return this.$gettext("Your first Insight");
     },
+    import_summary_title() {
+      return this.$gettext("Insights were generated from your logs");
+    },
     insights_introduction_content_title() {
       let translation = this.$gettext("Welcome to Lightmeter %{version}");
       return this.$gettextInterpolate(translation, {version: this.applicationData.version});
@@ -306,7 +325,6 @@ export default {
     message_rbl_description(i) {
       let c = i.content;
       let translation = this.$gettext("The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)");
-
       let message = this.$gettextInterpolate(translation, {ip: c.address, recipient: c.recipient, host: c.host});
 
       return {
@@ -316,6 +334,16 @@ export default {
     },
     newsfeed_content_description(insight) {
       return insight.content.description.substr(0,65);
+    },
+    import_summary_description(insight) {
+      let c = insight.content;
+      let translation = this.$gettext("Between %{start} and %{finish} %{count} insights were imported");
+      let message = this.$gettextInterpolate(translation, {
+        start: formatInsightDescriptionDateTime(c.interval.from),
+        finish: formatInsightDescriptionDateTime(c.interval.to),
+        count: c.ids.length
+      });
+      return message;
     },
     transformInsights(insights) {
       let vue = this;
@@ -445,6 +473,9 @@ export default {
     },
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
+    },
+    applySummaryInterval(insight) {
+      this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to});
     }
   }
 };
