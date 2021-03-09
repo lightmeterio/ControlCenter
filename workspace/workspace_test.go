@@ -7,6 +7,7 @@ package workspace
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -73,6 +74,9 @@ func TestWorkspaceExecution(t *testing.T) {
 			defer ws.Close()
 
 			done, cancel := ws.Run()
+
+			// needed to prevent the insights execution of blocking
+			announcer.Skip(ws.ImportAnnouncer())
 
 			cancel()
 

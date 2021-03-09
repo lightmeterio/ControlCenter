@@ -63,6 +63,10 @@ type highRateDetector struct {
 	generators          []*bounceRateGenerator
 }
 
+func (highRateDetector) IsHistoricalDetector() {
+	// Required by the historical import
+}
+
 func (*highRateDetector) Close() error {
 	return nil
 }

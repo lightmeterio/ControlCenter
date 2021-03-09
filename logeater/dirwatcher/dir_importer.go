@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -442,15 +443,17 @@ type DirectoryContent interface {
 type DirectoryImporter struct {
 	content     DirectoryContent
 	pub         postfix.Publisher
+	announcer   announcer.ImportAnnouncer
 	initialTime time.Time
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
 	pub postfix.Publisher,
+	announcer announcer.ImportAnnouncer,
 	initialTime time.Time,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, initialTime}
+	return DirectoryImporter{content, pub, announcer, initialTime}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
@@ -698,7 +701,7 @@ func setFileLocationOnQueueProcessorIfNeeded(p *queueProcessor) {
 	log.Info().Msgf("Starting importing log file: %v", p.filename)
 }
 
-func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, error) {
+func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressNotifier *announcer.Notifier) (bool, error) {
 	setFileLocationOnQueueProcessorIfNeeded(p)
 
 	// tries to read something from the queue, ignoring it on the next iteration
@@ -721,6 +724,9 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 			}
 
 			log.Info().Msgf("Finished importing log file: %v", p.filename)
+
+			// use last time computed
+			progressNotifier.Step(p.record.Time)
 
 			p.currentIndex++
 			p.line = 0
@@ -769,7 +775,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent) (bool, er
 	}
 }
 
-func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int) error {
+func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int, progressNotifier *announcer.Notifier) error {
 	for i, p := range processors {
 		isFirstExecution := toBeUpdated != -1
 
@@ -778,7 +784,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 			continue
 		}
 
-		shouldKeepProcessor, err := updateQueueProcessor(p, content)
+		shouldKeepProcessor, err := updateQueueProcessor(p, content, progressNotifier)
 
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -808,6 +814,16 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	return chosenIndex
 }
 
+func computeProgressStep(queues fileQueues) int64 {
+	numberOfFiles := 0
+
+	for _, q := range queues {
+		numberOfFiles += len(q)
+	}
+
+	return 100 / int64(numberOfFiles)
+}
+
 // Open all log files, including archived (compressed or not, but logrotate)
 // and read them line by line, publishing them in the right order they were generated (or
 // close enough, as the lines have only precision of second, so it's not a "stable sort"),
@@ -819,14 +835,17 @@ func importExistingLogs(
 	queues fileQueues,
 	pub postfix.Publisher,
 	initialTime time.Time,
-) error {
+	importAnnouncer announcer.ImportAnnouncer) error {
 	initialImportTime := time.Now()
 
 	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
+	progressNotifier := announcer.NewNotifier(importAnnouncer, computeProgressStep(queues))
+
+	currentLogTime := time.Time{}
 
 	toBeUpdated := -1
 
@@ -835,14 +854,16 @@ func importExistingLogs(
 	for {
 		updatedProcessors = updatedProcessors[0:0]
 
-		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated)
-
+		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated, &progressNotifier)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
 		if len(updatedProcessors) == 0 {
 			elapsedTime := time.Since(initialImportTime)
+
+			progressNotifier.End(currentLogTime)
+
 			log.Info().Msgf("Finished importing postfix log directory in: %v", elapsedTime)
 
 			return nil
@@ -855,9 +876,17 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if t.Time.After(initialTime) {
-			pub.Publish(t)
+		if !t.Time.After(initialTime) {
+			continue
 		}
+
+		if currentLogTime.IsZero() {
+			importAnnouncer.AnnounceStart(t.Time)
+		}
+
+		currentLogTime = t.Time
+
+		pub.Publish(t)
 	}
 }
 
@@ -1211,7 +1240,9 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	if err := importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime); err != nil {
+	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer)
+
+	if err != nil {
 		interruptWatching()
 		return errorutil.Wrap(err)
 	}

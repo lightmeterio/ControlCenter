@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
@@ -73,7 +74,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, time.Time{}, false, false)
+			return dirlogsource.New(inputDirectory, time.Time{}, &fakeAnnouncer{}, false, false)
 		}
 
 		f, err := os.Open(inputFile)
@@ -88,7 +89,7 @@ func main() {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return filelogsource.New(f, builder)
+		return filelogsource.New(f, builder, &fakeAnnouncer{})
 	}()
 
 	errorutil.MustSucceed(err)
@@ -130,4 +131,13 @@ func main() {
 			errorutil.LogFatalf(err, "could not write memory profile")
 		}
 	}
+}
+
+type fakeAnnouncer struct {
+}
+
+func (a *fakeAnnouncer) AnnounceStart(time.Time) {
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
 }

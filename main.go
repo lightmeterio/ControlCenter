@@ -170,8 +170,13 @@ func printVersion() {
 }
 
 func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool, rsyncedDir bool, logYear int, logFormat string, shouldWatchFromStdin bool, socket string, verbose bool) (logsource.Source, error) {
+	mostRecentTime, err := ws.MostRecentLogTime()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	if len(dirToWatch) > 0 {
-		s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly, rsyncedDir)
+		s, err := dirlogsource.New(dirToWatch, mostRecentTime, ws.ImportAnnouncer(), !importOnly, rsyncedDir)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
@@ -185,7 +190,7 @@ func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool,
 	}
 
 	if shouldWatchFromStdin {
-		s, err := filelogsource.New(os.Stdin, builder)
+		s, err := filelogsource.New(os.Stdin, builder, ws.ImportAnnouncer())
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
@@ -194,7 +199,7 @@ func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool,
 	}
 
 	if len(socket) > 0 {
-		s, err := socketsource.New(socket, builder)
+		s, err := socketsource.New(socket, builder, ws.ImportAnnouncer())
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

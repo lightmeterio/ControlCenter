@@ -6,6 +6,7 @@ package dirlogsource
 
 import (
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -15,12 +16,13 @@ import (
 type Source struct {
 	initialTime time.Time
 	dir         dirwatcher.DirectoryContent
+	announcer   announcer.ImportAnnouncer
 
 	// should continue waiting for new results (tail -f)?
 	follow bool
 }
 
-func New(dirname string, initialTime time.Time, follow bool, rsynced bool) (*Source, error) {
+func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool) (*Source, error) {
 	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced)
 
 	if err != nil {
@@ -40,11 +42,12 @@ func New(dirname string, initialTime time.Time, follow bool, rsynced bool) (*Sou
 		initialTime: initialTime,
 		dir:         dir,
 		follow:      follow,
+		announcer:   announcer,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.initialTime)
+	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime)
 
 	f := func() func() error {
 		if s.follow {

@@ -115,6 +115,10 @@ type detector struct {
 	generator *generator
 }
 
+func (detector) IsHistoricalDetector() {
+	// Required by the historical import
+}
+
 func (*detector) Close() error {
 	return nil
 }

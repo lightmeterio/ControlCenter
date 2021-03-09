@@ -96,6 +96,10 @@ type detector struct {
 	creator core.Creator
 }
 
+func (detector) IsHistoricalDetector() {
+	// Really empty, just to implement the HistoricalDetector interface
+}
+
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["messagerbl"].(Options)
 

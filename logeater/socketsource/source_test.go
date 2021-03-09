@@ -6,6 +6,7 @@ package socketsource
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
@@ -31,6 +32,15 @@ func (pub *pub) Publish(r postfix.Record) {
 	pub.logs = append(pub.logs, r)
 }
 
+type fakeAnnouncer struct {
+}
+
+func (a *fakeAnnouncer) AnnounceStart(time.Time) {
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
+}
+
 func TestListenLogsOnSocket(t *testing.T) {
 	Convey("Get logs from socket", t, func() {
 		dir, clear := testutil.TempDir(t)
@@ -43,22 +53,22 @@ func TestListenLogsOnSocket(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Wrong socket description", func() {
-			_, err := New("something invalid", transformer)
+			_, err := New("something invalid", transformer, &fakeAnnouncer{})
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Invalid network type", func() {
-			_, err := New("magic=/tmp/lalala", transformer)
+			_, err := New("magic=/tmp/lalala", transformer, &fakeAnnouncer{})
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Error opening socket (permission denied)", func() {
-			_, err := New("unix=/proc/something", transformer)
+			_, err := New("unix=/proc/something", transformer, &fakeAnnouncer{})
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Use unix socket", func() {
-			source, err := New("unix="+path.Join(dir, "logs.sock"), transformer)
+			source, err := New("unix="+path.Join(dir, "logs.sock"), transformer, &fakeAnnouncer{})
 			So(err, ShouldBeNil)
 
 			done := make(chan error)

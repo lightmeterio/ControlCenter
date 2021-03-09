@@ -7,9 +7,10 @@ package testutil
 
 import (
 	"gitlab.com/lightmeter/controlcenter/util/temputil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
 var (
 	TempDir       = temputil.TempDir
-	MustParseTime = temputil.MustParseTime
+	MustParseTime = timeutil.MustParseTime
 )

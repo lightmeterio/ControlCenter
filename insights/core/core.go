@@ -20,6 +20,11 @@ type Detector interface {
 	Close() error
 }
 
+type HistoricalDetector interface {
+	Detector
+	IsHistoricalDetector()
+}
+
 type Core struct {
 	Detectors []Detector
 	closers   closeutil.Closers

@@ -14,6 +14,7 @@ import (
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -388,6 +389,14 @@ func TestEngine(t *testing.T) {
 
 			defer func() {
 				So(e.Close(), ShouldBeNil)
+			}()
+
+			go func() {
+				n := announcer.NewNotifier(e.ImportAnnouncer(), 10)
+
+				n.Start(time.Now())
+				n.Step(time.Now())
+				n.End(time.Now())
 			}()
 
 			// Generate one insight, on the first cycle

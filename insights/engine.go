@@ -7,10 +7,13 @@ package insights
 
 import (
 	"database/sql"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/insights/importsummary"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -22,6 +25,23 @@ import (
 
 type txAction func(*sql.Tx) error
 
+type importAnnouncer struct {
+	start    chan time.Time
+	progress chan announcer.Progress
+}
+
+func (a *importAnnouncer) AnnounceStart(time time.Time) {
+	a.start <- time
+}
+
+func (a *importAnnouncer) AnnounceProgress(p announcer.Progress) {
+	a.progress <- p
+
+	if p.Finished {
+		close(a.progress)
+	}
+}
+
 type Engine struct {
 	core              *core.Core
 	insightsStateConn *dbconn.PooledPair
@@ -29,6 +49,8 @@ type Engine struct {
 	fetcher           core.Fetcher
 	closers           closeutil.Closers
 	runner.CancelableRunner
+	importAnnouncer    importAnnouncer
+	notificationCenter *notification.Center
 }
 
 func NewCustomEngine(
@@ -80,12 +102,19 @@ func NewCustomEngine(
 		return nil, errorutil.Wrap(err)
 	}
 
+	announcer := importAnnouncer{
+		start:    make(chan time.Time),
+		progress: make(chan announcer.Progress, 100),
+	}
+
 	e := &Engine{
-		core:              c,
-		insightsStateConn: stateConn,
-		txActions:         make(chan txAction, 1024),
-		fetcher:           fetcher,
-		closers:           closeutil.New(c),
+		core:               c,
+		insightsStateConn:  stateConn,
+		txActions:          make(chan txAction, 1024),
+		fetcher:            fetcher,
+		closers:            closeutil.New(c),
+		importAnnouncer:    announcer,
+		notificationCenter: notificationCenter,
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -114,7 +143,11 @@ func NewCustomEngine(
 }
 
 func (e *Engine) Close() error {
-	return e.closers.Close()
+	if err := e.core.Close(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
 }
 
 func spawnInsightsJob(clock core.Clock, e *Engine, cancel <-chan struct{}) {
@@ -196,6 +229,128 @@ func runDatabaseWriterLoop(e *Engine) {
 	}
 }
 
+type historicalClock struct {
+	current time.Time
+}
+
+func (c *historicalClock) Now() time.Time {
+	return c.current
+}
+
+func (c *historicalClock) Sleep(d time.Duration) {
+	c.current = c.current.Add(d)
+}
+
+// TODO: error handling here!!!
+func runOnHistoricalData(e *Engine) {
+	interval := importHistoricalInsights(e)
+
+	if !interval.To.IsZero() {
+		generateImportSummaryInsight(e, interval)
+	}
+}
+
+func importHistoricalInsights(e *Engine) timeutil.TimeInterval {
+	log.Info().Msg("Waiting for import announcement!")
+
+	importStartTime := time.Now()
+
+	start := <-e.importAnnouncer.start
+
+	log.Info().Msgf("Starting insights on historical data starting with %v", start)
+
+	clock := historicalClock{current: start}
+
+	tx, err := e.insightsStateConn.RwConn.Begin()
+	errorutil.MustSucceed(err)
+
+	historicalDetectors := []core.HistoricalDetector{}
+
+	for _, s := range e.core.Detectors {
+		if h, ok := s.(core.HistoricalDetector); ok {
+			historicalDetectors = append(historicalDetectors, h)
+		}
+	}
+
+	finish := start
+
+	for progress := range e.importAnnouncer.progress {
+		log.Info().Msgf("Before: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
+
+		for clock.current.Before(progress.Time) {
+			for _, h := range historicalDetectors {
+				errorutil.MustSucceed(h.Step(&clock, tx))
+			}
+
+			clock.Sleep(time.Minute * 20)
+		}
+
+		log.Info().Msgf("After: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
+
+		if progress.Finished {
+			finish = progress.Time
+			log.Info().Msgf("Finished importing historical data in the time %v", progress.Time)
+		}
+	}
+
+	errorutil.MustSucceed(tx.Commit())
+
+	log.Debug().Msgf("Importing historical insights from %v to %v took %v", start, finish, time.Since(importStartTime))
+
+	return timeutil.TimeInterval{From: start, To: finish}
+}
+
+func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) {
+	tx, err := e.insightsStateConn.RwConn.Begin()
+	errorutil.MustSucceed(err)
+
+	// Single shot detector
+	summaryInsightDetector := importsummary.NewDetector(e.fetcher, interval)
+
+	// Generate an import summary insight
+	errorutil.MustSucceed(summaryInsightDetector.Step(&timeutil.RealClock{}, tx))
+
+	errorutil.MustSucceed(tx.Commit())
+}
+
+// TODO: turn this into a runner.CancellableRunner!!!
+func (e *Engine) Run() (func() error, func()) {
+	doneRun := make(chan error)
+
+	go func() {
+		runOnHistoricalData(e)
+		runDatabaseWriterLoop(e)
+		doneRun <- nil
+	}()
+
+	cancelInsightsJob := make(chan struct{})
+
+	// start generating insights
+	go spawnInsightsJob(&realClock{}, e, cancelInsightsJob)
+
+	cancelRun := make(chan struct{})
+
+	go func() {
+		<-cancelRun
+		cancelInsightsJob <- struct{}{}
+
+		close(e.txActions)
+	}()
+
+	// TODO: start user actions thread
+	// something that reads user actions (resolve insights, etc.)
+
+	return func() error {
+			return <-doneRun
+		}, func() {
+			cancelRun <- struct{}{}
+		}
+}
+
 func (e *Engine) Fetcher() core.Fetcher {
 	return e.fetcher
+}
+
+func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {
+	return &e.importAnnouncer
 }
