@@ -475,7 +475,7 @@ export default {
       this.$refs["modal-msg-rbl"].hide();
     },
     applySummaryInterval(insight) {
-      this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to});
+      this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to, "category": "archived"});
     }
   }
 };

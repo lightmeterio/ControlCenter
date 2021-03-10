@@ -113,6 +113,16 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <!-- prettier-ignore -->
                   <translate>News</translate>
                 </option>
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Archived')
+                  "
+                  value="category-archived"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Archived</translate>
+                </option>
+
               </select>
               <select
                 id="insights-sort"
@@ -263,8 +273,10 @@ export default {
     },
     handleExternalDateIntervalChanged(obj) {
       this.dateRange = obj;
+      if (obj.category !== undefined) {
+        this.insightsFilter = "category-" + obj.category
+      }
       updateSelectedInterval(this, obj);
-      console.log(obj)
     },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
