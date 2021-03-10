@@ -188,19 +188,31 @@ type fetcher struct {
 }
 
 func buildSelectStmt(where, order string) string {
-	// filter out any archived insight
 	return fmt.Sprintf(`
-	select
-		insights.rowid, insights.time, insights.category, insights.rating, insights.content_type, insights.content
-	from
-		insights left join insights_status on insights.rowid = insights_status.insight_id
-	where
-		%s and insights_status.id is null
-	order by
-		%s
-	limit
-		?
-	`, where, order)
+	with
+	non_archived(id, time, category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights.category, insights.rating, insights.content_type, insights.content
+		from
+			insights left join insights_status on insights.rowid = insights_status.insight_id
+		where
+			insights_status.id is null
+	),
+	archived(id, time, category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights_status.status, insights.rating, insights.content_type, insights.content
+		from
+			insights join insights_status on insights.rowid = insights_status.insight_id
+		where insights_status.status = %d
+	),
+	united(id, time, category, rating, content_type, content) as (
+		select * from non_archived union select * from archived
+	)
+	select * from united
+	where %s
+	order by %s
+	limit ?
+	`, int(ArchivedCategory), where, order)
 }
 
 func buildLimitForFetchOptions(o FetchOptions) int {
@@ -244,37 +256,37 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`insights.time between ? and ?`, `insights.time desc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time desc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`insights.category = ? and insights.time between ? and ?`, `insights.time desc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time desc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`insights.category = ? and insights.time between ? and ?`, `insights.time asc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`insights.time between ? and ?`, `insights.time asc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
 			},
 		},
 	}

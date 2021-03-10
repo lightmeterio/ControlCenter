@@ -92,6 +92,8 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	insights, err := d.fetcher.FetchInsights(context.Background(), core.FetchOptions{
 		Interval: d.interval,
 		OrderBy:  core.OrderByCreationAsc,
+		FilterBy: core.FilterByCategory,
+		Category: core.ArchivedCategory,
 	})
 
 	if err != nil {
