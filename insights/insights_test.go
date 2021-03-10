@@ -54,15 +54,15 @@ func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 type fakeContentComponent string
 
 func (c fakeContentComponent) String() string {
-	return translator.Stringfy(c)
+	return string(c)
 }
 
 func (c fakeContentComponent) TplString() string {
-	return "%s"
+	return string(c)
 }
 
 func (c fakeContentComponent) Args() []interface{} {
-	return []interface{}{c}
+	return nil
 }
 
 type fakeNotifier struct {
@@ -501,12 +501,17 @@ func TestEngine(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
-			// one fakeInsight and one summary insight
-			So(len(insights), ShouldEqual, 2)
-
 			So(len(notifier.notifications), ShouldEqual, 1)
 			So(notifier.notifications[0].ID, ShouldEqual, 3)
 			So(notifier.notifications[0].Content.Description(), ShouldEqual, "A non historical insight")
+
+			// one fakeInsight and one summary insight
+			So(len(insights), ShouldEqual, 2)
+
+			So(insights[0].Content().Description().String(), ShouldEqual, "A non historical insight")
+
+			So(insights[1].Content().Title().String(), ShouldEqual, "Imported insights")
+			So(insights[1].Content().Description().String(), ShouldEqual, "From 2000-01-01 00:00:00 +0000 UTC to 2000-01-31 23:59:59 +0000 UTC 0 insights were imported")
 		})
 	})
 }

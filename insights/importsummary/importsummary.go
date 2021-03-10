@@ -53,7 +53,7 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("From %s to %d %d insights were imported")
+	return translator.I18n("From %s to %s %d insights were imported")
 }
 
 func (d description) Args() []interface{} {
