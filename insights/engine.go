@@ -271,14 +271,10 @@ func runOnHistoricalData(e *Engine) error {
 	return nil
 }
 
-func generateInsightsDuringImportProgress(e *Engine) (timeutil.TimeInterval, error) {
-	log.Info().Msg("Waiting for import announcement!")
-
-	start := <-e.importAnnouncer.start
+func generateInsightsDuringImportProgress(e *Engine, start time.Time) (timeutil.TimeInterval, error) {
+	log.Info().Msgf("Starting insights on historical data starting with %v", start)
 
 	finish := start
-
-	log.Info().Msgf("Starting insights on historical data starting with %v", start)
 
 	clock := historicalClock{current: start}
 
@@ -327,7 +323,16 @@ func generateInsightsDuringImportProgress(e *Engine) (timeutil.TimeInterval, err
 }
 
 func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
+	log.Info().Msg("Waiting for import announcement!")
+
 	importStartTime := time.Now()
+
+	start := <-e.importAnnouncer.start
+
+	if start.IsZero() {
+		log.Info().Msg("Skip historical insights importing...")
+		return timeutil.TimeInterval{}, nil
+	}
 
 	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
 		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
@@ -339,7 +344,7 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		return timeutil.TimeInterval{}, errorutil.Wrap(err)
 	}
 
-	interval, err := generateInsightsDuringImportProgress(e)
+	interval, err := generateInsightsDuringImportProgress(e, start)
 	if err != nil {
 		return timeutil.TimeInterval{}, errorutil.Wrap(err)
 	}
