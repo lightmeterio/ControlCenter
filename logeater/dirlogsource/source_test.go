@@ -6,6 +6,7 @@ package dirlogsource
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -28,6 +29,15 @@ func (f *fakePublisher) Publish(r postfix.Record) {
 	f.records = append(f.records, r)
 }
 
+type fakeAnnouncer struct {
+}
+
+func (a *fakeAnnouncer) AnnounceStart(time.Time) {
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
+}
+
 func TestReadingFromDirectory(t *testing.T) {
 	Convey("Read from Directory", t, func() {
 		sampleTarball := path.Join("..", "..", "test_files", "postfix_logs", "complete.tar.gz")
@@ -42,8 +52,10 @@ func TestReadingFromDirectory(t *testing.T) {
 
 		pub := fakePublisher{}
 
+		announcer := &fakeAnnouncer{}
+
 		Convey("Only import from beginning", func() {
-			s, err := New(logDir, time.Time{}, false, false)
+			s, err := New(logDir, time.Time{}, announcer, false, false)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 			So(r.Run(), ShouldBeNil)
@@ -51,7 +63,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		})
 
 		Convey("Import logs and watch for changes", func() {
-			s, err := New(logDir, time.Time{}, true, false)
+			s, err := New(logDir, time.Time{}, announcer, true, false)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 

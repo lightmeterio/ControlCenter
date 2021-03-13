@@ -5,6 +5,7 @@
 
 // +build dev !release
 
-//go:generate go run github.com/golang/mock/mockgen -destination=mock/insights_mock.go gitlab.com/lightmeter/controlcenter/insights/core Fetcher
+//go:generate go run github.com/golang/mock/mockgen -destination=mock/fetcher_mock.go gitlab.com/lightmeter/controlcenter/insights/core Fetcher
+//go:generate go run github.com/golang/mock/mockgen -destination=mock/progress_mock.go gitlab.com/lightmeter/controlcenter/insights/core ProgressFetcher
 
 package core

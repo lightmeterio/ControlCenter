@@ -113,6 +113,16 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <!-- prettier-ignore -->
                   <translate>News</translate>
                 </option>
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Archived')
+                  "
+                  value="category-archived"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Archived</translate>
+                </option>
+
               </select>
               <select
                 id="insights-sort"
@@ -148,7 +158,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           </form>
         </div>
       </div>
-      <insights class="row" :insights="insights"></insights>
+
+      <import-progress-indicator v-show="shouldShowProgressIndicator" @finished="handleProgressFinished"></import-progress-indicator>
+
+      <insights class="row" v-show="!shouldShowProgressIndicator" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
+
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -200,6 +214,11 @@ function formatDatePickerValue(obj) {
     moment(obj.endDate).format("D MMM");
 }
 
+function updateSelectedInterval(vue, obj) {
+  vue.updateDashboardAndInsights();
+  formatDatePickerValue(obj);
+}
+
 function buildDefaultInterval() {
   // past month
   return {
@@ -227,7 +246,8 @@ export default {
       opens: "right",
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
-      insights: []
+      insights: [],
+      shouldShowProgressIndicator: true
     };
   },
   computed: {
@@ -247,6 +267,10 @@ export default {
     }
   },
   methods: {
+    handleProgressFinished() {
+      this.shouldShowProgressIndicator = false;
+      this.updateDashboardAndInsights();
+    },
     triggerRefresh: function() {
       this.triggerRefreshValue = !this.triggerRefreshValue;
       return this.triggerRefreshValue;
@@ -256,16 +280,20 @@ export default {
       vue.updateInsights();
       vue.updateDashboard();
     },
+    handleExternalDateIntervalChanged(obj) {
+      this.dateRange = obj;
+      if (obj.category !== undefined) {
+        this.insightsFilter = "category-" + obj.category
+      }
+      updateSelectedInterval(this, obj);
+    },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
         "onUpdateDateRangePicker",
         obj.startDate + "-" + obj.endDate
       );
-      formatDatePickerValue(obj);
 
-      let vue = this;
-
-      vue.updateDashboardAndInsights();
+      updateSelectedInterval(this, obj);
     },
     buildDateInterval() {
       let vue = this;
@@ -292,11 +320,10 @@ export default {
     },
     initIndex: function() {
       this.sessionInterval = this.ValidSessionCheck();
+
       let vue = this;
 
-      vue.updateDashboardAndInsights();
-
-      formatDatePickerValue(vue.dateRange);
+      updateSelectedInterval(vue, vue.dateRange);
 
       this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);

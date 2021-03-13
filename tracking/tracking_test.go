@@ -8,6 +8,7 @@ import (
 	"bytes"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
@@ -24,6 +25,15 @@ import (
 )
 
 var _ = parser.Parse
+
+type fakeAnnouncer struct {
+}
+
+func (a *fakeAnnouncer) AnnounceStart(time.Time) {
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
+}
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
@@ -46,7 +56,7 @@ func (p *fakeResultPublisher) Publish(r Result) {
 func readFromTestReader(reader io.Reader, pub postfix.Publisher) {
 	builder, err := transform.Get("default", 2020)
 	errorutil.MustSucceed(err)
-	s, err := filelogsource.New(reader, builder)
+	s, err := filelogsource.New(reader, builder, &fakeAnnouncer{})
 	errorutil.MustSucceed(err)
 	r := logsource.NewReader(s, pub)
 	r.Run()
@@ -84,14 +94,18 @@ func TestMostRecentLogTime(t *testing.T) {
 		Convey("Nothing read", func() {
 			cancel()
 			done()
-			So(t.MostRecentLogTime(), ShouldResemble, time.Time{})
+			l, err := t.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(l, ShouldResemble, time.Time{})
 		})
 
 		Convey("File with a connection", func() {
 			readFromTestContent(`Oct 13 16:40:39 ucs postfix/smtpd[18568]: connect from unknown[28.55.140.112]`, t.Publisher())
 			cancel()
 			done()
-			So(t.MostRecentLogTime(), ShouldResemble, testutil.MustParseTime(`2020-10-13 16:40:39 +0000`))
+			l, err := t.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(l, ShouldResemble, testutil.MustParseTime(`2020-10-13 16:40:39 +0000`))
 		})
 	})
 }

@@ -9,8 +9,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -24,13 +26,15 @@ type Category int
 func (c Category) String() string {
 	switch c {
 	case LocalCategory:
-		return "local"
+		return translator.I18n("local")
 	case ComparativeCategory:
-		return "comparative"
+		return translator.I18n("comparative")
 	case NewsCategory:
-		return "news"
+		return translator.I18n("news")
 	case IntelCategory:
-		return "intel"
+		return translator.I18n("intel")
+	case ArchivedCategory:
+		return translator.I18n("archived")
 	case NoCategory:
 		fallthrough
 	default:
@@ -53,7 +57,12 @@ const (
 	NewsCategory        Category = 2
 	ComparativeCategory Category = 3
 	IntelCategory       Category = 4
+	ArchivedCategory    Category = 5
 )
+
+func (c Category) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
+}
 
 func BuildCategoryByName(n string) Category {
 	switch n {
@@ -65,9 +74,23 @@ func BuildCategoryByName(n string) Category {
 		return NewsCategory
 	case "intel":
 		return IntelCategory
+	case "archived":
+		return ArchivedCategory
 	default:
 		return NoCategory
 	}
+}
+
+func (c *Category) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*c = BuildCategoryByName(s)
+
+	return nil
 }
 
 func BuildFilterByName(n string) FetchFilter {
@@ -91,6 +114,37 @@ func BuildOrderByName(n string) FetchOrder {
 }
 
 type Rating int
+
+func (r Rating) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.String())
+}
+
+var ErrInvalidRating = errors.New(`Invalid Rating`)
+
+func (r *Rating) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	switch s {
+	case "bad":
+		*r = BadRating
+		return nil
+	case "ok":
+		*r = OkRating
+		return nil
+	case "good":
+		*r = GoodRating
+		return nil
+	case "unrated":
+		*r = Unrated
+		return nil
+	default:
+		return ErrInvalidRating
+	}
+}
 
 func (r Rating) String() string {
 	switch r {
@@ -183,17 +237,30 @@ type fetcher struct {
 
 func buildSelectStmt(where, order string) string {
 	return fmt.Sprintf(`
-	select
-		rowid, time, category, rating, content_type, content
-	from
-		insights
-	where
-		%s
-	order by
-		%s
-	limit
-		?
-	`, where, order)
+	with
+	non_archived(id, time, category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights.category, insights.rating, insights.content_type, insights.content
+		from
+			insights left join insights_status on insights.rowid = insights_status.insight_id
+		where
+			insights_status.id is null
+	),
+	archived(id, time, category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights_status.status, insights.rating, insights.content_type, insights.content
+		from
+			insights join insights_status on insights.rowid = insights_status.insight_id
+		where insights_status.status = %d
+	),
+	united(id, time, category, rating, content_type, content) as (
+		select * from non_archived union select * from archived
+	)
+	select * from united
+	where %s
+	order by %s
+	limit ?
+	`, int(ArchivedCategory), where, order)
 }
 
 func buildLimitForFetchOptions(o FetchOptions) int {
@@ -235,37 +302,39 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 
 	queriesBuilders := []queriesBuilderPair{
 		{
-			key:   queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
-			value: func(key queryKey) error { return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time desc`)) },
+			key: queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time desc`))
+			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time desc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time desc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
 			},
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time asc`))
 			},
 			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
 			},
 		},
 	}
@@ -425,10 +494,10 @@ func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
 }
 
 type Creator interface {
-	GenerateInsight(*sql.Tx, InsightProperties) error
+	GenerateInsight(context.Context, *sql.Tx, InsightProperties) error
 }
 
-func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
+func GenerateInsight(ctx context.Context, tx *sql.Tx, properties InsightProperties) (int64, error) {
 	contentBytes, err := json.Marshal(properties.Content)
 
 	if err != nil {
@@ -443,7 +512,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 		return 0, errorutil.Wrap(err)
 	}
 
-	result, err := tx.Exec(
+	result, err := tx.ExecContext(ctx,
 		`insert into insights(time, category, rating, content_type, content) values(?, ?, ?, ?, ?)`,
 		properties.Time.Unix(),
 		properties.Category,
@@ -456,8 +525,11 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	}
 
 	id, err := result.LastInsertId()
-
 	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	if err := ArchiveInsightIfHistoricalImportIsRunning(ctx, tx, id, properties.Time); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 

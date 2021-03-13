@@ -14,6 +14,7 @@ import (
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
@@ -47,6 +48,8 @@ type Workspace struct {
 
 	settingsMetaHandler *meta.Handler
 	settingsRunner      *meta.Runner
+
+	importAnnouncer *announcer.SynchronizingAnnouncer
 
 	closes closeutil.Closers
 }
@@ -118,15 +121,19 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsEngine, err := insights.NewEngine(
-		workspaceDirectory,
-		notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
+	insightsAcessor, err := insights.NewAccessor(workspaceDirectory)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
+	insightsEngine, err := insights.NewEngine(insightsAcessor, notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	logsRunner := newLogsRunner(tracker, deliveries)
+
+	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
 	ws := &Workspace{
 		deliveries:          deliveries,
@@ -138,12 +145,14 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		dashboard:           dashboard,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
+		importAnnouncer:     importAnnouncer,
 		closes: closeutil.New(
 			auth,
 			tracker,
 			deliveries,
 			insightsEngine,
 			m,
+			insightsAcessor,
 		),
 		NotificationCenter: notificationCenter,
 	}
@@ -155,8 +164,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneInsights, cancelInsights := ws.insightsEngine.Run()
 		doneSettings, cancelSettings := ws.settingsRunner.Run()
 		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
-
 		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
+
+		// We don't need to explicitly ends the importer, as it'll
+		// end when the import process finished, as it's a single-shot process!
+		doneImporter, cancelImporter := ws.importAnnouncer.Run()
 
 		go func() {
 			<-cancel
@@ -164,16 +176,16 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			cancelMsgRbl()
 			cancelSettings()
 			cancelInsights()
+			cancelImporter()
 		}()
 
 		go func() {
-			err := doneLogsRunner()
-			errorutil.MustSucceed(err)
-
 			// TODO: handle errors!
+			errorutil.MustSucceed(doneLogsRunner())
 			errorutil.MustSucceed(doneMsgRbl())
 			errorutil.MustSucceed(doneSettings())
 			errorutil.MustSucceed(doneInsights())
+			errorutil.MustSucceed(doneImporter())
 
 			// TODO: return a combination of the "children" errors!
 			done <- nil
@@ -191,23 +203,38 @@ func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
 }
 
+func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
+	return ws.insightsEngine.ProgressFetcher()
+}
+
 func (ws *Workspace) Dashboard() dashboard.Dashboard {
 	return ws.dashboard
+}
+
+func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {
+	return ws.importAnnouncer
 }
 
 func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
 }
 
-func (ws *Workspace) MostRecentLogTime() time.Time {
-	mostRecentDeliverTime := ws.deliveries.MostRecentLogTime()
-	mostRecentTrackerTime := ws.tracker.MostRecentLogTime()
-
-	if mostRecentTrackerTime.After(mostRecentDeliverTime) {
-		return mostRecentTrackerTime
+func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
+	mostRecentDeliverTime, err := ws.deliveries.MostRecentLogTime()
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	return mostRecentDeliverTime
+	mostRecentTrackerTime, err := ws.tracker.MostRecentLogTime()
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	if mostRecentTrackerTime.After(mostRecentDeliverTime) {
+		return mostRecentTrackerTime, nil
+	}
+
+	return mostRecentDeliverTime, nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {

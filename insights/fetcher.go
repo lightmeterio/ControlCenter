@@ -6,6 +6,7 @@
 package insights
 
 import (
+	"context"
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -42,8 +43,8 @@ func newCreator(conn dbconn.RwConn, notifier *notification.Center) (*creator, er
 	return &creator{DBCreator: c, notifier: notifier}, nil
 }
 
-func (c *creator) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
-	id, err := core.GenerateInsight(tx, properties)
+func (c *creator) GenerateInsight(ctx context.Context, tx *sql.Tx, properties core.InsightProperties) error {
+	id, err := core.GenerateInsight(ctx, tx, properties)
 
 	if err != nil {
 		return errorutil.Wrap(err)

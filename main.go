@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
@@ -169,9 +170,26 @@ func printVersion() {
 	fmt.Printf("Lightmeter ControlCenter %s\n", version.Version)
 }
 
+func importAnnouncerOnlyForFirstExecution(initialTime time.Time, a announcer.ImportAnnouncer) announcer.ImportAnnouncer {
+	// first execution. Must import historical insights
+	if initialTime.IsZero() {
+		return a
+	}
+
+	// otherwise skip the historical insights import
+	return announcer.Skipper(a)
+}
+
 func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool, rsyncedDir bool, logYear int, logFormat string, shouldWatchFromStdin bool, socket string, verbose bool) (logsource.Source, error) {
+	mostRecentTime, err := ws.MostRecentLogTime()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	announcer := importAnnouncerOnlyForFirstExecution(mostRecentTime, ws.ImportAnnouncer())
+
 	if len(dirToWatch) > 0 {
-		s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly, rsyncedDir)
+		s, err := dirlogsource.New(dirToWatch, mostRecentTime, announcer, !importOnly, rsyncedDir)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
@@ -185,7 +203,7 @@ func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool,
 	}
 
 	if shouldWatchFromStdin {
-		s, err := filelogsource.New(os.Stdin, builder)
+		s, err := filelogsource.New(os.Stdin, builder, announcer)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
@@ -194,7 +212,7 @@ func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool,
 	}
 
 	if len(socket) > 0 {
-		s, err := socketsource.New(socket, builder)
+		s, err := socketsource.New(socket, builder, announcer)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

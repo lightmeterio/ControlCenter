@@ -115,6 +115,10 @@ type detector struct {
 	generator *generator
 }
 
+func (detector) IsHistoricalDetector() {
+	// Required by the historical import
+}
+
 func (*detector) Close() error {
 	return nil
 }
@@ -239,7 +243,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 		},
 	}
 
-	if err := creator.GenerateInsight(tx, properties); err != nil {
+	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -12,7 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 )
 
-func executeAdditionalDetectorsInitialActions([]core.Detector, dbconn.RwConn) error {
+func executeAdditionalDetectorsInitialActions([]core.Detector, dbconn.RwConn, core.Clock) error {
 	// Intentionally empty as this function intends to be used only development
 	return nil
 }

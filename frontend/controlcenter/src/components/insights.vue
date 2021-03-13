@@ -72,8 +72,33 @@ SPDX-License-Identifier: AGPL-3.0-only
           </b-button>
         </b-col>
       </b-row>
-
     </b-modal>
+    <b-modal
+      ref="modal-import-summary"
+      id="modal-import-summary"
+      size="lg"
+      hide-footer
+      centered
+      :title="importSummaryWindowTitle()"
+    >
+      <div class="modal-body">
+        {{importSummaryInsight.content}}
+      </div>
+
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideImportSummaryModal"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
+    </b-modal>
+
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
@@ -108,6 +133,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </span>
               </div>
               <h6 class="card-title title">{{ insight.title }}</h6>
+
+              <!-- TODO: extract each kind of card to its own component and remove this giant if-then... -->
               <p
                 v-if="insight.content_type === 'high_bounce_rate'"
                 class="card-text description"
@@ -125,6 +152,21 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >
                   <!-- prettier-ignore -->
                   <translate>Read more</translate>
+                </button>
+              </p>
+
+              <p
+                v-if="insight.content_type === 'import_summary'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-b-modal.modal-import-summary
+                  v-on:click="onImportSummaryDetails(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
                 </button>
               </p>
 
@@ -230,6 +272,7 @@ export default {
       msgRblDetails: "",
       insightRblCheckedIpTitle: "",
       insightMsgRblTitle: "",
+      importSummaryInsight: {},
       applicationData: { version: "" }
     };
   },
@@ -260,6 +303,9 @@ export default {
     },
     welcome_content_title() {
       return this.$gettext("Your first Insight");
+    },
+    import_summary_title() {
+      return this.$gettext("Insights were generated from your logs");
     },
     insights_introduction_content_title() {
       let translation = this.$gettext("Welcome to Lightmeter %{version}");
@@ -306,7 +352,6 @@ export default {
     message_rbl_description(i) {
       let c = i.content;
       let translation = this.$gettext("The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)");
-
       let message = this.$gettextInterpolate(translation, {ip: c.address, recipient: c.recipient, host: c.host});
 
       return {
@@ -316,6 +361,18 @@ export default {
     },
     newsfeed_content_description(insight) {
       return insight.content.description.substr(0,65);
+    },
+    import_summary_description(insight) {
+      let c = insight.content;
+      //let counter = Object.entries(c.ids).reduce(function(acc, v) { return acc + v[1].length }, 0)
+      let counter = c.insights.length
+
+      let translation = this.$gettext("Mail activity imported successfully Events since %{start} were analysed, producing %{count} Insights");
+
+      return this.$gettextInterpolate(translation, {
+        start: formatInsightDescriptionDate(c.interval.from),
+        count: counter
+      });
     },
     transformInsights(insights) {
       let vue = this;
@@ -445,6 +502,18 @@ export default {
     },
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
+    },
+    hideImportSummaryModal() {
+      this.$refs["modal-import-summary"].hide();
+    },
+    applySummaryInterval(insight) {
+      this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to, "category": "archived"});
+    },
+    onImportSummaryDetails(insight) {
+      this.importSummaryInsight = insight
+    },
+    importSummaryWindowTitle() {
+      return this.$gettext("Import Summary")
     }
   }
 };
@@ -453,6 +522,12 @@ function formatInsightDescriptionDateTime(d) {
   // TODO: this should be formatted according to the chosen language
   return moment(d).format("DD MMM. (h:mmA)");
 }
+
+function formatInsightDescriptionDate(d) {
+  // TODO: this should be formatted according to the chosen language
+  return moment(d).format("MMM. D");
+}
+
 </script>
 <style>
 

@@ -96,6 +96,10 @@ type detector struct {
 	creator core.Creator
 }
 
+func (detector) IsHistoricalDetector() {
+	// Really empty, just to implement the HistoricalDetector interface
+}
+
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["messagerbl"].(Options)
 
@@ -168,7 +172,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 		Content:     content,
 	}
 
-	if err := creator.GenerateInsight(tx, properties); err != nil {
+	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -39,6 +39,7 @@ import graphdashboard from "./components/graph-dashboard";
 import mainfooter from "./components/mainfooter";
 import insights from "./components/insights";
 import langaugeSwitcher from "./components/langauge-switcher";
+import importProgressIndicator from "./components/import-progress-indicator";
 
 Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
@@ -47,8 +48,13 @@ Vue.component("auth-page-footer", authpagefooter);
 Vue.component("mainfooter", mainfooter);
 Vue.component("mainheader", mainheader);
 Vue.component("panel-page", panelpage);
+Vue.component("import-progress-indicator", importProgressIndicator);
 
 import translations from "./translation/translations.json";
+
+// 3rd party components
+import VueEllipseProgress from 'vue-ellipse-progress';
+Vue.use(VueEllipseProgress);
 
 // todo(marcel) fetch from api
 Vue.use(GetTextPlugin, {
