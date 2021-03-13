@@ -406,12 +406,12 @@ func TestEngine(t *testing.T) {
 				So(e.Close(), ShouldBeNil)
 			}()
 
+			// Generate one insight, on the first cycle
+			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "content"}, Rating: core.BadRating})
+
 			done, cancel := e.Run()
 
 			announcer.Skip(e.ImportAnnouncer())
-
-			// Generate one insight, on the first cycle
-			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "content"}, Rating: core.BadRating})
 
 			cancel()
 			done()
@@ -439,6 +439,13 @@ func TestEngine(t *testing.T) {
 
 			progressFetcher := e.ProgressFetcher()
 
+			{
+				// importing hasn't started yet. No progress made
+				p, err := progressFetcher.Progress(dummyContext)
+				So(err, ShouldBeNil)
+				So(p.Active, ShouldBeFalse)
+			}
+
 			control := make(chan struct{})
 
 			go func() {
@@ -464,13 +471,6 @@ func TestEngine(t *testing.T) {
 			go func() {
 				errChan <- runOnHistoricalData(e)
 			}()
-
-			{
-				// importing hasn't stated yet. No progress made
-				p, err := progressFetcher.Progress(dummyContext)
-				So(err, ShouldBeNil)
-				So(p.Active, ShouldBeFalse)
-			}
 
 			// unlock Start()
 			control <- struct{}{}
