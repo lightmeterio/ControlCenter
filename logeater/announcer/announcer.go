@@ -55,8 +55,32 @@ func (p *Notifier) Step(t time.Time) {
 	})
 }
 
+// Skipper allows progress announcers to be skipt
+func Skipper(announcer ImportAnnouncer) ImportAnnouncer {
+	return &skipper{announcer: announcer, ended: false}
+}
+
+type skipper struct {
+	announcer ImportAnnouncer
+	ended     bool
+}
+
+func (s *skipper) AnnounceStart(time.Time) {
+	s.announcer.AnnounceStart(time.Time{})
+}
+
+func (s *skipper) AnnounceProgress(Progress) {
+	if s.ended {
+		return
+	}
+
+	s.ended = true
+	s.announcer.AnnounceProgress(Progress{Finished: true, Time: time.Time{}, Progress: 100})
+}
+
 // Skip an import, notifying it's finished as soon as it starts
 func Skip(announcer ImportAnnouncer) {
-	announcer.AnnounceStart(time.Time{})
-	announcer.AnnounceProgress(Progress{Finished: true, Time: time.Time{}, Progress: 100})
+	s := Skipper(announcer)
+	s.AnnounceStart(time.Time{})
+	s.AnnounceProgress(Progress{})
 }
