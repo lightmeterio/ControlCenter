@@ -243,6 +243,11 @@ type disabledFromSettingsPolicy struct {
 
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	s, _, err := p.settingsFetcher()
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return true, nil
+	}
+
 	if err != nil {
 		return true, errorutil.Wrap(err)
 	}
