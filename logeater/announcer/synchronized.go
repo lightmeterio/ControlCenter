@@ -130,10 +130,11 @@ func newSynchronizingAnnouncerWithCustomClock(
 					announcer.AnnounceProgress(p)
 
 					if p.Finished {
-						done <- nil
-						return
+						break
 					}
 				}
+
+				done <- nil
 			}()
 
 			go func() {

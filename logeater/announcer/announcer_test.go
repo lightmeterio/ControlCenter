@@ -114,6 +114,18 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`))
 		})
 
+		Convey("Cancel execution before end", func() {
+			notifier := NewNotifier(combinedAnnouncer, 5)
+
+			notifier.Start(baseTime)
+			notifier.Step(baseTime.Add(time.Second * 10))
+			notifier.Step(baseTime.Add(time.Second * 20))
+
+			// End is not received, and the execution is cancelled
+			cancel()
+			So(done(), ShouldBeNil)
+		})
+
 		Convey("Do not skip", func() {
 			notifier := NewNotifier(combinedAnnouncer, 5)
 
@@ -126,7 +138,6 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			notifier.Step(baseTime.Add(time.Second * 50))
 			notifier.End(baseTime.Add(time.Second * 60))
 
-			_ = cancel
 			So(done(), ShouldBeNil)
 
 			// This looks like an artificial requirement,
@@ -147,6 +158,5 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 			So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:09 +0000`))
 		})
-
 	})
 }

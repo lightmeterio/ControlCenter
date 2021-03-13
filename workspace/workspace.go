@@ -168,7 +168,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 		// We don't need to explicitly ends the importer, as it'll
 		// end when the import process finished, as it's a single-shot process!
-		doneImporter, _ := ws.importAnnouncer.Run()
+		doneImporter, cancelImporter := ws.importAnnouncer.Run()
 
 		go func() {
 			<-cancel
@@ -176,6 +176,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			cancelMsgRbl()
 			cancelSettings()
 			cancelInsights()
+			cancelImporter()
 		}()
 
 		go func() {
