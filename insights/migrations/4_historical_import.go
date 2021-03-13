@@ -14,18 +14,26 @@ import (
 
 func init() {
 	migrator.AddMigration("insights", "3_meta.go", metaMigrations.UpMetaTable, metaMigrations.DownMetaTable)
-	migrator.AddMigration("insights", "4_status.go", upStatus, downStatus)
+	migrator.AddMigration("insights", "4_historical_import.go", upStatus, downStatus)
 }
 
 func upStatus(tx *sql.Tx) error {
-	sql := `create table if not exists insights_status(
+	sql := `
+		create table if not exists insights_status(
 			id integer primary key,
 			insight_id integer not null,
 			status integer not null,
-			timestamp integet not null
+			timestamp integer not null
 		);
 
 		create index if not exists insights_status_status_index on insights_status(timestamp, status); 
+
+		create table if not exists import_progress(
+			id integer primary key,
+			value integer,
+			timestamp integer,
+			exec_timestamp integer not null
+		);
 `
 
 	_, err := tx.Exec(sql)

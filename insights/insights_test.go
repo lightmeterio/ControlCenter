@@ -437,6 +437,8 @@ func TestEngine(t *testing.T) {
 				So(e.Close(), ShouldBeNil)
 			}()
 
+			progressFetcher := e.ProgressFetcher()
+
 			control := make(chan struct{})
 
 			go func() {
@@ -444,6 +446,14 @@ func TestEngine(t *testing.T) {
 
 				<-control
 				notifier.Start(timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`))
+
+				// first step
+				<-control
+				notifier.Step(timeutil.MustParseTime(`2000-01-15 00:00:00 +0000`))
+
+				// second step
+				<-control
+				notifier.Step(timeutil.MustParseTime(`2000-01-20 00:00:00 +0000`))
 
 				<-control
 				notifier.End(timeutil.MustParseTime(`2000-01-31 23:59:59 +0000`))
@@ -455,6 +465,13 @@ func TestEngine(t *testing.T) {
 				errChan <- runOnHistoricalData(e)
 			}()
 
+			{
+				// importing hasn't stated yet. No progress made
+				p, err := progressFetcher.Progress(dummyContext)
+				So(err, ShouldBeNil)
+				So(p.Active, ShouldBeFalse)
+			}
+
 			// unlock Start()
 			control <- struct{}{}
 
@@ -462,10 +479,42 @@ func TestEngine(t *testing.T) {
 			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "I am historical, therefore archived"}, Rating: core.BadRating})
 			control <- struct{}{}
 
+			{
+				time.Sleep(50 * time.Millisecond)
+				p, err := progressFetcher.Progress(dummyContext)
+				So(err, ShouldBeNil)
+				So(p.Active, ShouldBeTrue)
+				So(*p.Value, ShouldEqual, 10)
+				So(*p.Time, ShouldResemble, timeutil.MustParseTime(`2000-01-15 00:00:00 +0000`))
+			}
+
+			// Unlock the first step
+			control <- struct{}{}
+
+			{
+				time.Sleep(50 * time.Millisecond)
+				p, err := progressFetcher.Progress(dummyContext)
+				So(err, ShouldBeNil)
+				So(p.Active, ShouldBeTrue)
+				So(*p.Value, ShouldEqual, 20)
+				So(*p.Time, ShouldResemble, timeutil.MustParseTime(`2000-01-20 00:00:00 +0000`))
+			}
+
+			control <- struct{}{}
+
 			// wait until historical import ends
 			err = <-errChan
 
 			So(err, ShouldBeNil)
+
+			{
+				// Import has finished
+				p, err := progressFetcher.Progress(dummyContext)
+				So(err, ShouldBeNil)
+				So(p.Active, ShouldBeFalse)
+				So(*p.Value, ShouldEqual, 100)
+				So(*p.Time, ShouldResemble, timeutil.MustParseTime(`2000-01-31 23:59:59 +0000`))
+			}
 
 			mainLoopChain := make(chan struct{})
 
@@ -507,11 +556,23 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Content().Description().String(), ShouldEqual, "A non historical insight")
 
 				So(insights[1].Content().Title().String(), ShouldEqual, "Imported insights")
-				So(insights[1].Content().Description().String(), ShouldEqual, "From 2000-01-01 00:00:00 +0000 UTC to 2000-01-31 23:59:59 +0000 UTC 1 insights were imported")
+				So(insights[1].Content().Description().String(), ShouldEqual, "Mail activity imported successfully Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
 
 				summary, ok := insights[1].Content().(*importsummary.Content)
 				So(ok, ShouldBeTrue)
-				So(summary.IDs, ShouldResemble, []int{1})
+				expected := []importsummary.ImportedInsight{
+					importsummary.ImportedInsight{
+						ID:       1,
+						Time:     timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+						Category: core.ArchivedCategory,
+						Rating:   core.BadRating,
+						Content: map[string]interface{}{
+							"description": "I am historical, therefore archived",
+							"title":       "",
+						},
+						ContentType: "fake_insight_type",
+					}}
+				So(summary.Insights, ShouldResemble, expected)
 			})
 
 			Convey("Get archived insights", func() {

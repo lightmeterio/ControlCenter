@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -46,6 +47,21 @@ func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 	}
 
 	return running, nil
+}
+
+func IsHistoricalImportRunningFromPool(ctx context.Context, pool *dbconn.RoPool) (bool, error) {
+	v, err := meta.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	// NOTE: Meh, SQLite converts bool into int64...
+	return v.(int64) != 0, nil
 }
 
 func ArchiveInsight(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {

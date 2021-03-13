@@ -13,6 +13,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"time"
 )
 
 type detector struct {
@@ -53,16 +54,25 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("From %s to %s %d insights were imported")
+	return translator.I18n("Mail activity imported successfully Events since %s were analysed, producing %d Insights")
 }
 
 func (d description) Args() []interface{} {
-	return []interface{}{d.c.Interval.From, d.c.Interval.To, len(d.c.IDs)}
+	return []interface{}{d.c.Interval.From, len(d.c.Insights)}
+}
+
+type ImportedInsight struct {
+	ID          int           `json:"id"`
+	Time        time.Time     `json:"time"`
+	Category    core.Category `json:"category"`
+	Rating      core.Rating   `json:"rating"`
+	Content     interface{}   `json:"content"`
+	ContentType string        `json:"content_type"`
 }
 
 type Content struct {
 	Interval timeutil.TimeInterval `json:"interval"`
-	IDs      []int                 `json:"ids"`
+	Insights []ImportedInsight     `json:"insights"`
 }
 
 func (c Content) Title() notificationCore.ContentComponent {
@@ -100,10 +110,17 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		return errorutil.Wrap(err)
 	}
 
-	ids := []int{}
+	importedInsights := []ImportedInsight{}
 
 	for _, i := range insights {
-		ids = append(ids, i.ID())
+		importedInsights = append(importedInsights, ImportedInsight{
+			ID:          i.ID(),
+			Time:        i.Time(),
+			Category:    i.Category(),
+			Rating:      i.Rating(),
+			Content:     i.Content(),
+			ContentType: i.ContentType(),
+		})
 	}
 
 	properties := core.InsightProperties{
@@ -113,7 +130,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		ContentType: ContentType,
 		Content: Content{
 			Interval: d.interval,
-			IDs:      ids,
+			Insights: importedInsights,
 		},
 	}
 

@@ -202,6 +202,10 @@ func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
 }
 
+func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
+	return ws.insightsEngine.ProgressFetcher()
+}
+
 func (ws *Workspace) Dashboard() dashboard.Dashboard {
 	return ws.dashboard
 }

@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -59,6 +60,10 @@ const (
 	ArchivedCategory    Category = 5
 )
 
+func (c Category) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
+}
+
 func BuildCategoryByName(n string) Category {
 	switch n {
 	case "local":
@@ -74,6 +79,18 @@ func BuildCategoryByName(n string) Category {
 	default:
 		return NoCategory
 	}
+}
+
+func (c *Category) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*c = BuildCategoryByName(s)
+
+	return nil
 }
 
 func BuildFilterByName(n string) FetchFilter {
@@ -97,6 +114,37 @@ func BuildOrderByName(n string) FetchOrder {
 }
 
 type Rating int
+
+func (r Rating) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.String())
+}
+
+var ErrInvalidRating = errors.New(`Invalid Rating`)
+
+func (r *Rating) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	switch s {
+	case "bad":
+		*r = BadRating
+		return nil
+	case "ok":
+		*r = OkRating
+		return nil
+	case "good":
+		*r = GoodRating
+		return nil
+	case "unrated":
+		*r = Unrated
+		return nil
+	default:
+		return ErrInvalidRating
+	}
+}
 
 func (r Rating) String() string {
 	switch r {

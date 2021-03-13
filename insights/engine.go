@@ -8,7 +8,6 @@ package insights
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/importsummary"
@@ -16,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
-	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -82,6 +80,7 @@ type Engine struct {
 	fetcher         core.Fetcher
 	closers         closeutil.Closers
 	importAnnouncer importAnnouncer
+	progressFetcher core.ProgressFetcher
 }
 
 func NewCustomEngine(
@@ -92,7 +91,11 @@ func NewCustomEngine(
 	additionalActions func([]core.Detector, dbconn.RwConn, core.Clock) error,
 ) (*Engine, error) {
 	creator, err := newCreator(c.conn.RwConn, notificationCenter)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
+	progressFetcher, err := core.NewProgressFetcher(c.conn.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -100,13 +103,11 @@ func NewCustomEngine(
 	detectors := buildDetectors(creator, options)
 
 	core, err := core.New(detectors)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	fetcher, err := newFetcher(c.conn.RoConnPool)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -123,6 +124,7 @@ func NewCustomEngine(
 		fetcher:         fetcher,
 		closers:         closeutil.New(c, core),
 		importAnnouncer: announcer,
+		progressFetcher: progressFetcher,
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -257,18 +259,12 @@ type doNotGenerateNotificationsDuringImportPolicy struct {
 }
 
 func (p *doNotGenerateNotificationsDuringImportPolicy) Reject(n notification.Notification) (bool, error) {
-	v, err := meta.NewReader(p.pool).Retrieve(context.Background(), core.HistoricalImportKey)
-
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
-		return false, nil
-	}
-
+	running, err := core.IsHistoricalImportRunningFromPool(context.Background(), p.pool)
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
-	// NOTE: Meh, SQLite converts bool into int64...
-	return v.(int64) != 0, nil
+	return running, nil
 }
 
 func runOnHistoricalData(e *Engine) error {
@@ -324,12 +320,12 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		}
 	}
 
-	tx, err := e.accessor.conn.RwConn.Begin()
-	if err != nil {
-		return timeutil.TimeInterval{}, errorutil.Wrap(err)
-	}
-
 	for progress := range e.importAnnouncer.progress {
+		tx, err := e.accessor.conn.RwConn.Begin()
+		if err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
 		log.Info().Msgf("Before: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
 
 		for clock.current.Before(progress.Time) {
@@ -348,10 +344,14 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 			finish = progress.Time
 			log.Info().Msgf("Finished importing historical data in the time %v", progress.Time)
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
-		return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		if _, err := tx.Exec(`insert into import_progress(value, timestamp, exec_timestamp) values(?, ?, ?)`, progress.Progress, progress.Time.Unix(), time.Now().Unix()); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
 	}
 
 	{
@@ -401,4 +401,8 @@ func (e *Engine) Fetcher() core.Fetcher {
 
 func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {
 	return &e.importAnnouncer
+}
+
+func (e *Engine) ProgressFetcher() core.ProgressFetcher {
+	return e.progressFetcher
 }

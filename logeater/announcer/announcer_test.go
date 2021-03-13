@@ -13,18 +13,15 @@ import (
 )
 
 type fakeAnnouncer struct {
-	fakeClock *timeutil.FakeClock
 	startTime time.Time
 	p         []Progress
 }
 
 func (a *fakeAnnouncer) AnnounceStart(t time.Time) {
-	a.fakeClock.Time = t
 	a.startTime = t
 }
 
 func (a *fakeAnnouncer) AnnounceProgress(p Progress) {
-	a.fakeClock.Time = p.Time
 	a.p = append(a.p, p)
 }
 
@@ -51,12 +48,16 @@ func (m *fakeMostRecentTime) next() (time.Time, error) {
 
 func TestSynchronizedAnnouncer(t *testing.T) {
 	Convey("Test synchronized announcer", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`)}
+
+		// Notice that the import clock is totally independent from the time in the notifications,
+		// as it's totally okay to import logs totally contained in the past
+		finalAnnouncer := &fakeAnnouncer{}
+
+		// we are importing old logs
 		baseTime := timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-		clock := &timeutil.FakeClock{Time: baseTime}
 
-		finalAnnouncer := &fakeAnnouncer{fakeClock: clock}
-
-		// in the application, the primary is a deliverydb.DBP{
+		// in the application, the primary is a deliverydb.DB{}
 		primaryTimes := &fakeMostRecentTime{role: "primary", times: []time.Time{
 			baseTime.Add(time.Second * 12),
 			baseTime.Add(time.Second * 22),
@@ -111,7 +112,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			So(secondaryTimes.counter, ShouldEqual, 0)
 		})
 
-		Convey("Lalal", func() {
+		Convey("Do not skip", func() {
 			notifier := NewNotifier(combinedAnnouncer, 5)
 
 			// The source of progress, normally the logsource
@@ -121,10 +122,6 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			notifier.Step(baseTime.Add(time.Second * 30))
 			notifier.Step(baseTime.Add(time.Second * 35))
 			notifier.Step(baseTime.Add(time.Second * 50))
-
-			// FIXME: this is an ugly workaround because the implementation is a mess!!!!
-			time.Sleep(100 * time.Millisecond)
-
 			notifier.End(baseTime.Add(time.Second * 60))
 
 			_ = cancel
@@ -133,8 +130,8 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			// This looks like an artificial requirement,
 			// but it basically ensures t hat the primary and secondary checkers are being used,
 			// therefore validating the feature
-			So(primaryTimes.counter, ShouldEqual, 22)
-			So(secondaryTimes.counter, ShouldEqual, 4)
+			So(primaryTimes.counter, ShouldEqual, 12)
+			So(secondaryTimes.counter, ShouldEqual, 5)
 
 			So(finalAnnouncer.startTime, ShouldResemble, baseTime)
 			So(finalAnnouncer.p, ShouldResemble, []Progress{
@@ -147,5 +144,6 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			})
 		})
 
+		So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`))
 	})
 }

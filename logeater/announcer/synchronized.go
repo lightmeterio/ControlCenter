@@ -18,12 +18,15 @@ type SynchronizingAnnouncer struct {
 	runner.CancelableRunner
 
 	progressChan          chan Progress
-	finalProgressStepChan chan Progress
+	finalStepProgressChan chan Progress
 	announcer             ImportAnnouncer
 }
 
-func NewSynchronizingAnnouncer(announcer ImportAnnouncer, p, s MostRecentLogTimeProvider) *SynchronizingAnnouncer {
-	return newSynchronizingAnnouncerWithCustomClock(announcer, timeutil.RealClock{}, p, s, time.Millisecond*500, time.Second*40, time.Second*80)
+// In Control Center, the primary is deliverydb.DB{} and secondary is tracking.Tracker{}
+// the primary expected to never have times higher than the secondary,
+// as the tracking is expected to always have log lines more recent (or at least equal) than the times of delivery attempts
+func NewSynchronizingAnnouncer(announcer ImportAnnouncer, primary, secondary MostRecentLogTimeProvider) *SynchronizingAnnouncer {
+	return newSynchronizingAnnouncerWithCustomClock(announcer, timeutil.RealClock{}, primary, secondary, time.Millisecond*500, time.Second*10, time.Second*10)
 }
 
 func announceEnd(announcer ImportAnnouncer, p Progress) {
@@ -36,7 +39,7 @@ func (c *SynchronizingAnnouncer) AnnounceStart(t time.Time) {
 
 func (c *SynchronizingAnnouncer) AnnounceProgress(p Progress) {
 	if p.Finished {
-		c.finalProgressStepChan <- p
+		c.finalStepProgressChan <- p
 		return
 	}
 
@@ -57,52 +60,97 @@ func newSynchronizingAnnouncerWithCustomClock(
 	secondaryTimeout time.Duration,
 ) *SynchronizingAnnouncer {
 	progressChan := make(chan Progress, 1000)
-	finalProgressStepChan := make(chan Progress, 1)
+	finalStepProgressChan := make(chan Progress, 1)
 
 	return &SynchronizingAnnouncer{
 		progressChan:          progressChan,
-		finalProgressStepChan: finalProgressStepChan,
+		finalStepProgressChan: finalStepProgressChan,
 		announcer:             announcer,
 		CancelableRunner: runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
+				// FIXME: this code is a complete mess and needs urgent refactoring!!!
+				var finalStepProgress *Progress = nil
+				var lastNonFinalStepProgress *Progress = nil
+
+				// FIXME: meh, this is a terrible name
+				handleNonFinalHelper := func(p Progress) error {
+					if err := handleNonFinalProgressStep(
+						primaryChecker, clock.Now().Add(primaryTimeout),
+						announcer, p, clock, sleepTime, finalStepProgress); err != nil {
+						return errorutil.Wrap(err)
+					}
+
+					return nil
+				}
+
 				for {
 					select {
-					case p := <-progressChan:
-						log.Debug().Msgf("Received Combined AnnounceProgress: %v", p)
-
-						shouldContinue, err := handleNonFinalProgressStep(
-							checkerAndTimeout{primaryChecker, primaryTimeout},
-							checkerAndTimeout{secondaryChecker, secondaryTimeout},
-							announcer, p, clock, sleepTime, finalProgressStepChan)
-
-						if err != nil {
-							log.Debug().Msgf("Combined ImportAnnouce ends with error: %v", err)
-							done <- errorutil.Wrap(err)
-
-							return
-						}
-
-						if !shouldContinue {
-							log.Debug().Msgf("Combined ImportAnnouce ends successfully")
+					case p, ok := <-progressChan:
+						if !ok {
+							// cancelled. Just leave
+							log.Debug().Msgf("Cancelled. Leaving")
 							done <- nil
 
 							return
 						}
 
-					case p := <-finalProgressStepChan:
-						log.Debug().Msgf("Received Combined Final AnnounceProgress: %v", p)
+						log.Debug().Msgf("Received Synchronized AnnounceProgress: %v", p)
 
-						if err := handleFinalProgressStep(
-							checkerAndTimeout{primaryChecker, primaryTimeout},
-							checkerAndTimeout{secondaryChecker, secondaryTimeout},
-							announcer, p, clock, sleepTime); err != nil {
-							log.Debug().Msgf("Combined ImportAnnouce ends with error: %v", err)
+						lastNonFinalStepProgress = &p
+
+						if err := handleNonFinalHelper(p); err != nil {
+							log.Debug().Msgf("Synchronized ImportAnnouce ends with error: %v", err)
 							done <- errorutil.Wrap(err)
 
 							return
 						}
 
-						log.Debug().Msgf("Combined ImportAnnouce ends successfully")
+						log.Debug().Msgf("Synchronized ImportAnnouce Successfully ends (%v)", p)
+					case p := <-finalStepProgressChan:
+						log.Debug().Msgf("Received the final progress: %v", p)
+
+						finalStepProgress = &p
+
+					drain:
+						// drain any previous steps being processed, as they've all already being received!
+						for {
+							select {
+							case p := <-progressChan:
+								lastNonFinalStepProgress = &p
+
+								if err := handleNonFinalHelper(p); err != nil {
+									log.Debug().Msgf("Draining: Synchronized ImportAnnouce ends with error: %v", err)
+									done <- errorutil.Wrap(err)
+
+									return
+								}
+							default:
+								log.Debug().Msgf("Draining: Synchronized could not drain any more progress")
+								break drain
+							}
+						}
+
+						log.Debug().Msgf("Synchronized Done draining it!!")
+
+						if lastNonFinalStepProgress != nil && p.Time == lastNonFinalStepProgress.Time {
+							log.Debug().Msgf("Synchronized actually skipping the final step = (%v) vs final = (%v)", lastNonFinalStepProgress.Time, p.Time)
+							announceEnd(announcer, p)
+							done <- nil
+
+							return
+						}
+
+						// And finally, handle final step...
+						if err := handleFinalProgressStep(
+							checkerAndTimeout{primaryChecker, primaryTimeout},
+							checkerAndTimeout{secondaryChecker, secondaryTimeout},
+							announcer, p, clock, sleepTime); err != nil {
+							log.Debug().Msgf("Draining: Synchronized ImportAnnouce ends with error: %v", err)
+							done <- errorutil.Wrap(err)
+
+							return
+						}
+
 						done <- nil
 
 						return
@@ -113,44 +161,37 @@ func newSynchronizingAnnouncerWithCustomClock(
 			go func() {
 				<-cancel
 				close(progressChan)
-				close(finalProgressStepChan)
 			}()
 		}),
 	}
 }
 
-func handleNonFinalProgressStep(primary, secondary checkerAndTimeout,
+func handleNonFinalProgressStep(checker MostRecentLogTimeProvider, timeout time.Time,
 	announcer ImportAnnouncer, p Progress,
 	clock timeutil.Clock, sleepTime time.Duration,
-	finalProgressStepChan chan Progress,
-) (shouldContinue bool, err error) {
+	finalStepProgress *Progress) error {
 	for {
-		select {
-		case finalStep := <-finalProgressStepChan:
-			// Received final step while was processing a non-final one.
-			// Just ignore the non final one and use only the final one.
-			log.Debug().Msgf("Received last progress step %v while processing progress %v", finalStep, p)
-
-			if err := handleFinalProgressStep(primary, secondary, announcer, finalStep, clock, sleepTime); err != nil {
-				return false, errorutil.Wrap(err)
-			}
-
-			return false, nil
-		default:
-			t, err := primary.checker()
-			if err != nil {
-				return false, errorutil.Wrap(err)
-			}
-
-			if t.After(p.Time) {
-				log.Debug().Msgf("Combined primary checker unlock importer with progress: %v", p)
-				announcer.AnnounceProgress(p)
-
-				return true, nil
-			}
-
-			clock.Sleep(sleepTime)
+		t, err := checker()
+		if err != nil {
+			return errorutil.Wrap(err)
 		}
+
+		if t.After(p.Time) {
+			log.Debug().Msgf("Synchronized primary checker unlock importer with progress: %v", p)
+			announcer.AnnounceProgress(p)
+
+			return nil
+		}
+
+		// Okay, we time out, and we know the final progress has already been notified. Just give up.
+		if finalStepProgress != nil && clock.Now().After(timeout) {
+			log.Debug().Msgf("Synchronized gave up trying to process a non final step with p = %v, now = %v and timeout = %v", p, clock.Now(), timeout)
+
+			return nil
+		}
+
+		//log.Debug().Msgf("Sleeping on final step = %v, log time = (%v) and now = (%v), timeout = (%v)", p, t, clock.Now(), timeout)
+		clock.Sleep(sleepTime)
 	}
 }
 
@@ -165,28 +206,28 @@ func handleFinalProgressStep(primary, secondary checkerAndTimeout,
 
 	// finished. Waits for the primary, but falls back to the secondary
 	// in case primary does not progress.
-	didTimeout, err := announceEndOrTimeout(announcer, p, primary.checker, p.Time.Add(primary.timeout), clock, sleepTime)
+	didTimeout, err := announceEndOrTimeout(announcer, p, primary.checker, clock.Now().Add(primary.timeout), clock, sleepTime)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	if !didTimeout {
-		log.Debug().Msgf("Combined primary checker final unlock importer with progress: %v", p)
+		log.Debug().Msgf("Synchronized primary checker final unlock importer with progress: %v", p)
 		return nil
 	}
 
 	// tries the secondary, but this one might time out as well
-	didTimeout, err = announceEndOrTimeout(announcer, p, secondary.checker, p.Time.Add(secondary.timeout), clock, sleepTime)
+	didTimeout, err = announceEndOrTimeout(announcer, p, secondary.checker, clock.Now().Add(secondary.timeout), clock, sleepTime)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	if !didTimeout {
-		log.Debug().Msgf("Combined secondary checker final unlock importer with progress: %v", p)
+		log.Debug().Msgf("Synchronized secondary checker final unlock importer with progress: %v", p)
 		return nil
 	}
 
-	log.Debug().Msgf("Combine Give up and just notify progress: %v", p)
+	log.Debug().Msgf("Synchronize Give up and just notify progress: %v", p)
 
 	// give up and notify whatever we got
 	announceEnd(announcer, p)
@@ -195,7 +236,10 @@ func handleFinalProgressStep(primary, secondary checkerAndTimeout,
 }
 
 func announceEndOrTimeout(announcer ImportAnnouncer, p Progress,
-	checker MostRecentLogTimeProvider, timeout time.Time, clock timeutil.Clock, sleepTime time.Duration) (didTimeout bool, err error) {
+	checker MostRecentLogTimeProvider, timeout time.Time,
+	clock timeutil.Clock, sleepTime time.Duration) (didTimeout bool, err error) {
+	log.Debug().Msgf("I have progress = %v and my timeout is %v", p, timeout)
+
 	for {
 		t, err := checker()
 		if err != nil {
@@ -208,9 +252,11 @@ func announceEndOrTimeout(announcer ImportAnnouncer, p Progress,
 		}
 
 		if clock.Now().After(timeout) {
+			log.Debug().Msgf("I timed out when now = %v", clock.Now())
 			return true, nil
 		}
 
+		//log.Debug().Msgf("Sleeping on step = %v, log time = (%v) and now = (%v), timeout = (%v)", p, t, clock.Now(), timeout)
 		clock.Sleep(sleepTime)
 	}
 }
