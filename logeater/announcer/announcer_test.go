@@ -110,6 +110,8 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 			So(primaryTimes.counter, ShouldEqual, 0)
 			So(secondaryTimes.counter, ShouldEqual, 0)
+
+			So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`))
 		})
 
 		Convey("Do not skip", func() {
@@ -130,7 +132,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			// This looks like an artificial requirement,
 			// but it basically ensures t hat the primary and secondary checkers are being used,
 			// therefore validating the feature
-			So(primaryTimes.counter, ShouldEqual, 12)
+			So(primaryTimes.counter, ShouldEqual, 11)
 			So(secondaryTimes.counter, ShouldEqual, 5)
 
 			So(finalAnnouncer.startTime, ShouldResemble, baseTime)
@@ -142,8 +144,9 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 				Progress{Finished: false, Progress: 25, Time: baseTime.Add(time.Second * 50)},
 				Progress{Finished: true, Progress: 100, Time: baseTime.Add(time.Second * 60)},
 			})
+
+			So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:09 +0000`))
 		})
 
-		So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`))
 	})
 }
