@@ -10,6 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h2>
         <translate>Welcome</translate>
       </h2>
+      <import-progress-indicator @finished="handleProgressFinished"></import-progress-indicator>
       <p class="align-left" render-html="true" v-translate>
         Please create a new administrator account - this is necessary to login. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if you've done it before.
       </p>
@@ -268,6 +269,9 @@ export default {
     onTogglePasswordShow(event) {
       event.preventDefault();
       togglePasswordShow(event);
+    },
+    handleProgressFinished() {
+      console.log("Register found that import progress finished!")
     }
   },
   mounted() {

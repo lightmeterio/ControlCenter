@@ -158,7 +158,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           </form>
         </div>
       </div>
-      <insights class="row" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
+
+      <import-progress-indicator v-show="shouldShowProgressIndicator" @finished="handleProgressFinished"></import-progress-indicator>
+
+      <insights class="row" v-show="!shouldShowProgressIndicator" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
+
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -242,7 +246,8 @@ export default {
       opens: "right",
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
-      insights: []
+      insights: [],
+      shouldShowProgressIndicator: true
     };
   },
   computed: {
@@ -262,6 +267,10 @@ export default {
     }
   },
   methods: {
+    handleProgressFinished() {
+      this.shouldShowProgressIndicator = false;
+      this.updateDashboardAndInsights();
+    },
     triggerRefresh: function() {
       this.triggerRefreshValue = !this.triggerRefreshValue;
       return this.triggerRefreshValue;
