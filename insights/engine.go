@@ -189,33 +189,19 @@ func execOnDetectors(txActions chan<- txAction, steppers []core.Detector, clock 
 
 // whether a new cycle is possible or the execution should finish
 func engineCycle(e *Engine) (shouldContinue bool, err error) {
-	tx, err := e.accessor.conn.RwConn.Begin()
-
-	if err != nil {
-		return false, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
-		}
-	}()
-
 	action, ok := <-e.txActions
 
 	if !ok {
 		return false, nil
 	}
 
-	err = action(tx)
+	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+		if err := action(tx); err != nil {
+			return errorutil.Wrap(err)
+		}
 
-	if err != nil {
-		return false, errorutil.Wrap(err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
+		return nil
+	}); err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
@@ -285,25 +271,8 @@ func runOnHistoricalData(e *Engine) error {
 	return nil
 }
 
-func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
-	{
-		tx, err := e.accessor.conn.RwConn.Begin()
-		if err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
-
-		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
-
-		if err := tx.Commit(); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
-	}
-
+func generateInsightsDuringImportProgress(e *Engine) (timeutil.TimeInterval, error) {
 	log.Info().Msg("Waiting for import announcement!")
-
-	importStartTime := time.Now()
 
 	start := <-e.importAnnouncer.start
 
@@ -322,47 +291,62 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 	}
 
 	for progress := range e.importAnnouncer.progress {
-		tx, err := e.accessor.conn.RwConn.Begin()
-		if err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
-
 		log.Info().Msgf("Before: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
 
-		for clock.current.Before(progress.Time) {
-			for _, h := range historicalDetectors {
-				if err := h.Step(&clock, tx); err != nil {
-					return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		//nolint:scopelint
+		// It's safe to use `progress` in the transaction
+		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+			for clock.current.Before(progress.Time) {
+				for _, h := range historicalDetectors {
+					if err := h.Step(&clock, tx); err != nil {
+						return errorutil.Wrap(err)
+					}
 				}
+
+				clock.Sleep(time.Minute * 20)
 			}
 
-			clock.Sleep(time.Minute * 20)
-		}
+			log.Info().Msgf("After: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
 
-		log.Info().Msgf("After: Notifying historical import progress of %v%% at %v", progress.Progress, clock.Now())
+			if progress.Finished {
+				finish = progress.Time
+				log.Info().Msgf("Finished importing historical data in the time %v", progress.Time)
+			}
 
-		if progress.Finished {
-			finish = progress.Time
-			log.Info().Msgf("Finished importing historical data in the time %v", progress.Time)
-		}
+			if _, err := tx.Exec(`insert into import_progress(value, timestamp, exec_timestamp) values(?, ?, ?)`, progress.Progress, progress.Time.Unix(), time.Now().Unix()); err != nil {
+				return errorutil.Wrap(err)
+			}
 
-		if _, err := tx.Exec(`insert into import_progress(value, timestamp, exec_timestamp) values(?, ?, ?)`, progress.Progress, progress.Time.Unix(), time.Now().Unix()); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
-
-		if err := tx.Commit(); err != nil {
+			return nil
+		}); err != nil {
 			return timeutil.TimeInterval{}, errorutil.Wrap(err)
 		}
 	}
 
-	{
-		tx, err := e.accessor.conn.RwConn.Begin()
-		if err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+	return timeutil.TimeInterval{From: start, To: finish}, nil
+}
+
+func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
+	importStartTime := time.Now()
+
+	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
+			return errorutil.Wrap(err)
 		}
 
+		return nil
+	}); err != nil {
+		return timeutil.TimeInterval{}, errorutil.Wrap(err)
+	}
+
+	interval, err := generateInsightsDuringImportProgress(e)
+	if err != nil {
+		return timeutil.TimeInterval{}, errorutil.Wrap(err)
+	}
+
+	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
 		if err := core.DisableHistoricalImportFlag(context.Background(), tx); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+			return errorutil.Wrap(err)
 		}
 
 		// Prevents any non historical insight of being "poisoned" by historical insights
@@ -370,34 +354,31 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		// NOTE: this is a very ad-hoc and ugly solution, as we might have more tables in the future
 		// with data used while insights are being created
 		if _, err := tx.Exec(`delete from last_detector_execution`); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+			return errorutil.Wrap(err)
 		}
 
-		if err := tx.Commit(); err != nil {
-			return timeutil.TimeInterval{}, errorutil.Wrap(err)
-		}
+		return nil
+	}); err != nil {
+		return timeutil.TimeInterval{}, errorutil.Wrap(err)
 	}
 
-	log.Debug().Msgf("Importing historical insights from %v to %v took %v", start, finish, time.Since(importStartTime))
+	log.Debug().Msgf("Importing historical insights from %v to %v took %v", interval.From, interval.To, time.Since(importStartTime))
 
-	return timeutil.TimeInterval{From: start, To: finish}, nil
+	return interval, nil
 }
 
 func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) error {
-	tx, err := e.accessor.conn.RwConn.Begin()
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
+	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+		// Single shot detector
+		summaryInsightDetector := importsummary.NewDetector(e.fetcher, interval)
 
-	// Single shot detector
-	summaryInsightDetector := importsummary.NewDetector(e.fetcher, interval)
+		// Generate an import summary insight
+		if err := summaryInsightDetector.Step(&timeutil.RealClock{}, tx); err != nil {
+			return errorutil.Wrap(err)
+		}
 
-	// Generate an import summary insight
-	if err := summaryInsightDetector.Step(&timeutil.RealClock{}, tx); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := tx.Commit(); err != nil {
+		return nil
+	}); err != nil {
 		return errorutil.Wrap(err)
 	}
 

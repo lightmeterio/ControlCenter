@@ -17,41 +17,27 @@ import (
 // and experimentation easier
 //nolint:deadcode,unused
 func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn, clock core.Clock) error {
-	tx, err := conn.Begin()
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
-		}
-	}()
-
-	//nolint:unused
-	type sampleInsightGenerator interface {
-		GenerateSampleInsight(*sql.Tx, core.Clock) error
-	}
-
-	for _, d := range detectors {
-		g, canGenerateInsight := d.(sampleInsightGenerator)
-
-		if !canGenerateInsight {
-			// it's ok if a generator is not able to generate samples, as it's an optional behaviour
-			continue
+	if err := conn.Tx(func(tx *sql.Tx) error {
+		//nolint:unused
+		type sampleInsightGenerator interface {
+			GenerateSampleInsight(*sql.Tx, core.Clock) error
 		}
 
-		err = g.GenerateSampleInsight(tx, clock)
+		for _, d := range detectors {
+			g, canGenerateInsight := d.(sampleInsightGenerator)
 
-		if err != nil {
-			return errorutil.Wrap(err)
+			if !canGenerateInsight {
+				// it's ok if a generator is not able to generate samples, as it's an optional behaviour
+				continue
+			}
+
+			if err := g.GenerateSampleInsight(tx, clock); err != nil {
+				return errorutil.Wrap(err)
+			}
 		}
-	}
 
-	err = tx.Commit()
-
-	if err != nil {
+		return nil
+	}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
