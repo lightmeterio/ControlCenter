@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -32,6 +33,19 @@ func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 	running, err := IsHistoricalImportRunningFromPool(ctx, f.pool)
 	if err != nil {
 		return Progress{}, errorutil.Wrap(err)
+	}
+
+	// If we skipt the import, there should be no progress info available
+	skipImport, err := meta.NewReader(f.pool).Retrieve(ctx, "skip_import")
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return Progress{}, errorutil.Wrap(err)
+	}
+
+	// NOTE: Meh, SQLite converts bools into integers!
+	if err == nil && skipImport.(int64) == 1 {
+		// The import is done, as it's never been execute, nor will ever be (I guess :-))
+		value := 100
+		return Progress{Active: false, Value: &value}, nil
 	}
 
 	conn, release := f.pool.Acquire()

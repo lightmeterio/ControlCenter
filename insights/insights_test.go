@@ -423,6 +423,40 @@ func TestEngine(t *testing.T) {
 			So(n.Content, ShouldResemble, fakeContent{D: "content"})
 		})
 
+		Convey("Skip historical import", func() {
+			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+				detector.creator = c
+				return []core.Detector{detector}
+			},
+				noAdditionalActions,
+			)
+
+			So(err, ShouldBeNil)
+
+			defer func() {
+				So(e.Close(), ShouldBeNil)
+			}()
+
+			progressFetcher := e.ProgressFetcher()
+
+			done, cancel := e.Run()
+
+			// Skip import
+			announcer.Skip(e.ImportAnnouncer())
+
+			time.Sleep(100 * time.Millisecond)
+
+			cancel()
+
+			So(done(), ShouldBeNil)
+
+			progress, err := progressFetcher.Progress(context.Background())
+			So(err, ShouldBeNil)
+
+			So(*progress.Value, ShouldEqual, 100)
+			So(progress.Active, ShouldBeFalse)
+		})
+
 		Convey("Test importing Historical insights", func() {
 			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c

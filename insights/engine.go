@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -259,8 +260,18 @@ func runOnHistoricalData(e *Engine) error {
 		return errorutil.Wrap(err)
 	}
 
-	// in case we skip the import
 	if interval.IsZero() {
+		// in case we skip the import
+		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			return nil
+		}); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}
 
