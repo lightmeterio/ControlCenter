@@ -19,6 +19,10 @@ type TimeInterval struct {
 	To   time.Time `json:"to"`
 }
 
+func (i TimeInterval) IsZero() bool {
+	return i.From.IsZero() && i.To.IsZero()
+}
+
 func ParseTimeInterval(fromStr string, toStr string, location *time.Location) (TimeInterval, error) {
 	from, err := time.ParseInLocation("2006-01-02", fromStr, location)
 

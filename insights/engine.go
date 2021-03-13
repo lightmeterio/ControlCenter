@@ -273,7 +273,8 @@ func runOnHistoricalData(e *Engine) error {
 		return errorutil.Wrap(err)
 	}
 
-	if interval.To.IsZero() {
+	// in case we skip the import
+	if interval.IsZero() {
 		return nil
 	}
 
@@ -361,6 +362,14 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		}
 
 		if err := core.DisableHistoricalImportFlag(context.Background(), tx); err != nil {
+			return timeutil.TimeInterval{}, errorutil.Wrap(err)
+		}
+
+		// Prevents any non historical insight of being "poisoned" by historical insights
+		// It deletes the traces of executions of previous insights
+		// NOTE: this is a very ad-hoc and ugly solution, as we might have more tables in the future
+		// with data used while insights are being created
+		if _, err := tx.Exec(`delete from last_detector_execution`); err != nil {
 			return timeutil.TimeInterval{}, errorutil.Wrap(err)
 		}
 
