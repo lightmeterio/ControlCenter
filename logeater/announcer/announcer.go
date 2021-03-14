@@ -92,3 +92,16 @@ func Skip(announcer ImportAnnouncer) {
 	s.AnnounceStart(time.Time{})
 	s.AnnounceProgress(Progress{})
 }
+
+type DummyImportAnnouncer struct {
+	Start    time.Time
+	Progress []Progress
+}
+
+func (a *DummyImportAnnouncer) AnnounceStart(t time.Time) {
+	a.Start = t
+}
+
+func (a *DummyImportAnnouncer) AnnounceProgress(p Progress) {
+	a.Progress = append(a.Progress, p)
+}

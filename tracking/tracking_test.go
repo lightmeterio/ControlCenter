@@ -26,14 +26,7 @@ import (
 
 var _ = parser.Parse
 
-type fakeAnnouncer struct {
-}
-
-func (a *fakeAnnouncer) AnnounceStart(time.Time) {
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})

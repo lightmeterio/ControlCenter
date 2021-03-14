@@ -32,14 +32,7 @@ func (pub *pub) Publish(r postfix.Record) {
 	pub.logs = append(pub.logs, r)
 }
 
-type fakeAnnouncer struct {
-}
-
-func (a *fakeAnnouncer) AnnounceStart(time.Time) {
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func TestListenLogsOnSocket(t *testing.T) {
 	Convey("Get logs from socket", t, func() {

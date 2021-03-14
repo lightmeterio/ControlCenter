@@ -12,19 +12,6 @@ import (
 	"time"
 )
 
-type fakeAnnouncer struct {
-	startTime time.Time
-	p         []Progress
-}
-
-func (a *fakeAnnouncer) AnnounceStart(t time.Time) {
-	a.startTime = t
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(p Progress) {
-	a.p = append(a.p, p)
-}
-
 type fakeMostRecentTime struct {
 	role    string
 	times   []time.Time
@@ -50,7 +37,7 @@ func TestNotifier(t *testing.T) {
 	Convey("Notifier can receive more steps than planned", t, func() {
 		baseTime := timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 
-		announcer := &fakeAnnouncer{}
+		announcer := &DummyImportAnnouncer{}
 
 		// I plan 4 steps, but will do 7
 		notifier := NewNotifier(announcer, 4)
@@ -63,7 +50,7 @@ func TestNotifier(t *testing.T) {
 		notifier.Step(baseTime.Add(time.Second * 60))
 		notifier.End(baseTime.Add(time.Second * 70))
 
-		So(announcer.p, ShouldResemble, []Progress{
+		So(announcer.Progress, ShouldResemble, []Progress{
 			{Finished: false, Time: baseTime.Add(time.Second * 10), Progress: 25},
 			{Finished: false, Time: baseTime.Add(time.Second * 20), Progress: 50},
 			{Finished: false, Time: baseTime.Add(time.Second * 30), Progress: 75},
@@ -72,7 +59,6 @@ func TestNotifier(t *testing.T) {
 			{Finished: false, Time: baseTime.Add(time.Second * 60), Progress: 100},
 			{Finished: true, Time: baseTime.Add(time.Second * 70), Progress: 100},
 		})
-
 	})
 }
 
@@ -82,7 +68,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 		// Notice that the import clock is totally independent from the time in the notifications,
 		// as it's totally okay to import logs totally contained in the past
-		finalAnnouncer := &fakeAnnouncer{}
+		finalAnnouncer := &DummyImportAnnouncer{}
 
 		// we are importing old logs
 		baseTime := timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
@@ -133,8 +119,8 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 			So(done(), ShouldBeNil)
 
-			So(finalAnnouncer.startTime.IsZero(), ShouldBeTrue)
-			So(finalAnnouncer.p, ShouldResemble, []Progress{
+			So(finalAnnouncer.Start.IsZero(), ShouldBeTrue)
+			So(finalAnnouncer.Progress, ShouldResemble, []Progress{
 				Progress{Finished: true, Progress: 100, Time: time.Time{}},
 			})
 
@@ -176,8 +162,8 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			So(primaryTimes.counter, ShouldEqual, 11)
 			So(secondaryTimes.counter, ShouldEqual, 5)
 
-			So(finalAnnouncer.startTime, ShouldResemble, baseTime)
-			So(finalAnnouncer.p, ShouldResemble, []Progress{
+			So(finalAnnouncer.Start, ShouldResemble, baseTime)
+			So(finalAnnouncer.Progress, ShouldResemble, []Progress{
 				Progress{Finished: false, Progress: 5, Time: baseTime.Add(time.Second * 10)},
 				Progress{Finished: false, Progress: 10, Time: baseTime.Add(time.Second * 20)},
 				Progress{Finished: false, Progress: 15, Time: baseTime.Add(time.Second * 30)},
