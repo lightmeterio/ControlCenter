@@ -111,7 +111,7 @@ func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
 		done, cancel := t.Run()
 
 		Convey("Unsupported lines, with weird clone syntax", func() {
-			readFromTestFile("test_files/8_weird_log_file.log", t.Publisher())
+			readFromTestFile("../test_files/postfix_logs/individual_files/8_weird_log_file.log", t.Publisher())
 			cancel()
 			done()
 			// Somehow it generates one message, but this is really not that supported at the moment!
@@ -144,7 +144,7 @@ var _ = ioutil.TempDir
 
 func TestReadingFromArbitraryLines(t *testing.T) {
 	Convey("Reading from arbitrary lines", t, func() {
-		file, err := os.Open("test_files/1_bounce_simple.log")
+		file, err := os.Open("../test_files/postfix_logs/individual_files/1_bounce_simple.log")
 		So(err, ShouldBeNil)
 
 		b, err := ioutil.ReadAll(file)
@@ -249,7 +249,7 @@ func TestTrackingFromFiles(t *testing.T) {
 		Convey("With Tracker", func() {
 			Convey("Well behaving files", func() {
 				Convey("Single bounced message", func() {
-					readFromTestFile("test_files/1_bounce_simple.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/1_bounce_simple.log", t.Publisher())
 					cancel()
 					done()
 
@@ -277,7 +277,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					Convey("Complete log, with last 'remove' available", func() {
 						// FIXME: this test sporadically misbehaves and fails when the number of notifiers is > 1
 						// - some results (if not all!) fail to be notified, as the deletion for their queues fail!
-						readFromTestFile("test_files/2_multiple_recipients_some_bounces.log", t.Publisher())
+						readFromTestFile("../test_files/postfix_logs/individual_files/2_multiple_recipients_some_bounces.log", t.Publisher())
 						cancel()
 						done()
 						So(len(pub.results), ShouldEqual, 6)
@@ -290,7 +290,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					})
 
 					Convey("Complete log, with last 'remove' missing", func() {
-						readFromTestFile("test_files/2_multiple_recipients_some_bounces_no_last_remove.log", t.Publisher())
+						readFromTestFile("../test_files/postfix_logs/individual_files/2_multiple_recipients_some_bounces_no_last_remove.log", t.Publisher())
 						cancel()
 						done()
 						So(len(pub.results), ShouldEqual, 6)
@@ -298,7 +298,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("One message deliered locally", func() {
-					readFromTestFile("test_files/3_local_delivery.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/3_local_delivery.log", t.Publisher())
 					cancel()
 					done()
 					So(len(pub.results), ShouldEqual, 1)
@@ -314,7 +314,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					// (250 2.0.0 Ok: queued as AE391AC0B4E), and this value looks like the response from a "self"
 					// delivery, whereas it's really remote and means the message has been accepted.
 					// See gitlab issue #433 for more info.
-					readFromTestFile("test_files/4_lost_queue.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", t.Publisher())
 					cancel()
 					done()
 					So(len(pub.results), ShouldEqual, 3)
@@ -325,7 +325,7 @@ func TestTrackingFromFiles(t *testing.T) {
 					// There are extra steps and the message is moved around on different queues.
 					// Sometimes postfix moves messages to a local (outbound) queue that
 					// There's also usage of NOQUEUE, which is a non existent queue, never removed.
-					readFromTestFile("test_files/5_zimbra_amavisd.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/5_zimbra_amavisd.log", t.Publisher())
 					cancel()
 					done()
 					So(len(pub.results), ShouldEqual, 1)
@@ -340,7 +340,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("An e-mail gets deferred", func() {
-					readFromTestFile("test_files/6_deferred_message_retry.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/6_deferred_message_retry.log", t.Publisher())
 					cancel()
 					done()
 					So(len(pub.results), ShouldEqual, 2)
@@ -355,7 +355,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Log with only connections and disconnections. No queues are created", func() {
-					readFromTestFile("test_files/7_only_connections_and_disconnections.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/7_only_connections_and_disconnections.log", t.Publisher())
 					cancel()
 					done()
 					So(len(pub.results), ShouldEqual, 0)
@@ -368,7 +368,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Two messages are sent. The first one for one destination and bounces, and the second one to multiples destinations", func() {
-					readFromTestFile("test_files/9_mixed_messages.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/9_mixed_messages.log", t.Publisher())
 					cancel()
 					done()
 
@@ -382,7 +382,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Pickup in action", func() {
-					readFromTestFile("test_files/10_pickup.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/10_pickup.log", t.Publisher())
 					cancel()
 					done()
 
@@ -396,7 +396,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Single delived message", func() {
-					readFromTestFile("test_files/11_single_successful_delivery.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/11_single_successful_delivery.log", t.Publisher())
 					cancel()
 					done()
 
@@ -421,7 +421,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Two deliveries using the same smtp2 pid, processing in order", func() {
-					readFromTestFile("test_files/12_two_independent_deliveries_in_the_same_smtpd_process_in_order.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/12_two_independent_deliveries_in_the_same_smtpd_process_in_order.log", t.Publisher())
 					cancel()
 					done()
 
@@ -457,7 +457,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Two deliveries using the same smtp2 pid, processing mixed", func() {
-					readFromTestFile("test_files/12_two_independent_deliveries_in_the_same_smtpd_process_mixed.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/12_two_independent_deliveries_in_the_same_smtpd_process_mixed.log", t.Publisher())
 					cancel()
 					done()
 
@@ -495,7 +495,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Initial queue msgid can be empty (issue #388)", func() {
-					readFromTestFile("test_files/13_empty_msgid_issue_388.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/13_empty_msgid_issue_388.log", t.Publisher())
 					cancel()
 					done()
 
@@ -524,7 +524,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Message rejected by milter-reject", func() {
-					readFromTestFile("test_files/15_milter-reject.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/15_milter-reject.log", t.Publisher())
 					cancel()
 					done()
 
@@ -540,7 +540,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				Convey("Message rejected due corrupted messageid", func() {
 					// I don't know why, probably it was an attack, as the messageid can be set by the smtp client
 					// or maybe syslog just failed to log the right message?!
-					readFromTestFile("test_files/16_corrupted_messageid.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/16_corrupted_messageid.log", t.Publisher())
 					cancel()
 					done()
 
@@ -557,7 +557,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("Message rejected by smtpd", func() {
-					readFromTestFile("test_files/17-smtpd-reject.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/17-smtpd-reject.log", t.Publisher())
 					cancel()
 					done()
 
@@ -573,7 +573,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				Convey("Message rejected by smtpd before milter-reject", func() {
 					// I don't know why, probably it was an attack, as the messageid can be set by the smtp client
 					// or maybe syslog just failed to log the right message?!
-					readFromTestFile("test_files/17-smtpd-reject-with-milter-reject.log", t.Publisher())
+					readFromTestFile("../test_files/postfix_logs/individual_files/17-smtpd-reject-with-milter-reject.log", t.Publisher())
 					cancel()
 					done()
 
@@ -597,7 +597,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				// FIXME: right now we are ignoring the error happening in this file probably
 				// due the reuse of an already closed queue,
 				// but this use case should be supported as it seems to happen quite often
-				readFromTestFile("test_files/14_reuse_of_queueid.log", t.Publisher())
+				readFromTestFile("../test_files/postfix_logs/individual_files/14_reuse_of_queueid.log", t.Publisher())
 				cancel()
 				done()
 			})

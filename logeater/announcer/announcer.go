@@ -5,6 +5,7 @@
 package announcer
 
 import (
+	"sync"
 	"time"
 )
 
@@ -94,14 +95,48 @@ func Skip(announcer ImportAnnouncer) {
 }
 
 type DummyImportAnnouncer struct {
+	sync.Mutex
 	Start    time.Time
-	Progress []Progress
+	progress []Progress
 }
 
 func (a *DummyImportAnnouncer) AnnounceStart(t time.Time) {
+	a.Lock()
+
+	defer a.Unlock()
+
 	a.Start = t
 }
 
 func (a *DummyImportAnnouncer) AnnounceProgress(p Progress) {
-	a.Progress = append(a.Progress, p)
+	a.Lock()
+
+	defer a.Unlock()
+
+	a.progress = append(a.progress, p)
+}
+
+func (a *DummyImportAnnouncer) Progress() []Progress {
+	a.Lock()
+
+	defer a.Unlock()
+
+	c := make([]Progress, len(a.progress))
+
+	if i := copy(c, a.progress); i != len(a.progress) {
+		panic(i)
+	}
+
+	return c
+}
+
+// does nothing
+type EmptyImportAnnouncer struct{}
+
+func (*EmptyImportAnnouncer) AnnounceStart(time.Time) {
+	// it's empty...
+}
+
+func (*EmptyImportAnnouncer) AnnounceProgress(Progress) {
+	// it's empty...
 }

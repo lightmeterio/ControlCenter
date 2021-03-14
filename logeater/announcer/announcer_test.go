@@ -50,7 +50,7 @@ func TestNotifier(t *testing.T) {
 		notifier.Step(baseTime.Add(time.Second * 60))
 		notifier.End(baseTime.Add(time.Second * 70))
 
-		So(announcer.Progress, ShouldResemble, []Progress{
+		So(announcer.Progress(), ShouldResemble, []Progress{
 			{Finished: false, Time: baseTime.Add(time.Second * 10), Progress: 25},
 			{Finished: false, Time: baseTime.Add(time.Second * 20), Progress: 50},
 			{Finished: false, Time: baseTime.Add(time.Second * 30), Progress: 75},
@@ -120,7 +120,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			So(done(), ShouldBeNil)
 
 			So(finalAnnouncer.Start.IsZero(), ShouldBeTrue)
-			So(finalAnnouncer.Progress, ShouldResemble, []Progress{
+			So(finalAnnouncer.Progress(), ShouldResemble, []Progress{
 				Progress{Finished: true, Progress: 100, Time: time.Time{}},
 			})
 
@@ -163,7 +163,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 			So(secondaryTimes.counter, ShouldEqual, 5)
 
 			So(finalAnnouncer.Start, ShouldResemble, baseTime)
-			So(finalAnnouncer.Progress, ShouldResemble, []Progress{
+			So(finalAnnouncer.Progress(), ShouldResemble, []Progress{
 				Progress{Finished: false, Progress: 5, Time: baseTime.Add(time.Second * 10)},
 				Progress{Finished: false, Progress: 10, Time: baseTime.Add(time.Second * 20)},
 				Progress{Finished: false, Progress: 15, Time: baseTime.Add(time.Second * 30)},

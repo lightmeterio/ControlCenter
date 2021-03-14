@@ -653,7 +653,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
 
-			So(len(importAnnouncer.Progress), ShouldEqual, 0)
+			So(len(importAnnouncer.Progress()), ShouldEqual, 0)
 			So(importAnnouncer.Start, ShouldResemble, time.Time{})
 		})
 
@@ -681,7 +681,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 
 			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 
-			So(importAnnouncer.Progress, ShouldResemble, []announcer.Progress{
+			So(importAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
 				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 50},
 				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
 				{Finished: true, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
@@ -718,7 +718,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 
 			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-02-01 12:00:00 +0000`))
 
-			So(importAnnouncer.Progress, ShouldResemble, []announcer.Progress{
+			So(importAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
 				{Finished: false, Time: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`), Progress: 20},
 				{Finished: false, Time: testutil.MustParseTime(`2020-03-13 04:00:09 +0000`), Progress: 40},
 				{Finished: false, Time: testutil.MustParseTime(`2020-06-18 06:28:55 +0000`), Progress: 60},

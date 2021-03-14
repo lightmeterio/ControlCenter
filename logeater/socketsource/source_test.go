@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"path"
 	"sync"
@@ -61,7 +62,13 @@ func TestListenLogsOnSocket(t *testing.T) {
 		})
 
 		Convey("Use unix socket", func() {
-			source, err := New("unix="+path.Join(dir, "logs.sock"), transformer, &fakeAnnouncer{})
+			importExecutionTime := testutil.MustParseTime(`2000-08-24 10:00:00 +0000`)
+
+			clock := timeutil.FakeClock{Time: importExecutionTime}
+
+			fakeAnnouncer := &fakeAnnouncer{}
+
+			source, err := newWithClock("unix="+path.Join(dir, "logs.sock"), transformer, fakeAnnouncer, &clock)
 			So(err, ShouldBeNil)
 
 			done := make(chan error)
@@ -71,33 +78,38 @@ func TestListenLogsOnSocket(t *testing.T) {
 				done <- reader.Run()
 			}()
 
-			c, err := net.Dial("unix", path.Join(dir, "logs.sock"))
-			So(err, ShouldBeNil)
+			{
+				c, err := net.Dial("unix", path.Join(dir, "logs.sock"))
+				So(err, ShouldBeNil)
 
-			_, err = c.Write([]byte(`Aug 21 02:03:04 mail banana: Useless Payload
+				_, err = c.Write([]byte(`Aug 20 02:03:04 mail banana: Useless Payload
 Aug 21 03:03:04 mail dog: Useless Payload
 Aug 22 03:03:04 mail monkey: Useless Payload
-Aug 22 04:03:04 mail gorilla: Useless Payload
-Aug 22 05:03:04 mail apple: Useless Payload
+Aug 23 04:03:04 mail gorilla: Useless Payload
+Aug 24 05:03:04 mail apple: Useless Payload
 `))
 
-			So(err, ShouldBeNil)
+				So(err, ShouldBeNil)
 
-			time.Sleep(500 * time.Millisecond)
+				c.Close()
+
+				time.Sleep(500 * time.Millisecond)
+			}
 
 			So(source.Close(), ShouldBeNil)
 
 			<-done
 
 			pub.Lock()
+
 			defer pub.Unlock()
 
 			So(len(pub.logs), ShouldEqual, 5)
 
 			So(pub.logs[0], ShouldResemble, postfix.Record{
-				Time: testutil.MustParseTime(`2000-08-21 02:03:04 +0000`),
+				Time: testutil.MustParseTime(`2000-08-20 02:03:04 +0000`),
 				Header: parser.Header{
-					Time:      parser.Time{Month: time.August, Day: 21, Hour: 2, Minute: 3, Second: 4},
+					Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 					Host:      "mail",
 					Process:   "banana",
 					Daemon:    "",
@@ -106,6 +118,16 @@ Aug 22 05:03:04 mail apple: Useless Payload
 				},
 				Location: postfix.RecordLocation{Line: 1, Filename: "unknown"},
 				Payload:  nil,
+			})
+
+			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))
+			So(fakeAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
+				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-20 02:03:04 +0000`), Progress: 0},
+				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-21 03:03:04 +0000`), Progress: 24},
+				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-22 03:03:04 +0000`), Progress: 47},
+				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-23 04:03:04 +0000`), Progress: 71},
+				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 95},
+				announcer.Progress{Finished: true, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 100},
 			})
 		})
 	})
