@@ -20,15 +20,15 @@ type ImportAnnouncer interface {
 }
 
 type Notifier struct {
-	currentProgress int64
-	stepValue       int64
+	currentProgress int
+	stepValue       int
 	announcer       ImportAnnouncer
 }
 
-func NewNotifier(announcer ImportAnnouncer, step int64) Notifier {
+func NewNotifier(announcer ImportAnnouncer, steps int) Notifier {
 	return Notifier{
 		currentProgress: 0,
-		stepValue:       step,
+		stepValue:       100 / steps,
 		announcer:       announcer,
 	}
 }
@@ -45,13 +45,21 @@ func (p *Notifier) End(t time.Time) {
 	})
 }
 
+func clamp(v int) int {
+	if v < 100 {
+		return v
+	}
+
+	return 100
+}
+
 func (p *Notifier) Step(t time.Time) {
 	p.currentProgress += p.stepValue
 
 	p.announcer.AnnounceProgress(Progress{
 		Finished: false,
 		Time:     t,
-		Progress: p.currentProgress,
+		Progress: int64(clamp(p.currentProgress)),
 	})
 }
 

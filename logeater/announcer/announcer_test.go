@@ -46,6 +46,36 @@ func (m *fakeMostRecentTime) next() (time.Time, error) {
 	return t, nil
 }
 
+func TestNotifier(t *testing.T) {
+	Convey("Notifier can receive more steps than planned", t, func() {
+		baseTime := timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+
+		announcer := &fakeAnnouncer{}
+
+		// I plan 4 steps, but will do 7
+		notifier := NewNotifier(announcer, 4)
+		notifier.Start(baseTime)
+		notifier.Step(baseTime.Add(time.Second * 10))
+		notifier.Step(baseTime.Add(time.Second * 20))
+		notifier.Step(baseTime.Add(time.Second * 30))
+		notifier.Step(baseTime.Add(time.Second * 40))
+		notifier.Step(baseTime.Add(time.Second * 50))
+		notifier.Step(baseTime.Add(time.Second * 60))
+		notifier.End(baseTime.Add(time.Second * 70))
+
+		So(announcer.p, ShouldResemble, []Progress{
+			{Finished: false, Time: baseTime.Add(time.Second * 10), Progress: 25},
+			{Finished: false, Time: baseTime.Add(time.Second * 20), Progress: 50},
+			{Finished: false, Time: baseTime.Add(time.Second * 30), Progress: 75},
+			{Finished: false, Time: baseTime.Add(time.Second * 40), Progress: 100},
+			{Finished: false, Time: baseTime.Add(time.Second * 50), Progress: 100},
+			{Finished: false, Time: baseTime.Add(time.Second * 60), Progress: 100},
+			{Finished: true, Time: baseTime.Add(time.Second * 70), Progress: 100},
+		})
+
+	})
+}
+
 func TestSynchronizedAnnouncer(t *testing.T) {
 	Convey("Test synchronized announcer", t, func() {
 		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-10-10 00:00:00 +0000`)}
@@ -115,7 +145,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 		})
 
 		Convey("Cancel execution before end", func() {
-			notifier := NewNotifier(combinedAnnouncer, 5)
+			notifier := NewNotifier(combinedAnnouncer, 10)
 
 			notifier.Start(baseTime)
 			notifier.Step(baseTime.Add(time.Second * 10))
@@ -127,7 +157,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 		})
 
 		Convey("Do not skip", func() {
-			notifier := NewNotifier(combinedAnnouncer, 5)
+			notifier := NewNotifier(combinedAnnouncer, 20)
 
 			// The source of progress, normally the logsource
 			notifier.Start(baseTime)
