@@ -10,7 +10,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h2>
         <translate>Welcome</translate>
       </h2>
-      <import-progress-indicator @finished="handleProgressFinished"></import-progress-indicator>
       <p class="align-left" render-html="true" v-translate>
         Please create a new administrator account - this is necessary to login. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if you've done it before.
       </p>
@@ -149,13 +148,16 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
     </div>
+    <b-toast id="progress-toast" toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide>
+      <import-progress-indicator :labelOnBottom=false @finished="handleProgressFinished"></import-progress-indicator>
+    </b-toast>
   </panel-page>
 </template>
 
 <script>
 import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import { ipAddress } from "vuelidate/lib/validators";
 
 import linkify from 'vue-linkify';
@@ -215,7 +217,7 @@ export default {
         "Different types of mail perform differently. This helps show the most relevant information."
       );
     },
-    ...mapState(["language"])
+    ...mapState(["language", "isImportProgressFinished"])
   },
   methods: {
     validateState(name) {
@@ -271,12 +273,14 @@ export default {
       togglePasswordShow(event);
     },
     handleProgressFinished() {
-      console.log("Register found that import progress finished!")
-    }
+      this.setInsightsImportProgressFinished();
+    },
+    ...mapActions(["setInsightsImportProgressFinished"])
   },
   mounted() {
     const el = document.body;
     el.classList.add("login-gradient");
+    this.$bvToast.show('progress-toast');
   },
   destroyed() {
     const el = document.body;
@@ -339,6 +343,10 @@ export default {
 .custom-control-label {
   padding-top: 0.25rem;
   font-size: 14px;
+}
+
+.progress-indicator-toast .b-toaster-slot {
+  max-width: 180px !important;
 }
 
 </style>

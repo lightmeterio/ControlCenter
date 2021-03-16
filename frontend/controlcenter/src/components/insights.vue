@@ -690,7 +690,8 @@ svg.insight-help-button {
 }
 
 #modal-msg-rbl .btn-cancel,
-#modal-rbl-list .btn-cancel {
+#modal-rbl-list .btn-cancel,
+#modal-import-summary .btn-cancel {
   background: #ff5c6f33 0% 0% no-repeat padding-box;
   border: 1px solid #ff5c6f;
   border-radius: 2px;

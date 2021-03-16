@@ -167,9 +167,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <import-progress-indicator v-show="shouldShowProgressIndicator" @finished="handleProgressFinished"></import-progress-indicator>
+      <import-progress-indicator :labelOnBottom=true v-show="shouldShowProgressIndicator" @finished="handleProgressFinished"></import-progress-indicator>
 
-      <insights class="row" v-show="!shouldShowProgressIndicator" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
+      <insights class="row" v-show="shouldShowInsights" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
 
     </div>
     <mainfooter></mainfooter>
@@ -190,6 +190,7 @@ import {
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
 import session from "../mixin/views_shared.js";
+import { mapActions, mapState } from "vuex";
 
 function defaultRange() {
   let today = new Date();
@@ -254,11 +255,16 @@ export default {
       opens: "right",
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
-      insights: [],
-      shouldShowProgressIndicator: true
+      insights: []
     };
   },
   computed: {
+    shouldShowProgressIndicator() {
+      return !this.isImportProgressFinished;
+    },
+    shouldShowInsights() {
+      return this.isImportProgressFinished;
+    },
     greetingText() {
       // todo use better translate function for weekdays
       let dateObj = new Date();
@@ -272,11 +278,12 @@ export default {
       let translation = this.$gettext("and welcome back, %{username}");
       let message = this.$gettextInterpolate(translation, { username: this.username });
       return message;
-    }
+    },
+    ...mapState(["isImportProgressFinished"])
   },
   methods: {
     handleProgressFinished() {
-      this.shouldShowProgressIndicator = false;
+      this.setInsightsImportProgressFinished();
       this.updateDashboardAndInsights();
     },
     triggerRefresh: function() {
@@ -336,7 +343,8 @@ export default {
       this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
       }, 30000);
-    }
+    },
+    ...mapActions(["setInsightsImportProgressFinished"])
   },
   mounted() {
     this.initIndex();
