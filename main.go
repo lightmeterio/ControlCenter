@@ -19,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
+	"gitlab.com/lightmeter/controlcenter/util/envvarsutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -48,23 +49,37 @@ func main() {
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
-	flag.StringVar(&workspaceDirectory, "workspace", "/var/lib/lightmeter_workspace", "Path to the directory to store all working data")
+	flag.StringVar(&workspaceDirectory, "workspace",
+		envvarsutil.LookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace"),
+		"Path to the directory to store all working data")
 	flag.BoolVar(&importOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
-	flag.BoolVar(&rsyncedDir, "rsync", false, "Log directory is updated by rsync")
+	flag.BoolVar(&rsyncedDir, "logs_use_rsync",
+		envvarsutil.LookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false),
+		"Log directory is updated by rsync")
 	flag.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
 	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
 	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
 	flag.IntVar(&logYear, "log_starting_year", 0, "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
-	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
-	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
-	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
+	flag.StringVar(&dirToWatch, "watch_dir",
+		envvarsutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", ""),
+		"Path to the directory where postfix stores its log files, to be watched")
+	flag.StringVar(&address, "listen",
+		envvarsutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080"),
+		"Network address to listen to")
+	flag.BoolVar(&verbose, "verbose",
+		envvarsutil.LookupEnvOrBool("LIGHTMETER_VERBOSE", false),
+		"Be Verbose")
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
-	flag.StringVar(&socket, "socket", "", "Receive logs via a socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
-	flag.StringVar(&logFormat, "log_format", "default", "Expected log format from external sources (like logstash, etc.)")
+	flag.StringVar(&socket, "logs_socket",
+		envvarsutil.LookupEnvOrString("LIGHTMETER_LOGS_SOCKET", ""),
+		"Receive logs via a socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
+	flag.StringVar(&logFormat, "log_format",
+		envvarsutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default"),
+		"Expected log format from external sources (like logstash, etc.)")
 
 	flag.Usage = func() {
 		printVersion()
