@@ -148,8 +148,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
     </div>
-    <b-toast id="progress-toast" toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide>
-      <import-progress-indicator :labelOnBottom=false @finished="handleProgressFinished"></import-progress-indicator>
+    <b-toast id="progress-toast"
+      :visible="!isImportProgressFinished"
+      :title="progressIndicatorTitle"
+      toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide>
+      <import-progress-indicator :showLabel=false @finished="handleProgressFinished"></import-progress-indicator>
     </b-toast>
   </panel-page>
 </template>
@@ -216,6 +219,9 @@ export default {
       return this.$gettext(
         "Different types of mail perform differently. This helps show the most relevant information."
       );
+    },
+    progressIndicatorTitle() {
+      return this.$gettext(`Generating Insights`);
     },
     ...mapState(["language", "isImportProgressFinished"])
   },
@@ -346,7 +352,7 @@ export default {
 }
 
 .progress-indicator-toast .b-toaster-slot {
-  max-width: 180px !important;
+  max-width: 200px !important;
 }
 
 </style>

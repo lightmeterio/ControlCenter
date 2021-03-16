@@ -7,8 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <!-- More documentation at https://github.com/setaman/vue-ellipse-progress -->
 
 <template>
-  <div :class="elementsOrderClass">
-    <translate>Generating Insights from your logs</translate>
+  <div class="progress-indicator">
     <div>
       <vue-ellipse-progress
         line="square"
@@ -27,9 +26,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         :legend="true"
         >
         <span slot="legend-value">%</span>
-        <span slot="legend-caption">Completed</span>
       </vue-ellipse-progress>
     </div>
+    <translate v-show="showLabel">Generating Insights</translate>
   </div>
 </template>
 
@@ -41,7 +40,7 @@ import { getAPI } from "@/lib/api";
 export default {
   mixins: [tracking],
   props: {
-    labelOnBottom: Boolean
+    showLabel: Boolean
   },
   data() {
     return {
@@ -59,11 +58,6 @@ export default {
         "font-color": "red"
       }
     };
-  },
-  computed: {
-    elementsOrderClass() {
-      return this.labelOnBottom ? "label-on-bottom" : "label-on-top";
-    }
   },
   mounted() {
     let vue = this;
@@ -97,15 +91,5 @@ export default {
 </script>
 
 <style scoped lang="less">
-
-.label-on-bottom {
-  display: flex;
-  flex-direction: column-reverse;
-}
-
-.label-on-top{
-  display: flex;
-  flex-direction: column;
-}
 
 </style>
