@@ -166,6 +166,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-b-modal.modal-import-summary
                   v-on:click="onImportSummaryDetails(insight)"
                   class="btn btn-sm"
+                  v-show="insight.content.insights.length > 0"
                 >
                   <!-- prettier-ignore -->
                   <translate>Details</translate>
