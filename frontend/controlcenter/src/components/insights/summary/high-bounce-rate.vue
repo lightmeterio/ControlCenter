@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message()}}</span>
+  <span>{{message}}</span>
 </template>
 
 <script>
@@ -22,7 +22,7 @@ export default {
   props: {
     insight: Object
   },
-  methods: {
+  computed: {
     message() {
       let translated = this.$gettext(`Bounce rate of %{rate}% between %{from} and %{to}`)
 

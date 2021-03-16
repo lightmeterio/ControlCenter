@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message()}}</span>
+  <span>{{message}}</span>
 </template>
 
 <script>
@@ -17,7 +17,7 @@ export default {
   props: {
     insight: Object
   },
-  methods: {
+  computed: {
     message() {
       let message = this.$gettext(`Your IP address is listed by %{count} RBLS`);
       return this.$gettextInterpolate(message, {count: this.insight.content.rbls.length});

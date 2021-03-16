@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div>
-    <div>{{header()}}</div>
+    <div>{{header}}</div>
     <ul>
-      <li v-for="insight in insightsWithComponents(content.insights)" v-bind:key="insight">
+      <li v-for="insight in insightsWithComponents(content.insights)" v-bind:key="insight.id">
       <component v-bind:is="insight.component" :insight="insight.insight"></component>
       </li>
     </ul>
@@ -49,8 +49,6 @@ export default {
   props: {
     content: Object
   },
-  computed: {
-  },
   updated() {
   },
   mounted() {
@@ -63,6 +61,8 @@ export default {
     insightsWithComponents(insights) {
       return insights.map(function(insight){ return {"insight": insight, "component": componentForType(insight) } });
     },
+  },
+  computed: {
     header() {
       let translated = this.$gettext(`This is the summary of the mail activity between %{from} and %{to}:`)
       let format = time => moment(time).format("YYYY-MM-DD");

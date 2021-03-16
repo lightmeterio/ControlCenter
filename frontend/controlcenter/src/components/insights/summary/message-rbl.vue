@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message()}}</span>
+  <span>{{message}}</span>
 </template>
 
 <script>
@@ -21,17 +21,11 @@ export default {
   props: {
     insight: Object
   },
-  computed: {
-  },
-  updated() {
-  },
-  mounted() {
-  },
   data() {
     return {
     };
   },
-  methods: {
+  computed: {
     message() {
       return this.$gettextInterpolate(this.$gettext("Blocked by %{host}"), {"host": this.insight.content.host})
     }
