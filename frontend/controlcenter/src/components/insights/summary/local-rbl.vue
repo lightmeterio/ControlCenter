@@ -19,7 +19,7 @@ export default {
   },
   computed: {
     message() {
-      let message = this.$gettext(`Your IP address is listed by %{count} RBLS`);
+      let message = this.$gettext(`Your IP address is listed by %{count} RBLs`);
       return this.$gettextInterpolate(message, {count: this.insight.content.rbls.length});
     }
   }

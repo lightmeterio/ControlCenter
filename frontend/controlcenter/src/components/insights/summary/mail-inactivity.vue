@@ -20,7 +20,7 @@ export default {
   },
   computed: {
     message() {
-      let format = time => moment(time).format(`YYYY-MM-DD hh:mm`);
+      let format = time => moment(time).format(`DD MMM | hh:mmA`);
       let message = this.$gettext(`Mail inactivity from %{from} to %{to}`);
 
       return this.$gettextInterpolate(message, {from: format(this.insight.content.interval.from), to: format(this.insight.content.interval.to)});
