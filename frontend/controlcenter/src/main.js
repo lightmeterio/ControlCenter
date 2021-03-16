@@ -41,6 +41,8 @@ import insights from "./components/insights";
 import langaugeSwitcher from "./components/langauge-switcher";
 import importProgressIndicator from "./components/import-progress-indicator";
 
+import importSummaryInsightContent from "./components/insights/summary/content";
+
 Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
 Vue.component("langauge-switcher", langaugeSwitcher);
@@ -49,6 +51,8 @@ Vue.component("mainfooter", mainfooter);
 Vue.component("mainheader", mainheader);
 Vue.component("panel-page", panelpage);
 Vue.component("import-progress-indicator", importProgressIndicator);
+
+Vue.component("import-summary-insight-content", importSummaryInsightContent);
 
 import translations from "./translation/translations.json";
 

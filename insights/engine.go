@@ -114,7 +114,7 @@ func NewCustomEngine(
 	}
 
 	announcer := importAnnouncer{
-		start:    make(chan time.Time),
+		start:    make(chan time.Time, 1),
 		progress: make(chan announcer.Progress, 100),
 	}
 

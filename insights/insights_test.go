@@ -371,9 +371,11 @@ func TestEngine(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
+			announcer.Skip(e.ImportAnnouncer())
+
 			done, cancel := e.Run()
 
-			announcer.Skip(e.ImportAnnouncer())
+			time.Sleep(100 * time.Millisecond)
 
 			cancel()
 			So(done(), ShouldBeNil)
@@ -389,7 +391,8 @@ func TestEngine(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
-			So(len(sampleInsights), ShouldEqual, 1)
+			// 1 + the import summary insight
+			So(len(sampleInsights), ShouldEqual, 2)
 		})
 
 		Convey("Test engine loop", func() {
@@ -409,12 +412,14 @@ func TestEngine(t *testing.T) {
 			// Generate one insight, on the first cycle
 			detector.setValue(&fakeValue{Category: core.LocalCategory, Content: fakeContent{D: "content"}, Rating: core.BadRating})
 
-			done, cancel := e.Run()
-
 			announcer.Skip(e.ImportAnnouncer())
 
+			done, cancel := e.Run()
+
+			time.Sleep(100 * time.Millisecond)
+
 			cancel()
-			done()
+			So(done(), ShouldBeNil)
 
 			So(len(notifier.notifications), ShouldEqual, 1)
 
@@ -439,15 +444,14 @@ func TestEngine(t *testing.T) {
 
 			progressFetcher := e.ProgressFetcher()
 
-			done, cancel := e.Run()
-
 			// Skip import
 			announcer.Skip(e.ImportAnnouncer())
+
+			done, cancel := e.Run()
 
 			time.Sleep(100 * time.Millisecond)
 
 			cancel()
-
 			So(done(), ShouldBeNil)
 
 			progress, err := progressFetcher.Progress(context.Background())

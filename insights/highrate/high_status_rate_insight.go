@@ -29,7 +29,7 @@ type Options struct {
 
 type bounceRateGenerator struct {
 	creator                     core.Creator
-	value                       *bounceRateContent
+	value                       *BounceRateContent
 	minimalNotiticationInterval time.Duration
 	checkTimespan               time.Duration
 	kind                        string
@@ -54,7 +54,7 @@ func (g *bounceRateGenerator) Step(c core.Clock, tx *sql.Tx) error {
 }
 
 func (g *bounceRateGenerator) generate(interval timeutil.TimeInterval, value float32) {
-	g.value = &bounceRateContent{Value: value, Interval: interval}
+	g.value = &BounceRateContent{Value: value, Interval: interval}
 }
 
 type highRateDetector struct {
@@ -175,20 +175,20 @@ func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-type bounceRateContent struct {
+type BounceRateContent struct {
 	Value    float32               `json:"value"`
 	Interval timeutil.TimeInterval `json:"interval"`
 }
 
-func (c bounceRateContent) Title() notificationCore.ContentComponent {
+func (c BounceRateContent) Title() notificationCore.ContentComponent {
 	return &title{}
 }
 
-func (c bounceRateContent) Description() notificationCore.ContentComponent {
+func (c BounceRateContent) Description() notificationCore.ContentComponent {
 	return &description{c}
 }
 
-func (c bounceRateContent) Metadata() notificationCore.ContentMetadata {
+func (c BounceRateContent) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
@@ -207,7 +207,7 @@ func (title) Args() []interface{} {
 }
 
 type description struct {
-	c bounceRateContent
+	c BounceRateContent
 }
 
 func (d description) String() string {
@@ -222,11 +222,11 @@ func (d description) Args() []interface{} {
 	return []interface{}{int(d.c.Value * 100), d.c.Interval.From, d.c.Interval.To}
 }
 
-func (c bounceRateContent) HelpLink(urlContainer core.URLContainer) string {
+func (c BounceRateContent) HelpLink(urlContainer core.URLContainer) string {
 	return urlContainer.Get(HighBaseBounceRateContentType)
 }
 
-func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bounceRateContent) error {
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content BounceRateContent) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
@@ -243,5 +243,5 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content bou
 }
 
 func init() {
-	core.RegisterContentType(HighBaseBounceRateContentType, HighBaseBounceRateContentTypeId, core.DefaultContentTypeDecoder(&bounceRateContent{}))
+	core.RegisterContentType(HighBaseBounceRateContentType, HighBaseBounceRateContentTypeId, core.DefaultContentTypeDecoder(&BounceRateContent{}))
 }

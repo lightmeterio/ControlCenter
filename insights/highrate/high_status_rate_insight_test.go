@@ -110,7 +110,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 			So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
-			So(insights[0].Content(), ShouldResemble, &bounceRateContent{Value: 0.3, Interval: interval})
+			So(insights[0].Content(), ShouldResemble, &BounceRateContent{Value: 0.3, Interval: interval})
 		})
 
 		Convey("Generate a new high bounced rate insight for the past 6 hours after 3 hours not to spam the user", func() {
@@ -178,7 +178,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				So(insights[0].ID(), ShouldEqual, 2)
 				So(insights[0].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 				So(insights[0].Time(), ShouldEqual, baseTime.Add(baseInsightRange).Add(threeHours*3).Add(time.Second*1))
-				So(insights[0].Content(), ShouldResemble, &bounceRateContent{
+				So(insights[0].Content(), ShouldResemble, &BounceRateContent{
 					Value: 0.5,
 					Interval: timeutil.TimeInterval{
 						From: baseTime.Add(threeHours * 3).Add(time.Second * 1),
@@ -190,7 +190,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				So(insights[1].ID(), ShouldEqual, 1)
 				So(insights[1].ContentType(), ShouldEqual, HighBaseBounceRateContentType)
 				So(insights[1].Time(), ShouldEqual, baseTime.Add(baseInsightRange))
-				So(insights[1].Content(), ShouldResemble, &bounceRateContent{
+				So(insights[1].Content(), ShouldResemble, &BounceRateContent{
 					Value: 0.3,
 					Interval: timeutil.TimeInterval{
 						From: baseTime,
@@ -207,7 +207,7 @@ func TestDescriptionFormatting(t *testing.T) {
 	Convey("Description Formatting", t, func() {
 		n := notification.Notification{
 			ID: 1,
-			Content: bounceRateContent{
+			Content: BounceRateContent{
 				Interval: timeutil.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Value:    0.5,
 			},

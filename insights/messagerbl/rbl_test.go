@@ -127,7 +127,7 @@ func TestMessageRBLInsight(t *testing.T) {
 			So(insights[0].Rating(), ShouldEqual, core.BadRating)
 			So(insights[0].Category(), ShouldEqual, core.LocalCategory)
 
-			c, ok := insights[0].Content().(*content)
+			c, ok := insights[0].Content().(*Content)
 			So(ok, ShouldBeTrue)
 
 			So(c.Host, ShouldEqual, "Host 1")
@@ -144,10 +144,10 @@ func TestMessageRBLInsight(t *testing.T) {
 			So(insights[1].Rating(), ShouldEqual, core.BadRating)
 			So(insights[1].Category(), ShouldEqual, core.LocalCategory)
 
-			c, ok := insights[1].Content().(*content)
+			c, ok := insights[1].Content().(*Content)
 			So(ok, ShouldBeTrue)
 
-			So(*c, ShouldResemble, content{
+			So(*c, ShouldResemble, Content{
 				Host:      "Host 2",
 				Address:   net.ParseIP("127.0.0.2"),
 				Message:   "(Error for Host 2 insight 1)",
@@ -164,10 +164,10 @@ func TestMessageRBLInsight(t *testing.T) {
 			So(insights[2].Rating(), ShouldEqual, core.BadRating)
 			So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 
-			c, ok := insights[2].Content().(*content)
+			c, ok := insights[2].Content().(*Content)
 			So(ok, ShouldBeTrue)
 
-			So(*c, ShouldResemble, content{
+			So(*c, ShouldResemble, Content{
 				Host:      "Host 1",
 				Address:   net.ParseIP("127.0.0.2"),
 				Message:   "(Error for Host 1 insight 2)",
@@ -183,7 +183,7 @@ func TestDescriptionFormatting(t *testing.T) {
 	Convey("Description Formatting", t, func() {
 		n := notification.Notification{
 			ID: 1,
-			Content: content{
+			Content: Content{
 				Address:   net.ParseIP(`127.0.0.1`),
 				Recipient: "lala@caca.com",
 				Host:      "google",

@@ -19,7 +19,7 @@ func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error
 	for _, g := range d.generators {
 		now := c.Now()
 
-		content := bounceRateContent{
+		content := BounceRateContent{
 			Value:    0.9,
 			Interval: timeutil.TimeInterval{From: now.Add(g.checkTimespan * -1), To: now},
 		}

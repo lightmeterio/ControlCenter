@@ -4,6 +4,8 @@ SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
+<!-- TODO: clean up the mess in this file, moving each insight to its own component -->
+
 <template>
   <div class="insights" id="insights">
     <b-modal
@@ -82,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="importSummaryWindowTitle()"
     >
       <div class="modal-body">
-        {{importSummaryInsight.content}}
+        <import-summary-insight-content :content="importSummaryInsight.content"></import-summary-insight-content>
       </div>
 
       <b-row class="vue-modal-footer">
