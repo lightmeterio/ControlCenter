@@ -27,26 +27,26 @@ type Options struct {
 	MinTimeToGenerateNewInsight time.Duration
 }
 
-type content struct {
+type Content struct {
 	ScanInterval timeutil.TimeInterval     `json:"scan_interval"`
 	Address      net.IP                    `json:"address"`
 	RBLs         []localrbl.ContentElement `json:"rbls"`
 }
 
-func (c content) Title() notificationCore.ContentComponent {
+func (c Content) Title() notificationCore.ContentComponent {
 	return &title{c}
 }
 
-func (c content) Description() notificationCore.ContentComponent {
+func (c Content) Description() notificationCore.ContentComponent {
 	return &description{c}
 }
 
-func (c content) Metadata() notificationCore.ContentMetadata {
+func (c Content) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
 type title struct {
-	c content
+	c Content
 }
 
 func (t title) String() string {
@@ -62,7 +62,7 @@ func (t title) Args() []interface{} {
 }
 
 type description struct {
-	c content
+	c Content
 }
 
 func (d description) String() string {
@@ -77,7 +77,7 @@ func (d description) Args() []interface{} {
 	return []interface{}{d.c.Address, len(d.c.RBLs)}
 }
 
-func (c content) HelpLink(urlContainer core.URLContainer) string {
+func (c Content) HelpLink(urlContainer core.URLContainer) string {
 	return urlContainer.Get(ContentType)
 }
 
@@ -86,10 +86,10 @@ const (
 	ContentTypeId = 4
 )
 
-var decodeContent = core.DefaultContentTypeDecoder(&content{})
+var decodeContent = core.DefaultContentTypeDecoder(&Content{})
 
 func init() {
-	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&Content{}))
 }
 
 type detector struct {
@@ -156,7 +156,7 @@ func shouldGenerateBasedOnHistoricalDataAndCurrentResults(ctx context.Context, d
 		return false, errorutil.Wrap(err)
 	}
 
-	resultChanged := contentsHaveDifferentLists(r.RBLs, v.(*content).RBLs)
+	resultChanged := contentsHaveDifferentLists(r.RBLs, v.(*Content).RBLs)
 
 	if !resultChanged {
 		log.Info().Msg("RBL Scan result will not generate a new insight as scan results have not changed since last insight")
@@ -192,7 +192,7 @@ func maybeCreateInsightForResult(ctx context.Context, d *detector, r localrbl.Re
 		return nil
 	}
 
-	return generateInsight(tx, c, d.creator, content{
+	return generateInsight(tx, c, d.creator, Content{
 		ScanInterval: r.Interval,
 		Address:      d.options.Checker.IPAddress(context.Background()),
 		RBLs:         r.RBLs,
@@ -257,7 +257,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	})
 }
 
-func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content content) error {
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content Content) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),
 		Category:    core.LocalCategory,

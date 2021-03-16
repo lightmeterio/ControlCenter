@@ -389,7 +389,8 @@ func TestEngine(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
-			So(len(sampleInsights), ShouldEqual, 1)
+			// 1 + the import summary insight
+			So(len(sampleInsights), ShouldEqual, 2)
 		})
 
 		Convey("Test engine loop", func() {
