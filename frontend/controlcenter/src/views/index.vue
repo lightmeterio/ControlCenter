@@ -90,7 +90,16 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
-                <option selected value="nofilter">
+                <option selected
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Active')
+                  "
+                  value="category-active"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Active</translate>
+                </option>
+                <option value="nofilter">
                   <!-- prettier-ignore -->
                   <translate>All</translate>
                 </option>
@@ -122,7 +131,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <!-- prettier-ignore -->
                   <translate>Archived</translate>
                 </option>
-
               </select>
               <select
                 id="insights-sort"
