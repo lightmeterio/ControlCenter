@@ -7,6 +7,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
@@ -23,73 +26,77 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	"os"
-	"time"
 )
 
-func main() {
-	var (
-		shouldWatchFromStdin      bool
-		workspaceDirectory        string
-		importOnly                bool
-		rsyncedDir                bool
-		migrateDownToOnly         bool
-		migrateDownToVersion      int
-		migrateDownToDatabaseName string
-		showVersion               bool
-		dirToWatch                string
-		address                   string
-		verbose                   bool
-		emailToPasswdReset        string
-		passwordToReset           string
-		timezone                  *time.Location = time.UTC
-		logYear                   int
-		socket                    string
-		logFormat                 string
-	)
+var (
+	shouldWatchFromStdin      bool
+	workspaceDirectory        string
+	importOnly                bool
+	rsyncedDir                bool
+	migrateDownToOnly         bool
+	migrateDownToVersion      int
+	migrateDownToDatabaseName string
+	showVersion               bool
+	dirToWatch                string
+	address                   string
+	verbose                   bool
+	emailToPasswdReset        string
+	passwordToReset           string
+	timezone                  *time.Location = time.UTC
+	logYear                   int
+	socket                    string
+	logFormat                 string
+)
 
-	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
-	flag.StringVar(&workspaceDirectory, "workspace",
+func ParseFlags() {
+	// new flagset to be able to call ParseFlags any number of times
+	fs := flag.NewFlagSet("our_flag_set", flag.ExitOnError)
+	fs.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
+	fs.StringVar(&workspaceDirectory, "workspace",
 		envvarsutil.LookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace"),
 		"Path to the directory to store all working data")
-	flag.BoolVar(&importOnly, "importonly", false,
+	fs.BoolVar(&importOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
-	flag.BoolVar(&rsyncedDir, "logs_use_rsync",
+	fs.BoolVar(&rsyncedDir, "logs_use_rsync",
 		envvarsutil.LookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false),
 		"Log directory is updated by rsync")
-	flag.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
+	fs.BoolVar(&migrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
-	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
-	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
-	flag.IntVar(&logYear, "log_starting_year", 0, "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
-	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
-	flag.StringVar(&dirToWatch, "watch_dir",
+	fs.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
+	fs.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
+	fs.IntVar(&logYear, "log_starting_year", 0, "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
+	fs.BoolVar(&showVersion, "version", false, "Show Version Information")
+	fs.StringVar(&dirToWatch, "watch_dir",
 		envvarsutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", ""),
 		"Path to the directory where postfix stores its log files, to be watched")
-	flag.StringVar(&address, "listen",
+	fs.StringVar(&address, "listen",
 		envvarsutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080"),
 		"Network address to listen to")
-	flag.BoolVar(&verbose, "verbose",
+	fs.BoolVar(&verbose, "verbose",
 		envvarsutil.LookupEnvOrBool("LIGHTMETER_VERBOSE", false),
 		"Be Verbose")
-	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
-	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
-	flag.StringVar(&socket, "logs_socket",
+	fs.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
+	fs.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
+	fs.StringVar(&socket, "logs_socket",
 		envvarsutil.LookupEnvOrString("LIGHTMETER_LOGS_SOCKET", ""),
 		"Receive logs via a socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
-	flag.StringVar(&logFormat, "log_format",
+	fs.StringVar(&logFormat, "log_format",
 		envvarsutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default"),
 		"Expected log format from external sources (like logstash, etc.)")
 
-	flag.Usage = func() {
+	fs.Usage = func() {
 		printVersion()
 		fmt.Fprintf(os.Stdout, "\n Example call: \n")
 		fmt.Fprintf(os.Stdout, "\n %s -workspace ~/lightmeter_workspace -watch_dir /var/log \n", os.Args[0])
 		fmt.Fprintf(os.Stdout, "\n Flag set: \n\n")
-		flag.PrintDefaults()
+		fs.PrintDefaults()
 	}
 
-	flag.Parse()
+	fs.Parse([]string{})
+}
+
+func main() {
+	ParseFlags()
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Str("instanceid", uuid.NewV4().String()).Caller().Logger()
 
