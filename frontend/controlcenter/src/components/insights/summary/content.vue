@@ -6,7 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div>
-    <div>{{header}}</div>
+    <div class="summary-header" v-translate render-html="true">
+    This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>.
+    </div>
     <table class="table import-summary-table">
       <thead class="thead">
         <th scope="col"><translate>Date and Time</translate></th>
@@ -49,6 +51,10 @@ function componentForType(insight) {
   }
 }
 
+function format(time) {
+  return moment(time).format("DD MMM YYYY");
+}
+
 export default {
   mixins: [tracking],
   props: {
@@ -71,17 +77,17 @@ export default {
     }
   },
   computed: {
-    header() {
-      let translated = this.$gettext(`This is the summary of the mail activity between %{from} and %{to}`);
-      let format = time => moment(time).format("DD MMM YYYY");
-      let message = this.$gettextInterpolate(translated, {"from": format(this.content.interval.from), "to": format(this.content.interval.to)});
-      return message;
+    summaryFrom() {
+      return format(this.content.interval.from);
+    },
+    summaryTo() {
+      return format(this.content.interval.to);
     }
   }
 }
 </script>
 
-<style>
+<style scoped>
 
 .import-summary-table .thead th {
   background-color: #5f689a;
@@ -90,6 +96,15 @@ export default {
 
 .import-summary-table tr td {
   background: #F9F9F9 0% 0% no-repeat padding-box;
+}
+
+.summary-header strong {
+  background-color: #e8e9f0;
+  border-radius: 3px;
+}
+
+.summary-header {
+  margin-bottom: 20px;
 }
 
 </style>

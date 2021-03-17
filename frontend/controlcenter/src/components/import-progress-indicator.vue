@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div class="progress-indicator">
-    <div>
+    <div class="ellipse">
       <vue-ellipse-progress
         line="square"
         :progress="value"
@@ -28,7 +28,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <span slot="legend-value">%</span>
       </vue-ellipse-progress>
     </div>
-    <translate v-show="showLabel">Generating Insights</translate>
+    <div class="generating-label" v-show="showLabel">
+      <translate>Generating Insights</translate>
+    </div>
   </div>
 </template>
 
@@ -91,5 +93,18 @@ export default {
 </script>
 
 <style scoped lang="less">
+
+.generating-label {
+  margin-top: 20px;
+}
+
+.progress-indicator .ellipse {
+  margin: auto;
+  display: flex;
+}
+
+.progress-indicator .ellipse > div {
+  margin: 0 auto;
+}
 
 </style>
