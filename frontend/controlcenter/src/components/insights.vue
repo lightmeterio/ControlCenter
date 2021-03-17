@@ -528,7 +528,7 @@ function formatInsightDescriptionDateTime(d) {
 
 function formatInsightDescriptionDate(d) {
   // TODO: this should be formatted according to the chosen language
-  return moment(d).format("MMM. D");
+  return moment(d).format("MMM. D YYYY");
 }
 
 </script>
