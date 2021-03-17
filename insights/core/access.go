@@ -35,6 +35,8 @@ func (c Category) String() string {
 		return translator.I18n("intel")
 	case ArchivedCategory:
 		return translator.I18n("archived")
+	case ActiveCategory:
+		return translator.I18n("active")
 	case NoCategory:
 		fallthrough
 	default:
@@ -58,6 +60,7 @@ const (
 	ComparativeCategory Category = 3
 	IntelCategory       Category = 4
 	ArchivedCategory    Category = 5
+	ActiveCategory      Category = 6
 )
 
 func (c Category) MarshalJSON() ([]byte, error) {
@@ -76,6 +79,8 @@ func BuildCategoryByName(n string) Category {
 		return IntelCategory
 	case "archived":
 		return ArchivedCategory
+	case "active":
+		return ActiveCategory
 	default:
 		return NoCategory
 	}
@@ -236,31 +241,61 @@ type fetcher struct {
 }
 
 func buildSelectStmt(where, order string) string {
+	// active_category is the one stored in the `insights` table. It's immutable.
+	// status_category is the one the user sees, and might change over time (like from active to archived).
+	// TODO: this query can/should be much simplified and optimized!!!
 	return fmt.Sprintf(`
 	with
-	non_archived(id, time, category, rating, content_type, content) as (
+	active(id, time, actual_category, status_category, rating, content_type, content) as (
 		select
-			insights.rowid, insights.time, insights.category, insights.rating, insights.content_type, insights.content
+			insights.rowid, insights.time, insights.category, %d, insights.rating, insights.content_type, insights.content
 		from
 			insights left join insights_status on insights.rowid = insights_status.insight_id
 		where
 			insights_status.id is null
 	),
-	archived(id, time, category, rating, content_type, content) as (
+	archived(id, time, actual_category, status_category, rating, content_type, content) as (
 		select
-			insights.rowid, insights.time, insights_status.status, insights.rating, insights.content_type, insights.content
+			insights.rowid, insights.time, insights.category, insights_status.status, insights.rating, insights.content_type, insights.content
 		from
 			insights join insights_status on insights.rowid = insights_status.insight_id
 		where insights_status.status = %d
 	),
-	united(id, time, category, rating, content_type, content) as (
-		select * from non_archived union select * from archived
+	united(id, time, actual_category, status_category, rating, content_type, content) as (
+		select * from active union select * from archived
 	)
-	select * from united
+	select
+		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
+	from
+		united
 	where %s
-	order by %s
-	limit ?
-	`, int(ArchivedCategory), where, order)
+	order by %s, id
+	limit @limit
+	`, int(ActiveCategory), int(ArchivedCategory), int(ArchivedCategory), where, order)
+}
+
+var (
+	noFilterSqlWhereClause = `time between @start and @end`
+
+	// TODO: we should analyze and simplify and optmize this condition, as it's unreadable!
+	filterByCategorySqlWhereClause = fmt.Sprintf(`time between @start and @end and ((@category in (%d, %d) and status_category = @category) or (@category not in (%d, %d) and @category = actual_category and status_category != %d))`, int(ActiveCategory), int(ArchivedCategory), int(ActiveCategory), int(ArchivedCategory), int(ArchivedCategory))
+)
+
+func noFilterParamBuilder(o FetchOptions) []interface{} {
+	return []interface{}{
+		sql.Named("start", o.Interval.From.Unix()),
+		sql.Named("end", o.Interval.To.Unix()),
+		sql.Named("limit", buildLimitForFetchOptions(o)),
+	}
+}
+
+func filterByCategoryParamBuilder(o FetchOptions) []interface{} {
+	return []interface{}{
+		sql.Named("start", o.Interval.From.Unix()),
+		sql.Named("end", o.Interval.To.Unix()),
+		sql.Named("category", o.Category),
+		sql.Named("limit", buildLimitForFetchOptions(o)),
+	}
 }
 
 func buildLimitForFetchOptions(o FetchOptions) int {
@@ -304,38 +339,30 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time desc`))
+				return buildQuery(key, buildSelectStmt(noFilterSqlWhereClause, `time desc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: noFilterParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time desc`))
+				return buildQuery(key, buildSelectStmt(filterByCategorySqlWhereClause, `time desc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: filterByCategoryParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ? and category = ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(filterByCategorySqlWhereClause, `time asc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), o.Category, buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: filterByCategoryParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ? and category != ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(noFilterSqlWhereClause, `time asc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), ArchivedCategory, buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: noFilterParamBuilder,
 		},
 	}
 

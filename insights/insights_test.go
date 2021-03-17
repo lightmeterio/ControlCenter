@@ -577,13 +577,15 @@ func TestEngine(t *testing.T) {
 			So(notifier.notifications[0].ID, ShouldEqual, 3)
 			So(notifier.notifications[0].Content.Description(), ShouldEqual, "A non historical insight")
 
-			Convey("Get non archived insights", func() {
+			Convey("Get active (non archived) insights", func() {
 				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 					},
-					OrderBy: core.OrderByCreationAsc,
+					OrderBy:  core.OrderByCreationAsc,
+					FilterBy: core.FilterByCategory,
+					Category: core.ActiveCategory,
 				})
 
 				So(err, ShouldBeNil)
@@ -631,6 +633,52 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Content().Description().String(), ShouldEqual, "I am historical, therefore archived")
 				So(insights[0].Category(), ShouldEqual, core.ArchivedCategory)
 			})
+
+			Convey("Get all insights (archived and active)", func() {
+				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+					Interval: timeutil.TimeInterval{
+						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+					},
+					OrderBy: core.OrderByCreationAsc,
+				})
+
+				So(err, ShouldBeNil)
+
+				So(len(insights), ShouldEqual, 3)
+
+				So(insights[0].Content().Description().String(), ShouldEqual, "I am historical, therefore archived")
+				So(insights[0].Category(), ShouldEqual, core.ArchivedCategory)
+
+				So(insights[1].Content().Description().String(), ShouldEqual, "A non historical insight")
+				So(insights[1].Category(), ShouldEqual, core.LocalCategory)
+
+				So(insights[2].Content().Description().String(), ShouldEqual, "Mail activity imported successfully Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
+				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
+			})
+
+			Convey("Choosing a category should exclude the archived insights", func() {
+				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+					Interval: timeutil.TimeInterval{
+						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+					},
+					OrderBy:  core.OrderByCreationAsc,
+					FilterBy: core.FilterByCategory,
+					Category: core.LocalCategory,
+				})
+
+				So(err, ShouldBeNil)
+
+				So(len(insights), ShouldEqual, 2)
+
+				So(insights[0].Content().Description().String(), ShouldEqual, "A non historical insight")
+				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
+
+				So(insights[1].Content().Description().String(), ShouldEqual, "Mail activity imported successfully Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
+				So(insights[1].Category(), ShouldEqual, core.LocalCategory)
+			})
+
 		})
 	})
 }
