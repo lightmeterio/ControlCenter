@@ -87,11 +87,26 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="less">
+* {
+  font-size: 15px;
+}
 
 .import-summary-table .thead th {
   background-color: #5f689a;
   color: #ffffff;
+}
+
+.import-summary-table th {
+  line-height: 35px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.import-summary-table td {
+  line-height: 55px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .import-summary-table tr td {

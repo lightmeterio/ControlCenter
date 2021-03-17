@@ -516,7 +516,7 @@ export default {
       this.importSummaryInsight = insight
     },
     importSummaryWindowTitle() {
-      return this.$gettext("Import Summary")
+      return this.$gettext("Mail activity imported successfully")
     }
   }
 };
