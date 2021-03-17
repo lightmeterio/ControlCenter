@@ -265,7 +265,7 @@ func buildSelectStmt(where, order string) string {
 		select * from active union select * from archived
 	)
 	select
-		id, time, if(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
+		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
 	from
 		united
 	where %s
