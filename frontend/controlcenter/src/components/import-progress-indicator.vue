@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         emptyColor="#f9f9f9"
         empty-thickness="10"
         lineMode="normal"
-        :loading="!active && value < 100 && false"
+        :loading="!active && value < 100"
         color="#2c9cd6"
         :size="150"
         :thickness="15"

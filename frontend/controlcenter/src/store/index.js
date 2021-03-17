@@ -25,7 +25,6 @@ export default new Vuex.Store({
       commit("setLanguage", value);
     },
     setInsightsImportProgressFinished({ commit }) {
-      console.log("cacatua");
       commit("finishImportProgress");
     },
   },
