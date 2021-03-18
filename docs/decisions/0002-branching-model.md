@@ -18,7 +18,7 @@ Once approved, it's merged to master.
 
 - `feature/release-*`, based on master, where any fixes for a release candidate are done. A release is made from this branch as well.
 
-During the execution of the 1.0 release, having a separated release branch for it demonstraded to be quite challenging,
+During the execution of the 1.0 release, having a separated release branch for it demonstrated to be quite challenging,
 as we made a few last-minute changes to it during the first RC and the final release, causing some confusion on the team
 regarding the process.
 
@@ -39,7 +39,7 @@ As changes on `master` happen quite often, it's difficult to enforce a "string f
 On a discussion including team members with different perspectives, consisting on project and product management, marketing and engineering,
 we decided to change the branching model somehow inspired on the popular [Gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) where, briefly:
 
-- there's a `develop` branch that consists any approved merge request for new features. Although review is needed, a developer can merge to it
+- there's a `develop` branch that consists of any approved merge request for new features. Although review is needed, a developer can merge to it
 if no reviewers are available.
 - there's a `master` branch, where the releases are made from. It must go through a higher quality assurance process, especially if it hasn't been peer reviewed. A feature is said to be "Done" only after merged to it.
 - there are feature branches, based either on `develop` or `master`.
@@ -48,7 +48,7 @@ if no reviewers are available.
 (for bugs found in the RCs or for last minute changes addressing marketing issues).
 - a string freeze will be made where any new strings are forbidden to land on `master`, giving time for the translation folks to work on them before the release.
 
-More information about is available in a [further ADR document](0003-translations-workflow.md) and in the `TRANSLATION.md` file.
+More information about translations is available in a [further ADR document](0003-translations-workflow.md) and in the `TRANSLATION.md` file.
 
 The main differences from Gitflow are:
 
@@ -60,7 +60,7 @@ For detailed information, please consult the file `docs/DEVELOPMENT_FLOW.md`.
 
 ## Consequences
 
-The revieweing process will now be a two-step process, where for a feature to land on `master`, it'll need to go from a feature branch to `develop`
+The reviewing process will now be a two-step process, where for a feature to land on `master`, it'll need to go from a feature branch to `develop`
 and then from `develop` to `master`.
 
 This brings some extra work for the team, but considering that a feature proposed to be landed on `master`
@@ -82,9 +82,9 @@ On the other hand, such approach makes it more difficult to maintain older relea
 But, considering that we have no plans to support versions other than the current one, this is not an issue at the moment.
 
 Additionally it increases the probability of missing commits on cherry-picking. Luckily git is very likely to point out errors if it happens,
-and the result code is like to not build/test properly in case this happens.
+and the result code is likely to not build/test properly in that case.
 
-To prevent entire features of be "forgotten" to be added to `master`, we enforce a policy where a feature is considered `Done` only when it's landed on `master`.
+To prevent entire features of being "forgotten" to be added to `master`, we enforce a policy where a feature is considered `Done` only when it's landed on `master`.
 
 The proposed workflow is also very unusual for new developers accostumed to Gitflow or other polular flows, possibly creating some initial barrier and/or resistence from such developers.
 

@@ -9,7 +9,7 @@ Accepted
 ## Context
 
 Since version 0.0.6 Lightmeter supports i18n, and translations in various natural languages. 
-Translations for the appication and components are managed using Weblate, accessible at translate.lightmeter.io.
+Translations for the application and components are managed using Weblate, accessible at translate.lightmeter.io.
 
 For contribution guidelines, please consult the file `TRANSLATIONS.md`.
 
