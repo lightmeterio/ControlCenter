@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -83,7 +84,12 @@ func main() {
 
 		year := time.Now().Year()
 
-		return filelogsource.New(f, ws.MostRecentLogTime(), year)
+		builder, err := transform.Get("default", year)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return filelogsource.New(f, builder)
 	}()
 
 	errorutil.MustSucceed(err)
