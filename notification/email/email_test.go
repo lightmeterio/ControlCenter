@@ -5,6 +5,12 @@
 package email
 
 import (
+	"io/ioutil"
+	"net"
+	"strings"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
@@ -14,11 +20,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/version"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
-	"io/ioutil"
-	"net"
-	"strings"
-	"testing"
-	"time"
 )
 
 type fakeContentComponent string
@@ -125,11 +126,11 @@ func TestSendEmail(t *testing.T) {
 				AuthMethod:   AuthMethodPassword,
 			}
 
-			Convey("Succeds to Validate", func() {
+			Convey("Succeeds to Validate", func() {
 				So(ValidateSettings(settings), ShouldBeNil)
 			})
 
-			Convey("Succeds to Send", func() {
+			Convey("Succeeds to Send", func() {
 				notifier := newWithCustomSettingsFetcherAndClock(core.PassPolicy, func() (*Settings, *globalsettings.Settings, error) {
 					return &settings, &globalSettings, nil
 				}, &clock)
@@ -161,6 +162,7 @@ Category: Intel
 Priority: Low
 DetailsURL: https://example.com/lightmeter/#/insight-card/42
 PreferencesURL: https://example.com/lightmeter/#/settings
+PublicURL: https://example.com/lightmeter/
 Version: 1.0.0
 
 `

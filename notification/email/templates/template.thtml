@@ -649,7 +649,7 @@
                                     </tr>
                                     <tr>
                                       <td align="center" style="font-size:0px;padding:0 30px;word-break:break-word;">
-                                        <div style="font-family:opensans-regular;font-size:14px;line-height:2;text-align:center;color:#202324;">You are receiving these emails because you subscribed at <a href="https://lightmeter.io/" style="text-decoration: none; color: #1d8caf;">lightmeter.io.</a></div>
+                                        <div style="font-family:opensans-regular;font-size:14px;line-height:2;text-align:center;color:#202324;">Yours is the designated address for notifications from <a href="{{.PublicURL}}" style="text-decoration: none; color: #1d8caf;">{{.PublicURL}}</a>.</div>
                                       </td>
                                     </tr>
                                     <tr>

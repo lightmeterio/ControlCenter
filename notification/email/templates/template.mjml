@@ -57,7 +57,7 @@
       <mj-section background-color="#F9F9F9" padding="34px">
         <mj-column>
           <mj-text align="center" font-family="Open Sans, Semibold" font-weight="600" font-size="16px" color="#202324">Why am I getting these emails?</mj-text>
-          <mj-text align="center" font-family="opensans-regular" font-size="14px" color="#202324">You are receiving these emails because you subscribed at <a href="https://lightmeter.io/">lightmeter.io.</a></mj-text>
+          <mj-text align="center" font-family="opensans-regular" font-size="14px" color="#202324">Yours is the designated address for notifications from <a href="{{.PublicURL}}">{{.PublicURL}}</a>.</mj-text>
           <mj-text align="center" font-size="12px" color="#414445" padding-top="15px"><a href="{{.PreferencesURL}}">Manage preferences</a></mj-text>
         </mj-column>
       </mj-section>
