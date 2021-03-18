@@ -73,7 +73,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, ws.MostRecentLogTime(), false)
+			return dirlogsource.New(inputDirectory, ws.MostRecentLogTime(), false, false)
 		}
 
 		f, err := os.Open(inputFile)
