@@ -23,7 +23,7 @@ development stages.
 Other options were considered, such as MySQL, MariaDB and Postgres. NoSQL options were not considered due to a lack of knowledge on such technologies.
 
 SQLite was chosen as it offers the simplest setup possible: no setup at all. The databases are managed by the application itself,
-instead of from an external process, not requiring networking or any kind of connection: the application has direct access to the filesystem.
+instead of from an external process, not requiring networking: the application has direct access to the filesystem.
 
 Direct access to the filesystem makes SQLite very fast for reading. It's basically limited by the performance of the underlying media, instead
 of depending on the network or external processes.
