@@ -48,7 +48,7 @@ var (
 	logFormat                 string
 )
 
-func ParseFlags() {
+func ParseFlags(use_os_args bool) {
 	// new flagset to be able to call ParseFlags any number of times
 	fs := flag.NewFlagSet("our_flag_set", flag.ExitOnError)
 	fs.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -92,11 +92,15 @@ func ParseFlags() {
 		fs.PrintDefaults()
 	}
 
-	_ = fs.Parse([]string{}) // ErrHelp should never happen since our -help/-h flag is defined
+	params := []string{}
+	if use_os_args {
+		params = os.Args[1:]
+	}
+	_ = fs.Parse(params) // ErrHelp should never happen since our -help/-h flag is defined
 }
 
 func main() {
-	ParseFlags()
+	ParseFlags(true)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Str("instanceid", uuid.NewV4().String()).Caller().Logger()
 

@@ -21,7 +21,6 @@ func TestEnvVars(t *testing.T) {
 		default_value string
 		setvar        *string
 	}
-	ParseFlags()
 	stringParams := map[string]stringParam{
 		"LIGHTMETER_WORKSPACE":   stringParam{"/var/lib/lightmeter_workspace", &workspaceDirectory},
 		"LIGHTMETER_WATCH_DIR":   stringParam{"", &dirToWatch},
@@ -36,7 +35,7 @@ func TestEnvVars(t *testing.T) {
 
 		// first check that the default value is correct (when param is not set via an env var)
 		os.Unsetenv(envname)
-		ParseFlags()
+		ParseFlags(false)
 		Convey(fmt.Sprint("default value for parameter", envname, "is incorrect"), t, func() {
 			So(*param.setvar, ShouldEqual, param.default_value)
 		})
@@ -45,7 +44,7 @@ func TestEnvVars(t *testing.T) {
 		for _, val := range []string{"abcd^89", "1efgh35"} {
 			*param.setvar = unset_string
 			os.Setenv(envname, val)
-			ParseFlags()
+			ParseFlags(false)
 			Convey(fmt.Sprint("value for parameter", envname, "could not be set using an environment variable"), t, func() {
 				So(*param.setvar, ShouldEqual, val)
 			})
@@ -68,7 +67,7 @@ func TestEnvVars(t *testing.T) {
 
 		// first check that the default value is correct (when param is not set via an env var)
 		os.Unsetenv(envname)
-		ParseFlags()
+		ParseFlags(false)
 		Convey(fmt.Sprint("default value for parameter", envname, "is incorrect"), t, func() {
 			op := ShouldBeFalse
 			if param.default_value {
@@ -81,7 +80,7 @@ func TestEnvVars(t *testing.T) {
 		for _, val := range []string{"1", "0", "t", "f", "T", "F", "true", "false", "TRUE", "FALSE", "True", "False"} {
 			*param.setvar = false
 			os.Setenv(envname, val)
-			ParseFlags()
+			ParseFlags(false)
 			op := ShouldBeFalse
 			if v, _ := strconv.ParseBool(val); v {
 				op = ShouldBeTrue
