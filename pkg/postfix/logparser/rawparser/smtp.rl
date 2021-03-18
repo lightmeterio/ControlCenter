@@ -90,7 +90,7 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 
 	main := smtpQueueId ': to=<' recipientLocalPart '@' recipientDomainPart '>, '
 	        ('orig_to=<' origRecipientLocalPart ('@' origRecipientDomainPart)? '>, ')?
-	        'relay=' ((relayName '[' relayIpOrPath ']' (':' relayPort)?)|'none') ', '
+	        'relay=' ((relayName ('[' relayIpOrPath ']')? (':' relayPort)?)|'none') ', '
 	        'delay=' delay ', delays=' delays ', dsn=' dsn ', status=' status ' ' extraMessage @{
 		r.ExtraMessage = data[tokBeg:eof]
 		return r, true
@@ -106,7 +106,7 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 %% machine smtpSentStatusExtraMessageSentQueuedPayload;
 %% write data;
 
-func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtraMessageSentQueued , bool) {
+func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtraMessageSentQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -137,7 +137,7 @@ func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtra
 		r.Queue = data[tokBeg:p]
 	};
 
-	main := '(' smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): 250 2.0.0 Ok: queued as ' queue ')' %{
+	main := '(' (smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): ')? '250 2.0.0 Ok: queued as ' queue ')' %{
 		return r, true
 	};
 

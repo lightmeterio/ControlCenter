@@ -1,0 +1,4 @@
+Jan 25 18:54:13 mx postfix/smtpd[2138]: connect from h-ca74a0a011076cd81347f8f11e[254.65.43.194]
+Jan 25 18:54:26 mx postfix/smtpd[2138]: B37FD2E05B9: client=h-ca74a0a011076cd81347f8f11e[254.65.43.194]
+Jan 25 18:54:50 mx postfix/cleanup[8966]: B37FD2E05B9: message-id=<h-ce543fda118a39748f465e46bebdc3338@h-79b594737831a5d176dabf9.com>
+Jan 25 18:54:51 mx postfix/cleanup[8966]: B37FD2E05B9: milter-reject: END-OF-MESSAGE from h-ca74a0a011076cd81347f8f11e[254.65.43.194]: 4.7.1 Try again later; from=<bounce+1b6a63.922c68-christoph=h-ffd2115d4f@h-79b594737831a5d176dabf9.com> to=<h-7abde52c2@h-ffd2115d4f.com> proto=ESMTP helo=<h-ca74a0a011076cd81347f8f11e>

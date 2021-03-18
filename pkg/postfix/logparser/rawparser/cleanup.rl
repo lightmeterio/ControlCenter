@@ -24,17 +24,55 @@ func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 		r.Queue = data[tokBeg:p]
 	};
 
-  messageIdInBrackets = [^>]* > setTokBeg %{
+  bracketedMsgId = [^>]+ >setTokBeg %{
     r.MessageId = data[tokBeg:p]
   };
 
-  messageIdWithoutBrackets = [^<>' ']+ > setTokBeg @{
-    r.MessageId = data[tokBeg:eof]
+  freeFormMessageId = [^<>]+ >setTokBeg %{
+    r.MessageId = data[tokBeg:p]
   };
 
-	main := queue ': message-id=' ('<' messageIdInBrackets '>' | messageIdWithoutBrackets ) @{
+  validMsgIdPart = ('<>' | '<' bracketedMsgId '>' | freeFormMessageId);
+
+  corruptedMsgIdPart = ('<' bracketedMsgId | '<' bracketedMsgId '>' [^>]+ | '') %{
+    r.Corrupted = true
+  };
+
+	main := queue ': message-id=' (validMsgIdPart | corruptedMsgIdPart) %/{
 		return r, true
 	};
+
+	write init;
+	write exec;
+}%%
+
+	return r, false
+}
+
+%% machine cleanupMilterReject;
+%% write data;
+
+func parseCleanupMilterReject(data []byte) (CleanupMilterReject, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := CleanupMilterReject{}
+
+%%{
+	include common "common.rl";
+
+	queue = queueId >setTokBeg %{
+		r.Queue = data[tokBeg:p]
+	};
+
+	extraMessage = any+ >setTokBeg;
+
+  main := queue ': milter-reject: ' extraMessage @{
+		r.ExtraMessage = data[tokBeg:eof]
+    return r, true
+  };
 
 	write init;
 	write exec;
