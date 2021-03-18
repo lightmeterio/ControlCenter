@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -78,7 +79,7 @@ func TestDatabaseMigrationUp(t *testing.T) {
 					From: "from",
 				}
 
-				_, err = core.GenerateInsight(tx, core.InsightProperties{
+				_, err = core.GenerateInsight(context.Background(), tx, core.InsightProperties{
 					Time:        testutil.MustParseTime(`2006-01-02 15:04:05 -0700`),
 					Category:    core.ComparativeCategory,
 					ContentType: `fake_content_type`,

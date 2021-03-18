@@ -517,7 +517,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 
 	newQueueId, err := findQueueIdFromQueueValue(tx, t, r.Header, e.Queue)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v", e.Queue, r.Location.Filename, r.Location.Line)
+		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v at %v", e.Queue, r.Location.Filename, r.Location.Line, r.Time)
 		return nil
 	}
 

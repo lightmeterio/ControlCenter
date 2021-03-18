@@ -77,7 +77,8 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0100`))
+			announcer := &fakeAnnouncer{}
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0100`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 19)

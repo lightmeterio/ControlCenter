@@ -9,17 +9,24 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    language: ""
+    language: "",
+    isImportProgressFinished: false
   },
   mutations: {
     setLanguage(state, language) {
       state.language = language;
+    },
+    finishImportProgress(state) {
+      state.isImportProgressFinished = true;
     }
   },
   actions: {
     setLanguageAction({ commit }, value) {
       commit("setLanguage", value);
-    }
+    },
+    setInsightsImportProgressFinished({ commit }) {
+      commit("finishImportProgress");
+    },
   },
   modules: {}
 });

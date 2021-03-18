@@ -31,10 +31,10 @@ const (
 )
 
 func init() {
-	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&Content{}))
 }
 
-type content struct {
+type Content struct {
 	Address   net.IP    `json:"address"`
 	Recipient string    `json:"recipient"`
 	Host      string    `json:"host"`
@@ -43,20 +43,20 @@ type content struct {
 	Time      time.Time `json:"log_time"`
 }
 
-func (c content) Title() notificationCore.ContentComponent {
+func (c Content) Title() notificationCore.ContentComponent {
 	return &title{c}
 }
 
-func (c content) Description() notificationCore.ContentComponent {
+func (c Content) Description() notificationCore.ContentComponent {
 	return &description{c}
 }
 
-func (c content) Metadata() notificationCore.ContentMetadata {
+func (c Content) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
 type title struct {
-	c content
+	c Content
 }
 
 func (t title) String() string {
@@ -72,7 +72,7 @@ func (t title) Args() []interface{} {
 }
 
 type description struct {
-	c content
+	c Content
 }
 
 func (d description) String() string {
@@ -87,13 +87,17 @@ func (d description) Args() []interface{} {
 	return []interface{}{d.c.Address, d.c.Recipient, d.c.Host}
 }
 
-func (c content) HelpLink(urlContainer core.URLContainer) string {
+func (c Content) HelpLink(urlContainer core.URLContainer) string {
 	return urlContainer.Get(ContentType + "_" + c.Host)
 }
 
 type detector struct {
 	options Options
 	creator core.Creator
+}
+
+func (detector) IsHistoricalDetector() {
+	// Really empty, just to implement the HistoricalDetector interface
 }
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
@@ -126,7 +130,7 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 		return nil
 	}
 
-	content := content{
+	content := Content{
 		Address:   d.options.Detector.IPAddress(context.Background()),
 		Message:   r.Payload.ExtraMessage,
 		Recipient: r.Payload.RecipientDomainPart,
@@ -159,7 +163,7 @@ func (d *detector) Close() error {
 }
 
 // TODO: refactor this function to be reused across different insights instead of copy&pasted
-func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content content) error {
+func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content Content) error {
 	properties := core.InsightProperties{
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
@@ -168,7 +172,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content con
 		Content:     content,
 	}
 
-	if err := creator.GenerateInsight(tx, properties); err != nil {
+	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -19,6 +19,31 @@ type RwConn struct {
 	*sql.DB
 }
 
+// Execute some coded in a transaction
+func (conn *RwConn) Tx(f func(*sql.Tx) error) error {
+	tx, err := conn.Begin()
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := f(tx); err != nil {
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func Ro(db *sql.DB) RoConn {
 	return RoConn{db}
 }

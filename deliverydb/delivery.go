@@ -458,22 +458,24 @@ func (db *DB) HasLogs() bool {
 	return count > 0
 }
 
-func (db *DB) MostRecentLogTime() time.Time {
+func (db *DB) MostRecentLogTime() (time.Time, error) {
 	conn, release := db.connPair.RoConnPool.Acquire()
 
 	defer release()
 
 	var ts int64
 
-	err := conn.QueryRow(`select delivery_ts from deliveries order by id desc limit 1`).Scan(&ts)
+	err := conn.QueryRow(`select delivery_ts from deliveries order by rowid desc limit 1`).Scan(&ts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return time.Time{}
+		return time.Time{}, nil
 	}
 
-	errorutil.MustSucceed(err)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
 
-	return time.Unix(ts, 0).In(time.UTC)
+	return time.Unix(ts, 0).In(time.UTC), nil
 }
 
 func (db *DB) ConnPool() *dbconn.RoPool {

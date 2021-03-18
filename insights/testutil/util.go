@@ -7,6 +7,7 @@ package testutil
 
 import (
 	// required by the data migrator
+	"context"
 	"database/sql"
 	//nolint:golint
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,8 +31,8 @@ type FakeAccessor struct {
 	ConnPair *dbconn.PooledPair
 }
 
-func (c *FakeAccessor) GenerateInsight(tx *sql.Tx, properties core.InsightProperties) error {
-	id, err := core.GenerateInsight(tx, properties)
+func (c *FakeAccessor) GenerateInsight(ctx context.Context, tx *sql.Tx, properties core.InsightProperties) error {
+	id, err := core.GenerateInsight(ctx, tx, properties)
 
 	if err != nil {
 		return errorutil.Wrap(err)

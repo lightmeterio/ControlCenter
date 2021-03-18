@@ -6,6 +6,7 @@ package socketsource
 
 import (
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -15,17 +16,18 @@ import (
 )
 
 type Source struct {
-	listener net.Listener
-	builder  transform.Builder
-	closed   bool
-	closeErr error
+	announcer announcer.ImportAnnouncer
+	listener  net.Listener
+	builder   transform.Builder
+	closed    bool
+	closeErr  error
 }
 
-func New(socketDesc string, builder transform.Builder) (*Source, error) {
+func New(socketDesc string, builder transform.Builder, announcer announcer.ImportAnnouncer) (*Source, error) {
 	c := strings.Split(socketDesc, "=")
 
 	if len(c) != 2 {
-		return nil, fmt.Errorf(`Invalid socket description: %v. It should have the form "unix;/path/to/socket_file" or "tcp;:9999"`, socketDesc)
+		return nil, fmt.Errorf(`Invalid socket description: %v. It should have the form "unix=/path/to/socket_file" or "tcp=:9999"`, socketDesc)
 	}
 
 	network := c[0]
@@ -43,8 +45,9 @@ func New(socketDesc string, builder transform.Builder) (*Source, error) {
 	}
 
 	return &Source{
-		listener: l,
-		builder:  builder,
+		listener:  l,
+		builder:   builder,
+		announcer: announcer,
 	}, nil
 }
 
@@ -65,6 +68,8 @@ func (s *Source) Close() error {
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
+	announcer.Skip(s.announcer)
+
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {

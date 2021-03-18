@@ -19,7 +19,7 @@ import (
 
 // Executed only on development builds, for better developer experience
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	if err := generateInsight(tx, c, d.creator, content{
+	if err := generateInsight(tx, c, d.creator, Content{
 		ScanInterval: timeutil.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
 		Address:      d.options.Checker.IPAddress(context.Background()),
 		RBLs: []localrbl.ContentElement{

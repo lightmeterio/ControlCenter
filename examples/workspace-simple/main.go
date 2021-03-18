@@ -8,6 +8,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
@@ -17,7 +19,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -52,6 +53,9 @@ func main() {
 
 	flag.Parse()
 
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}) //.With().Caller().Logger()
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// copied from https://golang.org/pkg/runtime/pprof/
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -69,12 +73,16 @@ func main() {
 	errorutil.MustSucceed(os.MkdirAll(workspaceDir, os.ModePerm))
 
 	ws, err := workspace.NewWorkspace(workspaceDir)
-
 	errorutil.MustSucceed(err)
 
+	importAnnouncer := ws.ImportAnnouncer()
+
 	logSource, err := func() (logsource.Source, error) {
+		mostRecentTime, err := ws.MostRecentLogTime()
+		errorutil.MustSucceed(err)
+
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, ws.MostRecentLogTime(), false, false)
+			return dirlogsource.New(inputDirectory, mostRecentTime, importAnnouncer, false, false)
 		}
 
 		f, err := os.Open(inputFile)
@@ -89,12 +97,10 @@ func main() {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return filelogsource.New(f, builder)
+		return filelogsource.New(f, builder, ws.ImportAnnouncer())
 	}()
 
 	errorutil.MustSucceed(err)
-
-	b := time.Now()
 
 	done, cancel := ws.Run()
 
@@ -110,8 +116,6 @@ func main() {
 
 	cancel()
 	done()
-
-	log.Println("Execution time:", time.Now().Sub(b))
 
 	// copied from https://golang.org/pkg/runtime/pprof/
 	if *memprofile != "" {

@@ -9,8 +9,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -24,13 +26,17 @@ type Category int
 func (c Category) String() string {
 	switch c {
 	case LocalCategory:
-		return "local"
+		return translator.I18n("local")
 	case ComparativeCategory:
-		return "comparative"
+		return translator.I18n("comparative")
 	case NewsCategory:
-		return "news"
+		return translator.I18n("news")
 	case IntelCategory:
-		return "intel"
+		return translator.I18n("intel")
+	case ArchivedCategory:
+		return translator.I18n("archived")
+	case ActiveCategory:
+		return translator.I18n("active")
 	case NoCategory:
 		fallthrough
 	default:
@@ -53,7 +59,13 @@ const (
 	NewsCategory        Category = 2
 	ComparativeCategory Category = 3
 	IntelCategory       Category = 4
+	ArchivedCategory    Category = 5
+	ActiveCategory      Category = 6
 )
+
+func (c Category) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
+}
 
 func BuildCategoryByName(n string) Category {
 	switch n {
@@ -65,9 +77,25 @@ func BuildCategoryByName(n string) Category {
 		return NewsCategory
 	case "intel":
 		return IntelCategory
+	case "archived":
+		return ArchivedCategory
+	case "active":
+		return ActiveCategory
 	default:
 		return NoCategory
 	}
+}
+
+func (c *Category) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*c = BuildCategoryByName(s)
+
+	return nil
 }
 
 func BuildFilterByName(n string) FetchFilter {
@@ -91,6 +119,37 @@ func BuildOrderByName(n string) FetchOrder {
 }
 
 type Rating int
+
+func (r Rating) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.String())
+}
+
+var ErrInvalidRating = errors.New(`Invalid Rating`)
+
+func (r *Rating) UnmarshalJSON(b []byte) error {
+	var s string
+
+	if err := json.Unmarshal(b, &s); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	switch s {
+	case "bad":
+		*r = BadRating
+		return nil
+	case "ok":
+		*r = OkRating
+		return nil
+	case "good":
+		*r = GoodRating
+		return nil
+	case "unrated":
+		*r = Unrated
+		return nil
+	default:
+		return ErrInvalidRating
+	}
+}
 
 func (r Rating) String() string {
 	switch r {
@@ -182,18 +241,61 @@ type fetcher struct {
 }
 
 func buildSelectStmt(where, order string) string {
+	// active_category is the one stored in the `insights` table. It's immutable.
+	// status_category is the one the user sees, and might change over time (like from active to archived).
+	// TODO: this query can/should be much simplified and optimized!!!
 	return fmt.Sprintf(`
+	with
+	active(id, time, actual_category, status_category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights.category, %d, insights.rating, insights.content_type, insights.content
+		from
+			insights left join insights_status on insights.rowid = insights_status.insight_id
+		where
+			insights_status.id is null
+	),
+	archived(id, time, actual_category, status_category, rating, content_type, content) as (
+		select
+			insights.rowid, insights.time, insights.category, insights_status.status, insights.rating, insights.content_type, insights.content
+		from
+			insights join insights_status on insights.rowid = insights_status.insight_id
+		where insights_status.status = %d
+	),
+	united(id, time, actual_category, status_category, rating, content_type, content) as (
+		select * from active union select * from archived
+	)
 	select
-		rowid, time, category, rating, content_type, content
+		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
 	from
-		insights
-	where
-		%s
-	order by
-		%s
-	limit
-		?
-	`, where, order)
+		united
+	where %s
+	order by %s, id
+	limit @limit
+	`, int(ActiveCategory), int(ArchivedCategory), int(ArchivedCategory), where, order)
+}
+
+var (
+	noFilterSqlWhereClause = `time between @start and @end`
+
+	// TODO: we should analyze and simplify and optmize this condition, as it's unreadable!
+	filterByCategorySqlWhereClause = fmt.Sprintf(`time between @start and @end and ((@category in (%d, %d) and status_category = @category) or (@category not in (%d, %d) and @category = actual_category and status_category != %d))`, int(ActiveCategory), int(ArchivedCategory), int(ActiveCategory), int(ArchivedCategory), int(ArchivedCategory))
+)
+
+func noFilterParamBuilder(o FetchOptions) []interface{} {
+	return []interface{}{
+		sql.Named("start", o.Interval.From.Unix()),
+		sql.Named("end", o.Interval.To.Unix()),
+		sql.Named("limit", buildLimitForFetchOptions(o)),
+	}
+}
+
+func filterByCategoryParamBuilder(o FetchOptions) []interface{} {
+	return []interface{}{
+		sql.Named("start", o.Interval.From.Unix()),
+		sql.Named("end", o.Interval.To.Unix()),
+		sql.Named("category", o.Category),
+		sql.Named("limit", buildLimitForFetchOptions(o)),
+	}
 }
 
 func buildLimitForFetchOptions(o FetchOptions) int {
@@ -235,38 +337,32 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 
 	queriesBuilders := []queriesBuilderPair{
 		{
-			key:   queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
-			value: func(key queryKey) error { return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time desc`)) },
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
+			key: queryKey{order: OrderByCreationDesc, filter: NoFetchFilter},
+			value: func(key queryKey) error {
+				return buildQuery(key, buildSelectStmt(noFilterSqlWhereClause, `time desc`))
 			},
+			paramBuilder: noFilterParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationDesc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time desc`))
+				return buildQuery(key, buildSelectStmt(filterByCategorySqlWhereClause, `time desc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: filterByCategoryParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: FilterByCategory},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`category = ? and time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(filterByCategorySqlWhereClause, `time asc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Category, o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: filterByCategoryParamBuilder,
 		},
 		{
 			key: queryKey{order: OrderByCreationAsc, filter: NoFetchFilter},
 			value: func(key queryKey) error {
-				return buildQuery(key, buildSelectStmt(`time between ? and ?`, `time asc`))
+				return buildQuery(key, buildSelectStmt(noFilterSqlWhereClause, `time asc`))
 			},
-			paramBuilder: func(o FetchOptions) []interface{} {
-				return []interface{}{o.Interval.From.Unix(), o.Interval.To.Unix(), buildLimitForFetchOptions(o)}
-			},
+			paramBuilder: noFilterParamBuilder,
 		},
 	}
 
@@ -425,10 +521,10 @@ func (p InsightProperties) Metadata() notificationCore.ContentMetadata {
 }
 
 type Creator interface {
-	GenerateInsight(*sql.Tx, InsightProperties) error
+	GenerateInsight(context.Context, *sql.Tx, InsightProperties) error
 }
 
-func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
+func GenerateInsight(ctx context.Context, tx *sql.Tx, properties InsightProperties) (int64, error) {
 	contentBytes, err := json.Marshal(properties.Content)
 
 	if err != nil {
@@ -443,7 +539,7 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 		return 0, errorutil.Wrap(err)
 	}
 
-	result, err := tx.Exec(
+	result, err := tx.ExecContext(ctx,
 		`insert into insights(time, category, rating, content_type, content) values(?, ?, ?, ?, ?)`,
 		properties.Time.Unix(),
 		properties.Category,
@@ -456,8 +552,11 @@ func GenerateInsight(tx *sql.Tx, properties InsightProperties) (int64, error) {
 	}
 
 	id, err := result.LastInsertId()
-
 	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	if err := ArchiveInsightIfHistoricalImportIsRunning(ctx, tx, id, properties.Time); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 

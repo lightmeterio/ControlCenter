@@ -130,6 +130,7 @@ type txActions struct {
 	size    uint
 	actions [resultInfosCapacity]func(*sql.Tx) error
 }
+
 type resultsNotifiers []*resultsNotifier
 
 type Tracker struct {
@@ -143,26 +144,28 @@ type Tracker struct {
 	resultsNotifiers resultsNotifiers
 }
 
-func (t *Tracker) MostRecentLogTime() time.Time {
+func (t *Tracker) MostRecentLogTime() (time.Time, error) {
 	conn, release := t.dbconn.RoConnPool.Acquire()
 
 	defer release()
 
-	queryConnection := `select value from connection_data where key in (?,?) order by id desc limit 1`
-	queryResult := `select value from result_data where key = ? order by id desc limit 1`
-	queryQueue := `select value from queue_data where key in (?,?) order by id desc limit 1`
+	queryConnection := `select value from connection_data where key in (?,?) order by rowid desc limit 1`
+	queryResult := `select value from result_data where key = ? order by rowid desc limit 1`
+	queryQueue := `select value from queue_data where key in (?,?) order by rowid desc limit 1`
 
-	exec := func(query string, args ...interface{}) int64 {
+	exec := func(query string, args ...interface{}) (int64, error) {
 		var ts int64
 		err := conn.QueryRow(query, args...).Scan(&ts)
 
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
 		}
 
-		errorutil.MustSucceed(err)
+		if err != nil {
+			return 0, errorutil.Wrap(err)
+		}
 
-		return ts
+		return ts, nil
 	}
 
 	v := int64(0)
@@ -175,17 +178,22 @@ func (t *Tracker) MostRecentLogTime() time.Time {
 		{q: queryResult, args: []interface{}{ResultDeliveryTimeKey}},
 		{q: queryQueue, args: []interface{}{QueueBeginKey, QueueEndKey}},
 	} {
-		r := exec(p.q, p.args...)
+		r, err := exec(p.q, p.args...)
+
+		if err != nil {
+			return time.Time{}, errorutil.Wrap(err)
+		}
+
 		if r > v {
 			v = r
 		}
 	}
 
 	if v == 0 {
-		return time.Time{}
+		return time.Time{}, nil
 	}
 
-	return time.Unix(v, 0).In(time.UTC)
+	return time.Unix(v, 0).In(time.UTC), nil
 }
 
 func (t *Tracker) Publisher() *Publisher {
@@ -427,13 +435,9 @@ func commitTransactionIfNeeded(tx *sql.Tx) error {
 		return nil
 	}
 
-	beforeCommit := time.Now()
-
 	if err := tx.Commit(); err != nil {
 		return errorutil.Wrap(err)
 	}
-
-	log.Debug().Msgf("Tracking commit took %v", time.Since(beforeCommit))
 
 	return nil
 }

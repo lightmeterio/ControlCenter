@@ -90,7 +90,16 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
-                <option selected value="nofilter">
+                <option selected
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Active')
+                  "
+                  value="category-active"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Active</translate>
+                </option>
+                <option value="nofilter">
                   <!-- prettier-ignore -->
                   <translate>All</translate>
                 </option>
@@ -112,6 +121,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >
                   <!-- prettier-ignore -->
                   <translate>News</translate>
+                </option>
+                <option
+                  v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Archived')
+                  "
+                  value="category-archived"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Archived</translate>
                 </option>
               </select>
               <select
@@ -148,7 +166,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           </form>
         </div>
       </div>
-      <insights class="row" :insights="insights"></insights>
+
+      <div class="progress-indicator-area" v-show="shouldShowProgressIndicator">
+      <import-progress-indicator :showLabel=true @finished="handleProgressFinished"></import-progress-indicator>
+      </div>
+
+      <insights class="row" v-show="shouldShowInsights" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
+
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -168,6 +192,7 @@ import {
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
 import session from "../mixin/views_shared.js";
+import { mapActions, mapState } from "vuex";
 
 function defaultRange() {
   let today = new Date();
@@ -198,6 +223,11 @@ function formatDatePickerValue(obj) {
     moment(obj.startDate).format("D MMM") +
     " - " +
     moment(obj.endDate).format("D MMM");
+}
+
+function updateSelectedInterval(vue, obj) {
+  vue.updateDashboardAndInsights();
+  formatDatePickerValue(obj);
 }
 
 function buildDefaultInterval() {
@@ -231,6 +261,12 @@ export default {
     };
   },
   computed: {
+    shouldShowProgressIndicator() {
+      return !this.isImportProgressFinished;
+    },
+    shouldShowInsights() {
+      return this.isImportProgressFinished;
+    },
     greetingText() {
       // todo use better translate function for weekdays
       let dateObj = new Date();
@@ -244,9 +280,14 @@ export default {
       let translation = this.$gettext("and welcome back, %{username}");
       let message = this.$gettextInterpolate(translation, { username: this.username });
       return message;
-    }
+    },
+    ...mapState(["isImportProgressFinished"])
   },
   methods: {
+    handleProgressFinished() {
+      this.setInsightsImportProgressFinished();
+      this.updateDashboardAndInsights();
+    },
     triggerRefresh: function() {
       this.triggerRefreshValue = !this.triggerRefreshValue;
       return this.triggerRefreshValue;
@@ -256,16 +297,20 @@ export default {
       vue.updateInsights();
       vue.updateDashboard();
     },
+    handleExternalDateIntervalChanged(obj) {
+      this.dateRange = obj;
+      if (obj.category !== undefined) {
+        this.insightsFilter = "category-" + obj.category
+      }
+      updateSelectedInterval(this, obj);
+    },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
         "onUpdateDateRangePicker",
         obj.startDate + "-" + obj.endDate
       );
-      formatDatePickerValue(obj);
 
-      let vue = this;
-
-      vue.updateDashboardAndInsights();
+      updateSelectedInterval(this, obj);
     },
     buildDateInterval() {
       let vue = this;
@@ -292,16 +337,16 @@ export default {
     },
     initIndex: function() {
       this.sessionInterval = this.ValidSessionCheck();
+
       let vue = this;
 
-      vue.updateDashboardAndInsights();
-
-      formatDatePickerValue(vue.dateRange);
+      updateSelectedInterval(vue, vue.dateRange);
 
       this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
       }, 30000);
-    }
+    },
+    ...mapActions(["setInsightsImportProgressFinished"])
   },
   mounted() {
     this.initIndex();
@@ -469,4 +514,10 @@ export default {
     display: block;
   }
 }
+
+.progress-indicator-area {
+  margin-top: 60px;
+  margin-bottom: 60px;
+}
+
 </style>

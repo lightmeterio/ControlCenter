@@ -148,13 +148,31 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
     </div>
+    <b-toast id="progress-toast"
+      :visible="!isImportProgressFinished"
+      :title="progressIndicatorTitle"
+      toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide no-close-button>
+      <template #toast-title>
+          <span class="progress-toast-title">
+            <translate>Generating Insights</translate>
+          </span>
+          <span class="progress-toast-collapse">
+            <b-icon v-b-toggle.collapse-progress icon="arrows-collapse"></b-icon>
+          </span>
+      </template>
+      <b-collapse visible id="collapse-progress">
+        <div class="collapse-body">
+          <import-progress-indicator :showLabel=false @finished="handleProgressFinished"></import-progress-indicator>
+        </div>
+      </b-collapse>
+    </b-toast>
   </panel-page>
 </template>
 
 <script>
 import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import { ipAddress } from "vuelidate/lib/validators";
 
 import linkify from 'vue-linkify';
@@ -214,7 +232,10 @@ export default {
         "Different types of mail perform differently. This helps show the most relevant information."
       );
     },
-    ...mapState(["language"])
+    progressIndicatorTitle() {
+      return this.$gettext(`Generating Insights`);
+    },
+    ...mapState(["language", "isImportProgressFinished"])
   },
   methods: {
     validateState(name) {
@@ -268,11 +289,16 @@ export default {
     onTogglePasswordShow(event) {
       event.preventDefault();
       togglePasswordShow(event);
-    }
+    },
+    handleProgressFinished() {
+      this.setInsightsImportProgressFinished();
+    },
+    ...mapActions(["setInsightsImportProgressFinished"])
   },
   mounted() {
     const el = document.body;
     el.classList.add("login-gradient");
+    this.$bvToast.show('progress-toast');
   },
   destroyed() {
     const el = document.body;
@@ -335,6 +361,28 @@ export default {
 .custom-control-label {
   padding-top: 0.25rem;
   font-size: 14px;
+}
+
+.progress-indicator-toast .b-toaster-slot {
+  max-width: 200px !important;
+}
+
+.toast-header {
+  display: flex;
+  flex-flow: row;
+  justify-content: space-between;
+}
+
+.toast-body {
+  padding: 0 !important;
+}
+
+.collapse-body {
+  padding: 1.7em;
+}
+
+.b-toaster-slot {
+  bottom: 3.2rem !important;
 }
 
 </style>
