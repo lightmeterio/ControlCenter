@@ -92,7 +92,7 @@ func ParseFlags() {
 		fs.PrintDefaults()
 	}
 
-	fs.Parse([]string{})
+	_ = fs.Parse([]string{}) // ErrHelp should never happen since our -help/-h flag is defined
 }
 
 func main() {
