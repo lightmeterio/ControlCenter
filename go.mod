@@ -11,12 +11,13 @@ require (
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
 	github.com/emersion/go-smtp v0.14.0
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-openapi/spec v0.19.9 // indirect
 	github.com/go-openapi/swag v0.19.9 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
+	github.com/hlubek/readercomp v0.0.0-20210106164045-ffcdb292b4e8
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.11
 	github.com/jstemmer/go-junit-report v0.9.1

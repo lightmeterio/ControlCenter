@@ -153,6 +153,14 @@ But this is almost always not needed as Control Center is able to properly find 
 
 For more information about how the CA certificates are found, please check the correspondent [Go source code](https://golang.org/src/crypto/x509/root_unix.go).
 
+#### Rsync managed logs
+
+In case the logs directory passed via `-watch_dir` is not in the same filesystem as postfix writes them, but instead copied via rsync,
+you must pass the command line argument `-rsync`, otherwise new log lines received after the first `rsync` execution won't be noticed.
+
+When using rsync, remembed **NOT** to use any in-place synchronization option, such as `--append`, as Control Center expects the default rsync behaviour
+on updating files that consists on first create a temporary file in the destination and onde it's completely transfered, rename it to the final file.
+
 ### Docker image
 
 The simplest way to use the latest version with docker is with the command:
@@ -226,6 +234,8 @@ Currently the following patterns for log files are "watched":
   - mail.log
   - mail.warn
   - mail.err
+  - maillog
+  - zimbra.log
 
 ### Rotated files
 
