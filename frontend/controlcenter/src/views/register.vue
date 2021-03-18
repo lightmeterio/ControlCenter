@@ -151,8 +151,20 @@ SPDX-License-Identifier: AGPL-3.0-only
     <b-toast id="progress-toast"
       :visible="!isImportProgressFinished"
       :title="progressIndicatorTitle"
-      toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide>
-      <import-progress-indicator :showLabel=false @finished="handleProgressFinished"></import-progress-indicator>
+      toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide no-close-button>
+      <template #toast-title>
+          <span class="progress-toast-title">
+            <translate>Generating Insights</translate>
+          </span>
+          <span class="progress-toast-collapse">
+            <b-icon v-b-toggle.collapse-progress icon="arrows-collapse"></b-icon>
+          </span>
+      </template>
+      <b-collapse visible id="collapse-progress">
+        <div class="collapse-body">
+          <import-progress-indicator :showLabel=false @finished="handleProgressFinished"></import-progress-indicator>
+        </div>
+      </b-collapse>
     </b-toast>
   </panel-page>
 </template>
@@ -353,6 +365,24 @@ export default {
 
 .progress-indicator-toast .b-toaster-slot {
   max-width: 200px !important;
+}
+
+.toast-header {
+  display: flex;
+  flex-flow: row;
+  justify-content: space-between;
+}
+
+.toast-body {
+  padding: 0 !important;
+}
+
+.collapse-body {
+  padding: 1.7em;
+}
+
+.b-toaster-slot {
+  bottom: 3.2rem !important;
 }
 
 </style>
