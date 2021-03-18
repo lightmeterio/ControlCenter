@@ -414,7 +414,7 @@
                                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;width:120px;line-height:100%;">
                                             <tr>
                                               <td align="center" bgcolor="#F65E5E" role="presentation" style="border:none;border-radius:2px;cursor:auto;height:25px;mso-padding-alt:4px 16px;background:#F65E5E;" valign="middle">
-                                                <p style="display:inline-block;width:88px;background:#F65E5E;color:#FFFFFF;font-family:montserrat, Arial, sans-serif;font-size:12px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:4px 16px;mso-padding-alt:0px;border-radius:2px;"> Priority: {{.Priority}}</p>
+                                                <p style="display:inline-block;width:88px;background:#F65E5E;color:#FFFFFF;font-family:montserrat, Arial, sans-serif;font-size:12px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:4px 16px;mso-padding-alt:0px;border-radius:2px;"> Rating: {{.Priority}}</p>
                                               </td>
                                             </tr>
                                           </table>
