@@ -5,28 +5,24 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message()}}</span>
+  <span>{{message}}</span>
 </template>
 
 <script>
 
 import moment from "moment";
 import tracking from "../../../mixin/global_shared.js";
-import linkify from 'vue-linkify';
-import Vue from "vue";
-
-Vue.directive('linkified', linkify);
 
 export default {
   mixins: [tracking],
   props: {
     insight: Object
   },
-  methods: {
+  computed: {
     message() {
       let translated = this.$gettext(`Bounce rate of %{rate}% between %{from} and %{to}`)
 
-      let format = time => moment(time).format("YYYY-MM-DD hh:mm")
+      let format = time => moment(time).format("DD MMM | hh:mmA")
 
       return this.$gettextInterpolate(translated, {
         rate: this.insight.content.value * 100,

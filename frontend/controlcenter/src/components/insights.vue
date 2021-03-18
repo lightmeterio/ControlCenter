@@ -166,6 +166,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-b-modal.modal-import-summary
                   v-on:click="onImportSummaryDetails(insight)"
                   class="btn btn-sm"
+                  v-show="insight.content.insights.length > 0"
                 >
                   <!-- prettier-ignore -->
                   <translate>Details</translate>
@@ -515,7 +516,7 @@ export default {
       this.importSummaryInsight = insight
     },
     importSummaryWindowTitle() {
-      return this.$gettext("Import Summary")
+      return this.$gettext("Mail activity imported successfully")
     }
   }
 };
@@ -527,7 +528,7 @@ function formatInsightDescriptionDateTime(d) {
 
 function formatInsightDescriptionDate(d) {
   // TODO: this should be formatted according to the chosen language
-  return moment(d).format("MMM. D");
+  return moment(d).format("MMM. D YYYY");
 }
 
 </script>
@@ -689,7 +690,8 @@ svg.insight-help-button {
 }
 
 #modal-msg-rbl .btn-cancel,
-#modal-rbl-list .btn-cancel {
+#modal-rbl-list .btn-cancel,
+#modal-import-summary .btn-cancel {
   background: #ff5c6f33 0% 0% no-repeat padding-box;
   border: 1px solid #ff5c6f;
   border-radius: 2px;

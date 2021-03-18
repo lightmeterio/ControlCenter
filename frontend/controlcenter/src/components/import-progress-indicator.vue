@@ -7,19 +7,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 <!-- More documentation at https://github.com/setaman/vue-ellipse-progress -->
 
 <template>
-  <vue-ellipse-progress
-    :progress="value"
-    :loading="!active && value < 100"
-    color="#000500"
-    emptyColor="#777777"
-    :size="190"
-    :thickness="20"
-    lineMode="out 6"
-    animation="rs 70 1000"
-    fontSize="1.7rem"
-    fontColor="red"
-    >
-  </vue-ellipse-progress>
+  <div class="progress-indicator">
+    <div class="ellipse">
+      <vue-ellipse-progress
+        line="square"
+        :progress="value"
+        emptyColor="#f9f9f9"
+        empty-thickness="10"
+        lineMode="normal"
+        :loading="!active && value < 100"
+        color="#2c9cd6"
+        :size="150"
+        :thickness="15"
+        animation="rs 70 1000"
+        fontSize="1.7rem"
+        fontColor="black"
+        :legend-value="value"
+        :legend="true"
+        >
+        <span slot="legend-value">%</span>
+      </vue-ellipse-progress>
+    </div>
+    <div class="generating-label" v-show="showLabel">
+      <translate>Generating Insights</translate>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -28,8 +40,10 @@ import tracking from "../mixin/global_shared.js";
 import { getAPI } from "@/lib/api";
 
 export default {
-  name: "import-progress-indicator",
   mixins: [tracking],
+  props: {
+    showLabel: Boolean
+  },
   data() {
     return {
       time: "",
@@ -59,23 +73,38 @@ export default {
         vue.value = data.value;
         vue.active = data.active;
 
-        if (finished) {
-          window.setTimeout(function() {
-            window.clearInterval(vue.updateValue);
-            vue.$emit("finished", vue)
-          }, 400)
+        if (!finished) {
+          return
         }
+
+        window.setTimeout(function() {
+          window.clearInterval(vue.updateValue);
+          vue.$emit("finished", vue)
+        }, 400)
       }).catch(function() {
         console.log("Error!!! obtaining progress");
       })
     }, 1000);
   },
   destroyed() {
-    console.log("Oh My! I am dying now!");
     window.clearInterval(this.updateValue);
   }
 };
 </script>
 
-<style lang="less">
+<style scoped lang="less">
+
+.generating-label {
+  margin-top: 20px;
+}
+
+.progress-indicator .ellipse {
+  margin: auto;
+  display: flex;
+}
+
+.progress-indicator .ellipse > div {
+  margin: 0 auto;
+}
+
 </style>

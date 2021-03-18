@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message()}}</span>
+  <span>{{message}}</span>
 </template>
 
 <script>
@@ -18,9 +18,9 @@ export default {
   props: {
     insight: Object
   },
-  methods: {
+  computed: {
     message() {
-      let format = time => moment(time).format(`YYYY-MM-DD hh:mm`);
+      let format = time => moment(time).format(`DD MMM | hh:mmA`);
       let message = this.$gettext(`Mail inactivity from %{from} to %{to}`);
 
       return this.$gettextInterpolate(message, {from: format(this.insight.content.interval.from), to: format(this.insight.content.interval.to)});
