@@ -5,29 +5,28 @@
 package filelogsource
 
 import (
-	"gitlab.com/lightmeter/controlcenter/logeater"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"time"
 )
 
 type Source struct {
-	file        io.Reader
-	initialTime time.Time
-	year        int
+	file    io.Reader
+	builder transform.Builder
 }
 
-func New(file io.Reader, initialTime time.Time, year int) (*Source, error) {
+func New(file io.Reader, builder transform.Builder) (*Source, error) {
 	return &Source{
-		file:        file,
-		initialTime: initialTime,
-		year:        year,
+		file:    file,
+		builder: builder,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	initialLogsTime := logeater.BuildInitialLogsTime(s.initialTime, s.year)
-	logeater.ParseLogsFromReader(p, initialLogsTime, s.file)
+	if err := transform.ReadFromReader(s.file, p, s.builder); err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	return nil
 }

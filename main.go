@@ -14,6 +14,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/socketsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -40,6 +42,8 @@ func main() {
 		passwordToReset           string
 		timezone                  *time.Location = time.UTC
 		logYear                   int
+		socket                    string
+		logFormat                 string
 	)
 
 	flag.BoolVar(&shouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
@@ -51,13 +55,15 @@ func main() {
 		"Only migrates down")
 	flag.StringVar(&migrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
 	flag.IntVar(&migrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
-	flag.IntVar(&logYear, "log_starting_year", time.Now().Year(), "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
+	flag.IntVar(&logYear, "log_starting_year", 0, "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
 	flag.BoolVar(&showVersion, "version", false, "Show Version Information")
 	flag.StringVar(&dirToWatch, "watch_dir", "", "Path to the directory where postfix stores its log files, to be watched")
 	flag.StringVar(&address, "listen", ":8080", "Network address to listen to")
 	flag.BoolVar(&verbose, "verbose", false, "Be Verbose")
 	flag.StringVar(&emailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	flag.StringVar(&passwordToReset, "password", "", "Password to reset (requires -email_reset)")
+	flag.StringVar(&socket, "socket", "", "Receive logs via a socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
+	flag.StringVar(&logFormat, "log_format", "default", "Expected log format from external sources (like logstash, etc.)")
 
 	flag.Usage = func() {
 		printVersion()
@@ -98,47 +104,21 @@ func main() {
 		return
 	}
 
-	if len(dirToWatch) == 0 && !shouldWatchFromStdin && !importOnly {
-		errorutil.Dief(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
-	}
-
 	ws, err := workspace.NewWorkspace(workspaceDirectory)
 
 	if err != nil {
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", workspaceDirectory)
 	}
 
-	logSource, err := func() (logsource.Source, error) {
-		if len(dirToWatch) > 0 {
-			s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly, rsyncedDir)
-			if err != nil {
-				return nil, errorutil.Wrap(err)
-			}
-
-			return s, nil
-		}
-
-		if shouldWatchFromStdin {
-			s, err := filelogsource.New(os.Stdin, ws.MostRecentLogTime(), logYear)
-			if err != nil {
-				return nil, errorutil.Wrap(err)
-			}
-
-			return s, nil
-		}
-
-		errorutil.Dief(verbose, err, "You must use either -watch_dir or -stdin!")
-
-		return nil, nil
-	}()
+	logSource, err := buildLogSource(ws, dirToWatch, importOnly, rsyncedDir, logYear, logFormat, shouldWatchFromStdin, socket, verbose)
 
 	if err != nil {
 		errorutil.Dief(verbose, err, "Error setting up logs reading")
 	}
 
-	logReader := logsource.NewReader(logSource, ws.NewPublisher())
-
 	done, cancel := ws.Run()
+
+	logReader := logsource.NewReader(logSource, ws.NewPublisher())
 
 	// only import logs and exit when they end. Does not start web server.
 	// It's useful for benchmarking importing logs.
@@ -187,4 +167,42 @@ func main() {
 func printVersion() {
 	//nolint:forbidigo
 	fmt.Printf("Lightmeter ControlCenter %s\n", version.Version)
+}
+
+func buildLogSource(ws *workspace.Workspace, dirToWatch string, importOnly bool, rsyncedDir bool, logYear int, logFormat string, shouldWatchFromStdin bool, socket string, verbose bool) (logsource.Source, error) {
+	if len(dirToWatch) > 0 {
+		s, err := dirlogsource.New(dirToWatch, ws.MostRecentLogTime(), !importOnly, rsyncedDir)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return s, nil
+	}
+
+	builder, err := transform.Get(logFormat, logYear)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if shouldWatchFromStdin {
+		s, err := filelogsource.New(os.Stdin, builder)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return s, nil
+	}
+
+	if len(socket) > 0 {
+		s, err := socketsource.New(socket, builder)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return s, nil
+	}
+
+	errorutil.Dief(verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
+
+	return nil, nil
 }
