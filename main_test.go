@@ -7,12 +7,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestEnvVars(t *testing.T) {
+
+	/*** String parameters ***/
 
 	type stringParam struct {
 		default_value string
@@ -49,5 +52,43 @@ func TestEnvVars(t *testing.T) {
 		}
 	}
 
-	// TODO: boolean variables
+	/*** Boolean parameters ***/
+
+	type boolParam struct {
+		default_value bool
+		setvar        *bool
+	}
+	boolParams := map[string]boolParam{
+		"LIGHTMETER_VERBOSE":        boolParam{false, &verbose},
+		"LIGHTMETER_LOGS_USE_RSYNC": boolParam{false, &rsyncedDir},
+	}
+
+	for envname, param := range boolParams {
+		*param.setvar = false
+
+		// first check that the default value is correct (when param is not set via an env var)
+		os.Unsetenv(envname)
+		ParseFlags()
+		Convey(fmt.Sprint("default value for parameter", envname, "is incorrect"), t, func() {
+			op := ShouldBeFalse
+			if param.default_value {
+				op = ShouldBeTrue
+			}
+			So(*param.setvar, op)
+		})
+
+		// then try all possible values
+		for _, val := range []string{"1", "0", "t", "f", "T", "F", "true", "false", "TRUE", "FALSE", "True", "False"} {
+			*param.setvar = false
+			os.Setenv(envname, val)
+			ParseFlags()
+			op := ShouldBeFalse
+			if v, _ := strconv.ParseBool(val); v {
+				op = ShouldBeTrue
+			}
+			Convey(fmt.Sprint("value for parameter", envname, "could not be set using an environment variable"), t, func() {
+				So(*param.setvar, op)
+			})
+		}
+	}
 }
