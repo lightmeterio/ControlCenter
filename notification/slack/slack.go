@@ -49,7 +49,6 @@ type disabledFromSettingsPolicy struct {
 
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	s, err := p.settingsFetcher()
-
 	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 		return true, nil
 	}
@@ -125,6 +124,11 @@ func (m *Notifier) SendTestNotification() error {
 
 func tryToNotifyMessage(m *Notifier, message core.Message) error {
 	client, settings, err := clientAndSettingsForMessenger(m)
+
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
