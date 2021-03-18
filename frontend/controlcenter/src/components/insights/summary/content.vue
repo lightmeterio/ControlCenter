@@ -1,0 +1,125 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
+<template>
+  <div>
+    <div class="summary-header" v-translate render-html="true">
+    This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>.
+    </div>
+    <table class="table import-summary-table">
+      <thead class="thead">
+        <th scope="col"><translate>Date and Time</translate></th>
+        <th scope="col"><translate>Issue</translate></th>
+      </thead>
+      <tbody>
+        <tr v-for="insight in insightsWithComponents(content.insights)" v-bind:key="insight.insight.id">
+          <td>{{formatTableDateTime(insight.insight.time)}}</td>
+          <td>
+            <component v-bind:is="insight.component" :insight="insight.insight"></component>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import moment from "moment";
+import tracking from "../../../mixin/global_shared.js";
+
+import messageRBL from "./message-rbl";
+import localRBL from "./local-rbl";
+import highBounceRate from "./high-bounce-rate";
+import mailInactivity from "./mail-inactivity";
+import emptyDescription from "./empty";
+
+function componentForType(insight) {
+  switch (insight.content_type) {
+    case "message_rbl":
+      return messageRBL;
+    case "local_rbl_check":
+      return localRBL;
+    case "high_bounce_rate":
+      return highBounceRate;
+    case "mail_inactivity":
+      return mailInactivity;
+    default:
+      return emptyDescription;
+  }
+}
+
+function format(time) {
+  return moment(time).format("DD MMM YYYY");
+}
+
+export default {
+  mixins: [tracking],
+  props: {
+    content: Object
+  },
+  updated() {
+  },
+  mounted() {
+  },
+  data() {
+    return {
+    };
+  },
+  methods: {
+    insightsWithComponents(insights) {
+      return insights.map(function(insight){ return {"insight": insight, "component": componentForType(insight) } });
+    },
+    formatTableDateTime(time) {
+      return moment(time).format("DD MMM YYYY | h:mmA");
+    }
+  },
+  computed: {
+    summaryFrom() {
+      return format(this.content.interval.from);
+    },
+    summaryTo() {
+      return format(this.content.interval.to);
+    }
+  }
+}
+</script>
+
+<style scoped lang="less">
+* {
+  font-size: 15px;
+}
+
+.import-summary-table .thead th {
+  background-color: #5f689a;
+  color: #ffffff;
+}
+
+.import-summary-table th {
+  line-height: 35px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.import-summary-table td {
+  line-height: 55px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.import-summary-table tr td {
+  background: #F9F9F9 0% 0% no-repeat padding-box;
+}
+
+.summary-header strong {
+  background-color: #e8e9f0;
+  border-radius: 3px;
+}
+
+.summary-header {
+  margin-bottom: 20px;
+}
+
+</style>

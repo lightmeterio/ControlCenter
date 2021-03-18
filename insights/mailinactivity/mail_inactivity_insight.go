@@ -18,19 +18,19 @@ import (
 	"time"
 )
 
-type content struct {
+type Content struct {
 	Interval timeutil.TimeInterval `json:"interval"`
 }
 
-func (c content) Title() notificationCore.ContentComponent {
+func (c Content) Title() notificationCore.ContentComponent {
 	return &title{}
 }
 
-func (c content) Description() notificationCore.ContentComponent {
+func (c Content) Description() notificationCore.ContentComponent {
 	return &description{c}
 }
 
-func (c content) Metadata() notificationCore.ContentMetadata {
+func (c Content) Metadata() notificationCore.ContentMetadata {
 	return nil
 }
 
@@ -49,7 +49,7 @@ func (title) Args() []interface{} {
 }
 
 type description struct {
-	c content
+	c Content
 }
 
 func (d description) String() string {
@@ -64,7 +64,7 @@ func (d description) Args() []interface{} {
 	return []interface{}{d.c.Interval.From, d.c.Interval.To}
 }
 
-func (c content) HelpLink(urlContainer core.URLContainer) string {
+func (c Content) HelpLink(urlContainer core.URLContainer) string {
 	return urlContainer.Get(ContentType)
 }
 
@@ -113,6 +113,10 @@ type detector struct {
 	options   Options
 	creator   core.Creator
 	generator *generator
+}
+
+func (detector) IsHistoricalDetector() {
+	// Required by the historical import
 }
 
 func (*detector) Close() error {
@@ -234,12 +238,12 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 		Category:    core.LocalCategory,
 		Rating:      core.BadRating,
 		ContentType: ContentType,
-		Content: content{
+		Content: Content{
 			Interval: interval,
 		},
 	}
 
-	if err := creator.GenerateInsight(tx, properties); err != nil {
+	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -247,5 +251,5 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 }
 
 func init() {
-	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&content{}))
+	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&Content{}))
 }

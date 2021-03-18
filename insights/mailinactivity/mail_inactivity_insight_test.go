@@ -160,7 +160,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour*8))
-			So(insights[0].Content(), ShouldResemble, &content{
+			So(insights[0].Content(), ShouldResemble, &Content{
 				Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
 					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
@@ -175,7 +175,7 @@ func TestDescriptionFormatting(t *testing.T) {
 	Convey("Description Formatting", t, func() {
 		n := notification.Notification{
 			ID: 1,
-			Content: content{
+			Content: Content{
 				Interval: timeutil.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 			},
 		}

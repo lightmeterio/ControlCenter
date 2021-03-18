@@ -312,7 +312,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].ID(), ShouldEqual, 1)
 						So(insights[0].ContentType(), ShouldEqual, ContentType)
 						So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
-						So(insights[0].Content(), ShouldResemble, &content{
+						So(insights[0].Content(), ShouldResemble, &Content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 0"}},
@@ -323,7 +323,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].ID(), ShouldEqual, 2)
 						So(insights[1].ContentType(), ShouldEqual, ContentType)
 						So(insights[1].Time(), ShouldEqual, baseTime.Add(time.Second*68))
-						So(insights[1].Content(), ShouldResemble, &content{
+						So(insights[1].Content(), ShouldResemble, &Content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 48), To: baseTime.Add(time.Second * 68)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 2"}},
@@ -371,7 +371,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[0].ID(), ShouldEqual, 1)
 						So(insights[0].ContentType(), ShouldEqual, ContentType)
 						So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Second*11))
-						So(insights[0].Content(), ShouldResemble, &content{
+						So(insights[0].Content(), ShouldResemble, &Content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime, To: baseTime.Add(time.Second * 11)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "some.rbl.checker.com", Text: "Something Really Bad with counter = 0"}},
@@ -382,7 +382,7 @@ func TestLocalRBL(t *testing.T) {
 						So(insights[1].ID(), ShouldEqual, 2)
 						So(insights[1].ContentType(), ShouldEqual, ContentType)
 						So(insights[1].Time(), ShouldEqual, baseTime.Add(time.Second*37))
-						So(insights[1].Content(), ShouldResemble, &content{
+						So(insights[1].Content(), ShouldResemble, &Content{
 							ScanInterval: timeutil.TimeInterval{From: baseTime.Add(time.Second * 24), To: baseTime.Add(time.Second * 37)},
 							Address:      net.ParseIP("11.22.33.44"),
 							RBLs:         []localrbl.ContentElement{{RBL: "2.some.other.checker.de", Text: "Something Really Bad with counter = 1"}},
@@ -458,7 +458,7 @@ func TestLocalRBL(t *testing.T) {
 					So(insights[0].ContentType(), ShouldEqual, ContentType)
 					So(insights[0].Time(), ShouldEqual, baseTime)
 
-					c, ok := insights[0].Content().(*content)
+					c, ok := insights[0].Content().(*Content)
 					So(ok, ShouldBeTrue)
 
 					// We cannot know for sure when the scan finished, just when it started
@@ -478,7 +478,7 @@ func TestDescriptionFormatting(t *testing.T) {
 	Convey("Description Formatting", t, func() {
 		n := notification.Notification{
 			ID: 1,
-			Content: content{
+			Content: Content{
 				ScanInterval: timeutil.TimeInterval{From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Address:      net.ParseIP(`127.0.0.1`),
 				RBLs: []localrbl.ContentElement{

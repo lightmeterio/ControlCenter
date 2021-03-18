@@ -66,8 +66,8 @@ func init() {
 }
 
 type Authenticator struct {
-	auth  auth.Registrar
-	Store sessions.Store
+	Registrar auth.Registrar
+	Store     sessions.Store
 }
 
 type RegistrarCookieStore interface {
@@ -112,7 +112,7 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) er
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 
-	authOk, userData, err := auth.auth.Authenticate(r.Context(), email, password)
+	authOk, userData, err := auth.Registrar.Authenticate(r.Context(), email, password)
 
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, fmt.Errorf("authentication: %w", err))
@@ -195,7 +195,7 @@ func HandleRegistration(auth *Authenticator, w http.ResponseWriter, r *http.Requ
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Registration: %w", err))
 	}
 
-	id, err := auth.auth.Register(r.Context(), email, name, password)
+	id, err := auth.Registrar.Register(r.Context(), email, name, password)
 	if err != nil {
 		return handleRegistrationFailure(err, w, r)
 	}
@@ -235,7 +235,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Sess
 
 // do not redirect to any page
 func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
-	hasAnyUser, err := auth.auth.HasAnyUser(r.Context())
+	hasAnyUser, err := auth.Registrar.HasAnyUser(r.Context())
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(fmt.Errorf("check has any users: %w", err)))
 	}
@@ -259,20 +259,32 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 	return nil
 }
 
-func GetUserData(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
+var ErrUnauthenticated = errors.New(`Unauthenticated`)
+
+func GetSessionData(auth *Authenticator, r *http.Request) (*SessionData, error) {
 	session, err := auth.Store.Get(r, SessionName)
 	if err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errorutil.Wrap(err, errors.New("unauthorized")))
+		return nil, errorutil.Wrap(err)
 	}
 
 	sessionData, ok := session.Values["auth"].(*SessionData)
 	if !(ok && sessionData.IsAuthenticated()) {
+		return nil, ErrUnauthenticated
+	}
+
+	return sessionData, nil
+}
+
+func HandleGetUserData(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
+	sessionData, err := GetSessionData(auth, r)
+	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized: is not authenticated"))
 	}
 
 	// refresh user data
-	userData, err := auth.auth.GetUserDataByID(r.Context(), sessionData.ID)
+	userData, err := auth.Registrar.GetUserDataByID(r.Context(), sessionData.ID)
 	if err != nil {
+		// FIXME: we should check for ErrInvalidUserID, implemented in the base "auth" package!
 		if errors.Is(err, sql.ErrNoRows) {
 			return httperror.NewHTTPStatusCodeError(http.StatusNotFound, fmt.Errorf("not found (id: %v)", sessionData.ID))
 		}

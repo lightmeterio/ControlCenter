@@ -29,6 +29,10 @@ func (reader *Reader) Close() error {
 	return reader.pool.Close()
 }
 
+func NewReader(pool *dbconn.RoPool) *Reader {
+	return &Reader{pool: pool}
+}
+
 func (writer *Writer) Close() error {
 	return writer.db.Close()
 }
@@ -57,7 +61,7 @@ func NewHandler(conn *dbconn.PooledPair, databaseName string) (*Handler, error) 
 		return nil, errorutil.Wrap(err)
 	}
 
-	reader := &Reader{conn.RoConnPool}
+	reader := NewReader(conn.RoConnPool)
 	writer := &Writer{conn.RwConn}
 
 	return &Handler{
@@ -85,7 +89,7 @@ func (writer *Writer) Store(ctx context.Context, items []Item) error {
 		}
 	}()
 
-	err = Store(tx, items)
+	err = Store(ctx, tx, items)
 
 	if err != nil {
 		return err
@@ -100,10 +104,10 @@ func (writer *Writer) Store(ctx context.Context, items []Item) error {
 	return nil
 }
 
-func Store(tx *sql.Tx, items []Item) error {
+func Store(ctx context.Context, tx *sql.Tx, items []Item) error {
 	for _, i := range items {
 		var id int
-		err := tx.QueryRow(`select rowid from meta where key = ?`, i.Key).Scan(&id)
+		err := tx.QueryRowContext(ctx, `select rowid from meta where key = ?`, i.Key).Scan(&id)
 
 		query, args := func() (string, []interface{}) {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -119,6 +123,21 @@ func Store(tx *sql.Tx, items []Item) error {
 	}
 
 	return nil
+}
+
+func Retrieve(ctx context.Context, tx *sql.Tx, key interface{}, value interface{}) error {
+	// TODO: unify this code with the one from retrieve()!!!
+	err := tx.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
+
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNoSuchKey
+	}
+
+	return errorutil.Wrap(err)
 }
 
 func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
@@ -167,7 +186,7 @@ func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value inte
 		return errorutil.Wrap(err)
 	}
 
-	err = Store(tx, []Item{{Key: key, Value: string(jsonBlob)}})
+	err = Store(ctx, tx, []Item{{Key: key, Value: string(jsonBlob)}})
 
 	if err != nil {
 		return errorutil.Wrap(err)

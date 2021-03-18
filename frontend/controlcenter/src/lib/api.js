@@ -9,6 +9,11 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 import Vue from "vue";
 
+export function getAPI(endpoint) {
+  return axios
+    .get(BASE_URL + "api/v0/" + endpoint)
+}
+
 export function submitGeneralForm(data, successMessage) {
   let formData = getFormData(data);
 

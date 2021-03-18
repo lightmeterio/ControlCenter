@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
@@ -28,6 +29,8 @@ type pub struct {
 }
 
 func (p *pub) Publish(r postfix.Record) {
+	return
+
 	if r.Payload == nil {
 		return
 	}
@@ -44,6 +47,17 @@ func (p *pub) Publish(r postfix.Record) {
 	}
 
 	fmt.Println(string(j))
+}
+
+type fakeAnnouncer struct {
+}
+
+func (a *fakeAnnouncer) AnnounceStart(t time.Time) {
+	log.Info().Msgf("Fake: Announce start: %v", t)
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(p announcer.Progress) {
+	log.Info().Msgf("Fake: Announce progress: %v", p)
 }
 
 func main() {
@@ -71,7 +85,7 @@ func main() {
 		log.Fatal().Msg("-dir is mandatory!")
 	}
 
-	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), false, false)
+	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), &fakeAnnouncer{}, false, false)
 	if err != nil {
 		errorutil.LogFatalf(err, "could not init content")
 	}

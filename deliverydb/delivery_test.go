@@ -223,7 +223,9 @@ func TestEntriesInsertion(t *testing.T) {
 				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 0)
 				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 0)
 
-				So(db.MostRecentLogTime(), ShouldResemble, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`))
+				l, err := db.MostRecentLogTime()
+				So(err, ShouldBeNil)
+				So(l, ShouldResemble, testutil.MustParseTime(`1999-12-02 13:10:12 +0000`))
 			})
 
 			Convey("Local messages with same domain sender are shown", func() {

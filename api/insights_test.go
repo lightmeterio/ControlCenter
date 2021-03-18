@@ -14,6 +14,7 @@ import (
 	mock_insights_fetcher "gitlab.com/lightmeter/controlcenter/insights/core/mock"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/recommendation"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"net/http/httptest"
@@ -190,5 +191,78 @@ func TestInsights(t *testing.T) {
 				},
 			})
 		})
+	})
+}
+
+func TestImportProgress(t *testing.T) {
+	Convey("Test ImportProgress", t, func() {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		f := mock_insights_fetcher.NewMockProgressFetcher(ctrl)
+
+		// process has not yet started. no progress
+		f.EXPECT().Progress(gomock.Any()).Return(core.Progress{}, nil)
+
+		// import starts, but no progress yet
+		f.EXPECT().Progress(gomock.Any()).Return(core.Progress{Active: true}, nil)
+
+		dynInt := func(v int) *int {
+			return &v
+		}
+
+		dynTime := func(v time.Time) *time.Time {
+			return &v
+		}
+
+		// import starts, some progress made
+		f.EXPECT().Progress(gomock.Any()).Return(core.Progress{Active: true, Value: dynInt(15), Time: dynTime(testutil.MustParseTime(`2000-01-01 10:20:30 +0000`))}, nil)
+
+		// import ended
+		f.EXPECT().Progress(gomock.Any()).Return(core.Progress{Active: false, Value: dynInt(100), Time: dynTime(testutil.MustParseTime(`2000-01-01 10:30:00 +0000`))}, nil)
+
+		chain := httpmiddleware.WithDefaultStackWithoutAuth()
+
+		s := httptest.NewServer(chain.WithEndpoint(importProgressHandler{f: f}))
+
+		getBody := func(r *http.Response) interface{} {
+			var body interface{}
+			dec := json.NewDecoder(r.Body)
+			err := dec.Decode(&body)
+			So(err, ShouldBeNil)
+			return body
+		}
+
+		{
+			// Import not yet started
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(getBody(r), ShouldResemble, map[string]interface{}{"active": false})
+		}
+
+		{
+			// starts, no progress yet
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(getBody(r), ShouldResemble, map[string]interface{}{"active": true})
+		}
+
+		{
+			// some progress
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(getBody(r), ShouldResemble, map[string]interface{}{"active": true, "time": "2000-01-01T10:20:30Z", "value": float64(15)})
+		}
+
+		{
+			// end progress
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(getBody(r), ShouldResemble, map[string]interface{}{"active": false, "time": "2000-01-01T10:30:00Z", "value": float64(100)})
+		}
 	})
 }

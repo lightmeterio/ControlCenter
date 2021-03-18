@@ -8,16 +8,16 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"github.com/rs/zerolog/log"
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/rs/zerolog/log"
-	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 )
 
 func readFromReader(reader io.Reader,
@@ -639,15 +639,33 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 	})
 }
 
+type fakeAnnouncer struct {
+	progress []announcer.Progress
+	start    time.Time
+}
+
+func (a *fakeAnnouncer) AnnounceStart(time time.Time) {
+	a.start = time
+}
+
+func (a *fakeAnnouncer) AnnounceProgress(p announcer.Progress) {
+	a.progress = append(a.progress, p)
+}
+
 func TestImportDirectoryOnly(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
+		importAnnouncer := &fakeAnnouncer{}
+
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
+
+			So(len(importAnnouncer.progress), ShouldEqual, 0)
+			So(importAnnouncer.start, ShouldResemble, time.Time{})
 		})
 
 		Convey("One file returns its contents", func() {
@@ -664,13 +682,21 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 22, Hour: 6, Minute: 28, Second: 55})
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 23, Hour: 13, Minute: 46, Second: 15})
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 31, Hour: 8, Minute: 47, Second: 9})
+
+			So(importAnnouncer.start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
+
+			So(importAnnouncer.progress, ShouldResemble, []announcer.Progress{
+				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 50},
+				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
+				{Finished: true, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
+			})
 		})
 
 		Convey("Many files in the same queue, no new lines after import", func() {
@@ -697,9 +723,21 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
+
+			So(importAnnouncer.start, ShouldResemble, testutil.MustParseTime(`2020-02-01 12:00:00 +0000`))
+
+			So(importAnnouncer.progress, ShouldResemble, []announcer.Progress{
+				{Finished: false, Time: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`), Progress: 20},
+				{Finished: false, Time: testutil.MustParseTime(`2020-03-13 04:00:09 +0000`), Progress: 40},
+				{Finished: false, Time: testutil.MustParseTime(`2020-06-18 06:28:55 +0000`), Progress: 60},
+				{Finished: false, Time: testutil.MustParseTime(`2020-07-14 07:01:53 +0000`), Progress: 80},
+				{Finished: false, Time: testutil.MustParseTime(`2020-08-10 00:00:40 +0000`), Progress: 100},
+				{Finished: true, Time: testutil.MustParseTime(`2020-08-10 00:00:40 +0000`), Progress: 100},
+			})
+
 			So(len(pub.logs), ShouldEqual, 11)
 
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.February, Day: 1, Hour: 12, Minute: 00, Second: 0})
@@ -743,7 +781,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -771,7 +809,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -804,7 +842,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -884,7 +922,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -894,6 +932,8 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 
 func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
+		announcer := &fakeAnnouncer{}
+
 		Convey("Many files in the same queue, with new lines after the import starts, split happens on breakline", func() {
 			dirContent := FakeDirectoryContent{
 				entries: fileEntryList{
@@ -909,7 +949,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -939,10 +979,12 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
+
+			So(announcer.start, ShouldResemble, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))
 
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
 			So(pub.logs[0].Time, ShouldEqual, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))
