@@ -20,6 +20,8 @@ unknownIP = "unknown";
 
 ipv4 = ([0-9]+dot){3}[0-9]+ | unknownIP;
 
+squareBracketedValue = [^\]]+;
+
 action setTokBeg { tokBeg = p }
 
 }%%

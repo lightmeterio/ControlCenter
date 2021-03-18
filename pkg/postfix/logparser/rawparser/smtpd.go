@@ -55,5 +55,17 @@ func parseSmtpdPayload(header RawHeader, payloadLine []byte) (RawPayload, error)
 		}, nil
 	}
 
+	if s, parsed := parseSmtpdReject(payloadLine); parsed {
+		return RawPayload{
+			PayloadType: PayloadTypeSmtpdReject,
+			SmtpdReject: s,
+		}, nil
+	}
+
 	return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
+}
+
+type SmtpdReject struct {
+	Queue        []byte
+	ExtraMessage []byte
 }

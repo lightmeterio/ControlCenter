@@ -151,7 +151,13 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			return ""
 		}
 
-		return string(p.RelayName)
+		r := string(p.RelayName)
+
+		if r == "none" {
+			return ""
+		}
+
+		return r
 	}()
 
 	parsedExtraMessage, err := parseSmtpSentStatusExtraMessage(p)
@@ -190,12 +196,20 @@ func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, er
 
 	p := s.ExtraMessageSmtpSentStatusSentQueued
 
-	smtpCode, err := atoi(p.SmtpCode)
+	optionalAtoi := func(v []byte) (int, error) {
+		if len(v) == 0 {
+			return 0, nil
+		}
+
+		return atoi(v)
+	}
+
+	smtpCode, err := optionalAtoi(p.SmtpCode)
 	if err != nil {
 		return nil, err
 	}
 
-	port, err := atoi(p.Port)
+	port, err := optionalAtoi(p.Port)
 	if err != nil {
 		return nil, err
 	}

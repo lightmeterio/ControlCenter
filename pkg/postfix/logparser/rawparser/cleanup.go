@@ -12,17 +12,28 @@ func init() {
 type CleanupMessageAccepted struct {
 	Queue     []byte
 	MessageId []byte
+	Corrupted bool
 }
 
 func parseCleanup(header RawHeader, payloadLine []byte) (RawPayload, error) {
-	s, parsed := parseCleanupMessageAccepted(payloadLine)
-
-	if !parsed {
-		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
+	if s, parsed := parseCleanupMessageAccepted(payloadLine); parsed {
+		return RawPayload{
+			PayloadType:           PayloadTypeCleanupMessageAccepted,
+			CleanupMesageAccepted: s,
+		}, nil
 	}
 
-	return RawPayload{
-		PayloadType:           PayloadTypeCleanupMessageAccepted,
-		CleanupMesageAccepted: s,
-	}, nil
+	if s, parsed := parseCleanupMilterReject(payloadLine); parsed {
+		return RawPayload{
+			PayloadType:         PayloadTypeCleanupMilterReject,
+			CleanupMilterReject: s,
+		}, nil
+	}
+
+	return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
+}
+
+type CleanupMilterReject struct {
+	Queue        []byte
+	ExtraMessage []byte
 }

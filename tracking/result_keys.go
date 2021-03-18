@@ -60,6 +60,8 @@ const (
 	MessageIdFilenameKey
 	MessageIdLineKey
 
+	MessageIdIsCorruptedKey
+
 	lasResulttKey
 )
 
@@ -113,5 +115,6 @@ var (
 		QueueCommitLineKey:       "queue_commit_line",
 		MessageIdFilenameKey:     "messageid_filename",
 		MessageIdLineKey:         "messageid_line",
+		MessageIdIsCorruptedKey:  "messageid_is_corrupted",
 	}
 )
