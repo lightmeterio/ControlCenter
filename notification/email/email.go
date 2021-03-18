@@ -12,6 +12,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/mail"
+	"strings"
+	"text/template"
+	"time"
+
 	sasl "github.com/emersion/go-sasl"
 	smtp "github.com/emersion/go-smtp"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
@@ -21,11 +27,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
-	"io"
-	"net/mail"
-	"strings"
-	"text/template"
-	"time"
 )
 
 // TODO: email template (translatable), custom certificate
@@ -38,6 +39,7 @@ Category: {{.Category}}
 Priority: {{.Priority}}
 DetailsURL: {{.DetailsURL}}
 PreferencesURL: {{.PreferencesURL}}
+PublicURL: {{.PublicURL}}
 Version: {{appVersion}}
 `
 
@@ -283,6 +285,7 @@ type templateValues struct {
 	Description    string
 	Category       string
 	Priority       string
+	PublicURL      string
 	DetailsURL     string
 	PreferencesURL string
 }
@@ -294,6 +297,7 @@ func buildTemplateValues(id int64, message core.Message, globalSettings *globals
 	t := templateValues{
 		Title:          message.Title,
 		Description:    message.Description,
+		PublicURL:      globalSettings.PublicURL,
 		DetailsURL:     detailsURL,
 		PreferencesURL: preferencesURL,
 	}
