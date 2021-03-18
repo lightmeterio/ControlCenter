@@ -10,13 +10,33 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: insights/highrate/high_status_rate_insight.go:214
+#: insights/highrate/high_status_rate_insight.go:218
 msgid "%v percent bounce rate between %v and %v"
 msgstr "%v percent bounce rate between %v and %v"
 
-#: insights/highrate/high_status_rate_insight.go:198
+#: insights/core/access.go:39
+msgid "active"
+msgstr "active"
+
+#: insights/core/access.go:37
+msgid "archived"
+msgstr "archived"
+
+#: insights/core/access.go:31
+msgid "comparative"
+msgstr "comparative"
+
+#: insights/highrate/high_status_rate_insight.go:202
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
+
+#: insights/importsummary/importsummary.go:41
+msgid "Imported insights"
+msgstr "Imported insights"
+
+#: insights/core/access.go:35
+msgid "intel"
+msgstr "intel"
 
 #: insights/messagerbl/rbl.go:67
 msgid "IP blocked by %v"
@@ -26,9 +46,21 @@ msgstr "IP blocked by %v"
 msgid "IP on shared blocklist"
 msgstr "IP on shared blocklist"
 
+#: insights/core/access.go:29
+msgid "local"
+msgstr "local"
+
+#: insights/importsummary/importsummary.go:57
+msgid "Mail activity imported successfully Events since %s were analysed, producing %d Insights"
+msgstr "Mail activity imported successfully Events since %s were analysed, producing %d Insights"
+
 #: insights/mailinactivity/mail_inactivity_insight.go:44
 msgid "Mail Inactivity"
 msgstr "Mail Inactivity"
+
+#: insights/core/access.go:33
+msgid "news"
+msgstr "news"
 
 #: insights/mailinactivity/mail_inactivity_insight.go:60
 msgid "No emails were sent between %v and %v"
