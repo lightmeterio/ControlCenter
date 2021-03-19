@@ -8,9 +8,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/util/envvarsutil"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
@@ -35,7 +36,7 @@ type Config struct {
 	LogFormat                 string
 }
 
-func ParseConfig(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
+func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
 	var conf Config
 	conf.Timezone = time.UTC
 
@@ -43,12 +44,12 @@ func ParseConfig(cmdlineArgs []string, lookupenv func(string) (string, bool)) (C
 	fs := flag.NewFlagSet("our_flag_set", flag.ExitOnError)
 	fs.BoolVar(&conf.ShouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	fs.StringVar(&conf.WorkspaceDirectory, "workspace",
-		envvarsutil.LookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
+		lookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
 		"Path to the directory to store all working data")
 	fs.BoolVar(&conf.ImportOnly, "ImportOnly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
 	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync",
-		envvarsutil.LookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv),
+		lookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv),
 		"Log directory is updated by rsync")
 	fs.BoolVar(&conf.MigrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
@@ -57,21 +58,21 @@ func ParseConfig(cmdlineArgs []string, lookupenv func(string) (string, bool)) (C
 	fs.IntVar(&conf.LogYear, "log_starting_year", 0, "Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.")
 	fs.BoolVar(&conf.ShowVersion, "version", false, "Show Version Information")
 	fs.StringVar(&conf.DirToWatch, "watch_dir",
-		envvarsutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
+		lookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
 		"Path to the directory where postfix stores its log files, to be watched")
 	fs.StringVar(&conf.Address, "listen",
-		envvarsutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
+		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
 	fs.BoolVar(&conf.Verbose, "Verbose",
-		envvarsutil.LookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv),
+		lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv),
 		"Be Verbose")
 	fs.StringVar(&conf.EmailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
 	fs.StringVar(&conf.Socket, "logs_Socket",
-		envvarsutil.LookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),
+		lookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),
 		"Receive logs via a Socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
 	fs.StringVar(&conf.LogFormat, "log_format",
-		envvarsutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
+		lookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
 
 	fs.Usage = func() {
@@ -85,4 +86,38 @@ func ParseConfig(cmdlineArgs []string, lookupenv func(string) (string, bool)) (C
 	_ = fs.Parse(cmdlineArgs) // ErrHelp should never happen since our -help/-h flag is defined
 
 	return conf, nil
+}
+
+func lookupEnvOrString(key string, defaultVal string, loopkupenv func(string) (string, bool)) string {
+	if val, ok := loopkupenv(key); ok {
+		return val
+	}
+
+	return defaultVal
+}
+
+func lookupEnvOrInt(key string, defaultVal int, loopkupenv func(string) (string, bool)) int {
+	if val, ok := loopkupenv(key); ok {
+		v, err := strconv.Atoi(val)
+		if err != nil {
+			log.Fatal().Msgf("lookupEnvOrInt[%s]: %v", key, err)
+		}
+
+		return v
+	}
+
+	return defaultVal
+}
+
+func lookupEnvOrBool(key string, defaultVal bool, loopkupenv func(string) (string, bool)) bool {
+	if val, ok := loopkupenv(key); ok {
+		v, err := strconv.ParseBool(val)
+		if err != nil {
+			log.Fatal().Msgf("lookupEnvOrBool[%s]: %v", key, err)
+		}
+
+		return v
+	}
+
+	return defaultVal
 }

@@ -27,7 +27,7 @@ import (
 )
 
 func main() {
-	conf, err := config.ParseConfig(os.Args[1:], os.LookupEnv)
+	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
 	if err != nil {
 		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Could not parse command-line arguments")
 	}
