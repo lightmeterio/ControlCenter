@@ -10,6 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
+// nolint: maligned
 type Config struct {
 	ShouldWatchFromStdin      bool
 	WorkspaceDirectory        string
