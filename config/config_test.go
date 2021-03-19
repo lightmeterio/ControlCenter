@@ -5,6 +5,8 @@
 package config
 
 import (
+	"errors"
+	"flag"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -20,11 +22,11 @@ func (e fakeEnv) fakeLookupenv(name string) (string, bool) {
 	return "", false
 }
 
-var no_cmdline = []string{}
-var no_env = fakeEnv{}
+var noCmdline = []string{}
+var noEnv = fakeEnv{}
 
 func TestDefaultValues(t *testing.T) {
-	c, err := Parse(no_cmdline, no_env.fakeLookupenv)
+	c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
 	Convey("Incorrect default value", t, func() {
 		So(c.WorkspaceDirectory, ShouldEqual, "/var/lib/lightmeter_workspace")
 		So(c.Verbose, ShouldBeFalse)
@@ -37,7 +39,7 @@ func TestEnvVars(t *testing.T) {
 		"LIGHTMETER_WORKSPACE": "/workspace",
 		"LIGHTMETER_VERBOSE":   "true",
 	}
-	c, err := Parse(no_cmdline, env.fakeLookupenv)
+	c, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
 	Convey("Value could not be set using environment variable", t, func() {
 		So(c.WorkspaceDirectory, ShouldEqual, "/workspace")
 		So(c.Verbose, ShouldBeTrue)
@@ -50,9 +52,32 @@ func TestCommandLineParams(t *testing.T) {
 		"-workspace", "/workspace",
 		"-verbose", "1",
 	}
-	c, err := Parse(cmdline, no_env.fakeLookupenv)
+	c, err := ParseWithErrorHandling(cmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
 	Convey("Value could not be set using command-line parameter", t, func() {
 		So(c.WorkspaceDirectory, ShouldEqual, "/workspace")
+		So(c.Verbose, ShouldBeTrue)
+		So(err, ShouldBeNil)
+	})
+}
+
+func TestVariablesShouldNeverOverwriteCommandLine(t *testing.T) {
+	cmdline := []string{
+		"-workspace", "/workspace-from-cmdline",
+		"-verbose",
+		"-log_starting_year", "2018",
+	}
+
+	env := fakeEnv{
+		"LIGHTMETER_WORKSPACE":          "/ws-from-env",
+		"LIGHTMETER_LISTEN":             "localhost:9999",
+		"LIGHTMETER_LOGS_STARTING_YEAR": "2020",
+	}
+
+	c, err := ParseWithErrorHandling(cmdline, env.fakeLookupenv, flag.ContinueOnError)
+	Convey("Value could not be set using command-line parameter", t, func() {
+		So(c.WorkspaceDirectory, ShouldEqual, "/workspace-from-cmdline")
+		So(c.Address, ShouldEqual, "localhost:9999")
+		So(c.LogYear, ShouldEqual, 2018)
 		So(c.Verbose, ShouldBeTrue)
 		So(err, ShouldBeNil)
 	})
@@ -62,7 +87,7 @@ func TestWrongCommandLineInputType(t *testing.T) {
 	cmdline := []string{
 		"-verbose=Schrödinger",
 	}
-	_, err := Parse(cmdline, no_env.fakeLookupenv)
+	_, err := ParseWithErrorHandling(cmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
 	Convey("Wrong input value should raise an error", t, func() {
 		So(err, ShouldNotBeNil)
 	})
@@ -72,8 +97,16 @@ func TestWrongEnvVarInputType(t *testing.T) {
 	env := fakeEnv{
 		"LIGHTMETER_VERBOSE": "Schrödinger",
 	}
-	_, err := Parse(no_cmdline, env.fakeLookupenv)
+	_, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
 	Convey("Wrong input value should raise an error", t, func() {
 		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestHelpOption(t *testing.T) {
+	_, err := ParseWithErrorHandling([]string{"-help"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+
+	Convey("Calling -help should exit with help code", t, func() {
+		So(errors.Is(err, flag.ErrHelp), ShouldBeTrue)
 	})
 }
