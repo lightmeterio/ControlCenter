@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
@@ -41,16 +40,21 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 	conf.Timezone = time.UTC
 
 	// new flagset to be able to call ParseFlags any number of times
-	fs := flag.NewFlagSet("our_flag_set", flag.ExitOnError)
+	fs := flag.NewFlagSet("our_flag_set", flag.ContinueOnError)
 	fs.BoolVar(&conf.ShouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 	fs.StringVar(&conf.WorkspaceDirectory, "workspace",
 		lookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
 		"Path to the directory to store all working data")
 	fs.BoolVar(&conf.ImportOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
-	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync",
-		lookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv),
-		"Log directory is updated by rsync")
+
+	b, err := lookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv)
+	if err != nil {
+		return conf, err
+	}
+
+	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync", b, "Log directory is updated by rsync")
+
 	fs.BoolVar(&conf.MigrateDownToOnly, "migrate_down_to_only", false,
 		"Only migrates down")
 	fs.StringVar(&conf.MigrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
@@ -63,9 +67,14 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 	fs.StringVar(&conf.Address, "listen",
 		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
-	fs.BoolVar(&conf.Verbose, "verbose",
-		lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv),
-		"Be Verbose")
+
+	b, err = lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv)
+	if err != nil {
+		return conf, err
+	}
+
+	fs.BoolVar(&conf.Verbose, "verbose", b, "Be Verbose")
+
 	fs.StringVar(&conf.EmailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
 	fs.StringVar(&conf.Socket, "logs_socket",
@@ -83,9 +92,12 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 		fs.PrintDefaults()
 	}
 
-	_ = fs.Parse(cmdlineArgs) // ErrHelp should never happen since our -help/-h flag is defined
+	err = fs.Parse(cmdlineArgs)
+	if err == nil {
+		return conf, nil
+	}
 
-	return conf, nil
+	return conf, fmt.Errorf("A command-line boolean value could not be parsed, e.g. -verbose=Schrödinger: %w", err)
 }
 
 func lookupEnvOrString(key string, defaultVal string, loopkupenv func(string) (string, bool)) string {
@@ -96,28 +108,15 @@ func lookupEnvOrString(key string, defaultVal string, loopkupenv func(string) (s
 	return defaultVal
 }
 
-func lookupEnvOrInt(key string, defaultVal int, loopkupenv func(string) (string, bool)) int {
-	if val, ok := loopkupenv(key); ok {
-		v, err := strconv.Atoi(val)
-		if err != nil {
-			log.Fatal().Msgf("lookupEnvOrInt[%s]: %v", key, err)
-		}
-
-		return v
-	}
-
-	return defaultVal
-}
-
-func lookupEnvOrBool(key string, defaultVal bool, loopkupenv func(string) (string, bool)) bool {
+func lookupEnvOrBool(key string, defaultVal bool, loopkupenv func(string) (string, bool)) (bool, error) {
 	if val, ok := loopkupenv(key); ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			log.Fatal().Msgf("lookupEnvOrBool[%s]: %v", key, err)
+			return v, fmt.Errorf("Boolean env var %v boolean value could not be parsed: %w", key, err)
 		}
 
-		return v
+		return v, nil
 	}
 
-	return defaultVal
+	return defaultVal, nil
 }

@@ -57,3 +57,23 @@ func TestCommandLineParams(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
+
+func TestWrongCommandLineInputType(t *testing.T) {
+	cmdline := []string{
+		"-verbose=Schrödinger",
+	}
+	_, err := Parse(cmdline, no_env.fakeLookupenv)
+	Convey("Wrong input value should raise an error", t, func() {
+		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestWrongEnvVarInputType(t *testing.T) {
+	env := fakeEnv{
+		"LIGHTMETER_VERBOSE": "Schrödinger",
+	}
+	_, err := Parse(no_cmdline, env.fakeLookupenv)
+	Convey("Wrong input value should raise an error", t, func() {
+		So(err, ShouldNotBeNil)
+	})
+}

@@ -29,7 +29,7 @@ import (
 func main() {
 	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
 	if err != nil {
-		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Could not parse command-line arguments")
+		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
 	}
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Str("instanceid", uuid.NewV4().String()).Caller().Logger()
