@@ -46,7 +46,7 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 	fs.StringVar(&conf.WorkspaceDirectory, "workspace",
 		lookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
 		"Path to the directory to store all working data")
-	fs.BoolVar(&conf.ImportOnly, "ImportOnly", false,
+	fs.BoolVar(&conf.ImportOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
 	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync",
 		lookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv),
@@ -63,12 +63,12 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 	fs.StringVar(&conf.Address, "listen",
 		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
-	fs.BoolVar(&conf.Verbose, "Verbose",
+	fs.BoolVar(&conf.Verbose, "verbose",
 		lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv),
 		"Be Verbose")
 	fs.StringVar(&conf.EmailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
-	fs.StringVar(&conf.Socket, "logs_Socket",
+	fs.StringVar(&conf.Socket, "logs_socket",
 		lookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),
 		"Receive logs via a Socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
 	fs.StringVar(&conf.LogFormat, "log_format",
