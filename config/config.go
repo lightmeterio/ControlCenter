@@ -30,7 +30,7 @@ type Config struct {
 	LogFormat                 string
 }
 
-func ParseConfig(cmdline_args []string, lookupenv func(string) (string, bool)) (Config, error) {
+func ParseConfig(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
 	var conf Config
 	conf.Timezone = time.UTC
 
@@ -77,7 +77,7 @@ func ParseConfig(cmdline_args []string, lookupenv func(string) (string, bool)) (
 		fs.PrintDefaults()
 	}
 
-	_ = fs.Parse(cmdline_args) // ErrHelp should never happen since our -help/-h flag is defined
+	_ = fs.Parse(cmdlineArgs) // ErrHelp should never happen since our -help/-h flag is defined
 
 	return conf, nil
 }
