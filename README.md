@@ -239,6 +239,20 @@ Currently the following patterns for log files are "watched":
   - maillog
   - zimbra.log
 
+### Environment variables
+
+For cloud installations of Lightmeter, it may be necessary to set parameters via environment variables, rather than command-line parameters (which cannot always be used).
+
+Here are all parameters you can set through environment variables, and their respective command-line equivalents:
+- `LIGHTMETER_WORKSPACE=/path/to/workspace` (`-workspace`)
+- `LIGHTMETER_WATCH_DIR=/var/log` (`-watch_dir`)
+- `LIGHTMETER_VERBOSE=true` (`-verbose`)
+- `LIGHTMETER_LISTEN=localhost:9999` (`-listen`)
+- `LIGHTMETER_LOGS_SOCKET=unix;/path/to/socket.sock` (`-logs_socket`)
+- `LIGHTMETER_LOGS_USE_RSYNC=true` (`-logs_use_rsync`)
+- `LIGHTMETER_LOGS_STARTING_YEAR=2019` (`-log_starting_year`)
+- `LIGHTMETER_LOG_FORMAT=prepend-rfc3339` (`-log_format`)
+
 ### Rotated files
 
 We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
