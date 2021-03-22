@@ -317,10 +317,14 @@ func TestTrackingFromFiles(t *testing.T) {
 					// is never processed again (being lost), so we basically ignore it.
 					// In the future, the "Message Detective" should be able to track such lost
 					// messages.
+					// Notice that the remote server might sometimes respond with a message that looks like
+					// (250 2.0.0 Ok: queued as AE391AC0B4E), and this value looks like the response from a "self"
+					// delivery, whereas it's really remote and means the message has been accepted.
+					// See gitlab issue #433 for more info.
 					readFromTestFile("test_files/4_lost_queue.log", t.Publisher())
 					cancel()
 					done()
-					So(len(pub.results), ShouldEqual, 0)
+					So(len(pub.results), ShouldEqual, 3)
 				})
 
 				Convey("A mail sent with zimbra and amavisd", func() {
