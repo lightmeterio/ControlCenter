@@ -63,7 +63,7 @@ func (SmtpSentStatus) isPayload() {
 	// required by Payload interface
 }
 
-type SmtpStatusExtraMessageSentQueued struct {
+type SmtpSentStatusExtraMessageSentQueued struct {
 	SmtpCode int
 	Dsn      string
 	IP       net.IP
@@ -71,7 +71,7 @@ type SmtpStatusExtraMessageSentQueued struct {
 	Queue    string
 }
 
-func (SmtpStatusExtraMessageSentQueued) isPayload() {
+func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
 	// required by Payload interface
 }
 
@@ -219,7 +219,7 @@ func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, er
 		return nil, err
 	}
 
-	return SmtpStatusExtraMessageSentQueued{
+	return SmtpSentStatusExtraMessageSentQueued{
 		Dsn:      string(p.Dsn),
 		IP:       ip,
 		Port:     port,

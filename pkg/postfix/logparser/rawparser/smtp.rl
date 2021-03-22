@@ -137,7 +137,9 @@ func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtra
 		r.Queue = data[tokBeg:p]
 	};
 
-	main := '(' (smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): ')? '250 2.0.0 Ok: queued as ' queue ')' %{
+	selfDelivery = (smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): ');
+
+	main := '(' selfDelivery '250 2.0.0 Ok: queued as ' queue ')' %{
 		return r, true
 	};
 
