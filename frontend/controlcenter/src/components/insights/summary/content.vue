@@ -115,7 +115,9 @@ export default {
 
 .summary-header strong {
   background-color: #e8e9f0;
-  border-radius: 3px;
+  border-radius: 11px;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }
 
 .summary-header {
