@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div>
     <div class="summary-header" v-translate render-html="true">
-    This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>.
+    This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>
     </div>
     <table class="table import-summary-table">
       <thead class="thead">
