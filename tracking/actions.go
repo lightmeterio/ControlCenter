@@ -492,7 +492,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 	// Check if message has been forwarded to the an internal relay
 	p := r.Payload.(parser.SmtpSentStatus)
 
-	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpStatusExtraMessageSentQueued)
+	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
 
 	// delivery to the next relay outside of the system
 	if !messageQueuedInternally {

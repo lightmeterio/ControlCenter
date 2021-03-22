@@ -297,7 +297,7 @@ func TestSMTPParsing(t *testing.T) {
 			So(p.Status, ShouldEqual, SentStatus)
 			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as 2F01D1855DB2)`)
 
-			e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
+			e, cast := p.ExtraMessagePayload.(SmtpSentStatusExtraMessageSentQueued)
 			So(cast, ShouldBeTrue)
 			So(e.Port, ShouldEqual, 10025)
 			So(e.IP, ShouldEqual, net.ParseIP("127.0.0.1"))
@@ -308,7 +308,7 @@ func TestSMTPParsing(t *testing.T) {
 			So(e.Dsn, ShouldEqual, "2.0.0")
 		})
 
-		Convey("Apparently shorted extra message (I still don't know why...)", func() {
+		Convey("A short extra message that looks like a local delivery", func() {
 			_, parsed, err := Parse([]byte(`Jan 25 20:11:27 mx postfix/smtp[8038]: D1CB62E0A23: to=<h-5c3@h-092c585d.com>, ` +
 				`relay=h-bf6f84bb0157e81a7fa40b[135.55.127.35]:25, delay=0.61, delays=0.21/0.01/0.28/0.11, dsn=2.0.0, status=sent ` +
 				`(250 2.0.0 Ok: queued as 5744140325)`))
@@ -325,13 +325,8 @@ func TestSMTPParsing(t *testing.T) {
 			So(p.Status, ShouldEqual, SentStatus)
 			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 Ok: queued as 5744140325)`)
 
-			e, cast := p.ExtraMessagePayload.(SmtpStatusExtraMessageSentQueued)
-			So(cast, ShouldBeTrue)
-			So(e.Queue, ShouldEqual, "5744140325")
-
-			// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
-			So(e.SmtpCode, ShouldEqual, 250)
-			So(e.Dsn, ShouldEqual, "2.0.0")
+			_, cast = p.ExtraMessagePayload.(SmtpSentStatusExtraMessageSentQueued)
+			So(cast, ShouldBeFalse)
 		})
 	})
 
