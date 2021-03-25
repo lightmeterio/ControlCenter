@@ -145,8 +145,6 @@ var DefaultRBLs = []string{
 	"uribl.mailcleaner.net",                 // MailCleaner URIBL
 	"blacklist.mailrelay.att.net",           // mailrelay.att.net blacklist
 	"bl.mailspike.net",                      // Mailspike Blacklist
-	"rep.mailspike.net",                     // Mailspike Reputation
-	"wl.mailspike.net",                      // Mailspike Whitelist
 	"z.mailspike.net",                       // Mailspike Zero-hour Data
 	"bl.mav.com.br",                         // MAV BL
 	"cidr.bl.mcafee.com",                    // McAfee RBL
