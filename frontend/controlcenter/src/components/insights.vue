@@ -648,7 +648,7 @@ svg.insight-help-button {
   color: #1d8caf;
   line-height: 1;
   border: 1px solid #e6e7e7;
-  margin-left: 0.25em;
+  margin-left: 1em;
 }
 
 .insights .card-text.description button:hover {
