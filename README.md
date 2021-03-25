@@ -156,7 +156,7 @@ For more information about how the CA certificates are found, please check the c
 #### Rsync managed logs
 
 In case the logs directory passed via `-watch_dir` is not in the same filesystem as postfix writes them, but instead copied via rsync,
-you must pass the command line argument `-rsync`, otherwise new log lines received after the first `rsync` execution won't be noticed.
+you must pass the command line argument `-logs_use_rsync`, otherwise new log lines received after the first `rsync` execution won't be noticed.
 
 When using rsync, remembed **NOT** to use any in-place synchronization option, such as `--append`, as Control Center expects the default rsync behaviour
 on updating files that consists on first create a temporary file in the destination and onde it's completely transfered, rename it to the final file.
