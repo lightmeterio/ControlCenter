@@ -291,7 +291,7 @@ export default {
       togglePasswordShow(event);
     },
     handleProgressFinished() {
-      this.setInsightsImportProgressFinished();
+      this.setInsightsImportProgressFinished({wait: 3});
     },
     ...mapActions(["setInsightsImportProgressFinished"])
   },
