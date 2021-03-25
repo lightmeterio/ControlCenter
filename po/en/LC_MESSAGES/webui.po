@@ -69,7 +69,6 @@ msgstr "Certificates will be used but not validated, allowing insecure connectio
 
 #: frontend/controlcenter/src/components/insights.vue:25
 #: frontend/controlcenter/src/components/insights.vue:41
-#: frontend/controlcenter/src/components/insights.vue:55
 #: frontend/controlcenter/src/components/mainheader.vue:55
 msgid "Close"
 msgstr "Close"
@@ -241,7 +240,7 @@ msgstr "Login - %{mainPageTitle}"
 msgid "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
 msgstr "Made with %{heart} by %{openLink}Open Source professionals%{closeLink}"
 
-#: frontend/controlcenter/src/components/insights.vue:285
+#: frontend/controlcenter/src/components/insights.vue:283
 msgid "Mail activity imported successfully"
 msgstr "Mail activity imported successfully"
 
@@ -450,8 +449,8 @@ msgid "These lists are recommending that emails from your server be blocked &nda
 msgstr "These lists are recommending that emails from your server be blocked &ndash; check their messages for hints"
 
 #: frontend/controlcenter/src/components/insights/summary/content.vue:2
-msgid "This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>."
-msgstr "This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>."
+msgid "This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>"
+msgstr "This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>"
 
 #: frontend/controlcenter/src/views/index.vue:45
 msgid "Time interval"
@@ -485,6 +484,10 @@ msgstr "Username"
 #: frontend/controlcenter/src/components/mainheader.vue:22
 msgid "Version"
 msgstr "Version"
+
+#: frontend/controlcenter/src/components/insights.vue:55
+msgid "View all archived"
+msgstr "View all archived"
 
 #: frontend/controlcenter/src/lib/api.js:120
 msgid "Vulnerable to: %{description}."
