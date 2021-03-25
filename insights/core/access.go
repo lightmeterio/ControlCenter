@@ -243,35 +243,22 @@ type fetcher struct {
 func buildSelectStmt(where, order string) string {
 	// active_category is the one stored in the `insights` table. It's immutable.
 	// status_category is the one the user sees, and might change over time (like from active to archived).
-	// TODO: this query can/should be much simplified and optimized!!!
 	return fmt.Sprintf(`
 	with
-	active(id, time, actual_category, status_category, rating, content_type, content) as (
+	insights_with_category_status(id, time, actual_category, status_category, rating, content_type, content) as (
 		select
-			insights.rowid, insights.time, insights.category, %d, insights.rating, insights.content_type, insights.content
+			insights.rowid, insights.time, insights.category, ifnull(insights_status.status, %d), insights.rating, insights.content_type, insights.content
 		from
 			insights left join insights_status on insights.rowid = insights_status.insight_id
-		where
-			insights_status.id is null
-	),
-	archived(id, time, actual_category, status_category, rating, content_type, content) as (
-		select
-			insights.rowid, insights.time, insights.category, insights_status.status, insights.rating, insights.content_type, insights.content
-		from
-			insights join insights_status on insights.rowid = insights_status.insight_id
-		where insights_status.status = %d
-	),
-	united(id, time, actual_category, status_category, rating, content_type, content) as (
-		select * from active union select * from archived
 	)
 	select
 		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
 	from
-		united
+		insights_with_category_status
 	where %s
 	order by %s, id
 	limit @limit
-	`, int(ActiveCategory), int(ArchivedCategory), int(ArchivedCategory), where, order)
+	`, int(ActiveCategory), int(ArchivedCategory), where, order)
 }
 
 var (

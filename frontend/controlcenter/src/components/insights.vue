@@ -90,12 +90,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       <b-row class="vue-modal-footer">
         <b-col>
           <b-button
-            class="btn-cancel"
-            variant="outline-danger"
-            @click="hideImportSummaryModal"
+            variant="outline-primary"
+            @click="showArchivedInsightsBySummaryInsight(importSummaryInsight)"
           >
             <!-- prettier-ignore -->
-            <translate>Close</translate>
+            <translate>View all archived</translate>
           </b-button>
         </b-col>
       </b-row>
@@ -506,17 +505,20 @@ export default {
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
     },
-    hideImportSummaryModal() {
-      this.$refs["modal-import-summary"].hide();
-    },
     applySummaryInterval(insight) {
       this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to, "category": "archived"});
     },
     onImportSummaryDetails(insight) {
-      this.importSummaryInsight = insight
+      this.trackEvent("InsightDescription", "openSummaryInsightModal");
+      this.importSummaryInsight = insight;
     },
     importSummaryWindowTitle() {
       return this.$gettext("Mail activity imported successfully")
+    },
+    showArchivedInsightsBySummaryInsight(insight) {
+      this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
+      this.applySummaryInterval(insight);
+      this.$refs["modal-import-summary"].hide();
     }
   }
 };
@@ -648,7 +650,7 @@ svg.insight-help-button {
   color: #1d8caf;
   line-height: 1;
   border: 1px solid #e6e7e7;
-  margin-left: 0.25em;
+  margin-left: 1em;
 }
 
 .insights .card-text.description button:hover {
