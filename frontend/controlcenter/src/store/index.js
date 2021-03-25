@@ -16,16 +16,17 @@ export default new Vuex.Store({
     setLanguage(state, language) {
       state.language = language;
     },
-    finishImportProgress(state) {
-      state.isImportProgressFinished = true;
+    finishImportProgress(state, wait) {
+      setTimeout( function () { state.isImportProgressFinished = true;}, wait*1000);
     }
   },
   actions: {
     setLanguageAction({ commit }, value) {
       commit("setLanguage", value);
     },
-    setInsightsImportProgressFinished({ commit }) {
-      commit("finishImportProgress");
+    setInsightsImportProgressFinished({ commit }, options) {
+      options = Object.assign({wait: 0}, options);
+      commit("finishImportProgress", options.wait);
     },
   },
   modules: {}

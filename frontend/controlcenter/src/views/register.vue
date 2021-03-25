@@ -291,7 +291,7 @@ export default {
       togglePasswordShow(event);
     },
     handleProgressFinished() {
-      this.setInsightsImportProgressFinished();
+      this.setInsightsImportProgressFinished({wait: 3});
     },
     ...mapActions(["setInsightsImportProgressFinished"])
   },
@@ -381,8 +381,11 @@ export default {
   padding: 1.7em;
 }
 
-.b-toaster-slot {
-  bottom: 3.2rem !important;
+/* Position toast above language select menu to avoid obscuring it */
+@media (max-width: 768px) {
+  .b-toaster-slot {
+    bottom: 3.2rem !important;
+  }
 }
 
 </style>
