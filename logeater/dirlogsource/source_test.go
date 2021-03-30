@@ -29,14 +29,7 @@ func (f *fakePublisher) Publish(r postfix.Record) {
 	f.records = append(f.records, r)
 }
 
-type fakeAnnouncer struct {
-}
-
-func (a *fakeAnnouncer) AnnounceStart(time.Time) {
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func TestReadingFromDirectory(t *testing.T) {
 	Convey("Read from Directory", t, func() {
