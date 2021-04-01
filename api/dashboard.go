@@ -145,11 +145,13 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error
 }
 
 func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
-	chain := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
-	mux.Handle("/api/v0/countByStatus", chain.WithEndpoint(countByStatusHandler{dashboard}))
-	mux.Handle("/api/v0/topBusiestDomains", chain.WithEndpoint(topBusiestDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topBouncedDomains", chain.WithEndpoint(topBouncedDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topDeferredDomains", chain.WithEndpoint(topDeferredDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/deliveryStatus", chain.WithEndpoint(deliveryStatusHandler{dashboard}))
-	mux.Handle("/api/v0/appVersion", chain.WithError(appVersionHandler{}))
+	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
+	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
+
+	mux.Handle("/api/v0/countByStatus", authenticated.WithEndpoint(countByStatusHandler{dashboard}))
+	mux.Handle("/api/v0/topBusiestDomains", authenticated.WithEndpoint(topBusiestDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{dashboard}))
+	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{dashboard}))
+	mux.Handle("/api/v0/appVersion", unauthenticated.WithEndpoint(appVersionHandler{}))
 }
