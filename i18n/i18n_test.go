@@ -19,7 +19,7 @@ func TestSettingsPage(t *testing.T) {
 
 		s := NewService(po.DefaultCatalog)
 
-		settingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(s.LanguageMetaDataHandler)))
+		settingsServer := httptest.NewServer(httpmiddleware.New().WithEndpoint(httpmiddleware.CustomHTTPHandler(s.LanguageMetaDataHandler)))
 
 		c := &http.Client{}
 
