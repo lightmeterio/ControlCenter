@@ -32,6 +32,11 @@ type Registrar interface {
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
 }
 
+type RegistrarWithSessionKeys interface {
+	Registrar
+	SessionKeys() [][]byte
+}
+
 type Options struct {
 	AllowMultipleUsers bool
 }

@@ -119,7 +119,7 @@ func TestInitialSetup(t *testing.T) {
 		defer clear()
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		s := httptest.NewServer(handler)
 		c := &http.Client{}
@@ -223,7 +223,7 @@ func TestAppSettings(t *testing.T) {
 		defer clear()
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 		s := httptest.NewServer(handler)
 
 		c := &http.Client{}
@@ -289,7 +289,7 @@ func TestSlackNotifications(t *testing.T) {
 		defer clear()
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		c := &http.Client{}
 
@@ -424,7 +424,7 @@ func TestEmailNotifications(t *testing.T) {
 		defer stop()
 
 		chain := httpmiddleware.New()
-		handler := chain.WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		c := &http.Client{}
 

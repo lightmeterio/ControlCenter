@@ -80,7 +80,7 @@ func handleForm(w http.ResponseWriter, r *http.Request) error {
 func (h *Settings) HttpSetup(mux *http.ServeMux, auth *auth.Authenticator) {
 	chain := httpmiddleware.WithDefaultStack(auth)
 
-	mux.Handle("/settings", chain.WithError(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
+	mux.Handle("/settings", chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(h.SettingsForward)))
 }
 
 func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error {

@@ -62,14 +62,6 @@ func (c Chain) WithEndpoint(endpoint CustomHTTPHandlerInterface) http.Handler {
 	return wrapWithErrorHandler(endpoint)
 }
 
-func (c Chain) WithError(endpoint CustomHTTPHandlerInterface) http.Handler {
-	if endpoint == nil {
-		panic("endpoint is nil")
-	}
-
-	return wrapWithErrorHandler(endpoint)
-}
-
 type RequestID string
 
 const RequestIDKey RequestID = "RequestIDKey"
@@ -77,7 +69,6 @@ const LoggerKey string = "LoggerKey"
 
 func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		requestId := uuid.NewV4().String()
 
 		ctx := context.WithValue(r.Context(), RequestIDKey, requestId)
