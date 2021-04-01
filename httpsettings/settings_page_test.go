@@ -58,7 +58,7 @@ func TestSettingsPage(t *testing.T) {
 		// Approach: as for now we have independent endpoints, we instantiate one server per endpoint
 		// But as soon as we unify them all in a single one, that'll not be needed anymore
 
-		settingsServer := httptest.NewServer(httpmiddleware.New().WithError(httpmiddleware.CustomHTTPHandler(setup.SettingsForward)))
+		settingsServer := httptest.NewServer(httpmiddleware.New().WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward)))
 
 		c := &http.Client{}
 

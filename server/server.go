@@ -61,8 +61,8 @@ func (s *HttpServer) Start() error {
 
 	i18nService := i18n.NewService(po.DefaultCatalog)
 
-	chain := httpmiddleware.WithDefaultStackWithoutAuth()
-	mux.Handle("/language/metadata", chain.WithError(httpmiddleware.CustomHTTPHandler(i18nService.LanguageMetaDataHandler)))
+	mux.Handle("/language/metadata", httpmiddleware.WithDefaultStackWithoutAuth().
+		WithEndpoint(httpmiddleware.CustomHTTPHandler(i18nService.LanguageMetaDataHandler)))
 
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(staticdata.HttpAssets)))
 

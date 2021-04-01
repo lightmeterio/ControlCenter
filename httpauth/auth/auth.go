@@ -25,7 +25,7 @@ import (
 )
 
 type CookieStoreRegistrar struct {
-	*auth.Auth
+	auth.RegistrarWithSessionKeys
 	workspaceDirectory string
 }
 
@@ -34,7 +34,7 @@ const SessionDuration = time.Hour * 24 * 7 // 1 week
 func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	sessionsDir := path.Join(r.workspaceDirectory, "http_sessions")
 	errorutil.MustSucceed(os.MkdirAll(sessionsDir, os.ModePerm), "Creating http sessions directory")
-	store := sessions.NewFilesystemStore(sessionsDir, r.Auth.SessionKeys()...)
+	store := sessions.NewFilesystemStore(sessionsDir, r.RegistrarWithSessionKeys.SessionKeys()...)
 	store.Options.HttpOnly = true
 	store.Options.MaxAge = int(SessionDuration.Seconds())
 	store.Options.SameSite = http.SameSiteStrictMode
@@ -42,11 +42,11 @@ func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	return store
 }
 
-func NewAuthenticator(auth *auth.Auth, workspaceDirectory string) *Authenticator {
+func NewAuthenticator(auth auth.RegistrarWithSessionKeys, workspaceDirectory string) *Authenticator {
 	return NewAuthenticatorWithOptions(
 		&CookieStoreRegistrar{
-			Auth:               auth,
-			workspaceDirectory: workspaceDirectory,
+			RegistrarWithSessionKeys: auth,
+			workspaceDirectory:       workspaceDirectory,
 		},
 	)
 }
