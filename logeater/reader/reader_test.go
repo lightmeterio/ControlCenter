@@ -61,6 +61,18 @@ func TestReader(t *testing.T) {
 
 		pub := pub{}
 
+		Convey("Empty reader should announce progress immediately", func() {
+			clock := timeutil.FakeClock{Time: testutil.MustParseTime(`2000-08-24 10:00:00 +0000`)}
+			reader := strings.NewReader(``)
+			ReadFromReader(reader, &pub, transformer, fakeAnnouncer, &clock, time.Millisecond*500)
+			So(len(pub.logs), ShouldEqual, 0)
+
+			So(fakeAnnouncer.Start, ShouldEqual, testutil.MustParseTime(`2000-08-24 10:00:00 +0000`))
+			So(fakeAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
+				announcer.Progress{Finished: true, Time: testutil.MustParseTime(`2000-08-24 10:00:00 +0000`), Progress: 100},
+			})
+		})
+
 		Convey("Read without any delays", func() {
 			clock := timeutil.FakeClock{Time: testutil.MustParseTime(`2000-08-24 10:00:00 +0000`)}
 
@@ -120,7 +132,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 			ReadFromReader(reader, &pub, transformer, fakeAnnouncer, &clock, time.Millisecond*100)
 			So(len(pub.logs), ShouldEqual, 0)
 
-			So(fakeAnnouncer.Start.IsZero(), ShouldBeTrue)
+			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-24 10:00:00 +0000`))
 			So(fakeAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
 				announcer.Progress{Finished: true, Time: testutil.MustParseTime(`2000-08-24 10:00:00 +0000`), Progress: 100},
 			})
