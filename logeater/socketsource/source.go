@@ -6,6 +6,7 @@ package socketsource
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/reader"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
@@ -88,6 +89,8 @@ func (s *Source) PublishLogs(p postfix.Publisher) error {
 			return errorutil.Wrap(err)
 		}
 
+		log.Info().Msgf("New log socket connection from: %v", conn.RemoteAddr())
+
 		announcer := func() announcer.ImportAnnouncer {
 			if firstExecution {
 				firstExecution = false
@@ -99,6 +102,8 @@ func (s *Source) PublishLogs(p postfix.Publisher) error {
 		}()
 
 		go func() {
+			defer conn.Close()
+
 			// FIXME: Handling multiple connections that feed times in similar intervals would mess up with the import/progress logic...
 			errorutil.MustSucceed(reader.ReadFromReader(conn, p, s.builder, announcer, s.clock, time.Second*10))
 		}()

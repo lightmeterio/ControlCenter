@@ -39,6 +39,14 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 		currentRecord       postfix.Record
 	)
 
+	min := func(a, b uint) uint {
+		if a < b {
+			return a
+		}
+
+		return b
+	}
+
 	progress := func(t time.Time) uint {
 		v := ((t.Unix() - initialTime.Unix()) * numberOfSteps) / (expectedImportEndTime.Unix() - initialTime.Unix())
 		return uint(v)
@@ -68,11 +76,11 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 	announceProgressIfPossible := func(t time.Time) {
 		p := progress(t)
 
-		if completed[p] {
+		if completed[min(p, numberOfSteps-1)] {
 			return
 		}
 
-		completed[p] = true
+		completed[min(p, numberOfSteps-1)] = true
 
 		importAnnouncer.AnnounceProgress(announcer.Progress{
 			Finished: false,
@@ -86,7 +94,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 
 		currentRecord, err = t.Transform(line)
 		if err != nil {
-			log.Err(err).Msgf("Error reading from reader: %v", reader)
+			log.Err(err).Msgf("Error reading from reader: %v", err)
 			return
 		}
 
@@ -156,6 +164,11 @@ loop:
 		case <-doneScanning:
 			break loop
 		}
+	}
+
+	// special case where the reader is empty and no log is sent
+	if firstLine {
+		importAnnouncer.AnnounceStart(buildEndAnnounceTime())
 	}
 
 	if endAlreadyAnnounced {
