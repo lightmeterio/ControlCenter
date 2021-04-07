@@ -97,6 +97,10 @@ step("Select option <option> from menu <menuName>", async (option, menuName) => 
     await dropDown().select(option)
 });
 
+step("Sleep <time> ms", async (ms) => {
+    await waitFor(ms)
+});
+
 step("Open datepicker menu", async () => {
     await waitFor(1000)
     await click($(".vue-daterange-picker"))
