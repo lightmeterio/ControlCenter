@@ -6,6 +6,12 @@ package newsfeed
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"text/template"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -17,11 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"text/template"
-	"time"
 )
 
 var (
@@ -33,10 +34,11 @@ func init() {
 }
 
 type fakeRssContent struct {
-	Title       string
-	Description string
-	Link        string
-	Published   string
+	Title        string
+	Description  string
+	Link         string
+	Published    string
+	InsightTitle string
 }
 
 type fakeRssNewsResponse struct {
@@ -107,6 +109,7 @@ func (h *fakeRssHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
       <guid isPermaLink="false">{{.Link}}</guid>
       <description><![CDATA[unused description]]></description>
       <content:encoded><![CDATA[unused content]]></content:encoded>
+      <lightmeter:newsInsightTitle>{{.InsightTitle}}</lightmeter:newsInsightTitle>
       <lightmeter:newsInsightDescription>{{.Description}}</lightmeter:newsInsightDescription>
     </item>
     {{end}}
@@ -135,10 +138,11 @@ func buildFakeHandlerWithClock(clock *insighttestsutil.FakeClock) *fakeRssHandle
 			updated:    `1999-12-20T00:00:00Z`,
 			items: []fakeRssContent{
 				{
-					Title:       `Some First News`,
-					Description: `Description of the First Item`,
-					Link:        `https://example.com/news/1`,
-					Published:   `1999-12-20T00:00:00Z`,
+					Title:        `Some First News`,
+					Description:  `Description of the First Item`,
+					Link:         `https://example.com/news/1`,
+					Published:    `1999-12-20T00:00:00Z`,
+					InsightTitle: `Some First News - a specific, shorter LM insight title`,
 				},
 			},
 		},
@@ -263,7 +267,7 @@ func TestNewsFeedInsights(t *testing.T) {
 			So(insights[0].ContentType(), ShouldEqual, "newsfeed_content")
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`))
 			So(insights[0].Content(), ShouldResemble, &Content{
-				TitleValue:       `Some First News`,
+				TitleValue:       `Some First News - a specific, shorter LM insight title`,
 				DescriptionValue: `Description of the First Item`,
 				Link:             `https://example.com/news/1`,
 				Published:        testutil.MustParseTime(`1999-12-20 00:00:00 +0000`),
