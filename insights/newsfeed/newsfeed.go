@@ -9,14 +9,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sort"
+	"time"
+
 	"github.com/mmcdole/gofeed"
 	"github.com/mmcdole/gofeed/rss"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"sort"
-	"time"
 )
 
 type Options struct {
@@ -56,6 +57,29 @@ func (t *rssTranslator) Translate(feed interface{}) (*gofeed.Feed, error) {
 	}
 
 	return f, nil
+}
+
+func titleForItem(item *gofeed.Item) (string, error) {
+	lm, ok := item.Extensions["lightmeter"]
+	if !ok {
+		log.Warn().Msgf("Failed obtaining custom title for RSS item %s", item.GUID)
+		return item.Title, nil
+	}
+
+	title, ok := lm["newsInsightTitle"]
+	if !ok {
+		return item.Title, errors.New(`Invalid feed. No custom title`)
+	}
+
+	if len(title) == 0 {
+		return item.Title, errors.New(`Invalid feed. No title found`)
+	}
+
+	if len(title[0].Value) == 0 {
+		return item.Title, errors.New(`Invalid feed. Empty title found`)
+	}
+
+	return title[0].Value, nil
 }
 
 func descForItem(item *gofeed.Item) (string, error) {
@@ -223,8 +247,13 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 			continue
 		}
 
+		lmTitle, err := titleForItem(item)
+		if err != nil {
+			log.Warn().Msgf("No specific news insight title in source %s: %v", d.options.URL, err)
+		}
+
 		if err := generateInsight(tx, c, d.creator, Content{
-			TitleValue:       title(item.Title),
+			TitleValue:       title(lmTitle),
 			DescriptionValue: description(item.Description),
 			Link:             item.Link,
 			Published:        *item.PublishedParsed,
