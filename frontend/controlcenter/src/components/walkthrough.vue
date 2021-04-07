@@ -14,14 +14,14 @@ SPDX-License-Identifier: AGPL-3.0-only
     centered
     :visible="visible"
     no-close-on-backdrop
+    @hide="finish"
    >
-    <div slot="modal-header"></div>
     <b-carousel
       ref="walkthroughCarousel"
       v-model="slide"
       indicators
-      img-width="859"
-      img-height="577"
+      img-width="860"
+      img-height="580"
       :interval="interval"
     >
       <b-carousel-slide
@@ -29,16 +29,23 @@ SPDX-License-Identifier: AGPL-3.0-only
         v-bind:key="step.id"
         v-bind:img-src="step.picture"
       >
-        <div class="walkthrough-title">{{step.title}}</div>
-        <div class="walkthrough-description">{{step.description}}</div>
+        <div class="walkthrough-content">
+          <div class="walkthrough-title">{{step.title}}</div>
+          <div class="walkthrough-description">{{step.description}}</div>
+        </div>
       </b-carousel-slide>
     </b-carousel>
+
     <div class="walkthrough-actions">
-      <b-button variant="outline-primary" @click="next()" v-translate v-show="isFirstStep">Let's go</b-button>
-      <b-button variant="outline-primary" @click="previous()" v-translate v-show="!isFirstStep">Back</b-button>
-      <b-button variant="outline-primary" @click="next()" v-translate v-show="!isFirstStep && !isLastStep">Continue</b-button>
-      <b-button variant="outline-primary" @click="finish()" v-translate v-show="isLastStep">Finish</b-button>
+      <b-button variant="outline-dark" squared class="advance" @click="next()" v-translate v-show="isFirstStep">Let's Go!</b-button>
+      <b-button variant="outline-dark" squared class="back" @click="previous()" v-translate v-show="!isFirstStep">
+        <b-icon-arrow-left></b-icon-arrow-left>
+        <span v-translate>Back</span>
+      </b-button>
+      <b-button variant="outline-dark" squared class="advance" @click="next()" v-translate v-show="!isFirstStep && !isLastStep">Continue</b-button>
+      <b-button variant="outline-dark" squared class="advance" @click="finish()" v-translate v-show="isLastStep">Finish</b-button>
     </div>
+
   </b-modal>
 </template>
 
@@ -89,6 +96,7 @@ export default {
       this.$refs.walkthroughCarousel.prev();
     },
     finish() {
+      console.log("Finished!");
       this.$emit('finished');
     }
   },
@@ -110,54 +118,102 @@ export default {
 <style lang="less">
 
 .walkthrough .carousel-item {
+  height: 35rem;
 }
 
 .walkthrough .carousel-caption {
-  top: 380px;
+  top: 25.5rem;
 }
 
 .walkthrough .carousel-indicators {
-  top: 370px;
+  top: 24rem;
 }
 
 @media (max-width: 991px) {
   .walkthrough .carousel-caption {
-    top: 180px !important;
+    top: 180px;
   }
 
   .walkthrough .carousel-indicators {
-    display: none !important;
+    display: none;
+  }
+
+  .walkthrough .carousel-item {
+    height: 22rem;
   }
 }
 
 .walkthrough .carousel-indicators li {
-  width: 10px !important;
-  height: 10px !important;
-  background-color: black !important;
+  width: 12px;
+  height: 12px;
+  background-color: #EFEFEF;
+  border-radius: 6px;
+  border: 0px;
+}
+
+.walkthrough .carousel-indicators li.active {
+  background-color: #227AAF;
 }
 
 .walkthrough .walkthrough-description {
-  color: black !important;
+  margin-top: 1rem;
+  color: black;
+  font-size: 16px;
 }
 
 .walkthrough .walkthrough-title {
-  color: black !important;
-  font-size: 1.5rem;
+  color: black;
+  font-size: 19px;
 }
 
 .walkthrough .modal-header {
-  border-bottom: 0px !important;
+  border-bottom: 0px;
 }
 
 .walkthrough .walkthrough-actions {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-direction: row;
   justify-content: center;
 }
 
-.walkthrough .walkthrough-actions > button{
+.walkthrough .walkthrough-actions > button {
+  font-size: 14px;
+  font-weight: bold;
   margin-left: 5px;
   margin-right: 5px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 10px;
+  padding-down: 10px;
+}
+
+.walkthrough .walkthrough-actions button.back {
+  background-color: #ffffff;
+  border: 0px;
+}
+
+.walkthrough .walkthrough-actions button.back span:last-child {
+  margin-left: 10px;
+}
+
+.walkthrough .walkthrough-actions button.advance {
+  background-color: #ffffff;
+}
+
+.walkthrough .walkthrough-actions button:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.walkthrough .walkthrough-actions button.back:focus {
+  border: 0px;
+}
+
+.walkthrough .walkthrough-content {
+  margin: 0px;
+  padding: 0px;
 }
 
 </style>
