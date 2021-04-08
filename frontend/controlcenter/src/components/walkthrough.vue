@@ -20,8 +20,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       ref="walkthroughCarousel"
       v-model="slide"
       indicators
-      img-width="860"
-      img-height="580"
       no-wrap
       :interval="interval"
     >
@@ -30,6 +28,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         v-bind:key="step.id"
         v-bind:img-src="step.picture"
       >
+        <div slot="img">
+          <div class="walkthrough-picture">
+            <b-img :src="step.picture"></b-img>
+          </div>
+        </div>
         <div class="walkthrough-content">
           <div class="walkthrough-title">{{step.title}}</div>
           <div class="walkthrough-description">{{step.description}}</div>
@@ -64,27 +67,27 @@ export default {
         {
           "title": this.$gettext("All set up"),
           "description": this.$gettext("Postfix logs already imported. Blocks, blacklists and bounces are being analysed, among others."),
-          "picture": "img/walkthrough/step1.png"
+          "picture": "img/walkthrough/step1.svg"
         },
         {
           "title": this.$gettext("Ready to use information"),
           "description": this.$gettext("Problems identified are displayed within Insights cards. Insights are generated for events happening while Control Center is running and also historical data."),
-          "picture": "img/walkthrough/step2.png"
+          "picture": "img/walkthrough/step2.svg"
         },
         {
           "title": this.$gettext("Respond to problem reports faster"),
-          "description": this.$gettext("A notification is triggered when any Local Insight is generated with high priority/secious status. Get the notifications to your mailbox or Slack channel."),
-          "picture": "img/walkthrough/step3.png"
+          "description": this.$gettext("A notification is triggered when any Local Insight is generated with high priority/serious status. Get the notifications to your mailbox or Slack channel."),
+          "picture": "img/walkthrough/step3.svg"
         },
         {
           "title": this.$gettext("Not just a peer, you are the network"),
           "description": this.$gettext("We build lightmeter to support a mission critical communication channel and help you unlock the power of Open Source infra."),
-          "picture": "img/walkthrough/step4.png"
+          "picture": "img/walkthrough/step4.svg"
         },
         {
           "title": this.$gettext("Up to you"),
-          "description": this.$gettext("Check the Settings page for setting up Slack and Email. Use a faulty IP to see lightmeter in action (e.g. 127.0.0.2). Use the feedback button to share your thoughts or get involved!"),
-          "picture": "img/walkthrough/step5.png"
+          "description": this.$gettext("Check the Settings page for setting up Slack and Email. Use a faulty IP to see Lightmeter in action (e.g. 127.0.0.2). Use the Feedback button to share your thoughts or Get involved!"),
+          "picture": "img/walkthrough/step5.svg"
         }
       ]
     }
@@ -97,7 +100,6 @@ export default {
       this.$refs.walkthroughCarousel.prev();
     },
     finish() {
-      console.log("Finished!");
       this.$emit('finished');
     }
   },
@@ -123,16 +125,16 @@ export default {
 }
 
 .walkthrough .carousel-caption {
-  top: 25.5rem;
+  top: 24rem;
 }
 
 .walkthrough .carousel-indicators {
-  top: 24rem;
+  top: 23rem;
 }
 
 @media (max-width: 991px) {
   .walkthrough .carousel-caption {
-    top: 180px;
+    top: 18rem;
   }
 
   .walkthrough .carousel-indicators {
@@ -144,7 +146,7 @@ export default {
   }
 
   .walkthrough .carousel-item {
-    height: 30rem;
+    height: 72vh;
   }
 }
 
@@ -219,6 +221,11 @@ export default {
 .walkthrough .walkthrough-content {
   margin: 0px;
   padding: 0px;
+}
+
+.walkthrough .walkthrough-picture {
+  display: flex;
+  justify-content: center;
 }
 
 </style>
