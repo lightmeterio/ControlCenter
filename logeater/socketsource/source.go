@@ -6,24 +6,33 @@ package socketsource
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/logeater/reader"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 type Source struct {
 	announcer announcer.ImportAnnouncer
 	listener  net.Listener
 	builder   transform.Builder
+	clock     timeutil.Clock
 	closed    bool
 	closeErr  error
 }
 
 func New(socketDesc string, builder transform.Builder, announcer announcer.ImportAnnouncer) (*Source, error) {
+	return newWithClock(socketDesc, builder, announcer, &timeutil.RealClock{})
+}
+
+func newWithClock(socketDesc string, builder transform.Builder, announcer announcer.ImportAnnouncer, clock timeutil.Clock) (*Source, error) {
 	c := strings.Split(socketDesc, "=")
 
 	if len(c) != 2 {
@@ -48,6 +57,7 @@ func New(socketDesc string, builder transform.Builder, announcer announcer.Impor
 		listener:  l,
 		builder:   builder,
 		announcer: announcer,
+		clock:     clock,
 	}, nil
 }
 
@@ -67,8 +77,11 @@ func (s *Source) Close() error {
 	return nil
 }
 
+type emptyAnnouncer = announcer.EmptyImportAnnouncer
+
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	announcer.Skip(s.announcer)
+	// only the first execution can potentially to notify import progress
+	firstExecution := true
 
 	for {
 		conn, err := s.listener.Accept()
@@ -76,8 +89,23 @@ func (s *Source) PublishLogs(p postfix.Publisher) error {
 			return errorutil.Wrap(err)
 		}
 
+		log.Info().Msgf("New log socket connection from: %v", conn.RemoteAddr())
+
+		announcer := func() announcer.ImportAnnouncer {
+			if firstExecution {
+				firstExecution = false
+				return s.announcer
+			}
+
+			// as if we might already have finished the import, we cannot do it again
+			return &emptyAnnouncer{}
+		}()
+
 		go func() {
-			errorutil.MustSucceed(transform.ReadFromReader(conn, p, s.builder))
+			defer conn.Close()
+
+			// FIXME: Handling multiple connections that feed times in similar intervals would mess up with the import/progress logic...
+			errorutil.MustSucceed(reader.ReadFromReader(conn, p, s.builder, announcer, s.clock, time.Second*10))
 		}()
 	}
 }

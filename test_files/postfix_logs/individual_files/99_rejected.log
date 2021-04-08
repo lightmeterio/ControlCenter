@@ -1,0 +1,6 @@
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: connect from unknown[30.207.11.100]
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: Anonymous TLS connection established from unknown[30.207.11.100]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: NOQUEUE: filter: RCPT from unknown[30.207.11.100]: <>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<> to=<h-3c3175932cb3b@h-526472e87.com> proto=ESMTP helo=<localhost>
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: D155CDC24C3: client=unknown[30.207.11.100], sasl_method=LOGIN, sasl_username=h-2d34d8bb8@h-93a1a37cd1.com
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: D155CDC24C3: reject: RCPT from unknown[30.207.11.100]: 450 4.7.1 <>: Sender address rejected: You are sending too many emails, contact helpdesk; from=<> to=<h-2d34d8bb8@h-93a1a37cd1.com> proto=ESMTP helo=<localhost>
+Dec 19 19:42:14 sm02 postfix/submission/smtpd[21379]: disconnect from unknown[30.207.11.100] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1/2 quit=1 commands=7/8

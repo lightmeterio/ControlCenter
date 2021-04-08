@@ -639,18 +639,7 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 	})
 }
 
-type fakeAnnouncer struct {
-	progress []announcer.Progress
-	start    time.Time
-}
-
-func (a *fakeAnnouncer) AnnounceStart(time time.Time) {
-	a.start = time
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(p announcer.Progress) {
-	a.progress = append(a.progress, p)
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func TestImportDirectoryOnly(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
@@ -664,8 +653,8 @@ func TestImportDirectoryOnly(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
 
-			So(len(importAnnouncer.progress), ShouldEqual, 0)
-			So(importAnnouncer.start, ShouldResemble, time.Time{})
+			So(len(importAnnouncer.Progress()), ShouldEqual, 0)
+			So(importAnnouncer.Start, ShouldResemble, time.Time{})
 		})
 
 		Convey("One file returns its contents", func() {
@@ -690,9 +679,9 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 23, Hour: 13, Minute: 46, Second: 15})
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 31, Hour: 8, Minute: 47, Second: 9})
 
-			So(importAnnouncer.start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
+			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 
-			So(importAnnouncer.progress, ShouldResemble, []announcer.Progress{
+			So(importAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
 				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 50},
 				{Finished: false, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
 				{Finished: true, Time: testutil.MustParseTime(`2020-01-31 08:47:09 +0000`), Progress: 100},
@@ -727,9 +716,9 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 			err := importer.Run()
 			So(err, ShouldBeNil)
 
-			So(importAnnouncer.start, ShouldResemble, testutil.MustParseTime(`2020-02-01 12:00:00 +0000`))
+			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-02-01 12:00:00 +0000`))
 
-			So(importAnnouncer.progress, ShouldResemble, []announcer.Progress{
+			So(importAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
 				{Finished: false, Time: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`), Progress: 20},
 				{Finished: false, Time: testutil.MustParseTime(`2020-03-13 04:00:09 +0000`), Progress: 40},
 				{Finished: false, Time: testutil.MustParseTime(`2020-06-18 06:28:55 +0000`), Progress: 60},
@@ -984,7 +973,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
 
-			So(announcer.start, ShouldResemble, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))
+			So(announcer.Start, ShouldResemble, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))
 
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
 			So(pub.logs[0].Time, ShouldEqual, testutil.MustParseTime(`2020-06-18 08:29:33 +0000`))

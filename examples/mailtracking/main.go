@@ -133,11 +133,4 @@ func main() {
 	}
 }
 
-type fakeAnnouncer struct {
-}
-
-func (a *fakeAnnouncer) AnnounceStart(time.Time) {
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(announcer.Progress) {
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer

@@ -814,14 +814,14 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	return chosenIndex
 }
 
-func computeProgressStep(queues fileQueues) int64 {
+func countNumberOfFilesInQueues(queues fileQueues) int {
 	numberOfFiles := 0
 
 	for _, q := range queues {
 		numberOfFiles += len(q)
 	}
 
-	return 100 / int64(numberOfFiles)
+	return numberOfFiles
 }
 
 // Open all log files, including archived (compressed or not, but logrotate)
@@ -843,7 +843,7 @@ func importExistingLogs(
 		return errorutil.Wrap(err)
 	}
 
-	progressNotifier := announcer.NewNotifier(importAnnouncer, computeProgressStep(queues))
+	progressNotifier := announcer.NewNotifier(importAnnouncer, countNumberOfFilesInQueues(queues))
 
 	currentLogTime := time.Time{}
 
