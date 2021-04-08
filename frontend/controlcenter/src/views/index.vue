@@ -7,6 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div id="insights-page" class="d-flex flex-column min-vh-100">
     <mainheader></mainheader>
+    <walkthrough :visible="walkthroughNeedsToRun" @finished="handleWalkthroughCompleted"></walkthrough>
     <div class="container main-content">
       <div class="row">
         <div class="col-md-12">
@@ -186,7 +187,8 @@ import moment from "moment";
 import {
   fetchInsights,
   getIsNotLoginOrNotRegistered,
-  getUserInfo
+  getUserInfo,
+  getSettings
 } from "../lib/api.js";
 
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
@@ -281,9 +283,12 @@ export default {
       let message = this.$gettextInterpolate(translation, { username: this.username });
       return message;
     },
-    ...mapState(["isImportProgressFinished"])
+    ...mapState(["isImportProgressFinished", "walkthroughNeedsToRun"])
   },
   methods: {
+    handleWalkthroughCompleted() {
+      this.setWalkthroughNeedsToRunAction(false);
+    },
     handleProgressFinished() {
       this.setInsightsImportProgressFinished();
       this.updateDashboardAndInsights();
@@ -346,14 +351,19 @@ export default {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
       }, 30000);
     },
-    ...mapActions(["setInsightsImportProgressFinished"])
+    ...mapActions(["setInsightsImportProgressFinished", "setWalkthroughNeedsToRunAction"])
   },
   mounted() {
     this.initIndex();
     let vue = this;
+
     getUserInfo().then(function(response) {
       vue.username = response.data.Name;
     });
+
+    getSettings().then(function(response) {
+      vue.setWalkthroughNeedsToRunAction(!response.data["walkthrough"].completed);
+    })
   },
   destroyed() {
     window.clearInterval(this.sessionInterval);
