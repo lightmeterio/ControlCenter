@@ -5,6 +5,7 @@
 package announcer
 
 import (
+	"sync"
 	"time"
 )
 
@@ -20,15 +21,15 @@ type ImportAnnouncer interface {
 }
 
 type Notifier struct {
-	currentProgress int64
-	stepValue       int64
+	currentProgress int
+	stepValue       int
 	announcer       ImportAnnouncer
 }
 
-func NewNotifier(announcer ImportAnnouncer, step int64) Notifier {
+func NewNotifier(announcer ImportAnnouncer, steps int) Notifier {
 	return Notifier{
 		currentProgress: 0,
-		stepValue:       step,
+		stepValue:       100 / steps,
 		announcer:       announcer,
 	}
 }
@@ -45,13 +46,21 @@ func (p *Notifier) End(t time.Time) {
 	})
 }
 
+func clamp(v int) int {
+	if v < 100 {
+		return v
+	}
+
+	return 100
+}
+
 func (p *Notifier) Step(t time.Time) {
 	p.currentProgress += p.stepValue
 
 	p.announcer.AnnounceProgress(Progress{
 		Finished: false,
 		Time:     t,
-		Progress: p.currentProgress,
+		Progress: int64(clamp(p.currentProgress)),
 	})
 }
 
@@ -83,4 +92,51 @@ func Skip(announcer ImportAnnouncer) {
 	s := Skipper(announcer)
 	s.AnnounceStart(time.Time{})
 	s.AnnounceProgress(Progress{})
+}
+
+type DummyImportAnnouncer struct {
+	sync.Mutex
+	Start    time.Time
+	progress []Progress
+}
+
+func (a *DummyImportAnnouncer) AnnounceStart(t time.Time) {
+	a.Lock()
+
+	defer a.Unlock()
+
+	a.Start = t
+}
+
+func (a *DummyImportAnnouncer) AnnounceProgress(p Progress) {
+	a.Lock()
+
+	defer a.Unlock()
+
+	a.progress = append(a.progress, p)
+}
+
+func (a *DummyImportAnnouncer) Progress() []Progress {
+	a.Lock()
+
+	defer a.Unlock()
+
+	c := make([]Progress, len(a.progress))
+
+	if i := copy(c, a.progress); i != len(a.progress) {
+		panic(i)
+	}
+
+	return c
+}
+
+// does nothing
+type EmptyImportAnnouncer struct{}
+
+func (*EmptyImportAnnouncer) AnnounceStart(time.Time) {
+	// it's empty...
+}
+
+func (*EmptyImportAnnouncer) AnnounceProgress(Progress) {
+	// it's empty...
 }

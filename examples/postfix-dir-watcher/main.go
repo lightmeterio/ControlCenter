@@ -49,16 +49,7 @@ func (p *pub) Publish(r postfix.Record) {
 	fmt.Println(string(j))
 }
 
-type fakeAnnouncer struct {
-}
-
-func (a *fakeAnnouncer) AnnounceStart(t time.Time) {
-	log.Info().Msgf("Fake: Announce start: %v", t)
-}
-
-func (a *fakeAnnouncer) AnnounceProgress(p announcer.Progress) {
-	log.Info().Msgf("Fake: Announce progress: %v", p)
-}
+type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func main() {
 	dirToWatch := flag.String("dir", "", "Directory to watch")
