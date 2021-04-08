@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"mime"
@@ -51,6 +52,7 @@ func NewSettings(writer *meta.AsyncWriter,
 		"initSetup":    s.InitialSetupHandler,
 		"notification": s.NotificationSettingsHandler,
 		"general":      s.GeneralSettingsHandler,
+		"walkthrough":  s.WalkthroughHandler,
 	}
 
 	return s
@@ -121,6 +123,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		EmailNotification email.Settings          `json:"email_notifications"`
 		Notification      notification.Settings   `json:"notifications"`
 		General           globalsettings.Settings `json:"general"`
+		Walkthrough       walkthrough.Settings    `json:"walkthrough"`
 	}{}
 
 	ctx := r.Context()
@@ -145,6 +148,11 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
+	walkthroughSettings, err := walkthrough.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
 	if slackSettings != nil {
 		allCurrentSettings.SlackNotification = *slackSettings
 	}
@@ -159,6 +167,10 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	if globalSettings != nil {
 		allCurrentSettings.General = *globalSettings
+	}
+
+	if walkthroughSettings != nil {
+		allCurrentSettings.Walkthrough = *walkthroughSettings
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
@@ -491,6 +503,25 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		if err := notification.SetSettings(r.Context(), h.writer, notificationSettings); err != nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
+	}
+
+	return nil
+}
+
+func (h *Settings) WalkthroughHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := handleForm(w, r); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	}
+
+	completedRaw := r.Form.Get("completed")
+
+	completed, err := strconv.ParseBool(completedRaw)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	}
+
+	if err := h.writer.StoreJsonSync(r.Context(), walkthrough.SettingKey, &walkthrough.Settings{Completed: completed}); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	return nil

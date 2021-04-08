@@ -221,3 +221,12 @@ function alertError(response, eventName) {
 
   alert(message);
 }
+
+export function requestWalkthroughCompletedStatus(completed) {
+  let data = new FormData();
+  data.append("completed", completed);
+
+  var params = new URLSearchParams(data);
+
+  return axios.post(BASE_URL + "settings?setting=walkthrough", params.toString());
+}
