@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div id="insights-page" class="d-flex flex-column min-vh-100">
     <mainheader></mainheader>
-    <walkthrough :visible="shouldShowWalkthrough" @finished="handleWalkthroughFinished"></walkthrough>
+    <walkthrough :visible="walkthroughNeedsToRun" @finished="handleWalkthroughCompleted"></walkthrough>
     <div class="container main-content">
       <div class="row">
         <div class="col-md-12">
@@ -188,7 +188,6 @@ import {
   fetchInsights,
   getIsNotLoginOrNotRegistered,
   getUserInfo,
-  finishWalkthrough,
   getSettings
 } from "../lib/api.js";
 
@@ -260,8 +259,7 @@ export default {
       opens: "right",
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
-      insights: [],
-      shouldShowWalkthrough: false
+      insights: []
     };
   },
   computed: {
@@ -285,12 +283,11 @@ export default {
       let message = this.$gettextInterpolate(translation, { username: this.username });
       return message;
     },
-    ...mapState(["isImportProgressFinished"])
+    ...mapState(["isImportProgressFinished", "walkthroughNeedsToRun"])
   },
   methods: {
-    handleWalkthroughFinished() {
-      this.shouldShowWalkthrough = false;
-      finishWalkthrough();
+    handleWalkthroughCompleted() {
+      this.setWalkthroughNeedsToRunAction(false);
     },
     handleProgressFinished() {
       this.setInsightsImportProgressFinished();
@@ -354,7 +351,7 @@ export default {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
       }, 30000);
     },
-    ...mapActions(["setInsightsImportProgressFinished"])
+    ...mapActions(["setInsightsImportProgressFinished", "setWalkthroughNeedsToRunAction"])
   },
   mounted() {
     this.initIndex();
@@ -365,7 +362,7 @@ export default {
     });
 
     getSettings().then(function(response) {
-      vue.shouldShowWalkthrough = !response.data["walkthrough"].completed;
+      vue.setWalkthroughNeedsToRunAction(!response.data["walkthrough"].completed);
     })
   },
   destroyed() {

@@ -222,9 +222,9 @@ function alertError(response, eventName) {
   alert(message);
 }
 
-export function finishWalkthrough() {
+export function requestWalkthroughCompletedStatus(completed) {
   let data = new FormData();
-  data.append("completed", true);
+  data.append("completed", completed);
 
   var params = new URLSearchParams(data);
 
