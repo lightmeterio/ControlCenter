@@ -55,7 +55,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script>
 
+import tracking from "../mixin/global_shared.js";
+
 export default {
+  mixins: [tracking],
   props: {
     visible: Boolean
   },
@@ -94,12 +97,15 @@ export default {
   },
   methods: {
     next() {
+      this.trackEvent("WalkthroughNextStep", this.slide);
       this.$refs.walkthroughCarousel.next();
     },
     previous() {
+      this.trackEvent("WalkthroughPrevStep", this.slide);
       this.$refs.walkthroughCarousel.prev();
     },
     finish() {
+      this.trackEvent("WalkthroughFinished", "finished");
       this.$emit('finished');
     }
   },
