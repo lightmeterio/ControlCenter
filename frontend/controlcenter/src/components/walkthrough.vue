@@ -22,6 +22,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       indicators
       img-width="860"
       img-height="580"
+      no-wrap
       :interval="interval"
     >
       <b-carousel-slide
@@ -140,6 +141,10 @@ export default {
 
   .walkthrough .carousel-item {
     height: 22rem;
+  }
+
+  .walkthrough .carousel-item {
+    height: 30rem;
   }
 }
 
