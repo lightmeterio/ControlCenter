@@ -69,7 +69,7 @@ export default {
       descriptions: [
         {
           "title": this.$gettext("All set up"),
-          "description": this.$gettext("Postfix logs already imported. Blocks, blacklists and bounces are being analysed, among others."),
+          "description": this.$gettext("Postfix logs already imported. Domain statistics are handled. Blocks, blacklists and bounces are being analysed."),
           "picture": "img/walkthrough/step1.svg"
         },
         {
@@ -79,17 +79,17 @@ export default {
         },
         {
           "title": this.$gettext("Respond to problem reports faster"),
-          "description": this.$gettext("A notification is triggered when any Local Insight is generated with high priority/serious status. Get the notifications to your mailbox or Slack channel."),
+          "description": this.$gettext("A notification is triggered when any Local Insight with a high rating is generated. Get the notifications to your mailbox or Slack channel."),
           "picture": "img/walkthrough/step3.svg"
         },
         {
           "title": this.$gettext("Not just a peer, you are the network"),
-          "description": this.$gettext("We build lightmeter to support a mission critical communication channel and help you unlock the power of Open Source infra."),
+          "description": this.$gettext("We build Lightmeter to support a mission critical communication channel and help you unlock the power of Open Source infra."),
           "picture": "img/walkthrough/step4.svg"
         },
         {
-          "title": this.$gettext("Up to you"),
-          "description": this.$gettext("Check the Settings page for setting up Slack and Email. Use a faulty IP to see Lightmeter in action (e.g. 127.0.0.2). Use the Feedback button to share your thoughts or Get involved!"),
+          "title": this.$gettext("Over to you"),
+          "description": this.$gettext("Check the Settings page for setting up Slack and Email. Use a faulty IP to see Lightmeter in action. Share your thoughts using the feedback button on every page of the application – we’re listening! "), 
           "picture": "img/walkthrough/step5.svg"
         }
       ]
