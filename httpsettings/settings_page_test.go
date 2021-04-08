@@ -95,6 +95,9 @@ func TestSettingsPage(t *testing.T) {
 					"channel":      "",
 					"enabled":      false,
 				},
+				"walkthrough": map[string]interface{}{
+					"completed": false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -158,6 +161,9 @@ func TestSettingsPage(t *testing.T) {
 					"channel":      "some_channel",
 					"enabled":      true,
 				},
+				"walkthrough": map[string]interface{}{
+					"completed": false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -208,6 +214,9 @@ func TestSettingsPage(t *testing.T) {
 					"bearer_token": "some_token",
 					"channel":      "some_channel",
 					"enabled":      false,
+				},
+				"walkthrough": map[string]interface{}{
+					"completed": false,
 				},
 			}
 
@@ -300,6 +309,9 @@ func TestSettingsPage(t *testing.T) {
 						"bearer_token": "",
 						"channel":      "",
 						"enabled":      false,
+					},
+					"walkthrough": map[string]interface{}{
+						"completed": false,
 					},
 				}
 

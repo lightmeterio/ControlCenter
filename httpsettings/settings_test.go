@@ -21,6 +21,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
@@ -508,6 +509,85 @@ func TestEmailNotifications(t *testing.T) {
 
 			So(msg.Header.Get("From"), ShouldEqual, "sender@example.com")
 			So(msg.Header.Get("To"), ShouldEqual, "Some Person <some.person@example.com>, Someone Else <someone@else.example.com>")
+		})
+	})
+}
+
+func TestWalkthroughSettings(t *testing.T) {
+	Convey("Integration Settings Setup", t, func() {
+		setup, _, reader, _, _, clear := buildTestSetup(t)
+		defer clear()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		w := &walkthrough.Settings{}
+		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), meta.ErrNoSuchKey), ShouldBeTrue)
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+
+		Convey("Save", func() {
+			querySettingsParameter := "?setting=walkthrough"
+			settingsURL := s.URL + querySettingsParameter
+
+			Convey("Fails", func() {
+				Convey("Invalid Form data", func() {
+					r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+
+				Convey("Invalid mime type", func() {
+					r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+
+				Convey("Incompatible Method", func() {
+					r, err := c.Head(settingsURL)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
+				})
+
+				Convey("Invalid option", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"completed": {"banana"},
+					})
+
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+			})
+
+			Convey("Success", func() {
+				Convey("set as completed", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"completed": {"true"},
+					})
+
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					w := &walkthrough.Settings{}
+					So(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), ShouldBeNil)
+					So(w.Completed, ShouldBeTrue)
+
+					Convey("Retrieve", func() {
+						r, err := c.Get(s.URL)
+						So(err, ShouldBeNil)
+						So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+						body, err := decodeBodyAsJson(r.Body)
+						So(err, ShouldBeNil)
+
+						asMap, ok := body.(map[string]interface{})
+						So(ok, ShouldBeTrue)
+						So(asMap["walkthrough"], ShouldResemble, map[string]interface{}{"completed": true})
+					})
+				})
+			})
 		})
 	})
 }
