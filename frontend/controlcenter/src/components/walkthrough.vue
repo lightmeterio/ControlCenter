@@ -15,10 +15,11 @@ SPDX-License-Identifier: AGPL-3.0-only
     :visible="visible"
     no-close-on-backdrop
     @hide="finish"
+    @shown="onShown"
    >
     <b-carousel
       ref="walkthroughCarousel"
-      v-model="slide"
+      v-model="currentSlide"
       indicators
       no-wrap
       :interval="interval"
@@ -104,12 +105,24 @@ export default {
       this.trackEvent("WalkthroughPrevStep", this.slide);
       this.$refs.walkthroughCarousel.prev();
     },
+    onShown() {
+      this.trackClick("Walkthrough", "started");
+      this.currentSlide = 0;
+    },
     finish() {
-      this.trackEvent("WalkthroughFinished", "finished");
+      this.trackEvent("Walkthrough", "finished");
       this.$emit('finished');
-    }
+    },
   },
   computed: {
+    currentSlide: {
+      get() {
+        return this.slide;
+      },
+      set(value) {
+        this.slide = value;
+      }
+    },
     isFirstStep() {
       return this.slide == 0;
     },
