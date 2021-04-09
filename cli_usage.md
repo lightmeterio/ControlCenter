@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 1.5.0
+Lightmeter ControlCenter 1.5.1
 
  Example call: 
 
@@ -12,11 +12,15 @@ Lightmeter ControlCenter 1.5.0
   -importonly
     	Only import existing logs, exiting immediately, without running the full application.
   -listen string
-    	Network address to listen to (default ":8080")
+    	Network Address to listen to (default ":8080")
   -log_format string
     	Expected log format from external sources (like logstash, etc.) (default "default")
   -log_starting_year int
-    	Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin.
+    	Value to be used as initial year when it cannot be obtained from the Postfix logs. Defaults to the current year. Requires -stdin or -socket
+  -logs_socket string
+    	Receive logs via a Socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999
+  -logs_use_rsync
+    	Log directory is updated by rsync
   -migrate_down_to_database string
     	Database name only for migration
   -migrate_down_to_only
@@ -25,10 +29,6 @@ Lightmeter ControlCenter 1.5.0
     	Specify the new migration version (default -1)
   -password string
     	Password to reset (requires -email_reset)
-  -rsync
-    	Log directory is updated by rsync
-  -socket string
-    	Receive logs via a socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999
   -stdin
     	Read log lines from stdin
   -verbose
