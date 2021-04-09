@@ -14,6 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <a href="https://lightmeter.io/about/" title='About Lightmeter' target="_blank"><translate>Thank you for using Lightmeter</translate></a>. &copy; {{ year }}.
           <span class="link"> <a href="https://lightmeter.io/privacy-policy/" title='Read policy' target="_blank"><translate>Privacy Policy</translate></a></span>
           <span class="link"> <a href="mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center" title='What would you improve?' v-on:click="trackClick('Feedback', 'clickMailTo')" target="_blank"><translate>Feedback</translate></a></span>
+          <b-button class="link" @click="runWalkthrough()"><translate>Walkthrough</translate></b-button>
         </div>
 
         <div class="col-md-2 mb-md-0 mb-2 align-right">
@@ -26,7 +27,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 </template>
 <script>
+
 import tracking from "../mixin/global_shared.js";
+import { mapActions } from "vuex";
+
 export default {
   name: "mainfooter",
   mixins: [tracking],
@@ -37,6 +41,12 @@ export default {
   },
   mounted() {
     this.year = new Date().getFullYear();
+  },
+  methods: {
+    runWalkthrough() {
+      this.setWalkthroughNeedsToRunAction(true);
+    },
+    ...mapActions(["setWalkthroughNeedsToRunAction"])
   }
 };
 </script>

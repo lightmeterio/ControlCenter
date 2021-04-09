@@ -6,6 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <header>
+    <walkthrough :visible="walkthroughNeedsToRun" @finished="handleWalkthroughCompleted"></walkthrough>
     <div class="navbar">
       <div class="container d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
@@ -108,13 +109,21 @@ SPDX-License-Identifier: AGPL-3.0-only
   </header>
 </template>
 <script>
-import { getApplicationInfo, logout } from "../lib/api.js";
 
+import { getApplicationInfo, logout, getSettings } from "../lib/api.js";
 import tracking from "../mixin/global_shared.js";
+import { mapActions, mapState } from "vuex";
 
 export default {
   name: "mainheader",
   mixins: [tracking],
+  mounted() {
+    let vue = this;
+
+    getSettings().then(function(response) {
+      vue.setWalkthroughNeedsToRunAction(!response.data["walkthrough"].completed);
+    })
+  },
   data() {
     return {
       year: null,
@@ -136,7 +145,8 @@ export default {
     },
     About: function() {
       return this.$gettext("About");
-    }
+    },
+    ...mapState(["walkthroughNeedsToRun"])
   },
   methods: {
     hideModal() {
@@ -157,7 +167,11 @@ export default {
       };
 
       logout(redirect);
-    }
+    },
+    handleWalkthroughCompleted() {
+      this.setWalkthroughNeedsToRunAction(false);
+    },
+    ...mapActions(["setWalkthroughNeedsToRunAction"])
   }
 };
 </script>
