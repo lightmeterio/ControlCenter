@@ -32,5 +32,6 @@ COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates
 ENV SSL_CERT_DIR /usr/share/ca-certificates/mozilla
 
 VOLUME /logs
+EXPOSE 8080
 
 ENTRYPOINT ["/lightmeter"]
