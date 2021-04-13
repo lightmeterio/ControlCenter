@@ -1,0 +1,4 @@
+Contact: security@lightmeter.io
+Expires: Tue, 12 Apr 2022 12:00 +0200
+Encryption: https://keys.openpgp.org/vks/v1/by-fingerprint/642AB4134127B194FC74B5C4AE09C29BC4C25765
+Preferred-Languages: en,pt-br,fr,sq,it
