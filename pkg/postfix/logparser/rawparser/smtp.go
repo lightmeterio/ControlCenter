@@ -38,7 +38,7 @@ type SmtpSentStatusExtraMessageSentQueued struct {
 	Queue    []byte
 }
 
-func parseSmtpPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parseSmtpPayload(payloadLine []byte) (RawPayload, error) {
 	r, parsed := parseSmtpSentStatus(payloadLine)
 
 	if !parsed {

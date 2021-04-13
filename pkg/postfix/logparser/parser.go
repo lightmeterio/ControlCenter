@@ -5,7 +5,6 @@
 package parser
 
 import (
-	"errors"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strconv"
@@ -29,24 +28,6 @@ func atof(s []byte) (float32, error) {
 	return float32(r), nil
 }
 
-func tryToParserHeaderOnly(header rawparser.RawHeader, err error) (Header, Payload, error) {
-	if errors.Is(err, rawparser.ErrInvalidHeaderLine) {
-		return Header{}, nil, err
-	}
-
-	if !errors.Is(err, rawparser.ErrUnsupportedLogLine) {
-		panic("This is a bug; maybe more error types have been added, but not handled. Who knows?!")
-	}
-
-	h, headerParsingError := parseHeader(header)
-
-	if headerParsingError != nil {
-		return Header{}, nil, rawparser.ErrUnsupportedLogLine
-	}
-
-	return h, nil, err
-}
-
 var (
 	handlers = map[rawparser.PayloadType]func(rawparser.RawPayload) (Payload, error){}
 )
@@ -55,30 +36,51 @@ func registerHandler(payloadType rawparser.PayloadType, handler func(rawparser.R
 	handlers[payloadType] = handler
 }
 
-func Parse(line []byte) (Header, Payload, error) {
-	rawHeader, p, err := rawparser.Parse(line)
-
+func ParseHeader(line []byte) (h Header, payloadLine []byte, err error) {
+	rawHeader, p, err := rawparser.ParseHeader(line)
 	if err != nil {
-		return tryToParserHeaderOnly(rawHeader, err)
+		// TODO: unify parser and rawparser packages in a single one, for the sake of simplicity
+		//nolint:wrapcheck
+		return Header{}, nil, err
 	}
 
-	h, err := parseHeader(rawHeader)
-
+	header, err := parseHeader(rawHeader)
 	if err != nil {
 		return Header{}, nil, err
 	}
 
-	handler, found := handlers[p.PayloadType]
+	return header, p, nil
+}
 
+func ParsePayload(h Header, payloadLine []byte) (Payload, error) {
+	p, err := rawparser.ParsePayload(payloadLine, h.Daemon, h.Process)
+	if err != nil {
+		return nil, rawparser.ErrUnsupportedLogLine
+	}
+
+	handler, found := handlers[p.PayloadType]
 	if !found {
-		return h, nil, rawparser.ErrUnsupportedLogLine
+		return nil, rawparser.ErrUnsupportedLogLine
 	}
 
 	parsed, err := handler(p)
+	if err != nil {
+		return nil, err
+	}
 
+	return parsed, nil
+}
+
+func Parse(line []byte) (Header, Payload, error) {
+	h, payloadLine, err := ParseHeader(line)
+	if err != nil {
+		return Header{}, nil, err
+	}
+
+	payload, err := ParsePayload(h, payloadLine)
 	if err != nil {
 		return h, nil, err
 	}
 
-	return h, parsed, nil
+	return h, payload, nil
 }

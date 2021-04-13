@@ -26,7 +26,7 @@ type QmgrRemoved struct {
 	Queue []byte
 }
 
-func parseQmgrPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parseQmgrPayload(payloadLine []byte) (RawPayload, error) {
 	if s, parsed := parseQmgrMailQueued(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:    PayloadTypeQmgrMailQueued,

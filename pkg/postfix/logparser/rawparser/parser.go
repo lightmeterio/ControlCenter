@@ -87,14 +87,14 @@ type payloadHandlerKey struct {
 }
 
 var (
-	payloadHandlers = map[payloadHandlerKey]func(RawHeader, []byte) (RawPayload, error){}
+	payloadHandlers = map[payloadHandlerKey]func([]byte) (RawPayload, error){}
 )
 
-func registerHandler(process, daemon string, handler func(RawHeader, []byte) (RawPayload, error)) {
+func registerHandler(process, daemon string, handler func([]byte) (RawPayload, error)) {
 	payloadHandlers[payloadHandlerKey{process: process, daemon: daemon}] = handler
 }
 
-func Parse(logLine []byte) (RawHeader, RawPayload, error) {
+func ParseHeader(logLine []byte) (RawHeader, []byte, error) {
 	// Remove leading 0x0
 	start := bytes.IndexFunc(logLine, func(r rune) bool {
 		return r != 0
@@ -107,19 +107,17 @@ func Parse(logLine []byte) (RawHeader, RawPayload, error) {
 	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
 
 	if errors.Is(err, ErrInvalidHeaderLine) {
-		return RawHeader{}, RawPayload{}, err
+		return RawHeader{}, nil, err
 	}
 
-	handler, found := payloadHandlers[payloadHandlerKey{
-		daemon:  string(header.Daemon),
-		process: string(header.Process),
-	}]
+	return header, payloadLine, nil
+}
 
+func ParsePayload(payloadLine []byte, daemon, process string) (RawPayload, error) {
+	handler, found := payloadHandlers[payloadHandlerKey{daemon: daemon, process: process}]
 	if !found {
-		return header, RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
+		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
-	p, err := handler(header, payloadLine)
-
-	return header, p, err
+	return handler(payloadLine)
 }

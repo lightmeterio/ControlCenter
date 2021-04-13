@@ -13,7 +13,7 @@ type BounceCreated struct {
 	ChildQueue []byte
 }
 
-func parseBounce(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parseBounce(payloadLine []byte) (RawPayload, error) {
 	if s, parsed := parseBounceCreated(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:   PayloadTypeBounceCreated,
