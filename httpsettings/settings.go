@@ -181,6 +181,31 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
+	if r.Form.Get("action") == "clear" {
+		currentSettings, err := func() (globalsettings.Settings, error) {
+			s, err := globalsettings.GetSettings(r.Context(), h.reader)
+
+			if err != nil {
+				return globalsettings.Settings{}, errorutil.Wrap(err)
+			}
+
+			return *s, nil
+		}()
+
+		if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
+		}
+
+		settings := globalsettings.Settings{}
+		settings.APPLanguage = currentSettings.APPLanguage
+
+		if err := globalsettings.SetSettings(r.Context(), h.writer, settings); err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		return nil
+	}
+
 	localIPRaw := r.Form.Get("postfix_public_ip")
 	appLanguage := r.Form.Get("app_language")
 
@@ -452,6 +477,10 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 
+	if r.Form.Get("action") == "clear" {
+		return h.NotificationSettingsClear(w, r)
+	}
+
 	slackSettings, shouldSetSlack, err := buildSlackSettingsFromForm(r.Form)
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
@@ -506,6 +535,26 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	return nil
+}
+
+func (h *Settings) NotificationSettingsClear(w http.ResponseWriter, r *http.Request) error {
+	switch r.Form.Get("subsection") {
+	case "email":
+		if err := email.SetSettings(r.Context(), h.writer, email.Settings{}); err != nil {
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+		}
+
+		return nil
+	case "slack":
+		if err := slack.SetSettings(r.Context(), h.writer, slack.Settings{}); err != nil {
+			err := errorutil.Wrap(err, "Error slack setting options")
+			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+		}
+
+		return nil
+	}
+
+	return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Unknown notification settings subsection"))
 }
 
 func (h *Settings) WalkthroughHandler(w http.ResponseWriter, r *http.Request) error {

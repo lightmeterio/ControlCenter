@@ -19,11 +19,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           <translate>Notifications</translate>
         </h5>
 
-        <b-form
-          @submit="onNotificationSettingsSubmit"
-          id="notifications-form-container"
-        >
-          <b-form-row>
+        <b-form data-subsection="language" @submit="onNotificationSettingsSubmit">
+          <b-form-row class="align-items-end">
             <b-col cols="6">
               <b-form-group :label="NotificationLanguage" class="notification-language">
                 <b-form-select
@@ -35,8 +32,18 @@ SPDX-License-Identifier: AGPL-3.0-only
                 ></b-form-select>
               </b-form-group>
             </b-col>
+            <b-col cols="6">
+              <b-form-group>
+                <b-button variant="outline-primary" type="submit">
+                  <!-- prettier-ignore -->
+                  <translate>Save</translate>
+                </b-button>
+              </b-form-group>
+            </b-col>
           </b-form-row>
+        </b-form>
 
+        <b-form data-subsection="email" @submit="onNotificationSettingsSubmit">
           <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
             <b-form-radio-group
               class="pt-2"
@@ -201,8 +208,24 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="EmailFieldRequired"
               ></b-form-input>
             </b-form-group>
+            <div class="button-group">
+              <b-button variant="outline-primary" type="submit">
+                <!-- prettier-ignore -->
+                <translate>Save</translate>
+              </b-button>
+              <b-button
+                variant="outline-danger"
+                type="button"
+                @click="OnClearEmailNotificationsSettings"
+                >
+                <!-- prettier-ignore -->
+                <translate>Reset</translate>
+              </b-button>
+            </div>
           </b-form-group>
-
+        </b-form>
+        
+        <b-form data-subsection="slack" @submit="onNotificationSettingsSubmit">
           <b-form-group :label="SlackNotificationsEnabled" class="slack-disabler">
             <b-form-radio-group
               class="pt-2"
@@ -240,26 +263,23 @@ SPDX-License-Identifier: AGPL-3.0-only
                 :required="SlackFieldRequired"
               ></b-form-input>
             </b-form-group>
-
-            <!-- FIXME: add bootstrap rows for styling margins of these buttons -->
             <div class="button-group">
-              <b-button variant="primary" class="general-save" type="submit">
+              <b-button variant="outline-primary" type="submit">
                 <!-- prettier-ignore -->
                 <translate>Save</translate>
               </b-button>
               <b-button
-                variant="primary"
-                class="general-cancel btn-cancel"
-                type="submit"
-              >
+                variant="outline-danger"
+                type="button"
+                @click="OnClearSlackNotificationsSettings"
+                >
                 <!-- prettier-ignore -->
-                <translate>Cancel</translate>
+                <translate>Reset</translate>
               </b-button>
             </div>
-
           </b-form-group>
         </b-form>
-
+        
         <h5 class="form-heading">
           <!-- prettier-ignore -->
           <translate>General</translate>
@@ -295,20 +315,19 @@ SPDX-License-Identifier: AGPL-3.0-only
               maxlength="255"
             ></b-form-input>
           </b-form-group>
-
-
+          
           <div class="button-group">
-            <b-button variant="primary" class="general-save" type="submit">
+            <b-button variant="outline-primary" type="submit">
               <!-- prettier-ignore -->
               <translate>Save</translate>
             </b-button>
             <b-button
-              variant="primary"
-              class="general-cancel btn-cancel"
-              type="submit"
-            >
+              variant="outline-danger"
+              type="button"
+              @click="OnClearGeneralSettings"
+              >
               <!-- prettier-ignore -->
-              <translate>Cancel</translate>
+              <translate>Reset</translate>
             </b-button>
           </div>
         </b-form>
@@ -323,7 +342,9 @@ import { getSettings } from "../lib/api.js";
 import { getMetaLanguage } from "../lib/api.js";
 import { submitNotificationsSettingsForm } from "../lib/api.js";
 import { submitGeneralForm } from "../lib/api.js";
+import { clearSettings } from "../lib/api.js";
 import session from "@/mixin/views_shared";
+import Vue from "vue";
 
 export default {
   name: "settingspage",
@@ -483,6 +504,49 @@ export default {
     }
   },
   methods: {
+    RefreshSettings() {
+      let vue = this;
+      
+      getSettings().then(function(response) {
+        vue.settings = response.data;
+        if (vue.settings.notifications.language === "") {
+          vue.settings.notifications.language = "en";
+        }
+      });
+    },
+    OnClearEmailNotificationsSettings(event) {
+      event.preventDefault();
+      let vue = this;
+      
+      if (!confirm(Vue.prototype.$gettext("Reset email notification settings?")))
+        return;
+      
+      clearSettings('notification', 'email').then(function() {
+        vue.RefreshSettings();
+      });
+    },
+    OnClearSlackNotificationsSettings(event) {
+      event.preventDefault();
+      let vue = this;
+      
+      if (!confirm(Vue.prototype.$gettext("Reset slack notification settings?")))
+        return;
+      
+      clearSettings('notification', 'slack').then(function() {
+        vue.RefreshSettings();
+      });
+    },
+    OnClearGeneralSettings(event) {
+      event.preventDefault();
+      let vue = this;
+      
+      if (!confirm(Vue.prototype.$gettext("Reset general settings?")))
+        return;
+      
+      clearSettings("general").then(function() {
+        vue.RefreshSettings();
+      });
+    },
     onGeneralSettingsSubmit(event) {
       event.preventDefault();
       let vue = this;
@@ -497,25 +561,32 @@ export default {
     },
     onNotificationSettingsSubmit(event) {
       event.preventDefault();
-
+      
+      let subsection = event.target.getAttribute('data-subsection');
+      console.log(subsection);
+      
       const data = {
-        messenger_enabled: this.settings.slack_notifications.enabled,
-        messenger_token: this.settings.slack_notifications.bearer_token,
-        messenger_channel: this.settings.slack_notifications.channel,
-
-        notification_language: this.settings.notifications.language,
-
-        email_notification_server_name: this.settings.email_notifications.server_name,
-        email_notification_skip_cert_check: this.settings.email_notifications.skip_cert_check,
-        email_notification_port: this.settings.email_notifications.server_port,
-        email_notification_username: this.settings.email_notifications.username,
-        email_notification_password: this.settings.email_notifications.password,
-        email_notification_sender: this.settings.email_notifications.sender,
-        email_notification_recipients: this.settings.email_notifications.recipients,
-        email_notification_security_type: this.settings.email_notifications.security_type,
-        email_notification_auth_method: this.settings.email_notifications.auth_method,
-        email_notification_enabled: this.settings.email_notifications.enabled,
-      };
+        slack: {
+          messenger_enabled: this.settings.slack_notifications.enabled,
+          messenger_token: this.settings.slack_notifications.bearer_token,
+          messenger_channel: this.settings.slack_notifications.channel,
+        },
+        language: {
+          notification_language: this.settings.notifications.language,
+        },
+        email: {
+          email_notification_server_name: this.settings.email_notifications.server_name,
+          email_notification_skip_cert_check: this.settings.email_notifications.skip_cert_check,
+          email_notification_port: this.settings.email_notifications.server_port,
+          email_notification_username: this.settings.email_notifications.username,
+          email_notification_password: this.settings.email_notifications.password,
+          email_notification_sender: this.settings.email_notifications.sender,
+          email_notification_recipients: this.settings.email_notifications.recipients,
+          email_notification_security_type: this.settings.email_notifications.security_type,
+          email_notification_auth_method: this.settings.email_notifications.auth_method,
+          email_notification_enabled: this.settings.email_notifications.enabled,
+        }
+      }[subsection];
 
       let trackingInfo = {"SlackEnabled": this.settings.slack_notifications.enabled, "EmailEnabled": this.settings.email_notifications.enabled};
 
@@ -532,12 +603,7 @@ export default {
         vue.languages.push({ text: language.key, value: language.value });
       }
     });
-    getSettings().then(function(response) {
-      vue.settings = response.data;
-      if (vue.settings.notifications.language === "") {
-        vue.settings.notifications.language = "en";
-      }
-    });
+    vue.RefreshSettings();
   },
   destroyed() {
     clearInterval(this.sessionInterval);
@@ -583,45 +649,6 @@ form .form-group {
   margin: 0.5rem 0;
 }
 
-.settings-page .btn-cancel {
-  background: #ff5c6f33 0% 0% no-repeat padding-box;
-  border: 1px solid #ff5c6f;
-  border-radius: 2px;
-  opacity: 0.8;
-  text-align: center;
-  font: normal normal bold 14px/24px Open Sans;
-  letter-spacing: 0px;
-  color: #820d1b;
-}
-
-.settings-page .general-save {
-  background: #1d8caf33 0% 0% no-repeat padding-box;
-  border: 1px solid #1d8caf;
-  border-radius: 2px;
-  opacity: 0.8;
-  text-align: center;
-  font: normal normal bold 14px/24px Open Sans;
-  letter-spacing: 0px;
-  color: #1d8caf;
-}
-
-.settings-page .general-save:hover,
-.settings-page .general-cancel:hover {
-  background: #1d8caf33 0% 0% no-repeat padding-box;
-  color: #212529;
-  text-decoration: none;
-}
-
-.settings-page .general-save:hover {
-  background: #1d8caf33 0% 0% no-repeat padding-box;
-  border: 1px solid #1d8caf;
-}
-
-.settings-page .general-cancel:hover {
-  background: #ff5c6f33 0% 0% no-repeat padding-box;
-  border: 1px solid #ff5c6f;
-}
-
 .settings-page [type="input"] {
   border: 1px solid #e6e7e7;
   border-radius: 5px;
@@ -637,15 +664,12 @@ form .form-group {
 .settings-page .button-group {
   display: flex;
   flex-flow: row-reverse;
-}
-
-.settings-page .button-group button,
-.settings-page .button-group .btn-cancel {
-  width: 20%;
-  margin-left: 1em;
-  margin-right: 1em;
-  display: flex;
-  justify-content: center;
+  
+  button {
+    width: 20%;
+    margin-left: 1em;
+    margin-right: 1em;
+  }
 }
 
 .custom-control .custom-control-input:checked ~ .custom-control-label::before {
@@ -660,8 +684,7 @@ form .form-control:focus
 }
 
 @media (max-width: 768px) {
-  .settings-page .button-group button,
-  .settings-page .button-group .btn-cancel {
+  .settings-page .button-group button {
     width: auto;
   }
 }
