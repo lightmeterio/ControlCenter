@@ -69,28 +69,28 @@ export default {
       interval: 0, // disables autoplay
       descriptions: [
         {
-          "title": this.$gettext("All set up"),
-          "description": this.$gettext("Postfix logs already imported. Domain statistics are handled. Blocks, blacklists and bounces are being analysed."),
+          "title": this.$gettext("Nice Work!"),
+          "description": this.$gettext("Your mailserver is now being monitored for blocks, blocklists, and bounces"),
           "picture": "img/walkthrough/step1.svg"
         },
         {
-          "title": this.$gettext("Ready to use information"),
-          "description": this.$gettext("Problems identified are displayed within Insights cards. Insights are generated for events happening while Control Center is running and also historical data."),
+          "title": this.$gettext("Insights Incoming"),
+          "description": this.$gettext("The homepage is the 'Observatory' – Insights will appear here, so watch this space!"),
           "picture": "img/walkthrough/step2.svg"
         },
         {
-          "title": this.$gettext("Respond to problem reports faster"),
-          "description": this.$gettext("A notification is triggered when any Local Insight with a high rating is generated. Get the notifications to your mailbox or Slack channel."),
+          "title": this.$gettext("Fastest Response"),
+          "description": this.$gettext("High priority Insights trigger notifications – enable email or Slack for early warnings"),
           "picture": "img/walkthrough/step3.svg"
         },
         {
-          "title": this.$gettext("Not just a peer, you are the network"),
-          "description": this.$gettext("We build Lightmeter to support a mission critical communication channel and help you unlock the power of Open Source infra."),
+          "title": this.$gettext("You Are The Network"),
+          "description": this.$gettext("Email is made up of peers like you – Lightmeter exists to support your independence"),
           "picture": "img/walkthrough/step4.svg"
         },
         {
-          "title": this.$gettext("Over to you"),
-          "description": this.$gettext("Check the Settings page for setting up Slack and Email. Use a faulty IP to see Lightmeter in action. Share your thoughts using the feedback button on every page of the application – we’re listening! "), 
+          "title": this.$gettext("Over To You"),
+          "description": this.$gettext("Check out the settings, add IPs to monitor, and enjoy your stay (restart this Walkthrough any time)"), 
           "picture": "img/walkthrough/step5.svg"
         }
       ]
