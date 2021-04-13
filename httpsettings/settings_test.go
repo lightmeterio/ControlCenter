@@ -253,6 +253,49 @@ func TestAppSettings(t *testing.T) {
 			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
 		})
 	})
+
+	Convey("Clear general settings", t, func() {
+		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		defer clear()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+		s := httptest.NewServer(handler)
+
+		c := &http.Client{}
+
+		Convey("Do not reset language when we clear general settings", func() {
+			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
+				LocalIP:     net.ParseIP("127.0.0.1"),
+				PublicURL:   "http://localhost:8080",
+				APPLanguage: "de",
+			}).Wait()
+
+			// Check that the settings are set
+			settings := globalsettings.Settings{}
+			err := reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			So(err, ShouldBeNil)
+
+			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(settings.PublicURL, ShouldEqual, "http://localhost:8080")
+			So(settings.APPLanguage, ShouldEqual, "de")
+
+			// Clear general settings
+			r, err := c.PostForm(s.URL+"?setting=general", url.Values{"action": {"clear"}})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			// The IP address and postfix URL must be cleared, but the language should stay
+			settings = globalsettings.Settings{}
+			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			So(err, ShouldBeNil)
+
+			So(settings.LocalIP, ShouldBeNil)
+			So(settings.PublicURL, ShouldEqual, "")
+			So(settings.APPLanguage, ShouldEqual, "de")
+		})
+	})
 }
 
 type fakeContentComponent string
@@ -405,6 +448,53 @@ func TestSlackNotifications(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("Reset slack settings", t, func() {
+		setup, _, reader, _, _, clear := buildTestSetup(t)
+		defer clear()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL + querySettingsParameter
+
+		Convey("Reset slack settings should clear all fields", func() {
+			r, err := c.PostForm(settingsURL, url.Values{
+				"messenger_kind":    {"slack"},
+				"messenger_token":   {"some_valid_key"},
+				"messenger_channel": {"general"},
+				"messenger_enabled": {"true"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			mo := new(slack.Settings)
+			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			So(err, ShouldBeNil)
+
+			So(mo.Channel, ShouldEqual, "general")
+			So(mo.BearerToken, ShouldEqual, "some_valid_key")
+
+			// Reset slack settings
+			r, err = c.PostForm(s.URL+"?setting=notification", url.Values{"action": {"clear"}, "subsection": {"slack"}})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			// The slack fields should be cleared
+			mo = new(slack.Settings)
+			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			So(err, ShouldBeNil)
+
+			So(mo.Channel, ShouldEqual, "")
+			So(mo.BearerToken, ShouldEqual, "")
+		})
+	})
 }
 
 func TestEmailNotifications(t *testing.T) {
@@ -509,6 +599,64 @@ func TestEmailNotifications(t *testing.T) {
 
 			So(msg.Header.Get("From"), ShouldEqual, "sender@example.com")
 			So(msg.Header.Get("To"), ShouldEqual, "Some Person <some.person@example.com>, Someone Else <someone@else.example.com>")
+		})
+	})
+
+	Convey("Reset email settings", t, func() {
+		setup, _, reader, _, _, clear := buildTestSetup(t)
+		defer clear()
+
+		emailBackend := &email.FakeMailBackend{ExpectedUser: "user@example.com", ExpectedPassword: "super_password"}
+
+		stop := email.StartFakeServer(emailBackend, ":10027")
+		defer stop()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+		querySettingsParameter := "?setting=notification"
+		settingsURL := s.URL + querySettingsParameter
+
+		Convey("Reset email settings", func() {
+			r, err := c.PostForm(settingsURL, url.Values{
+				"email_notification_enabled":         {"true"},
+				"email_notification_skip_cert_check": {"false"},
+				"email_notification_server_name":     {"localhost"},
+				"email_notification_port":            {"10027"},
+				"email_notification_security_type":   {"none"},
+				"email_notification_auth_method":     {"password"},
+				"email_notification_username":        {"user@example.com"},
+				"email_notification_password":        {"super_password"},
+				"email_notification_sender":          {"sender@example.com"},
+				"email_notification_recipients":      {"Some Person <some.person@example.com>, Someone Else <someone@else.example.com>"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			settings, err := email.GetSettings(context.Background(), reader)
+			So(err, ShouldBeNil)
+
+			err = reader.RetrieveJson(context.Background(), email.SettingKey, &settings)
+			So(err, ShouldBeNil)
+
+			So(settings.Sender, ShouldEqual, "sender@example.com")
+			So(settings.Recipients, ShouldEqual, "Some Person <some.person@example.com>, Someone Else <someone@else.example.com>")
+
+			// Reset email settings
+			r, err = c.PostForm(s.URL+"?setting=notification", url.Values{"action": {"clear"}, "subsection": {"email"}})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			settings, err = email.GetSettings(context.Background(), reader)
+			So(err, ShouldBeNil)
+
+			So(settings.Sender, ShouldEqual, "")
+			So(settings.Recipients, ShouldEqual, "")
 		})
 	})
 }
