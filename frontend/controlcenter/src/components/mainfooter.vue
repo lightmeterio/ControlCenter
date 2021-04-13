@@ -67,4 +67,22 @@ footer .link {
 footer .link::before {
   content: "\2022\00a0"; /* add bullet and space */
 }
+/* override default bootstrap focus button style */
+footer .btn-secondary:focus
+, footer .btn-secondary.focus {
+  color: #87C528;
+  background-color: inherit;
+  border-color: #545b62;
+  box-shadow: none;
+  border: 0;
+}
+footer .btn-secondary:hover {
+  color: #fff;
+  background: none;
+  border: none;
+  text-decoration: underline;
+}
+footer .btn {
+  vertical-align: unset;
+}
 </style>
