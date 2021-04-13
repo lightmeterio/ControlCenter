@@ -33,7 +33,7 @@ type SmtpdMailAccepted struct {
 	Queue []byte
 }
 
-func parseSmtpdPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parseSmtpdPayload(payloadLine []byte) (RawPayload, error) {
 	if s, parsed := parseSmtpdConnect(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:  PayloadTypeSmtpdConnect,
