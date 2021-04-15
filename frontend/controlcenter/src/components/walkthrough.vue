@@ -48,7 +48,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <span v-translate>Back</span>
       </b-button>
       <b-button variant="outline-dark" squared class="advance" @click="next()" v-translate v-show="!isFirstStep && !isLastStep">Continue</b-button>
-      <b-button variant="outline-dark" squared class="advance" @click="finish()" v-translate v-show="isLastStep">Finish</b-button>
+      <b-button variant="outline-dark" squared class="advance" @click="hide()" v-translate v-show="isLastStep">Finish</b-button>
     </div>
 
   </b-modal>
@@ -56,6 +56,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script>
 
+import { getSettings } from "../lib/api.js";
 import tracking from "../mixin/global_shared.js";
 
 export default {
@@ -106,11 +107,23 @@ export default {
       this.$refs.walkthroughCarousel.prev();
     },
     onShown() {
-      this.trackClick("Walkthrough", "started");
+      let vue = this;
+      getSettings().then(function(response) {
+        if (!response.data["walkthrough"].completed)
+          vue.trackEvent("Walkthrough", "started");
+        else
+          vue.trackEvent("Walkthrough", "startedFooter");
+      });
       this.currentSlide = 0;
     },
+    hide () {
+      this.$refs['walkthrough-modal'].hide();  // triggers finish()
+    },
     finish() {
-      this.trackEvent("Walkthrough", "finished");
+      if (this.isLastStep)
+        this.trackEvent("Walkthrough", "finished");
+      else
+        this.trackEvent("WalkthroughExited", this.slide);
       this.$emit('finished');
     },
   },
