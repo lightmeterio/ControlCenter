@@ -14,6 +14,23 @@ export function getAPI(endpoint) {
     .get(BASE_URL + "api/v0/" + endpoint)
 }
 
+function cap (str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+export function clearSettings(section,subsection) {
+  let formData = new FormData();
+  formData.append("action", "clear")
+  formData.append("subsection", subsection)
+
+  return axios
+    .post(BASE_URL + "settings?setting="+section, new URLSearchParams(formData))
+    .then(function() {
+      trackEvent("Clear"+cap(subsection)+cap(section)+"Settings", "success");
+    })
+    .catch(builderErrorHandler("setting_"+(subsection?subsection+'_':'')+section+"_clear"));
+}
+
 export function submitGeneralForm(data, successMessage) {
   let formData = getFormData(data);
 
