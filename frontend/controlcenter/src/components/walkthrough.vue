@@ -109,10 +109,10 @@ export default {
     onShown() {
       let vue = this;
       getSettings().then(function(response) {
-        if (!response.data.walkthrough || !response.data.walkthrough.completed)
-          vue.trackEvent("Walkthrough", "started");
-        else
-          vue.trackEvent("Walkthrough", "startedFooter");
+        let evt = !response.data.walkthrough || !response.data.walkthrough.completed ?
+          ["Walkthrough", "started"] :
+          ["Walkthrough", "startedFooter"];
+        vue.trackEvent(...evt);
       });
       this.currentSlide = 0;
     },
@@ -120,10 +120,10 @@ export default {
       this.$refs['walkthrough-modal'].hide();  // triggers finish()
     },
     finish() {
-      if (this.isLastStep)
-        this.trackEvent("Walkthrough", "finished");
-      else
-        this.trackEvent("WalkthroughExited", this.slide);
+      let evt = this.isLastStep ? 
+        ["Walkthrough", "finished"] :
+        ["WalkthroughExited", this.slide];
+      this.trackEvent(...evt);
       this.$emit('finished');
     },
   },
