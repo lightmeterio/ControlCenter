@@ -109,7 +109,7 @@ export default {
     onShown() {
       let vue = this;
       getSettings().then(function(response) {
-        if (!response.data["walkthrough"].completed)
+        if (!response.data.walkthrough || !response.data.walkthrough.completed)
           vue.trackEvent("Walkthrough", "started");
         else
           vue.trackEvent("Walkthrough", "startedFooter");
