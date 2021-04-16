@@ -121,7 +121,7 @@ export default {
     let vue = this;
 
     getSettings().then(function(response) {
-      vue.setWalkthroughNeedsToRunAction(!response.data["walkthrough"].completed);
+      vue.setWalkthroughNeedsToRunAction(!response.data.walkthrough || !response.data.walkthrough.completed);
     })
   },
   data() {
