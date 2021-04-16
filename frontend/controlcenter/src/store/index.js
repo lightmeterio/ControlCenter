@@ -26,7 +26,8 @@ export default new Vuex.Store({
     },
     setWalkthroughState(state, value) {
       state.walkthroughNeedsToRun = value;
-      requestWalkthroughCompletedStatus(!value);
+      if (!value)  // only ever set the walkthrough completeness to true, never reset it to false
+        requestWalkthroughCompletedStatus(true);
     }
   },
   actions: {
