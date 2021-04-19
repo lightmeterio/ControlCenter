@@ -10,4 +10,5 @@ ARTIFACT="lightmeter-linux_amd64-$VERSION"
 
 mv lightmeter "$ARTIFACT"
 
-./jfrog bt u --publish --user="$BINTRAY_USER" --key="$BINTRAY_KEY" "$ARTIFACT"  "lightmeter/controlcenter/controlcenter/$VERSION"
+curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$ARTIFACT" \
+  "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/lightmeter/$VERSION/$ARTIFACT"

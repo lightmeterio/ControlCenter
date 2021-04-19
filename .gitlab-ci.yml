@@ -155,6 +155,19 @@ publish-binaries:
     - curl -fL https://getcli.jfrog.io | sh
     - ./ci/publish_binaries.sh
 
+publish-binaries:
+  image: curlimages/curl:latest
+  stage: package
+  needs:
+    - build
+  dependencies:
+    - build
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ "feature/binary-on-gitlab"'
+      when: manual
+  script:
+    - ./ci/publish_binaries.sh
+
 publish-release:
   extends: .on-non-tag
   stage: publish
