@@ -34,6 +34,12 @@ nb-configuration.xml
 *.kdev4
 domainmapping/generated_list.go
 
+# NodeJS
+node_modules/*
+
+
+# Others
+
 .glab-cli
 
 dependencies.svg
