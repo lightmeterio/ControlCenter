@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/socketsource"
@@ -139,8 +140,16 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 
 	announcer := importAnnouncerOnlyForFirstExecution(mostRecentTime, ws.ImportAnnouncer())
 
+	patterns := func(patterns []string) dirwatcher.LogPatterns {
+		if len(patterns) == 0 {
+			return dirwatcher.DefaultLogPatterns
+		}
+
+		return dirwatcher.BuildLogPatterns(patterns)
+	}(conf.LogPatterns)
+
 	if len(conf.DirToWatch) > 0 {
-		s, err := dirlogsource.New(conf.DirToWatch, mostRecentTime, announcer, !conf.ImportOnly, conf.RsyncedDir)
+		s, err := dirlogsource.New(conf.DirToWatch, mostRecentTime, announcer, !conf.ImportOnly, conf.RsyncedDir, patterns)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

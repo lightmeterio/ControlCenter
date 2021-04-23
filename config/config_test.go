@@ -110,3 +110,25 @@ func TestHelpOption(t *testing.T) {
 		So(errors.Is(err, flag.ErrHelp), ShouldBeTrue)
 	})
 }
+
+func TestLogPatterns(t *testing.T) {
+	Convey("When not passed, get an empty array", t, func() {
+		c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.LogPatterns, ShouldResemble, []string{})
+	})
+
+	Convey("Obtain from command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-log_file_patterns", "mail.log:mail.err"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.LogPatterns, ShouldResemble, []string{"mail.log", "mail.err"})
+	})
+
+	Convey("Obtain from environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_LOG_FILE_PATTERNS": "maillog"}
+		c, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.LogPatterns, ShouldResemble, []string{"maillog"})
+	})
+
+}
