@@ -182,6 +182,16 @@ func collectResultKeyValueResults(conn *dbconn.RoPooledConn, resultId int64) (Re
 	return result, nil
 }
 
+func queueName(conn *dbconn.RoPooledConn, queueId int64) (string, error) {
+	var name string
+
+	if err := conn.Stmts[selectQueryNameById].QueryRow(queueId).Scan(&name); err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	return name, nil
+}
+
 // FIXME: this method is way too long. Really. It deserves urgent refactoring
 func buildAndPublishResult(
 	conn *dbconn.RoPooledConn,
@@ -245,9 +255,7 @@ func buildAndPublishResult(
 	deliveryQueueResult[QueueProcessedMessageSizeKey] = deliveryQueueResult[QueueOriginalMessageSizeKey]
 	deliveryQueueResult[QueueOriginalMessageSizeKey] = ResultEntryNone()
 
-	var deliveryQueueName string
-
-	err = conn.Stmts[selectQueryNameById].QueryRow(deliveryQueueId).Scan(&deliveryQueueName)
+	deliveryQueueName, err := queueName(conn, deliveryQueueId)
 	if err != nil {
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
@@ -265,6 +273,13 @@ func buildAndPublishResult(
 		if err != nil {
 			return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 		}
+
+		queueName, err := queueName(conn, queueId)
+		if err != nil {
+			return resultInfo, errorutil.Wrap(err, resultInfo.loc)
+		}
+
+		returnedMessageResults[QueueDeliveryNameKey] = ResultEntryText(queueName)
 
 		mergedResults = mergeResults(mergedResults, returnedMessageResults)
 	}

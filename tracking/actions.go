@@ -28,6 +28,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 			return MailSentActionType, emptyActionDataPair
 		case parser.DeferredStatus:
 			return MailBouncedActionType, emptyActionDataPair
+		case parser.ExpiredStatus:
+			fallthrough
 		default:
 			return UnsupportedActionType, emptyActionDataPair
 		}
