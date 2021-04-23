@@ -14,7 +14,7 @@ type Pickup struct {
 	Sender []byte
 }
 
-func parsePickupPayload(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parsePickupPayload(payloadLine []byte) (RawPayload, error) {
 	if s, parsed := parsePickup(payloadLine); parsed {
 		return RawPayload{
 			PayloadType: PayloadTypePickup,
