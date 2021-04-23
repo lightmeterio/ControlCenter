@@ -855,7 +855,7 @@ func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId, queueId
 	}()
 
 	if _, err := stmt.Exec(
-		resultId, MessageExpiredKey, true,
+		resultId, ResultStatusKey, parser.ExpiredStatus,
 		resultId, ResultDeliveryFilenameKey, loc.Filename,
 		resultId, ResultDeliveryFileLineKey, loc.Line,
 		resultId, MessageExpiredTime, time.Unix(),

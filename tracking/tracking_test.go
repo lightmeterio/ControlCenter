@@ -593,7 +593,15 @@ func TestTrackingFromFiles(t *testing.T) {
 
 					So(len(pub.results), ShouldEqual, 7)
 
-					So(pub.results[5][MessageExpiredKey].Int64(), ShouldEqual, 1)
+					So(pub.results[0][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[1][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[2][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[3][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[4][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[5][ResultStatusKey].Int64(), ShouldEqual, parser.ExpiredStatus)
+
+					// the last one is a bounce message, sent back to the sender
+					So(pub.results[6][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)
 
 					So(countQueues(), ShouldEqual, 0)
 					So(countQueueData(), ShouldEqual, 0)
