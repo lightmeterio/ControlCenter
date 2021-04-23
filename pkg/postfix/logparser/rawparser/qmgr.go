@@ -8,10 +8,11 @@ func init() {
 	registerHandler("postfix", "qmgr", parseQmgrPayload)
 }
 
-type QmgrReturnedToSender struct {
+type QmgrMessageExpired struct {
 	Queue            []byte
 	SenderLocalPart  []byte
 	SenderDomainPart []byte
+	Message          []byte
 }
 
 type QmgrMailQueued struct {
@@ -41,10 +42,10 @@ func parseQmgrPayload(payloadLine []byte) (RawPayload, error) {
 		}, nil
 	}
 
-	if s, parsed := parseQmgrReturnedToSender(payloadLine); parsed {
+	if s, parsed := parseQmgrMessageExpired(payloadLine); parsed {
 		return RawPayload{
-			PayloadType:          PayloadTypeQmgrReturnedToSender,
-			QmgrReturnedToSender: s,
+			PayloadType:        PayloadTypeQmgrMessageExpired,
+			QmgrMessageExpired: s,
 		}, nil
 	}
 

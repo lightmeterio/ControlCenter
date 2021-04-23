@@ -9,13 +9,13 @@ package rawparser
 %% machine qmgrReturnedToSender;
 %% write data;
 
-func parseQmgrReturnedToSender(data []byte) (QmgrReturnedToSender, bool) {
+func parseQmgrMessageExpired(data []byte) (QmgrMessageExpired, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
 	_ = eof
 
-	r := QmgrReturnedToSender{}
+	r := QmgrMessageExpired{}
 
 %%{
 	include common "common.rl";
@@ -32,7 +32,10 @@ func parseQmgrReturnedToSender(data []byte) (QmgrReturnedToSender, bool) {
 		r.SenderDomainPart = data[tokBeg:p]
 	};
 
-	main := qMgrQueueId ': from=<' senderLocalPart '@' senderDomainPart '>, status=expired, returned to sender'  @{
+	extraMessage = any+ >setTokBeg;
+
+	main := qMgrQueueId ': from=<' senderLocalPart '@' senderDomainPart '>, status=' ('force-')? 'expired, ' extraMessage @{
+		r.Message = data[tokBeg:eof]
 		return r, true
 	};
 
@@ -69,15 +72,15 @@ func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
 		r.SenderDomainPart = data[tokBeg:p]
 	};
 
-  size = digit+ >setTokBeg %{
-    r.Size = data[tokBeg:p]
-  };
+	size = digit+ >setTokBeg %{
+		r.Size = data[tokBeg:p]
+	};
 
-  nrcpt = digit+ >setTokBeg %{
-    r.Nrcpt = data[tokBeg:p]
-  };
+	nrcpt = digit+ >setTokBeg %{
+		r.Nrcpt = data[tokBeg:p]
+	};
 
-	main := qMgrQueueId ': from=<' (senderLocalPart '@' senderDomainPart)? '>, size=' size ', nrcpt=' nrcpt ' (queue active)'  @{
+	main := qMgrQueueId ': from=<' (senderLocalPart '@' senderDomainPart)? '>, size=' size ', nrcpt=' nrcpt ' (queue active)'	@{
 		return r, true
 	};
 
