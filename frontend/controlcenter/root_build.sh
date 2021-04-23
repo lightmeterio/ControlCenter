@@ -3,4 +3,7 @@
 set -e
 
 cd ./frontend/controlcenter
-vue build --dest ../../www ./src/main.js
+
+echo "Version: " $1
+
+export VUE_APP_VERSION=$1 && vue build --dest ../../www ./src/main.js

@@ -81,10 +81,7 @@ Vue.use(GetTextPlugin, {
   silent: true
 });
 
-import { getApplicationInfo } from "./lib/api.js";
-
-getApplicationInfo().then(function(response) {
-  Vue.use(VueMatomo, {
+Vue.use(VueMatomo, {
     host: "https://matomo.lightmeter.io/",
     siteId: 3,
     trackerFileName: "matomo",
@@ -152,8 +149,7 @@ getApplicationInfo().then(function(response) {
     //   ['appendToTrackingUrl', 'new_visit=1'],
     //   etc.
     // ]
-    preInitActions: [["setCustomDimension", 1, response.data.version]]
-  });
+    preInitActions: [["setCustomDimension", 1, process.env.VUE_APP_VERSION || "unknown"]]
 });
 
 Vue.config.productionTip = false;

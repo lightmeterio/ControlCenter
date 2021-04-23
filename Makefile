@@ -124,7 +124,7 @@ www:
 	mkdir -p ./www
 
 frontend_root: www $(TRANSLATION_OUTPUT)
-	sh ./frontend/controlcenter/root_build.sh
+	sh ./frontend/controlcenter/root_build.sh $(APP_VERSION)
 
 release: release_bin
 
