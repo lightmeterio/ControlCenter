@@ -35,6 +35,7 @@ const (
 	selectQueueById
 	insertResultData15Rows
 	insertResultData3Rows
+	insertResultData4Rows
 	insertResult
 	deleteFromNotificationQueues
 	selectFromNotificationQueues
@@ -115,6 +116,11 @@ var trackerStmtsText = map[trackerStmtKey]string{
 					(?, ?, ?)`,
 	insertResultData3Rows: `insert into result_data(result_id, key, value)
 		values(?, ?, ?),
+					(?, ?, ?),
+					(?, ?, ?)`,
+	insertResultData4Rows: `insert into result_data(result_id, key, value)
+		values(?, ?, ?),
+					(?, ?, ?),
 					(?, ?, ?),
 					(?, ?, ?)`,
 	insertResult:                       `insert into results(queue_id) values(?)`,

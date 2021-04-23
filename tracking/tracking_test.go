@@ -585,6 +585,22 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
 				})
+
+				Convey("After being deferred many times, postfix just gives up and set the message as expired", func() {
+					readFromTestFile("../test_files/postfix_logs/individual_files/18_expired.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 7)
+
+					So(pub.results[5][MessageExpiredKey].Int64(), ShouldEqual, 1)
+
+					So(countQueues(), ShouldEqual, 0)
+					So(countQueueData(), ShouldEqual, 0)
+					So(countConnections(), ShouldEqual, 0)
+					So(countConnectionData(), ShouldEqual, 0)
+					So(countPids(), ShouldEqual, 0)
+				})
 			})
 
 			// we expected all results to have been consumed

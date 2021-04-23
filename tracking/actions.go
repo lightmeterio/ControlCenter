@@ -51,6 +51,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		return MilterRejectActionType, emptyActionDataPair
 	case parser.SmtpdReject:
 		return RejectActionType, emptyActionDataPair
+	case parser.QmgrMessageExpired:
+		return MessageExpiredActionType, emptyActionDataPair
 	}
 
 	return UnsupportedActionType, emptyActionDataPair
@@ -484,7 +486,7 @@ func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r postfix.Record) error {
 		return errorutil.Wrap(err)
 	}
 
-	err = markResultToBeNotified(t, tx, resultInfo)
+	err = markResultToBeNotified(t, tx, resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -564,14 +566,14 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 	return nil
 }
 
-func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo) error {
+func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultId int64) error {
 	stmt := tx.Stmt(tracker.stmts[insertNotificationQueue])
 
 	defer func() {
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	_, err := stmt.Exec(resultInfo.id)
+	_, err := stmt.Exec(resultId)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -839,6 +841,73 @@ func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actio
 	}
 
 	if _, err := tryToDeleteQueue(tx, t.stmts, queueId, r.Location); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId, queueId int64, loc postfix.RecordLocation, time time.Time) error {
+	stmt := tx.Stmt(tracker.stmts[insertResultData4Rows])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	if _, err := stmt.Exec(
+		resultId, MessageExpiredKey, true,
+		resultId, ResultDeliveryFilenameKey, loc.Filename,
+		resultId, ResultDeliveryFileLineKey, loc.Line,
+		resultId, MessageExpiredTime, time.Unix(),
+	); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	p := r.Payload.(parser.QmgrMessageExpired)
+
+	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		log.Err(err).Msgf("Could not find queue %s at %v", p.Queue, r.Location)
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// Create a new result with the expired notice
+
+	// Increment usage of queue, as there's one more result using it
+	if err := incrementQueueUsage(tx, t.stmts, queueId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	stmt := tx.Stmt(t.stmts[insertResult])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	result, err := stmt.Exec(queueId)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	resultId, err := result.LastInsertId()
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := createMessageExpiredMessage(t, tx, resultId, queueId, r.Location, r.Time); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := markResultToBeNotified(t, tx, resultId); err != nil {
 		return errorutil.Wrap(err)
 	}
 

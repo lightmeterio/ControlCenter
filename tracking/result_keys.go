@@ -61,6 +61,8 @@ const (
 	MessageIdLineKey
 
 	MessageIdIsCorruptedKey
+	MessageExpiredKey
+	MessageExpiredTime
 
 	lasResulttKey
 )
@@ -116,5 +118,7 @@ var (
 		MessageIdFilenameKey:     "messageid_filename",
 		MessageIdLineKey:         "messageid_line",
 		MessageIdIsCorruptedKey:  "messageid_is_corrupted",
+		MessageExpiredKey:        "message_expired",
+		MessageExpiredTime:       "message_expiration_time",
 	}
 )
