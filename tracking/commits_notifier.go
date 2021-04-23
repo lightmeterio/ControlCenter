@@ -258,6 +258,17 @@ func buildAndPublishResult(
 
 	mergedResults[ResultDeliveryServerKey] = ResultEntryText(deliveryServer)
 
+	if queueId != deliveryQueueId && queueId != connQueueId {
+		// In case we sent a message back due bounce on expired messages...
+		// TODO: this smells like a workaround, and a better approach should be used!
+		returnedMessageResults, err := collectQueuesKeyValueResults(conn, queueId)
+		if err != nil {
+			return resultInfo, errorutil.Wrap(err, resultInfo.loc)
+		}
+
+		mergedResults = mergeResults(mergedResults, returnedMessageResults)
+	}
+
 	pub.Publish(mergedResults)
 
 	actions.actions[actions.size] = func(tx *sql.Tx) error {

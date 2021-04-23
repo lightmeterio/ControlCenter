@@ -602,6 +602,7 @@ func TestTrackingFromFiles(t *testing.T) {
 
 					// the last one is a bounce message, sent back to the sender
 					So(pub.results[6][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)
+					So(pub.results[6][QueueMessageIDKey].Text(), ShouldEqual, "h-75055d2ab82e952d4ce9c3445@h-3857624469d1756194e464.com")
 
 					So(countQueues(), ShouldEqual, 0)
 					So(countQueueData(), ShouldEqual, 0)
