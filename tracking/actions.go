@@ -155,6 +155,7 @@ func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair acti
 	}
 
 	// TODO: there might be other payloads about connection, so this cast is not always safe
+	//nolint:forcetypeassert
 	payload := r.Payload.(parser.SmtpdConnect)
 
 	stmt := tx.Stmt(t.stmts[insertConnectionDataFourRows])
@@ -276,6 +277,7 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 // assign a queue, just created.
 // find the connection with a given pid, and append the queue to the connection
 func cloneAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
 	connectionId, _, err := findConnectionIdAndUsageCounter(tx, tracker, r.Header)
@@ -328,6 +330,7 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 
 // associate a queue to a message-id
 func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMessageAccepted)
 
 	queueId, err := func() (int64, error) {
@@ -395,6 +398,7 @@ func findQueueIdFromQueueValue(tx *sql.Tx, t *Tracker, h parser.Header, queue st
 
 func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// I have the queue id and need to set the e-mail sender, size and nrcpt
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMailQueued)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
@@ -490,6 +494,7 @@ func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r postfix.Record) error {
 
 func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// Check if message has been forwarded to the an internal relay
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
 	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
@@ -576,6 +581,7 @@ func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultInfo resultInfo)
 }
 
 func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrRemoved)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
@@ -669,6 +675,7 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.Rec
 }
 
 func createResult(tracker *Tracker, tx *sql.Tx, r postfix.Record) (resultInfo, error) {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
 	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
@@ -724,6 +731,7 @@ func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDat
 }
 
 func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.BounceCreated)
 
 	bounceQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.ChildQueue)
@@ -766,6 +774,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionD
 
 // Mail submitted locally on the machine via sendmail is being picked up
 func pickupAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.Pickup)
 
 	// create a dummy connection for it, as there was no connection to it
@@ -795,6 +804,7 @@ func pickupAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actio
 // a milter rejects a message
 func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// TODO: notify this rejection to someone!!!
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMilterReject)
 
 	log.Warn().Msgf("Mail rejected by milter, queue: %s on %s:%v", p.Queue, r.Location.Filename, r.Location.Line)
@@ -814,6 +824,7 @@ func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
 	// TODO: Notify someone about the rejected message
 	// FIXME: this is almost copy&paste from milterRejectAction!!!
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdReject)
 
 	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)

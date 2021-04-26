@@ -112,6 +112,7 @@ func DownTo(db *sql.DB, version int64, databaseName string) error {
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
 			log.Printf("no migrations to run. current version: %d\n", currentVersion)
+			//nolint:nilerr
 			return nil
 		}
 

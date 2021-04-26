@@ -73,6 +73,7 @@ func DefaultContentTypeDecoder(content Content) func(b []byte) (Content, error) 
 	}
 
 	handler := func(b []byte) (Content, error) {
+		//nolint:forcetypeassert
 		v := reflect.New(reflectedValue.Elem().Type()).Interface().(Content)
 
 		err := json.Unmarshal(b, v)
