@@ -168,9 +168,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <div class="progress-indicator-area" v-show="shouldShowProgressIndicator">
       <import-progress-indicator :label="generatingInsights" @finished="handleProgressFinished"></import-progress-indicator>
-      </div>
 
       <insights class="row" v-show="shouldShowInsights" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
 
@@ -214,9 +212,6 @@ export default {
     };
   },
   computed: {
-    shouldShowProgressIndicator() {
-      return !this.isImportProgressFinished;
-    },
     shouldShowInsights() {
       return this.isImportProgressFinished;
     },

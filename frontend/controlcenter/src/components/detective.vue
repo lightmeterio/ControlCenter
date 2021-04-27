@@ -66,6 +66,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p :class="searchResultClass">{{ searchResultText }}</p>
     </b-container>
     
+    <import-progress-indicator ref="import" :label="importingLogs" @finished="handleProgressFinished"></import-progress-indicator>
+    
     <b-container class="results">
       <b-row v-for="result in results" :key="result.Timestamp">
         <b-col sm>{{ emailDate(result.time) }}</b-col>
@@ -93,7 +95,7 @@ import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
-import { mapActions, mapState } from "vuex";
+import { mapActions } from "vuex";
 
 
 function isEmail (email) {
@@ -122,17 +124,15 @@ export default {
       searchResultClass: '',
       results: [],
       
-      // log import progress
+      // logs import
       importingLogs: this.$gettext("Importing logs"),
+      
+      // TODO: restrict timeInterval to 1 day if forEndUsers?
     };
   },
   computed: {
-    shouldShowProgressIndicator() {
-      return !this.isImportProgressFinished;
-    },
     isEmailFrom: function () { return isEmail(this.mail_from); },
     isEmailTo:   function () { return isEmail(this.mail_to  ); },
-    ...mapState(["isImportProgressFinished"])
   },
   methods: {
     updateSelectedInterval(obj) {

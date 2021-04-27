@@ -13,11 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Search for emails</translate>
       </h2>
 
-      <detective forEndUsers=true></detective>
-      
-      <div class="progress-indicator-area" v-show="shouldShowProgressIndicator">
-        <import-progress-indicator :label="importingLogs" @finished="handleProgressFinished"></import-progress-indicator>
-      </div>
+      <detective forEndUsers></detective>
 
     </b-container>
   </div>
