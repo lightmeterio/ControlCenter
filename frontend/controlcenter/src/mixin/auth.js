@@ -5,6 +5,11 @@
 import { getIsNotLoginOrNotRegistered } from "../lib/api.js";
 
 export default {
+  data() {
+    return {
+      sessionInterval: null
+    };
+  },
   methods: {
     ValidSessionCheck: function() {
       let vue = this;
@@ -15,5 +20,11 @@ export default {
       }, 5000);
       return s;
     }
+  },
+  mounted() {
+    this.sessionInterval = this.ValidSessionCheck();
+  },
+  destroyed() {
+    window.clearInterval(this.sessionInterval);
   }
 };

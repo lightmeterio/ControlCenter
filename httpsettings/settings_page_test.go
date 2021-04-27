@@ -71,6 +71,9 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
+				"detective": map[string]interface{}{
+					"end_users_enabled": false,
+				},
 				"email_notifications": map[string]interface{}{
 					"skip_cert_check": false,
 					"auth_method":     "none",
@@ -137,6 +140,9 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
+				"detective": map[string]interface{}{
+					"end_users_enabled": false,
+				},
 				"email_notifications": map[string]interface{}{
 					"skip_cert_check": false,
 					"auth_method":     "none",
@@ -191,6 +197,9 @@ func TestSettingsPage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			expected := map[string]interface{}{
+				"detective": map[string]interface{}{
+					"end_users_enabled": false,
+				},
 				"email_notifications": map[string]interface{}{
 					"skip_cert_check": false,
 					"auth_method":     "none",
@@ -286,6 +295,9 @@ func TestSettingsPage(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				expected := map[string]interface{}{
+					"detective": map[string]interface{}{
+						"end_users_enabled": false,
+					},
 					"email_notifications": map[string]interface{}{
 						"skip_cert_check": false,
 						"auth_method":     "password",
