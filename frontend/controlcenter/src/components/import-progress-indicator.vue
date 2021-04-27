@@ -7,28 +7,30 @@ SPDX-License-Identifier: AGPL-3.0-only
 <!-- More documentation at https://github.com/setaman/vue-ellipse-progress -->
 
 <template>
-  <div class="progress-indicator">
-    <div class="ellipse">
-      <vue-ellipse-progress
-        line="square"
-        :progress="value"
-        emptyColor="#f9f9f9"
-        empty-thickness="10"
-        lineMode="normal"
-        :loading="!active && value < 100"
-        color="#2c9cd6"
-        :size="150"
-        :thickness="15"
-        animation="rs 70 1000"
-        fontSize="1.7rem"
-        fontColor="black"
-        :legend-value="value"
-        :legend="true"
-        >
-        <span slot="legend-value">%</span>
-      </vue-ellipse-progress>
+  <div class="progress-indicator-area" v-show="shouldShowProgressIndicator">
+    <div class="progress-indicator">
+      <div class="ellipse">
+        <vue-ellipse-progress
+          line="square"
+          :progress="value"
+          emptyColor="#f9f9f9"
+          empty-thickness="10"
+          lineMode="normal"
+          :loading="!active && value < 100"
+          color="#2c9cd6"
+          :size="150"
+          :thickness="15"
+          animation="rs 70 1000"
+          fontSize="1.7rem"
+          fontColor="black"
+          :legend-value="value"
+          :legend="true"
+          >
+          <span slot="legend-value">%</span>
+        </vue-ellipse-progress>
+      </div>
+      <div class="generating-label" v-show="showLabel">{{ label }}</div>
     </div>
-    <div class="generating-label" v-show="showLabel">{{ label }}</div>
   </div>
 </template>
 
@@ -36,6 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 import tracking from "../mixin/global_shared.js";
 import { getAPI } from "@/lib/api";
+import { mapState } from "vuex";
 
 export default {
   mixins: [tracking],
@@ -62,6 +65,10 @@ export default {
         "font-color": "red"
       }
     };
+  },
+  computed: {
+    shouldShowProgressIndicator: function () { return !this.isImportProgressFinished; },
+    ...mapState(["isImportProgressFinished"])
   },
   mounted() {
     let vue = this;
