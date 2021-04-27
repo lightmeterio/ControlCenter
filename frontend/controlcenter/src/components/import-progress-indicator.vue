@@ -28,9 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <span slot="legend-value">%</span>
       </vue-ellipse-progress>
     </div>
-    <div class="generating-label" v-show="showLabel">
-      <translate>Generating Insights</translate>
-    </div>
+    <div class="generating-label" v-show="showLabel">{{ label }}</div>
   </div>
 </template>
 
@@ -42,7 +40,11 @@ import { getAPI } from "@/lib/api";
 export default {
   mixins: [tracking],
   props: {
-    showLabel: Boolean
+    label: String,
+    showLabel: {
+      type: Boolean,
+      default: true
+    },
   },
   data() {
     return {

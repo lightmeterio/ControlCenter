@@ -49,7 +49,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               class="pt-2"
               required
               v-model="settings.email_notifications.enabled"
-              :options="EmailNotificationsEnabledSwitchOptions"
+              :options="YesNoOptions"
             ></b-form-radio-group>
           <b-form-row>
             <b-col cols="6">
@@ -231,7 +231,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               class="pt-2"
               required
               v-model="settings.slack_notifications.enabled"
-              :options="SlackNotificationsEnabledSwitchOptions"
+              :options="YesNoOptions"
             ></b-form-radio-group>
 
             <b-form-group
@@ -285,7 +285,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <translate>General</translate>
         </h5>
 
-        <b-form @submit="onGeneralSettingsSubmit" id="general-form-container">
+        <b-form @submit="onGeneralSettingsSubmit">
           <b-form-group
             class="postfixPublicIP"
             :label="PostfixPublicIP"
@@ -331,6 +331,33 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-button>
           </div>
         </b-form>
+        
+        <h5 class="form-heading">
+          <!-- prettier-ignore -->
+          <translate>Message Detective</translate>
+        </h5>
+
+        <b-form @submit="onDetectiveSettingsSubmit">
+          <b-form-group :label="DetectiveEndUsersEnabled">
+            <b-form-radio-group
+              class="pt-2"
+              required
+              v-model="settings.detective.end_users_enabled"
+              :options="YesNoOptions"
+            ></b-form-radio-group>
+            <span class="text-warning" v-show="settings.detective.end_users_enabled">
+              {{ DetectiveEndUsersHelpText }}
+            </span>
+          </b-form-group>
+          
+          <div class="button-group">
+            <b-button variant="outline-primary" type="submit">
+              <!-- prettier-ignore -->
+              <translate>Save</translate>
+            </b-button>
+          </div>
+        </b-form>
+        
       </div>
     </b-container>
     <mainfooter></mainfooter>
@@ -338,21 +365,23 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script>
-import { getSettings } from "../lib/api.js";
-import { getMetaLanguage } from "../lib/api.js";
-import { submitNotificationsSettingsForm } from "../lib/api.js";
-import { submitGeneralForm } from "../lib/api.js";
-import { clearSettings } from "../lib/api.js";
-import session from "@/mixin/views_shared";
+import {
+  clearSettings,
+  getMetaLanguage,
+  getSettings,
+  submitDetectiveSettingsForm,
+  submitGeneralForm,
+  submitNotificationsSettingsForm,
+} from "@/lib/api.js";
+import auth from "../mixin/auth.js";
 import Vue from "vue";
 
 export default {
   name: "settingspage",
   components: {},
-  mixins: [session],
+  mixins: [auth],
   data() {
     return {
-      sessionInterval: null,
       settings: {
         slack_notifications: {
           bearer_token: "",
@@ -379,12 +408,18 @@ export default {
           postfix_public_ip: "",
           app_language: "",
           public_url: ""
+        },
+        detective: {
+          end_users_enabled: false
         }
       },
       languages: []
     };
   },
   computed: {
+    YesNoOptions: function() {
+      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
+    },
     NotificationLanguage: function() {
       return this.$gettext("Language");
     },
@@ -430,9 +465,6 @@ export default {
     EmailServerRecipientsInputPlaceholder: function() {
       return this.$gettext("Used in the To: header");
     },
-    EmailNotificationsEnabledSwitchOptions: function() {
-      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
-    },
     EmailNotificationsSecurityTypeOptions: function() {
       return [
         {text: this.$gettext("None"), value: "none"},
@@ -475,9 +507,6 @@ export default {
     SlackNotificationsEnabled: function() {
       return this.$gettext("Slack Notifications");
     },
-    SlackNotificationsEnabledSwitchOptions: function() {
-      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
-    },
     SlackAPItoken: function() {
       return this.$gettext("Slack API token");
     },
@@ -501,7 +530,13 @@ export default {
     },
     InsecureTlsHelpText() {
       return this.$gettext("Certificates will be used but not validated, allowing insecure connections");
-    }
+    },
+    DetectiveEndUsersEnabled() {
+      return this.$gettext("Allow unauthenticated end users to use Message Detective");
+    },
+    DetectiveEndUsersHelpText() {
+      return this.$gettext("Enabling this feature may leak data");  // TODO: better explanation
+    },
   },
   methods: {
     RefreshSettings() {
@@ -563,7 +598,6 @@ export default {
       event.preventDefault();
       
       let subsection = event.target.getAttribute('data-subsection');
-      console.log(subsection);
       
       const data = {
         slack: {
@@ -591,11 +625,20 @@ export default {
       let trackingInfo = {"SlackEnabled": this.settings.slack_notifications.enabled, "EmailEnabled": this.settings.email_notifications.enabled};
 
       submitNotificationsSettingsForm(data, trackingInfo);
+    },
+    onDetectiveSettingsSubmit(event) {
+      event.preventDefault();
+      
+      const data = {
+        detective_end_users_enabled: this.settings.detective.end_users_enabled,
+      };
+
+      let trackingInfo = {"EndUsersEnabled": this.settings.detective.end_users_enabled};
+
+      submitDetectiveSettingsForm(data, trackingInfo);
     }
   },
   mounted() {
-    this.sessionInterval = this.ValidSessionCheck();
-
     let vue = this;
     getMetaLanguage().then(function(response) {
       vue.languages = [];
@@ -604,9 +647,6 @@ export default {
       }
     });
     vue.RefreshSettings();
-  },
-  destroyed() {
-    clearInterval(this.sessionInterval);
   }
 };
 </script>

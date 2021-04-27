@@ -72,9 +72,12 @@ func (s *HttpServer) Start() error {
 
 	dashboard := s.Workspace.Dashboard()
 
+	detective := s.Workspace.Detective()
+
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher())
 	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
+	api.HttpDetective(auth, mux, s.Timezone, detective)
 
 	setup.HttpSetup(mux, auth)
 
