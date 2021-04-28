@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -49,6 +50,10 @@ const (
 	insertDelivery
 	updateDeliveryWithRelay
 	updateDeliveryWithOrigRecipient
+	insertQueue
+	insertQueueDeliveryAttempt
+	findQueueByName
+	updateDeliveryStatusByQueueName
 
 	lastStmtKey
 )
@@ -91,6 +96,19 @@ insert into deliveries(
 values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	updateDeliveryWithRelay:         `update deliveries set next_relay_id = ? where id = ?`,
 	updateDeliveryWithOrigRecipient: `update deliveries set orig_recipient_domain_part_id = ? where id = ?`,
+	insertQueue:                     `insert into queues(name) values(?)`,
+	insertQueueDeliveryAttempt:      `insert into delivery_queue(queue_id, delivery_id) values(?, ?)`,
+	findQueueByName:                 `select id from queues where name = ?`,
+	updateDeliveryStatusByQueueName: `
+		with ids_with_queue(delivery_id) as (
+			select delivery_queue.delivery_id as delivery_id
+			from
+				delivery_queue join queues on delivery_queue.queue_id = queues.id
+			where queues.name = ?
+			order by delivery_id desc
+			limit 1
+		)
+		update deliveries set status = ? where id = (select delivery_id from ids_with_queue)`,
 }
 
 // TODO: close such statements when the tracker is deleted!!!
@@ -383,59 +401,83 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 			}
 		}()
 
-		result, err := insertMandatoryResultFields(tx, stmts, tr)
-
-		port := func() int64 {
-			if tr[tracking.ResultRelayPortKey].IsNone() {
-				return 0
-			}
-
-			return tr[tracking.ResultRelayPortKey].Int64()
-		}()
-
-		rowId, err := result.LastInsertId()
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		relayId, relayIdFound, err := getOptionalNextRelayId(tx, stmts, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if relayIdFound {
-			stmt := tx.Stmt(stmts[updateDeliveryWithRelay])
-
-			defer func() {
-				errorutil.MustSucceed(stmt.Close())
-			}()
-
-			_, err = stmt.Exec(relayId, rowId)
-			if err != nil {
+		// it's an "expired" notification. Update the last deferred message in the queue
+		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
+			if err := updateDeliveryStatusToExpired(tr[tracking.QueueDeliveryNameKey].Text(), tx, stmts); err != nil {
 				return errorutil.Wrap(err)
 			}
+
+			return nil
 		}
 
-		origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultOrigRecipientDomainPartKey])
-		if err != nil {
+		if err = handleNonExpiredDeliveryAttempt(tr, tx, stmts); err != nil {
 			return errorutil.Wrap(err)
-		}
-
-		if origRecipientDomainPartFound {
-			stmt := tx.Stmt(stmts[updateDeliveryWithOrigRecipient])
-
-			defer func() {
-				errorutil.MustSucceed(stmt.Close())
-			}()
-
-			_, err = stmt.Exec(origRecipientDomainPartId, rowId)
-			if err != nil {
-				return errorutil.Wrap(err)
-			}
 		}
 
 		return nil
 	}
+}
+
+func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts preparedStmts) error {
+	result, err := insertMandatoryResultFields(tx, stmts, tr)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	port := func() int64 {
+		if tr[tracking.ResultRelayPortKey].IsNone() {
+			return 0
+		}
+
+		return tr[tracking.ResultRelayPortKey].Int64()
+	}()
+
+	rowId, err := result.LastInsertId()
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err = handleQueueInfo(rowId, tr, tx, stmts); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	relayId, relayIdFound, err := getOptionalNextRelayId(tx, stmts, tr[tracking.ResultRelayNameKey], tr[tracking.ResultRelayIPKey], port)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if relayIdFound {
+		stmt := tx.Stmt(stmts[updateDeliveryWithRelay])
+
+		defer func() {
+			errorutil.MustSucceed(stmt.Close())
+		}()
+
+		_, err = stmt.Exec(relayId, rowId)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	origRecipientDomainPartId, origRecipientDomainPartFound, err := getOptionalUniqueRemoteDomainNameId(tx, stmts, tr[tracking.ResultOrigRecipientDomainPartKey])
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if origRecipientDomainPartFound {
+		stmt := tx.Stmt(stmts[updateDeliveryWithOrigRecipient])
+
+		defer func() {
+			errorutil.MustSucceed(stmt.Close())
+		}()
+
+		_, err = stmt.Exec(origRecipientDomainPartId, rowId)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
 }
 
 func (p *resultsPublisher) Publish(r tracking.Result) {
