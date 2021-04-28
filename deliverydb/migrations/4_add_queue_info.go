@@ -28,6 +28,9 @@ func upAddQueueTables(tx *sql.Tx) error {
 			queue_id int not null,
 			delivery_id int not null
 		);
+
+		create index delivery_queue_queue_index on delivery_queue(queue_id);
+		create index delivery_queue_delivery_index on delivery_queue(delivery_id);
 	`
 
 	if _, err := tx.Exec(sql); err != nil {
