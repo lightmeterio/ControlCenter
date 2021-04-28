@@ -598,7 +598,9 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(pub.results[2][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
 					So(pub.results[3][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
 					So(pub.results[4][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+
 					So(pub.results[5][ResultStatusKey].Int64(), ShouldEqual, parser.ExpiredStatus)
+					So(pub.results[5][QueueDeliveryNameKey].Text(), ShouldEqual, "23EBE3D5C0")
 
 					// the last one is a bounce message, sent back to the sender
 					So(pub.results[6][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)

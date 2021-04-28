@@ -849,7 +849,7 @@ func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actio
 	return nil
 }
 
-func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId, queueId int64, loc postfix.RecordLocation, time time.Time) error {
+func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId int64, loc postfix.RecordLocation, time time.Time) error {
 	stmt := tx.Stmt(tracker.stmts[insertResultData4Rows])
 
 	defer func() {
@@ -869,6 +869,7 @@ func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId, queueId
 }
 
 func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMessageExpired)
 
 	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
@@ -905,7 +906,7 @@ func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPa
 		return errorutil.Wrap(err)
 	}
 
-	if err := createMessageExpiredMessage(t, tx, resultId, queueId, r.Location, r.Time); err != nil {
+	if err := createMessageExpiredMessage(t, tx, resultId, r.Location, r.Time); err != nil {
 		return errorutil.Wrap(err)
 	}
 
