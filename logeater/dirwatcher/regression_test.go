@@ -88,3 +88,26 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 		})
 	})
 }
+
+func TestRegressionIssue463(t *testing.T) {
+	Convey("Regression Tests issue #463", t, func() {
+		// the log file starts empty, but in some point is updated with some content.
+		// We should not crash due an invalid time converter, obviously :-)
+		dirContent := FakeDirectoryContent{
+			entries: fileEntryList{
+				fileEntry{filename: "mail.err", modificationTime: testutil.MustParseTime(`2021-04-27 08:00:20 +0000`)},
+			},
+			contents: map[string]fakeFileData{
+				"mail.err": plainCurrentDataFile(``, `Apr 27 08:00:21 cloud2 postfix/pickup[15941]: AF96E3E8C6: uid=0 from=<root>`),
+			},
+		}
+
+		pub := fakePublisher{}
+		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), DefaultLogPatterns)
+		err := importer.Run()
+		So(err, ShouldBeNil)
+
+		So(len(pub.logs), ShouldEqual, 1)
+		So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-04-27 08:00:21 +0000`))
+	})
+}

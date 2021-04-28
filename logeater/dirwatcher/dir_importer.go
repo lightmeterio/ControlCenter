@@ -722,8 +722,6 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		thereAreFilesToBeProcessed := p.currentIndex < len(p.readers)
 
 		if !thereAreFilesToBeProcessed {
-			// ended processing queue, but moves the time converter to the file watcher to be reused there
-			p.converterChan <- p.converter
 			return false, nil
 		}
 
@@ -797,14 +795,36 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 		}
 
 		shouldKeepProcessor, err := updateQueueProcessor(p, content, progressNotifier)
-
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
 		if shouldKeepProcessor {
 			*updatedProcessors = append(*updatedProcessors, p)
+			continue
 		}
+
+		if p.converter != nil {
+			p.converterChan <- p.converter
+			continue
+		}
+
+		if len(p.entries) == 0 {
+			continue
+		}
+
+		entry := p.entries[len(p.entries)-1]
+
+		// If there were entries to be processed, but a time converter has not been yet created,
+		// create one using the modification time of the most recent file in the queue
+		converter := parser.NewTimeConverter(entry.modificationTime,
+			func(year int, from parser.Time, to parser.Time) {
+				log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v",
+					year, from, to, entry.filename)
+			})
+
+		p.converter = &converter
+		p.converterChan <- p.converter
 	}
 
 	return nil
