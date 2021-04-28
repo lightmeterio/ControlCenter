@@ -13,7 +13,7 @@ package rawparser
 
 //line qmgr.gen.go:15
 const qmgrReturnedToSender_start int = 1
-const qmgrReturnedToSender_first_final int = 50
+const qmgrReturnedToSender_first_final int = 39
 const qmgrReturnedToSender_error int = 0
 
 const qmgrReturnedToSender_en_main int = 1
@@ -21,13 +21,13 @@ const qmgrReturnedToSender_en_main int = 1
 
 //line qmgr.rl:11
 
-func parseQmgrReturnedToSender(data []byte) (QmgrReturnedToSender, bool) {
+func parseQmgrMessageExpired(data []byte) (QmgrMessageExpired, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
 	_ = eof
 
-	r := QmgrReturnedToSender{}
+	r := QmgrMessageExpired{}
 
 
 //line qmgr.gen.go:34
@@ -107,6 +107,8 @@ func parseQmgrReturnedToSender(data []byte) (QmgrReturnedToSender, bool) {
 		goto st_case_31
 	case 32:
 		goto st_case_32
+	case 39:
+		goto st_case_39
 	case 33:
 		goto st_case_33
 	case 34:
@@ -119,30 +121,6 @@ func parseQmgrReturnedToSender(data []byte) (QmgrReturnedToSender, bool) {
 		goto st_case_37
 	case 38:
 		goto st_case_38
-	case 39:
-		goto st_case_39
-	case 40:
-		goto st_case_40
-	case 41:
-		goto st_case_41
-	case 42:
-		goto st_case_42
-	case 43:
-		goto st_case_43
-	case 44:
-		goto st_case_44
-	case 45:
-		goto st_case_45
-	case 46:
-		goto st_case_46
-	case 47:
-		goto st_case_47
-	case 48:
-		goto st_case_48
-	case 49:
-		goto st_case_49
-	case 50:
-		goto st_case_50
 	}
 	goto st_out
 	st_case_1:
@@ -172,7 +150,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line qmgr.gen.go:176
+//line qmgr.gen.go:154
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -200,7 +178,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line qmgr.gen.go:204
+//line qmgr.gen.go:182
 		if data[p] == 32 {
 			goto st4
 		}
@@ -280,7 +258,7 @@ tr11:
 			goto _test_eof11
 		}
 	st_case_11:
-//line qmgr.gen.go:284
+//line qmgr.gen.go:262
 		switch data[p] {
 		case 62:
 			goto st0
@@ -299,7 +277,7 @@ tr13:
 			goto _test_eof12
 		}
 	st_case_12:
-//line qmgr.gen.go:303
+//line qmgr.gen.go:281
 		if data[p] == 62 {
 			goto st0
 		}
@@ -313,7 +291,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line qmgr.gen.go:317
+//line qmgr.gen.go:295
 		if data[p] == 62 {
 			goto tr16
 		}
@@ -329,7 +307,7 @@ tr16:
 			goto _test_eof14
 		}
 	st_case_14:
-//line qmgr.gen.go:333
+//line qmgr.gen.go:311
 		if data[p] == 44 {
 			goto st15
 		}
@@ -411,8 +389,11 @@ tr16:
 			goto _test_eof23
 		}
 	st_case_23:
-		if data[p] == 101 {
+		switch data[p] {
+		case 101:
 			goto st24
+		case 102:
+			goto st33
 		}
 		goto st0
 	st24:
@@ -492,16 +473,36 @@ tr16:
 			goto _test_eof32
 		}
 	st_case_32:
-		if data[p] == 114 {
-			goto st33
+		goto tr36
+tr36:
+//line common.rl:25
+ tokBeg = p 
+//line qmgr.rl:37
+
+		r.Message = data[tokBeg:eof]
+		return r, true
+	
+	goto st39
+tr42:
+//line qmgr.rl:37
+
+		r.Message = data[tokBeg:eof]
+		return r, true
+	
+	goto st39
+	st39:
+		if p++; p == pe {
+			goto _test_eof39
 		}
-		goto st0
+	st_case_39:
+//line qmgr.gen.go:499
+		goto tr42
 	st33:
 		if p++; p == pe {
 			goto _test_eof33
 		}
 	st_case_33:
-		if data[p] == 101 {
+		if data[p] == 111 {
 			goto st34
 		}
 		goto st0
@@ -510,7 +511,7 @@ tr16:
 			goto _test_eof34
 		}
 	st_case_34:
-		if data[p] == 116 {
+		if data[p] == 114 {
 			goto st35
 		}
 		goto st0
@@ -519,7 +520,7 @@ tr16:
 			goto _test_eof35
 		}
 	st_case_35:
-		if data[p] == 117 {
+		if data[p] == 99 {
 			goto st36
 		}
 		goto st0
@@ -528,7 +529,7 @@ tr16:
 			goto _test_eof36
 		}
 	st_case_36:
-		if data[p] == 114 {
+		if data[p] == 101 {
 			goto st37
 		}
 		goto st0
@@ -537,7 +538,7 @@ tr16:
 			goto _test_eof37
 		}
 	st_case_37:
-		if data[p] == 110 {
+		if data[p] == 45 {
 			goto st38
 		}
 		goto st0
@@ -547,120 +548,8 @@ tr16:
 		}
 	st_case_38:
 		if data[p] == 101 {
-			goto st39
+			goto st24
 		}
-		goto st0
-	st39:
-		if p++; p == pe {
-			goto _test_eof39
-		}
-	st_case_39:
-		if data[p] == 100 {
-			goto st40
-		}
-		goto st0
-	st40:
-		if p++; p == pe {
-			goto _test_eof40
-		}
-	st_case_40:
-		if data[p] == 32 {
-			goto st41
-		}
-		goto st0
-	st41:
-		if p++; p == pe {
-			goto _test_eof41
-		}
-	st_case_41:
-		if data[p] == 116 {
-			goto st42
-		}
-		goto st0
-	st42:
-		if p++; p == pe {
-			goto _test_eof42
-		}
-	st_case_42:
-		if data[p] == 111 {
-			goto st43
-		}
-		goto st0
-	st43:
-		if p++; p == pe {
-			goto _test_eof43
-		}
-	st_case_43:
-		if data[p] == 32 {
-			goto st44
-		}
-		goto st0
-	st44:
-		if p++; p == pe {
-			goto _test_eof44
-		}
-	st_case_44:
-		if data[p] == 115 {
-			goto st45
-		}
-		goto st0
-	st45:
-		if p++; p == pe {
-			goto _test_eof45
-		}
-	st_case_45:
-		if data[p] == 101 {
-			goto st46
-		}
-		goto st0
-	st46:
-		if p++; p == pe {
-			goto _test_eof46
-		}
-	st_case_46:
-		if data[p] == 110 {
-			goto st47
-		}
-		goto st0
-	st47:
-		if p++; p == pe {
-			goto _test_eof47
-		}
-	st_case_47:
-		if data[p] == 100 {
-			goto st48
-		}
-		goto st0
-	st48:
-		if p++; p == pe {
-			goto _test_eof48
-		}
-	st_case_48:
-		if data[p] == 101 {
-			goto st49
-		}
-		goto st0
-	st49:
-		if p++; p == pe {
-			goto _test_eof49
-		}
-	st_case_49:
-		if data[p] == 114 {
-			goto tr52
-		}
-		goto st0
-tr52:
-//line qmgr.rl:35
-
-		return r, true
-	
-	goto st50
-	st50:
-		if p++; p == pe {
-			goto _test_eof50
-		}
-	st_case_50:
-//line qmgr.gen.go:664
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -694,39 +583,28 @@ tr52:
 	_test_eof30: cs = 30; goto _test_eof
 	_test_eof31: cs = 31; goto _test_eof
 	_test_eof32: cs = 32; goto _test_eof
+	_test_eof39: cs = 39; goto _test_eof
 	_test_eof33: cs = 33; goto _test_eof
 	_test_eof34: cs = 34; goto _test_eof
 	_test_eof35: cs = 35; goto _test_eof
 	_test_eof36: cs = 36; goto _test_eof
 	_test_eof37: cs = 37; goto _test_eof
 	_test_eof38: cs = 38; goto _test_eof
-	_test_eof39: cs = 39; goto _test_eof
-	_test_eof40: cs = 40; goto _test_eof
-	_test_eof41: cs = 41; goto _test_eof
-	_test_eof42: cs = 42; goto _test_eof
-	_test_eof43: cs = 43; goto _test_eof
-	_test_eof44: cs = 44; goto _test_eof
-	_test_eof45: cs = 45; goto _test_eof
-	_test_eof46: cs = 46; goto _test_eof
-	_test_eof47: cs = 47; goto _test_eof
-	_test_eof48: cs = 48; goto _test_eof
-	_test_eof49: cs = 49; goto _test_eof
-	_test_eof50: cs = 50; goto _test_eof
 
 	_test_eof: {}
 	_out: {}
 	}
 
-//line qmgr.rl:41
+//line qmgr.rl:44
 
 
 	return r, false
 }
 
 
-//line qmgr.rl:47
+//line qmgr.rl:50
 
-//line qmgr.gen.go:730
+//line qmgr.gen.go:608
 const qmgrMailQueued_start int = 1
 const qmgrMailQueued_first_final int = 46
 const qmgrMailQueued_error int = 0
@@ -734,7 +612,7 @@ const qmgrMailQueued_error int = 0
 const qmgrMailQueued_en_main int = 1
 
 
-//line qmgr.rl:48
+//line qmgr.rl:51
 
 func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -745,12 +623,12 @@ func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
 	r := QmgrMailQueued{}
 
 
-//line qmgr.gen.go:749
+//line qmgr.gen.go:627
 	{
 	cs = qmgrMailQueued_start
 	}
 
-//line qmgr.gen.go:754
+//line qmgr.gen.go:632
 	{
 	if p == pe {
 		goto _test_eof
@@ -879,7 +757,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line qmgr.gen.go:883
+//line qmgr.gen.go:761
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -897,7 +775,7 @@ tr0:
 		}
 		goto st0
 tr3:
-//line qmgr.rl:60
+//line qmgr.rl:63
 
 		r.Queue = data[tokBeg:p]
 	
@@ -907,7 +785,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line qmgr.gen.go:911
+//line qmgr.gen.go:789
 		if data[p] == 32 {
 			goto st4
 		}
@@ -987,7 +865,7 @@ tr11:
 			goto _test_eof11
 		}
 	st_case_11:
-//line qmgr.gen.go:991
+//line qmgr.gen.go:869
 		switch data[p] {
 		case 62:
 			goto st0
@@ -996,7 +874,7 @@ tr11:
 		}
 		goto st11
 tr14:
-//line qmgr.rl:64
+//line qmgr.rl:67
 
 		r.SenderLocalPart = normalizeMailLocalPart(data[tokBeg:p])
 	
@@ -1006,7 +884,7 @@ tr14:
 			goto _test_eof12
 		}
 	st_case_12:
-//line qmgr.gen.go:1010
+//line qmgr.gen.go:888
 		if data[p] == 62 {
 			goto st0
 		}
@@ -1020,13 +898,13 @@ tr15:
 			goto _test_eof13
 		}
 	st_case_13:
-//line qmgr.gen.go:1024
+//line qmgr.gen.go:902
 		if data[p] == 62 {
 			goto tr17
 		}
 		goto st13
 tr17:
-//line qmgr.rl:68
+//line qmgr.rl:71
 
 		r.SenderDomainPart = data[tokBeg:p]
 	
@@ -1036,7 +914,7 @@ tr17:
 			goto _test_eof14
 		}
 	st_case_14:
-//line qmgr.gen.go:1040
+//line qmgr.gen.go:918
 		if data[p] == 44 {
 			goto st15
 		}
@@ -1113,7 +991,7 @@ tr25:
 			goto _test_eof22
 		}
 	st_case_22:
-//line qmgr.gen.go:1117
+//line qmgr.gen.go:995
 		if data[p] == 44 {
 			goto tr26
 		}
@@ -1122,7 +1000,7 @@ tr25:
 		}
 		goto st0
 tr26:
-//line qmgr.rl:72
+//line qmgr.rl:75
 
     r.Size = data[tokBeg:p]
   
@@ -1132,7 +1010,7 @@ tr26:
 			goto _test_eof23
 		}
 	st_case_23:
-//line qmgr.gen.go:1136
+//line qmgr.gen.go:1014
 		if data[p] == 32 {
 			goto st24
 		}
@@ -1209,7 +1087,7 @@ tr35:
 			goto _test_eof31
 		}
 	st_case_31:
-//line qmgr.gen.go:1213
+//line qmgr.gen.go:1091
 		if data[p] == 32 {
 			goto tr36
 		}
@@ -1218,7 +1096,7 @@ tr35:
 		}
 		goto st0
 tr36:
-//line qmgr.rl:76
+//line qmgr.rl:79
 
     r.Nrcpt = data[tokBeg:p]
   
@@ -1228,7 +1106,7 @@ tr36:
 			goto _test_eof32
 		}
 	st_case_32:
-//line qmgr.gen.go:1232
+//line qmgr.gen.go:1110
 		if data[p] == 40 {
 			goto st33
 		}
@@ -1351,7 +1229,7 @@ tr36:
 		}
 		goto st0
 tr51:
-//line qmgr.rl:80
+//line qmgr.rl:83
 
 		return r, true
 	
@@ -1361,7 +1239,7 @@ tr51:
 			goto _test_eof46
 		}
 	st_case_46:
-//line qmgr.gen.go:1365
+//line qmgr.gen.go:1243
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -1414,7 +1292,7 @@ tr51:
 	_out: {}
 	}
 
-//line qmgr.rl:86
+//line qmgr.rl:89
 
 
 	return r, false
@@ -1422,9 +1300,9 @@ tr51:
 
 
 
-//line qmgr.rl:93
+//line qmgr.rl:96
 
-//line qmgr.gen.go:1428
+//line qmgr.gen.go:1306
 const qmgrRemoved_start int = 1
 const qmgrRemoved_first_final int = 11
 const qmgrRemoved_error int = 0
@@ -1432,7 +1310,7 @@ const qmgrRemoved_error int = 0
 const qmgrRemoved_en_main int = 1
 
 
-//line qmgr.rl:94
+//line qmgr.rl:97
 
 func parseQmgrRemoved(data []byte) (QmgrRemoved, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -1443,12 +1321,12 @@ func parseQmgrRemoved(data []byte) (QmgrRemoved, bool) {
 	r := QmgrRemoved{}
 
 
-//line qmgr.gen.go:1447
+//line qmgr.gen.go:1325
 	{
 	cs = qmgrRemoved_start
 	}
 
-//line qmgr.gen.go:1452
+//line qmgr.gen.go:1330
 	{
 	if p == pe {
 		goto _test_eof
@@ -1507,7 +1385,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line qmgr.gen.go:1511
+//line qmgr.gen.go:1389
 		if data[p] == 58 {
 			goto tr3
 		}
@@ -1525,7 +1403,7 @@ tr0:
 		}
 		goto st0
 tr3:
-//line qmgr.rl:106
+//line qmgr.rl:109
 
 		r.Queue = data[tokBeg:p]
 	
@@ -1535,7 +1413,7 @@ tr3:
 			goto _test_eof3
 		}
 	st_case_3:
-//line qmgr.gen.go:1539
+//line qmgr.gen.go:1417
 		if data[p] == 32 {
 			goto st4
 		}
@@ -1604,7 +1482,7 @@ tr3:
 		}
 		goto st0
 tr11:
-//line qmgr.rl:110
+//line qmgr.rl:113
 
 		return r, true
 	
@@ -1614,7 +1492,7 @@ tr11:
 			goto _test_eof11
 		}
 	st_case_11:
-//line qmgr.gen.go:1618
+//line qmgr.gen.go:1496
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -1632,7 +1510,7 @@ tr11:
 	_out: {}
 	}
 
-//line qmgr.rl:116
+//line qmgr.rl:119
 
 
 	return r, false
