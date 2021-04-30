@@ -6,7 +6,9 @@ package workspace
 
 import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
 	localrblinsight "gitlab.com/lightmeter/controlcenter/insights/localrbl"
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
@@ -23,7 +25,12 @@ const (
 	oneWeek = oneDay * 7
 )
 
-func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker, rblDetector messagerbl.Stepper) insightscore.Options {
+func insightsOptions(
+	dashboard dashboard.Dashboard,
+	rblChecker localrbl.Checker,
+	rblDetector messagerbl.Stepper,
+	detectiveEscalator escalator.Stepper,
+) insightscore.Options {
 	return insightscore.Options{
 		"dashboard":      dashboard,
 		"highrate":       highrateinsight.Options{BaseBounceRateThreshold: 0.3},
@@ -46,6 +53,10 @@ func insightsOptions(dashboard dashboard.Dashboard, rblChecker localrbl.Checker,
 			UpdateInterval: time.Hour * 2,
 			RetryTime:      time.Minute * 10,
 			TimeLimit:      oneDay * 2,
+		},
+
+		"detective": detectiveescalation.Options{
+			Escalator: detectiveEscalator,
 		},
 	}
 }

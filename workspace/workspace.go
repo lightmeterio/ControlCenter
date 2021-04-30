@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/detective"
+	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
@@ -45,6 +46,7 @@ type Workspace struct {
 
 	dashboard dashboard.Dashboard
 	detective detective.Detective
+	escalator escalator.Escalator
 
 	NotificationCenter *notification.Center
 
@@ -102,11 +104,13 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	detective, err := detective.New(deliveries.ConnPool())
+	messageDetective, err := detective.New(deliveries.ConnPool())
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
+
+	detectiveEscalator := escalator.New()
 
 	translators := translator.New(po.DefaultCatalog)
 
@@ -134,7 +138,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	insightsEngine, err := insights.NewEngine(insightsAcessor, notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
+	insightsEngine, err := insights.NewEngine(
+		insightsAcessor,
+		notificationCenter,
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -151,7 +158,8 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		rblDetector:         rblDetector,
 		rblChecker:          rblChecker,
 		dashboard:           dashboard,
-		detective:           detective,
+		detective:           messageDetective,
+		escalator:           detectiveEscalator,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		importAnnouncer:     importAnnouncer,
@@ -222,6 +230,10 @@ func (ws *Workspace) Dashboard() dashboard.Dashboard {
 
 func (ws *Workspace) Detective() detective.Detective {
 	return ws.detective
+}
+
+func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
+	return ws.escalator
 }
 
 func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {

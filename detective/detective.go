@@ -19,7 +19,7 @@ import (
 const resultsPerPage = 100
 
 type Detective interface {
-	CheckMessageDelivery(context.Context, string, string, timeutil.TimeInterval, int) (*MessagesPage, error)
+	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, page int) (*MessagesPage, error)
 }
 
 type sqlDetective struct {
