@@ -107,7 +107,10 @@ func New(filename string, offset int64, w io.WriteCloser) (Watcher, error) {
 				return
 			}
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				done <- errorutil.Wrap(err)
+				return
+			}
 
 			done <- nil
 		}()
