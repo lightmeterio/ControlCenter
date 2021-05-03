@@ -214,7 +214,9 @@ export default {
 
       const updateDeliveryStatus = updateDonutChart("deliveryStatus");
       const updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains");
-      const updateTopDeferredDomainsChart = updateBarChart("topDeferredDomains");
+      const updateTopDeferredDomainsChart = updateBarChart(
+        "topDeferredDomains"
+      );
       const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
 
       vue.updateDashboard = function(start, end) {

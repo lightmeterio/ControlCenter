@@ -10,25 +10,34 @@ axios.defaults.withCredentials = true;
 import Vue from "vue";
 
 export function getAPI(endpoint) {
-  return axios
-    .get(BASE_URL + "api/v0/" + endpoint)
+  return axios.get(BASE_URL + "api/v0/" + endpoint);
 }
 
-function cap (str) {
-  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+function cap(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 }
 
-export function clearSettings(section,subsection) {
+export function clearSettings(section, subsection) {
   let formData = new FormData();
-  formData.append("action", "clear")
-  formData.append("subsection", subsection)
+  formData.append("action", "clear");
+  formData.append("subsection", subsection);
 
   return axios
-    .post(BASE_URL + "settings?setting="+section, new URLSearchParams(formData))
+    .post(
+      BASE_URL + "settings?setting=" + section,
+      new URLSearchParams(formData)
+    )
     .then(function() {
-      trackEvent("Clear"+cap(subsection)+cap(section)+"Settings", "success");
+      trackEvent(
+        "Clear" + cap(subsection) + cap(section) + "Settings",
+        "success"
+      );
     })
-    .catch(builderErrorHandler("setting_"+(subsection?subsection+'_':'')+section+"_clear"));
+    .catch(
+      builderErrorHandler(
+        "setting_" + (subsection ? subsection + "_" : "") + section + "_clear"
+      )
+    );
 }
 
 export function submitGeneralForm(data, successMessage) {
@@ -184,6 +193,10 @@ export function getIsNotLoginOrNotRegistered() {
   return axios.get(BASE_URL + "auth/check");
 }
 
+export function getIsNotLoginAndNotEndUsersEnabled() {
+  return axios.get(BASE_URL + "auth/detective");
+}
+
 export function fetchInsights(selectedDateFrom, selectedDateTo, filter, sort) {
   let formData = new FormData();
 
@@ -263,19 +276,32 @@ export function requestWalkthroughCompletedStatus(completed) {
 
   var params = new URLSearchParams(data);
 
-  return axios.post(BASE_URL + "settings?setting=walkthrough", params.toString());
+  return axios.post(
+    BASE_URL + "settings?setting=walkthrough",
+    params.toString()
+  );
 }
 
 /**** Message Detective ****/
 
-export function checkMessageDelivery(mail_from, mail_to, date_from, date_to) {
+export function checkMessageDelivery(
+  mail_from,
+  mail_to,
+  date_from,
+  date_to,
+  page
+) {
   let formData = new FormData();
-  formData.append("mail_from", mail_from)
-  formData.append("mail_to",   mail_to)
-  formData.append("from",      date_from)
-  formData.append("to",        date_to)
+  formData.append("mail_from", mail_from);
+  formData.append("mail_to", mail_to);
+  formData.append("from", date_from);
+  formData.append("to", date_to);
+  formData.append("page", page);
 
-  var post = axios.post(BASE_URL + "api/v0/checkMessageDeliveryStatus", new URLSearchParams(formData));
+  var post = axios.post(
+    BASE_URL + "api/v0/checkMessageDeliveryStatus",
+    new URLSearchParams(formData)
+  );
   post.catch(builderErrorHandler("detective_search"));
   post.then(function() {
     trackEvent("MessageDetective", "search");

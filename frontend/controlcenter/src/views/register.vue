@@ -11,7 +11,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Welcome</translate>
       </h2>
       <p class="align-left" render-html="true" v-translate>
-        Please create a new administrator account - this is necessary to login. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if you've done it before.
+        Please create a new administrator account - this is necessary to login.
+        %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if
+        you've done it before.
       </p>
 
       <div class="field-group">
@@ -148,21 +150,28 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
     </div>
-    <b-toast id="progress-toast"
+    <b-toast
+      id="progress-toast"
       :visible="!isImportProgressFinished"
       :title="progressIndicatorTitle"
-      toaster="b-toaster-bottom-right progress-indicator-toast" no-auto-hide no-close-button>
+      toaster="b-toaster-bottom-right progress-indicator-toast"
+      no-auto-hide
+      no-close-button
+    >
       <template #toast-title>
-          <span class="progress-toast-title">
-            <translate>Generating Insights</translate>
-          </span>
-          <span class="progress-toast-collapse">
-            <b-icon v-b-toggle.collapse-progress icon="arrows-collapse"></b-icon>
-          </span>
+        <span class="progress-toast-title">
+          <translate>Generating Insights</translate>
+        </span>
+        <span class="progress-toast-collapse">
+          <b-icon v-b-toggle.collapse-progress icon="arrows-collapse"></b-icon>
+        </span>
       </template>
       <b-collapse visible id="collapse-progress">
         <div class="collapse-body">
-          <import-progress-indicator :showLabel=false @finished="handleProgressFinished"></import-progress-indicator>
+          <import-progress-indicator
+            :showLabel="false"
+            @finished="handleProgressFinished"
+          ></import-progress-indicator>
         </div>
       </b-collapse>
     </b-toast>
@@ -175,10 +184,10 @@ import { togglePasswordShow } from "../lib/util.js";
 import { mapState, mapActions } from "vuex";
 import { ipAddress } from "vuelidate/lib/validators";
 
-import linkify from 'vue-linkify';
+import linkify from "vue-linkify";
 import Vue from "vue";
 
-Vue.directive('linkified', linkify);
+Vue.directive("linkified", linkify);
 
 export default {
   name: "register",
@@ -291,14 +300,14 @@ export default {
       togglePasswordShow(event);
     },
     handleProgressFinished() {
-      this.setInsightsImportProgressFinished({wait: 3});
+      this.setInsightsImportProgressFinished({ wait: 3 });
     },
     ...mapActions(["setInsightsImportProgressFinished"])
   },
   mounted() {
     const el = document.body;
     el.classList.add("login-gradient");
-    this.$bvToast.show('progress-toast');
+    this.$bvToast.show("progress-toast");
   },
   destroyed() {
     const el = document.body;
@@ -387,5 +396,4 @@ export default {
     bottom: 3.2rem !important;
   }
 }
-
 </style>

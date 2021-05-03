@@ -40,8 +40,8 @@ import mainfooter from "./components/mainfooter";
 import insights from "./components/insights";
 import langaugeSwitcher from "./components/langauge-switcher";
 import importProgressIndicator from "./components/import-progress-indicator";
-import walkthrough from "./components/walkthrough"
-import detective from "./components/detective"
+import walkthrough from "./components/walkthrough";
+import detective from "./components/detective";
 
 import importSummaryInsightContent from "./components/insights/summary/content";
 
@@ -53,15 +53,15 @@ Vue.component("mainfooter", mainfooter);
 Vue.component("mainheader", mainheader);
 Vue.component("panel-page", panelpage);
 Vue.component("import-progress-indicator", importProgressIndicator);
-Vue.component("walkthrough", walkthrough)
-Vue.component("detective", detective)
+Vue.component("walkthrough", walkthrough);
+Vue.component("detective", detective);
 
 Vue.component("import-summary-insight-content", importSummaryInsightContent);
 
 import translations from "./translation/translations.json";
 
 // 3rd party components
-import VueEllipseProgress from 'vue-ellipse-progress';
+import VueEllipseProgress from "vue-ellipse-progress";
 Vue.use(VueEllipseProgress);
 
 // todo(marcel) fetch from api
