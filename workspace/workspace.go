@@ -36,6 +36,7 @@ import (
 
 type Workspace struct {
 	runner.CancelableRunner
+	closeutil.Closers
 
 	deliveries     *deliverydb.DB
 	tracker        *tracking.Tracker
@@ -54,8 +55,6 @@ type Workspace struct {
 	settingsRunner      *meta.Runner
 
 	importAnnouncer *announcer.SynchronizingAnnouncer
-
-	closes closeutil.Closers
 }
 
 func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
@@ -163,7 +162,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		importAnnouncer:     importAnnouncer,
-		closes: closeutil.New(
+		Closers: closeutil.New(
 			auth,
 			tracker,
 			deliveries,
@@ -264,10 +263,6 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
 	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
-}
-
-func (ws *Workspace) Close() error {
-	return ws.closes.Close()
 }
 
 func (ws *Workspace) HasLogs() bool {
