@@ -6,10 +6,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
+	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	mock_detective "gitlab.com/lightmeter/controlcenter/detective/mock"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
@@ -17,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -108,4 +111,90 @@ func TestDetective(t *testing.T) {
 	})
 
 	ctrl.Finish()
+}
+
+type fakeEscalateRequester struct {
+	requests []escalator.Request
+}
+
+func (e *fakeEscalateRequester) Request(r escalator.Request) {
+	e.requests = append(e.requests, r)
+}
+
+func mustParseTimeInterval(from, to string) timeutil.TimeInterval {
+	i, err := timeutil.ParseTimeInterval(from, to, time.UTC)
+	So(err, ShouldBeNil)
+	return i
+}
+
+func TestEscalation(t *testing.T) {
+	Convey("Test Detective Message Escalation", t, func() {
+		ctrl := gomock.NewController(t)
+		d := mock_detective.NewMockDetective(ctrl)
+		e := &fakeEscalateRequester{}
+		s := httptest.NewServer(httpmiddleware.New().WithEndpoint(detectiveEscalatorHandler{requester: e, detective: d}))
+
+		Convey("No message escalated", func() {
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
+
+			r, err := http.PostForm(s.URL, url.Values{
+				"from":      []string{"2000-01-01"},
+				"to":        []string{"2000-01-02"},
+				"mail_from": []string{"user1@example.com"},
+				"mail_to":   []string{"user2@example.com"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(e.requests, ShouldEqual, nil)
+		})
+
+		Convey("Internal error if detective check fails", func() {
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, errors.New(`Some error`))
+
+			r, err := http.PostForm(s.URL, url.Values{
+				"from":      []string{"2000-01-01"},
+				"to":        []string{"2000-01-02"},
+				"mail_from": []string{"user1@example.com"},
+				"mail_to":   []string{"user2@example.com"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
+			So(e.requests, ShouldEqual, nil)
+		})
+
+		Convey("Invalid interval value", func() {
+			r, err := http.PostForm(s.URL, url.Values{
+				"from":      []string{"2000-01-01"},
+				"to":        []string{"aaaaaaa"},
+				"mail_from": []string{"user1@example.com"},
+				"mail_to":   []string{"user2@example.com"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+			So(e.requests, ShouldEqual, nil)
+		})
+
+		Convey("Escalate issue", func() {
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+				&detective.MessagesPage{
+					Messages: []detective.MessageDelivery{
+						{Time: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`), Status: "bounced", Dsn: "3.4.6"},
+					},
+				}, nil)
+
+			r, err := http.PostForm(s.URL, url.Values{
+				"from":      []string{"2000-01-01"},
+				"to":        []string{"2000-01-02"},
+				"mail_from": []string{"user1@example.com"},
+				"mail_to":   []string{"user2@example.com"},
+			})
+
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+			So(e.requests, ShouldResemble, []escalator.Request{{Sender: "user1@example.com", Recipient: "user2@example.com", Interval: mustParseTimeInterval("2000-01-01", "2000-01-02")}})
+		})
+	})
 }

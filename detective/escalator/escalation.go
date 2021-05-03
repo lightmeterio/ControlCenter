@@ -52,13 +52,15 @@ func (e *escalator) Request(r Request) {
 }
 
 func TryToEscalateRequest(ctx context.Context, detective detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval) error {
-	messages, err := detective.CheckMessageDelivery(ctx, from, to, interval)
+	messages, err := detective.CheckMessageDelivery(ctx, from, to, interval, 1)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	shouldRefuse := func() bool {
-		for _, m := range messages {
+		// FIXME: this call is only checking the first page, which is obviously wrong.
+		// It should instead browse through all, by iterating over all pages!
+		for _, m := range messages.Messages {
 			// accept request only if at least one of the results came positive
 			if m.Status == "bounced" || m.Status == "deferred" {
 				return false
