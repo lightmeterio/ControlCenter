@@ -7,6 +7,7 @@ package api
 import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/detective"
+	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
@@ -106,4 +107,32 @@ func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.
 	mux.Handle("/api/v0/checkMessageDeliveryStatus", httpmiddleware.New(
 		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth, settingsReader),
 	).WithEndpoint(checkMessageDeliveryHandler{detective}))
+}
+
+type detectiveEscalatorHandler struct {
+	requester escalator.Requester
+	detective detective.Detective
+}
+
+// @Summary Escalate Message
+// @Param mail_from      query string true "Sender email address"
+// @Param mail_to        query string true "Recipient email address"
+// @Param timestamp_from query string true "Initial timestamp in the format 1999-12-23 12:00:00"
+// @Param timestamp_to   query string true "Final timestamp in the format 1999-12-23 14:00:00"
+// @Router /api/v0/escalateMessage [post]
+func (h detectiveEscalatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	interval, err := timeutil.ParseTimeInterval(r.Form.Get("from"), r.Form.Get("to"), time.UTC)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
+	}
+
+	if err := escalator.TryToEscalateRequest(r.Context(), h.detective, h.requester, r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
+	}
+
+	return httputil.WriteJson(w, "ok", http.StatusOK)
 }
