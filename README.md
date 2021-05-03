@@ -68,9 +68,10 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
    3. [Download from JFrog](https://bintray.com/lightmeter/controlcenter/controlcenter)
 2. When using the binaries you can run Lightmeter using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
    This command will start the application monitoring `/var/log` in real time (including old logs found there), and store operation files in `lightmeter_workspace` folder in your user's home directory.
-3. If you are using the docker image, plese look at the [Usage](#usage), Docker image section in the README.md
+3. If you are using the docker image, please look at the [Usage](#usage), Docker image section in the README.md
 4. Open `http://localhost:8080/` to see the web interface
-5. If necessary, change the date range to see charts for the period of the logs you just imported
+5. Secure web access to the Web UI as necessary (see [Known issues](#known-issues))
+6. If necessary, change the date range to see charts for the period of the logs you just imported
 
 ## Installation
 
@@ -370,6 +371,7 @@ Please consider extending the default mappings by making merge requests to benef
 
 ### High risk
 
+- The Web UI loads without SSL (unencrypted) by default, so credentials are at risk if transmitted over public networks (planned fix: [#480](https://gitlab.com/lightmeter/controlcenter/-/issues/480))
 - The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
 - Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
 
