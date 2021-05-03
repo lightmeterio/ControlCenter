@@ -52,14 +52,14 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *meta.AsyncWriter, func()) {
 
 	settingsWriter, settingsReader := ws.SettingsAcessors()
 
-	HttpDetective(auth, mux, time.UTC, ws.Detective(), settingsReader)
+	HttpDetective(auth, mux, time.UTC, ws.Detective(), &fakeEscalateRequester{}, settingsReader)
 
 	httpauth.HttpAuthenticator(mux, auth, settingsReader)
 
 	s := httptest.NewServer(mux)
 
 	return s, settingsWriter, func() {
-		ws.Close()
+		So(ws.Close(), ShouldBeNil)
 		clearDir()
 	}
 }
@@ -70,10 +70,10 @@ func TestDetectiveAuth(t *testing.T) {
 
 		c := buildCookieClient()
 
-		Convey("Detective API not accessible to non-authenticated user", func() {
-			s, _, clear := buildTestEnv(t)
-			defer clear()
+		s, settingsWriter, clear := buildTestEnv(t)
+		defer clear()
 
+		Convey("Detective API not accessible to non-authenticated user", func() {
 			r, err := c.Get(s.URL + detectiveURL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
@@ -91,9 +91,6 @@ func TestDetectiveAuth(t *testing.T) {
 		})
 
 		Convey("Detective API only accessible to end-users if setting is enabled", func() {
-			s, settingsWriter, clear := buildTestEnv(t)
-			defer clear()
-
 			r, err := c.Get(s.URL + detectiveURL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
