@@ -7,10 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <footer id="auth-page-footer" class="mt-auto">
     <b-container class="footer-text">
-      <span
-        render-html="true"
-        v-translate>
-        Made with %{heart} by %{openLink}Open Source professionals%{closeLink} 
+      <span render-html="true" v-translate>
+        Made with %{heart} by %{openLink}Open Source professionals%{closeLink}
       </span>
       <langauge-switcher></langauge-switcher>
     </b-container>
@@ -33,10 +31,10 @@ export default {
             fill-rule="evenodd"
             d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"
           />
-        </svg>`
+        </svg>`;
     },
     openLink() {
-      let title = this.$gettext("Lightmeter website")
+      let title = this.$gettext("Lightmeter website");
 
       return `<a
           href="https://lightmeter.io"
@@ -44,14 +42,13 @@ export default {
           data-toggle="tooltip"
           data-placement="top"
           title="${title}"
-          >`
+          >`;
     },
     closeLink() {
-      return `</a>`
+      return `</a>`;
     }
   }
 };
-
 </script>
 <style>
 #auth-page-footer {

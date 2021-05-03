@@ -90,7 +90,7 @@ func TestHTTPAuthV2(t *testing.T) {
 		mux := http.NewServeMux()
 
 		auth := httpauthsub.NewAuthenticatorWithOptions(registrar)
-		httpauth.HttpAuthenticator(mux, auth)
+		httpauth.HttpAuthenticator(mux, auth, nil)
 
 		s := httptest.NewServer(mux)
 

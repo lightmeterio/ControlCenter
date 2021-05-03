@@ -19,10 +19,16 @@ SPDX-License-Identifier: AGPL-3.0-only
           <translate>Notifications</translate>
         </h5>
 
-        <b-form data-subsection="language" @submit="onNotificationSettingsSubmit">
+        <b-form
+          data-subsection="language"
+          @submit="onNotificationSettingsSubmit"
+        >
           <b-form-row class="align-items-end">
             <b-col cols="6">
-              <b-form-group :label="NotificationLanguage" class="notification-language">
+              <b-form-group
+                :label="NotificationLanguage"
+                class="notification-language"
+              >
                 <b-form-select
                   class="pt-2"
                   required
@@ -44,86 +50,91 @@ SPDX-License-Identifier: AGPL-3.0-only
         </b-form>
 
         <b-form data-subsection="email" @submit="onNotificationSettingsSubmit">
-          <b-form-group :label="EmailNotificationsEnabled" class="notification-disabler">
+          <b-form-group
+            :label="EmailNotificationsEnabled"
+            class="notification-disabler"
+          >
             <b-form-radio-group
               class="pt-2"
               required
               v-model="settings.email_notifications.enabled"
               :options="YesNoOptions"
             ></b-form-radio-group>
-          <b-form-row>
-            <b-col cols="6">
-              <b-form-group
-                class="mail-server-name"
-                :label="EmailServerName"
-                label-for="mailServerName"
-              >
-                <b-form-input
-                  name="mail_server_name"
-                  id="mailServerName"
-                  v-model="settings.email_notifications.server_name"
-                  :placeholder="EmailServerNameInputPlaceholder"
-                  maxlength="255"
-                  :required="EmailFieldRequired"
-                ></b-form-input>
-              </b-form-group>
-            </b-col>
-          <b-col cols="6">
             <b-form-row>
               <b-col cols="6">
                 <b-form-group
-                  class="mail-server-port"
-                  :label="EmailServerPort"
-                  label-for="mailServerPort"
+                  class="mail-server-name"
+                  :label="EmailServerName"
+                  label-for="mailServerName"
                 >
                   <b-form-input
-                    type="number"
-                    name="mail_server_port"
-                    id="mailServerPort"
-                    v-model="settings.email_notifications.server_port"
+                    name="mail_server_name"
+                    id="mailServerName"
+                    v-model="settings.email_notifications.server_name"
+                    :placeholder="EmailServerNameInputPlaceholder"
                     maxlength="255"
-                    :required="EmailPortFieldRequired"
-                    min="0"
-                    max="65536"
+                    :required="EmailFieldRequired"
                   ></b-form-input>
                 </b-form-group>
               </b-col>
-              <b-col class="align-self-center" cols="6">
-                <b-form-text id="mailServerPort-help-block">{{EmailNotificationDefaultPortLabel}}</b-form-text>
+              <b-col cols="6">
+                <b-form-row>
+                  <b-col cols="6">
+                    <b-form-group
+                      class="mail-server-port"
+                      :label="EmailServerPort"
+                      label-for="mailServerPort"
+                    >
+                      <b-form-input
+                        type="number"
+                        name="mail_server_port"
+                        id="mailServerPort"
+                        v-model="settings.email_notifications.server_port"
+                        maxlength="255"
+                        :required="EmailPortFieldRequired"
+                        min="0"
+                        max="65536"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col class="align-self-center" cols="6">
+                    <b-form-text id="mailServerPort-help-block">{{
+                      EmailNotificationDefaultPortLabel
+                    }}</b-form-text>
+                  </b-col>
+                </b-form-row>
               </b-col>
             </b-form-row>
-          </b-col>
-          </b-form-row>
-          <b-form-row>
-            <b-col cols="6">
-              <b-form-group
-                class="mail-server-auth-method"
-                :label="EmailServerSecurityType"
-                label-for="mailServerSecurityType"
-              >
-                <b-form-select
-                  name="mail_server_security_type"
-                  id="mailServerSecurityType"
-                  v-model="settings.email_notifications.security_type"
-                  :options="EmailNotificationsSecurityTypeOptions"
-                ></b-form-select>
-              </b-form-group>
-            </b-col>
-            <b-col cols="6">
-              <b-form-group
-                class="mail-server-auth-method"
-                :label="EmailServerAuthMethod"
-                label-for="mailServerAuthMethod"
-              >
-              <b-form-select
-                name="mail_server_auth_method"
-                id="mailServerAuthMethod"
-                v-model="settings.email_notifications.auth_method"
-                :options="EmailNotificationsAuthOptions"
-              ></b-form-select>
-            </b-form-group>
-           </b-col>
-          </b-form-row>
+            <b-form-row>
+              <b-col cols="6">
+                <b-form-group
+                  class="mail-server-auth-method"
+                  :label="EmailServerSecurityType"
+                  label-for="mailServerSecurityType"
+                >
+                  <b-form-select
+                    name="mail_server_security_type"
+                    id="mailServerSecurityType"
+                    v-model="settings.email_notifications.security_type"
+                    :options="EmailNotificationsSecurityTypeOptions"
+                  ></b-form-select>
+                </b-form-group>
+              </b-col>
+              <b-col cols="6">
+                <b-form-group
+                  class="mail-server-auth-method"
+                  :label="EmailServerAuthMethod"
+                  label-for="mailServerAuthMethod"
+                >
+                  <b-form-select
+                    name="mail_server_auth_method"
+                    id="mailServerAuthMethod"
+                    v-model="settings.email_notifications.auth_method"
+                    :options="EmailNotificationsAuthOptions"
+                  ></b-form-select>
+                </b-form-group>
+              </b-col>
+            </b-form-row>
 
             <b-form-group
               class="mail-server-auth-skip-cert-check"
@@ -137,10 +148,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <!-- prettier-ignore -->
                 <translate>Allow insecure TLS</translate>
                 &nbsp;
-                <span
-                  v-b-tooltip.hover
-                  :title="InsecureTlsHelpText"
-                >
+                <span v-b-tooltip.hover :title="InsecureTlsHelpText">
                   <i class="fa fa-info-circle insight-help-button"></i>
                 </span>
               </b-form-checkbox>
@@ -217,16 +225,19 @@ SPDX-License-Identifier: AGPL-3.0-only
                 variant="outline-danger"
                 type="button"
                 @click="OnClearEmailNotificationsSettings"
-                >
+              >
                 <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
           </b-form-group>
         </b-form>
-        
+
         <b-form data-subsection="slack" @submit="onNotificationSettingsSubmit">
-          <b-form-group :label="SlackNotificationsEnabled" class="slack-disabler">
+          <b-form-group
+            :label="SlackNotificationsEnabled"
+            class="slack-disabler"
+          >
             <b-form-radio-group
               class="pt-2"
               required
@@ -272,14 +283,14 @@ SPDX-License-Identifier: AGPL-3.0-only
                 variant="outline-danger"
                 type="button"
                 @click="OnClearSlackNotificationsSettings"
-                >
+              >
                 <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
           </b-form-group>
         </b-form>
-        
+
         <h5 class="form-heading">
           <!-- prettier-ignore -->
           <translate>General</translate>
@@ -315,7 +326,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               maxlength="255"
             ></b-form-input>
           </b-form-group>
-          
+
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
               <!-- prettier-ignore -->
@@ -325,13 +336,13 @@ SPDX-License-Identifier: AGPL-3.0-only
               variant="outline-danger"
               type="button"
               @click="OnClearGeneralSettings"
-              >
+            >
               <!-- prettier-ignore -->
               <translate>Reset</translate>
             </b-button>
           </div>
         </b-form>
-        
+
         <h5 class="form-heading">
           <!-- prettier-ignore -->
           <translate>Message Detective</translate>
@@ -345,11 +356,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="settings.detective.end_users_enabled"
               :options="YesNoOptions"
             ></b-form-radio-group>
-            <span class="text-warning" v-show="settings.detective.end_users_enabled">
+            <span
+              class="text-warning"
+              v-show="settings.detective.end_users_enabled"
+            >
               {{ DetectiveEndUsersHelpText }}
             </span>
           </b-form-group>
-          
+
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
               <!-- prettier-ignore -->
@@ -357,7 +371,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-button>
           </div>
         </b-form>
-        
       </div>
     </b-container>
     <mainfooter></mainfooter>
@@ -371,7 +384,7 @@ import {
   getSettings,
   submitDetectiveSettingsForm,
   submitGeneralForm,
-  submitNotificationsSettingsForm,
+  submitNotificationsSettingsForm
 } from "@/lib/api.js";
 import auth from "../mixin/auth.js";
 import Vue from "vue";
@@ -386,7 +399,7 @@ export default {
         slack_notifications: {
           bearer_token: "",
           channel: "",
-          enabled: false,
+          enabled: false
         },
         email_notifications: {
           server_name: "",
@@ -398,11 +411,11 @@ export default {
           auth_method: "none",
           username: "",
           password: "",
-          enabled: false,
+          enabled: false
         },
         notifications: {
           // TODO: move this to a global state
-          language: "en",
+          language: "en"
         },
         general: {
           postfix_public_ip: "",
@@ -418,7 +431,10 @@ export default {
   },
   computed: {
     YesNoOptions: function() {
-      return [{text: this.$gettext("Yes"), value: true}, {text: this.$gettext("No"), value: false}];
+      return [
+        { text: this.$gettext("Yes"), value: true },
+        { text: this.$gettext("No"), value: false }
+      ];
     },
     NotificationLanguage: function() {
       return this.$gettext("Language");
@@ -467,33 +483,41 @@ export default {
     },
     EmailNotificationsSecurityTypeOptions: function() {
       return [
-        {text: this.$gettext("None"), value: "none"},
-        {text: "STARTTLS", value: "STARTTLS"},
-        {text: "TLS", value: "TLS"}
+        { text: this.$gettext("None"), value: "none" },
+        { text: "STARTTLS", value: "STARTTLS" },
+        { text: "TLS", value: "TLS" }
       ];
     },
     EmailNotificationDefaultPortLabel: function() {
-      let options = {"STARTTLS": 587, "TLS": 465};
-      let selected = options[this.settings.email_notifications.security_type]
+      let options = { STARTTLS: 587, TLS: 465 };
+      let selected = options[this.settings.email_notifications.security_type];
 
       if (selected == undefined) {
-        return ""
+        return "";
       }
 
-      let translation = this.$gettext("Default: %{port}")
+      let translation = this.$gettext("Default: %{port}");
 
-      return this.$gettextInterpolate(translation, {"port": selected})
+      return this.$gettextInterpolate(translation, { port: selected });
     },
     EmailNotificationsAuthOptions: function() {
-      return [{text: this.$gettext("No Authentication"), value: "none"}, {text: this.$gettext("Password"), value: "password"}];
+      return [
+        { text: this.$gettext("No Authentication"), value: "none" },
+        { text: this.$gettext("Password"), value: "password" }
+      ];
     },
     EmailFieldRequired: function() {
-      return this.settings.email_notifications.enabled
-        || this.settings.email_notifications.auth_method != "none"
-        || this.settings.email_notifications.server_port != "0";
+      return (
+        this.settings.email_notifications.enabled ||
+        this.settings.email_notifications.auth_method != "none" ||
+        this.settings.email_notifications.server_port != "0"
+      );
     },
     EmailPortFieldRequired: function() {
-      return this.settings.email_notifications.enabled || this.settings.email_notifications.auth_method != "none";
+      return (
+        this.settings.email_notifications.enabled ||
+        this.settings.email_notifications.auth_method != "none"
+      );
     },
     EmailAuthenticationIsRequired: function() {
       return this.settings.email_notifications.auth_method != "none";
@@ -529,19 +553,23 @@ export default {
       return this.$gettext("Enter Public URL");
     },
     InsecureTlsHelpText() {
-      return this.$gettext("Certificates will be used but not validated, allowing insecure connections");
+      return this.$gettext(
+        "Certificates will be used but not validated, allowing insecure connections"
+      );
     },
     DetectiveEndUsersEnabled() {
-      return this.$gettext("Allow unauthenticated end users to use Message Detective");
+      return this.$gettext(
+        "Allow unauthenticated end users to use Message Detective"
+      );
     },
     DetectiveEndUsersHelpText() {
-      return this.$gettext("Enabling this feature may leak data");  // TODO: better explanation
-    },
+      return this.$gettext("Enabling this feature may leak data"); // TODO: better explanation
+    }
   },
   methods: {
     RefreshSettings() {
       let vue = this;
-      
+
       getSettings().then(function(response) {
         vue.settings = response.data;
         if (vue.settings.notifications.language === "") {
@@ -552,32 +580,35 @@ export default {
     OnClearEmailNotificationsSettings(event) {
       event.preventDefault();
       let vue = this;
-      
-      if (!confirm(Vue.prototype.$gettext("Reset email notification settings?")))
+
+      if (
+        !confirm(Vue.prototype.$gettext("Reset email notification settings?"))
+      )
         return;
-      
-      clearSettings('notification', 'email').then(function() {
+
+      clearSettings("notification", "email").then(function() {
         vue.RefreshSettings();
       });
     },
     OnClearSlackNotificationsSettings(event) {
       event.preventDefault();
       let vue = this;
-      
-      if (!confirm(Vue.prototype.$gettext("Reset slack notification settings?")))
+
+      if (
+        !confirm(Vue.prototype.$gettext("Reset slack notification settings?"))
+      )
         return;
-      
-      clearSettings('notification', 'slack').then(function() {
+
+      clearSettings("notification", "slack").then(function() {
         vue.RefreshSettings();
       });
     },
     OnClearGeneralSettings(event) {
       event.preventDefault();
       let vue = this;
-      
-      if (!confirm(Vue.prototype.$gettext("Reset general settings?")))
-        return;
-      
+
+      if (!confirm(Vue.prototype.$gettext("Reset general settings?"))) return;
+
       clearSettings("general").then(function() {
         vue.RefreshSettings();
       });
@@ -596,44 +627,57 @@ export default {
     },
     onNotificationSettingsSubmit(event) {
       event.preventDefault();
-      
-      let subsection = event.target.getAttribute('data-subsection');
-      
+
+      let subsection = event.target.getAttribute("data-subsection");
+
       const data = {
         slack: {
           messenger_enabled: this.settings.slack_notifications.enabled,
           messenger_token: this.settings.slack_notifications.bearer_token,
-          messenger_channel: this.settings.slack_notifications.channel,
+          messenger_channel: this.settings.slack_notifications.channel
         },
         language: {
-          notification_language: this.settings.notifications.language,
+          notification_language: this.settings.notifications.language
         },
         email: {
-          email_notification_server_name: this.settings.email_notifications.server_name,
-          email_notification_skip_cert_check: this.settings.email_notifications.skip_cert_check,
-          email_notification_port: this.settings.email_notifications.server_port,
-          email_notification_username: this.settings.email_notifications.username,
-          email_notification_password: this.settings.email_notifications.password,
+          email_notification_server_name: this.settings.email_notifications
+            .server_name,
+          email_notification_skip_cert_check: this.settings.email_notifications
+            .skip_cert_check,
+          email_notification_port: this.settings.email_notifications
+            .server_port,
+          email_notification_username: this.settings.email_notifications
+            .username,
+          email_notification_password: this.settings.email_notifications
+            .password,
           email_notification_sender: this.settings.email_notifications.sender,
-          email_notification_recipients: this.settings.email_notifications.recipients,
-          email_notification_security_type: this.settings.email_notifications.security_type,
-          email_notification_auth_method: this.settings.email_notifications.auth_method,
-          email_notification_enabled: this.settings.email_notifications.enabled,
+          email_notification_recipients: this.settings.email_notifications
+            .recipients,
+          email_notification_security_type: this.settings.email_notifications
+            .security_type,
+          email_notification_auth_method: this.settings.email_notifications
+            .auth_method,
+          email_notification_enabled: this.settings.email_notifications.enabled
         }
       }[subsection];
 
-      let trackingInfo = {"SlackEnabled": this.settings.slack_notifications.enabled, "EmailEnabled": this.settings.email_notifications.enabled};
+      let trackingInfo = {
+        SlackEnabled: this.settings.slack_notifications.enabled,
+        EmailEnabled: this.settings.email_notifications.enabled
+      };
 
       submitNotificationsSettingsForm(data, trackingInfo);
     },
     onDetectiveSettingsSubmit(event) {
       event.preventDefault();
-      
+
       const data = {
-        detective_end_users_enabled: this.settings.detective.end_users_enabled,
+        detective_end_users_enabled: this.settings.detective.end_users_enabled
       };
 
-      let trackingInfo = {"EndUsersEnabled": this.settings.detective.end_users_enabled};
+      let trackingInfo = {
+        EndUsersEnabled: this.settings.detective.end_users_enabled
+      };
 
       submitDetectiveSettingsForm(data, trackingInfo);
     }
@@ -666,13 +710,13 @@ h5.form-heading {
   font-size: 18px;
 }
 
-.form-row
-, .form-container form label {
+.form-row,
+.form-container form label {
   font-size: 16px;
 }
 
-.form-group input
-, .form-group select {
+.form-group input,
+.form-group select {
   font-size: 16px;
 }
 
@@ -682,7 +726,7 @@ h5.form-heading {
 }
 
 form fieldset.form-group {
-    margin: 1rem 0;
+  margin: 1rem 0;
 }
 
 form .form-group {
@@ -704,7 +748,7 @@ form .form-group {
 .settings-page .button-group {
   display: flex;
   flex-flow: row-reverse;
-  
+
   button {
     width: 20%;
     margin-left: 1em;
@@ -713,14 +757,14 @@ form .form-group {
 }
 
 .custom-control .custom-control-input:checked ~ .custom-control-label::before {
-  border-color: #1D8CAF;
-  background-color: #1D8CAF;
+  border-color: #1d8caf;
+  background-color: #1d8caf;
 }
 
-form .form-control:focus
-, form .custom-select:focus {
-  border-color: #32ABE4;
-  box-shadow: 0 0 0 0.2rem #DCF1FB;
+form .form-control:focus,
+form .custom-select:focus {
+  border-color: #32abe4;
+  box-shadow: 0 0 0 0.2rem #dcf1fb;
 }
 
 @media (max-width: 768px) {

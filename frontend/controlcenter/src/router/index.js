@@ -10,7 +10,10 @@ import settingspage from "../views/settingspage.vue";
 import index from "../views/index.vue";
 import admindetective from "../views/admindetective.vue";
 import enduserdetective from "../views/enduserdetective.vue";
-import { getIsNotLoginOrNotRegistered } from "@/lib/api";
+import {
+  getIsNotLoginOrNotRegistered,
+  getIsNotLoginAndNotEndUsersEnabled
+} from "@/lib/api";
 
 Vue.use(VueRouter);
 
@@ -63,17 +66,22 @@ const router = new VueRouter({
 
 router.beforeEach((to, from, next) => {
   let customPageTitles = {
-    "settings": Vue.prototype.$gettext("Settings - %{mainPageTitle}"),
-    "register": Vue.prototype.$gettext("Registration - %{mainPageTitle}"),
-    "login": Vue.prototype.$gettext("Login - %{mainPageTitle}"),
-    "detective": Vue.prototype.$gettext("Message Detective - %{mainPageTitle}"),
+    settings: Vue.prototype.$gettext("Settings - %{mainPageTitle}"),
+    register: Vue.prototype.$gettext("Registration - %{mainPageTitle}"),
+    login: Vue.prototype.$gettext("Login - %{mainPageTitle}"),
+    detective: Vue.prototype.$gettext("Message Detective - %{mainPageTitle}"),
+    searchmessage: Vue.prototype.$gettext(
+      "Search for messages - %{mainPageTitle}"
+    )
   };
 
   let mainTitle = "Lightmeter";
   let extraText = customPageTitles[to.name];
 
   if (extraText !== undefined) {
-    mainTitle = Vue.prototype.$gettextInterpolate(extraText, {mainPageTitle: mainTitle})
+    mainTitle = Vue.prototype.$gettextInterpolate(extraText, {
+      mainPageTitle: mainTitle
+    });
   }
 
   document.title = mainTitle;
@@ -112,6 +120,16 @@ router.beforeEach((to, from, next) => {
           next();
           return;
         }
+        return error;
+      });
+    return;
+  }
+  if (to.name === "searchmessage") {
+    getIsNotLoginAndNotEndUsersEnabled()
+      .then(function() {
+        next();
+      })
+      .catch(function(error) {
         return error;
       });
     return;

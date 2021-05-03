@@ -77,11 +77,11 @@ func (s *HttpServer) Start() error {
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher())
 	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
-	api.HttpDetective(auth, mux, s.Timezone, detective)
+	api.HttpDetective(auth, mux, s.Timezone, detective, reader)
 
 	setup.HttpSetup(mux, auth)
 
-	httpauth.HttpAuthenticator(mux, auth)
+	httpauth.HttpAuthenticator(mux, auth, reader)
 
 	server := http.Server{Handler: wrap(mux)}
 
