@@ -72,18 +72,52 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-container>
 
     <b-container class="results mt-4">
-      <div v-for="result in results.messages" :key="result.Timestamp">
+      <div v-for="(result, index) in results.messages" :key="index">
         <h3>
           <!-- prettier-ignore -->
           <translate>Message Status</translate>:
-          <span :class="statusClass(result.status)">{{ result.status }}</span>
+          <span
+            v-for="delivery in result"
+            :key="delivery.time_min"
+            :class="statusClass(delivery.status)"
+            >{{ delivery.status }}</span
+          >
         </h3>
 
-        <p class="mt-3">{{ emailDate(result.time) }}</p>
+        <template v-if="result.length == 1">
+          <p class="mt-3">
+            {{ emailDate(result[0].time_min) }}
+          </p>
+          <p>
+            <!-- prettier-ignore -->
+            <translate>Status code</translate>:
+            {{ result[0].dsn }}
+          </p>
+        </template>
+        <div v-else v-for="delivery in result" :key="delivery.time_min">
+          <p class="mt-3">
+            {{ delivery.number_of_attempts }}
+            <!-- prettier-ignore -->
+            <translate>delivery attempt(s)</translate>
+            <span :class="statusClass(delivery.status)">
+              {{ delivery.status }}
+            </span>
+            <!-- prettier-ignore -->
+            <translate>with status code</translate>
+            {{ delivery.dsn }}
+            -
+            <span class="text-secondary">
+              {{ emailDate(delivery.time_min) }}
+            </span>
+            <template v-if="!(delivery.time_max == delivery.time_min)">
+              -
+              <span class="text-secondary">
+                {{ emailDate(delivery.time_max) }}
+              </span>
+            </template>
+          </p>
+        </div>
         <p>
-          <!-- prettier-ignore -->
-          <translate>Status code</translate>:
-          {{ result.dsn }}
           (You can find more information about status codes on
           <a
             href="https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml"
@@ -180,10 +214,10 @@ export default {
     },
     statusClass: function(status) {
       return {
-        sent: "text-success",
-        bounced: "text-danger",
-        deferred: "text-warning",
-        expired: "text-danger"
+        sent: "delivery-status text-success",
+        bounced: "delivery-status text-danger",
+        deferred: "delivery-status text-warning",
+        expired: "delivery-status text-danger"
       }[status];
     },
     onUpdateDateRangePicker: function(obj) {
@@ -218,17 +252,15 @@ export default {
         vue.page
       ).then(function(response) {
         vue.results = response.data;
+
+        let pageNb =
+          vue.page > 1 ? " - " + vue.$gettext("Page") + " " + vue.page : "";
+
         vue.searchResultClass = vue.results.total
           ? "text-primary"
           : "text-secondary";
         vue.searchResultText = vue.results.total
-          ? vue.results.total +
-            " " +
-            vue.$gettext("messages found") +
-            " - " +
-            vue.$gettext("Page") +
-            " " +
-            vue.page
+          ? vue.results.total + " " + vue.$gettext("message(s) found") + pageNb
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
       });
@@ -242,6 +274,11 @@ export default {
 input,
 .vue-daterange-picker {
   min-width: 200px;
+}
+
+.delivery-status + .delivery-status:before {
+  content: " + ";
+  color: #212529;
 }
 
 .pages {
