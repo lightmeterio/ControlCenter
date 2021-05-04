@@ -8,6 +8,7 @@ import (
 	"context"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/detective"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
@@ -53,17 +54,24 @@ func (e *escalator) Request(r Request) {
 }
 
 func TryToEscalateRequest(ctx context.Context, detective detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval) error {
-	messages, err := detective.CheckMessageDelivery(ctx, from, to, interval, 1)
+	// FIXME: this call is only checking the first page, which is obviously wrong.
+	// It should instead browse through all, by iterating over all pages!
+	page := 1
+
+	messages, err := detective.CheckMessageDelivery(ctx, from, to, interval, page)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	shouldRefuse := func() bool {
-		// FIXME: this call is only checking the first page, which is obviously wrong.
-		// It should instead browse through all, by iterating over all pages!
-		for _, m := range messages.Messages {
+		for _, groupedByQueue := range messages.Messages {
+			// NOTE: len(groupedByQueue) is always > 0, otherwise we have a bug!!!
+			// The final status is always the last element in the list, as before a `sent` or `expired`
+			// there might be many `deferred`
 			// accept request only if at least one of the results came positive
-			if m.Status == "bounced" || m.Status == "deferred" {
+			m := groupedByQueue[len(groupedByQueue)-1]
+
+			if m.Status != parser.SentStatus {
 				return false
 			}
 		}
