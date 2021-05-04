@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"os"
@@ -85,19 +86,19 @@ func TestDetective(t *testing.T) {
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
-					map[int][]detective.MessageDelivery{
-						1: []detective.MessageDelivery{detective.MessageDelivery{
+					detective.Messages{
+						"400643011B47": []detective.MessageDelivery{detective.MessageDelivery{
 							1,
 							expectedTime.In(time.UTC),
 							expectedTime.In(time.UTC),
-							"sent",
+							parser.SentStatus,
 							"2.0.0",
 						},
 						}},
 				})
 			})
 
-			noDeliveries := map[int][]detective.MessageDelivery{}
+			noDeliveries := detective.Messages{}
 
 			Convey("Page number too big", func() {
 				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 2)
@@ -108,7 +109,6 @@ func TestDetective(t *testing.T) {
 			Convey("Message out of interval", func() {
 				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", wrongInterval, 1)
 				So(err, ShouldBeNil)
-
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 0, noDeliveries})
 			})
 		})
@@ -122,24 +122,25 @@ func TestDetective(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
-					map[int][]detective.MessageDelivery{
-						1: []detective.MessageDelivery{
+					detective.Messages{
+						"23EBE3D5C0": []detective.MessageDelivery{
 							detective.MessageDelivery{
 								4,
 								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
 								time.Date(year, time.September, 30, 16, 46, 7, 0, time.UTC),
-								"deferred",
+								parser.DeferredStatus,
 								"4.1.1",
 							},
 							detective.MessageDelivery{
 								1,
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								"expired",
+								parser.ExpiredStatus,
 								"4.1.1",
 							},
 						},
-					}})
+					},
+				})
 			})
 		})
 	})

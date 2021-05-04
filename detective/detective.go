@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"strconv"
 	"time"
 )
 
@@ -29,26 +28,29 @@ type sqlDetective struct {
 func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		checkMessageDelivery, err := db.Prepare(`
-			with matching_delivery_queues as
+			with matching_delivery_queues(id, delivery_ts, status, dsn, queue_id) as
 			(
 				select d.id, delivery_ts, status, dsn, queue_id
 				from
 					deliveries d
 				join
-					remote_domains sender_domain    on sender_domain.id    = d.sender_domain_part_id
+					remote_domains sender_domain    on sender_domain.id    				= d.sender_domain_part_id
 				join
-					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
+					remote_domains recipient_domain on recipient_domain.id 				= d.recipient_domain_part_id
 				where
 					sender_local_part    = ? and sender_domain.domain    = ? and
 					recipient_local_part = ? and recipient_domain.domain = ? and
 					delivery_ts between ? and ?
 			)
-			select total, status, dsn, queue_id, number_of_attempts, min_ts, max_ts from (
-				select row_number() over (order by delivery_ts),
-				count() over () as total,
-				delivery_ts, status, dsn, queue_id, count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts
+			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts from (
+				select
+					row_number() over (order by delivery_ts),
+					count() over () as total,
+					delivery_ts, status, dsn, queue_id, queues.name as queue,
+					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts
 				from deliveries d
 				join delivery_queue q on q.delivery_id = d.id
+				join queues           on q.queue_id    = queues.id
 				where exists (
 					select *
 					from matching_delivery_queues d2
@@ -94,20 +96,24 @@ func (d sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string,
 	return checkMessageDelivery(ctx, conn.Stmts["checkMessageDelivery"], mailFrom, mailTo, interval, page)
 }
 
+type QueueName = string
+
+type Messages = map[QueueName][]MessageDelivery
+
 type MessagesPage struct {
-	PageNumber   int                       `json:"page"`
-	FirstPage    int                       `json:"first_page"`
-	LastPage     int                       `json:"last_page"`
-	TotalResults int                       `json:"total"`
-	Messages     map[int][]MessageDelivery `json:"messages"`
+	PageNumber   int      `json:"page"`
+	FirstPage    int      `json:"first_page"`
+	LastPage     int      `json:"last_page"`
+	TotalResults int      `json:"total"`
+	Messages     Messages `json:"messages"`
 }
 
 type MessageDelivery struct {
-	NumberOfAttempts int       `json:"number_of_attempts"`
-	TimeMin          time.Time `json:"time_min"`
-	TimeMax          time.Time `json:"time_max"`
-	Status           string    `json:"status"`
-	Dsn              string    `json:"dsn"`
+	NumberOfAttempts int               `json:"number_of_attempts"`
+	TimeMin          time.Time         `json:"time_min"`
+	TimeMax          time.Time         `json:"time_max"`
+	Status           parser.SmtpStatus `json:"status"`
+	Dsn              string            `json:"dsn"`
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
@@ -141,46 +147,38 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 	var (
 		total    int
 		grouped  = 0
-		messages = map[int][]MessageDelivery{}
+		messages = Messages{}
 	)
 
 	for rows.Next() {
 		var (
-			status           string
+			status           parser.SmtpStatus
 			dsn              string
-			queueID          int
+			queueName        QueueName
 			numberOfAttempts int
-			tsMin            int
-			tsMax            int
+			tsMin            int64
+			tsMax            int64
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueID, &numberOfAttempts, &tsMin, &tsMax); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &numberOfAttempts, &tsMin, &tsMax); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		intstatus, err := strconv.Atoi(status)
-
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		status = parser.SmtpStatus(intstatus).String()
-
-		_, ok := messages[queueID]
+		_, ok := messages[queueName]
 		if ok {
 			grouped++
 		}
 
 		if !ok {
-			messages[queueID] = []MessageDelivery{}
+			messages[queueName] = []MessageDelivery{}
 		}
 
-		messages[queueID] = append(messages[queueID], MessageDelivery{
-			numberOfAttempts,
-			time.Unix(int64(tsMin), 0).In(time.UTC),
-			time.Unix(int64(tsMax), 0).In(time.UTC),
-			status,
-			dsn,
+		messages[queueName] = append(messages[queueName], MessageDelivery{
+			NumberOfAttempts: numberOfAttempts,
+			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
+			TimeMax:          time.Unix(tsMax, 0).In(time.UTC),
+			Status:           status,
+			Dsn:              dsn,
 		})
 	}
 
