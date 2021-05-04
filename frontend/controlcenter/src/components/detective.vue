@@ -265,6 +265,9 @@ export default {
         vue.$refs.searchResultText.scrollIntoView();
       });
     }
+  },
+  mounted() {
+    this.updateSelectedInterval(this.dateRange);
   }
 };
 </script>
