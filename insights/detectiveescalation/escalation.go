@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
@@ -34,6 +35,7 @@ type Content struct {
 	Sender    string                `json:"sender"`
 	Recipient string                `json:"recipient"`
 	Interval  timeutil.TimeInterval `json:"time_interval"`
+	Messages  detective.Messages    `json:"messages"`
 }
 
 func (c Content) Title() notificationCore.ContentComponent {
@@ -103,6 +105,7 @@ func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Cloc
 		Sender:    r.Sender,
 		Recipient: r.Recipient,
 		Interval:  r.Interval,
+		Messages:  r.Messages,
 	}
 
 	if err := generateInsight(tx, c, d.creator, content); err != nil {

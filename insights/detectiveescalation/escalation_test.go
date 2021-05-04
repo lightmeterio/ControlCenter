@@ -8,10 +8,12 @@ package detectiveescalation
 import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -60,11 +62,40 @@ func TestDetectiveEscalation(t *testing.T) {
 				Sender:    "sender1@example.com",
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 30,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.DeferredStatus,
+							Dsn:              "2.0.0",
+						},
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.ExpiredStatus,
+							Dsn:              "3.0.0",
+						},
+					},
+				},
 			},
 			baseTime.Add(time.Second * 10): escalator.Request{
 				Sender:    "sender2@example.com",
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.BouncedStatus,
+							Dsn:              "3.0.0",
+						},
+					},
+				},
 			},
 		}
 
@@ -104,6 +135,24 @@ func TestDetectiveEscalation(t *testing.T) {
 				Sender:    "sender1@example.com",
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 30,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.DeferredStatus,
+							Dsn:              "2.0.0",
+						},
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.ExpiredStatus,
+							Dsn:              "3.0.0",
+						},
+					},
+				},
 			})
 		}
 
@@ -118,6 +167,17 @@ func TestDetectiveEscalation(t *testing.T) {
 				Sender:    "sender2@example.com",
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           parser.BouncedStatus,
+							Dsn:              "3.0.0",
+						},
+					},
+				},
 			})
 		}
 	})
