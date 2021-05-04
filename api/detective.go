@@ -106,7 +106,7 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *meta.Reader) {
 	publicIfEnabled := httpmiddleware.New(httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth, settingsReader))
 	mux.Handle("/api/v0/checkMessageDeliveryStatus", publicIfEnabled.WithEndpoint(checkMessageDeliveryHandler{detective}))
-	mux.Handle("/api/v0/escalateMessage ", publicIfEnabled.WithEndpoint(detectiveEscalatorHandler{requester: escalator, detective: detective}))
+	mux.Handle("/api/v0/escalateMessage", publicIfEnabled.WithEndpoint(detectiveEscalatorHandler{requester: escalator, detective: detective}))
 }
 
 type detectiveEscalatorHandler struct {

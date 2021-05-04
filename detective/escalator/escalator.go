@@ -6,6 +6,7 @@ package escalator
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -71,8 +72,11 @@ func TryToEscalateRequest(ctx context.Context, detective detective.Detective, re
 	}()
 
 	if shouldRefuse {
+		log.Info().Msgf("Refused to escalate issue with sender: %v, recipient: %v and time interval: %v and %v results", from, to, interval, len(messages.Messages))
 		return nil
 	}
+
+	log.Info().Msgf("Escalating issue with sender: %v, recipient: %v and time interval: %v and %v results", from, to, interval, len(messages.Messages))
 
 	requester.Request(Request{
 		Sender:    from,

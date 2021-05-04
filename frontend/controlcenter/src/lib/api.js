@@ -308,3 +308,28 @@ export function checkMessageDelivery(
   });
   return post;
 }
+
+export function escalateMessage(
+  mail_from,
+  mail_to,
+  date_from,
+  date_to
+) {
+  let formData = new FormData();
+  formData.append("mail_from", mail_from);
+  formData.append("mail_to", mail_to);
+  formData.append("from", date_from);
+  formData.append("to", date_to);
+
+  var post = axios.post(
+    BASE_URL + "api/v0/escalateMessage",
+    new URLSearchParams(formData)
+  );
+
+  post.catch(builderErrorHandler("detective_escalation"));
+  post.then(function() {
+    trackEvent("MessageDetective", "escalation");
+  });
+
+  return post;
+}

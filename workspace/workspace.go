@@ -181,9 +181,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneSettings, cancelSettings := ws.settingsRunner.Run()
 		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
 		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
-
-		// We don't need to explicitly ends the importer, as it'll
-		// end when the import process finished, as it's a single-shot process!
 		doneImporter, cancelImporter := ws.importAnnouncer.Run()
 
 		go func() {

@@ -19,9 +19,26 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <p class="mt-4">Lorem ipsum</p>
 
-      <detective ref="detective"></detective>
+      <detective ref="detective" :sender="mail_from" :recipient="mail_to" :interval="time_interval"></detective>
     </b-container>
 
     <mainfooter></mainfooter>
   </div>
 </template>
+
+<script>
+export default {
+  computed: {
+    mail_from() {
+      return this.$route.params.sender;
+    },
+    mail_to() {
+      return this.$route.params.recipient;
+    },
+    time_interval() {
+      return this.$route.params.interval;
+    }
+  }
+}
+
+</script>

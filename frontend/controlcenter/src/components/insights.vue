@@ -230,6 +230,22 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <translate>Details</translate>
                 </button>
               </p>
+              <p
+                v-if="insight.content_type === 'detective_escalation'"
+                class="card-text description"
+              >
+                <span>Click here</span>
+                <button
+                  v-b-modal.modal-msg-rbl
+                  v-on:click="seeMessageDetails(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+                  {{insight.content}}
+              </p>
+
               <p class="card-text time">{{ insight.modTime }}</p>
             </div>
           </div>
@@ -330,6 +346,9 @@ export default {
     message_rbl_title(i) {
       let translation = this.$gettext("IP blocked by %{host}");
       return this.$gettextInterpolate(translation, { host: i.content.host });
+    },
+    detective_escalation_title() {
+      return "Message escalation request!!!";
     },
     high_bounce_rate_description(i) {
       let c = i.content;
@@ -559,6 +578,15 @@ export default {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
       this.applySummaryInterval(insight);
       this.$refs["modal-import-summary"].hide();
+    },
+    seeMessageDetails(insight) {
+      let params = {
+        sender: insight.content.sender,
+        recipient: insight.content.recipient,
+        interval: insight.content.time_interval
+      };
+
+      this.$router.push({name: "detective", params: params});
     }
   }
 };
