@@ -139,35 +139,17 @@ acceptance-test:
     expire_in: 7 days
   allow_failure: true
 
-publish-binaries:
-  extends: .go-builder
-  stage: package
-  needs:
-    - build
-  dependencies:
-    - build
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME =~ /^feature\/release-/'
-      changes:
-        - VERSION.txt
-      when: manual
-  script:
-    - curl -fL https://getcli.jfrog.io | sh
-    - ./ci/publish_binaries.sh
-
 publish-release:
   extends: .on-non-tag
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli
   needs:
-    - publish-binaries
+    - build
   dependencies:
-    - publish-binaries
+    - build
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME =~ /^feature\/release-/'
-      changes:
-        - VERSION.txt
-      when: on_success
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+      when: manual
   script:
     - ./ci/release_on_gitlab.sh
 
