@@ -115,7 +115,7 @@ func TestEscalation(t *testing.T) {
 								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								Status:           parser.BouncedStatus,
-								Dsn:              "2.0.0",
+								Dsn:              "3.0.0",
 							},
 						},
 						"CCC": []detective.MessageDelivery{
@@ -133,7 +133,40 @@ func TestEscalation(t *testing.T) {
 			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval)
 			So(err, ShouldBeNil)
 			So(requester.requests, ShouldResemble, []Request{
-				Request{Sender: "sender@example.com", Recipient: "recipient@example.com", Interval: interval},
+				Request{
+					Sender:    "sender@example.com",
+					Recipient: "recipient@example.com",
+					Interval:  interval,
+					Messages: detective.Messages{
+						"AAA": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           parser.SentStatus,
+								Dsn:              "2.0.0",
+							},
+						},
+						"BBB": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           parser.BouncedStatus,
+								Dsn:              "3.0.0",
+							},
+						},
+						"CCC": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+								Status:           parser.SentStatus,
+								Dsn:              "2.0.0",
+							},
+						},
+					},
+				},
 			})
 		})
 
@@ -171,7 +204,7 @@ func TestEscalation(t *testing.T) {
 								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								Status:           parser.ExpiredStatus,
-								Dsn:              "2.0.0",
+								Dsn:              "3.0.0",
 							},
 						},
 						"CCC": []detective.MessageDelivery{
@@ -215,9 +248,48 @@ func TestEscalation(t *testing.T) {
 			}
 
 			So(requests, ShouldResemble, []Request{
-				Request{Sender: "sender@example.com", Recipient: "recipient@example.com", Interval: interval},
+				Request{
+					Sender:    "sender@example.com",
+					Recipient: "recipient@example.com",
+					Interval:  interval,
+					Messages: detective.Messages{
+						"AAA": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           parser.SentStatus,
+								Dsn:              "2.0.0",
+							},
+						},
+						"BBB": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 30,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           parser.DeferredStatus,
+								Dsn:              "2.0.0",
+							},
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           parser.ExpiredStatus,
+								Dsn:              "3.0.0",
+							},
+						},
+						"CCC": []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+								Status:           parser.SentStatus,
+								Dsn:              "2.0.0",
+							},
+						},
+					},
+				},
 			})
 		})
-
 	})
 }

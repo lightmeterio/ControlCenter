@@ -17,6 +17,7 @@ type Request struct {
 	Sender    string                `json:"sender"`
 	Recipient string                `json:"recipient"`
 	Interval  timeutil.TimeInterval `json:"time_interval"`
+	Messages  detective.Messages    `json:"messages"`
 }
 
 type Stepper interface {
@@ -90,6 +91,7 @@ func TryToEscalateRequest(ctx context.Context, detective detective.Detective, re
 		Sender:    from,
 		Recipient: to,
 		Interval:  interval,
+		Messages:  messages.Messages,
 	})
 
 	return nil
