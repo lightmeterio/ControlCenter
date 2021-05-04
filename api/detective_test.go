@@ -13,6 +13,7 @@ import (
 	mock_detective "gitlab.com/lightmeter/controlcenter/detective/mock"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"net/http/httptest"
@@ -81,7 +82,15 @@ func TestDetective(t *testing.T) {
 				FirstPage:    1,
 				LastPage:     1,
 				TotalResults: 1,
-				Messages:     []detective.MessageDelivery{detective.MessageDelivery{time.Unix(1234567890, 0).In(time.UTC), "Sent", "2.0.0"}},
+				Messages: map[int][]detective.MessageDelivery{
+					1: []detective.MessageDelivery{detective.MessageDelivery{
+						1,
+						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
+						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
+						"Sent",
+						"2.0.0",
+					},
+					}},
 			}
 			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, 1).Return(&messages, nil)
 
