@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	mock_detective "gitlab.com/lightmeter/controlcenter/detective/mock"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -85,12 +86,12 @@ func TestDetective(t *testing.T) {
 				FirstPage:    1,
 				LastPage:     1,
 				TotalResults: 1,
-				Messages: map[int][]detective.MessageDelivery{
-					1: []detective.MessageDelivery{detective.MessageDelivery{
+				Messages: detective.Messages{
+					"AAAAA": []detective.MessageDelivery{detective.MessageDelivery{
 						1,
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
-						"Sent",
+						parser.SentStatus,
 						"2.0.0",
 					},
 					}},
@@ -180,8 +181,19 @@ func TestEscalation(t *testing.T) {
 		Convey("Escalate issue", func() {
 			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
-					Messages: []detective.MessageDelivery{
-						{Time: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`), Status: "bounced", Dsn: "3.4.6"},
+					PageNumber:   1,
+					FirstPage:    1,
+					LastPage:     1,
+					TotalResults: 1,
+					Messages: detective.Messages{
+						"AAA": []detective.MessageDelivery{
+							{
+								TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:  parser.BouncedStatus,
+								Dsn:     "3.4.6",
+							},
+						},
 					},
 				}, nil)
 
@@ -194,7 +206,23 @@ func TestEscalation(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
-			So(e.requests, ShouldResemble, []escalator.Request{{Sender: "user1@example.com", Recipient: "user2@example.com", Interval: mustParseTimeInterval("2000-01-01", "2000-01-02")}})
+			So(e.requests, ShouldResemble, []escalator.Request{
+				{
+					Sender:    "user1@example.com",
+					Recipient: "user2@example.com",
+					Interval:  mustParseTimeInterval("2000-01-01", "2000-01-02"),
+					Messages: detective.Messages{
+						"AAA": []detective.MessageDelivery{
+							{
+								TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:  parser.BouncedStatus,
+								Dsn:     "3.4.6",
+							},
+						},
+					},
+				},
+			})
 		})
 	})
 }
