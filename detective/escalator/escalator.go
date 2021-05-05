@@ -54,33 +54,31 @@ func (e *escalator) Request(r Request) {
 	e.requests <- r
 }
 
-func TryToEscalateRequest(ctx context.Context, detective detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval) error {
+func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval) error {
 	// FIXME: this call is only checking the first page, which is obviously wrong.
 	// It should instead browse through all, by iterating over all pages!
 	page := 1
 
-	messages, err := detective.CheckMessageDelivery(ctx, from, to, interval, page)
+	messages, err := d.CheckMessageDelivery(ctx, from, to, interval, page)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	shouldRefuse := func() bool {
-		for _, groupedByQueue := range messages.Messages {
-			// NOTE: len(groupedByQueue) is always > 0, otherwise we have a bug!!!
-			// The final status is always the last element in the list, as before a `sent` or `expired`
-			// there might be many `deferred`
-			// accept request only if at least one of the results came positive
-			m := groupedByQueue[len(groupedByQueue)-1]
+	messagesToEscalate := detective.Messages{}
 
-			if parser.SmtpStatus(m.Status) != parser.SentStatus {
-				return false
-			}
+	for queue, groupedByQueue := range messages.Messages {
+		// NOTE: len(groupedByQueue) is always > 0, otherwise we have a bug!!!
+		// The final status is always the last element in the list, as before a `sent` or `expired`
+		// there might be many `deferred`
+		// accept request only if at least one of the results came positive
+		m := groupedByQueue[len(groupedByQueue)-1]
+
+		if parser.SmtpStatus(m.Status) != parser.SentStatus {
+			messagesToEscalate[queue] = groupedByQueue
 		}
+	}
 
-		return true
-	}()
-
-	if shouldRefuse {
+	if len(messagesToEscalate) == 0 {
 		log.Info().Msgf("Refused to escalate issue with sender: %v, recipient: %v and time interval: %v and %v results", from, to, interval, len(messages.Messages))
 		return nil
 	}
@@ -91,7 +89,7 @@ func TryToEscalateRequest(ctx context.Context, detective detective.Detective, re
 		Sender:    from,
 		Recipient: to,
 		Interval:  interval,
-		Messages:  messages.Messages,
+		Messages:  messagesToEscalate,
 	})
 
 	return nil

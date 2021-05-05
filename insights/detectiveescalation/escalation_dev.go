@@ -43,22 +43,6 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 					Dsn:              "4.0.0",
 				},
 			},
-			"BBBBBBBBBB": []detective.MessageDelivery{
-				{
-					NumberOfAttempts: 20,
-					TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-					TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-					Status:           detective.Status(parser.DeferredStatus),
-					Dsn:              "4.0.0",
-				},
-				{
-					NumberOfAttempts: 1,
-					TimeMin:          timeutil.MustParseTime(`2000-01-02 10:00:00 +0000`),
-					TimeMax:          timeutil.MustParseTime(`2000-01-02 10:00:00 +0000`),
-					Status:           detective.Status(parser.SentStatus),
-					Dsn:              "2.0.0",
-				},
-			},
 			"CCCCCCCCC": []detective.MessageDelivery{
 				{
 					NumberOfAttempts: 1,
