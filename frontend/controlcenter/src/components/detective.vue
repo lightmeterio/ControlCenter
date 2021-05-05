@@ -102,7 +102,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import { humanDateTime } from "@/lib/date.js";
 import { checkMessageDelivery, escalateMessage } from "@/lib/api.js";
 import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
