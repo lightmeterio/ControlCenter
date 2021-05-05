@@ -235,7 +235,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 class="card-text description"
               >
                 TODO: show content in a modal window!!!
-                {{insight.content}}
+                {{ insight.content }}
               </p>
 
               <p class="card-text time">{{ insight.modTime }}</p>
@@ -578,7 +578,7 @@ export default {
         interval: insight.content.time_interval
       };
 
-      this.$router.push({name: "detective", params: params});
+      this.$router.push({ name: "detective", params: params });
     }
   }
 };

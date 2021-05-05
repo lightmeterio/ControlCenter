@@ -208,7 +208,7 @@ export default {
         interval.endDate
       ).then(function() {
         console.log("All good");
-      }) 
+      });
     }
   },
   mounted() {

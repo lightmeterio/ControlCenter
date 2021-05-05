@@ -309,12 +309,7 @@ export function checkMessageDelivery(
   return post;
 }
 
-export function escalateMessage(
-  mail_from,
-  mail_to,
-  date_from,
-  date_to
-) {
+export function escalateMessage(mail_from, mail_to, date_from, date_to) {
   let formData = new FormData();
   formData.append("mail_from", mail_from);
   formData.append("mail_to", mail_to);
