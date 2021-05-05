@@ -3,6 +3,7 @@ include:
   - template: License-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
   - template: Code-Quality.gitlab-ci.yml
+  - template: 'Workflows/Branch-Pipelines.gitlab-ci.yml'
 
 variables:
   SAST_DEFAULT_ANALYZERS: "gosec,secrets"
@@ -209,7 +210,7 @@ sonarcloud-check:
     paths:
       - .sonar/cache
   script:
-    - sonar-scanner -Dsonar.projectVersion=$(cat VERSION.txt)
+    - ./tools/sonar-scanner.sh
   rules:
     - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
       when: never
