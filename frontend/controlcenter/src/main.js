@@ -42,6 +42,7 @@ import langaugeSwitcher from "./components/langauge-switcher";
 import importProgressIndicator from "./components/import-progress-indicator";
 import walkthrough from "./components/walkthrough";
 import detective from "./components/detective";
+import detectiveResults from "./components/detective-results";
 
 import importSummaryInsightContent from "./components/insights/summary/content";
 
@@ -55,6 +56,7 @@ Vue.component("panel-page", panelpage);
 Vue.component("import-progress-indicator", importProgressIndicator);
 Vue.component("walkthrough", walkthrough);
 Vue.component("detective", detective);
+Vue.component("detective-results", detectiveResults);
 
 Vue.component("import-summary-insight-content", importSummaryInsightContent);
 

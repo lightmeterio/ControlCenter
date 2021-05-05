@@ -71,61 +71,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p :class="searchResultClass">{{ searchResultText }}</p>
     </b-container>
 
-    <b-container class="results mt-4">
-      <div v-for="(result, index) in results.messages" :key="index">
-        <h3>
-          <!-- prettier-ignore -->
-          <translate>Message Status</translate>:
-          <span
-            v-for="delivery in result"
-            :key="delivery.time_min"
-            :class="statusClass(delivery.status)"
-            >{{ delivery.status }}</span
-          >
-        </h3>
-
-        <template v-if="hasOnlyOneDelivery(result)">
-          <p class="mt-3">
-            {{ emailDate(result[0].time_min) }}
-          </p>
-          <p>
-            <!-- prettier-ignore -->
-            <translate>Status code</translate>:
-            {{ result[0].dsn }}
-          </p>
-        </template>
-        <div v-else v-for="delivery in result" :key="delivery.time_min">
-          <p class="mt-3">
-            {{ delivery.number_of_attempts }}
-            <!-- prettier-ignore -->
-            <translate>delivery attempt(s)</translate>
-            <span :class="statusClass(delivery.status)">
-              {{ delivery.status }}
-            </span>
-            <!-- prettier-ignore -->
-            <translate>with status code</translate>
-            {{ delivery.dsn }}
-            -
-            <span class="text-secondary">
-              {{ emailDate(delivery.time_min) }}
-            </span>
-            <template v-if="!(delivery.time_max == delivery.time_min)">
-              -
-              <span class="text-secondary">
-                {{ emailDate(delivery.time_max) }}
-              </span>
-            </template>
-          </p>
-        </div>
-        <p>
-          (You can find more information about status codes on
-          <a
-            href="https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml"
-            >IANA's reference list</a
-          >.)
-        </p>
-      </div>
-    </b-container>
+    <detective-results :results="results.messages"></detective-results>
 
     <b-container class="pages mt-4 mb-4" v-show="results.last_page > 1">
       <button
@@ -156,7 +102,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import { humanDateTime } from "@/lib/date.js";
 import { checkMessageDelivery } from "@/lib/api.js";
 
 import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
@@ -209,17 +154,6 @@ export default {
       let vue = this;
       vue.formatDatePickerValue(obj);
     },
-    emailDate(d) {
-      return humanDateTime(d);
-    },
-    statusClass: function(status) {
-      return {
-        sent: "delivery-status text-success",
-        bounced: "delivery-status text-danger",
-        deferred: "delivery-status text-warning",
-        expired: "delivery-status text-danger"
-      }[status];
-    },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
         "onUpdateDateRangePickerDetective",
@@ -264,9 +198,6 @@ export default {
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
       });
-    },
-    hasOnlyOneDelivery: function(result) {
-      return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     }
   },
   mounted() {
@@ -280,11 +211,6 @@ export default {
 input,
 .vue-daterange-picker {
   min-width: 200px;
-}
-
-.delivery-status + .delivery-status:before {
-  content: " + ";
-  color: #212529;
 }
 
 .pages {
