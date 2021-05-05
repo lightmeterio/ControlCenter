@@ -84,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           >
         </h3>
 
-        <template v-if="result.length == 1">
+        <template v-if="hasOnlyOneDelivery(result)">
           <p class="mt-3">
             {{ emailDate(result[0].time_min) }}
           </p>
@@ -264,7 +264,13 @@ export default {
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
       });
+    },
+    hasOnlyOneDelivery: function(result) {
+      return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     }
+  },
+  mounted() {
+    this.updateSelectedInterval(this.dateRange);
   }
 };
 </script>
