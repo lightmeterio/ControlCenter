@@ -7,6 +7,7 @@ package detective
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
@@ -108,12 +109,34 @@ type MessagesPage struct {
 	Messages     Messages `json:"messages"`
 }
 
+type Status parser.SmtpStatus
+
+func (s Status) MarshalJSON() ([]byte, error) {
+	return json.Marshal(parser.SmtpStatus(s).String())
+}
+
+func (s *Status) UnmarshalJSON(d []byte) error {
+	var v string
+	if err := json.Unmarshal(d, &v); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	status, err := parser.ParseStatus([]byte(v))
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*s = Status(status)
+
+	return nil
+}
+
 type MessageDelivery struct {
-	NumberOfAttempts int               `json:"number_of_attempts"`
-	TimeMin          time.Time         `json:"time_min"`
-	TimeMax          time.Time         `json:"time_max"`
-	Status           parser.SmtpStatus `json:"status"`
-	Dsn              string            `json:"dsn"`
+	NumberOfAttempts int       `json:"number_of_attempts"`
+	TimeMin          time.Time `json:"time_min"`
+	TimeMax          time.Time `json:"time_max"`
+	Status           Status    `json:"status"`
+	Dsn              string    `json:"dsn"`
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
@@ -177,7 +200,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
 			TimeMax:          time.Unix(tsMax, 0).In(time.UTC),
-			Status:           status,
+			Status:           Status(status),
 			Dsn:              dsn,
 		})
 	}

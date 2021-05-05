@@ -72,7 +72,7 @@ func TryToEscalateRequest(ctx context.Context, detective detective.Detective, re
 			// accept request only if at least one of the results came positive
 			m := groupedByQueue[len(groupedByQueue)-1]
 
-			if m.Status != parser.SentStatus {
+			if parser.SmtpStatus(m.Status) != parser.SentStatus {
 				return false
 			}
 		}

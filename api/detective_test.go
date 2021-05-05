@@ -91,7 +91,7 @@ func TestDetective(t *testing.T) {
 						1,
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
-						parser.SentStatus,
+						detective.Status(parser.SentStatus),
 						"2.0.0",
 					},
 					}},
@@ -190,7 +190,7 @@ func TestEscalation(t *testing.T) {
 							{
 								TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:  parser.BouncedStatus,
+								Status:  detective.Status(parser.BouncedStatus),
 								Dsn:     "3.4.6",
 							},
 						},
@@ -216,7 +216,7 @@ func TestEscalation(t *testing.T) {
 							{
 								TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:  parser.BouncedStatus,
+								Status:  detective.Status(parser.BouncedStatus),
 								Dsn:     "3.4.6",
 							},
 						},
