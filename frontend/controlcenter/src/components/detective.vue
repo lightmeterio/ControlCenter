@@ -266,7 +266,7 @@ export default {
       });
     },
     hasOnlyOneDelivery: function(result) {
-			return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
+      return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     }
   },
   mounted() {
