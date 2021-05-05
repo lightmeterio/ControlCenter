@@ -266,11 +266,7 @@ export default {
       });
     },
     hasOnlyOneDelivery: function(result) {
-      let total_deliveries = 0;
-      for (let i = 0; i < result.length; i++) {
-        total_deliveries += result[i].number_of_attempts;
-      }
-      return total_deliveries == 1;
+			return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     }
   },
   mounted() {
