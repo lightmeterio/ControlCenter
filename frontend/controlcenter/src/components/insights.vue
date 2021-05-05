@@ -234,16 +234,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-if="insight.content_type === 'detective_escalation'"
                 class="card-text description"
               >
-                <span>Click here</span>
-                <button
-                  v-b-modal.modal-msg-rbl
-                  v-on:click="seeMessageDetails(insight)"
-                  class="btn btn-sm"
-                >
-                  <!-- prettier-ignore -->
-                  <translate>Details</translate>
-                </button>
-                  {{insight.content}}
+                TODO: show content in a modal window!!!
+                {{insight.content}}
               </p>
 
               <p class="card-text time">{{ insight.modTime }}</p>

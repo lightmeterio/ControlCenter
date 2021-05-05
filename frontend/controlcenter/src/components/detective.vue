@@ -49,9 +49,9 @@ SPDX-License-Identifier: AGPL-3.0-only
             :autoApply="autoApply"
             :opens="opens"
             :singleDatePicker="singleDatePicker"
-            :alwaysShowCalendars="false"
+            :alwaysShowCalendars="alwaysShowCalendars"
             :ranges="ranges"
-            v-model="time_interval"
+            v-model="dateRange"
             :showCustomRangeCalendars="false"
             :max-date="new Date()"
           >
@@ -102,11 +102,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import moment from "moment";
-
 import { humanDateTime } from "@/lib/date.js";
 import { checkMessageDelivery, escalateMessage } from "@/lib/api.js";
-
 import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
@@ -126,37 +123,13 @@ export default {
     forEndUsers: {
       type: Boolean,
       default: false
-    },
-    sender: {
-      type: String,
-      default: null
-    },
-    recipient: {
-      type: String,
-      default: null
-    },
-    interval: {
-      type: Object,
-      default: null
-    }
-  },
-  mounted() {
-    this.mail_from = this.sender != undefined ? this.sender : "";
-    this.mail_to = this.recipient != undefined ? this.recipient : "";
-
-    if (this.interval != undefined) {
-      const DATE_YYYYMMDD = "YYYY-MM-DD";
-      let start = moment(this.interval.from).format(DATE_YYYYMMDD);
-      let end = moment(this.interval.to).format(DATE_YYYYMMDD);
-      this.time_interval = { startDate: start, endDate: end };
-      this.updateResults();
     }
   },
   data() {
     return {
       // detective-specific
-      model_mail_from: "",
-      model_mail_to: "",
+      mail_from: "",
+      mail_to: "",
       searchResultText: this.$gettext("No results yet"),
       searchResultClass: "text-muted",
       results: [],
@@ -174,30 +147,6 @@ export default {
     },
     isEmailTo: function() {
       return isEmail(this.mail_to);
-    },
-    mail_from: {
-      get() {
-        return this.model_mail_from;
-      },
-      set(value) {
-        this.model_mail_from = value;
-      }
-    },
-    mail_to: {
-      get() {
-        return this.model_mail_to;
-      },
-      set(value) {
-        this.model_mail_to = value;
-      }
-    },
-    time_interval: {
-      get() {
-        return this.dateRange;
-      },
-      set(value) {
-        this.dateRange = value;
-      }
     }
   },
   methods: {
