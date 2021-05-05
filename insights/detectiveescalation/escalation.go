@@ -59,7 +59,7 @@ func (t title) String() string {
 }
 
 func (t title) TplString() string {
-	return translator.I18n("Detective escalation request")
+	return translator.I18n("User request on non delivered message")
 }
 
 func (t title) Args() []interface{} {
@@ -75,11 +75,11 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("Escalation request with sender: %v, recipient: %v, from %v to %v")
+	return translator.I18n("Sender: %v, recipient: %v")
 }
 
 func (d description) Args() []interface{} {
-	return []interface{}{d.c.Sender, d.c.Recipient, d.c.Interval.From, d.c.Interval.To}
+	return []interface{}{d.c.Sender, d.c.Recipient}
 }
 
 type detector struct {

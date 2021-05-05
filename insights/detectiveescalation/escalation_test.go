@@ -10,9 +10,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
+	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/notification"
+	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -180,5 +183,37 @@ func TestDetectiveEscalation(t *testing.T) {
 				},
 			})
 		}
+	})
+}
+
+func TestDescriptionFormatting(t *testing.T) {
+	Convey("Description Formatting", t, func() {
+		n := notification.Notification{
+			ID: 1,
+			Content: Content{
+				Sender:    "sender2@example.com",
+				Recipient: "recipient2@example.com",
+				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           detective.Status(parser.BouncedStatus),
+							Dsn:              "3.0.0",
+						},
+					},
+				},
+			},
+		}
+
+		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
+		So(err, ShouldBeNil)
+		So(m, ShouldResemble, notificationCore.Message{
+			Title:       "User request on non delivered message",
+			Description: "Sender: sender2@example.com, recipient: recipient2@example.com",
+			Metadata:    map[string]string{},
+		})
 	})
 }
