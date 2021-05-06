@@ -1002,8 +1002,8 @@ tr25:
 tr26:
 //line qmgr.rl:75
 
-    r.Size = data[tokBeg:p]
-  
+		r.Size = data[tokBeg:p]
+	
 	goto st23
 	st23:
 		if p++; p == pe {
@@ -1098,8 +1098,8 @@ tr35:
 tr36:
 //line qmgr.rl:79
 
-    r.Nrcpt = data[tokBeg:p]
-  
+		r.Nrcpt = data[tokBeg:p]
+	
 	goto st32
 	st32:
 		if p++; p == pe {

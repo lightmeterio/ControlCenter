@@ -5,6 +5,7 @@
 package parser
 
 import (
+	"errors"
 	"net"
 
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
@@ -77,19 +78,21 @@ func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
 	// required by Payload interface
 }
 
-func parseStatus(s []byte) SmtpStatus {
+var ErrInvalidStatus = errors.New(`Invalid Status`)
+
+func ParseStatus(s []byte) (SmtpStatus, error) {
 	switch string(s) {
 	case "deferred":
-		return DeferredStatus
+		return DeferredStatus, nil
 	case "sent":
-		return SentStatus
+		return SentStatus, nil
 	case "bounced":
-		return BouncedStatus
+		return BouncedStatus, nil
 	case "expired":
-		return ExpiredStatus
+		return ExpiredStatus, nil
 	}
 
-	panic("Ahhh, invalid status!!!" + string(s))
+	return 0, ErrInvalidStatus
 }
 
 func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
@@ -169,6 +172,11 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 		return SmtpSentStatus{}, err
 	}
 
+	status, err := ParseStatus(p.Status)
+	if err != nil {
+		return SmtpSentStatus{}, err
+	}
+
 	return SmtpSentStatus{
 		Queue:                   string(p.Queue),
 		RecipientLocalPart:      string(p.RecipientLocalPart),
@@ -187,7 +195,7 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			Smtp:    smtpDelay,
 		},
 		Dsn:                 string(p.Dsn),
-		Status:              parseStatus(p.Status),
+		Status:              status,
 		ExtraMessage:        string(p.ExtraMessage),
 		ExtraMessagePayload: parsedExtraMessage,
 	}, nil

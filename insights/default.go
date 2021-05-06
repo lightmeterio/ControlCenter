@@ -7,6 +7,7 @@ package insights
 
 import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	"gitlab.com/lightmeter/controlcenter/insights/highrate"
 	"gitlab.com/lightmeter/controlcenter/insights/localrbl"
 	"gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
@@ -24,6 +25,7 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 		localrblinsight.NewDetector(creator, options),
 		messagerblinsight.NewDetector(creator, options),
 		newsfeed.NewDetector(creator, options),
+		detectiveescalation.NewDetector(creator, options),
 	}
 }
 

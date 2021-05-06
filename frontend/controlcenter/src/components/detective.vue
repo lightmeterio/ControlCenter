@@ -90,7 +90,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-container>
 
     <b-container v-show="forEndUsers" class="mt-5">
-      <b-button type="submit" variant="outline-primary">
+      <b-button variant="outline-primary" @click="escalateMessage">
         <!-- prettier-ignore -->
         <translate>Escalate</translate>
       </b-button>
@@ -102,8 +102,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import { checkMessageDelivery } from "@/lib/api.js";
-
+import { checkMessageDelivery, escalateMessage } from "@/lib/api.js";
 import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
@@ -197,6 +196,17 @@ export default {
           ? vue.results.total + " " + vue.$gettext("message(s) found") + pageNb
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
+      });
+    },
+    escalateMessage() {
+      let interval = this.buildDateInterval();
+      escalateMessage(
+        this.mail_from,
+        this.mail_to,
+        interval.startDate,
+        interval.endDate
+      ).then(function() {
+        console.log("All good");
       });
     }
   },
