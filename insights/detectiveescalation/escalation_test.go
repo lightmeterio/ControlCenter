@@ -100,6 +100,31 @@ func TestDetectiveEscalation(t *testing.T) {
 					},
 				},
 			},
+			// then a repeated request is done, but the insight is not create.
+			// It prevents spammimg the sysadmin with e-mails
+			baseTime.Add(time.Second * 20): escalator.Request{
+				Sender:    "sender1@example.com",
+				Recipient: "recipient1@example.com",
+				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
+				Messages: detective.Messages{
+					"BBB": []detective.MessageDelivery{
+						{
+							NumberOfAttempts: 30,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           detective.Status(parser.DeferredStatus),
+							Dsn:              "2.0.0",
+						},
+						{
+							NumberOfAttempts: 1,
+							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+							Status:           detective.Status(parser.ExpiredStatus),
+							Dsn:              "3.0.0",
+						},
+					},
+				},
+			},
 		}
 
 		escalator := &fakeEscalator{clock: clock, requests: requests}
