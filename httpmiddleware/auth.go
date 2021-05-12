@@ -25,7 +25,6 @@ func GetSession(ctx context.Context) *sessions.Session {
 func RequestWithSession(authenticator *auth.Authenticator) Middleware {
 	return func(h CustomHTTPHandler) CustomHTTPHandler {
 		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-
 			session, err := authenticator.Store.Get(r, auth.SessionName)
 			if err != nil {
 				cookie := &http.Cookie{
