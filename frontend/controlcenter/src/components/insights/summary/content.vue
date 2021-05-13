@@ -7,7 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div>
     <div class="summary-header" v-translate render-html="true">
-    This is the summary of the mail activity between <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>
+      This is the summary of the mail activity between
+      <strong>%{summaryFrom}</strong> and <strong>%{summaryTo}</strong>
     </div>
     <table class="table import-summary-table">
       <thead class="thead">
@@ -15,13 +16,25 @@ SPDX-License-Identifier: AGPL-3.0-only
         <th scope="col"><translate>Issue</translate></th>
       </thead>
       <tbody>
-        <tr v-for="insight in insightsWithComponents(content.insights)" v-bind:key="insight.insight.id">
+        <tr
+          v-for="insight in insightsWithComponents(content.insights)"
+          v-bind:key="insight.insight.id"
+        >
           <td>
-            <span class="date" v-html="formatTableDate(insight.insight.time)"></span>
-            <span class="time" v-html="formatTableTime(insight.insight.time)"></span>
+            <span
+              class="date"
+              v-html="formatTableDate(insight.insight.time)"
+            ></span>
+            <span
+              class="time"
+              v-html="formatTableTime(insight.insight.time)"
+            ></span>
           </td>
           <td>
-            <component v-bind:is="insight.component" :insight="insight.insight"></component>
+            <component
+              v-bind:is="insight.component"
+              :insight="insight.insight"
+            ></component>
           </td>
         </tr>
       </tbody>
@@ -63,20 +76,21 @@ export default {
   props: {
     content: Object
   },
-  updated() {
-  },
-  mounted() {
-  },
+  updated() {},
+  mounted() {},
   data() {
-    return {
-    };
+    return {};
   },
   methods: {
     insightsWithComponents(insights) {
-      return insights.map(function(insight){ return {"insight": insight, "component": componentForType(insight) } });
+      return insights.map(function(insight) {
+        return { insight: insight, component: componentForType(insight) };
+      });
     },
     formatTableDate(time) {
-      return moment(time).format("DD MMM YYYY").replaceAll(' ','&#160;');
+      return moment(time)
+        .format("DD MMM YYYY")
+        .replaceAll(" ", "&#160;");
     },
     formatTableTime(time) {
       return moment(time).format("h:mmA");
@@ -90,7 +104,7 @@ export default {
       return format(this.content.interval.to);
     }
   }
-}
+};
 </script>
 
 <style scoped lang="less">
@@ -104,7 +118,7 @@ export default {
 }
 
 .import-summary-table tr td {
-  background: #F9F9F9 0% 0% no-repeat padding-box;
+  background: #f9f9f9 0% 0% no-repeat padding-box;
   .time::before {
     content: " | ";
   }
@@ -125,5 +139,4 @@ export default {
 .summary-header {
   margin-bottom: 20px;
 }
-
 </style>

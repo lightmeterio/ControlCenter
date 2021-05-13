@@ -61,56 +61,85 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 
 func TestDetective(t *testing.T) {
 	Convey("Detective on real logs", t, func() {
+
+		const year = 2020
+		var (
+			correctInterval = timeutil.TimeInterval{
+				time.Date(year, time.January, 0, 0, 0, 0, 0, time.Local),
+				time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local),
+			}
+			wrongInterval = timeutil.TimeInterval{
+				time.Date(year+1, time.January, 0, 0, 0, 0, 0, time.Local),
+				time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
+			}
+		)
+
 		Convey("File with a successful delivery", func() {
-			const year = 2020
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/3_local_delivery.log", year)
 			defer clear()
 
 			Convey("Message found", func() {
-				interval := timeutil.TimeInterval{
-					time.Date(year, time.January, 0, 0, 0, 0, 0, time.Local),
-					time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local),
-				}
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", interval)
+
+				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
-				So(messages, ShouldResemble, []detective.MessageDelivery{detective.MessageDelivery{expectedTime.In(time.UTC), "sent", "2.0.0"}})
+				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
+					map[int][]detective.MessageDelivery{
+						1: []detective.MessageDelivery{detective.MessageDelivery{
+							1,
+							expectedTime.In(time.UTC),
+							expectedTime.In(time.UTC),
+							"sent",
+							"2.0.0",
+						},
+						}},
+				})
+			})
+
+			noDeliveries := map[int][]detective.MessageDelivery{}
+
+			Convey("Page number too big", func() {
+				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 2)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, &detective.MessagesPage{2, 1, 1, 0, noDeliveries})
 			})
 
 			Convey("Message out of interval", func() {
-				interval := timeutil.TimeInterval{
-					time.Date(year+1, time.January, 0, 0, 0, 0, 0, time.Local),
-					time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
-				}
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", interval)
+				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", wrongInterval, 1)
 				So(err, ShouldBeNil)
 
-				So(messages, ShouldResemble, []detective.MessageDelivery{})
+				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 0, noDeliveries})
 			})
 		})
 
 		Convey("File with an expired message", func() {
-			const year = 2020
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/18_expired.log", year)
 			defer clear()
 
 			Convey("Message found", func() {
-				interval := timeutil.TimeInterval{
-					time.Date(year, time.January, 0, 0, 0, 0, 0, time.Local),
-					time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local),
-				}
-
-				messages, err := d.CheckMessageDelivery(context.Background(), "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", interval)
+				messages, err := d.CheckMessageDelivery(context.Background(), "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, 1)
 				So(err, ShouldBeNil)
 
-				So(messages, ShouldResemble, []detective.MessageDelivery{
-					{time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC), "deferred", "4.1.1"},
-					{time.Date(year, time.September, 25, 19, 1, 5, 0, time.UTC), "deferred", "4.1.1"},
-					{time.Date(year, time.September, 30, 12, 46, 6, 0, time.UTC), "deferred", "4.1.1"},
-					{time.Date(year, time.September, 30, 16, 46, 7, 0, time.UTC), "deferred", "4.1.1"},
-					{time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC), "expired", "4.1.1"},
-				})
+				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
+					map[int][]detective.MessageDelivery{
+						1: []detective.MessageDelivery{
+							detective.MessageDelivery{
+								4,
+								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
+								time.Date(year, time.September, 30, 16, 46, 7, 0, time.UTC),
+								"deferred",
+								"4.1.1",
+							},
+							detective.MessageDelivery{
+								1,
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								"expired",
+								"4.1.1",
+							},
+						},
+					}})
 			})
 		})
 	})

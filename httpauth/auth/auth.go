@@ -12,8 +12,10 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
+	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"log"
@@ -242,6 +244,35 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 
 	if !hasAnyUser {
 		return httperror.NewHTTPStatusCodeError(http.StatusForbidden, errors.New("forbidden"))
+	}
+
+	session, err := auth.Store.Get(r, SessionName)
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
+	}
+
+	sessionData, ok := session.Values["auth"].(*SessionData)
+	if !(ok && sessionData.IsAuthenticated()) {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	return nil
+}
+
+// Check that end-users' detective is enabled, or user is authenticated
+func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader *meta.Reader) error {
+	settings := detectivesettings.Settings{}
+	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	if settings.EndUsersEnabled {
+		w.WriteHeader(http.StatusOK)
+		return nil
 	}
 
 	session, err := auth.Store.Get(r, SessionName)

@@ -5,13 +5,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <b-container>
-    <b-form>
-      <b-form-row class="justify-content-around">
-        <div class="col-auto">
-          <label class="sr-only">
+  <b-container class="mt-5">
+    <b-form @submit.prevent="updateResults">
+      <b-form-row class="justify-content-between align-items-end">
+        <div class="col">
+          <label>
             <!-- prettier-ignore -->
-            <translate>Sender Email Address</translate>:
+            <translate>Sender Email Address</translate>
           </label>
           <b-form-input
             type="email"
@@ -20,14 +20,13 @@ SPDX-License-Identifier: AGPL-3.0-only
             required
             v-model="mail_from"
             :v-state="isEmailFrom"
-            placeholder="Sender Email Address"
-            @focusout="updateResults"
-            @keyup.enter="updateResults" />
+            placeholder="sender@example.org"
+          />
         </div>
-        <div class="col-auto">
-          <label class="sr-only">
+        <div class="col">
+          <label>
             <!-- prettier-ignore -->
-            <translate>Recipient Email Address</translate>:
+            <translate>Recipient Email Address</translate>
           </label>
           <b-form-input
             type="email"
@@ -36,15 +35,14 @@ SPDX-License-Identifier: AGPL-3.0-only
             required
             v-model="mail_to"
             :v-state="isEmailTo"
-            placeholder="Recipient Email Address"
-            @focusout="updateResults"
-            @keyup.enter="updateResults" />
+            placeholder="recipient@example.org"
+          />
         </div>
 
-        <div class="col-auto">
-          <label class="sr-only">
+        <div class="col">
+          <label>
             <!-- prettier-ignore -->
-            <translate>Time interval</translate>:
+            <translate>Time interval</translate>
           </label>
           <DateRangePicker
             @update="onUpdateDateRangePicker"
@@ -59,28 +57,98 @@ SPDX-License-Identifier: AGPL-3.0-only
           >
           </DateRangePicker>
         </div>
+
+        <div class="col">
+          <b-button type="submit" variant="primary">
+            <!-- prettier-ignore -->
+            <translate>Search</translate>
+          </b-button>
+        </div>
       </b-form-row>
     </b-form>
-    
-    <b-container class="search-result-text">
+
+    <b-container ref="searchResultText" class="search-result-text mt-4">
       <p :class="searchResultClass">{{ searchResultText }}</p>
     </b-container>
-    
-    <import-progress-indicator ref="import" :label="importingLogs" @finished="handleProgressFinished"></import-progress-indicator>
-    
-    <b-container class="results">
-      <b-row v-for="result in results" :key="result.Timestamp">
-        <b-col sm>{{ emailDate(result.time) }}</b-col>
-        <b-col sm>Status: {{ result.status }}</b-col>
-        <b-col sm>DSN: {{ result.dsn }}</b-col>
-        <!-- TODO: use list of DSNs https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml -->
-      </b-row>
+
+    <b-container class="results mt-4">
+      <div v-for="(result, index) in results.messages" :key="index">
+        <h3>
+          <!-- prettier-ignore -->
+          <translate>Message Status</translate>:
+          <span
+            v-for="delivery in result"
+            :key="delivery.time_min"
+            :class="statusClass(delivery.status)"
+            >{{ delivery.status }}</span
+          >
+        </h3>
+
+        <template v-if="hasOnlyOneDelivery(result)">
+          <p class="mt-3">
+            {{ emailDate(result[0].time_min) }}
+          </p>
+          <p>
+            <!-- prettier-ignore -->
+            <translate>Status code</translate>:
+            {{ result[0].dsn }}
+          </p>
+        </template>
+        <div v-else v-for="delivery in result" :key="delivery.time_min">
+          <p class="mt-3">
+            {{ delivery.number_of_attempts }}
+            <!-- prettier-ignore -->
+            <translate>delivery attempt(s)</translate>
+            <span :class="statusClass(delivery.status)">
+              {{ delivery.status }}
+            </span>
+            <!-- prettier-ignore -->
+            <translate>with status code</translate>
+            {{ delivery.dsn }}
+            -
+            <span class="text-secondary">
+              {{ emailDate(delivery.time_min) }}
+            </span>
+            <template v-if="!(delivery.time_max == delivery.time_min)">
+              -
+              <span class="text-secondary">
+                {{ emailDate(delivery.time_max) }}
+              </span>
+            </template>
+          </p>
+        </div>
+        <p>
+          (You can find more information about status codes on
+          <a
+            href="https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml"
+            >IANA's reference list</a
+          >.)
+        </p>
+      </div>
     </b-container>
-    
-    <b-container v-show="forEndUsers">
-      <input type="submit" value="Escalate" />
+
+    <b-container class="pages mt-4 mb-4" v-show="results.last_page > 1">
+      <button
+        type="button"
+        class="btn btn-outline-primary"
+        v-for="p in results.last_page"
+        :key="p"
+        :disabled="p == results.page"
+        @click="
+          page = p;
+          updateResults();
+        "
+      >
+        {{ p }}
+      </button>
     </b-container>
-    
+
+    <b-container v-show="forEndUsers" class="mt-5">
+      <b-button type="submit" variant="outline-primary">
+        <!-- prettier-ignore -->
+        <translate>Escalate</translate>
+      </b-button>
+    </b-container>
   </b-container>
 </template>
 
@@ -95,13 +163,10 @@ import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
-import { mapActions } from "vuex";
 
-
-function isEmail (email) {
+function isEmail(email) {
   // NOTE: regexp also used in util/emailutil/email.go
-  if (email == '')
-    return null;
+  if (email == "") return null;
   return email.match(/^[^@\s]+@[^@\s]+$/) !== null;
 }
 
@@ -113,72 +178,121 @@ export default {
     forEndUsers: {
       type: Boolean,
       default: false
-    },
+    }
   },
   data() {
     return {
       // detective-specific
       mail_from: "",
       mail_to: "",
-      searchResultText: '',
-      searchResultClass: '',
+      searchResultText: this.$gettext("No results yet"),
+      searchResultClass: "text-muted",
       results: [],
-      
-      // logs import
-      importingLogs: this.$gettext("Importing logs"),
-      
+      page: 1,
+
+      // specific auth
+      neededAuth: this.$route.name == "searchmessage" ? "detective" : "auth"
+
       // TODO: restrict timeInterval to 1 day if forEndUsers?
     };
   },
   computed: {
-    isEmailFrom: function () { return isEmail(this.mail_from); },
-    isEmailTo:   function () { return isEmail(this.mail_to  ); },
+    isEmailFrom: function() {
+      return isEmail(this.mail_from);
+    },
+    isEmailTo: function() {
+      return isEmail(this.mail_to);
+    }
   },
   methods: {
     updateSelectedInterval(obj) {
       let vue = this;
-      vue.updateResults();
       vue.formatDatePickerValue(obj);
     },
     emailDate(d) {
       return humanDateTime(d);
     },
-    handleProgressFinished() {
-      this.setInsightsImportProgressFinished();
-      this.updateResults();
+    statusClass: function(status) {
+      return {
+        sent: "delivery-status text-success",
+        bounced: "delivery-status text-danger",
+        deferred: "delivery-status text-warning",
+        expired: "delivery-status text-danger"
+      }[status];
     },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
-        "onUpdateDateRangePicker",
+        "onUpdateDateRangePickerDetective",
         obj.startDate + "-" + obj.endDate
       );
 
       this.updateSelectedInterval(obj);
     },
-    updateResults: function () {
+    updateResults: function() {
       let vue = this;
-      
+
       if (!this.isEmailFrom || !this.isEmailTo) {
-        vue.searchResultClass = 'text-warning';
-        vue.searchResultText = vue.$gettext('Please check the given email addresses');
+        vue.searchResultClass = "text-warning";
+        vue.searchResultText = vue.$gettext(
+          "Please check the given email addresses"
+        );
         return;
       }
-      
-      vue.searchResultClass = 'text-muted';
-      vue.searchResultText = '...';
-      
+
+      vue.searchResultClass = "text-muted";
+      vue.searchResultText = "...";
+
       let interval = vue.buildDateInterval();
-      
-      checkMessageDelivery(this.mail_from, this.mail_to, interval.startDate, interval.endDate).then( function (response) {
+
+      checkMessageDelivery(
+        this.mail_from,
+        this.mail_to,
+        interval.startDate,
+        interval.endDate,
+        vue.page
+      ).then(function(response) {
         vue.results = response.data;
-        vue.searchResultClass = vue.results.length ? 'text-primary' : 'text-secondary';
-        vue.searchResultText = vue.results.length ? vue.results.length + ' ' + vue.$gettext('messages found') : vue.$gettext('No message found');
+
+        let pageNb =
+          vue.page > 1 ? " - " + vue.$gettext("Page") + " " + vue.page : "";
+
+        vue.searchResultClass = vue.results.total
+          ? "text-primary"
+          : "text-secondary";
+        vue.searchResultText = vue.results.total
+          ? vue.results.total + " " + vue.$gettext("message(s) found") + pageNb
+          : vue.$gettext("No message found");
+        vue.$refs.searchResultText.scrollIntoView();
       });
     },
-    ...mapActions(["setInsightsImportProgressFinished"])
+    hasOnlyOneDelivery: function(result) {
+      return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
+    }
+  },
+  mounted() {
+    this.updateSelectedInterval(this.dateRange);
   }
 };
 </script>
 
 <style lang="less">
+/* don't squeeze the inputs or datepicker too much, so they'll flex-wrap on smaller screens */
+input,
+.vue-daterange-picker {
+  min-width: 200px;
+}
+
+.delivery-status + .delivery-status:before {
+  content: " + ";
+  color: #212529;
+}
+
+.pages {
+  display: flex;
+  justify-content: center;
+
+  button + button {
+    margin-left: 0.5em;
+  }
+}
 </style>

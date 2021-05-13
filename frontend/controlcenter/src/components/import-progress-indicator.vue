@@ -25,17 +25,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           fontColor="black"
           :legend-value="value"
           :legend="true"
-          >
+        >
           <span slot="legend-value">%</span>
         </vue-ellipse-progress>
       </div>
-      <div class="generating-label" v-show="showLabel">{{ label }}</div>
+      <div class="generating-label text-center" v-show="showLabel">
+        {{ label }}
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-
 import tracking from "../mixin/global_shared.js";
 import { getAPI } from "@/lib/api";
 import { mapState } from "vuex";
@@ -47,7 +48,7 @@ export default {
     showLabel: {
       type: Boolean,
       default: true
-    },
+    }
   },
   data() {
     return {
@@ -67,32 +68,42 @@ export default {
     };
   },
   computed: {
-    shouldShowProgressIndicator: function () { return !this.isImportProgressFinished; },
+    shouldShowProgressIndicator: function() {
+      return !this.isImportProgressFinished;
+    },
     ...mapState(["isImportProgressFinished"])
   },
   mounted() {
     let vue = this;
 
     this.updateValue = window.setInterval(function() {
-      getAPI("importProgress").then(function(progress) {
-        let data = progress.data;
-        let finished = (vue.active || (!vue.active && vue.value == 100)) && !data.active;
+      getAPI("importProgress")
+        .then(function(progress) {
+          let data = progress.data;
+          let finished =
+            (vue.active || (!vue.active && vue.value == 100)) && !data.active;
 
-        vue.time = data.time;
-        vue.value = data.value;
-        vue.active = data.active;
+          vue.time = data.time;
+          vue.value = data.value;
+          vue.active = data.active;
 
-        if (!finished) {
-          return
-        }
+          if (!finished) {
+            return;
+          }
 
-        window.setTimeout(function() {
-          window.clearInterval(vue.updateValue);
-          vue.$emit("finished", vue)
-        }, 400)
-      }).catch(function() {
-        console.log("Error!!! obtaining progress");
-      })
+          window.setTimeout(function() {
+            window.clearInterval(vue.updateValue);
+            vue.$emit("finished", vue);
+          }, 400);
+        })
+        .catch(function(error) {
+          console.log("Error!!! obtaining progress");
+          if (error.response.status === 401) {
+            // this is when the user is not authenticated, e.g. an end-user using the Message Detective
+            window.clearInterval(vue.updateValue);
+            vue.$emit("finished", vue);
+          }
+        });
     }, 1000);
   },
   destroyed() {
@@ -102,7 +113,6 @@ export default {
 </script>
 
 <style scoped lang="less">
-
 .generating-label {
   margin-top: 20px;
 }
@@ -115,5 +125,4 @@ export default {
 .progress-indicator .ellipse > div {
   margin: 0 auto;
 }
-
 </style>
