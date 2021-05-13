@@ -301,9 +301,6 @@ export function checkMessageDelivery(
     new URLSearchParams(formData)
   );
   post.catch(builderErrorHandler("detective_search"));
-  post.then(function() {
-    trackEvent("MessageDetectiveSearch", "search");
-  });
   return post;
 }
 

@@ -272,6 +272,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-if="insight.content_type === 'detective_escalation'"
                 class="card-text description"
               >
+                <span v-translate="{ count: countDetectiveIssues(insight) }"
+                  >Investigation requested into failed delivery of %{count} messages
+                </span>
                 <button
                   v-b-modal.modal-detective-escalation
                   v-on:click="onDetectiveEscalationDetails(insight)"
@@ -325,7 +328,7 @@ export default {
     detectiveInsightTimeBegin() {
       return (
         `<strong>` +
-        formatInsightDescriptionDate(
+        formatDateForDetectiveInsightModalWindow(
           this.detectiveInsight.content.time_interval.from
         ) +
         `</strong>`
@@ -334,7 +337,7 @@ export default {
     detectiveInsightTimeEnd() {
       return (
         `<strong>` +
-        formatInsightDescriptionDate(
+        formatDateForDetectiveInsightModalWindow(
           this.detectiveInsight.content.time_interval.to
         ) +
         `</strong>`
@@ -371,6 +374,9 @@ export default {
     };
   },
   methods: {
+    countDetectiveIssues(insight) {
+      return Object.keys(insight.content.messages).length;
+    },
     onBuildInsightRbl: function(id) {
       this.buildInsightRblCheckedIp(id);
       this.buildInsightRblList(id);
@@ -419,7 +425,7 @@ export default {
       return this.$gettextInterpolate(translation, { host: i.content.host });
     },
     detective_escalation_title() {
-      return "Failed deliveries reported";
+      return this.$gettext("Lost message(s) escalated by user");
     },
     high_bounce_rate_description(i) {
       let c = i.content;
@@ -674,6 +680,12 @@ function formatInsightDescriptionDate(d) {
   // TODO: this should be formatted according to the chosen language
   return moment(d).format("MMM. D YYYY");
 }
+
+function formatDateForDetectiveInsightModalWindow(d) {
+  // TODO: this should be formatted according to the chosen language
+  return moment(d).format("DD MMM YYYY");
+}
+
 </script>
 <style>
 .insights .card.insight-highlighted {

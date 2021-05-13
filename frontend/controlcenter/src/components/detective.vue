@@ -5,66 +5,67 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <b-container class="mt-5">
-    <b-form @submit.prevent="updateResults">
-      <b-form-row class="justify-content-between align-items-end">
-        <div class="col">
-          <label>
-            <!-- prettier-ignore -->
-            <translate>Sender Email Address</translate>
-          </label>
-          <b-form-input
-            type="email"
-            name="mail_from"
-            maxlength="255"
-            required
-            v-model="mail_from"
-            :v-state="isEmailFrom"
-            placeholder="sender@example.org"
-          />
-        </div>
-        <div class="col">
-          <label>
-            <!-- prettier-ignore -->
-            <translate>Recipient Email Address</translate>
-          </label>
-          <b-form-input
-            type="email"
-            name="mail_to"
-            maxlength="255"
-            required
-            v-model="mail_to"
-            :v-state="isEmailTo"
-            placeholder="recipient@example.org"
-          />
-        </div>
+  <b-container class="mt-5 detective-body">
+    <b-form @submit.prevent="updateResults" class="detective-form d-flex">
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Sender Email Address</translate>
+        </label>
 
-        <div class="col">
-          <label>
-            <!-- prettier-ignore -->
-            <translate>Time interval</translate>
-          </label>
-          <DateRangePicker
-            @update="onUpdateDateRangePicker"
-            :autoApply="autoApply"
-            :opens="opens"
-            :singleDatePicker="singleDatePicker"
-            :alwaysShowCalendars="alwaysShowCalendars"
-            :ranges="ranges"
-            v-model="dateRange"
-            :showCustomRangeCalendars="false"
-            :max-date="new Date()"
-          >
-          </DateRangePicker>
-        </div>
+        <b-form-input
+          type="email"
+          name="mail_from"
+          maxlength="255"
+          required
+          v-model="mail_from"
+          :v-state="isEmailFrom"
+          placeholder="sender@example.org"
+        />
+      </div>
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Recipient Email Address</translate>
+        </label>
 
-        <div class="col">
-          <b-button type="submit" variant="primary">
-            <!-- prettier-ignore -->
-            <translate>Search</translate>
-          </b-button>
-        </div>
-      </b-form-row>
+        <b-form-input
+          type="email"
+          name="mail_to"
+          maxlength="255"
+          required
+          v-model="mail_to"
+          :v-state="isEmailTo"
+          placeholder="recipient@example.org"
+        />
+      </div>
+
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Sent Between</translate>
+        </label>
+
+        <DateRangePicker
+          @update="onUpdateDateRangePicker"
+          :autoApply="autoApply"
+          :opens="opens"
+          :singleDatePicker="singleDatePicker"
+          :alwaysShowCalendars="alwaysShowCalendars"
+          :ranges="ranges"
+          v-model="dateRange"
+          :showCustomRangeCalendars="false"
+          :max-date="new Date()"
+        >
+        </DateRangePicker>
+      </div>
+
+      <div class="col p-2 ml-auto">
+        <b-button type="submit" variant="primary" class="btn-block">
+          <!-- prettier-ignore -->
+          <translate>Search</translate>
+        </b-button>
+      </div>
     </b-form>
 
     <b-container ref="searchResultText" class="search-result-text mt-4">
@@ -135,7 +136,7 @@ export default {
       page: 1,
 
       // specific auth
-      neededAuth: this.$route.name == "searchmessage" ? "detective" : "auth"
+      neededAuth: this.forEndUsers ? "detective" : "auth"
 
       // TODO: restrict timeInterval to 1 day if forEndUsers?
     };
@@ -185,6 +186,11 @@ export default {
         vue.page
       ).then(function(response) {
         vue.results = response.data;
+
+        vue.trackEvent(
+          "MessageDetectiveSearch" + (vue.forEndUsers ? "EndUser" : "Admin"),
+          vue.results.total
+        );
 
         vue.$emit(
           "onResults",
@@ -248,5 +254,20 @@ input,
   button + button {
     margin-left: 0.5em;
   }
+}
+
+.detective-form {
+}
+
+.detective-form label {
+  display: none;
+}
+
+.detective-form .col {
+}
+
+.detective-body {
+  padding-right: 0px;
+  padding-left: 0px;
 }
 </style>

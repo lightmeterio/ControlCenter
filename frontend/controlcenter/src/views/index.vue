@@ -11,7 +11,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="row">
         <div class="col-md-12">
           <h1 class="row-title">
-            Control Center
+            <!-- prettier-ignore -->
+            <translate>Observatory</translate>
           </h1>
         </div>
       </div>

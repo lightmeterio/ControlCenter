@@ -17,10 +17,15 @@ SPDX-License-Identifier: AGPL-3.0-only
             v-for="(delivery, index) in result.entries"
             :key="index"
             :class="statusClass(delivery.status)"
+            :title="statusTitle(delivery.status)"
           >
             {{ delivery.status }}
           </li>
-          <li :class="statusClass('expired')" v-show="isExpired(result)">
+          <li
+            :class="statusClass('expired')"
+            :title="statusTitle('expired')"
+            v-show="isExpired(result)"
+          >
             expired
           </li>
         </ul>
@@ -123,6 +128,19 @@ export default {
       }[status];
 
       return baseClass + customClass;
+    },
+    statusTitle: function(status) {
+      return {
+        sent: this.$gettext("Message successfully sent"),
+        bounced: this.$gettext("Message refused by recipient's mail provider"),
+        deferred: this.$gettext("Message temporarily refused and retried"),
+        expired: this.$gettext(
+          "Message delivery abandoned after too many deferred attempts"
+        ),
+        returned: this.$gettext(
+          "Return notification sent back to original sender"
+        )
+      }[status];
     },
     isExpired: function(result) {
       return result.entries.reduce((a, r) => a || r.expired, false);
