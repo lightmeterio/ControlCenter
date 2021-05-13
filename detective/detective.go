@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
@@ -36,37 +37,39 @@ const (
 func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		checkMessageDelivery, err := db.Prepare(`
-			with matching_delivery_queues(id, delivery_ts, status, dsn, queue_id) as
+			with deliveries_filtered_by_condition(id, delivery_ts, status, dsn) as
 			(
-				select d.id, delivery_ts, status, dsn, queue_id
+				select d.id, d.delivery_ts, d.status, d.dsn
 				from
 					deliveries d
 				join
-					remote_domains sender_domain    on sender_domain.id    				= d.sender_domain_part_id
+					remote_domains sender_domain    on sender_domain.id    = d.sender_domain_part_id
 				join
-					remote_domains recipient_domain on recipient_domain.id 				= d.recipient_domain_part_id
+					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
 				where
-					sender_local_part    = ? and sender_domain.domain    = ? and
-					recipient_local_part = ? and recipient_domain.domain = ? and
-					delivery_ts between ? and ?
-			)
-			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts from (
+					sender_local_part    = ? and sender_domain.domain    = ?
+					and recipient_local_part = ? and recipient_domain.domain = ?
+					and delivery_ts between ? and ?
+			),
+			queue_ids_filtered_by_condition(queue_id) as (
+				select delivery_queue.queue_id
+				from deliveries_filtered_by_condition
+				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
+			),
+			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, number_of_attempts, min_ts, max_ts) as (
 				select
 					row_number() over (order by delivery_ts),
 					count() over () as total,
 					delivery_ts, status, dsn, queue_id, queues.name as queue,
 					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts
-				from deliveries d
+				from deliveries_filtered_by_condition d
 				join delivery_queue q on q.delivery_id = d.id
 				join queues           on q.queue_id    = queues.id
-				where exists (
-					select *
-					from matching_delivery_queues d2
-					join delivery_queue q2 on q2.delivery_id = d2.id
-					where q2.queue_id = q.queue_id
-				)
+				where exists (select * from queue_ids_filtered_by_condition c where c.queue_id = q.queue_id)
 				group by queue_id, status, dsn
 			)
+			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts
+			from grouped_and_computed
 			order by delivery_ts
 			limit ?
 			offset ?
@@ -206,6 +209,12 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
+
+	queryStart := time.Now()
+
+	defer func() {
+		log.Debug().Msgf("Time to execute checkMessageDelivery: %v", time.Since(queryStart))
+	}()
 
 	rows, err := stmt.QueryContext(ctx,
 		senderLocal, senderDomain,
