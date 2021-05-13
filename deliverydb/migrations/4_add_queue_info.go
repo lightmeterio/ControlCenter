@@ -41,6 +41,14 @@ func upAddQueueTables(tx *sql.Tx) error {
 
 		create index queue_parenting_parent_index on queue_parenting(parent_queue_id);
 		create index queue_parenting_child_index on queue_parenting(child_queue_id);
+
+		create table expired_queues(
+			id integer primary key,
+			queue_id int not null,
+			expired_ts int not null
+		);
+
+		create index expired_queues_queue_index on expired_queues(queue_id);
 	`
 
 	if _, err := tx.Exec(sql); err != nil {

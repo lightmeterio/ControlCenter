@@ -20,6 +20,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           >
             {{ delivery.status }}
           </li>
+          <li :class="statusClass('expired')" v-show="isExpired(result)">
+            expired
+          </li>
         </ul>
 
         <div
@@ -120,6 +123,9 @@ export default {
       }[status];
 
       return baseClass + customClass;
+    },
+    isExpired: function(result) {
+      return result.reduce((a, r) => a || r.expired, false);
     },
     hasOnlyOneDelivery: function(result) {
       return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
