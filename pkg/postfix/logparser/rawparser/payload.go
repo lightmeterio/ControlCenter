@@ -14,7 +14,7 @@ package rawparser
 type RawPayload struct {
 	PayloadType           PayloadType
 	RawSmtpSentStatus     RawSmtpSentStatus
-	QmgrReturnedToSender  QmgrReturnedToSender
+	QmgrMessageExpired    QmgrMessageExpired
 	QmgrMailQueued        QmgrMailQueued
 	QmgrRemoved           QmgrRemoved
 	SmtpdConnect          SmtpdConnect

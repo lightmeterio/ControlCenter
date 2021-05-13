@@ -347,11 +347,11 @@ func TestSMTPParsing(t *testing.T) {
 func TestQmgrParsing(t *testing.T) {
 	Convey("Qmgr expired message", t, func() {
 		header, parsed, err := Parse([]byte(`Sep  3 12:39:14 mailhost postfix-12.34.56.78/qmgr[24086]: ` +
-			`B54DA300087: from=<redacted@company.com>, status=expired, returned to sender`))
+			`B54DA300087: from=<redacted@company.com>, status=force-expired, returned to sender`))
 
 		So(parsed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		p, cast := parsed.(QmgrReturnedToSender)
+		p, cast := parsed.(QmgrMessageExpired)
 		So(cast, ShouldEqual, true)
 
 		So(header.Time.Day, ShouldEqual, 3)
@@ -365,6 +365,7 @@ func TestQmgrParsing(t *testing.T) {
 		So(p.SenderLocalPart, ShouldEqual, "redacted")
 		So(p.SenderDomainPart, ShouldEqual, "company.com")
 		So(p.Queue, ShouldEndWith, "B54DA300087")
+		So(p.Message, ShouldEndWith, "returned to sender")
 	})
 }
 

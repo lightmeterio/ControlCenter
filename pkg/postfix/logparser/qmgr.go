@@ -10,28 +10,30 @@ import (
 )
 
 func init() {
-	registerHandler(rawparser.PayloadTypeQmgrReturnedToSender, convertQmgrReturnedToSender)
+	registerHandler(rawparser.PayloadTypeQmgrMessageExpired, convertQmgrMessageExpired)
 	registerHandler(rawparser.PayloadTypeQmgrMailQueued, convertQmgrMailQueued)
 	registerHandler(rawparser.PayloadTypeQmgrRemoved, convertQmgrRemoved)
 }
 
-type QmgrReturnedToSender struct {
+type QmgrMessageExpired struct {
 	Queue            string
 	SenderLocalPart  string
 	SenderDomainPart string
+	Message          string
 }
 
-func (QmgrReturnedToSender) isPayload() {
+func (QmgrMessageExpired) isPayload() {
 	// required by interface Payload
 }
 
-func convertQmgrReturnedToSender(r rawparser.RawPayload) (Payload, error) {
-	p := r.QmgrReturnedToSender
+func convertQmgrMessageExpired(r rawparser.RawPayload) (Payload, error) {
+	p := r.QmgrMessageExpired
 
-	return QmgrReturnedToSender{
+	return QmgrMessageExpired{
 		Queue:            string(p.Queue),
 		SenderLocalPart:  string(p.SenderLocalPart),
 		SenderDomainPart: string(p.SenderDomainPart),
+		Message:          string(p.Message),
 	}, nil
 }
 
