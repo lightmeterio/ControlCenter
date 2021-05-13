@@ -103,10 +103,36 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	return httputil.WriteJson(w, messages, http.StatusOK)
 }
 
+type oldestAvailableTimeHandler detectiveHandler
+
+type OldestAvailableTimeResponse struct {
+	Time *time.Time `json:"time"`
+}
+
+// @Summary Oldest time for being used as the start of the search interval
+// @Produce json
+// @Success 200 {object} OldestAvailableTimeResponse "time"
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/oldestAvailableTimeForMessageDetective [get]
+func (h oldestAvailableTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	time, err := h.detective.OldestAvailableTime(r.Context())
+
+	if err != nil && errors.Is(err, detective.ErrNoAvailableLogs) {
+		return httputil.WriteJson(w, OldestAvailableTimeResponse{Time: nil}, http.StatusOK)
+	}
+
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	return httputil.WriteJson(w, OldestAvailableTimeResponse{Time: &time}, http.StatusOK)
+}
+
 func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *meta.Reader) {
 	publicIfEnabled := httpmiddleware.New(httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth, settingsReader))
 	mux.Handle("/api/v0/checkMessageDeliveryStatus", publicIfEnabled.WithEndpoint(checkMessageDeliveryHandler{detective}))
 	mux.Handle("/api/v0/escalateMessage", publicIfEnabled.WithEndpoint(detectiveEscalatorHandler{requester: escalator, detective: detective}))
+	mux.Handle("/api/v0/oldestAvailableTimeForMessageDetective", publicIfEnabled.WithEndpoint(oldestAvailableTimeHandler{detective: detective}))
 }
 
 type detectiveEscalatorHandler struct {

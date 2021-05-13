@@ -98,7 +98,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import { checkMessageDelivery, escalateMessage } from "@/lib/api.js";
+import {
+  checkMessageDelivery,
+  escalateMessage,
+  oldestAvailableTimeForMessageDetective
+} from "@/lib/api.js";
 import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
@@ -216,6 +220,16 @@ export default {
   },
   mounted() {
     this.updateSelectedInterval(this.dateRange);
+
+    oldestAvailableTimeForMessageDetective().then(r => {
+      if (r.data.time != null) {
+        this.dateRange = {
+          startDate: r.data.time,
+          endDate: this.dateRange.endDate
+        };
+        this.updateSelectedInterval(this.dateRange);
+      }
+    });
   }
 };
 </script>

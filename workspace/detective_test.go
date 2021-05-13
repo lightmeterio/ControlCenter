@@ -5,7 +5,9 @@
 package workspace
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -16,6 +18,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -26,6 +29,13 @@ func init() {
 }
 
 func buildDetective(t *testing.T, filename string, year int) (detective.Detective, func()) {
+	f, err := os.Open(filename)
+	So(err, ShouldBeNil)
+
+	return buildDetectiveFromReader(t, f, year)
+}
+
+func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
 	ws, err := NewWorkspace(dir)
@@ -34,10 +44,7 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 	builder, err := transform.Get("default", year)
 	So(err, ShouldBeNil)
 
-	f, err := os.Open(filename)
-	So(err, ShouldBeNil)
-
-	logSource, err := filelogsource.New(f, builder, announcer.Skipper(ws.ImportAnnouncer()))
+	logSource, err := filelogsource.New(reader, builder, announcer.Skipper(ws.ImportAnnouncer()))
 	So(err, ShouldBeNil)
 
 	done, cancel := ws.Run()
@@ -62,18 +69,21 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 
 func TestDetective(t *testing.T) {
 	Convey("Detective on real logs", t, func() {
-
 		const year = 2020
 		var (
 			correctInterval = timeutil.TimeInterval{
 				time.Date(year, time.January, 0, 0, 0, 0, 0, time.Local),
 				time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local),
 			}
-			wrongInterval = timeutil.TimeInterval{
-				time.Date(year+1, time.January, 0, 0, 0, 0, 0, time.Local),
-				time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
-			}
 		)
+
+		Convey("Empty input logs", func() {
+			d, clear := buildDetectiveFromReader(t, bytes.NewReader(nil), year)
+			defer clear()
+
+			_, err := d.OldestAvailableTime(context.Background())
+			So(errors.Is(err, detective.ErrNoAvailableLogs), ShouldBeTrue)
+		})
 
 		Convey("File with a successful delivery", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/3_local_delivery.log", year)
@@ -107,10 +117,19 @@ func TestDetective(t *testing.T) {
 			})
 
 			Convey("Message out of interval", func() {
+				wrongInterval := timeutil.TimeInterval{
+					time.Date(year+1, time.January, 0, 0, 0, 0, 0, time.Local),
+					time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
+				}
+
 				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", wrongInterval, 1)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 0, noDeliveries})
 			})
+
+			oldestTime, err := d.OldestAvailableTime(context.Background())
+			So(err, ShouldBeNil)
+			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-01-10 16:15:30 +0000`))
 		})
 
 		Convey("File with an expired message", func() {
@@ -142,6 +161,10 @@ func TestDetective(t *testing.T) {
 					},
 				})
 			})
+
+			oldestTime, err := d.OldestAvailableTime(context.Background())
+			So(err, ShouldBeNil)
+			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-09-25 18:26:36 +0000`))
 		})
 	})
 }
