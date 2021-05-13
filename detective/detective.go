@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
@@ -20,11 +21,17 @@ const resultsPerPage = 100
 
 type Detective interface {
 	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, page int) (*MessagesPage, error)
+	OldestAvailableTime(context.Context) (time.Time, error)
 }
 
 type sqlDetective struct {
 	pool *dbconn.RoPool
 }
+
+const (
+	checkMessageDeliveryKey = iota
+	oldestAvailableTimeKey
+)
 
 func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
@@ -75,7 +82,30 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 			}
 		}()
 
-		db.Stmts["checkMessageDelivery"] = checkMessageDelivery
+		db.Stmts[checkMessageDeliveryKey] = checkMessageDelivery
+
+		oldestAvailableTime, err := db.Prepare(`
+			with first_delivery_queue(delivery_id) as
+			(
+				select delivery_id from delivery_queue order by id asc limit 1
+			)
+			select
+				deliveries.delivery_ts
+			from
+				deliveries join first_delivery_queue on first_delivery_queue.delivery_id = deliveries.id
+		`)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		defer func() {
+			if err != nil {
+				errorutil.MustSucceed(oldestAvailableTime.Close())
+			}
+		}()
+
+		db.Stmts[oldestAvailableTimeKey] = oldestAvailableTime
 
 		return nil
 	}
@@ -89,12 +119,35 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 	}, nil
 }
 
-func (d sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (*MessagesPage, error) {
+var ErrNoAvailableLogs = errors.New(`No available logs`)
+
+func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (*MessagesPage, error) {
 	conn, release := d.pool.Acquire()
 
 	defer release()
 
-	return checkMessageDelivery(ctx, conn.Stmts["checkMessageDelivery"], mailFrom, mailTo, interval, page)
+	return checkMessageDelivery(ctx, conn.Stmts[checkMessageDeliveryKey], mailFrom, mailTo, interval, page)
+}
+
+func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
+	conn, release := d.pool.Acquire()
+
+	defer release()
+
+	var ts int64
+
+	err := conn.Stmts[oldestAvailableTimeKey].QueryRowContext(ctx).Scan(&ts)
+
+	// no available logs yet. That's fine
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, ErrNoAvailableLogs
+	}
+
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	return time.Unix(ts, 0).In(time.UTC), nil
 }
 
 type QueueName = string

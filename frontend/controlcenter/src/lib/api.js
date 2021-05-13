@@ -328,3 +328,7 @@ export function escalateMessage(mail_from, mail_to, date_from, date_to) {
 
   return post;
 }
+
+export function oldestAvailableTimeForMessageDetective() {
+  return getAPI("oldestAvailableTimeForMessageDetective");
+}

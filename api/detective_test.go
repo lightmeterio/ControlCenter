@@ -25,14 +25,15 @@ import (
 	"time"
 )
 
-func TestDetective(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	m := mock_detective.NewMockDetective(ctrl)
-
-	chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
-
+func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 	Convey("CheckMessageDeliveryHandler", t, func() {
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		m := mock_detective.NewMockDetective(ctrl)
+
+		chain := httpmiddleware.New(httpmiddleware.RequestWithInterval(time.UTC))
 
 		interval, err := timeutil.ParseTimeInterval("1999-01-01", "1999-12-31", time.UTC)
 		So(err, ShouldBeNil)
@@ -96,6 +97,7 @@ func TestDetective(t *testing.T) {
 					},
 					}},
 			}
+
 			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, 1).Return(&messages, nil)
 
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&page=1", s.URL))
@@ -110,8 +112,46 @@ func TestDetective(t *testing.T) {
 			So(body, ShouldResemble, messages)
 		})
 	})
+}
 
-	ctrl.Finish()
+func TestDetectiveOldestAvailableTime(t *testing.T) {
+	Convey("OldestAvailableTime", t, func() {
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		m := mock_detective.NewMockDetective(ctrl)
+
+		s := httptest.NewServer(httpmiddleware.New().WithEndpoint(oldestAvailableTimeHandler{detective: m}))
+
+		Convey("No logs for use with message detective are available yet", func() {
+			m.EXPECT().OldestAvailableTime(gomock.Any()).Return(time.Time{}, detective.ErrNoAvailableLogs)
+
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			var body OldestAvailableTimeResponse
+			dec := json.NewDecoder(r.Body)
+			So(dec.Decode(&body), ShouldBeNil)
+			So(body.Time, ShouldBeNil)
+		})
+
+		Convey("Logs are available. Return some value", func() {
+			expectedTime := testutil.MustParseTime(`2000-01-01 12:30:40 +0000`)
+			m.EXPECT().OldestAvailableTime(gomock.Any()).Return(expectedTime, nil)
+
+			r, err := http.Get(s.URL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			var body OldestAvailableTimeResponse
+			dec := json.NewDecoder(r.Body)
+			So(dec.Decode(&body), ShouldBeNil)
+			So(body.Time, ShouldNotBeNil)
+			So(*body.Time, ShouldResemble, expectedTime)
+		})
+	})
 }
 
 type fakeEscalateRequester struct {
