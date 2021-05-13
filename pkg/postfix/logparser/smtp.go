@@ -30,6 +30,7 @@ var (
 		BouncedStatus:  "bounced",
 		SentStatus:     "sent",
 		ExpiredStatus:  "expired",
+		ReturnedStatus: "returned",
 	}
 )
 
@@ -42,6 +43,7 @@ const (
 	BouncedStatus  SmtpStatus = 1
 	DeferredStatus SmtpStatus = 2
 	ExpiredStatus  SmtpStatus = 3
+	ReturnedStatus SmtpStatus = 4
 )
 
 type SmtpSentStatus struct {
@@ -90,6 +92,8 @@ func ParseStatus(s []byte) (SmtpStatus, error) {
 		return BouncedStatus, nil
 	case "expired":
 		return ExpiredStatus, nil
+	case "returned":
+		return ReturnedStatus, nil
 	}
 
 	return 0, ErrInvalidStatus

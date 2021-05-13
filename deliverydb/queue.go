@@ -51,7 +51,6 @@ func rowIdForQueue(queue string, tx *sql.Tx, stmts preparedStmts) (int64, error)
 	return queueId, nil
 }
 
-// TODO: a queue for a returned message should link to the original queue
 func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts preparedStmts) error {
 	queue := tr[tracking.QueueDeliveryNameKey].Text()
 
@@ -71,8 +70,36 @@ func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts 
 		return errorutil.Wrap(err)
 	}
 
+	parentQueue := tr[tracking.ParentQueueDeliveryNameKey]
+
+	if parentQueue.IsNone() {
+		return nil
+	}
+
+	parentQueueId, err := rowIdForQueue(parentQueue.Text(), tx, stmts)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	stmt = tx.Stmt(stmts[insertQueueParenting])
+
+	defer func() {
+		errorutil.MustSucceed(stmt.Close())
+	}()
+
+	if _, err := stmt.Exec(parentQueueId, queueRowId, QueueParentingTypeReturnedToSender); err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	return nil
 }
+
+type QueueParentingType int
+
+const (
+	// NOTE: this value is stored in the database, so never change it unless you want to break backward compatibility!
+	QueueParentingTypeReturnedToSender QueueParentingType = 1
+)
 
 func updateDeliveryStatusToExpired(queue string, tx *sql.Tx, stmts preparedStmts) error {
 	stmt := tx.Stmt(stmts[updateDeliveryStatusByQueueName])

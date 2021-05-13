@@ -280,6 +280,7 @@ func buildAndPublishResult(
 		}
 
 		returnedMessageResults[QueueDeliveryNameKey] = ResultEntryText(queueName)
+		returnedMessageResults[ParentQueueDeliveryNameKey] = deliveryQueueResult[QueueDeliveryNameKey]
 
 		mergedResults = mergeResults(mergedResults, returnedMessageResults)
 	}

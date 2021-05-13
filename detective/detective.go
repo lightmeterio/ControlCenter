@@ -37,40 +37,62 @@ const (
 func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		checkMessageDelivery, err := db.Prepare(`
-			with deliveries_filtered_by_condition(id, delivery_ts, status, dsn) as
-			(
-				select d.id, d.delivery_ts, d.status, d.dsn
+			with
+			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, returned) as (
+				select d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, false
 				from
 					deliveries d
 				join
 					remote_domains sender_domain    on sender_domain.id    = d.sender_domain_part_id
 				join
 					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
+				join
+					delivery_queue dq on dq.delivery_id = d.id
 				where
 					sender_local_part    = ? and sender_domain.domain    = ?
 					and recipient_local_part = ? and recipient_domain.domain = ?
 					and delivery_ts between ? and ?
+			),
+			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned) as (
+				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, true
+				from
+					deliveries d
+				join
+					delivery_queue on delivery_queue.delivery_id = d.id
+				join
+					queue_parenting on delivery_queue.queue_id = queue_parenting.child_queue_id
+				join
+					queues qp on queue_parenting.parent_queue_id = qp.id
+				join
+					queues qc on queue_parenting.child_queue_id = qc.id
+				join
+					sent_deliveries_filtered_by_condition sd on qp.id = sd.queue_id
+			),
+			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, returned) as (
+				select id, delivery_ts, status, dsn, queue_id, returned from sent_deliveries_filtered_by_condition
+				union
+				select id, delivery_ts, status, dsn, queue_id, returned from returned_deliveries
 			),
 			queue_ids_filtered_by_condition(queue_id) as (
 				select delivery_queue.queue_id
 				from deliveries_filtered_by_condition
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, number_of_attempts, min_ts, max_ts) as (
+			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, number_of_attempts, min_ts, max_ts, returned) as (
 				select
 					row_number() over (order by delivery_ts),
 					count() over () as total,
 					delivery_ts, status, dsn, queue_id, queues.name as queue,
-					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts
+					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
+					d.returned as returned
 				from deliveries_filtered_by_condition d
-				join delivery_queue q on q.delivery_id = d.id
-				join queues           on q.queue_id    = queues.id
-				where exists (select * from queue_ids_filtered_by_condition c where c.queue_id = q.queue_id)
+				join queues on d.queue_id = queues.id
+				where exists (select * from queue_ids_filtered_by_condition c where c.queue_id = d.queue_id)
 				group by queue_id, status, dsn
 			)
-			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts
+			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts, returned
 			from grouped_and_computed
-			order by delivery_ts
+			order by delivery_ts, returned
 			limit ?
 			offset ?
 			`)
@@ -243,10 +265,15 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			numberOfAttempts int
 			tsMin            int64
 			tsMax            int64
+			returned         bool
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &numberOfAttempts, &tsMin, &tsMax); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &numberOfAttempts, &tsMin, &tsMax, &returned); err != nil {
 			return nil, errorutil.Wrap(err)
+		}
+
+		if returned {
+			status = parser.ReturnedStatus
 		}
 
 		_, ok := messages[queueName]

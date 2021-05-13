@@ -54,6 +54,7 @@ const (
 	insertQueueDeliveryAttempt
 	findQueueByName
 	updateDeliveryStatusByQueueName
+	insertQueueParenting
 
 	lastStmtKey
 )
@@ -109,6 +110,7 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			limit 1
 		)
 		update deliveries set status = ? where id = (select delivery_id from ids_with_queue)`,
+	insertQueueParenting: `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
 }
 
 // TODO: close such statements when the tracker is deleted!!!
