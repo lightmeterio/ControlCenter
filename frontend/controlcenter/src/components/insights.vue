@@ -29,7 +29,9 @@ SPDX-License-Identifier: AGPL-3.0-only
             </h5>
             <p class="card-text">
               <span class="message-label">Message:</span>
-              <span v-linkified:options="{target: {url: '_blank'}}">{{ r.text }}</span>
+              <span v-linkified:options="{ target: { url: '_blank' } }">{{
+                r.text
+              }}</span>
             </p>
           </div>
         </div>
@@ -58,7 +60,12 @@ SPDX-License-Identifier: AGPL-3.0-only
     >
       <div class="modal-body">
         <blockquote>
-          <span id="rbl-msg-rbl-content" v-linkified:options="{target: {url: '_blank'}}"> {{ msgRblDetails }} </span>
+          <span
+            id="rbl-msg-rbl-content"
+            v-linkified:options="{ target: { url: '_blank' } }"
+          >
+            {{ msgRblDetails }}
+          </span>
         </blockquote>
       </div>
 
@@ -84,7 +91,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="importSummaryWindowTitle()"
     >
       <div class="modal-body">
-        <import-summary-insight-content :content="importSummaryInsight.content"></import-summary-insight-content>
+        <import-summary-insight-content
+          :content="importSummaryInsight.content"
+        ></import-summary-insight-content>
       </div>
 
       <b-row class="vue-modal-footer">
@@ -234,10 +243,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 import moment from "moment";
 import { getApplicationInfo } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
-import linkify from 'vue-linkify';
+import linkify from "vue-linkify";
 import Vue from "vue";
 
-Vue.directive('linkified', linkify);
+Vue.directive("linkified", linkify);
 
 export default {
   name: "insights",
@@ -254,13 +263,13 @@ export default {
     }
   },
   updated() {
-    let i = document.querySelector(".insight-highlighted")
+    let i = document.querySelector(".insight-highlighted");
 
     if (i == undefined) {
-      return
+      return;
     }
 
-    i.scrollIntoView()
+    i.scrollIntoView();
   },
   mounted() {
     let vue = this;
@@ -295,7 +304,7 @@ export default {
       window.open(insight.content.link);
     },
     newsfeed_content_title(insight) {
-      return insight.content.title
+      return insight.content.title;
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
@@ -311,40 +320,51 @@ export default {
     },
     insights_introduction_content_title() {
       let translation = this.$gettext("Welcome to Lightmeter %{version}");
-      return this.$gettextInterpolate(translation, {version: this.applicationData.version});
+      return this.$gettextInterpolate(translation, {
+        version: this.applicationData.version
+      });
     },
     local_rbl_check_title() {
       return this.$gettext("IP on shared blocklist");
     },
     message_rbl_title(i) {
       let translation = this.$gettext("IP blocked by %{host}");
-      return this.$gettextInterpolate(translation, {host: i.content.host});
+      return this.$gettextInterpolate(translation, { host: i.content.host });
     },
     high_bounce_rate_description(i) {
       let c = i.content;
-      let translation = this.$gettext("<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}");
+      let translation = this.$gettext(
+        "<b>%{bounceValue}%</b> bounce rate between %{intFrom} and %{intTo}"
+      );
 
       return this.$gettextInterpolate(translation, {
         bounceValue: c.value * 100,
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
-        intTo:formatInsightDescriptionDateTime(c.interval.to)
+        intTo: formatInsightDescriptionDateTime(c.interval.to)
       });
     },
     mail_inactivity_description(i) {
       let c = i.content;
-      let translation = this.$gettext("No emails were sent between %{intFrom} and %{intTo}");
+      let translation = this.$gettext(
+        "No emails were sent between %{intFrom} and %{intTo}"
+      );
 
       return this.$gettextInterpolate(translation, {
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
-        intTo:formatInsightDescriptionDateTime(c.interval.to)
+        intTo: formatInsightDescriptionDateTime(c.interval.to)
       });
     },
     local_rbl_check_description(i) {
       let c = i.content;
       // TODO: handle difference between singular (one RBL) and plurals
-      let translation = this.$gettext("The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s" );
+      let translation = this.$gettext(
+        "The IP address %{ip} is listed by <strong>%{rblCount}</strong> <abbr title='Real-time Blackhole List'>RBL</abbr>s"
+      );
 
-      let message = this.$gettextInterpolate(translation, {ip: c.address, rblCount: c.rbls.length});
+      let message = this.$gettextInterpolate(translation, {
+        ip: c.address,
+        rblCount: c.rbls.length
+      });
 
       return {
         id: i.id.toString(),
@@ -353,8 +373,14 @@ export default {
     },
     message_rbl_description(i) {
       let c = i.content;
-      let translation = this.$gettext("The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)");
-      let message = this.$gettextInterpolate(translation, {ip: c.address, recipient: c.recipient, host: c.host});
+      let translation = this.$gettext(
+        "The IP %{ip} cannot deliver to %{recipient} (<strong>%{host}</strong>)"
+      );
+      let message = this.$gettextInterpolate(translation, {
+        ip: c.address,
+        recipient: c.recipient,
+        host: c.host
+      });
 
       return {
         id: i.id.toString(),
@@ -362,14 +388,16 @@ export default {
       };
     },
     newsfeed_content_description(insight) {
-      return insight.content.description.substr(0,65);
+      return insight.content.description.substr(0, 65);
     },
     import_summary_description(insight) {
       let c = insight.content;
       //let counter = Object.entries(c.ids).reduce(function(acc, v) { return acc + v[1].length }, 0)
-      let counter = c.insights.length
+      let counter = c.insights.length;
 
-      let translation = this.$gettext("Mail activity imported successfully Events since %{start} were analysed, producing %{count} Insights");
+      let translation = this.$gettext(
+        "Mail activity imported successfully Events since %{start} were analysed, producing %{count} Insights"
+      );
 
       return this.$gettextInterpolate(translation, {
         start: formatInsightDescriptionDate(c.interval.from),
@@ -387,14 +415,14 @@ export default {
 
       let highlightedClass = function(id) {
         if (vue.$route.params.id == undefined) {
-          return ""
+          return "";
         }
 
-        return vue.$route.params.id == id ? "insight-highlighted" : ""
-      }
+        return vue.$route.params.id == id ? "insight-highlighted" : "";
+      };
 
       for (let insight of insights) {
-        let transformed = insight
+        let transformed = insight;
 
         transformed.id = insight.id;
         transformed.category = vue.buildInsightCategory(insight);
@@ -429,9 +457,11 @@ export default {
         return s(insight);
       }
 
-      let translation = this.$gettext("Title for %{content}")
+      let translation = this.$gettext("Title for %{content}");
 
-      return this.$gettextInterpolate(translation, {content: insight.content_type})
+      return this.$gettextInterpolate(translation, {
+        content: insight.content_type
+      });
     },
     buildInsightRating(insight) {
       return insight.rating;
@@ -456,8 +486,9 @@ export default {
 
       let translation = this.$gettext("RBLS for %{address}");
 
-      this.insightRblCheckedIpTitle =
-        this.$gettextInterpolate(translation, {address: insight.content.address});
+      this.insightRblCheckedIpTitle = this.$gettextInterpolate(translation, {
+        address: insight.content.address
+      });
     },
     buildInsightRblList(insightId) {
       let insight = this.insights.find(i => i.id === insightId);
@@ -484,9 +515,14 @@ export default {
         return "";
       }
 
-      let translation = this.$gettext("Original response from %{recipient} (%{host})")
+      let translation = this.$gettext(
+        "Original response from %{recipient} (%{host})"
+      );
 
-      this.insightMsgRblTitle = this.$gettextInterpolate(translation, {recipient: insight.content.recipient, host: insight.content.host});
+      this.insightMsgRblTitle = this.$gettextInterpolate(translation, {
+        recipient: insight.content.recipient,
+        host: insight.content.host
+      });
     },
     onInsightInfo(event, helpLink, contentType) {
       event.preventDefault();
@@ -506,14 +542,18 @@ export default {
       this.$refs["modal-msg-rbl"].hide();
     },
     applySummaryInterval(insight) {
-      this.$emit("dateIntervalChanged", {"startDate": insight.content.interval.from, "endDate": insight.content.interval.to, "category": "archived"});
+      this.$emit("dateIntervalChanged", {
+        startDate: insight.content.interval.from,
+        endDate: insight.content.interval.to,
+        category: "archived"
+      });
     },
     onImportSummaryDetails(insight) {
       this.trackEvent("InsightDescription", "openSummaryInsightModal");
       this.importSummaryInsight = insight;
     },
     importSummaryWindowTitle() {
-      return this.$gettext("Mail activity imported successfully")
+      return this.$gettext("Mail activity imported successfully");
     },
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
@@ -532,10 +572,8 @@ function formatInsightDescriptionDate(d) {
   // TODO: this should be formatted according to the chosen language
   return moment(d).format("MMM. D YYYY");
 }
-
 </script>
 <style>
-
 .insights .card.insight-highlighted {
   border: 2px solid #5ec4eb;
   box-shadow: 0px 0px 20px #0003;
@@ -658,7 +696,6 @@ svg.insight-help-button {
   color: #ffffff;
 }
 
-
 #modal-msg-rbl blockquote {
   font-style: italic;
   color: #555555;
@@ -764,7 +801,7 @@ svg.insight-help-button {
 
 /* Note: workaround for vue bootstraps weird default modal footer handling */
 .vue-modal-footer {
-  padding-top: .75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid #dee2e6;
   text-align: right;
   margin-top: 1em;

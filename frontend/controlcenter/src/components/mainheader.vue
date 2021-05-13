@@ -6,32 +6,35 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <header>
-    <walkthrough :visible="walkthroughNeedsToRun" @finished="handleWalkthroughCompleted"></walkthrough>
+    <walkthrough
+      :visible="walkthroughNeedsToRun"
+      @finished="handleWalkthroughCompleted"
+    ></walkthrough>
     <div class="navbar">
       <div class="container d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
           <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
         </router-link>
         <span class="buttons">
-	        <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
-	          <router-link to="/detective" >
-	            <i
-	              class="fas fa-search"
-	              data-toggle="tooltip"
-	              data-placement="bottom"
-	              :title="Detective"
-	            ></i
-	          ></router-link>
+          <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
+            <router-link to="/detective">
+              <i
+                class="fas fa-search"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                :title="Detective"
+              ></i
+            ></router-link>
           </span>
-	        <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
-	          <router-link to="/settings">
-	            <i
-	              class="fas fa-cog"
-	              data-toggle="tooltip"
-	              data-placement="bottom"
-	              :title="Settings"
-	            ></i
-	          ></router-link>
+          <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
+            <router-link to="/settings">
+              <i
+                class="fas fa-cog"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                :title="Settings"
+              ></i
+            ></router-link>
           </span>
           <span v-b-modal.modal-about v-on:click="onGetApplicationInfo">
             <i
@@ -61,10 +64,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           Lightmeter Control Center
           <br />
           <span id="release-info" v-if="applicationData">
-            <strong><translate>Version</translate>:</strong> {{ applicationData.version }}
+            <strong><translate>Version</translate>:</strong>
+            {{ applicationData.version }}
             <br />
-            <strong><translate>Commit</translate>:</strong> {{ applicationData.commit }} <br />
-            <strong><translate>Tag/branch</translate></strong>: {{ applicationData.tag_or_branch }}
+            <strong><translate>Commit</translate>:</strong>
+            {{ applicationData.commit }} <br />
+            <strong><translate>Tag/branch</translate></strong
+            >: {{ applicationData.tag_or_branch }}
           </span>
 
           <br />
@@ -118,7 +124,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   </header>
 </template>
 <script>
-
 import { getApplicationInfo, logout, getSettings } from "../lib/api.js";
 import tracking from "../mixin/global_shared.js";
 import { mapActions, mapState } from "vuex";
@@ -130,8 +135,10 @@ export default {
     let vue = this;
 
     getSettings().then(function(response) {
-      vue.setWalkthroughNeedsToRunAction(!response.data.walkthrough || !response.data.walkthrough.completed);
-    })
+      vue.setWalkthroughNeedsToRunAction(
+        !response.data.walkthrough || !response.data.walkthrough.completed
+      );
+    });
   },
   data() {
     return {

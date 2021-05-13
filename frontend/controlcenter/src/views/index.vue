@@ -90,7 +90,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
-                <option selected
+                <option
+                  selected
                   v-on:click="
                     trackClick('InsightsFilterCategoryHomepage', 'Active')
                   "
@@ -167,10 +168,17 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <import-progress-indicator :label="generatingInsights" @finished="handleProgressFinished"></import-progress-indicator>
+      <import-progress-indicator
+        :label="generatingInsights"
+        @finished="handleProgressFinished"
+      ></import-progress-indicator>
 
-      <insights class="row" v-show="shouldShowInsights" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
-
+      <insights
+        class="row"
+        v-show="shouldShowInsights"
+        :insights="insights"
+        @dateIntervalChanged="handleExternalDateIntervalChanged"
+      ></insights>
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -192,7 +200,6 @@ import auth from "../mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
 
-
 export default {
   name: "insight",
   components: { DateRangePicker },
@@ -205,9 +212,9 @@ export default {
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
       insights: [],
-      
+
       // log import progress
-      generatingInsights: this.$gettext("Generating insights"),
+      generatingInsights: this.$gettext("Generating insights")
     };
   },
   computed: {
@@ -225,7 +232,9 @@ export default {
 
     welcomeUserText() {
       let translation = this.$gettext("and welcome back, %{username}");
-      let message = this.$gettextInterpolate(translation, { username: this.username });
+      let message = this.$gettextInterpolate(translation, {
+        username: this.username
+      });
       return message;
     },
     ...mapState(["isImportProgressFinished"])
@@ -248,7 +257,7 @@ export default {
     handleExternalDateIntervalChanged(obj) {
       this.dateRange = obj;
       if (obj.category !== undefined) {
-        this.insightsFilter = "category-" + obj.category
+        this.insightsFilter = "category-" + obj.category;
       }
       this.updateSelectedInterval(obj);
     },
@@ -265,9 +274,12 @@ export default {
 
       let interval = vue.buildDateInterval();
 
-      fetchInsights(interval.startDate, interval.endDate, vue.insightsFilter, vue.insightsSort).then(function(
-        response
-      ) {
+      fetchInsights(
+        interval.startDate,
+        interval.endDate,
+        vue.insightsFilter,
+        vue.insightsSort
+      ).then(function(response) {
         vue.insights = response.data;
       });
     },
@@ -281,9 +293,12 @@ export default {
 
       vue.updateSelectedInterval(vue.dateRange);
 
-      this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
-        getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
-      }, 30000);
+      this.updateDashboardAndInsightsIntervalID = window.setInterval(
+        function() {
+          getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
+        },
+        30000
+      );
     },
     ...mapActions(["setInsightsImportProgressFinished"])
   },
@@ -458,5 +473,4 @@ export default {
   margin-top: 60px;
   margin-bottom: 60px;
 }
-
 </style>

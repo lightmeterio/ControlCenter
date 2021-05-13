@@ -5,16 +5,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <span>{{message}}</span>
+  <span>{{ message }}</span>
 </template>
 
 <script>
-
 import tracking from "../../../mixin/global_shared.js";
-import linkify from 'vue-linkify';
+import linkify from "vue-linkify";
 import Vue from "vue";
 
-Vue.directive('linkified', linkify);
+Vue.directive("linkified", linkify);
 
 export default {
   mixins: [tracking],
@@ -22,13 +21,14 @@ export default {
     insight: Object
   },
   data() {
-    return {
-    };
+    return {};
   },
   computed: {
     message() {
-      return this.$gettextInterpolate(this.$gettext("Blocked by %{host}"), {"host": this.insight.content.host})
+      return this.$gettextInterpolate(this.$gettext("Blocked by %{host}"), {
+        host: this.insight.content.host
+      });
     }
   }
-}
+};
 </script>

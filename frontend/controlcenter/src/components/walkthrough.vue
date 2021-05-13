@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     no-close-on-backdrop
     @hide="finish"
     @shown="onShown"
-   >
+  >
     <b-carousel
       ref="walkthroughCarousel"
       v-model="currentSlide"
@@ -35,27 +35,56 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
         </div>
         <div class="walkthrough-content">
-          <div class="walkthrough-title">{{step.title}}</div>
-          <div class="walkthrough-description">{{step.description}}</div>
+          <div class="walkthrough-title">{{ step.title }}</div>
+          <div class="walkthrough-description">{{ step.description }}</div>
         </div>
       </b-carousel-slide>
     </b-carousel>
 
     <div class="walkthrough-actions">
-      <b-button variant="outline-dark" squared class="advance" @click="next()" v-translate v-show="isFirstStep">Let's Go!</b-button>
-      <b-button variant="outline-dark" squared class="back" @click="previous()" v-translate v-show="!isFirstStep">
+      <b-button
+        variant="outline-dark"
+        squared
+        class="advance"
+        @click="next()"
+        v-translate
+        v-show="isFirstStep"
+        >Let's Go!</b-button
+      >
+      <b-button
+        variant="outline-dark"
+        squared
+        class="back"
+        @click="previous()"
+        v-translate
+        v-show="!isFirstStep"
+      >
         <b-icon-arrow-left></b-icon-arrow-left>
         <span v-translate>Back</span>
       </b-button>
-      <b-button variant="outline-dark" squared class="advance" @click="next()" v-translate v-show="!isFirstStep && !isLastStep">Continue</b-button>
-      <b-button variant="outline-dark" squared class="advance" @click="hide()" v-translate v-show="isLastStep">Finish</b-button>
+      <b-button
+        variant="outline-dark"
+        squared
+        class="advance"
+        @click="next()"
+        v-translate
+        v-show="!isFirstStep && !isLastStep"
+        >Continue</b-button
+      >
+      <b-button
+        variant="outline-dark"
+        squared
+        class="advance"
+        @click="hide()"
+        v-translate
+        v-show="isLastStep"
+        >Finish</b-button
+      >
     </div>
-
   </b-modal>
 </template>
 
 <script>
-
 import { getSettings } from "../lib/api.js";
 import tracking from "../mixin/global_shared.js";
 
@@ -70,32 +99,42 @@ export default {
       interval: 0, // disables autoplay
       descriptions: [
         {
-          "title": this.$gettext("Nice Work!"),
-          "description": this.$gettext("Your mailserver is now being monitored for blocks, blocklists, and bounces"),
-          "picture": "img/walkthrough/step1.svg"
+          title: this.$gettext("Nice Work!"),
+          description: this.$gettext(
+            "Your mailserver is now being monitored for blocks, blocklists, and bounces"
+          ),
+          picture: "img/walkthrough/step1.svg"
         },
         {
-          "title": this.$gettext("Insights Incoming"),
-          "description": this.$gettext("The homepage is the 'Observatory' – Insights will appear here, so watch this space!"),
-          "picture": "img/walkthrough/step2.svg"
+          title: this.$gettext("Insights Incoming"),
+          description: this.$gettext(
+            "The homepage is the 'Observatory' – Insights will appear here, so watch this space!"
+          ),
+          picture: "img/walkthrough/step2.svg"
         },
         {
-          "title": this.$gettext("Fastest Response"),
-          "description": this.$gettext("High priority Insights trigger notifications – enable email or Slack for early warnings"),
-          "picture": "img/walkthrough/step3.svg"
+          title: this.$gettext("Fastest Response"),
+          description: this.$gettext(
+            "High priority Insights trigger notifications – enable email or Slack for early warnings"
+          ),
+          picture: "img/walkthrough/step3.svg"
         },
         {
-          "title": this.$gettext("You Are The Network"),
-          "description": this.$gettext("Email is made up of peers like you – Lightmeter exists to support your independence"),
-          "picture": "img/walkthrough/step4.svg"
+          title: this.$gettext("You Are The Network"),
+          description: this.$gettext(
+            "Email is made up of peers like you – Lightmeter exists to support your independence"
+          ),
+          picture: "img/walkthrough/step4.svg"
         },
         {
-          "title": this.$gettext("Over To You"),
-          "description": this.$gettext("Check out the settings, add IPs to monitor, and enjoy your stay (restart this Walkthrough any time)"), 
-          "picture": "img/walkthrough/step5.svg"
+          title: this.$gettext("Over To You"),
+          description: this.$gettext(
+            "Check out the settings, add IPs to monitor, and enjoy your stay (restart this Walkthrough any time)"
+          ),
+          picture: "img/walkthrough/step5.svg"
         }
       ]
-    }
+    };
   },
   methods: {
     next() {
@@ -109,23 +148,24 @@ export default {
     onShown() {
       let vue = this;
       getSettings().then(function(response) {
-        let evt = !response.data.walkthrough || !response.data.walkthrough.completed ?
-          ["Walkthrough", "started"] :
-          ["Walkthrough", "startedFooter"];
+        let evt =
+          !response.data.walkthrough || !response.data.walkthrough.completed
+            ? ["Walkthrough", "started"]
+            : ["Walkthrough", "startedFooter"];
         vue.trackEvent(...evt);
       });
       this.currentSlide = 0;
     },
-    hide () {
-      this.$refs['walkthrough-modal'].hide();  // triggers finish()
+    hide() {
+      this.$refs["walkthrough-modal"].hide(); // triggers finish()
     },
     finish() {
-      let evt = this.isLastStep ? 
-        ["Walkthrough", "finished"] :
-        ["WalkthroughExited", this.slide];
+      let evt = this.isLastStep
+        ? ["Walkthrough", "finished"]
+        : ["WalkthroughExited", this.slide];
       this.trackEvent(...evt);
-      this.$emit('finished');
-    },
+      this.$emit("finished");
+    }
   },
   computed: {
     currentSlide: {
@@ -143,15 +183,20 @@ export default {
       return this.slide == this.descriptions.length - 1;
     },
     steps() {
-      return this.descriptions.map(function(d, i) { return {"id": i, "title": d.title, "description": d.description, "picture": d.picture}; });
+      return this.descriptions.map(function(d, i) {
+        return {
+          id: i,
+          title: d.title,
+          description: d.description,
+          picture: d.picture
+        };
+      });
     }
-  },
-}
-
+  }
+};
 </script>
 
 <style lang="less">
-
 .walkthrough .carousel-item {
   height: 35rem;
 }
@@ -185,13 +230,13 @@ export default {
 .walkthrough .carousel-indicators li {
   width: 12px;
   height: 12px;
-  background-color: #EFEFEF;
+  background-color: #efefef;
   border-radius: 6px;
   border: 0px;
 }
 
 .walkthrough .carousel-indicators li.active {
-  background-color: #227AAF;
+  background-color: #227aaf;
 }
 
 .walkthrough .walkthrough-description {
@@ -259,5 +304,4 @@ export default {
   display: flex;
   justify-content: center;
 }
-
 </style>
