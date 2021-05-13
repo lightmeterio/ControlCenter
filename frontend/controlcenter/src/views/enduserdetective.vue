@@ -65,8 +65,8 @@ import { escalateMessage } from "@/lib/api.js";
 import tracking from "@/mixin/global_shared.js";
 
 function resultCanBeEscalated(messages) {
-  for (let entries of Object.values(messages)) {
-    for (let entry of entries) {
+  for (let entries of messages) {
+    for (let entry of entries.entries) {
       if (entry.status != "sent") {
         return true;
       }

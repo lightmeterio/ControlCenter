@@ -211,29 +211,35 @@ var SampleInsightContent = Content{
 		To:   time.Date(time.Now().Year(), time.December, 31, 23, 59, 59, 59, time.UTC),
 	},
 	Messages: detective.Messages{
-		"AAAAAAAAA": []detective.MessageDelivery{
-			{
-				NumberOfAttempts: 30,
-				TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-				Status:           detective.Status(parser.DeferredStatus),
-				Dsn:              "3.0.0",
-			},
-			{
-				NumberOfAttempts: 1,
-				TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-				TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-				Status:           detective.Status(parser.ExpiredStatus),
-				Dsn:              "4.0.0",
+		detective.Message{
+			Queue: "AAAAAAAAA",
+			Entries: []detective.MessageDelivery{
+				{
+					NumberOfAttempts: 30,
+					TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+					TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+					Status:           detective.Status(parser.DeferredStatus),
+					Dsn:              "3.0.0",
+				},
+				{
+					NumberOfAttempts: 1,
+					TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+					TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+					Status:           detective.Status(parser.ExpiredStatus),
+					Dsn:              "4.0.0",
+				},
 			},
 		},
-		"CCCCCCCCC": []detective.MessageDelivery{
-			{
-				NumberOfAttempts: 1,
-				TimeMin:          timeutil.MustParseTime(`2000-01-03 10:00:00 +0000`),
-				TimeMax:          timeutil.MustParseTime(`2000-01-03 10:00:00 +0000`),
-				Status:           detective.Status(parser.BouncedStatus),
-				Dsn:              "3.0.0",
+		detective.Message{
+			Queue: "CCCCCCCCC",
+			Entries: []detective.MessageDelivery{
+				{
+					NumberOfAttempts: 1,
+					TimeMin:          timeutil.MustParseTime(`2000-01-03 10:00:00 +0000`),
+					TimeMax:          timeutil.MustParseTime(`2000-01-03 10:00:00 +0000`),
+					Status:           detective.Status(parser.BouncedStatus),
+					Dsn:              "3.0.0",
+				},
 			},
 		},
 	},
