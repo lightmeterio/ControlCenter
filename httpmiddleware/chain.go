@@ -6,6 +6,7 @@ package httpmiddleware
 
 import (
 	"context"
+	"errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
@@ -79,6 +80,24 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 		//nolint:golint,staticcheck
 		ctx = context.WithValue(r.Context(), LoggerKey, &logger)
 		r = r.WithContext(ctx)
+
+		// Apply rate-limiting to query
+		if httpStatus := addQuery(r); httpStatus != http.StatusOK {
+			err := httperror.NewHTTPStatusCodeError(httpStatus, errors.New("Query blocked by rate limiter"))
+			ctxlogger.LogErrorf(r.Context(), err, "Query blocked by rate limiter")
+
+			response := struct {
+				Error string `json:"error"`
+			}{
+				Error: "Blocked for exceeding rate-limit, please try again later",
+			}
+
+			if err := httputil.WriteJson(w, response, httpStatus); err != nil {
+				ctxlogger.LogErrorf(r.Context(), err, "Internal server error")
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			return
+		}
 
 		err := endpoint.ServeHTTP(w, r)
 
