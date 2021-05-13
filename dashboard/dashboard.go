@@ -7,7 +7,6 @@ package dashboard
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -166,8 +165,6 @@ from
 		pool: pool,
 	}, nil
 }
-
-var ErrClosingDashboardQueries = errors.New("Error closing any of the dashboard queries")
 
 func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
 	conn, release := d.pool.Acquire()

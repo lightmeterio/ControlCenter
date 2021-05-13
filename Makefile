@@ -66,13 +66,16 @@ recommendation_dev:
 recommendation_release:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/recommendation
 
-mocks: postfix_parser dashboard_mock insights_mock
+mocks: postfix_parser dashboard_mock insights_mock detective_mock
 
 dashboard_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
 
 insights_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/insights/core
+
+detective_mock:
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/detective
 
 po2go:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/po
