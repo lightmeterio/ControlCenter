@@ -115,7 +115,8 @@ export default {
         sent: "status-sent",
         bounced: "status-bounced",
         deferred: "status-deferred",
-        expired: "status-expired"
+        expired: "status-expired",
+        returned: "status-returned"
       }[status];
 
       return baseClass + customClass;
@@ -240,6 +241,10 @@ export default {
 
 .status-deferred {
   background-color: #faf083;
+}
+
+.status-returned {
+  background-color: #7faafa;
 }
 
 .status-sent {

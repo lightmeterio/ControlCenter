@@ -103,8 +103,8 @@ func TestDetective(t *testing.T) {
 							expectedTime.In(time.UTC),
 							detective.Status(parser.SentStatus),
 							"2.0.0",
-						},
 						}},
+					},
 				})
 			})
 
@@ -140,8 +140,12 @@ func TestDetective(t *testing.T) {
 				messages, err := d.CheckMessageDelivery(context.Background(), "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, 1)
 				So(err, ShouldBeNil)
 
-				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
-					detective.Messages{
+				So(messages, ShouldResemble, &detective.MessagesPage{
+					PageNumber:   1,
+					FirstPage:    1,
+					LastPage:     1,
+					TotalResults: 1,
+					Messages: detective.Messages{
 						"23EBE3D5C0": []detective.MessageDelivery{
 							detective.MessageDelivery{
 								4,
@@ -156,6 +160,13 @@ func TestDetective(t *testing.T) {
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.ExpiredStatus),
 								"4.1.1",
+							},
+							detective.MessageDelivery{
+								1,
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								detective.Status(parser.ReturnedStatus),
+								"2.0.0",
 							},
 						},
 					},
