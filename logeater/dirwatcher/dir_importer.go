@@ -30,8 +30,6 @@ type fileEntry struct {
 
 type fileEntryList []fileEntry
 
-type logPatterns []string
-
 type fileQueues map[string]fileEntryList
 
 func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r filenameRecognizer, initialTime time.Time) fileEntryList {
@@ -144,7 +142,7 @@ var filenameRecognizers = []filenameRecognizerBuilder{
 	},
 }
 
-func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime time.Time) fileQueues {
+func buildFilesToImport(list fileEntryList, patterns LogPatterns, initialTime time.Time) fileQueues {
 	queuesMatchAFileSuffixConvention := func(queues fileQueues) bool {
 		for _, queue := range queues {
 			// there must be at least one with suffix for the suffix convention to be recognized
@@ -173,14 +171,14 @@ func buildFilesToImport(list fileEntryList, patterns logPatterns, initialTime ti
 	return queues
 }
 
-func buildFilesToImportByPatternKind(list fileEntryList, patterns logPatterns, r filenameRecognizerBuilder, initialTime time.Time) fileQueues {
-	if len(patterns) == 0 {
+func buildFilesToImportByPatternKind(list fileEntryList, patterns LogPatterns, r filenameRecognizerBuilder, initialTime time.Time) fileQueues {
+	if len(patterns.patterns) == 0 {
 		return fileQueues{}
 	}
 
-	queues := make(fileQueues, len(patterns))
+	queues := make(fileQueues, len(patterns.patterns))
 
-	for _, pattern := range patterns {
+	for _, pattern := range patterns.patterns {
 		r := r.build(pattern)
 		queues[pattern] = sortedEntriesFilteredByPatternAndMoreRecentThanTime(list, r, initialTime)
 	}
@@ -370,7 +368,7 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	return t, nil
 }
 
-func FindInitialLogTime(content DirectoryContent) (time.Time, error) {
+func FindInitialLogTime(content DirectoryContent, patterns LogPatterns) (time.Time, error) {
 	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
 
 	if err != nil {
@@ -445,6 +443,7 @@ type DirectoryImporter struct {
 	pub         postfix.Publisher
 	announcer   announcer.ImportAnnouncer
 	initialTime time.Time
+	patterns    LogPatterns
 }
 
 func NewDirectoryImporter(
@@ -452,13 +451,14 @@ func NewDirectoryImporter(
 	pub postfix.Publisher,
 	announcer announcer.ImportAnnouncer,
 	initialTime time.Time,
+	patterns LogPatterns,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, announcer, initialTime}
+	return DirectoryImporter{content, pub, announcer, initialTime, patterns}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
 
-func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, initialTime time.Time) (fileQueues, error) {
+func buildQueuesForDirImporter(content DirectoryContent, patterns LogPatterns, initialTime time.Time) (fileQueues, error) {
 	onError := func() (fileQueues, error) {
 		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound, "Could not find any matching log files in the directory: ", content.dirName(), " that are more recent than ", initialTime)
 	}
@@ -484,16 +484,22 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns logPatterns, i
 	return onError()
 }
 
-var (
-	patterns       = logPatterns{"mail.log", "mail.err", "mail.warn", "zimbra.log", "maillog"}
-	patternIndexes = map[string]int{}
-)
-
-func init() {
-	for i, v := range patterns {
-		patternIndexes[v] = i
-	}
+type LogPatterns struct {
+	patterns []string
+	indexes  map[string]int
 }
+
+func BuildLogPatterns(patterns []string) LogPatterns {
+	indexes := map[string]int{}
+
+	for i, v := range patterns {
+		indexes[v] = i
+	}
+
+	return LogPatterns{patterns: patterns, indexes: indexes}
+}
+
+var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn", "zimbra.log", "maillog"})
 
 type timeConverterChan chan *parser.TimeConverter
 
@@ -614,7 +620,13 @@ func processorForQueue(offsetChan chan int64, converterChan timeConverterChan, c
 	}, nil
 }
 
-func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[string]timeConverterChan, content DirectoryContent, queues fileQueues) ([]*queueProcessor, error) {
+func buildQueueProcessors(
+	offsetChans map[string]chan int64,
+	converterChans map[string]timeConverterChan,
+	content DirectoryContent,
+	queues fileQueues,
+	patterns LogPatterns,
+) ([]*queueProcessor, error) {
 	p := make([]*queueProcessor, len(queues))
 
 	for k, v := range queues {
@@ -636,7 +648,7 @@ func buildQueueProcessors(offsetChans map[string]chan int64, converterChans map[
 			return []*queueProcessor{}, errorutil.Wrap(err)
 		}
 
-		index := patternIndexes[k]
+		index := patterns.indexes[k]
 
 		p[index] = &processor
 	}
@@ -835,10 +847,12 @@ func importExistingLogs(
 	queues fileQueues,
 	pub postfix.Publisher,
 	initialTime time.Time,
-	importAnnouncer announcer.ImportAnnouncer) error {
+	importAnnouncer announcer.ImportAnnouncer,
+	patterns LogPatterns,
+) error {
 	initialImportTime := time.Now()
 
-	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues)
+	queueProcessors, err := buildQueueProcessors(offsetChans, converterChans, content, queues, patterns)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -1030,7 +1044,9 @@ func startFileWatchers(
 	content DirectoryContent,
 	queues fileQueues,
 	sortableRecordsChan chan<- sortableRecord,
-	done chan<- struct{}) error {
+	done chan<- struct{},
+	patterns LogPatterns,
+) error {
 	actions := []func(){}
 
 	for pattern, queue := range queues {
@@ -1053,7 +1069,7 @@ func startFileWatchers(
 			log.Fatal().Msgf("Failed to obtain offset chan for %s", pattern)
 		}
 
-		queueIndex := patternIndexes[pattern]
+		queueIndex := patterns.indexes[pattern]
 
 		parsedRecordsChan := make(chan parsedRecord, maxNumberOfCachedElementsInTheHeap)
 
@@ -1140,7 +1156,9 @@ func watchCurrentFilesForNewLogs(
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
 	queues fileQueues,
-	pub newLogsPublisher) (waitForDone func(), cancelCall func(), returnError error) {
+	pub newLogsPublisher,
+	patterns LogPatterns,
+) (waitForDone func(), cancelCall func(), returnError error) {
 	nonEmptyQueues := filterNonEmptyQueues(queues)
 
 	doneOnEveryWatcher := make(chan struct{}, len(nonEmptyQueues))
@@ -1149,7 +1167,7 @@ func watchCurrentFilesForNewLogs(
 	// and the publisher thread will read from it
 	sortableRecordsChan := make(chan sortableRecord)
 
-	if err := startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher); err != nil {
+	if err := startFileWatchers(offsetChans, converterChans, content, nonEmptyQueues, sortableRecordsChan, doneOnEveryWatcher, patterns); err != nil {
 		return func() {}, func() {}, errorutil.Wrap(err)
 	}
 
@@ -1212,7 +1230,7 @@ func (importer *DirectoryImporter) ImportOnly() error {
 }
 
 func (importer *DirectoryImporter) run(watch bool) error {
-	queues, err := buildQueuesForDirImporter(importer.content, patterns, importer.initialTime)
+	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.initialTime)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -1226,7 +1244,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	done, cancel, err := func() (func(), func(), error) {
 		if watch {
-			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher)
+			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher, importer.patterns)
 		}
 
 		return func() {}, func() {}, nil
@@ -1241,7 +1259,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer)
+	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer, importer.patterns)
 
 	if err != nil {
 		interruptWatching()

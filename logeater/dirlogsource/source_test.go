@@ -7,6 +7,7 @@ package dirlogsource
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -47,8 +48,10 @@ func TestReadingFromDirectory(t *testing.T) {
 
 		announcer := &fakeAnnouncer{}
 
+		patterns := dirwatcher.BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"})
+
 		Convey("Only import from beginning", func() {
-			s, err := New(logDir, time.Time{}, announcer, false, false)
+			s, err := New(logDir, time.Time{}, announcer, false, false, patterns)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 			So(r.Run(), ShouldBeNil)
@@ -56,7 +59,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		})
 
 		Convey("Import logs and watch for changes", func() {
-			s, err := New(logDir, time.Time{}, announcer, true, false)
+			s, err := New(logDir, time.Time{}, announcer, true, false, patterns)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 

@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
@@ -74,7 +75,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, time.Time{}, &fakeAnnouncer{}, false, false)
+			return dirlogsource.New(inputDirectory, time.Time{}, &fakeAnnouncer{}, false, false, dirwatcher.DefaultLogPatterns)
 		}
 
 		f, err := os.Open(inputFile)

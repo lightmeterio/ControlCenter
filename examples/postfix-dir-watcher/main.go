@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
+	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -76,7 +77,7 @@ func main() {
 		log.Fatal().Msg("-dir is mandatory!")
 	}
 
-	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), &fakeAnnouncer{}, false, false)
+	logSource, err := dirlogsource.New(*dirToWatch, time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC), &fakeAnnouncer{}, false, false, dirwatcher.DefaultLogPatterns)
 	if err != nil {
 		errorutil.LogFatalf(err, "could not init content")
 	}

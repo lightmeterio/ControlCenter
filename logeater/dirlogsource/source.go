@@ -17,12 +17,13 @@ type Source struct {
 	initialTime time.Time
 	dir         dirwatcher.DirectoryContent
 	announcer   announcer.ImportAnnouncer
+	patterns    dirwatcher.LogPatterns
 
 	// should continue waiting for new results (tail -f)?
 	follow bool
 }
 
-func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool) (*Source, error) {
+func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, patterns dirwatcher.LogPatterns) (*Source, error) {
 	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced)
 
 	if err != nil {
@@ -43,11 +44,12 @@ func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnoun
 		dir:         dir,
 		follow:      follow,
 		announcer:   announcer,
+		patterns:    patterns,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime)
+	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime, s.patterns)
 
 	f := func() func() error {
 		if s.follow {
