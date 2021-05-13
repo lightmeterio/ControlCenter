@@ -29,6 +29,7 @@ func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator) {
 		session, err := a.Store.Get(r, auth.SessionName)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
+			//nolint:nilerr
 			return nil
 		}
 

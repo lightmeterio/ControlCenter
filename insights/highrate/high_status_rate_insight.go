@@ -132,6 +132,7 @@ func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator
 	bounced := 0
 
 	for _, pair := range pairs {
+		//nolint:forcetypeassert
 		v := pair.Value.(int)
 		total += v
 

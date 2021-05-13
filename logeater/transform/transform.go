@@ -115,6 +115,7 @@ func init() {
 
 		return []interface{}{func() int { return year }}, nil
 	}, func(args ...interface{}) (Transformer, error) {
+		//nolint:forcetypeassert
 		getYear := args[0].(func() int)
 
 		initialTime := time.Date(getYear(), time.January, 1, 0, 0, 0, 0, time.UTC)
