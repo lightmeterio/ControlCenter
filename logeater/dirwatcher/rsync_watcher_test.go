@@ -39,7 +39,13 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 
 		syncDir := func() {
 			cmd := exec.Command("rsync", "-rav", originDir+"/", dstDir+"/")
-			So(cmd.Run(), ShouldBeNil)
+			So(cmd.Start(), ShouldBeNil)
+
+			// give some time to the file rsync watcher to notice the changes. Yes, this is an ugly workaround,
+			// to prevent the unit tests to sporadically fail in the gitlab runners, which are quite flaky.
+			time.Sleep(time.Millisecond * 500)
+
+			So(cmd.Wait(), ShouldBeNil)
 		}
 
 		writeFileContent := func(filename string, content string) {
@@ -108,7 +114,11 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("New line is appended and synchronized", func() {
 				w := newRunner("mail.log", 0)
 
-				done, cancel := w.Run()
+				doneRunning, cancel := w.Run()
+
+				done := func() {
+					So(doneRunning(), ShouldBeNil)
+				}
 
 				writeFileContent("mail.log", `Jul 19 01:02:03 mail lalala: Useless Payload
 Aug 20 02:03:04 mail cacaca: Useless Payload`)
@@ -211,7 +221,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 					})
 				})
 
-				Convey("File is rewritten with a new log line, and the file is shorter than before", func() {
+				Convey("File is rewritten with a new log line, and the file is shorter than before. This line is just appended", func() {
 					writeFileContent("mail.log", `Aug 21 02:03:04 mail banana: Useless Payload`)
 					syncDir()
 
