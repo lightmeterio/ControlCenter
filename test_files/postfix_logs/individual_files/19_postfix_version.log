@@ -1,0 +1,4 @@
+Mar 29 12:55:50 test1 postfix/postfix-script[15017]: starting the Postfix mail system
+Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix
+Mar 29 13:20:11 test1 postfix/postfix-script[15548]: stopping the Postfix mail system
+Mar 29 13:20:11 test1 postfix/master[15019]: terminating on signal 15
