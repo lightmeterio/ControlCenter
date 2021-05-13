@@ -98,14 +98,19 @@ func TestDetective(t *testing.T) {
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
-						"400643011B47": []detective.MessageDelivery{{
-							1,
-							expectedTime.In(time.UTC),
-							expectedTime.In(time.UTC),
-							detective.Status(parser.SentStatus),
-							"2.0.0",
-							nil,
-						}},
+						detective.Message{
+							Queue: "400643011B47",
+							Entries: []detective.MessageDelivery{
+								detective.MessageDelivery{
+									1,
+									expectedTime.In(time.UTC),
+									expectedTime.In(time.UTC),
+									detective.Status(parser.SentStatus),
+									"2.0.0",
+									nil,
+								},
+							},
+						},
 					},
 				})
 			})
@@ -150,22 +155,25 @@ func TestDetective(t *testing.T) {
 					LastPage:     1,
 					TotalResults: 1,
 					Messages: detective.Messages{
-						"23EBE3D5C0": []detective.MessageDelivery{
-							{
-								5,
-								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
-								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								detective.Status(parser.DeferredStatus),
-								"4.1.1",
-								&expectedExpiredTime,
-							},
-							{
-								1,
-								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								detective.Status(parser.ReturnedStatus),
-								"2.0.0",
-								&expectedExpiredTime,
+						detective.Message{
+							Queue: "23EBE3D5C0",
+							Entries: []detective.MessageDelivery{
+								detective.MessageDelivery{
+									5,
+									time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
+									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+									detective.Status(parser.DeferredStatus),
+									"4.1.1",
+									&expectedExpiredTime,
+								},
+								detective.MessageDelivery{
+									1,
+									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+									detective.Status(parser.ReturnedStatus),
+									"2.0.0",
+									&expectedExpiredTime,
+								},
 							},
 						},
 					},

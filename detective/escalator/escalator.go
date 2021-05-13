@@ -66,15 +66,15 @@ func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester 
 
 	messagesToEscalate := detective.Messages{}
 
-	for queue, groupedByQueue := range messages.Messages {
+	for _, groupedByQueue := range messages.Messages {
 		// NOTE: len(groupedByQueue) is always > 0, otherwise we have a bug!!!
 		// The final status is always the last element in the list, as before a `sent` or `expired`
 		// there might be many `deferred`
 		// accept request only if at least one of the results came positive
-		m := groupedByQueue[len(groupedByQueue)-1]
+		m := groupedByQueue.Entries[len(groupedByQueue.Entries)-1]
 
 		if parser.SmtpStatus(m.Status) != parser.SentStatus {
-			messagesToEscalate[queue] = groupedByQueue
+			messagesToEscalate = append(messagesToEscalate, groupedByQueue)
 		}
 	}
 

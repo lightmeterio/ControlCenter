@@ -55,31 +55,37 @@ func TestEscalation(t *testing.T) {
 					LastPage:     1,
 					TotalResults: 2,
 					Messages: detective.Messages{
-						"AAAA": []detective.MessageDelivery{
-							// initially deferred, but ultimately delivered. No issues here.
-							{
-								NumberOfAttempts: 4,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 09:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.DeferredStatus),
-								Dsn:              "2.0.0",
-							},
+						detective.Message{
+							Queue: "AAAA",
+							Entries: []detective.MessageDelivery{
+								// initially deferred, but ultimately delivered. No issues here.
+								{
+									NumberOfAttempts: 4,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 09:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.DeferredStatus),
+									Dsn:              "2.0.0",
+								},
 
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
 							},
 						},
-						"BBBB": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "BBBB",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
 							},
 						},
 					},
@@ -100,31 +106,40 @@ func TestEscalation(t *testing.T) {
 					LastPage:     1,
 					TotalResults: 3,
 					Messages: detective.Messages{
-						"AAA": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "AAA",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
 							},
 						},
-						"BBB": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.BouncedStatus),
-								Dsn:              "3.0.0",
+						detective.Message{
+							Queue: "BBB",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "3.0.0",
+								},
 							},
 						},
-						"CCC": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "CCC",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
 							},
 						},
 					},
@@ -138,13 +153,16 @@ func TestEscalation(t *testing.T) {
 					Recipient: "recipient@example.com",
 					Interval:  interval,
 					Messages: detective.Messages{
-						"BBB": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.BouncedStatus),
-								Dsn:              "3.0.0",
+						detective.Message{
+							Queue: "BBB",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "3.0.0",
+								},
 							},
 						},
 					},
@@ -164,38 +182,59 @@ func TestEscalation(t *testing.T) {
 					LastPage:     1,
 					TotalResults: 3,
 					Messages: detective.Messages{
-						"AAA": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "AAA",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
 							},
 						},
-						"BBB": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 30,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.DeferredStatus),
-								Dsn:              "2.0.0",
-							},
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.ExpiredStatus),
-								Dsn:              "3.0.0",
+						detective.Message{
+							Queue: "ZZZ",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 30,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.DeferredStatus),
+									Dsn:              "2.0.0",
+								},
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.ExpiredStatus),
+									Dsn:              "3.0.0",
+								},
 							},
 						},
-						"CCC": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
-								Status:           detective.Status(parser.SentStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "DDD",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 12:00:00 +0000`),
+									Status:           detective.Status(parser.SentStatus),
+									Dsn:              "2.0.0",
+								},
+							},
+						},
+						detective.Message{
+							Queue: "CCC",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 14:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 14:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "4.0.0",
+								},
 							},
 						},
 					},
@@ -235,20 +274,35 @@ func TestEscalation(t *testing.T) {
 					Recipient: "recipient@example.com",
 					Interval:  interval,
 					Messages: detective.Messages{
-						"BBB": []detective.MessageDelivery{
-							{
-								NumberOfAttempts: 30,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.DeferredStatus),
-								Dsn:              "2.0.0",
+						detective.Message{
+							Queue: "ZZZ",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 30,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.DeferredStatus),
+									Dsn:              "2.0.0",
+								},
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.ExpiredStatus),
+									Dsn:              "3.0.0",
+								},
 							},
-							{
-								NumberOfAttempts: 1,
-								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-								Status:           detective.Status(parser.ExpiredStatus),
-								Dsn:              "3.0.0",
+						},
+						detective.Message{
+							Queue: "CCC",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 14:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 14:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "4.0.0",
+								},
 							},
 						},
 					},

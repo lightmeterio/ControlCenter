@@ -7,15 +7,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <b-container class="results mt-4">
     <ul
-      v-for="(result, queue) in results"
-      :key="queue"
+      v-for="(result, index) in results"
+      :key="index"
       class="detective-result-cell card list-unstyled"
     >
       <li class="card-body">
         <ul class="status-list list-unstyled">
           <li
-            v-for="delivery in result"
-            :key="delivery.time_min"
+            v-for="(delivery, index) in result.entries"
+            :key="index"
             :class="statusClass(delivery.status)"
           >
             {{ delivery.status }}
@@ -28,7 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div
           v-show="showQueues"
           class="queue-name card-text"
-          v-translate="{ queue: queue }"
+          v-translate="{ queue: result.queue }"
         >
           Queue ID: %{queue}
         </div>
@@ -49,8 +49,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           <li
             v-else
             class="mt-3 card-text"
-            v-for="delivery in result"
-            :key="delivery.time_min"
+            v-for="(delivery, index) of result.entries"
+            :key="index"
           >
             <span
               v-if="delivery.number_of_attempts > 1"
@@ -102,7 +102,7 @@ export default {
   mixins: [tracking],
   props: {
     results: {
-      type: Object,
+      type: Array,
       default: null
     },
     showQueues: {
@@ -125,10 +125,10 @@ export default {
       return baseClass + customClass;
     },
     isExpired: function(result) {
-      return result.reduce((a, r) => a || r.expired, false);
+      return result.entries.reduce((a, r) => a || r.expired, false);
     },
     hasOnlyOneDelivery: function(result) {
-      return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
+      return result.entries.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     },
     formatTime(time) {
       return (
@@ -136,15 +136,21 @@ export default {
       );
     },
     formatSingleTime(result) {
-      return this.formatTime(result[0].time_min);
+      return this.formatTime(result.entries[0].time_min);
     },
     formatSingleStatus(result) {
       return (
-        `<span class="detective-result-status">` + result[0].status + "</span>"
+        `<span class="detective-result-status">` +
+        result.entries[0].status +
+        "</span>"
       );
     },
     formatSingleDsn(result) {
-      return `<span class="detective-result-dsn">` + result[0].dsn + "</span>";
+      return (
+        `<span class="detective-result-dsn">` +
+        result.entries[0].dsn +
+        "</span>"
+      );
     },
     formatMultipleStatus(delivery) {
       return (
@@ -180,7 +186,7 @@ export default {
   },
   computed: {
     showStatusCodeMoreInfo() {
-      return this.results != null && Object.keys(this.results).length > 0;
+      return this.results != null && this.results.length > 0;
     }
   }
 };

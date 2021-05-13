@@ -178,7 +178,12 @@ func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, erro
 
 type QueueName = string
 
-type Messages = map[QueueName][]MessageDelivery
+type Message struct {
+	Queue   QueueName         `json:"queue"`
+	Entries []MessageDelivery `json:"entries"`
+}
+
+type Messages = []Message
 
 type MessagesPage struct {
 	PageNumber   int      `json:"page"`
@@ -280,28 +285,34 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			status = parser.ReturnedStatus
 		}
 
-		_, ok := messages[queueName]
-		if ok {
-			grouped++
-		}
+		index := func() int {
+			for i, v := range messages {
+				if v.Queue == queueName {
+					grouped++
+					return i
+				}
+			}
 
-		if !ok {
-			messages[queueName] = []MessageDelivery{}
-		}
+			messages = append(messages, Message{Queue: queueName, Entries: []MessageDelivery{}})
+
+			return len(messages) - 1
+		}()
 
 		if expiredTs != nil {
 			eT := time.Unix(*expiredTs, 0).In(time.UTC)
 			expiredTime = &eT
 		}
 
-		messages[queueName] = append(messages[queueName], MessageDelivery{
+		delivery := MessageDelivery{
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
 			TimeMax:          time.Unix(tsMax, 0).In(time.UTC),
 			Status:           Status(status),
 			Dsn:              dsn,
 			Expired:          expiredTime,
-		})
+		}
+
+		messages[index].Entries = append(messages[index].Entries, delivery)
 	}
 
 	messagesPage := MessagesPage{

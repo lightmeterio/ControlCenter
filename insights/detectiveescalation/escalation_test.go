@@ -66,20 +66,23 @@ func TestDetectiveEscalation(t *testing.T) {
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 30,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.DeferredStatus),
-							Dsn:              "2.0.0",
-						},
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.ExpiredStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 30,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.DeferredStatus),
+								Dsn:              "2.0.0",
+							},
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.ExpiredStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
@@ -89,13 +92,16 @@ func TestDetectiveEscalation(t *testing.T) {
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.BouncedStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.BouncedStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
@@ -107,20 +113,23 @@ func TestDetectiveEscalation(t *testing.T) {
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 30,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.DeferredStatus),
-							Dsn:              "2.0.0",
-						},
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.ExpiredStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 30,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.DeferredStatus),
+								Dsn:              "2.0.0",
+							},
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.ExpiredStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
@@ -164,20 +173,23 @@ func TestDetectiveEscalation(t *testing.T) {
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 30,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.DeferredStatus),
-							Dsn:              "2.0.0",
-						},
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.ExpiredStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 30,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.DeferredStatus),
+								Dsn:              "2.0.0",
+							},
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.ExpiredStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
@@ -196,13 +208,16 @@ func TestDetectiveEscalation(t *testing.T) {
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.BouncedStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.BouncedStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
@@ -220,13 +235,16 @@ func TestDescriptionFormatting(t *testing.T) {
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
 				Messages: detective.Messages{
-					"BBB": []detective.MessageDelivery{
-						{
-							NumberOfAttempts: 1,
-							TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-							Status:           detective.Status(parser.BouncedStatus),
-							Dsn:              "3.0.0",
+					detective.Message{
+						Queue: "BBB",
+						Entries: []detective.MessageDelivery{
+							{
+								NumberOfAttempts: 1,
+								TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+								Status:           detective.Status(parser.BouncedStatus),
+								Dsn:              "3.0.0",
+							},
 						},
 					},
 				},
