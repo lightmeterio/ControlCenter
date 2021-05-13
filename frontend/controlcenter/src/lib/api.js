@@ -73,6 +73,24 @@ export function submitNotificationsSettingsForm(data, trackingInfo) {
     .catch(builderErrorHandler("settings"));
 }
 
+export function submitDetectiveSettingsForm(data, trackingInfo) {
+  let detectiveSettingsFormData = getFormData(data);
+
+  return axios
+    .post(
+      BASE_URL + "settings?setting=detective",
+      new URLSearchParams(detectiveSettingsFormData)
+    )
+    .then(function() {
+      for (let i in trackingInfo) {
+        trackEventArray("SaveDetectiveSettings", [i, trackingInfo[i]]);
+      }
+
+      alert(Vue.prototype.$gettext("Saved message detective settings"));
+    })
+    .catch(builderErrorHandler("settings"));
+}
+
 export function getSettings() {
   return axios
     .get(BASE_URL + "settings")
@@ -246,4 +264,21 @@ export function requestWalkthroughCompletedStatus(completed) {
   var params = new URLSearchParams(data);
 
   return axios.post(BASE_URL + "settings?setting=walkthrough", params.toString());
+}
+
+/**** Message Detective ****/
+
+export function checkMessageDelivery(mail_from, mail_to, date_from, date_to) {
+  let formData = new FormData();
+  formData.append("mail_from", mail_from)
+  formData.append("mail_to",   mail_to)
+  formData.append("from",      date_from)
+  formData.append("to",        date_to)
+
+  var post = axios.post(BASE_URL + "api/v0/checkMessageDeliveryStatus", new URLSearchParams(formData));
+  post.catch(builderErrorHandler("detective_search"));
+  post.then(function() {
+    trackEvent("MessageDetective", "search");
+  });
+  return post;
 }

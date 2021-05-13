@@ -8,6 +8,8 @@ import login from "../views/login.vue";
 import register from "../views/register.vue";
 import settingspage from "../views/settingspage.vue";
 import index from "../views/index.vue";
+import admindetective from "../views/admindetective.vue";
+import enduserdetective from "../views/enduserdetective.vue";
 import { getIsNotLoginOrNotRegistered } from "@/lib/api";
 
 Vue.use(VueRouter);
@@ -34,6 +36,16 @@ const routes = [
     component: settingspage
   },
   {
+    path: "/detective",
+    name: "detective",
+    component: admindetective
+  },
+  {
+    path: "/searchmessage",
+    name: "searchmessage",
+    component: enduserdetective
+  },
+  {
     path: "/insight-card/:id",
     name: "insight-card",
     component: index
@@ -54,6 +66,7 @@ router.beforeEach((to, from, next) => {
     "settings": Vue.prototype.$gettext("Settings - %{mainPageTitle}"),
     "register": Vue.prototype.$gettext("Registration - %{mainPageTitle}"),
     "login": Vue.prototype.$gettext("Login - %{mainPageTitle}"),
+    "detective": Vue.prototype.$gettext("Message Detective - %{mainPageTitle}"),
   };
 
   let mainTitle = "Lightmeter";

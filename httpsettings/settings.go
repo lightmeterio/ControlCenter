@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -53,6 +54,7 @@ func NewSettings(writer *meta.AsyncWriter,
 		"notification": s.NotificationSettingsHandler,
 		"general":      s.GeneralSettingsHandler,
 		"walkthrough":  s.WalkthroughHandler,
+		"detective":    s.DetectiveHandler,
 	}
 
 	return s
@@ -124,6 +126,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		Notification      notification.Settings   `json:"notifications"`
 		General           globalsettings.Settings `json:"general"`
 		Walkthrough       walkthrough.Settings    `json:"walkthrough"`
+		Detective         detective.Settings      `json:"detective"`
 	}{}
 
 	ctx := r.Context()
@@ -153,6 +156,11 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
+	detectiveSettings, err := detective.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
 	if slackSettings != nil {
 		allCurrentSettings.SlackNotification = *slackSettings
 	}
@@ -171,6 +179,10 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	if walkthroughSettings != nil {
 		allCurrentSettings.Walkthrough = *walkthroughSettings
+	}
+
+	if detectiveSettings != nil {
+		allCurrentSettings.Detective = *detectiveSettings
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
@@ -570,6 +582,23 @@ func (h *Settings) WalkthroughHandler(w http.ResponseWriter, r *http.Request) er
 	}
 
 	if err := h.writer.StoreJsonSync(r.Context(), walkthrough.SettingKey, &walkthrough.Settings{Completed: completed}); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	return nil
+}
+
+func (h *Settings) DetectiveHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := handleForm(w, r); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	}
+
+	endUsersEnabled, err := strconv.ParseBool(r.Form.Get("detective_end_users_enabled"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	}
+
+	if err := h.writer.StoreJsonSync(r.Context(), detective.SettingKey, &detective.Settings{EndUsersEnabled: endUsersEnabled}); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 

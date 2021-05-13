@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
+	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
@@ -43,6 +44,7 @@ type Workspace struct {
 	rblChecker     localrbl.Checker
 
 	dashboard dashboard.Dashboard
+	detective detective.Detective
 
 	NotificationCenter *notification.Center
 
@@ -100,6 +102,12 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	detective, err := detective.New(deliveries.ConnPool())
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	translators := translator.New(po.DefaultCatalog)
 
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
@@ -143,6 +151,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		rblDetector:         rblDetector,
 		rblChecker:          rblChecker,
 		dashboard:           dashboard,
+		detective:           detective,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		importAnnouncer:     importAnnouncer,
@@ -209,6 +218,10 @@ func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
 
 func (ws *Workspace) Dashboard() dashboard.Dashboard {
 	return ws.dashboard
+}
+
+func (ws *Workspace) Detective() detective.Detective {
+	return ws.detective
 }
 
 func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {

@@ -12,18 +12,27 @@ SPDX-License-Identifier: AGPL-3.0-only
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
           <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
         </router-link>
-        <span
-          v-on:click="trackClick('Settings', 'clickHeaderButton')"
-          class="buttons"
-        >
-          <router-link to="/settings">
-            <i
-              class="fas fa-cog"
-              data-toggle="tooltip"
-              data-placement="bottom"
-              :title="Settings"
-            ></i
-          ></router-link>
+        <span class="buttons">
+	        <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
+	          <router-link to="/detective" >
+	            <i
+	              class="fas fa-search"
+	              data-toggle="tooltip"
+	              data-placement="bottom"
+	              :title="Detective"
+	            ></i
+	          ></router-link>
+          </span>
+	        <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
+	          <router-link to="/settings">
+	            <i
+	              class="fas fa-cog"
+	              data-toggle="tooltip"
+	              data-placement="bottom"
+	              :title="Settings"
+	            ></i
+	          ></router-link>
+          </span>
           <span v-b-modal.modal-about v-on:click="onGetApplicationInfo">
             <i
               class="fas fa-info-circle"
@@ -136,6 +145,9 @@ export default {
     },
     Settings: function() {
       return this.$gettext("Settings");
+    },
+    Detective: function() {
+      return this.$gettext("Mail Detective");
     },
     Information: function() {
       return this.$gettext("Information");

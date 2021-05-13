@@ -167,9 +167,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <div class="progress-indicator-area" v-show="shouldShowProgressIndicator">
-      <import-progress-indicator :showLabel=true @finished="handleProgressFinished"></import-progress-indicator>
-      </div>
+      <import-progress-indicator :label="generatingInsights" @finished="handleProgressFinished"></import-progress-indicator>
 
       <insights class="row" v-show="shouldShowInsights" :insights="insights" @dateIntervalChanged="handleExternalDateIntervalChanged"></insights>
 
@@ -182,7 +180,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
-import moment from "moment";
 import {
   fetchInsights,
   getIsNotLoginOrNotRegistered,
@@ -191,79 +188,29 @@ import {
 
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
-import session from "../mixin/views_shared.js";
+import auth from "../mixin/auth.js";
+import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
 
-function defaultRange() {
-  let today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-  let thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  let thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  let lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  let lastMonthEnd = new Date(today.getFullYear(), today.getMonth() - 1 + 1, 0);
-  return {
-    Today: [today, today],
-    Yesterday: [yesterday, yesterday],
-    "This month": [thisMonthStart, thisMonthEnd],
-    "Last month": [lastMonthStart, lastMonthEnd],
-    "This year": [
-      new Date(today.getFullYear(), 0, 1),
-      new Date(today.getFullYear(), 11, 31)
-    ]
-  };
-}
-
-function formatDatePickerValue(obj) {
-  document.querySelector(
-    ".vue-daterange-picker .reportrange-text span"
-  ).innerHTML =
-    moment(obj.startDate).format("D MMM") +
-    " - " +
-    moment(obj.endDate).format("D MMM");
-}
-
-function updateSelectedInterval(vue, obj) {
-  vue.updateDashboardAndInsights();
-  formatDatePickerValue(obj);
-}
-
-function buildDefaultInterval() {
-  // past month
-  return {
-    startDate: moment().subtract(29, "days").format("YYYY-MM-DD"),
-    endDate: moment().format("YYYY-MM-DD"),
-  };
-}
 
 export default {
   name: "insight",
   components: { DateRangePicker },
-  mixins: [tracking, session],
+  mixins: [tracking, auth, datepicker],
   data() {
     return {
       username: "",
       updateDashboardAndInsightsIntervalID: null,
-      sessionInterval: null,
-      triggerRefreshValue: false,
-      autoApply: true,
-      alwaysShowCalendars: false,
-      singleDatePicker: false,
-      dateRange: buildDefaultInterval(),
-      dashboardInterval: buildDefaultInterval(),
-      ranges: defaultRange(),
-      opens: "right",
+      dashboardInterval: this.buildDefaultInterval(),
       insightsFilter: "nofilter",
       insightsSort: "creationDesc",
-      insights: []
+      insights: [],
+      
+      // log import progress
+      generatingInsights: this.$gettext("Generating insights"),
     };
   },
   computed: {
-    shouldShowProgressIndicator() {
-      return !this.isImportProgressFinished;
-    },
     shouldShowInsights() {
       return this.isImportProgressFinished;
     },
@@ -284,13 +231,14 @@ export default {
     ...mapState(["isImportProgressFinished"])
   },
   methods: {
+    updateSelectedInterval(obj) {
+      let vue = this;
+      vue.updateDashboardAndInsights();
+      vue.formatDatePickerValue(obj);
+    },
     handleProgressFinished() {
       this.setInsightsImportProgressFinished();
       this.updateDashboardAndInsights();
-    },
-    triggerRefresh: function() {
-      this.triggerRefreshValue = !this.triggerRefreshValue;
-      return this.triggerRefreshValue;
     },
     updateDashboardAndInsights() {
       let vue = this;
@@ -302,7 +250,7 @@ export default {
       if (obj.category !== undefined) {
         this.insightsFilter = "category-" + obj.category
       }
-      updateSelectedInterval(this, obj);
+      this.updateSelectedInterval(obj);
     },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
@@ -310,14 +258,7 @@ export default {
         obj.startDate + "-" + obj.endDate
       );
 
-      updateSelectedInterval(this, obj);
-    },
-    buildDateInterval() {
-      let vue = this;
-      let start = moment(vue.dateRange.startDate).format("YYYY-MM-DD");
-      let end = moment(vue.dateRange.endDate).format("YYYY-MM-DD");
-
-      return {startDate: start, endDate: end};
+      this.updateSelectedInterval(obj);
     },
     updateInsights: function() {
       let vue = this;
@@ -336,11 +277,9 @@ export default {
       vue.dashboardInterval = interval;
     },
     initIndex: function() {
-      this.sessionInterval = this.ValidSessionCheck();
-
       let vue = this;
 
-      updateSelectedInterval(vue, vue.dateRange);
+      vue.updateSelectedInterval(vue.dateRange);
 
       this.updateDashboardAndInsightsIntervalID = window.setInterval(function() {
         getIsNotLoginOrNotRegistered().then(vue.updateDashboardAndInsights);
@@ -357,7 +296,6 @@ export default {
     });
   },
   destroyed() {
-    window.clearInterval(this.sessionInterval);
     window.clearInterval(this.updateDashboardAndInsightsIntervalID);
   }
 };
