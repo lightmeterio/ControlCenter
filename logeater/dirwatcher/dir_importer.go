@@ -1086,6 +1086,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 
 	flushHeap := func() {
 		for h.Len() > 0 {
+			//nolint:forcetypeassert
 			s := heap.Pop(&h).(sortableRecord)
 			r := postfix.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
 			pub.Publish(r)

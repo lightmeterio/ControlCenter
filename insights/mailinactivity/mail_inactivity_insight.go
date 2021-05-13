@@ -176,6 +176,7 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 		total := 0
 
 		for _, pair := range pairs {
+			//nolint:forcetypeassert
 			v := pair.Value.(int)
 			total += v
 		}

@@ -392,7 +392,7 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 
 	if err = action(t, tx, actionTuple.record, actionDataPair); err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
-			//nolint:errorlint
+			//nolint:errorlint,forcetypeassert
 			asDeletionError := err.(*DeletionError)
 			// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
 			// but we should investigate and make and fix them!
@@ -473,6 +473,7 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 		return nil, false, errorutil.Wrap(err)
 	}
 
+	//nolint:forcetypeassert
 	txActions := recv.Interface().(txActions)
 
 	for i := uint(0); i < txActions.size; i++ {
@@ -481,7 +482,7 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 
 		if err != nil {
 			if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
-				//nolint:errorlint
+				//nolint:errorlint,forcetypeassert
 				asDeletionError := err.(*DeletionError)
 				// FIXME: For now we are ignoring some errors that happen during deletion of unused queues
 				// but we should investigate and make and fix them!
@@ -566,6 +567,7 @@ loop:
 				break
 			}
 
+			//nolint:forcetypeassert
 			actionTuple := recv.Interface().(actionTuple)
 
 			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple); err != nil {

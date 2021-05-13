@@ -33,6 +33,10 @@ linters:
     - nlreturn
     - gci
     - gofumpt
+    - revive
+    - wrapcheck
+    - ifshort
+    - cyclop
 
 linters-settings:
   # see all options at https://github.com/bombsimon/wsl/blob/master/doc/configuration.md
