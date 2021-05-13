@@ -102,3 +102,27 @@ func TestRFC3339PrependFormat(t *testing.T) {
 
 	})
 }
+
+func TestLogstashJSON(t *testing.T) {
+	Convey("Test logstash json logs", t, func() {
+		builder, err := Get("logstash")
+		So(err, ShouldBeNil)
+
+		transformer, err := builder()
+		So(err, ShouldBeNil)
+
+		Convey("Invalid json payload", func() {
+			_, err := transformer.Transform([]byte(`{{---`))
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("Succeeds", func() {
+			r, err := transformer.Transform([]byte(`{"log-source":"filebeat","@version":"1","input":{"type":"log"},"ecs":{"version":"1.6.0"},"message":"Mar 20 07:54:52 mail postfix/smtp[6807]: 586711880093: to=<XXXXXXXX>, relay=XXXXX[XXXXX]:25, delay=4.1, delays=0.15/0.01/1.4/2.5, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 6ECB0A8019A)","log-type":"mail","tags":["beats_input_codec_plain_applied"],"type":"debug","hostname":"melian","@timestamp":"2021-03-20T06:54:55.835Z","log":{"file":{"path":"/var/log/mail.log"},"offset":4020961}}`))
+			expectedTime, _ := time.Parse(time.RFC3339, `2021-03-20T06:54:55.835Z`)
+			So(err, ShouldBeNil)
+			So(r.Time, ShouldResemble, expectedTime)
+			So(r.Header.Host, ShouldEqual, "mail")
+			So(r.Location.Filename, ShouldEqual, "/var/log/mail.log")
+		})
+	})
+}
