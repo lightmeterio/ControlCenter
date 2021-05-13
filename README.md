@@ -21,6 +21,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 [![security_rating](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=security_rating)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![sqale_index](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=sqale_index)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
 [![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=lightmeter_controlcenter&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=lightmeter_controlcenter)
+<br/>
+[![Telegram chat](https://img.shields.io/badge/chat-telegram-32AFED.svg)](https://t.me/joinchat/BYUM5BOaC-CkYgQXhfFY4Q)
+[![Lightmeter Newsletter](https://img.shields.io/badge/Newsletter-subscribe-blue)](https://phplist.lightmeter.io/lists/?p=subscribe&id=1)
 
 ## Contents
 
@@ -41,6 +44,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 - [Feature documentation](#feature-documentation)
     - [Notifications](#notifications)
     - [Domain mapping](#domain-mapping)
+    - [Message detective](#message-detective)
 - [Known issues](#known-issues)
 - [Development](#development)
     - [Frontend development with VueJs](#frontend-development-with-vuejs)
@@ -65,12 +69,13 @@ Currently Postfix MTA is supported. Future support for additional MTAs is planne
 1. Install Lightmeter Control Center as you prefer:
    1. [Download Docker Image](https://hub.docker.com/r/lightmeter/controlcenter)
    2. [Download source code from Gitlab](https://gitlab.com/lightmeter/controlcenter/-/releases)
-   3. [Download from JFrog](https://bintray.com/lightmeter/controlcenter/controlcenter)
+   3. [Download from Gitlab package registry](https://gitlab.com/lightmeter/controlcenter/-/packages)
 2. When using the binaries you can run Lightmeter using `./lightmeter -workspace ~/lightmeter_workspace -watch_dir /var/log`
    This command will start the application monitoring `/var/log` in real time (including old logs found there), and store operation files in `lightmeter_workspace` folder in your user's home directory.
-3. If you are using the docker image, plese look at the [Usage](#usage), Docker image section in the README.md
+3. If you are using the docker image, please look at the [Usage](#usage), Docker image section in the README.md
 4. Open `http://localhost:8080/` to see the web interface
-5. If necessary, change the date range to see charts for the period of the logs you just imported
+5. Secure web access to the Web UI as necessary (see [Known issues](#known-issues))
+6. If necessary, change the date range to see charts for the period of the logs you just imported
 
 ## Installation
 
@@ -366,10 +371,42 @@ Mappings are stored in `domainmapping/mapping.json` and cover the largest remote
 
 Please consider extending the default mappings by making merge requests to benefit all users!
 
+### Message Detective
+
+#### Admin view
+
+You can access the admin view for the message detective clicking the "Search" icon on the navigation bar. 
+Using sender address, recepient address and the time interval you want to check, you can identify the status of any message processed in the given timeframe. 
+
+The search result will include the status of the message, the queue ID, the time the message was processed and the status code of each delivery attempt. 
+
+A message can have one of the following states: 
+- Sent for successfull delivery
+- Bounced for messages refused by recipient's mail provider
+- Deferred for messages temporarily refused and retried
+- Expired for abandoned delivery after too many deferred attempts
+- Returned for when a return notification was sent back to the original sender (only if your Postfix is configured to do this)
+
+
+#### Public view
+
+You can enable the message detective for any unauthenticated users in the Settings Page. 
+
+An authenticated user that you have provided the link to can check the fate of a message independently using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
+
+In addition, the user will also have the option to Escalate any Bounced and Expired results to the mail server admin.
+Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further. 
+If you have notifications enabled, this will also trigger a notification. 
+
+If you enable the message detective for your end-users, make sure to share the public page URL with them.  
+Rate limiting is applied on the number of searches, with a current maximum of 20 searches. 
+
+
 ## Known issues
 
 ### High risk
 
+- The Web UI loads without SSL (unencrypted) by default, so credentials are at risk if transmitted over public networks (planned fix: [#480](https://gitlab.com/lightmeter/controlcenter/-/issues/480))
 - The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
 - Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
 

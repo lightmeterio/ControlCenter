@@ -155,7 +155,7 @@ export default {
     },
     onUpdateDateRangePicker: function(obj) {
       this.trackEvent(
-        "onUpdateDateRangePickerDetective",
+        "MessageDetectiveDatePicker",
         obj.startDate + "-" + obj.endDate
       );
 

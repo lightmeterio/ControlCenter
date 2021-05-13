@@ -82,7 +82,7 @@ export function submitNotificationsSettingsForm(data, trackingInfo) {
     .catch(builderErrorHandler("settings"));
 }
 
-export function submitDetectiveSettingsForm(data, trackingInfo) {
+export function submitDetectiveSettingsForm(data, enabled) {
   let detectiveSettingsFormData = getFormData(data);
 
   return axios
@@ -91,9 +91,7 @@ export function submitDetectiveSettingsForm(data, trackingInfo) {
       new URLSearchParams(detectiveSettingsFormData)
     )
     .then(function() {
-      for (let i in trackingInfo) {
-        trackEventArray("SaveDetectiveSettings", [i, trackingInfo[i]]);
-      }
+      trackEvent("MessageDetectiveEndUsers", enabled ? "enabled" : "disabled");
 
       alert(Vue.prototype.$gettext("Saved message detective settings"));
     })
@@ -304,7 +302,7 @@ export function checkMessageDelivery(
   );
   post.catch(builderErrorHandler("detective_search"));
   post.then(function() {
-    trackEvent("MessageDetective", "search");
+    trackEvent("MessageDetectiveSearch", "search");
   });
   return post;
 }
@@ -323,7 +321,7 @@ export function escalateMessage(mail_from, mail_to, date_from, date_to) {
 
   post.catch(builderErrorHandler("detective_escalation"));
   post.then(function() {
-    trackEvent("MessageDetective", "escalation");
+    trackEvent("MessageDetectiveEscalate", "escalate");
   });
 
   return post;
