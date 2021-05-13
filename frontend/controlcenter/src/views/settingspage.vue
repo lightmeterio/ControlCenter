@@ -675,11 +675,10 @@ export default {
         detective_end_users_enabled: this.settings.detective.end_users_enabled
       };
 
-      let trackingInfo = {
-        EndUsersEnabled: this.settings.detective.end_users_enabled
-      };
-
-      submitDetectiveSettingsForm(data, trackingInfo);
+      submitDetectiveSettingsForm(
+        data,
+        this.settings.detective.end_users_enabled
+      );
     }
   },
   mounted() {
