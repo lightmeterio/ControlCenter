@@ -53,8 +53,8 @@ const (
 	insertQueue
 	insertQueueDeliveryAttempt
 	findQueueByName
-	updateDeliveryStatusByQueueName
 	insertQueueParenting
+	insertExpiredQueue
 
 	lastStmtKey
 )
@@ -100,17 +100,8 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	insertQueue:                     `insert into queues(name) values(?)`,
 	insertQueueDeliveryAttempt:      `insert into delivery_queue(queue_id, delivery_id) values(?, ?)`,
 	findQueueByName:                 `select id from queues where name = ?`,
-	updateDeliveryStatusByQueueName: `
-		with ids_with_queue(delivery_id) as (
-			select delivery_queue.delivery_id as delivery_id
-			from
-				delivery_queue join queues on delivery_queue.queue_id = queues.id
-			where queues.name = ?
-			order by delivery_id desc
-			limit 1
-		)
-		update deliveries set status = ? where id = (select delivery_id from ids_with_queue)`,
-	insertQueueParenting: `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
+	insertQueueParenting:            `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
+	insertExpiredQueue:              `insert into expired_queues(queue_id, expired_ts) values(?, ?)`,
 }
 
 // TODO: close such statements when the tracker is deleted!!!
@@ -403,9 +394,8 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 			}
 		}()
 
-		// it's an "expired" notification. Update the last deferred message in the queue
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
-			if err := updateDeliveryStatusToExpired(tr[tracking.QueueDeliveryNameKey].Text(), tx, stmts); err != nil {
+			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {
 				return errorutil.Wrap(err)
 			}
 

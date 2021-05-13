@@ -88,12 +88,13 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 				LastPage:     1,
 				TotalResults: 1,
 				Messages: detective.Messages{
-					"AAAAA": []detective.MessageDelivery{detective.MessageDelivery{
+					"AAAAA": []detective.MessageDelivery{{
 						1,
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
 						testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
 						detective.Status(parser.SentStatus),
 						"2.0.0",
+						nil,
 					},
 					}},
 			}
@@ -232,6 +233,7 @@ func TestEscalation(t *testing.T) {
 								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								Status:  detective.Status(parser.BouncedStatus),
 								Dsn:     "3.4.6",
+								Expired: nil,
 							},
 						},
 					},
@@ -258,6 +260,7 @@ func TestEscalation(t *testing.T) {
 								TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 								Status:  detective.Status(parser.BouncedStatus),
 								Dsn:     "3.4.6",
+								Expired: nil,
 							},
 						},
 					},

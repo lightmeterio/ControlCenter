@@ -7,7 +7,6 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -101,14 +100,19 @@ const (
 	QueueParentingTypeReturnedToSender QueueParentingType = 1
 )
 
-func updateDeliveryStatusToExpired(queue string, tx *sql.Tx, stmts preparedStmts) error {
-	stmt := tx.Stmt(stmts[updateDeliveryStatusByQueueName])
+func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts preparedStmts) error {
+	queueId, err := rowIdForQueue(queue, tx, stmts)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	stmt := tx.Stmt(stmts[insertExpiredQueue])
 
 	defer func() {
 		errorutil.MustSucceed(stmt.Close())
 	}()
 
-	if _, err := stmt.Exec(queue, parser.ExpiredStatus); err != nil {
+	if _, err := stmt.Exec(queueId, expiredTs); err != nil {
 		return errorutil.Wrap(err)
 	}
 

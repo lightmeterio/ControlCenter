@@ -73,24 +73,25 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				union
 				select id, delivery_ts, status, dsn, queue_id, returned from returned_deliveries
 			),
-			queue_ids_filtered_by_condition(queue_id) as (
-				select delivery_queue.queue_id
+			queues_filtered_by_condition(queue_id, expired_ts) as (
+				select distinct delivery_queue.queue_id, expired_ts
 				from deliveries_filtered_by_condition
+				left join expired_queues eq on eq.queue_id = deliveries_filtered_by_condition.queue_id
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, number_of_attempts, min_ts, max_ts, returned) as (
+			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned) as (
 				select
 					row_number() over (order by delivery_ts),
 					count() over () as total,
-					delivery_ts, status, dsn, queue_id, queues.name as queue,
+					delivery_ts, status, dsn, d.queue_id, queues.name as queue, expired_ts,
 					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
 					d.returned as returned
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
-				where exists (select * from queue_ids_filtered_by_condition c where c.queue_id = d.queue_id)
-				group by queue_id, status, dsn
+				join queues_filtered_by_condition q where q.queue_id = d.queue_id
+				group by d.queue_id, status, dsn
 			)
-			select total, status, dsn, queue, number_of_attempts, min_ts, max_ts, returned
+			select total, status, dsn, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned
 			from grouped_and_computed
 			order by delivery_ts, returned
 			limit ?
@@ -210,11 +211,12 @@ func (s *Status) UnmarshalJSON(d []byte) error {
 }
 
 type MessageDelivery struct {
-	NumberOfAttempts int       `json:"number_of_attempts"`
-	TimeMin          time.Time `json:"time_min"`
-	TimeMax          time.Time `json:"time_max"`
-	Status           Status    `json:"status"`
-	Dsn              string    `json:"dsn"`
+	NumberOfAttempts int        `json:"number_of_attempts"`
+	TimeMin          time.Time  `json:"time_min"`
+	TimeMax          time.Time  `json:"time_max"`
+	Status           Status     `json:"status"`
+	Dsn              string     `json:"dsn"`
+	Expired          *time.Time `json:"expired"`
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
@@ -262,13 +264,15 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			status           parser.SmtpStatus
 			dsn              string
 			queueName        QueueName
+			expiredTs        *int64
+			expiredTime      *time.Time
 			numberOfAttempts int
 			tsMin            int64
 			tsMax            int64
 			returned         bool
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &numberOfAttempts, &tsMin, &tsMax, &returned); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -285,12 +289,18 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			messages[queueName] = []MessageDelivery{}
 		}
 
+		if expiredTs != nil {
+			eT := time.Unix(*expiredTs, 0).In(time.UTC)
+			expiredTime = &eT
+		}
+
 		messages[queueName] = append(messages[queueName], MessageDelivery{
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
 			TimeMax:          time.Unix(tsMax, 0).In(time.UTC),
 			Status:           Status(status),
 			Dsn:              dsn,
+			Expired:          expiredTime,
 		})
 	}
 

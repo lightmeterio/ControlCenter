@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -97,12 +98,13 @@ func TestDetective(t *testing.T) {
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
 				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
-						"400643011B47": []detective.MessageDelivery{detective.MessageDelivery{
+						"400643011B47": []detective.MessageDelivery{{
 							1,
 							expectedTime.In(time.UTC),
 							expectedTime.In(time.UTC),
 							detective.Status(parser.SentStatus),
 							"2.0.0",
+							nil,
 						}},
 					},
 				})
@@ -140,6 +142,8 @@ func TestDetective(t *testing.T) {
 				messages, err := d.CheckMessageDelivery(context.Background(), "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, 1)
 				So(err, ShouldBeNil)
 
+				expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
+
 				So(messages, ShouldResemble, &detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,
@@ -147,26 +151,21 @@ func TestDetective(t *testing.T) {
 					TotalResults: 1,
 					Messages: detective.Messages{
 						"23EBE3D5C0": []detective.MessageDelivery{
-							detective.MessageDelivery{
-								4,
+							{
+								5,
 								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
-								time.Date(year, time.September, 30, 16, 46, 7, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.DeferredStatus),
 								"4.1.1",
+								&expectedExpiredTime,
 							},
-							detective.MessageDelivery{
-								1,
-								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-								detective.Status(parser.ExpiredStatus),
-								"4.1.1",
-							},
-							detective.MessageDelivery{
+							{
 								1,
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.ReturnedStatus),
 								"2.0.0",
+								&expectedExpiredTime,
 							},
 						},
 					},
