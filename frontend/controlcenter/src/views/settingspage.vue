@@ -349,6 +349,16 @@ SPDX-License-Identifier: AGPL-3.0-only
         </h5>
 
         <b-form @submit="onDetectiveSettingsSubmit">
+          <p
+            class="pt-2"
+            render-html="true"
+            v-translate="{
+              openLink: openDetectiveLink,
+              closeLink: closeDetectiveLink
+            }"
+          >
+            Click %{openLink}here%{closeLink} to know more
+          </p>
           <b-form-group :label="DetectiveEndUsersEnabled">
             <b-form-radio-group
               class="pt-2"
@@ -356,12 +366,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="settings.detective.end_users_enabled"
               :options="YesNoOptions"
             ></b-form-radio-group>
-            <span
-              class="text-warning"
-              v-show="settings.detective.end_users_enabled"
-            >
-              {{ DetectiveEndUsersHelpText }}
-            </span>
+            <div v-show="settings.detective.end_users_enabled">
+              <p class="message-detective-settings-info">
+                {{ DetectiveEndUsersHelpText }}
+              </p>
+              <div class="message-detective-url-area">
+                <a :href="endUsersURL">{{ endUsersURL }}</a>
+              </div>
+            </div>
           </b-form-group>
 
           <div class="button-group">
@@ -426,7 +438,9 @@ export default {
           end_users_enabled: false
         }
       },
-      languages: []
+      languages: [],
+      endUsersURL:
+        window.location.origin + window.location.pathname + "#/searchmessage"
     };
   },
   computed: {
@@ -559,11 +573,19 @@ export default {
     },
     DetectiveEndUsersEnabled() {
       return this.$gettext(
-        "Allow unauthenticated end users to use Message Detective"
+        "Enable public access to the Message Detective search page"
       );
     },
     DetectiveEndUsersHelpText() {
-      return this.$gettext("Enabling this feature may leak data"); // TODO: better explanation
+      return this.$gettext(
+        "Anyone with the link can check email delivery outcomes (includes validation, and rate-limiting)"
+      );
+    },
+    openDetectiveLink() {
+      return `<a href="https://gitlab.com/lightmeter/controlcenter/-/tree/master#message-detective">`;
+    },
+    closeDetectiveLink() {
+      return `</a>`;
     }
   },
   methods: {
@@ -770,5 +792,14 @@ form .custom-select:focus {
   .settings-page .button-group button {
     width: auto;
   }
+}
+
+.message-detective-settings-info {
+  margin-top: 20px;
+}
+
+.message-detective-url-area {
+  padding: 20px;
+  background-color: #f8f8f8;
 }
 </style>

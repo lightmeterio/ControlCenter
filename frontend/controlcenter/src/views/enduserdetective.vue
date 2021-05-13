@@ -19,14 +19,18 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Search and detect messages</translate>
       </h2>
 
-      <p class="mt-4">Lorem ipsum</p>
+      <p class="mt-4">
+        <!-- prettier-ignore -->
+        <translate>Check the delivery status of an email that you sent or received</translate>
+      </p>
 
       <detective forEndUsers ref="detective" @onResults="onResults"></detective>
 
-      <b-container class="mt-5">
+      <b-container class="ml-auto p-2 detective-actions">
         <b-button
           :disabled="!canEscalateResults"
-          variant="outline-primary"
+          v-show="hasAnyResults"
+          variant="primary"
           @click="escalateMessage"
         >
           <!-- prettier-ignore -->
@@ -35,9 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </b-container>
     </b-container>
 
-    <div
-      style="width: 100%; background-color: #EFEFEF; display: flex; justify-content: center; align-items: center; margin-top: auto;"
-    >
+    <div class="detective-footer">
       <span>
         <!-- prettier-ignore -->
         <translate>Created with Lightmeter</translate>
@@ -84,7 +86,8 @@ export default {
       canEscalateResults: false,
       escalationSender: "",
       escalationRecipient: "",
-      escalationInterval: {}
+      escalationInterval: {},
+      hasAnyResults: false
     };
   },
   methods: {
@@ -93,6 +96,7 @@ export default {
       this.escalationRecipient = recipient;
       this.escalationInterval = interval;
       this.canEscalateResults = resultCanBeEscalated(results.messages);
+      this.hasAnyResults = results.messages.length > 0;
     },
     escalateMessage() {
       let vue = this;
@@ -108,3 +112,19 @@ export default {
   }
 };
 </script>
+
+<style lang="less" scoped>
+.detective-footer {
+  width: 100%;
+  background-color: #efefef;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: auto;
+  height: 60px;
+}
+
+.detective-actions {
+  margin-top: 20px;
+}
+</style>
