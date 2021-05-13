@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
@@ -25,6 +27,7 @@ type Config struct {
 	MigrateDownToDatabaseName string
 	ShowVersion               bool
 	DirToWatch                string
+	LogPatterns               []string
 	Address                   string
 	Verbose                   bool
 	EmailToPasswdReset        string
@@ -105,6 +108,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
 
+	var unparsedLogPatterns string
+
+	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", lookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
+		`An optional colon separated list of the base filenames for the Postfix log files. Example: "mail.log:mail.err:mail.log" or "maillog"`)
+
 	fs.Usage = func() {
 		version.PrintVersion()
 		fmt.Fprintf(os.Stdout, "\n Example call: \n")
@@ -113,12 +121,21 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		fs.PrintDefaults()
 	}
 
-	err = fs.Parse(cmdlineArgs)
-	if err == nil {
-		return conf, nil
+	if err := fs.Parse(cmdlineArgs); err != nil {
+		return Config{}, errorutil.Wrap(err)
 	}
 
-	return conf, fmt.Errorf("A command-line boolean value could not be parsed, e.g. -verbose=Schrödinger: %w", err)
+	conf.LogPatterns = func() []string {
+		p := strings.Split(unparsedLogPatterns, ":")
+
+		if len(p) == 1 && p[0] == "" {
+			return []string{}
+		}
+
+		return p
+	}()
+
+	return conf, nil
 }
 
 func lookupEnvOrString(key string, defaultVal string, loopkupenv func(string) (string, bool)) string {

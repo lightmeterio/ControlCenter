@@ -415,7 +415,7 @@ Jul 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 func TestBuildingfileQueues(t *testing.T) {
 	Convey("Build file Queues", t, func() {
 		Convey("No files at all", func() {
-			So(buildFilesToImport(fileEntryList{}, logPatterns{}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{})
+			So(buildFilesToImport(fileEntryList{}, BuildLogPatterns([]string{}), testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{})
 		})
 
 		Convey("No matching files", func() {
@@ -424,7 +424,7 @@ func TestBuildingfileQueues(t *testing.T) {
 				fileEntry{filename: "another_file.2"},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{"mail.log": {}})
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log"}), testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble, fileQueues{"mail.log": {}})
 		})
 
 		Convey("One matching file in one queue", func() {
@@ -434,7 +434,7 @@ func TestBuildingfileQueues(t *testing.T) {
 				fileEntry{filename: "not_mail.log", modificationTime: testutil.MustParseTime(`2020-02-17 11:35:44 +0200`)},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log"}), testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
 				fileQueues{"mail.log": fileEntryList{
 					fileEntry{
 						filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`),
@@ -448,7 +448,7 @@ func TestBuildingfileQueues(t *testing.T) {
 				fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`)},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`2020-03-01 12:00:00 +0000`)), ShouldResemble,
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log"}), testutil.MustParseTime(`2020-03-01 12:00:00 +0000`)), ShouldResemble,
 				fileQueues{"mail.log": fileEntryList{
 					fileEntry{
 						filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-02-16 11:35:44 +0200`),
@@ -458,7 +458,7 @@ func TestBuildingfileQueues(t *testing.T) {
 
 		Convey("No entry files", func() {
 			f := fileEntryList{}
-			So(buildFilesToImport(f, logPatterns{"mail.log"}, testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log"}), testutil.MustParseTime(`1970-01-01 12:00:00 +0000`)), ShouldResemble,
 				fileQueues{"mail.log": fileEntryList{}})
 		})
 
@@ -486,7 +486,7 @@ func TestBuildingfileQueues(t *testing.T) {
 			}
 
 			// select all files modified after Mar 10, 00:00:00
-			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, testutil.MustParseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"}), testutil.MustParseTime(`2020-03-10 00:00:00 +0200`)), ShouldResemble,
 				fileQueues{
 					"mail.log": fileEntryList{
 						fileEntry{filename: "logs/mail.log.1", modificationTime: testutil.MustParseTime(`2020-04-03 08:36:24 +0200`)},
@@ -530,7 +530,7 @@ func TestBuildingfileQueues(t *testing.T) {
 				fileEntry{filename: "logs/freshclam.log", modificationTime: testutil.MustParseTime(`2020-02-14 11:35:44 +0200`)},
 			}
 
-			So(buildFilesToImport(f, logPatterns{"mail.log", "mail.err", "mail.warn"}, time.Time{}), ShouldResemble,
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"}), time.Time{}), ShouldResemble,
 				fileQueues{
 					"mail.log": fileEntryList{
 						fileEntry{filename: "logs/mail.log-20201001", modificationTime: testutil.MustParseTime(`2020-01-01 08:36:24 +0200`)},
@@ -549,6 +549,24 @@ func TestBuildingfileQueues(t *testing.T) {
 						fileEntry{filename: "logs/mail.warn-20201003.gz", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
 						fileEntry{filename: "logs/mail.warn-20201004", modificationTime: testutil.MustParseTime(`2020-01-04 07:43:48 +0200`)},
 						fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
+					},
+				})
+		})
+
+		Convey("Plesk (digital ocean image, ubuntu 20.04) keeps a weird .processed file, which should be ignored", func() {
+			f := fileEntryList{
+				fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
+				fileEntry{filename: "logs/maillog", modificationTime: testutil.MustParseTime(`2020-03-23 08:39:09 +0200`)},
+				fileEntry{filename: "logs/maillog.processed", modificationTime: testutil.MustParseTime(`2020-03-23 09:39:09 +0200`)},
+			}
+
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"maillog", "mail.err"}), time.Time{}), ShouldResemble,
+				fileQueues{
+					"maillog": fileEntryList{
+						fileEntry{filename: "logs/maillog", modificationTime: testutil.MustParseTime(`2020-03-23 08:39:09 +0200`)},
+					},
+					"mail.err": fileEntryList{
+						fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
 					},
 				})
 		})
@@ -633,7 +651,7 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 			},
 		}
 
-		t, err := FindInitialLogTime(dirContent)
+		t, err := FindInitialLogTime(dirContent, BuildLogPatterns([]string{"mail.warn", "mail.err", "mail.log"}))
 		So(err, ShouldBeNil)
 		So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
 	})
@@ -643,12 +661,14 @@ type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func TestImportDirectoryOnly(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
+		patterns := DefaultLogPatterns
+
 		importAnnouncer := &fakeAnnouncer{}
 
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -671,7 +691,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -712,7 +732,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 
@@ -770,7 +790,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -798,7 +818,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -831,7 +851,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -911,7 +931,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -921,6 +941,8 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 
 func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
+		patterns := DefaultLogPatterns
+
 		announcer := &fakeAnnouncer{}
 
 		Convey("Many files in the same queue, with new lines after the import starts, split happens on breakline", func() {
@@ -938,7 +960,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -968,7 +990,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`))
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
