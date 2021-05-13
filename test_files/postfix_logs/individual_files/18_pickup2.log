@@ -1,0 +1,5 @@
+Mar 30 11:33:58 test1 postfix/pickup[23219]: 81E343F2E2: uid=0 from=<root>
+Mar 30 11:33:58 test1 postfix/cleanup[23392]: 81E343F2E2: message-id=<20210330093358.GA23369@sender.example.com>
+Mar 30 11:33:58 test1 postfix/qmgr[23220]: 81E343F2E2: from=<root@sender.example.com>, size=458, nrcpt=1 (queue active)
+Mar 30 11:33:58 test1 postfix/smtp[23394]: 81E343F2E2: to=<sender+user@sender.example.com>, relay=mail.relay.example.com[5.79.104.200]:25, delay=0.47, delays=0.02/0.01/0.08/0.36, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as B0D3C1805DB)
+Mar 30 11:33:58 test1 postfix/qmgr[23220]: 81E343F2E2: removed
