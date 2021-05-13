@@ -17,6 +17,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"reflect"
 	"time"
 )
 
@@ -102,12 +103,66 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 }
 
-func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Clock, tx *sql.Tx) error {
+func messagesAreTheSame(m1, m2 detective.Messages) bool {
+	return reflect.DeepEqual(m1, m2)
+}
+
+func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Clock, tx *sql.Tx) (err error) {
+	// check if an insight with same content has already been created
+	rows, err := tx.Query(`
+		select
+			content
+		from
+			insights
+		where
+			content_type = ?
+	`, ContentTypeId)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	defer func() {
+		if cErr := rows.Err(); err != nil {
+			err = cErr
+		}
+	}()
+
+	decoder := core.DefaultContentTypeDecoder(&Content{})
+
 	content := Content{
 		Sender:    r.Sender,
 		Recipient: r.Recipient,
 		Interval:  r.Interval,
 		Messages:  r.Messages,
+	}
+
+	// yes, iterate over all insights of this type.
+	// As the number will be quite small (it's human generated),
+	// I do not expect it to be an issue...
+	for rows.Next() {
+		var rawContent string
+		if err := rows.Scan(&rawContent); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		contentInterface, err := decoder([]byte(rawContent))
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		//nolint:forcetypeassert
+		fetchedContent := contentInterface.(*Content)
+
+		// if there's already an insight for such messages, do nothing
+		// and prevent the sysadmin of being spammed
+		if messagesAreTheSame(content.Messages, fetchedContent.Messages) {
+			return nil
+		}
 	}
 
 	if err := generateInsight(tx, c, d.creator, content); err != nil {
