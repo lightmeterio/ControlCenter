@@ -54,6 +54,16 @@ linters-settings:
     allow-case-trailing-whitespace: false
     allow-trailing-comment: false
     enforce-err-cuddling: false
+  tagliatelle:
+    case:
+      rules:
+        json: snake
+        yaml: camel
+        xml: camel
+        bson: camel
+        avro: snake
+        mapstructure: kebab
+      use-field-name: false
 
 issues:
   exclude:
