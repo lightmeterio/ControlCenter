@@ -15,7 +15,7 @@ type CleanupMessageAccepted struct {
 	Corrupted bool
 }
 
-func parseCleanup(header RawHeader, payloadLine []byte) (RawPayload, error) {
+func parseCleanup(payloadLine []byte) (RawPayload, error) {
 	if s, parsed := parseCleanupMessageAccepted(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:           PayloadTypeCleanupMessageAccepted,
