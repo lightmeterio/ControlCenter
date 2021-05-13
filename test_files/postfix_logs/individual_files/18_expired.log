@@ -1,0 +1,28 @@
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/smtpd[4546]: 23EBE3D5C0: client=h-3857624469d1756194e464[239.58.50.50]
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/smtpd[4576]: disconnect from h-d04c17c68166c9deda13c8e79ad[112.83.23.93] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Sep 25 18:26:34 smtpnode16 h-353d61658b320[1877]: DKIM signing - signed; message-id=<h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com>, signer=<@h-5e67b9b4406>, from=<h-59bd@h-1b9d1c5e6cbdd97b.com>
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/cleanup[5021]: 23EBE3D5C0: message-id=<h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com>
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, size=312343, nrcpt=1 (queue active)
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/smtp[4608]: 20B4E3D5BD: to=<h-664d01@h-695da2287.com>, relay=239.58.50.50[239.58.50.50]:2501, delay=0.2, delays=0.01/0/0/0.19, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 23EBE3D5C0)
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 20B4E3D5BD: removed
+Sep 25 18:26:34 smtpnode16 postfix-239.58.50.50/smtpd[4546]: disconnect from h-3857624469d1756194e464[239.58.50.50] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Sep 25 18:26:36 smtpnode16 postfix-239.58.50.50/smtp[5085]: Trusted TLS connection established to h-d1e3f1c4df9f1c0.h-f9671944adb7[239.80.239.232]:25: TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits)
+Sep 25 18:26:36 smtpnode16 postfix-239.58.50.50/smtp[5084]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=h-929945ccd53b[3.155.237.60]:25, delay=2, delays=0.18/0/1.6/0.19, dsn=4.1.1, status=deferred (host h-929945ccd53b[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))
+Sep 25 19:01:03 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, size=312343, nrcpt=1 (queue active)
+Sep 25 19:01:05 smtpnode16 postfix-239.58.50.50/smtp[8807]: Trusted TLS connection established to h-2b8e6720.h-f9671944adb7[165.229.252.180]:25: TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits)
+Sep 25 19:01:05 smtpnode16 postfix-239.58.50.50/smtp[8810]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=h-929945ccd53b[3.155.237.60]:25, delay=2071, delays=2069/0.05/1.9/0.23, dsn=4.1.1, status=deferred (host h-929945ccd53b[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))
+Sep 30 12:46:05 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, size=312343, nrcpt=1 (queue active)
+Sep 30 12:46:06 smtpnode16 postfix-239.58.50.50/smtp[2851]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=h-929945ccd53b[3.155.237.60]:25, delay=411573, delays=411571/0/1.5/0.2, dsn=4.1.1, status=deferred (host h-929945ccd53b[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))
+Sep 30 16:46:05 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, size=312343, nrcpt=1 (queue active)
+Sep 30 16:46:07 smtpnode16 postfix-239.58.50.50/smtp[29711]: Trusted TLS connection established to h-929945ccd53b[3.155.237.60]:25: TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Sep 30 16:46:07 smtpnode16 postfix-239.58.50.50/smtp[29711]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=h-929945ccd53b[3.155.237.60]:25, delay=425973, delays=425971/0.03/2/0.37, dsn=4.1.1, status=deferred (host h-929945ccd53b[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))
+Sep 30 20:46:06 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, size=312343, nrcpt=1 (queue active)
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/smtp[23558]: Trusted TLS connection established to h-cc2e0695c21cd7cfab0[38.185.239.194]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/smtp[23560]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=h-929945ccd53b[3.155.237.60]:25, delay=440374, delays=440372/0.04/1.6/0.84, dsn=4.1.1, status=deferred (host h-929945ccd53b[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: from=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, status=expired, returned to sender
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/cleanup[23568]: A7E673C067: message-id=<h-75055d2ab82e952d4ce9c3445@h-3857624469d1756194e464.com>
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/qmgr[31214]: A7E673C067: from=<>, size=3503, nrcpt=1 (queue active)
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/bounce[23567]: 23EBE3D5C0: sender non-delivery notification: A7E673C067
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/qmgr[31214]: 23EBE3D5C0: removed
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/smtp[23557]: A7E673C067: to=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, relay=h-213dce00be4cedefd[199.170.45.30]:25, delay=0.14, delays=0.01/0/0.11/0.02, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 46hvZ85lJRz1w8W)
+Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/qmgr[31214]: A7E673C067: removed

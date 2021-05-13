@@ -8,7 +8,7 @@ type PayloadType int
 
 const (
 	PayloadTypeUnsupported PayloadType = iota
-	PayloadTypeQmgrReturnedToSender
+	PayloadTypeQmgrMessageExpired
 	PayloadTypeQmgrMailQueued
 	PayloadTypeQmgrRemoved
 	PayloadTypeSmtpMessageStatus
