@@ -50,6 +50,44 @@ SPDX-License-Identifier: AGPL-3.0-only
         </b-col>
       </b-row>
     </b-modal>
+
+    <b-modal
+      ref="modal-detective-escalation"
+      id="modal-detective-escalation"
+      size="lg"
+      hide-footer
+      centered
+      :title="titleForDetectiveInsightWindow"
+    >
+      <p
+        class="detective-insight-header"
+        v-translate="{
+          sender: detectiveInsightSender,
+          recipient: detectiveInsightRecipient,
+          begin: detectiveInsightTimeBegin,
+          end: detectiveInsightTimeEnd
+        }"
+        render-html="true"
+      >
+        From %{sender} to %{recipient} between %{begin} and %{end}
+      </p>
+      <detective-results
+        :results="detectiveInsight.content.messages"
+        :showQueues="true"
+      ></detective-results>
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideDetectiveInsightModalWindow()"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
+    </b-modal>
     <b-modal
       ref="modal-msg-rbl"
       id="modal-msg-rbl"
@@ -230,6 +268,20 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <translate>Details</translate>
                 </button>
               </p>
+              <p
+                v-if="insight.content_type === 'detective_escalation'"
+                class="card-text description"
+              >
+                <button
+                  v-b-modal.modal-detective-escalation
+                  v-on:click="onDetectiveEscalationDetails(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+              </p>
+
               <p class="card-text time">{{ insight.modTime }}</p>
             </div>
           </div>
@@ -260,6 +312,33 @@ export default {
     },
     Info() {
       return this.$gettext("Info");
+    },
+    titleForDetectiveInsightWindow() {
+      return this.$gettext("Failed deliveries reported");
+    },
+    detectiveInsightSender() {
+      return `<strong>` + this.detectiveInsight.content.sender + `</strong>`;
+    },
+    detectiveInsightRecipient() {
+      return `<strong>` + this.detectiveInsight.content.recipient + `</strong>`;
+    },
+    detectiveInsightTimeBegin() {
+      return (
+        `<strong>` +
+        formatInsightDescriptionDate(
+          this.detectiveInsight.content.time_interval.from
+        ) +
+        `</strong>`
+      );
+    },
+    detectiveInsightTimeEnd() {
+      return (
+        `<strong>` +
+        formatInsightDescriptionDate(
+          this.detectiveInsight.content.time_interval.to
+        ) +
+        `</strong>`
+      );
     }
   },
   updated() {
@@ -284,7 +363,11 @@ export default {
       insightRblCheckedIpTitle: "",
       insightMsgRblTitle: "",
       importSummaryInsight: {},
-      applicationData: { version: "" }
+      applicationData: { version: "" },
+      // FIXME: AAAHHH, this is really ugly! This insight component should be refactored/split ASAP!
+      detectiveInsight: {
+        content: { messages: [], time_interval: { from: "", to: "" } }
+      }
     };
   },
   methods: {
@@ -297,6 +380,10 @@ export default {
       this.buildInsightMsgRblTitle(id);
       this.buildInsightMsgRblDetails(id);
       this.trackEvent("InsightDescription", "openHostBlockModal");
+    },
+    onDetectiveEscalationDetails(insight) {
+      this.detectiveInsight = insight;
+      this.trackEvent("InsightDescription", "openDetectiveEscalateMessage");
     },
     onNewsFeedMoreInfo(event, insight) {
       event.preventDefault();
@@ -330,6 +417,9 @@ export default {
     message_rbl_title(i) {
       let translation = this.$gettext("IP blocked by %{host}");
       return this.$gettextInterpolate(translation, { host: i.content.host });
+    },
+    detective_escalation_title() {
+      return "Failed deliveries reported";
     },
     high_bounce_rate_description(i) {
       let c = i.content;
@@ -541,6 +631,9 @@ export default {
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
     },
+    hideDetectiveInsightModalWindow() {
+      this.$refs["modal-detective-escalation"].hide();
+    },
     applySummaryInterval(insight) {
       this.$emit("dateIntervalChanged", {
         startDate: insight.content.interval.from,
@@ -559,6 +652,15 @@ export default {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
       this.applySummaryInterval(insight);
       this.$refs["modal-import-summary"].hide();
+    },
+    seeMessageDetails(insight) {
+      let params = {
+        sender: insight.content.sender,
+        recipient: insight.content.recipient,
+        interval: insight.content.time_interval
+      };
+
+      this.$router.push({ name: "detective", params: params });
     }
   }
 };
@@ -730,7 +832,8 @@ svg.insight-help-button {
 
 #modal-msg-rbl .btn-cancel,
 #modal-rbl-list .btn-cancel,
-#modal-import-summary .btn-cancel {
+#modal-import-summary .btn-cancel,
+#modal-detective-escalation .btn-cancel {
   background: #ff5c6f33 0% 0% no-repeat padding-box;
   border: 1px solid #ff5c6f;
   border-radius: 2px;
@@ -742,7 +845,8 @@ svg.insight-help-button {
 }
 
 #modal-msg-rbl .btn-cancel:hover,
-#modal-rbl-list .btn-cancel:hover {
+#modal-rbl-list .btn-cancel:hover,
+#modal-detective-escalation .btn-cancel:hover {
   color: #212529;
   text-decoration: none;
 }
@@ -805,5 +909,9 @@ svg.insight-help-button {
   border-top: 1px solid #dee2e6;
   text-align: right;
   margin-top: 1em;
+}
+
+.detective-insight-header {
+  font-size: 15px;
 }
 </style>

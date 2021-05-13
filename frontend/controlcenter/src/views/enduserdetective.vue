@@ -21,7 +21,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <p class="mt-4">Lorem ipsum</p>
 
-      <detective forEndUsers></detective>
+      <detective forEndUsers ref="detective" @onResults="onResults"></detective>
+
+      <b-container class="mt-5">
+        <b-button
+          :disabled="!canEscalateResults"
+          variant="outline-primary"
+          @click="escalateMessage"
+        >
+          <!-- prettier-ignore -->
+          <translate>Escalate</translate>
+        </b-button>
+      </b-container>
     </b-container>
 
     <div
@@ -45,3 +56,55 @@ SPDX-License-Identifier: AGPL-3.0-only
     </div>
   </div>
 </template>
+
+<script>
+import axios from "axios";
+axios.defaults.withCredentials = true;
+
+import { escalateMessage } from "@/lib/api.js";
+import tracking from "@/mixin/global_shared.js";
+
+function resultCanBeEscalated(messages) {
+  for (let entries of Object.values(messages)) {
+    for (let entry of entries) {
+      if (entry.status != "sent") {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+export default {
+  name: "searchmessage",
+  mixins: [tracking],
+  data() {
+    return {
+      canEscalateResults: false,
+      escalationSender: "",
+      escalationRecipient: "",
+      escalationInterval: {}
+    };
+  },
+  methods: {
+    onResults(results, sender, recipient, interval) {
+      this.escalationSender = sender;
+      this.escalationRecipient = recipient;
+      this.escalationInterval = interval;
+      this.canEscalateResults = resultCanBeEscalated(results.messages);
+    },
+    escalateMessage() {
+      let vue = this;
+      escalateMessage(
+        this.escalationSender,
+        this.escalationRecipient,
+        this.escalationInterval.startDate,
+        this.escalationInterval.endDate
+      ).then(function() {
+        vue.canEscalateResults = false;
+      });
+    }
+  }
+};
+</script>

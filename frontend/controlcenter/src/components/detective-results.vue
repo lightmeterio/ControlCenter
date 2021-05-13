@@ -6,58 +6,83 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <b-container class="results mt-4">
-    <div v-for="(result, index) in results" :key="index">
-      <h3>
-        <!-- prettier-ignore -->
-        <translate>Message Status</translate>:
-        <span
-          v-for="delivery in result"
-          :key="delivery.time_min"
-          :class="statusClass(delivery.status)"
-          >{{ delivery.status }}</span
-        >
-      </h3>
-
-      <template v-if="hasOnlyOneDelivery(result)">
-        <p class="mt-3">
-          {{ emailDate(result[0].time_min) }}
-        </p>
-        <p>
-          <!-- prettier-ignore -->
-          <translate>Status code</translate>:
-          {{ result[0].dsn }}
-        </p>
-      </template>
-      <div v-else v-for="delivery in result" :key="delivery.time_min">
-        <p class="mt-3">
-          {{ delivery.number_of_attempts }}
-          <!-- prettier-ignore -->
-          <translate>delivery attempt(s)</translate>
-          <span :class="statusClass(delivery.status)">
+    <ul
+      v-for="(result, queue) in results"
+      :key="queue"
+      class="detective-result-cell card list-unstyled"
+    >
+      <li class="card-body">
+        <ul class="status-list list-unstyled">
+          <li
+            v-for="delivery in result"
+            :key="delivery.time_min"
+            :class="statusClass(delivery.status)"
+          >
             {{ delivery.status }}
-          </span>
-          <!-- prettier-ignore -->
-          <translate>with status code</translate>
-          {{ delivery.dsn }}
-          -
-          <span class="text-secondary">
-            {{ emailDate(delivery.time_min) }}
-          </span>
-          <template v-if="!(delivery.time_max == delivery.time_min)">
-            -
-            <span class="text-secondary">
-              {{ emailDate(delivery.time_max) }}
+          </li>
+        </ul>
+
+        <div
+          v-show="showQueues"
+          class="queue-name card-text"
+          v-translate="{ queue: queue }"
+        >
+          Queue ID: %{queue}
+        </div>
+
+        <ul class="list-unstyled card-text">
+          <li
+            v-if="hasOnlyOneDelivery(result)"
+            render-html="true"
+            v-translate="{
+              status: formatSingleStatus(result),
+              code: formatSingleDsn(result),
+              time: formatSingleTime(result)
+            }"
+            class="mt-3 card-text"
+          >
+            Message %{status} with status code %{code} at %{time}
+          </li>
+          <li
+            v-else
+            class="mt-3 card-text"
+            v-for="delivery in result"
+            :key="delivery.time_min"
+          >
+            <span
+              v-if="delivery.number_of_attempts > 1"
+              render-html="true"
+              v-translate="{
+                attempts: formatAttempts(delivery),
+                status: formatMultipleStatus(delivery),
+                code: formatMultipleDsn(delivery),
+                begin: formatMinTime(delivery),
+                end: formatMaxTime(delivery)
+              }"
+              class="mt-3 card-text"
+            >
+              %{attempts} delivery attempts %{status} with status code %{code}
+              from %{begin} to %{end}
             </span>
-          </template>
-        </p>
-      </div>
-      <p>
-        (You can find more information about status codes on
-        <a
-          href="https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml"
-          >IANA's reference list</a
-        >.)
-      </p>
+            <span
+              v-else
+              render-html="true"
+              v-translate="{
+                status: formatMultipleStatus(delivery),
+                code: formatMultipleDsn(delivery),
+                time: formatMinTime(delivery)
+              }"
+              class="mt-3 card-text"
+            >
+              Message %{status} with status code %{code} at %{time}
+            </span>
+          </li>
+        </ul>
+      </li>
+    </ul>
+
+    <div v-show="showStatusCodeMoreInfo" render-html="true" v-translate>
+      More on status codes: %{openLink}IANA's reference list%{closeLink}
     </div>
   </b-container>
 </template>
@@ -65,38 +90,159 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script>
 import { humanDateTime } from "@/lib/date.js";
 import tracking from "@/mixin/global_shared.js";
-import auth from "@/mixin/auth.js";
+
+function emailDate(d) {
+  return humanDateTime(d);
+}
 
 export default {
-  mixins: [tracking, auth],
+  mixins: [tracking],
   props: {
     results: {
       type: Object,
       default: null
+    },
+    showQueues: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
-    emailDate(d) {
-      return humanDateTime(d);
-    },
     statusClass: function(status) {
-      return {
-        sent: "delivery-status text-success",
-        bounced: "delivery-status text-danger",
-        deferred: "delivery-status text-warning",
-        expired: "delivery-status text-danger"
+      let baseClass = "delivery-status card-text ";
+
+      let customClass = {
+        sent: "status-sent",
+        bounced: "status-bounced",
+        deferred: "status-deferred",
+        expired: "status-expired"
       }[status];
+
+      return baseClass + customClass;
     },
     hasOnlyOneDelivery: function(result) {
       return result.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
+    },
+    formatTime(time) {
+      return (
+        `<span class="detective-result-time">` + emailDate(time) + "</span>"
+      );
+    },
+    formatSingleTime(result) {
+      return this.formatTime(result[0].time_min);
+    },
+    formatSingleStatus(result) {
+      return (
+        `<span class="detective-result-status">` + result[0].status + "</span>"
+      );
+    },
+    formatSingleDsn(result) {
+      return `<span class="detective-result-dsn">` + result[0].dsn + "</span>";
+    },
+    formatMultipleStatus(delivery) {
+      return (
+        `<span class="detective-result-status">` + delivery.status + "</span>"
+      );
+    },
+    formatMultipleDsn(delivery) {
+      return `<span class="detective-result-dsn">` + delivery.dsn + "</span>";
+    },
+    formatMinTime(delivery) {
+      return this.formatTime(delivery.time_min);
+    },
+    formatAttempts(delivery) {
+      return (
+        `<span class="detective-result-attempts">` +
+        delivery.number_of_attempts +
+        "</span>"
+      );
+    },
+    formatMaxTime(delivery) {
+      return this.formatTime(delivery.time_max);
+    },
+    queueLabel(queue) {
+      let message = this.$gettext("Queue ID: %{queue}");
+      return this.$gettextInterpolate(message, { queue: queue });
+    }
+  },
+  data() {
+    return {
+      openLink: `<a href="https://www.iana.org/assignments/smtp-enhanced-status-codes/smtp-enhanced-status-codes.xhtml">`,
+      closeLink: `</a>`
+    };
+  },
+  computed: {
+    showStatusCodeMoreInfo() {
+      return this.results != null && Object.keys(this.results).length > 0;
     }
   }
 };
 </script>
 
 <style lang="less">
-.delivery-status + .delivery-status:before {
-  content: " + ";
-  color: #212529;
+.delivery-status {
+  text-transform: capitalize;
+  border-radius: 18px;
+  padding: 0.4em 1.5em;
+  margin-right: 0.5em;
+  width: min-content;
+  height: 100%;
+  font-weight: bold;
+  color: #724141;
+}
+
+.detective-result-cell {
+  margin-bottom: 0.8em;
+  background-color: #f9f9f9;
+  border: 1px solid #c5c7c6;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.detective-result-status {
+  font-weight: bold;
+}
+
+.detective-result-dsn {
+  background-color: #e7e8f0;
+  border-radius: 10px;
+  font-weight: bold;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.detective-result-attempts {
+  font-weight: bold;
+}
+
+.detective-result-time {
+  font-weight: bold;
+  color: #7d7d7d;
+}
+
+.queue-name {
+  font-weight: bold;
+  color: #707070;
+  margin-top: 1em;
+}
+
+.status-bounced {
+  background-color: #fed0d0;
+}
+
+.status-expired {
+  background-color: #fed0d0;
+}
+
+.status-deferred {
+  background-color: #faf083;
+}
+
+.status-sent {
+  background-color: #8cfa86;
 }
 </style>

@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/detective"
+	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
@@ -35,6 +36,7 @@ import (
 
 type Workspace struct {
 	runner.CancelableRunner
+	closeutil.Closers
 
 	deliveries     *deliverydb.DB
 	tracker        *tracking.Tracker
@@ -45,6 +47,7 @@ type Workspace struct {
 
 	dashboard dashboard.Dashboard
 	detective detective.Detective
+	escalator escalator.Escalator
 
 	NotificationCenter *notification.Center
 
@@ -52,8 +55,6 @@ type Workspace struct {
 	settingsRunner      *meta.Runner
 
 	importAnnouncer *announcer.SynchronizingAnnouncer
-
-	closes closeutil.Closers
 }
 
 func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
@@ -102,11 +103,13 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	detective, err := detective.New(deliveries.ConnPool())
+	messageDetective, err := detective.New(deliveries.ConnPool())
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
+
+	detectiveEscalator := escalator.New()
 
 	translators := translator.New(po.DefaultCatalog)
 
@@ -134,7 +137,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	insightsEngine, err := insights.NewEngine(insightsAcessor, notificationCenter, insightsOptions(dashboard, rblChecker, rblDetector))
+	insightsEngine, err := insights.NewEngine(
+		insightsAcessor,
+		notificationCenter,
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -151,11 +157,12 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		rblDetector:         rblDetector,
 		rblChecker:          rblChecker,
 		dashboard:           dashboard,
-		detective:           detective,
+		detective:           messageDetective,
+		escalator:           detectiveEscalator,
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		importAnnouncer:     importAnnouncer,
-		closes: closeutil.New(
+		Closers: closeutil.New(
 			auth,
 			tracker,
 			deliveries,
@@ -174,9 +181,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneSettings, cancelSettings := ws.settingsRunner.Run()
 		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
 		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
-
-		// We don't need to explicitly ends the importer, as it'll
-		// end when the import process finished, as it's a single-shot process!
 		doneImporter, cancelImporter := ws.importAnnouncer.Run()
 
 		go func() {
@@ -224,6 +228,10 @@ func (ws *Workspace) Detective() detective.Detective {
 	return ws.detective
 }
 
+func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
+	return ws.escalator
+}
+
 func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {
 	return ws.importAnnouncer
 }
@@ -252,10 +260,6 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
 	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
-}
-
-func (ws *Workspace) Close() error {
-	return ws.closes.Close()
 }
 
 func (ws *Workspace) HasLogs() bool {

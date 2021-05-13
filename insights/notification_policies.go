@@ -6,6 +6,7 @@ package insights
 
 import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	"gitlab.com/lightmeter/controlcenter/notification"
 )
 
@@ -14,5 +15,13 @@ type DefaultNotificationPolicy struct {
 
 func (DefaultNotificationPolicy) Reject(n notification.Notification) (bool, error) {
 	p, ok := n.Content.(core.InsightProperties)
-	return !ok || p.Rating != core.BadRating, nil
+	if !ok {
+		return true, nil
+	}
+
+	if _, ok = p.Content.(detectiveescalation.Content); ok {
+		return false, nil
+	}
+
+	return p.Rating != core.BadRating, nil
 }
