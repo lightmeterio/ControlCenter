@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 1.6.0
+Lightmeter ControlCenter 1.6.1
 
  Example call: 
 
@@ -13,6 +13,8 @@ Lightmeter ControlCenter 1.6.0
     	Only import existing logs, exiting immediately, without running the full application.
   -listen string
     	Network Address to listen to (default ":8080")
+  -log_file_patterns string
+    	An optional colon separated list of the base filenames for the Postfix log files. Example: "mail.log:mail.err:mail.log" or "maillog"
   -log_format string
     	Expected log format from external sources (like logstash, etc.) (default "default")
   -log_starting_year int

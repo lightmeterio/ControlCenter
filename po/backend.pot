@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: \n"
 "Content-Transfer-Encoding: \n"
 
-#: insights/highrate/high_status_rate_insight.go:218
+#: insights/highrate/high_status_rate_insight.go:219
 msgid "%v percent bounce rate between %v and %v"
 msgstr "%v percent bounce rate between %v and %v"
 
@@ -26,7 +26,7 @@ msgstr "archived"
 msgid "comparative"
 msgstr "comparative"
 
-#: insights/highrate/high_status_rate_insight.go:202
+#: insights/highrate/high_status_rate_insight.go:203
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
 
@@ -66,6 +66,10 @@ msgstr "news"
 msgid "No emails were sent between %v and %v"
 msgstr "No emails were sent between %v and %v"
 
+#: insights/detectiveescalation/escalation.go:81
+msgid "Sender: %v, recipient: %v"
+msgstr "Sender: %v, recipient: %v"
+
 #: insights/messagerbl/rbl.go:83
 msgid "The IP %v cannot deliver to %v (%v)"
 msgstr "The IP %v cannot deliver to %v (%v)"
@@ -73,4 +77,8 @@ msgstr "The IP %v cannot deliver to %v (%v)"
 #: insights/localrbl/rbl.go:73
 msgid "The IP address %v is listed by %v RBLs"
 msgstr "The IP address %v is listed by %v RBLs"
+
+#: insights/detectiveescalation/escalation.go:65
+msgid "User request on non delivered message"
+msgstr "User request on non delivered message"
 
