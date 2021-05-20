@@ -141,8 +141,8 @@ func HandleLogin(auth *Authenticator, w http.ResponseWriter, r *http.Request) er
 }
 
 type registrationResponse struct {
-	Error    string
-	Detailed interface{}
+	Error    string      `json:"error"`
+	Detailed interface{} `json:"detailed"`
 }
 
 func handleRegistrationFailure(err error, w http.ResponseWriter, r *http.Request) error {

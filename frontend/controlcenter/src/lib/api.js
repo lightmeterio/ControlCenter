@@ -151,19 +151,19 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
     .catch(function(err) {
       // add hints of pwd weakness
       if (
-        err.response.data.Detailed &&
-        err.response.data.Detailed.Sequence &&
-        err.response.data.Detailed.Sequence[0].pattern
+        err.response.data.detailed &&
+        err.response.data.detailed.Sequence &&
+        err.response.data.detailed.Sequence[0].pattern
       ) {
         let errTranslation = Vue.prototype.$gettext("Error: %{error}.");
         let errMessage = Vue.prototype.$gettextInterpolate(errTranslation, {
-          error: err.response.data.Error
+          error: err.response.data.error
         });
         let descTranslation = Vue.prototype.$gettext(
           "Vulnerable to: %{description}."
         );
         let descMessage = Vue.prototype.$gettextInterpolate(descTranslation, {
-          description: err.response.data.Detailed.Sequence[0].pattern
+          description: err.response.data.detailed.Sequence[0].pattern
         });
 
         alert(errMessage + "\n" + descMessage);
@@ -247,8 +247,8 @@ function builderErrorHandler(eventName) {
 function alertError(response, eventName) {
   console.log("dump response: ", response);
   let errMsg = (function() {
-    if (response.data.Error !== undefined) {
-      return ": " + response.data.Error;
+    if (response.data.error !== undefined) {
+      return ": " + response.data.error;
     }
 
     if (response.data !== "") {

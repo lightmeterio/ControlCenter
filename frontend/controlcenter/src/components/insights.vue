@@ -273,7 +273,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 class="card-text description"
               >
                 <span v-translate="{ count: countDetectiveIssues(insight) }"
-                  >Investigation requested into failed delivery of %{count} messages
+                  >Investigation requested into failed delivery of %{count}
+                  messages
                 </span>
                 <button
                   v-b-modal.modal-detective-escalation
@@ -685,7 +686,6 @@ function formatDateForDetectiveInsightModalWindow(d) {
   // TODO: this should be formatted according to the chosen language
   return moment(d).format("DD MMM YYYY");
 }
-
 </script>
 <style>
 .insights .card.insight-highlighted {

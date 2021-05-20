@@ -7,15 +7,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <b-container class="results mt-4">
     <ul
-      v-for="(result, index) in results"
-      :key="index"
+      v-for="(result, resultIndex) in results"
+      :key="resultIndex"
       class="detective-result-cell card list-unstyled"
     >
       <li class="card-body">
         <ul class="status-list list-unstyled">
           <li
-            v-for="(delivery, index) in result.entries"
-            :key="index"
+            v-for="(delivery, statusIndex) in result.entries"
+            :key="statusIndex"
             :class="statusClass(delivery.status)"
             :title="statusTitle(delivery.status)"
           >
@@ -40,25 +40,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         <ul class="list-unstyled card-text">
           <li
-            v-if="hasOnlyOneDelivery(result)"
-            render-html="true"
-            v-translate="{
-              status: formatSingleStatus(result),
-              code: formatSingleDsn(result),
-              time: formatSingleTime(result)
-            }"
             class="mt-3 card-text"
+            v-for="(delivery, deliveryIndex) of result.entries"
+            :key="deliveryIndex"
           >
-            Message %{status} with status code %{code} at %{time}
-          </li>
-          <li
-            v-else
-            class="mt-3 card-text"
-            v-for="(delivery, index) of result.entries"
-            :key="index"
-          >
+            <!-- prettier-ignore -->
             <span
-              v-if="delivery.number_of_attempts > 1"
+              v-show="hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
               v-translate="{
                 attempts: formatAttempts(delivery),
@@ -69,11 +57,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               }"
               class="mt-3 card-text"
             >
-              %{attempts} delivery attempts %{status} with status code %{code}
-              from %{begin} to %{end}
+              %{attempts} delivery attempts %{status} with status code %{code} from %{begin} to %{end}
             </span>
             <span
-              v-else
+              v-show="!hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
               v-translate="{
                 status: formatMultipleStatus(delivery),
@@ -116,6 +103,9 @@ export default {
     }
   },
   methods: {
+    hasMultipleDeliveryAttempts(delivery) {
+      return delivery.number_of_attempts > 1;
+    },
     statusClass: function(status) {
       let baseClass = "delivery-status card-text ";
 
@@ -144,9 +134,6 @@ export default {
     },
     isExpired: function(result) {
       return result.entries.reduce((a, r) => a || r.expired, false);
-    },
-    hasOnlyOneDelivery: function(result) {
-      return result.entries.reduce((a, r) => a + r.number_of_attempts, 0) == 1;
     },
     formatTime(time) {
       return (

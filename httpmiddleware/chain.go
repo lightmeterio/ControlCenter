@@ -112,7 +112,7 @@ func wrapWithErrorHandler(endpoint CustomHTTPHandlerInterface) http.Handler {
 
 			if errType.JSON() {
 				response := struct {
-					Error string
+					Error string `json:"error"`
 				}{
 					Error: errType.Error(),
 				}

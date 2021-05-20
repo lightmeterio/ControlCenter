@@ -38,13 +38,15 @@ type fakeChecker struct {
 	actions fakeActions
 }
 
-func (d *fakeChecker) Step(withResult func(messagerbl.Result) error, withoutResult func() error) error {
+func (d *fakeChecker) Step(withResults func([]messagerbl.Results) error) error {
+	results := messagerbl.Results{}
+
 	if action, ok := d.actions[d.clock.Now()]; ok {
-		r := action()
-		return withResult(r)
+		results.Values[0] = action()
+		results.Size = 1
 	}
 
-	return withoutResult()
+	return withResults([]messagerbl.Results{results})
 }
 
 func (d *fakeChecker) IPAddress(context.Context) net.IP {
@@ -175,6 +177,58 @@ func TestMessageRBLInsight(t *testing.T) {
 				Recipient: "example.com",
 				Time:      baseTime.Add(time.Second * 72),
 			})
+		}
+	})
+}
+
+func TestRegression(t *testing.T) {
+	Convey("Clock is in the past, where requests are more recent", t, func() {
+		// This happens during historical import, in case the "historical clock" starts much
+		// earlier than the point in time the
+		accessor, clearAccessor := insighttestsutil.NewFakeAccessor(t)
+		defer clearAccessor()
+
+		baseTime := testutil.MustParseTime(`2021-04-17 00:00:00 +0000`)
+		converter := parser.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
+		clock := &insighttestsutil.FakeClock{Time: baseTime}
+
+		actions := map[time.Time]func() messagerbl.Result{
+			// the clock is "behind" the log time, so the log time should be used for the insight instead
+			testutil.MustParseTime(`2021-04-17 05:00:00 +0000`): actionFromLog(&converter, "Host 1", `Apr 17 06:26:00 node postfix/smtp[12357]: 375593D395: to=<recipient@example.com>, relay=relay.example.com[254.112.150.90]:25, delay=0.86, delays=0.1/0/0.71/0.05, dsn=5.7.606, status=bounced (Error for Host 1 insight 1)`),
+		}
+
+		checker := &fakeChecker{clock: clock, actions: actions}
+
+		detector := NewDetector(accessor, core.Options{
+			"messagerbl": Options{
+				Detector:                    checker,
+				MinTimeToGenerateNewInsight: time.Second * 60,
+			},
+		})
+
+		executeCyclesUntil := func(end time.Time, stepDuration time.Duration) {
+			insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, end, stepDuration)
+		}
+
+		executeCyclesUntil(testutil.MustParseTime(`2021-04-30 00:30:00 +0000`), time.Minute*1)
+
+		So(accessor.Insights, ShouldResemble, []int64{1})
+
+		insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
+			From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
+			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+		},
+			OrderBy: core.OrderByCreationAsc,
+		})
+
+		So(err, ShouldBeNil)
+
+		{
+			So(insights[0].ID(), ShouldEqual, 1)
+			So(insights[0].ContentType(), ShouldEqual, ContentType)
+			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2021-04-17 06:26:00 +0000`))
+			So(insights[0].Rating(), ShouldEqual, core.BadRating)
+			So(insights[0].Category(), ShouldEqual, core.LocalCategory)
 		}
 	})
 }
