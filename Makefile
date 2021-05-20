@@ -184,6 +184,9 @@ vuejs-translations: $(TRANSLATION_OUTPUT) frontend/controlcenter/node_modules/.b
 
 translations: vuejs-translations
 
+update_cli_docs:
+	./tools/update_cli_docs.sh
+
 $(TRANSLATION_OUTPUT):
 	mkdir -p `dirname $@`
 	echo "{}" > $@
