@@ -121,12 +121,14 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 		return errorutil.Wrap(err)
 	}
 
-	now := c.Now()
+	// During historical import, the "fake" clock might not yet have "reached" the clock used to generate the
+	// insight, so we use the log time instead, to prevent this insight to be generated in the past
+	// Ref #493
+	insightTime := r.Time
 
-	// Don't do anything if there's already an insight for such host in the past
 	// MinTimeToGenerateNewInsight
-	if t.Add(d.options.MinTimeToGenerateNewInsight).After(now) {
-		log.Info().Msgf("Ignoring RBL insight for host %v that has been generated %v ago", r.Host, now.Sub(t))
+	if t.Add(d.options.MinTimeToGenerateNewInsight).After(insightTime) {
+		log.Info().Msgf("Ignoring RBL insight for host %v that has been generated %v ago", r.Host, insightTime.Sub(t))
 		return nil
 	}
 
@@ -139,11 +141,11 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 		Time:      r.Time,
 	}
 
-	if err := generateInsight(tx, c, d.creator, content); err != nil {
+	if err := generateInsight(tx, insightTime, d.creator, content); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if err := core.StoreLastDetectorExecution(tx, detectionKind, now); err != nil {
+	if err := core.StoreLastDetectorExecution(tx, detectionKind, insightTime); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -151,9 +153,16 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
-	return d.options.Detector.Step(func(r messagerbl.Result) error {
-		return maybeAddNewInsightFromMessage(d, r, c, tx)
-	}, func() error {
+	return d.options.Detector.Step(func(allResults []messagerbl.Results) error {
+		for _, results := range allResults {
+			for i := 0; i < results.Size; i++ {
+				r := results.Values[i]
+				if err := maybeAddNewInsightFromMessage(d, r, c, tx); err != nil {
+					return errorutil.Wrap(err)
+				}
+			}
+		}
+
 		return nil
 	})
 }
@@ -162,10 +171,9 @@ func (d *detector) Close() error {
 	return nil
 }
 
-// TODO: refactor this function to be reused across different insights instead of copy&pasted
-func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content Content) error {
+func generateInsight(tx *sql.Tx, insightTime time.Time, creator core.Creator, content Content) error {
 	properties := core.InsightProperties{
-		Time:        c.Now(),
+		Time:        insightTime,
 		Category:    core.LocalCategory,
 		Rating:      core.BadRating,
 		ContentType: ContentType,

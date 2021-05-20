@@ -111,16 +111,30 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-input-group>
             <b-form-group>
               <h4><translate>System details</translate></h4>
-              <b-form-input
-                name="postfix_public_ip"
-                id="postfixPublicIP"
-                v-model="$v.form.postfix_public_ip.$model"
-                type="text"
-                aria-describedby="publicIPHelp"
-                :placeholder="PostfixPublicIPInputPlaceholder"
-                maxlength="255"
-                :state="validateState('postfix_public_ip')"
-              ></b-form-input>
+              <div class="input-group">
+                <b-form-input
+                  name="postfix_public_ip"
+                  id="postfixPublicIP"
+                  v-model="$v.form.postfix_public_ip.$model"
+                  type="text"
+                  aria-describedby="publicIPHelp"
+                  :placeholder="PostfixPublicIPInputPlaceholder"
+                  maxlength="255"
+                  :state="validateState('postfix_public_ip')"
+                ></b-form-input>
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    data-toggle="tooltip"
+                    data-placement="top"
+                    v-b-tooltip.hover
+                    :title="PublicIPHelpText"
+                  >
+                    <i class="far fa-question-circle"></i>
+                  </button>
+                </div>
+              </div>
               <b-form-invalid-feedback>
                 <!-- prettier-ignore -->
                 <translate>The Ip Address is invalid</translate
@@ -183,6 +197,7 @@ import { submitRegisterForm } from "../lib/api.js";
 import { togglePasswordShow } from "../lib/util.js";
 import { mapState, mapActions } from "vuex";
 import { ipAddress } from "vuelidate/lib/validators";
+import shared_texts from "../mixin/shared_texts.js";
 
 import linkify from "vue-linkify";
 import Vue from "vue";
@@ -192,6 +207,7 @@ Vue.directive("linkified", linkify);
 export default {
   name: "register",
   components: {},
+  mixins: [shared_texts],
   data() {
     return {
       form: {

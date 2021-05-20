@@ -310,6 +310,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               :placeholder="EnterIpAddress"
               maxlength="255"
             ></b-form-input>
+            <b-form-text>{{ PublicIPHelpText }}</b-form-text>
           </b-form-group>
 
           <b-form-group
@@ -399,12 +400,13 @@ import {
   submitNotificationsSettingsForm
 } from "@/lib/api.js";
 import auth from "../mixin/auth.js";
+import shared_texts from "../mixin/shared_texts.js";
 import Vue from "vue";
 
 export default {
   name: "settingspage",
   components: {},
-  mixins: [auth],
+  mixins: [auth, shared_texts],
   data() {
     return {
       settings: {

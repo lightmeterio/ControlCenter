@@ -6,6 +6,7 @@ package messagerbl
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -62,7 +63,7 @@ type Detector struct {
 	globalsettings.IPAddressGetter
 
 	nonDeliveredChan chan record
-	resultsChan      chan Result
+	resultsChan      chan Results
 	matchers         matchers
 	runner.CancelableRunner
 }
@@ -71,7 +72,7 @@ const (
 	// MsgBufferSize is how much messages we are able to process without blocking
 	// any other publisher.
 	// Its value is for now arbitrary, and chosen experimentally to make the log thread
-	// never block (see the logdb package)
+	// never block (see the deliverydb package)
 	MsgBufferSize = 1024
 )
 
@@ -79,7 +80,7 @@ func New(settings globalsettings.IPAddressGetter) *Detector {
 	d := &Detector{
 		IPAddressGetter:  settings,
 		nonDeliveredChan: make(chan record, MsgBufferSize),
-		resultsChan:      make(chan Result, MsgBufferSize),
+		resultsChan:      make(chan Results, MsgBufferSize),
 		matchers:         defaultMatchers,
 	}
 
@@ -90,14 +91,49 @@ func New(settings globalsettings.IPAddressGetter) *Detector {
 		}()
 
 		go func() {
-			for r := range d.nonDeliveredChan {
-				if result, matched := messageMatchesAnyHosts(d.IPAddressGetter, d.matchers, r); matched {
-					d.resultsChan <- result
+			results := Results{}
+
+			tryToFlush := func() {
+				if results.Size > 0 {
+					log.Debug().Msgf("Flushing %v messages", results.Size)
+					d.resultsChan <- results
+					results.Size = 0
 				}
 			}
 
-			close(d.resultsChan)
-			done <- nil
+			ticker := time.NewTicker(500 * time.Millisecond)
+
+			// accumulate results in a buffer and notifies them when the buffer is full, or at timeout
+			for {
+				select {
+				case r, ok := <-d.nonDeliveredChan:
+					if !ok {
+						log.Debug().Msg("Finished. Will just flush and leave")
+
+						tryToFlush()
+
+						close(d.resultsChan)
+						done <- nil
+
+						return
+					}
+
+					result, matched := messageMatchesAnyHosts(d.IPAddressGetter, d.matchers, r)
+
+					if !matched {
+						break
+					}
+
+					results.Values[results.Size] = result
+					results.Size++
+
+					if results.Size == ResultsCapacity {
+						tryToFlush()
+					}
+				case <-ticker.C:
+					tryToFlush()
+				}
+			}
 		}()
 	}
 
@@ -110,6 +146,9 @@ func (d *Detector) NewPublisher() *Publisher {
 	return &Publisher{nonDeliveredChan: d.nonDeliveredChan}
 }
 
+// TODO: this function should be optimized to lookup all patterns in a single shot.
+// One way to implement it is to convert all individual regexes into a single huge
+// automata. Ragel is a good candidate for it.
 func messageMatchesAnyHosts(settings globalsettings.IPAddressGetter, matchers matchers, r record) (Result, bool) {
 	for _, m := range matchers {
 		if m.match(r) {
@@ -134,16 +173,32 @@ func messageMatchesAnyHosts(settings globalsettings.IPAddressGetter, matchers ma
 	return Result{}, false
 }
 
-type Stepper interface {
-	globalsettings.IPAddressGetter
-	Step(withResult func(Result) error, withoutResult func() error) error
+const ResultsCapacity = 128
+
+type Results struct {
+	Values [ResultsCapacity]Result
+	Size   int
 }
 
-func (d *Detector) Step(withResult func(Result) error, withoutResult func() error) error {
-	select {
-	case r := <-d.resultsChan:
-		return withResult(r)
-	default:
-		return withoutResult()
+type Stepper interface {
+	globalsettings.IPAddressGetter
+	Step(withResult func([]Results) error) error
+}
+
+func (d *Detector) Step(withResults func([]Results) error) error {
+	var allResults []Results = nil
+
+	for {
+		select {
+		case results, ok := <-d.resultsChan:
+			// when the application ends, the channel closes and we need to leave
+			if !ok {
+				return withResults(allResults)
+			}
+
+			allResults = append(allResults, results)
+		default:
+			return withResults(allResults)
+		}
 	}
 }

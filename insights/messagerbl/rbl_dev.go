@@ -17,7 +17,7 @@ import (
 
 // Executed only on development builds, for better developer experience
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
-	if err := generateInsight(tx, c, d.creator, Content{
+	if err := generateInsight(tx, c.Now(), d.creator, Content{
 		Address:   d.options.Detector.IPAddress(context.Background()),
 		Message:   "Sample Insight: host blocked. Try https://google.com/ to unblock it",
 		Recipient: "some.mail.com",

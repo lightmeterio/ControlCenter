@@ -17,7 +17,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Message Detective</translate>
       </h2>
 
-      <p class="mt-4">Check the delivery status of an email that you sent or received</p>
+      <p class="mt-4" v-translate>
+        Check the delivery status of an email that you sent or received
+      </p>
 
       <detective ref="detective"></detective>
     </b-container>

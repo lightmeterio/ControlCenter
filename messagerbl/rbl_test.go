@@ -64,13 +64,9 @@ func TestRBL(t *testing.T) {
 		resultsChan := make(chan []Result)
 
 		go func() {
-			results := []Result{}
-
-			for r := range detector.resultsChan {
-				results = append(results, r)
+			for results := range detector.resultsChan {
+				resultsChan <- results.Values[0:results.Size]
 			}
-
-			resultsChan <- results
 		}()
 
 		cancel()
