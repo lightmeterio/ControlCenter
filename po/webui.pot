@@ -522,7 +522,7 @@ msgstr ""
 msgid "Read more"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:14
+#: ./frontend/controlcenter/src/components/detective.vue:17
 msgid "Recipient Email Address"
 msgstr ""
 
@@ -580,7 +580,7 @@ msgstr ""
 msgid "Saved notification settings"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:33
+#: ./frontend/controlcenter/src/components/detective.vue:36
 msgid "Search"
 msgstr ""
 
@@ -596,11 +596,11 @@ msgstr ""
 msgid "Sender"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:6
+#: ./frontend/controlcenter/src/components/detective.vue:9
 msgid "Sender Email Address"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:23
+#: ./frontend/controlcenter/src/components/detective.vue:26
 msgid "Sent Between"
 msgstr ""
 

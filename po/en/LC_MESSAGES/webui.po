@@ -534,7 +534,7 @@ msgstr "RBLS for %{address}"
 msgid "Read more"
 msgstr "Read more"
 
-#: frontend/controlcenter/src/components/detective.vue:14
+#: frontend/controlcenter/src/components/detective.vue:17
 msgid "Recipient Email Address"
 msgstr "Recipient Email Address"
 
@@ -592,7 +592,7 @@ msgstr "Saved message detective settings"
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
-#: frontend/controlcenter/src/components/detective.vue:33
+#: frontend/controlcenter/src/components/detective.vue:36
 msgid "Search"
 msgstr "Search"
 
@@ -608,11 +608,11 @@ msgstr "Search for messages - %{mainPageTitle}"
 msgid "Sender"
 msgstr "Sender"
 
-#: frontend/controlcenter/src/components/detective.vue:6
+#: frontend/controlcenter/src/components/detective.vue:9
 msgid "Sender Email Address"
 msgstr "Sender Email Address"
 
-#: frontend/controlcenter/src/components/detective.vue:23
+#: frontend/controlcenter/src/components/detective.vue:26
 msgid "Sent Between"
 msgstr "Sent Between"
 

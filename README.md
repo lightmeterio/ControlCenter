@@ -270,6 +270,15 @@ The suffixes on the archived log files that are supported are:
 
 Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
 
+## Syslog compatibility
+
+If you are using `-watch_dir` or the `LIGHTMETER_WATCH_DIR` environment variable to read the logs,
+you'll be limited to the default syslog time format layout. That means log lines that start like `Oct  4 12:00:00`.
+
+Control Center will emit error messages and not read logs with different configuration.
+
+If you use a different format, please let us know via a Gitlab issue.
+
 ### Importing logs
 
 The importing process will take a long time, depending on how many files you have and how big they are.
