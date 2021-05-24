@@ -6,7 +6,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <b-container class="mt-5 detective-body">
-    <b-form @submit.prevent="updateResults" class="detective-form d-flex">
+    <b-form
+      @submit.prevent="
+        page = 1;
+        updateResults();
+      "
+      class="detective-form d-flex"
+    >
       <div class="col p-2">
         <label>
           <!-- prettier-ignore -->
