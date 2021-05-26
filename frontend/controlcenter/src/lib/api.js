@@ -59,9 +59,13 @@ export function submitLoginForm(formData, callback) {
   axios
     .post(BASE_URL + "login", data)
     .then(function() {
+      trackEvent("Login", "success");
       callback();
     })
-    .catch(builderErrorHandler("login"));
+    .catch(function(err) {
+      trackEvent("Login", "error");
+      builderErrorHandler("login")(err);
+    });
 }
 
 export function submitNotificationsSettingsForm(data, trackingInfo) {

@@ -227,7 +227,6 @@ var DefaultRBLs = []string{
 	"bl.score.senderscore.com",              // SenderScore Blacklist
 	"score.senderscore.com",                 // SenderScore Reputationlist
 	"singular.ttk.pte.hu",                   // SINGULARis Spam/scam blocklist
-	"blackholes.scconsult.com",              // Solid Clues Blacklist
 	"dnsbl.sorbs.net",                       // SORBS Aggregate zone
 	"problems.dnsbl.sorbs.net",              // SORBS Aggregate zone (problems)
 	"proxies.dnsbl.sorbs.net",               // SORBS Aggregate zone (proxies)

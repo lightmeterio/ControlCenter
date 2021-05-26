@@ -174,11 +174,11 @@ msgstr "Enter IP address"
 msgid "Enter Public URL"
 msgstr "Enter Public URL"
 
-#: frontend/controlcenter/src/lib/api.js:265
+#: frontend/controlcenter/src/lib/api.js:269
 msgid "Error: %{err}"
 msgstr "Error: %{err}"
 
-#: frontend/controlcenter/src/lib/api.js:158
+#: frontend/controlcenter/src/lib/api.js:162
 msgid "Error: %{error}."
 msgstr "Error: %{error}."
 
@@ -584,11 +584,11 @@ msgstr "Save"
 msgid "Saved general settings"
 msgstr "Saved general settings"
 
-#: frontend/controlcenter/src/lib/api.js:96
+#: frontend/controlcenter/src/lib/api.js:100
 msgid "Saved message detective settings"
 msgstr "Saved message detective settings"
 
-#: frontend/controlcenter/src/lib/api.js:80
+#: frontend/controlcenter/src/lib/api.js:84
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
@@ -726,7 +726,7 @@ msgstr "Version"
 msgid "View all archived"
 msgstr "View all archived"
 
-#: frontend/controlcenter/src/lib/api.js:162
+#: frontend/controlcenter/src/lib/api.js:166
 msgid "Vulnerable to: %{description}."
 msgstr "Vulnerable to: %{description}."
 
