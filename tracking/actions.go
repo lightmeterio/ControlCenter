@@ -816,6 +816,14 @@ func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 	log.Warn().Msgf("Mail rejected by milter, queue: %s on %s:%v", p.Queue, r.Location.Filename, r.Location.Line)
 
 	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+
+	// sometimes the milter emits the same log line more than once,
+	// and in the second execution the queue is already deleted.
+	// therefore the error is ignored.
+	if errors.Is(err, sql.ErrNoRows) {
+		return &DeletionError{Err: errorutil.Wrap(err), Loc: r.Location}
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
