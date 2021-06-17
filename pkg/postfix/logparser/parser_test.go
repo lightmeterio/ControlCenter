@@ -126,6 +126,15 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 		So(h.PID, ShouldEqual, 9708)
 	})
 
+	Convey("Unsupported Log Line with underscore in the process_name", t, func() {
+		h, p, err := Parse([]byte(`Jun 16 03:39:15 email dk_check[72882]: Starting the dk_check filter...`))
+		So(err, ShouldEqual, ErrUnsupportedLogLine)
+		So(p, ShouldBeNil)
+		So(h.Process, ShouldEqual, "dk_check")
+		So(h.Daemon, ShouldEqual, "")
+		So(h.PID, ShouldEqual, 72882)
+	})
+
 	Convey("Unsupported opendkim line, but time is okay", t, func() {
 		h, p, err := Parse([]byte(`Apr  5 19:00:02 mail opendkim[195]: 407032C4FF6A: DKIM-Signature field added (s=mail, d=lightmeter.io)`))
 		So(err, ShouldEqual, ErrUnsupportedLogLine)

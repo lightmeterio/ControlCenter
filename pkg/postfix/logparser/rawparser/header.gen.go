@@ -141,6 +141,8 @@ tr3:
 			goto tr4
 		case 47:
 			goto st29
+		case 95:
+			goto tr4
 		}
 		switch {
 		case data[p] < 65:
@@ -168,7 +170,7 @@ tr4:
 			goto _test_eof4
 		}
 	st_case_4:
-//line header.gen.go:172
+//line header.gen.go:174
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -178,6 +180,8 @@ tr4:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		}
 		switch {
 		case data[p] < 65:
@@ -203,7 +207,7 @@ tr6:
 			goto _test_eof5
 		}
 	st_case_5:
-//line header.gen.go:207
+//line header.gen.go:211
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -213,6 +217,8 @@ tr6:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 117:
 			goto tr12
 		}
@@ -256,7 +262,7 @@ tr41:
 			goto _test_eof6
 		}
 	st_case_6:
-//line header.gen.go:260
+//line header.gen.go:266
 		if data[p] == 93 {
 			goto st0
 		}
@@ -270,7 +276,7 @@ tr13:
 			goto _test_eof7
 		}
 	st_case_7:
-//line header.gen.go:274
+//line header.gen.go:280
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -291,7 +297,7 @@ tr15:
 			goto _test_eof8
 		}
 	st_case_8:
-//line header.gen.go:295
+//line header.gen.go:301
 		switch data[p] {
 		case 32:
 			goto tr17
@@ -314,7 +320,7 @@ tr17:
 			goto _test_eof30
 		}
 	st_case_30:
-//line header.gen.go:318
+//line header.gen.go:324
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -335,7 +341,7 @@ tr16:
 			goto _test_eof9
 		}
 	st_case_9:
-//line header.gen.go:339
+//line header.gen.go:345
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -357,7 +363,7 @@ tr18:
 			goto _test_eof10
 		}
 	st_case_10:
-//line header.gen.go:361
+//line header.gen.go:367
 		switch data[p] {
 		case 58:
 			goto tr15
@@ -381,7 +387,7 @@ tr20:
 			goto _test_eof11
 		}
 	st_case_11:
-//line header.gen.go:385
+//line header.gen.go:391
 		if data[p] == 58 {
 			goto st12
 		}
@@ -413,7 +419,7 @@ tr42:
 			goto _test_eof12
 		}
 	st_case_12:
-//line header.gen.go:417
+//line header.gen.go:423
 		if data[p] == 32 {
 			goto tr22
 		}
@@ -429,7 +435,7 @@ tr22:
 			goto _test_eof31
 		}
 	st_case_31:
-//line header.gen.go:433
+//line header.gen.go:439
 		goto st0
 tr11:
 //line common.rl:25
@@ -440,7 +446,7 @@ tr11:
 			goto _test_eof13
 		}
 	st_case_13:
-//line header.gen.go:444
+//line header.gen.go:450
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -452,6 +458,8 @@ tr11:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		}
 		switch {
 		case data[p] < 65:
@@ -561,7 +569,7 @@ tr43:
 			goto _test_eof20
 		}
 	st_case_20:
-//line header.gen.go:565
+//line header.gen.go:573
 		if 48 <= data[p] && data[p] <= 57 {
 			goto tr33
 		}
@@ -575,7 +583,7 @@ tr33:
 			goto _test_eof21
 		}
 	st_case_21:
-//line header.gen.go:579
+//line header.gen.go:587
 		if data[p] == 93 {
 			goto tr20
 		}
@@ -592,7 +600,7 @@ tr12:
 			goto _test_eof22
 		}
 	st_case_22:
-//line header.gen.go:596
+//line header.gen.go:604
 		switch data[p] {
 		case 45:
 			goto tr6
@@ -602,6 +610,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 110:
 			goto st23
 		}
@@ -632,6 +642,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 107:
 			goto st24
 		}
@@ -662,6 +674,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 110:
 			goto st25
 		}
@@ -692,6 +706,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 111:
 			goto st26
 		}
@@ -722,6 +738,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 119:
 			goto st27
 		}
@@ -752,6 +770,8 @@ tr12:
 			goto tr9
 		case 91:
 			goto tr10
+		case 95:
+			goto st4
 		case 110:
 			goto st28
 		}
@@ -782,6 +802,8 @@ tr12:
 			goto tr42
 		case 91:
 			goto tr43
+		case 95:
+			goto st4
 		}
 		switch {
 		case data[p] < 65:
@@ -801,7 +823,10 @@ tr12:
 			goto _test_eof29
 		}
 	st_case_29:
-		if data[p] == 45 {
+		switch data[p] {
+		case 45:
+			goto tr4
+		case 95:
 			goto tr4
 		}
 		switch {
