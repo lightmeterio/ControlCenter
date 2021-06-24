@@ -91,7 +91,6 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-
 				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
 				So(err, ShouldBeNil)
 
@@ -183,6 +182,51 @@ func TestDetective(t *testing.T) {
 			oldestTime, err := d.OldestAvailableTime(context.Background())
 			So(err, ShouldBeNil)
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-09-25 18:26:36 +0000`))
+		})
+
+		Convey("File with 5 deliveries, some via postfix/local. Gitlab issue #516", func() {
+			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/21_deliveries_with_local_daemon.log", year)
+			defer clear()
+
+			Convey("Message found", func() {
+				messages, err := d.CheckMessageDelivery(context.Background(), "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, 1)
+				So(err, ShouldBeNil)
+
+				So(messages, ShouldResemble, &detective.MessagesPage{
+					PageNumber:   1,
+					FirstPage:    1,
+					LastPage:     1,
+					TotalResults: 2,
+					Messages: detective.Messages{
+						detective.Message{
+							Queue: "95154657C",
+							Entries: []detective.MessageDelivery{
+								detective.MessageDelivery{
+									1,
+									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
+									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
+									detective.Status(parser.SentStatus),
+									"2.0.0",
+									nil,
+								},
+							},
+						},
+						detective.Message{
+							Queue: "D390B657C",
+							Entries: []detective.MessageDelivery{
+								detective.MessageDelivery{
+									1,
+									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
+									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
+									detective.Status(parser.SentStatus),
+									"2.0.0",
+									nil,
+								},
+							},
+						},
+					},
+				})
+			})
 		})
 	})
 }

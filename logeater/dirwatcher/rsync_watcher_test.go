@@ -7,6 +7,7 @@ package dirwatcher
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"os"
@@ -24,6 +25,9 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 		defer clearDstDir()
 		defer clearOriginDir()
 
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
 		type parsedLog struct {
 			h parser.Header
 			p parser.Payload
@@ -32,7 +36,7 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 		logs := []parsedLog{}
 
 		newRunner := func(filename string, offset int64) rsyncedFileWatcherRunner {
-			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset}, func(h parser.Header, p parser.Payload) {
+			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset, format: timeFormat}, func(h parser.Header, p parser.Payload) {
 				logs = append(logs, parsedLog{h: h, p: p})
 			})
 		}

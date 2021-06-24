@@ -9,6 +9,7 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/rs/zerolog/log"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"io/ioutil"
@@ -21,9 +22,10 @@ type localDirectoryContent struct {
 	dir     string
 	entries fileEntryList
 	rsynced bool
+	format  parsertimeutil.TimeFormat
 }
 
-func NewDirectoryContent(dir string, rsynced bool) (DirectoryContent, error) {
+func NewDirectoryContent(dir string, rsynced bool, format parsertimeutil.TimeFormat) (DirectoryContent, error) {
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
@@ -37,7 +39,7 @@ func NewDirectoryContent(dir string, rsynced bool) (DirectoryContent, error) {
 		entries = append(entries, fileEntry{filename: name, modificationTime: i.ModTime()})
 	}
 
-	return &localDirectoryContent{dir: dir, entries: entries, rsynced: rsynced}, nil
+	return &localDirectoryContent{dir: dir, entries: entries, rsynced: rsynced, format: format}, nil
 }
 
 func (f *localDirectoryContent) dirName() string {
@@ -65,11 +67,12 @@ func (f *localDirectoryContent) readSeekerForEntry(filename string) (fileReadSee
 type localFileWatcher struct {
 	t        *tail.Tail
 	filename string
+	format   parsertimeutil.TimeFormat
 }
 
 func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) {
 	for line := range w.t.Lines {
-		h, p, err := parser.Parse([]byte(line.Text))
+		h, p, err := parser.ParseWithCustomTimeFormat([]byte(line.Text), w.format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Error().Msgf("parsing line on file: %v", w.filename)
@@ -82,7 +85,7 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 
 func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
 	if f.rsynced {
-		return &rsyncedFileWatcher{filename, offset}, nil
+		return &rsyncedFileWatcher{filename, offset, f.format}, nil
 	}
 
 	t, err := tail.TailFile(filename, tail.Config{
@@ -97,7 +100,7 @@ func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &localFileWatcher{t, filename}, nil
+	return &localFileWatcher{t, filename, f.format}, nil
 }
 
 func (f *localDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {

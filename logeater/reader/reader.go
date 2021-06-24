@@ -16,6 +16,14 @@ import (
 	"time"
 )
 
+func min(a, b uint) uint {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
 // TODO: unit test this function and try to find edge cases, as there are possibly many!
 func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.Builder, importAnnouncer announcer.ImportAnnouncer, clock timeutil.Clock, timeout time.Duration) error {
 	t, err := builder()
@@ -39,16 +47,13 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 		currentRecord       postfix.Record
 	)
 
-	min := func(a, b uint) uint {
-		if a < b {
-			return a
+	progress := func(t time.Time) uint {
+		if expectedImportEndTime.Unix() == initialTime.Unix() {
+			return 100
 		}
 
-		return b
-	}
-
-	progress := func(t time.Time) uint {
 		v := ((t.Unix() - initialTime.Unix()) * numberOfSteps) / (expectedImportEndTime.Unix() - initialTime.Unix())
+
 		return uint(v)
 	}
 

@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
 	"strings"
@@ -259,15 +260,18 @@ func (f FakeDirectoryContent) modificationTimeForEntry(filename string) (time.Ti
 
 func TestGuessingYearWhenFileStarts(t *testing.T) {
 	Convey("Guess Based on file content and modification date", t, func() {
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
 		Convey("Empty file uses modification date directly", func() {
-			date, err := guessInitialDateForFile(plainDataReader(``), testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(plainDataReader(``), testutil.MustParseTime(`2020-04-03 19:01:53 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
 		})
 
 		Convey("Fail to read single invalid line file", func() {
 			reader := plainDataReader(`Invalid Log Line`)
-			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
+			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`), timeFormat)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -275,27 +279,27 @@ func TestGuessingYearWhenFileStarts(t *testing.T) {
 			reader := plainDataReader(
 				`Mar 22 06:28:55 mail dovecot: Useless Payload
 Invalid Line`)
-			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
+			_, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`), timeFormat)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Single line, no change in year", func() {
 			reader := plainDataReader(`Mar 22 06:28:55 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("Single line, no change in year, same second", func() {
 			reader := plainDataReader(`Mar 22 06:28:55 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
 
 		Convey("Single line, year changes", func() {
 			reader := plainDataReader(`Dec 31 23:59:58 mail dovecot: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-01 00:00:01 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2019-12-31 23:59:58 +0000`))
 		})
@@ -309,7 +313,7 @@ Invalid Line`)
 			reader := gzipedDataReader(
 				`Mar 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-29 06:47:09 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-29 06:47:09 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
 		})
@@ -319,7 +323,7 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 				`Jan 22 06:28:55 mail dovecot: Useless Payload
 Jan 23 06:28:55 mail dovecot: Useless Payload
 Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-31 06:47:09 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-01-31 06:47:09 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 		})
@@ -330,7 +334,7 @@ Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 Jan  1 00:00:01 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
 Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 Jan  1 00:00:02 mail postfix/postscreen[18660]: a`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:01:00 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:01:00 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
 		})
@@ -341,7 +345,7 @@ Jan  1 00:00:02 mail postfix/postscreen[18660]: a`)
 Dec 31 23:59:51 mail postfix/dnsblog[26740]: addr
 Dec 31 23:59:55 mail dovecot: imap-login:
 Dec 31 23:59:57 mail dovecot: imap-login:`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:02 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:02 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
@@ -351,7 +355,7 @@ Dec 31 23:59:57 mail dovecot: imap-login:`)
 				`Dec 22 06:28:55 mail dovecot: Useless Payload
 Dec 23 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-04-03 19:01:53 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
 		})
@@ -361,14 +365,14 @@ Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 				`Dec 31 23:59:50 mail postfix/postscreen[26735]: CONNECT
 Dec 31 23:59:51 mail postfix/dnsblog[26740]: addr
 Dec 31 23:59:55 mail dovecot: imap-login:`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
 
 		Convey("File with single line, close to changing year, timezone east of UTC", func() {
 			reader := plainDataReader(`Dec 31 23:59:50 mail postfix/postscreen[26735]: CONNECT`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:50 +0200`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2000-12-31 23:59:50 +0200`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:50 +0000`))
 		})
@@ -378,7 +382,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`)
 				`Dec 31 23:59:55 mail dovecot: pop3-login:
 Jan  1 00:00:01 mail postfix/postscreen[9183]: CONNECT from [18.88.247.65]:50082 to [170.68.1.1]:25
 Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-01-01 00:00:01 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-12-31 23:59:55 +0000`))
 		})
@@ -387,7 +391,7 @@ Jan  1 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 			reader := plainDataReader(
 				`Feb 10 23:59:55 mail dovecot: pop3-login:
 Nov 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-05-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-05-01 00:00:01 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-02-10 23:59:55 +0000`))
 		})
@@ -396,7 +400,7 @@ Nov 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 			reader := plainDataReader(
 				`Oct 11 23:59:55 mail dovecot: pop3-login:
 Jan 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-11-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-11-01 00:00:01 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-10-11 23:59:55 +0000`))
 		})
@@ -405,7 +409,7 @@ Jan 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744
 			reader := plainDataReader(
 				`Oct 11 23:59:55 mail dovecot: pop3-login:
 Jul 19 00:00:01 mail postfix/postscreen[17274]: DISCONNECT [224.35.90.202]:54744`)
-			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-03-01 00:00:01 +0000`))
+			date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2001-03-01 00:00:01 +0000`), timeFormat)
 			So(err, ShouldBeNil)
 			So(date, ShouldEqual, testutil.MustParseTime(`2000-10-11 23:59:55 +0000`))
 		})
@@ -574,86 +578,91 @@ func TestBuildingfileQueues(t *testing.T) {
 }
 
 func TestMultipleFiles(t *testing.T) {
-	Convey("Finds start time among several files", t, func() {
-		Convey("No files triggers errors", func() {
-			_, err := findEarlierstTimeFromFiles([]fileDescriptor{})
-			So(err, ShouldNotBeNil)
-		})
+	Convey("Test multiple files", t, func() {
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
 
-		Convey("One file only with no change in year", func() {
-			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
-					reader: gzipedDataReader(
-						`Mar 22 06:28:55 mail dovecot: Useless Payload
-Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				},
+		Convey("Finds start time among several files", func() {
+			Convey("No files triggers errors", func() {
+				_, err := findEarlierstTimeFromFiles([]fileDescriptor{}, timeFormat)
+				So(err, ShouldNotBeNil)
 			})
-			So(err, ShouldBeNil)
-			So(t, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
-		})
 
-		Convey("One file only with a change in year", func() {
-			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
-					reader: gzipedDataReader(
-						`Dec 22 06:28:55 mail dovecot: Useless Payload
+			Convey("One file only with no change in year", func() {
+				t, err := findEarlierstTimeFromFiles([]fileDescriptor{
+					{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
+						reader: gzipedDataReader(
+							`Mar 22 06:28:55 mail dovecot: Useless Payload
+Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+					},
+				}, timeFormat)
+				So(err, ShouldBeNil)
+				So(t, ShouldEqual, testutil.MustParseTime(`2020-03-22 06:28:55 +0000`))
+			})
+
+			Convey("One file only with a change in year", func() {
+				t, err := findEarlierstTimeFromFiles([]fileDescriptor{
+					{modificationTime: testutil.MustParseTime(`2020-04-03 19:01:53 +0000`),
+						reader: gzipedDataReader(
+							`Dec 22 06:28:55 mail dovecot: Useless Payload
 Dec 23 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				},
+					},
+				}, timeFormat)
+				So(err, ShouldBeNil)
+				So(t, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
 			})
-			So(err, ShouldBeNil)
-			So(t, ShouldEqual, testutil.MustParseTime(`2019-12-22 06:28:55 +0000`))
-		})
 
-		Convey("Multiple files, with one of them changing year", func() {
-			t, err := findEarlierstTimeFromFiles([]fileDescriptor{
-				{modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`),
-					reader: gzipedDataReader(
-						`Dec 22 06:28:55 mail dovecot: Useless Payload
+			Convey("Multiple files, with one of them changing year", func() {
+				t, err := findEarlierstTimeFromFiles([]fileDescriptor{
+					{modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`),
+						reader: gzipedDataReader(
+							`Dec 22 06:28:55 mail dovecot: Useless Payload
 Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				},
-				{modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`),
-					reader: plainDataReader(
-						`Nov  3 01:33:20 mail dovecot: Useless Payload
+					},
+					{modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`),
+						reader: plainDataReader(
+							`Nov  3 01:33:20 mail dovecot: Useless Payload
 Nov 23 06:28:55 mail dovecot: Useless Payload
 Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+					},
+					{modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`),
+						reader: plainDataReader(
+							`Jan 22 06:28:55 mail dovecot: Useless Payload
+Jan 23 06:28:55 mail dovecot: Useless Payload
+Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+					},
+				}, timeFormat)
+				So(err, ShouldBeNil)
+				So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
+			})
+		})
+
+		Convey("Finds start time among several files from directory contents", func() {
+			dirContent := FakeDirectoryContent{
+				entries: fileEntryList{
+					fileEntry{filename: "log/mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-03-29 19:01:53 +0000`)},
+					fileEntry{filename: "log/mail.warn", modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`)},
+					fileEntry{filename: "log/mail.err", modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`)},
 				},
-				{modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`),
-					reader: plainDataReader(
-						`Jan 22 06:28:55 mail dovecot: Useless Payload
+				contents: map[string]fakeFileData{
+					"log/mail.warn.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
+Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.warn": plainDataFile(`Mar 30 01:33:20 mail dovecot: Useless Payload`),
+					"log/mail.log": plainDataFile(`Nov  3 01:33:20 mail dovecot: Useless Payload
+Nov 23 06:28:55 mail dovecot: Useless Payload
+Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.err": plainDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
 Jan 23 06:28:55 mail dovecot: Useless Payload
 Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
-			})
+			}
+
+			t, err := FindInitialLogTime(dirContent, BuildLogPatterns([]string{"mail.warn", "mail.err", "mail.log"}), timeFormat)
 			So(err, ShouldBeNil)
 			So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
 		})
-	})
-
-	Convey("Finds start time among several files from directory contents", t, func() {
-		dirContent := FakeDirectoryContent{
-			entries: fileEntryList{
-				fileEntry{filename: "log/mail.warn.2.gz", modificationTime: testutil.MustParseTime(`2020-03-29 19:01:53 +0000`)},
-				fileEntry{filename: "log/mail.warn", modificationTime: testutil.MustParseTime(`2020-03-30 19:01:53 +0000`)},
-				fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-02-28 18:18:10 +0000`)},
-				fileEntry{filename: "log/mail.err", modificationTime: testutil.MustParseTime(`2020-01-31 19:01:53 +0000`)},
-			},
-			contents: map[string]fakeFileData{
-				"log/mail.warn.2.gz": gzippedDataFile(`Dec 22 06:28:55 mail dovecot: Useless Payload
-Mar 29 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				"log/mail.warn": plainDataFile(`Mar 30 01:33:20 mail dovecot: Useless Payload`),
-				"log/mail.log": plainDataFile(`Nov  3 01:33:20 mail dovecot: Useless Payload
-Nov 23 06:28:55 mail dovecot: Useless Payload
-Feb 28 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-				"log/mail.err": plainDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
-Jan 23 06:28:55 mail dovecot: Useless Payload
-Jan 31 06:47:09 mail postfix/postscreen[17274]: Useless Payload`),
-			},
-		}
-
-		t, err := FindInitialLogTime(dirContent, BuildLogPatterns([]string{"mail.warn", "mail.err", "mail.log"}))
-		So(err, ShouldBeNil)
-		So(t, ShouldEqual, testutil.MustParseTime(`2019-11-03 01:33:20 +0000`))
 	})
 }
 
@@ -661,6 +670,9 @@ type fakeAnnouncer = announcer.DummyImportAnnouncer
 
 func TestImportDirectoryOnly(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
 		patterns := DefaultLogPatterns
 
 		importAnnouncer := &fakeAnnouncer{}
@@ -668,7 +680,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -691,7 +703,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -732,7 +744,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 
@@ -790,7 +802,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -818,7 +830,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -851,7 +863,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -931,7 +943,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -941,8 +953,10 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 
 func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 	Convey("Import Files from Directory", t, func() {
-		patterns := DefaultLogPatterns
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
 
+		patterns := DefaultLogPatterns
 		announcer := &fakeAnnouncer{}
 
 		Convey("Many files in the same queue, with new lines after the import starts, split happens on breakline", func() {
@@ -960,7 +974,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -990,7 +1004,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
@@ -1009,6 +1023,43 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			So(pub.logs[4].Time, ShouldEqual, testutil.MustParseTime(`2020-08-10 00:00:40 +0000`))
 			So(pub.logs[5].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 12, Hour: 0, Minute: 0, Second: 0})
 			So(pub.logs[5].Time, ShouldEqual, testutil.MustParseTime(`2020-08-12 00:00:00 +0000`))
+		})
+	})
+}
+
+func TestImportDirectoryWithRFC3339TimeFormat(t *testing.T) {
+	Convey("Import Files from Directory using time format rfc3339", t, func() {
+		timeFormat, err := parsertimeutil.Get("rfc3339")
+		So(err, ShouldBeNil)
+
+		patterns := DefaultLogPatterns
+
+		Convey("Simple case", func() {
+			dirContent := FakeDirectoryContent{
+				// NOTE: notice that the modification times have been lost
+				entries: fileEntryList{
+					fileEntry{filename: "mail.log.2.gz", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"mail.log.2.gz": gzippedDataFile(`2021-05-16T00:01:42.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:43.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`),
+					"mail.log": plainCurrentDataFile(`2021-05-16T00:01:45.278515+02:00 mail something: something else`, ``),
+				},
+			}
+
+			pub := fakePublisher{}
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			err := importer.ImportOnly()
+			So(err, ShouldBeNil)
+
+			So(len(pub.logs), ShouldEqual, 4)
+			So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:42 +0000`))
+			So(pub.logs[0].Header.Host, ShouldResemble, "mail")
+			So(pub.logs[1].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:43 +0000`))
+			So(pub.logs[2].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:44 +0000`))
+			So(pub.logs[3].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:45 +0000`))
 		})
 	})
 }

@@ -1,0 +1,62 @@
+Jun 20 05:02:07 ns4 postfix/smtpd[15127]: connect from h-083963ec00313e9[147.53.75.90]
+Jun 20 05:02:07 ns4 postfix/smtpd[15127]: Anonymous TLS connection established from h-083963ec00313e9[147.53.75.90]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:02:07 ns4 postfix/smtpd[15127]: 95154657C: client=h-083963ec00313e9[147.53.75.90]
+Jun 20 05:02:07 ns4 postfix/cleanup[16459]: 95154657C: message-id=<h-ec262eb25918e7678e9e8737f7b@h-e7d9fe256179482d76de1b3e83c.com>
+Jun 20 05:02:07 ns4 opendkim[2216]: 95154657C: h-083963ec00313e9 [147.53.75.90] not internal
+Jun 20 05:02:07 ns4 opendkim[2216]: 95154657C: not authenticated
+Jun 20 05:02:07 ns4 opendkim[2216]: 95154657C: DKIM verification successful
+Jun 20 05:02:07 ns4 opendkim[2216]: 95154657C: s=dkimkey1 d=h-08324753bf54 SSL
+Jun 20 05:02:07 ns4 postfix/qmgr[5361]: 95154657C: from=<h-195704c@h-b7bed8eb24c5049d9.com>, size=1605, nrcpt=1 (queue active)
+Jun 20 05:02:07 ns4 postfix/smtpd[15127]: disconnect from h-083963ec00313e9[147.53.75.90] ehlo=2 starttls=1 mail=1 rcpt=1 data=1 quit=1 commands=7
+Jun 20 05:02:07 ns4 postfix/local[16460]: 95154657C: to=<h-493fac8f3@h-ea3f4afa.com>, orig_to=<h-195704c@h-20b651e8120a33ec11.com>, relay=local, delay=0.1, delays=0.09/0/0/0.01, dsn=2.0.0, status=sent (delivered to command: procmail -a "$EXTENSION" DEFAULT=$HOME/Maildir/)
+Jun 20 05:02:07 ns4 postfix/qmgr[5361]: 95154657C: removed
+Jun 20 05:02:27 ns4 postfix/smtpd[15127]: connect from localhost[127.0.0.1]
+Jun 20 05:02:27 ns4 postfix/smtpd[15127]: disconnect from localhost[127.0.0.1] helo=1 quit=1 commands=2
+Jun 20 05:02:34 ns4 postfix/smtpd[15127]: connect from h-df09b377defe41d[147.53.75.90]
+Jun 20 05:02:34 ns4 postfix/smtpd[15127]: Anonymous TLS connection established from h-df09b377defe41d[147.53.75.90]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:02:34 ns4 postfix/smtpd[15127]: E389F657C: client=h-df09b377defe41d[147.53.75.90]
+Jun 20 05:02:34 ns4 postfix/cleanup[16454]: E389F657C: message-id=<h-2168aefc624da54daa88a302b8@h-bf5fc94ab1f34a49c62aff1c094.com>
+Jun 20 05:02:34 ns4 opendkim[2216]: E389F657C: h-df09b377defe41d [147.53.75.90] not internal
+Jun 20 05:02:34 ns4 opendkim[2216]: E389F657C: not authenticated
+Jun 20 05:02:34 ns4 opendkim[2216]: E389F657C: DKIM verification successful
+Jun 20 05:02:34 ns4 opendkim[2216]: E389F657C: s=dkimkey1 d=h-08324753bf54 SSL
+Jun 20 05:02:35 ns4 postfix/qmgr[5361]: E389F657C: from=<h-195704c@h-ca65051b52b067e2c8975.com>, size=1630, nrcpt=1 (queue active)
+Jun 20 05:02:35 ns4 postfix/smtpd[15127]: disconnect from h-df09b377defe41d[147.53.75.90] ehlo=2 starttls=1 mail=1 rcpt=1 data=1 quit=1 commands=7
+Jun 20 05:02:35 ns4 postfix/smtp[16629]: Anonymous TLS connection established to h-a85427309c70[199.3.254.155]:25: TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:02:35 ns4 postfix/smtp[16629]: E389F657C: to=<h-94723d9c85e1@h-a85427309c70.com>, orig_to=<h-94723d9c85e1@h-20b651e8120a33ec11.com>, relay=h-a85427309c70[199.3.254.155]:25, delay=0.26, delays=0.09/0.01/0.13/0.02, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 2ACE7800D0)
+Jun 20 05:02:35 ns4 postfix/qmgr[5361]: E389F657C: removed
+Jun 20 05:02:46 ns4 postfix/smtpd[15127]: connect from unknown[95.239.23.97]
+Jun 20 05:02:46 ns4 postfix/smtpd[15127]: disconnect from unknown[95.239.23.97] ehlo=1 auth=0/1 quit=1 commands=2/3
+Jun 20 05:02:47 ns4 postfix/smtpd[15127]: connect from h-b7541a770f87[8.83.100.6]
+Jun 20 05:02:47 ns4 postfix/smtpd[15127]: disconnect from h-b7541a770f87[8.83.100.6] helo=1 mail=1 quit=1 commands=3
+Jun 20 05:02:55 ns4 postfix/pickup[26756]: 848F1657D: uid=2002 from=<h-195704c@h-20b651e8120a33ec11.com>
+Jun 20 05:02:55 ns4 postfix/cleanup[16459]: 848F1657D: message-id=<h-9723265c531c21306faa0968@h-986d88a6b79105.com>
+Jun 20 05:02:55 ns4 opendkim[2216]: 848F1657D: no signing table match for 'h-195704c@h-20b651e8120a33ec11.com'
+Jun 20 05:02:55 ns4 opendkim[2216]: 848F1657D: no signature data
+Jun 20 05:02:55 ns4 postfix/qmgr[5361]: 848F1657D: from=<h-195704c@h-20b651e8120a33ec11.com>, size=1221, nrcpt=1 (queue active)
+Jun 20 05:02:55 ns4 postfix/smtp[16589]: Untrusted TLS connection established to h-7a12f4efdf064cf[147.53.75.38]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:02:55 ns4 postfix/smtp[16589]: 848F1657D: to=<h-195704c@h-b7bed8eb24c5049d9.com>, relay=h-7a12f4efdf064cf[147.53.75.38]:25, delay=0.26, delays=0.01/0/0.22/0.03, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 4G6yC35YlszCx5Pk)
+Jun 20 05:02:55 ns4 postfix/qmgr[5361]: 848F1657D: removed
+Jun 20 05:04:01 ns4 postfix/pickup[26756]: 96C82657D: uid=2002 from=<h-195704c@h-20b651e8120a33ec11.com>
+Jun 20 05:04:01 ns4 postfix/cleanup[16454]: 96C82657D: message-id=<h-372f68c1549c5fea48442c08@h-986d88a6b79105.com>
+Jun 20 05:04:01 ns4 opendkim[2216]: 96C82657D: no signing table match for 'h-195704c@h-20b651e8120a33ec11.com'
+Jun 20 05:04:01 ns4 opendkim[2216]: 96C82657D: no signature data
+Jun 20 05:04:01 ns4 postfix/qmgr[5361]: 96C82657D: from=<h-195704c@h-20b651e8120a33ec11.com>, size=1239, nrcpt=1 (queue active)
+Jun 20 05:04:01 ns4 postfix/smtp[16589]: Untrusted TLS connection established to h-7a12f4efdf064cf[147.53.75.38]:25: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:04:01 ns4 postfix/smtp[16589]: 96C82657D: to=<h-ed3f76aa9e787478a8@h-b7bed8eb24c5049d9.com>, relay=h-7a12f4efdf064cf[147.53.75.38]:25, delay=0.23, delays=0.01/0/0.19/0.03, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 4G6yDK5s1szCx5Py)
+Jun 20 05:04:01 ns4 postfix/qmgr[5361]: 96C82657D: removed
+Jun 20 05:04:02 ns4 postfix/smtpd[15127]: connect from localhost[127.0.0.1]
+Jun 20 05:04:02 ns4 postfix/smtpd[15127]: disconnect from localhost[127.0.0.1] ehlo=1 quit=1 commands=2
+Jun 20 05:04:02 ns4 dovecot: imap-login: Aborted login (no auth attempts in 0 secs): user=<>, rip=8.83.100.6, lip=8.83.100.6, secured
+Jun 20 05:04:07 ns4 postfix/smtpd[15127]: connect from h-9421d836902d257[147.53.75.83]
+Jun 20 05:04:07 ns4 postfix/smtpd[15127]: Anonymous TLS connection established from h-9421d836902d257[147.53.75.83]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Jun 20 05:04:07 ns4 postfix/smtpd[15127]: D390B657C: client=h-9421d836902d257[147.53.75.83]
+Jun 20 05:04:07 ns4 postfix/cleanup[16459]: D390B657C: message-id=<h-dfd067542de35f4b23673e0b3b3@h-e7d9fe256179482d76de1b3e83c.com>
+Jun 20 05:04:07 ns4 opendkim[2216]: D390B657C: h-9421d836902d257 [147.53.75.83] not internal
+Jun 20 05:04:07 ns4 opendkim[2216]: D390B657C: not authenticated
+Jun 20 05:04:07 ns4 opendkim[2216]: D390B657C: DKIM verification successful
+Jun 20 05:04:07 ns4 opendkim[2216]: D390B657C: s=dkimkey1 d=h-08324753bf54 SSL
+Jun 20 05:04:07 ns4 postfix/qmgr[5361]: D390B657C: from=<h-195704c@h-b7bed8eb24c5049d9.com>, size=1605, nrcpt=1 (queue active)
+Jun 20 05:04:07 ns4 postfix/smtpd[15127]: disconnect from h-9421d836902d257[147.53.75.83] ehlo=2 starttls=1 mail=1 rcpt=1 data=1 quit=1 commands=7
+Jun 20 05:04:07 ns4 postfix/local[16746]: D390B657C: to=<h-493fac8f3@h-ea3f4afa.com>, orig_to=<h-195704c@h-20b651e8120a33ec11.com>, relay=local, delay=0.11, delays=0.1/0.01/0/0.01, dsn=2.0.0, status=sent (delivered to command: procmail -a "$EXTENSION" DEFAULT=$HOME/Maildir/)
+Jun 20 05:04:07 ns4 postfix/qmgr[5361]: D390B657C: removed

@@ -61,6 +61,28 @@ func TestReader(t *testing.T) {
 
 		pub := pub{}
 
+		Convey("Do not crash when all logs are in the same time (Gitlab issue #508)", func() {
+			clock := timeutil.FakeClock{Time: time.Date(2020, time.June, 16, 13, 53, 50, 500, time.UTC)}
+
+			Convey("default log format", func() {
+				transformer, err := transform.Get("default", 2020)
+				So(err, ShouldBeNil)
+				reader := strings.NewReader(`Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]
+Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]`)
+				ReadFromReader(reader, &pub, transformer, fakeAnnouncer, &clock, time.Hour*500)
+				So(len(pub.logs), ShouldEqual, 2)
+			})
+
+			Convey("prepend-rfc3339 log format", func() {
+				transformer, err := transform.Get("prepend-rfc3339")
+				So(err, ShouldBeNil)
+				reader := strings.NewReader(`2021-06-16T13:53:50+02:00 Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]
+2021-06-16T13:53:50+02:00 Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]`)
+				ReadFromReader(reader, &pub, transformer, fakeAnnouncer, &clock, time.Hour*500)
+				So(len(pub.logs), ShouldEqual, 2)
+			})
+		})
+
 		Convey("Empty reader should announce progress immediately", func() {
 			clock := timeutil.FakeClock{Time: testutil.MustParseTime(`2000-08-24 10:00:00 +0000`)}
 			reader := strings.NewReader(``)

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -51,7 +52,7 @@ func Get(name string, args ...interface{}) (Builder, error) {
 }
 
 type defaultTransformer struct {
-	converter parser.TimeConverter
+	converter parsertimeutil.TimeConverter
 	lineNo    uint64
 }
 
@@ -122,7 +123,7 @@ func init() {
 
 		return &defaultTransformer{
 			lineNo: 1,
-			converter: parser.NewTimeConverter(initialTime, func(year int, previousTime parser.Time, newTime parser.Time) {
+			converter: parsertimeutil.NewTimeConverter(initialTime, func(year int, previousTime parser.Time, newTime parser.Time) {
 				log.Info().Msgf("Year changed to %v", year)
 			}),
 		}, nil

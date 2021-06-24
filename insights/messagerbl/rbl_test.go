@@ -16,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
@@ -59,7 +60,7 @@ func parseLogLine(line string) (parser.Header, parser.Payload) {
 	return h, p
 }
 
-func actionFromLog(converter *parser.TimeConverter, host string, line string) func() messagerbl.Result {
+func actionFromLog(converter *parsertimeutil.TimeConverter, host string, line string) func() messagerbl.Result {
 	return func() messagerbl.Result {
 		h, p := parseLogLine(line)
 
@@ -79,7 +80,7 @@ func TestMessageRBLInsight(t *testing.T) {
 		defer clearAccessor()
 
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-		converter := parser.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
+		converter := parsertimeutil.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
 		actions := map[time.Time]func() messagerbl.Result{
@@ -189,7 +190,7 @@ func TestRegression(t *testing.T) {
 		defer clearAccessor()
 
 		baseTime := testutil.MustParseTime(`2021-04-17 00:00:00 +0000`)
-		converter := parser.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
+		converter := parsertimeutil.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
 		actions := map[time.Time]func() messagerbl.Result{

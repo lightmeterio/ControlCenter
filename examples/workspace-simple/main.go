@@ -83,7 +83,7 @@ func main() {
 		errorutil.MustSucceed(err)
 
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, mostRecentTime, importAnnouncer, false, false, dirwatcher.DefaultLogPatterns)
+			return dirlogsource.New(inputDirectory, mostRecentTime, importAnnouncer, false, false, "default", dirwatcher.DefaultLogPatterns)
 		}
 
 		f, err := os.Open(inputFile)
