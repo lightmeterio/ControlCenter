@@ -6,6 +6,7 @@ package parser
 
 import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strconv"
 )
@@ -36,20 +37,24 @@ func registerHandler(payloadType rawparser.PayloadType, handler func(rawparser.R
 	handlers[payloadType] = handler
 }
 
-func ParseHeader(line []byte) (h Header, payloadLine []byte, err error) {
-	rawHeader, p, err := rawparser.ParseHeader(line)
+func ParseHeaderWithCustomTimeFormat(line []byte, format rawparser.TimeFormat) (h Header, payloadLine []byte, err error) {
+	rawHeader, p, err := rawparser.ParseHeaderWithCustomTimeFormat(line, format)
 	if err != nil {
 		// TODO: unify parser and rawparser packages in a single one, for the sake of simplicity
 		//nolint:wrapcheck
 		return Header{}, nil, err
 	}
 
-	header, err := parseHeader(rawHeader)
+	header, err := parseHeader(rawHeader, format)
 	if err != nil {
 		return Header{}, nil, err
 	}
 
 	return header, p, nil
+}
+
+func ParseHeader(line []byte) (h Header, payloadLine []byte, err error) {
+	return ParseHeaderWithCustomTimeFormat(line, timeutil.DefaultTimeFormat{})
 }
 
 func ParsePayload(h Header, payloadLine []byte) (Payload, error) {
@@ -71,8 +76,8 @@ func ParsePayload(h Header, payloadLine []byte) (Payload, error) {
 	return parsed, nil
 }
 
-func Parse(line []byte) (Header, Payload, error) {
-	h, payloadLine, err := ParseHeader(line)
+func ParseWithCustomTimeFormat(line []byte, format rawparser.TimeFormat) (Header, Payload, error) {
+	h, payloadLine, err := ParseHeaderWithCustomTimeFormat(line, format)
 	if err != nil {
 		return Header{}, nil, err
 	}
@@ -83,4 +88,8 @@ func Parse(line []byte) (Header, Payload, error) {
 	}
 
 	return h, payload, nil
+}
+
+func Parse(line []byte) (Header, Payload, error) {
+	return ParseWithCustomTimeFormat(line, timeutil.DefaultTimeFormat{})
 }

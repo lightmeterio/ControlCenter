@@ -9,6 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"net"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestRBL(t *testing.T) {
 
 		done, cancel := detector.Run()
 
-		converter := parser.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), func(int, parser.Time, parser.Time) {})
+		converter := parsertimeutil.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), func(int, parser.Time, parser.Time) {})
 
 		record := func(s string) postfix.Record {
 			h, p, err := parser.Parse([]byte(s))

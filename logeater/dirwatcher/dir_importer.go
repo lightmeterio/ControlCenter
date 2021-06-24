@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
@@ -197,14 +198,14 @@ func secondInTheYear(month time.Month, day, hour, minute, second int) float64 {
 		Seconds()
 }
 
-func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
+func readFirstLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (parser.Time, bool, error) {
 	if !scanner.Scan() {
 		// empty file
 		return parser.Time{}, false, nil
 	}
 
 	// read first line
-	h1, _, err := parser.Parse(scanner.Bytes())
+	h1, _, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
 
 	return h1.Time, true, func() error {
 		if err == nil {
@@ -215,7 +216,7 @@ func readFirstLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 	}()
 }
 
-func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
+func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (parser.Time, bool, error) {
 	lastLine := ""
 
 	linesRead := 0
@@ -231,7 +232,7 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 	}
 
 	// reached the last line
-	h2, _, err := parser.Parse([]byte(lastLine))
+	h2, _, err := parser.ParseWithCustomTimeFormat([]byte(lastLine), format)
 
 	return h2.Time, true, func() error {
 		if err == nil {
@@ -242,12 +243,12 @@ func readLastLine(scanner *bufio.Scanner) (parser.Time, bool, error) {
 	}()
 }
 
-func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Time) (time.Time, error) {
+func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Time, format parsertimeutil.TimeFormat) (time.Time, error) {
 	modificationTime := originalModificationTime.In(time.UTC)
 
 	scanner := bufio.NewScanner(reader)
 
-	timeFirstLine, ok, err := readFirstLine(scanner)
+	timeFirstLine, ok, err := readFirstLine(scanner, format)
 
 	if !ok {
 		// empty file
@@ -266,7 +267,7 @@ func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Tim
 		int(timeFirstLine.Minute),
 		int(timeFirstLine.Second))
 
-	timeLastLine, ok, err := readLastLine(scanner)
+	timeLastLine, ok, err := readLastLine(scanner, format)
 
 	secondsInTheYearForTime := func(t time.Time) float64 {
 		return secondInTheYear(t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
@@ -295,7 +296,7 @@ func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Tim
 
 		year := computeYear(secondsInYearModificationTime, secondsInYearFirstLine) + adjustYearOffsetAfter12HoursJumpForward
 
-		return timeFirstLine.Time(year, modificationTime.Location()), nil
+		return format.ConvertWithYear(timeFirstLine, year, modificationTime.Location()), nil
 	}
 
 	if !parser.IsRecoverableError(err) {
@@ -335,7 +336,7 @@ func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Tim
 
 	year := modificationTime.Year() - yearOffset
 
-	return timeFirstLine.Time(year, modificationTime.Location()), nil
+	return format.ConvertWithYear(timeFirstLine, year, modificationTime.Location()), nil
 }
 
 type fileDescriptor struct {
@@ -345,7 +346,7 @@ type fileDescriptor struct {
 
 var ErrEmptyFileList = errors.New(`No valid log files found`)
 
-func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
+func findEarlierstTimeFromFiles(files []fileDescriptor, format parsertimeutil.TimeFormat) (time.Time, error) {
 	if len(files) == 0 {
 		return time.Time{}, errorutil.Wrap(ErrEmptyFileList)
 	}
@@ -354,7 +355,7 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 
 	// NOTE: this code does not work for files from before the Unix epoch
 	for _, file := range files {
-		ft, err := guessInitialDateForFile(file.reader, file.modificationTime)
+		ft, err := guessInitialDateForFile(file.reader, file.modificationTime, format)
 
 		if err != nil {
 			return time.Time{}, errorutil.Wrap(err)
@@ -368,7 +369,7 @@ func findEarlierstTimeFromFiles(files []fileDescriptor) (time.Time, error) {
 	return t, nil
 }
 
-func FindInitialLogTime(content DirectoryContent, patterns LogPatterns) (time.Time, error) {
+func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format parsertimeutil.TimeFormat) (time.Time, error) {
 	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
 
 	if err != nil {
@@ -412,7 +413,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns) (time.Ti
 		descriptors = append(descriptors, d)
 	}
 
-	return findEarlierstTimeFromFiles(descriptors)
+	return findEarlierstTimeFromFiles(descriptors, format)
 }
 
 type fileReader interface {
@@ -444,6 +445,7 @@ type DirectoryImporter struct {
 	announcer   announcer.ImportAnnouncer
 	initialTime time.Time
 	patterns    LogPatterns
+	format      parsertimeutil.TimeFormat
 }
 
 func NewDirectoryImporter(
@@ -451,9 +453,10 @@ func NewDirectoryImporter(
 	pub postfix.Publisher,
 	announcer announcer.ImportAnnouncer,
 	initialTime time.Time,
+	format parsertimeutil.TimeFormat,
 	patterns LogPatterns,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, announcer, initialTime, patterns}
+	return DirectoryImporter{content, pub, announcer, initialTime, patterns, format}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
@@ -501,7 +504,7 @@ func BuildLogPatterns(patterns []string) LogPatterns {
 
 var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn", "zimbra.log", "maillog"})
 
-type timeConverterChan chan *parser.TimeConverter
+type timeConverterChan chan *parsertimeutil.TimeConverter
 
 type queueProcessor struct {
 	readers       []fileReader
@@ -509,7 +512,7 @@ type queueProcessor struct {
 	entries       fileEntryList
 	record        postfix.Record
 	currentIndex  int
-	converter     *parser.TimeConverter
+	converter     *parsertimeutil.TimeConverter
 	converterChan timeConverterChan
 	pattern       string
 	filename      string
@@ -656,7 +659,7 @@ func buildQueueProcessors(
 	return p, nil
 }
 
-func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header) (*parser.TimeConverter, error) {
+func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header, format parsertimeutil.TimeFormat) (*parsertimeutil.TimeConverter, error) {
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
@@ -673,13 +676,13 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		errorutil.MustSucceed(reader.Close(), "Closing first file in queue")
 	}()
 
-	initialTime, err := guessInitialDateForFile(reader, modificationTime)
+	initialTime, err := guessInitialDateForFile(reader, modificationTime, format)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	converter := parser.NewTimeConverter(
+	converter := parsertimeutil.NewTimeConverter(
 		time.Date(initialTime.Year(),
 			header.Time.Month,
 			int(header.Time.Day),
@@ -713,7 +716,7 @@ func setFileLocationOnQueueProcessorIfNeeded(p *queueProcessor) {
 	log.Info().Msgf("Starting importing log file: %v", p.filename)
 }
 
-func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressNotifier *announcer.Notifier) (bool, error) {
+func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) (bool, error) {
 	setFileLocationOnQueueProcessorIfNeeded(p)
 
 	// tries to read something from the queue, ignoring it on the next iteration
@@ -755,7 +758,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		// Successfully read
-		header, payload, err := parser.Parse(scanner.Bytes())
+		header, payload, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -763,7 +766,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		if p.converter == nil {
-			converter, err := createConverterForQueueProcessor(p, content, header)
+			converter, err := createConverterForQueueProcessor(p, content, header, format)
 
 			if err != nil {
 				return false, errorutil.Wrap(err)
@@ -772,7 +775,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 			p.converter = converter
 		}
 
-		convertedTime := p.converter.Convert(header.Time)
+		convertedTime := format.ConvertWithConverter(p.converter, header.Time)
 
 		p.record = postfix.Record{
 			Header:   header,
@@ -785,7 +788,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 	}
 }
 
-func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int, progressNotifier *announcer.Notifier) error {
+func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) error {
 	for i, p := range processors {
 		isFirstExecution := toBeUpdated != -1
 
@@ -794,7 +797,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 			continue
 		}
 
-		shouldKeepProcessor, err := updateQueueProcessor(p, content, progressNotifier)
+		shouldKeepProcessor, err := updateQueueProcessor(p, content, progressNotifier, format)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -817,7 +820,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 
 		// If there were entries to be processed, but a time converter has not been yet created,
 		// create one using the modification time of the most recent file in the queue
-		converter := parser.NewTimeConverter(entry.modificationTime,
+		converter := parsertimeutil.NewTimeConverter(entry.modificationTime,
 			func(year int, from parser.Time, to parser.Time) {
 				log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v",
 					year, from, to, entry.filename)
@@ -869,6 +872,7 @@ func importExistingLogs(
 	initialTime time.Time,
 	importAnnouncer announcer.ImportAnnouncer,
 	patterns LogPatterns,
+	format parsertimeutil.TimeFormat,
 ) error {
 	initialImportTime := time.Now()
 
@@ -888,7 +892,7 @@ func importExistingLogs(
 	for {
 		updatedProcessors = updatedProcessors[0:0]
 
-		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated, &progressNotifier)
+		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated, &progressNotifier, format)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -1225,7 +1229,7 @@ func timeConverterChansFromQueues(queues fileQueues) map[string]timeConverterCha
 	chans := map[string]timeConverterChan{}
 
 	for k := range queues {
-		chans[k] = make(chan *parser.TimeConverter, 1)
+		chans[k] = make(chan *parsertimeutil.TimeConverter, 1)
 	}
 
 	return chans
@@ -1279,7 +1283,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer, importer.patterns)
+	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer, importer.patterns, importer.format)
 
 	if err != nil {
 		interruptWatching()

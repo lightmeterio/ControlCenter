@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -18,14 +19,24 @@ type Source struct {
 	dir         dirwatcher.DirectoryContent
 	announcer   announcer.ImportAnnouncer
 	patterns    dirwatcher.LogPatterns
+	format      parsertimeutil.TimeFormat
 
 	// should continue waiting for new results (tail -f)?
 	follow bool
 }
 
-func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, patterns dirwatcher.LogPatterns) (*Source, error) {
-	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced)
+func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns) (*Source, error) {
+	timeFormat, err := parsertimeutil.Get(logFormat)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
+	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced, timeFormat)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	format, err := parsertimeutil.Get(logFormat)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -45,11 +56,12 @@ func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnoun
 		follow:      follow,
 		announcer:   announcer,
 		patterns:    patterns,
+		format:      format,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime, s.patterns)
+	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime, s.format, s.patterns)
 
 	f := func() func() error {
 		if s.follow {

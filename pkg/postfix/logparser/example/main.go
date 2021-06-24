@@ -20,11 +20,14 @@ import (
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+	lineNo := 0
 
 	for {
 		if !scanner.Scan() {
 			return
 		}
+
+		lineNo++
 
 		h, p, err := parser.Parse(scanner.Bytes())
 
@@ -42,7 +45,7 @@ func main() {
 			return t.Name()
 		}()
 
-		if j, err := json.Marshal([]interface{}{h, name, p}); err == nil {
+		if j, err := json.Marshal([]interface{}{lineNo, h, name, p}); err == nil {
 			fmt.Println(string(j))
 		}
 	}

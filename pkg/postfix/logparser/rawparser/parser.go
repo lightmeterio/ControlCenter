@@ -17,6 +17,7 @@ package rawparser
 import (
 	"bytes"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 )
 
 //nolint:deadcode,unused
@@ -29,12 +30,7 @@ func normalizeMailLocalPart(s []byte) []byte {
 }
 
 type RawHeader struct {
-	Time      []byte
-	Month     []byte
-	Day       []byte
-	Hour      []byte
-	Minute    []byte
-	Second    []byte
+	Time      timeutil.RawTime
 	Host      []byte
 	Process   []byte
 	Daemon    []byte
@@ -42,33 +38,15 @@ type RawHeader struct {
 	ProcessID []byte
 }
 
-const (
-	// A line starts with a time, with fixed length
-	// the `day` field is always trailed with a space, if needed
-	// so it's always two characters long
-	sampleLogDateTime = `Mar 22 06:28:55 `
-)
+type TimeFormat = timeutil.TimeFormat
 
-func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) {
-	if len(logLine) < len(sampleLogDateTime) {
-		return RawHeader{}, nil, ErrInvalidHeaderLine
+func tryToGetHeaderAndPayloadContent(logLine []byte, format TimeFormat) (RawHeader, []byte, error) {
+	t, remainingHeader, l, err := format.ExtractRaw(logLine)
+	if err != nil {
+		return RawHeader{}, nil, err
 	}
 
-	remainingHeader := logLine[len(sampleLogDateTime):]
-
-	if len(remainingHeader) == 0 {
-		return RawHeader{}, nil, ErrInvalidHeaderLine
-	}
-
-	h := RawHeader{
-		Time:   logLine[:len(sampleLogDateTime)-1],
-		Month:  logLine[0:3],
-		Day:    logLine[4:6],
-		Hour:   logLine[7:9],
-		Minute: logLine[10:12],
-		Second: logLine[13:15],
-		// Other fields intentionally left empty
-	}
+	h := RawHeader{Time: t}
 
 	n, succeed := parseHeaderPostfixPart(&h, remainingHeader)
 
@@ -76,7 +54,7 @@ func tryToGetHeaderAndPayloadContent(logLine []byte) (RawHeader, []byte, error) 
 		return RawHeader{}, nil, ErrInvalidHeaderLine
 	}
 
-	payloadLine := logLine[len(sampleLogDateTime)+n+1:]
+	payloadLine := logLine[l+n+1:]
 
 	return h, payloadLine, nil
 }
@@ -94,7 +72,7 @@ func registerHandler(process, daemon string, handler func([]byte) (RawPayload, e
 	payloadHandlers[payloadHandlerKey{process: process, daemon: daemon}] = handler
 }
 
-func ParseHeader(logLine []byte) (RawHeader, []byte, error) {
+func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHeader, []byte, error) {
 	// Remove leading 0x0
 	start := bytes.IndexFunc(logLine, func(r rune) bool {
 		return r != 0
@@ -104,13 +82,20 @@ func ParseHeader(logLine []byte) (RawHeader, []byte, error) {
 		logLine = logLine[start:]
 	}
 
-	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine)
-
+	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine, format)
 	if errors.Is(err, ErrInvalidHeaderLine) {
 		return RawHeader{}, nil, err
 	}
 
+	if errors.Is(err, timeutil.ErrInvalidTimeFormat) {
+		return RawHeader{}, nil, ErrInvalidHeaderLine
+	}
+
 	return header, payloadLine, nil
+}
+
+func ParseHeader(logLine []byte) (RawHeader, []byte, error) {
+	return ParseHeaderWithCustomTimeFormat(logLine, timeutil.DefaultTimeFormat{})
 }
 
 func ParsePayload(payloadLine []byte, daemon, process string) (RawPayload, error) {

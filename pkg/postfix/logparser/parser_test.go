@@ -11,6 +11,7 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 )
 
 func TestErrorKinds(t *testing.T) {
@@ -109,8 +110,10 @@ func TestParsingUnsupportedGeneralMessage(t *testing.T) {
 			0x64, 0x69, 0x67, 0x29,
 		}
 
-		_, p, err := Parse(line)
+		h, p, err := Parse(line)
 		So(p, ShouldBeNil)
+		So(h.Process, ShouldEqual, "fetchmail")
+		So(h.Host, ShouldEqual, "ucs")
 		So(err, ShouldEqual, ErrUnsupportedLogLine)
 	})
 
@@ -509,6 +512,20 @@ func TestPickup(t *testing.T) {
 	})
 }
 
+func TestLocalDaemon(t *testing.T) {
+	Convey("Pickup", t, func() {
+		_, payload, err := Parse([]byte(`Jun 20 05:02:07 ns4 postfix/local[16460]: 95154657C: to=<h-493fac8f3@h-ea3f4afa.com>, orig_to=<h-195704c@h-20b651e8120a33ec11.com>, relay=local, delay=0.1, delays=0.09/0/0/0.01, dsn=2.0.0, status=sent (delivered to command: procmail -a "$EXTENSION" DEFAULT=$HOME/Maildir/)`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+		So(p.RecipientLocalPart, ShouldEqual, "h-493fac8f3")
+		So(p.OrigRecipientLocalPart, ShouldEqual, "h-195704c")
+		So(p.RecipientDomainPart, ShouldEqual, "h-ea3f4afa.com")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "h-20b651e8120a33ec11.com")
+		So(p.Queue, ShouldEqual, "95154657C")
+	})
+}
+
 func TestSmtpdConnect(t *testing.T) {
 	Convey("Test smtpd Connect", t, func() {
 		Convey("ipv4", func() {
@@ -596,5 +613,22 @@ func TestSmtpdReject(t *testing.T) {
 		So(cast, ShouldBeTrue)
 		So(p.Queue, ShouldEqual, "DE81A2E2DAA")
 		So(p.ExtraMessage, ShouldEqual, `RCPT from unknown[2a02:168:636a::15e2]: 550 5.1.1 <h-c715634009216@h-14dc4a6d.com>: Recipient address rejected: User unknown in virtual mailbox table; from=<h-d2315d@h-24e89d.com> to=<h-c715634009216@h-14dc4a6d.com> proto=ESMTP helo=<[IPv6:2a02:168:636a::15e2]>`)
+	})
+}
+
+func TestRFC3339Time(t *testing.T) {
+	Convey("RFC3339 time", t, func() {
+		h, payload, err := ParseWithCustomTimeFormat([]byte(`2021-05-16T00:01:42.278515+02:00 hq5 postfix/qmgr[21496]: 0262E27A61D7: from=<h-1b6694c3@h-6f3118263bf.com>, size=19314, nrcpt=1 (queue active)`), timeutil.RFC3339TimeFormat{})
+		So(err, ShouldBeNil)
+		p, cast := payload.(QmgrMailQueued)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, "0262E27A61D7")
+
+		So(h.Time.Year, ShouldEqual, 2021)
+		So(h.Time.Month, ShouldEqual, 5)
+		So(h.Time.Day, ShouldEqual, 16)
+		So(h.Time.Hour, ShouldEqual, 0)
+		So(h.Time.Minute, ShouldEqual, 1)
+		So(h.Time.Second, ShouldEqual, 42)
 	})
 }

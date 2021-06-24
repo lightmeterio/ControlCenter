@@ -6,9 +6,9 @@ package dirwatcher
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
-	//"time"
 )
 
 func TestRegressionIssue368(t *testing.T) {
@@ -19,12 +19,15 @@ func TestRegressionIssue368(t *testing.T) {
 			which we use as a reference time.
 	*/
 	Convey("Regression Tests issue 368", t, func() {
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
 		Convey("Guessing initial time from files", func() {
 			Convey("mail.err.2.gz", func() {
 				reader := plainDataReader(`Feb 28 22:08:56 ubuntu-2gb-nbg1-1 postfix/postmap[1400]: fatal: open /h-5e9ec2de88d0040a44ee23d5867b3c12b58fd34f/: No such file or directory
 Feb 28 22:39:44 ubuntu-2gb-nbg1-1 postfix/smtpd[4470]: error: open database /h-9e096e99702f280aef3bad9c4f6a462df2670537/: No such file or directory
 Feb 28 22:43:31 ubuntu-2gb-nbg1-1 postfix/smtpd[4677]: error: open database /h-9e096e99702f280aef3bad9c4f6a462df2670537/: No such file or directory`)
-				date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2019-02-28 22:43:31 +0100`))
+				date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2019-02-28 22:43:31 +0100`), timeFormat)
 				So(err, ShouldBeNil)
 				So(date, ShouldEqual, testutil.MustParseTime(`2019-02-28 22:08:56 +0000`))
 			})
@@ -33,7 +36,7 @@ Feb 28 22:43:31 ubuntu-2gb-nbg1-1 postfix/smtpd[4677]: error: open database /h-9
 				reader := plainDataReader(`Dec  6 06:25:06 cloud2 postfix/pickup[22197]: D4D433E8C6: uid=0 from=<root>
 Dec  6 06:25:06 cloud2 postfix/cleanup[23434]: D4D433E8C6: message-id=<h-e24810f14bc82f4c71d942d6e@h-32c0e75797df5c34bbefdfa.com>
 Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec 14 06:21:07`)
-				date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-12-14 06:24:27 +0100`))
+				date, err := guessInitialDateForFile(reader, testutil.MustParseTime(`2020-12-14 06:24:27 +0100`), timeFormat)
 				So(err, ShouldBeNil)
 				So(date, ShouldEqual, testutil.MustParseTime(`2020-12-06 06:25:06 +0000`))
 			})
@@ -78,7 +81,7 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 			}
 			pub := fakePublisher{}
 			announcer := &fakeAnnouncer{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0100`), DefaultLogPatterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0100`), timeFormat, DefaultLogPatterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 19)
@@ -91,6 +94,9 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 
 func TestRegressionIssue463(t *testing.T) {
 	Convey("Regression Tests issue #463", t, func() {
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
 		// the log file starts empty, but in some point is updated with some content.
 		// We should not crash due an invalid time converter, obviously :-)
 		dirContent := FakeDirectoryContent{
@@ -103,8 +109,8 @@ func TestRegressionIssue463(t *testing.T) {
 		}
 
 		pub := fakePublisher{}
-		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), DefaultLogPatterns)
-		err := importer.Run()
+		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, DefaultLogPatterns)
+		err = importer.Run()
 		So(err, ShouldBeNil)
 
 		So(len(pub.logs), ShouldEqual, 1)

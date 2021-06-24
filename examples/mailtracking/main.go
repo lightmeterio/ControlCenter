@@ -75,7 +75,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, time.Time{}, &fakeAnnouncer{}, false, false, dirwatcher.DefaultLogPatterns)
+			return dirlogsource.New(inputDirectory, time.Time{}, &fakeAnnouncer{}, false, false, "default", dirwatcher.DefaultLogPatterns)
 		}
 
 		f, err := os.Open(inputFile)

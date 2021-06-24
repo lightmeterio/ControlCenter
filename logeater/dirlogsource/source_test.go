@@ -51,7 +51,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		patterns := dirwatcher.BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"})
 
 		Convey("Only import from beginning", func() {
-			s, err := New(logDir, time.Time{}, announcer, false, false, patterns)
+			s, err := New(logDir, time.Time{}, announcer, false, false, "default", patterns)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 			So(r.Run(), ShouldBeNil)
@@ -59,7 +59,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		})
 
 		Convey("Import logs and watch for changes", func() {
-			s, err := New(logDir, time.Time{}, announcer, true, false, patterns)
+			s, err := New(logDir, time.Time{}, announcer, true, false, "default", patterns)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/rsyncwatcher"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -16,6 +17,7 @@ import (
 type rsyncedFileWatcher struct {
 	filename string
 	offset   int64
+	format   parsertimeutil.TimeFormat
 }
 
 type rsyncedFileWatcherRunner = runner.CancelableRunner
@@ -39,7 +41,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 
 			for scanner.Scan() {
 				line := scanner.Bytes()
-				h, p, err := parser.Parse(line)
+				h, p, err := parser.ParseWithCustomTimeFormat(line, watcher.format)
 
 				if !parser.IsRecoverableError(err) {
 					log.Error().Msgf("parsing line on file: %v", watcher.filename)
