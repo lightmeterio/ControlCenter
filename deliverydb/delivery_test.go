@@ -133,23 +133,27 @@ func deliveryStatus(dashboard dashboard.Dashboard, interval timeutil.TimeInterva
 	return pairs
 }
 
+func buildWsFromDirectory(dir string) (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard, func()) {
+	db, err := New(dir, &fakeMapping)
+	So(err, ShouldBeNil)
+	done, cancel := db.Run()
+	pub := db.ResultsPublisher()
+
+	dashboard, err := dashboard.New(db.ConnPool())
+	So(err, ShouldBeNil)
+
+	return db, done, cancel, pub, dashboard, func() {
+		So(db.Close(), ShouldBeNil)
+	}
+}
+
 func TestEntriesInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
 		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard, func()) {
-			db, err := New(dir, &fakeMapping)
-			So(err, ShouldBeNil)
-			done, cancel := db.Run()
-			pub := db.ResultsPublisher()
-
-			dashboard, err := dashboard.New(db.ConnPool())
-			So(err, ShouldBeNil)
-
-			return db, done, cancel, pub, dashboard, func() {
-				So(db.Close(), ShouldBeNil)
-			}
+			return buildWsFromDirectory(dir)
 		}
 
 		fakeMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string, dir tracking.MessageDirection) tracking.Result {

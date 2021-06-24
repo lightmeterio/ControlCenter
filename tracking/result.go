@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 type ResultEntryType int
@@ -258,4 +259,19 @@ func (r Result) MarshalZerologObject(e *zerolog.Event) {
 
 type ResultPublisher interface {
 	Publish(Result)
+}
+
+func ParseResults(rawResults []string) ([]Result, error) {
+	results := make([]Result, 0, len(rawResults))
+
+	for _, rr := range rawResults {
+		var r Result
+		if err := json.Unmarshal([]byte(rr), &r); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		results = append(results, r)
+	}
+
+	return results, nil
 }
