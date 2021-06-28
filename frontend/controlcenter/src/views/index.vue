@@ -8,12 +8,27 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div id="insights-page" class="d-flex flex-column min-vh-100">
     <mainheader></mainheader>
     <div class="container main-content">
-      <div class="row">
-        <div class="col-md-12">
+      <div class="row align-items-center">
+        <div class="col-7 col-sm-8 col-md-9 col-lg-10">
           <h1 class="row-title">
             <!-- prettier-ignore -->
             <translate>Observatory</translate>
           </h1>
+        </div>
+        <div class="col-5 col-sm-4 col-md-3 col-lg-2">
+          <a
+            :href="FeedbackMailtoLink"
+            :title="FeedbackButtonTitle"
+            class="btn btn-sm btn-block btn-outline-info"
+            ><i
+              class="fas fa-star"
+              style="margin-right: 0.25rem;"
+              data-toggle="tooltip"
+              data-placement="bottom"
+            ></i>
+            <!-- prettier-ignore -->
+            <translate>Feedback</translate>
+          </a>
         </div>
       </div>
 
@@ -197,6 +212,7 @@ import {
 
 import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
+import shared_texts from "../mixin/shared_texts.js";
 import auth from "../mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
@@ -204,7 +220,7 @@ import { mapActions, mapState } from "vuex";
 export default {
   name: "insight",
   components: { DateRangePicker },
-  mixins: [tracking, auth, datepicker],
+  mixins: [tracking, shared_texts, auth, datepicker],
   data() {
     return {
       username: "",
