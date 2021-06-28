@@ -14,6 +14,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/intel"
+	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
@@ -44,6 +46,7 @@ type Workspace struct {
 	auth           *auth.Auth
 	rblDetector    *messagerbl.Detector
 	rblChecker     localrbl.Checker
+	intelCollector *collector.Collector
 
 	dashboard dashboard.Dashboard
 	detective detective.Detective
@@ -109,6 +112,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	intelCollector, err := intel.New(workspaceDirectory, deliveries)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	detectiveEscalator := escalator.New()
 
 	translators := translator.New(po.DefaultCatalog)
@@ -162,6 +170,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		settingsMetaHandler: m,
 		settingsRunner:      settingsRunner,
 		importAnnouncer:     importAnnouncer,
+		intelCollector:      intelCollector,
 		Closers: closeutil.New(
 			auth,
 			tracker,
@@ -169,6 +178,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			insightsEngine,
 			m,
 			insightsAcessor,
+			intelCollector,
 		),
 		NotificationCenter: notificationCenter,
 	}
@@ -182,6 +192,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
 		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
 		doneImporter, cancelImporter := ws.importAnnouncer.Run()
+		doneCollector, cancelCollector := intelCollector.Run()
 
 		go func() {
 			<-cancel
@@ -190,6 +201,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			cancelSettings()
 			cancelInsights()
 			cancelImporter()
+			cancelCollector()
 		}()
 
 		go func() {
@@ -199,6 +211,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			errorutil.MustSucceed(doneSettings())
 			errorutil.MustSucceed(doneInsights())
 			errorutil.MustSucceed(doneImporter())
+			errorutil.MustSucceed(doneCollector())
 
 			// TODO: return a combination of the "children" errors!
 			done <- nil
