@@ -10,11 +10,21 @@ export default {
       ),
       FeedbackButtonTitle: this.$gettext("What would you improve?"),
       FeedbackMailtoLink:
-        "mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter&body=My%20thoughts%20on%20Lightmeter%3A%0A%0A%0AFirst%20installed%3A%20?%0AVersion%3A%20" +
-        this.$appInfo.version +
-        "%0AURL%3A%20" +
-        window.location +
-        "%0A"
+        "mailto:hello@lightmeter.io?subject=" +
+        encodeURIComponent(this.$gettext("Feedback on Lightmeter")) +
+        "&body=" +
+        encodeURIComponent(
+          this.$gettext("My thoughts on Lightmeter") +
+            ":\n\n\n" +
+            this.$gettext("First installed") +
+            ": ?\n" +
+            this.$gettext("Version") +
+            ": " +
+            this.$appInfo.version +
+            "\nURL: " +
+            window.location +
+            "\n"
+        )
     };
   }
 };
