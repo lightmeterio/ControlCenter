@@ -286,7 +286,44 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </button>
               </p>
 
-              <p class="card-text time">{{ insight.modTime }}</p>
+              <div
+                class="card-text time d-flex justify-content-between align-items-center"
+              >
+                <span>{{ insight.modTime }}</span>
+                <div
+                  v-if="showUserRating(insight)"
+                  :ref="'userRating' + insight.id"
+                  class="user-rating d-flex flex-wrap align-items-center"
+                >
+                  <span>
+                    <!-- prettier-ignore -->
+                    <translate>Was this useful?</translate>
+                  </span>
+                  <div>
+                    <span
+                      class="user-rating-smiley user-rating-smiley-good"
+                      v-on:click="sendUserRating(insight, 2)"
+                      title="Very useful"
+                    >
+                      <i class="far fa-2x fa-smile"></i>
+                    </span>
+                    <span
+                      class="user-rating-smiley user-rating-smiley-neutral"
+                      v-on:click="sendUserRating(insight, 1)"
+                      title="Somewhat useful"
+                    >
+                      <i class="far fa-2x fa-meh"></i>
+                    </span>
+                    <span
+                      class="user-rating-smiley user-rating-smiley-bad"
+                      v-on:click="sendUserRating(insight, 0)"
+                      title="Not useful at all"
+                    >
+                      <i class="far fa-2x fa-frown"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -297,7 +334,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script>
 import moment from "moment";
-import { getApplicationInfo } from "@/lib/api";
+import { getApplicationInfo, postUserRating } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 import linkify from "vue-linkify";
 import Vue from "vue";
@@ -375,6 +412,15 @@ export default {
     };
   },
   methods: {
+    showUserRating(insight) {
+      if (!insight.user_rating_old) return false;
+      for (let i of this.insights)
+        if (i.content_type == insight.content_type) return i.id == insight.id;
+    },
+    sendUserRating(insight, rating) {
+      insight.user_rating_old = false; // hide rating div before next insights refresh
+      postUserRating(insight.content_type, rating);
+    },
     countDetectiveIssues(insight) {
       return Object.keys(insight.content.messages).length;
     },
@@ -687,7 +733,8 @@ function formatDateForDetectiveInsightModalWindow(d) {
   return moment(d).format("DD MMM YYYY");
 }
 </script>
-<style>
+
+<style lang="less">
 .insights .card.insight-highlighted {
   border: 2px solid #5ec4eb;
   box-shadow: 0px 0px 20px #0003;
@@ -739,6 +786,32 @@ function formatDateForDetectiveInsightModalWindow(d) {
   background: #f0f8fc 0% 0% no-repeat padding-box;
   border-radius: 5px;
   padding: 1.5em;
+  .user-rating {
+    font-size: 120%;
+    .user-rating-smiley {
+      margin-left: 0.25rem;
+      cursor: pointer;
+      color: #c3c3c3;
+    }
+    .user-rating-smiley-good {
+      &:hover,
+      &:active {
+        color: #28a745;
+      }
+    }
+    .user-rating-smiley-neutral {
+      &:hover,
+      &:active {
+        color: #ffc107;
+      }
+    }
+    .user-rating-smiley-bad {
+      &:hover,
+      &:active {
+        color: #dc3545;
+      }
+    }
+  }
 }
 .insights .card-title {
   margin: 0 0 0.3rem 0;

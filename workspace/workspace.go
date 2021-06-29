@@ -212,6 +212,10 @@ func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 
+func (ws *Workspace) InsightsEngine() *insights.Engine {
+	return ws.insightsEngine
+}
+
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
 }
