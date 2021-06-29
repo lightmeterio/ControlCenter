@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
-// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -219,7 +218,7 @@ func runDatabaseWriterLoop(e *Engine) {
 		shouldContinue, err := engineCycle(e)
 
 		if err != nil {
-			errorutil.LogErrorf(err, "Could not not run Insights Engine cycle")
+			errorutil.LogErrorf(err, "Could not run Insights Engine cycle")
 			continue
 		}
 
@@ -239,6 +238,9 @@ func (c *historicalClock) Now() time.Time {
 
 func (c *historicalClock) Sleep(d time.Duration) {
 	c.current = c.current.Add(d)
+}
+func (c *historicalClock) Since(date time.Time) time.Duration {
+	return c.Now().Sub(date)
 }
 
 type doNotGenerateNotificationsDuringImportPolicy struct {
@@ -411,4 +413,23 @@ func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {
 
 func (e *Engine) ProgressFetcher() core.ProgressFetcher {
 	return e.progressFetcher
+}
+
+func (e *Engine) RateInsight(kind string, rating uint, clock timeutil.Clock) error {
+	insightType, err := core.CanRateInsight(e.accessor.conn.RoConnPool, kind, rating, clock)
+	if err != nil {
+		return err
+	}
+
+	e.txActions <- func(tx *sql.Tx) error {
+		err := core.RateInsight(tx, insightType, rating, clock)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	return nil
 }

@@ -331,3 +331,23 @@ export function escalateMessage(mail_from, mail_to, date_from, date_to) {
 export function oldestAvailableTimeForMessageDetective() {
   return getAPI("oldestAvailableTimeForMessageDetective");
 }
+
+/**** User ratings of insights ****/
+
+export function postUserRating(type, rating) {
+  let formData = new FormData();
+  formData.append("type", type);
+  formData.append("rating", rating);
+
+  return axios
+    .post(BASE_URL + "api/v0/rateInsight", new URLSearchParams(formData))
+    .then(function() {
+      let ratingText = {
+        0: "Bad",
+        1: "Neutral",
+        2: "Good"
+      }[rating];
+      trackEvent("InsightUserRating" + ratingText, type);
+    })
+    .catch(builderErrorHandler("insight_user_rating"));
+}

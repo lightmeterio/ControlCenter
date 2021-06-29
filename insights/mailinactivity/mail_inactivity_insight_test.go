@@ -151,7 +151,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(lookupRange),
-			}})
+			}}, clock)
 
 			So(err, ShouldBeNil)
 

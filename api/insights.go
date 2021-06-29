@@ -8,11 +8,13 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/insights"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/recommendation"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -65,7 +67,7 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		FilterBy:   filter,
 		OrderBy:    order,
 		MaxEntries: entries,
-	})
+	}, timeutil.RealClock{})
 
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -75,12 +77,14 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	for _, fi := range fetchedInsights {
 		i := fetchedInsight{
-			ID:          fi.ID(),
-			Time:        fi.Time(),
-			Rating:      fi.Rating().String(),
-			Category:    fi.Category().String(),
-			ContentType: fi.ContentType(),
-			Content:     fi.Content(),
+			ID:            fi.ID(),
+			Time:          fi.Time(),
+			Rating:        fi.Rating().String(),
+			Category:      fi.Category().String(),
+			ContentType:   fi.ContentType(),
+			Content:       fi.Content(),
+			UserRating:    fi.UserRating(),
+			UserRatingOld: fi.UserRatingOld(),
 		}
 
 		if recommendationHelpLinkProvider, ok := fi.Content().(core.RecommendationHelpLinkProvider); ok {
@@ -94,21 +98,55 @@ func (h fetchInsightsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type fetchedInsight struct {
-	ID          int         `json:"id"`
-	Time        time.Time   `json:"time"`
-	Rating      string      `json:"rating"`
-	Category    string      `json:"category"`
-	ContentType string      `json:"content_type"`
-	Content     interface{} `json:"content"`
-	HelpLink    string      `json:"help_link,omitempty"`
+	ID            int         `json:"id"`
+	Time          time.Time   `json:"time"`
+	Rating        string      `json:"rating"`
+	Category      string      `json:"category"`
+	ContentType   string      `json:"content_type"`
+	Content       interface{} `json:"content"`
+	HelpLink      string      `json:"help_link,omitempty"`
+	UserRating    *int        `json:"user_rating"`
+	UserRatingOld bool        `json:"user_rating_old"`
 }
 
 type fetchInsightsResult []fetchedInsight
 
-func HttpInsights(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, f core.Fetcher) {
+type rateInsightHandler struct {
+	e *insights.Engine
+}
+
+// @Summary Rate insight usefulness
+// @Produce json
+// @Param type   query string true "Insight content type to rate"
+// @Param rating query string true "A rating among 0 (not useful), 1 (not so useful) and 2 (useful)"
+// @Success 200 {string} string ""
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/rateInsight [post]
+func (h rateInsightHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	if r.ParseForm() != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Wrong Input"))
+	}
+
+	rating, err := strconv.Atoi(r.Form.Get("rating"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	if err = h.e.RateInsight(r.Form.Get("type"), uint(rating), timeutil.RealClock{}); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	return nil
+}
+
+func HttpInsights(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, f core.Fetcher, e *insights.Engine) {
 	recommendationURLContainer := recommendation.GetDefaultURLContainer()
 
 	mux.Handle("/api/v0/fetchInsights",
 		httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone)).
 			WithEndpoint(fetchInsightsHandler{f: f, recommendationURLContainer: recommendationURLContainer}))
+
+	mux.Handle("/api/v0/rateInsight",
+		httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout)).
+			WithEndpoint(rateInsightHandler{e: e}))
 }

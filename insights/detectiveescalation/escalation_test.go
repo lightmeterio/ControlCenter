@@ -61,7 +61,7 @@ func TestDetectiveEscalation(t *testing.T) {
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
 		requests := map[time.Time]escalator.Request{
-			baseTime.Add(time.Second * 4): escalator.Request{
+			baseTime.Add(time.Second * 4): {
 				Sender:    "sender1@example.com",
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
@@ -87,7 +87,7 @@ func TestDetectiveEscalation(t *testing.T) {
 					},
 				},
 			},
-			baseTime.Add(time.Second * 10): escalator.Request{
+			baseTime.Add(time.Second * 10): {
 				Sender:    "sender2@example.com",
 				Recipient: "recipient2@example.com",
 				Interval:  parseTimeInterval("2000-05-04", "2000-05-04"),
@@ -108,7 +108,7 @@ func TestDetectiveEscalation(t *testing.T) {
 			},
 			// then a repeated request is done, but the insight is not create.
 			// It prevents spammimg the sysadmin with e-mails
-			baseTime.Add(time.Second * 20): escalator.Request{
+			baseTime.Add(time.Second * 20): {
 				Sender:    "sender1@example.com",
 				Recipient: "recipient1@example.com",
 				Interval:  parseTimeInterval("2000-02-03", "2000-02-04"),
@@ -157,7 +157,7 @@ func TestDetectiveEscalation(t *testing.T) {
 			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 		},
 			OrderBy: core.OrderByCreationAsc,
-		})
+		}, clock)
 
 		So(err, ShouldBeNil)
 

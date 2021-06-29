@@ -119,7 +119,7 @@ func TestMessageRBLInsight(t *testing.T) {
 			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 		},
 			OrderBy: core.OrderByCreationAsc,
-		})
+		}, clock)
 
 		So(err, ShouldBeNil)
 
@@ -220,7 +220,7 @@ func TestRegression(t *testing.T) {
 			To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 		},
 			OrderBy: core.OrderByCreationAsc,
-		})
+		}, clock)
 
 		So(err, ShouldBeNil)
 

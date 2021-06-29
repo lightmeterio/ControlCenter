@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -125,4 +126,64 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 	}
 
 	return time.Unix(ts, 0), nil
+}
+
+var (
+	ErrorWrongRatingValue = errors.New("Wrong rating value")
+	ErrorAlreadyRated     = errors.New("User rating was submitted in the last two weeks")
+)
+
+func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeutil.Clock) (int, error) {
+	// Check that insight kind (content_type) exists
+	insightType, err := ValueForContentType(kind)
+
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	// Check that rating is 0, 1 or 2
+	if rating > 2 {
+		return 0, ErrorWrongRatingValue
+	}
+
+	// Check that insight type wasn't rated in the last 2 weeks
+	conn, release := pool.Acquire()
+	defer release()
+
+	var ts int64
+	err = conn.QueryRow(`
+		select timestamp
+		from insights_user_ratings
+		where insight_type = ?
+		order by timestamp desc
+		limit 1
+		`, insightType).Scan(&ts)
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return 0, errorutil.Wrap(err)
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		ts = 0 // epoch = more than two weeks ago
+	}
+
+	if !insightUserRatingIsOld(time.Unix(ts, 0), clock) {
+		return 0, ErrorAlreadyRated
+	}
+
+	return insightType, nil
+}
+
+func RateInsight(tx *sql.Tx, insightType int, rating uint, clock timeutil.Clock) error {
+	if _, err := tx.Exec("insert into insights_user_ratings(insight_type, rating, timestamp) values(?, ?, ?)", insightType, rating, clock.Now().Unix()); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+const TwoWeeks = 2 * 7 * 24 * time.Hour
+
+func insightUserRatingIsOld(date time.Time, clock timeutil.Clock) bool {
+	return clock.Now().Sub(date) >= TwoWeeks
 }
