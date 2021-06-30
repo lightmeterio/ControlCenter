@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"sort"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/version"
 )
 
 type Options struct {
@@ -192,6 +195,43 @@ func (c Content) Metadata() notificationCore.ContentMetadata {
 
 const kind = "newsfeed_last_exec"
 
+// FIXME: this is almost copy&paste from gofeed.ParseURLWithContext
+func fetchAndParse(ctx context.Context, d *detector) (*gofeed.Feed, error) {
+	// This method is called once every many hours, so it's okay to allocate a new http client each time
+	client := http.Client{}
+
+	req, err := http.NewRequest("GET", d.options.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req = req.WithContext(ctx)
+	req.Header.Set("User-Agent", fmt.Sprintf("Lightmeter Control Center/%s", version.Version))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp != nil {
+		defer func() {
+			ce := resp.Body.Close()
+			if ce != nil {
+				err = ce
+			}
+		}()
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, gofeed.HTTPError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+		}
+	}
+
+	return d.parser.Parse(resp.Body)
+}
+
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
@@ -206,12 +246,12 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 
 	timeout := time.Second * 3
 
-	context, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	log.Info().Msgf("Fetching news insights from %s", d.options.URL)
 
-	parsed, err := d.parser.ParseURLWithContext(d.options.URL, context)
+	parsed, err := fetchAndParse(ctx, d)
 	if err != nil {
 		log.Warn().Msgf("Failed to request newfeed insight source %s with error: %v", d.options.URL, err)
 
@@ -238,7 +278,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 			continue
 		}
 
-		alreadyExists, err := insightAlreadyExists(context, tx, item.GUID, timeLimit)
+		alreadyExists, err := insightAlreadyExists(ctx, tx, item.GUID, timeLimit)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

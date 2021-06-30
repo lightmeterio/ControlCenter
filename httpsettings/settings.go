@@ -22,6 +22,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"mime"
 	"net"
 	"net/http"
@@ -162,6 +163,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	}
 
 	if slackSettings != nil {
+		slackSettings.BearerToken = nil
 		allCurrentSettings.SlackNotification = *slackSettings
 	}
 
@@ -170,6 +172,8 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	}
 
 	if emailSettings != nil {
+		emailSettings.Password = nil
+		emailSettings.Username = nil
 		allCurrentSettings.EmailNotification = *emailSettings
 	}
 
@@ -434,8 +438,8 @@ func buildEmailSettingsFromForm(form url.Values) (email.Settings, bool, error) {
 		ServerPort:    int(port),
 		SecurityType:  security,
 		AuthMethod:    auth,
-		Username:      username,
-		Password:      password,
+		Username:      stringutil.MakeSensitive(username),
+		Password:      stringutil.MakeSensitive(password),
 		SkipCertCheck: skipCertCheck,
 	}, true, nil
 }
@@ -461,7 +465,7 @@ func buildSlackSettingsFromForm(form url.Values) (slack.Settings, bool, error) {
 	}
 
 	return slack.Settings{
-		BearerToken: messengerToken,
+		BearerToken: stringutil.MakeSensitive(messengerToken),
 		Channel:     messengerChannel,
 		Enabled:     messengerEnabled,
 	}, true, nil

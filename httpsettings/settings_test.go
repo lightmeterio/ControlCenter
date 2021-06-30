@@ -383,7 +383,7 @@ func TestSlackNotifications(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					So(mo.Channel, ShouldEqual, "donutloop")
-					So(mo.BearerToken, ShouldEqual, "sjdfklsjdfkljfs")
+					So(*mo.BearerToken, ShouldEqual, "sjdfklsjdfkljfs")
 				})
 			})
 		})
@@ -417,7 +417,7 @@ func TestSlackNotifications(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
-				So(mo.BearerToken, ShouldEqual, "some_valid_key")
+				So(*mo.BearerToken, ShouldEqual, "some_valid_key")
 
 				content := new(fakeContent)
 				notification := notification.Notification{
@@ -478,7 +478,7 @@ func TestSlackNotifications(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "general")
-			So(mo.BearerToken, ShouldEqual, "some_valid_key")
+			So(*mo.BearerToken, ShouldEqual, "some_valid_key")
 
 			// Reset slack settings
 			r, err = c.PostForm(s.URL+"?setting=notification", url.Values{"action": {"clear"}, "subsection": {"slack"}})
@@ -492,7 +492,7 @@ func TestSlackNotifications(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "")
-			So(mo.BearerToken, ShouldEqual, "")
+			So(mo.BearerToken, ShouldBeNil)
 		})
 	})
 }

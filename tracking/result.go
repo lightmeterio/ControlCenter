@@ -5,6 +5,7 @@
 package tracking
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -144,8 +145,74 @@ func resultTypeAsString(e ResultEntry) string {
 	}
 }
 
+func stringAsResultType(s string) ResultEntryType {
+	switch s {
+	case "blob":
+		return ResultEntryTypeBlob
+	case "float64":
+		return ResultEntryTypeFloat64
+	case "int64":
+		return ResultEntryTypeInt64
+	case "text":
+		return ResultEntryTypeText
+	case "none":
+		return ResultEntryTypeNone
+	default:
+		panic("invalid type!")
+	}
+}
+
 func (e ResultEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{"type": resultTypeAsString(e), "value": e.ValueOrNil()})
+}
+
+var LabelsToKeys = map[string]int{}
+
+func init() {
+	for k, l := range KeysToLabels {
+		LabelsToKeys[l] = k
+	}
+}
+
+func (r *Result) UnmarshalJSON(b []byte) error {
+	var m map[string]struct {
+		Type  string      `json:"type"`
+		Value interface{} `json:"value"`
+	}
+
+	if err := json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+
+	for label, v := range m {
+		typ := stringAsResultType(v.Type)
+		entry := ResultEntry{}
+		entry.typ = typ
+
+		switch typ {
+		case ResultEntryTypeBlob:
+			strValue := `"` + v.Value.(string) + `"`
+			length := base64.StdEncoding.DecodedLen(len(strValue))
+			entry.asBlob = make([]byte, length)
+
+			if err := json.Unmarshal([]byte(strValue), &entry.asBlob); err != nil {
+				return err
+			}
+		case ResultEntryTypeInt64:
+			entry = ResultEntryInt64(int64(v.Value.(float64)))
+		case ResultEntryTypeText:
+			fallthrough
+		case ResultEntryTypeFloat64:
+			entry = ResultEntryFromValue(v.Value)
+		case ResultEntryTypeNone:
+			fallthrough
+		default:
+		}
+
+		r[LabelsToKeys[label]] = entry
+	}
+
+	return nil
 }
 
 func (e ResultEntry) MarshalZerologObject(event *zerolog.Event) {

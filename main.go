@@ -62,21 +62,12 @@ func main() {
 		return
 	}
 
-	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory)
-
+	ws, logReader, err := buildWorkspaceAndLogReader(conf)
 	if err != nil {
 		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", conf.WorkspaceDirectory)
 	}
 
-	logSource, err := buildLogSource(ws, conf)
-
-	if err != nil {
-		errorutil.Dief(conf.Verbose, err, "Error setting up logs reading")
-	}
-
 	done, cancel := ws.Run()
-
-	logReader := logsource.NewReader(logSource, ws.NewPublisher())
 
 	// only import logs and exit when they end. Does not start web server.
 	// It's useful for benchmarking importing logs.
@@ -130,6 +121,22 @@ func importAnnouncerOnlyForFirstExecution(initialTime time.Time, a announcer.Imp
 
 	// otherwise skip the historical insights import
 	return announcer.Skipper(a)
+}
+
+func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
+	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory)
+	if err != nil {
+		return nil, logsource.Reader{}, errorutil.Wrap(err)
+	}
+
+	logSource, err := buildLogSource(ws, conf)
+	if err != nil {
+		return nil, logsource.Reader{}, errorutil.Wrap(err)
+	}
+
+	logReader := logsource.NewReader(logSource, ws.NewPublisher())
+
+	return ws, logReader, nil
 }
 
 func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Source, error) {

@@ -25,11 +25,7 @@ func (e *fakeEscalateRequester) Request(r Request) {
 	e.requests = append(e.requests, r)
 }
 
-func mustParseTimeInterval(from, to string) timeutil.TimeInterval {
-	i, err := timeutil.ParseTimeInterval(from, to, time.UTC)
-	So(err, ShouldBeNil)
-	return i
-}
+var mustParseTimeInterval = timeutil.MustParseTimeInterval
 
 func TestEscalation(t *testing.T) {
 	Convey("Test Escalation", t, func() {
