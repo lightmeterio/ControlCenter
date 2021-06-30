@@ -32,7 +32,7 @@ func fetchInsights(ws *workspace.Workspace, cat core.Category) []core.FetchedIns
 		Interval: timeutil.MustParseTimeInterval("0000-01-01", "5000-01-01"),
 		FilterBy: core.FilterByCategory,
 		Category: cat,
-	})
+	}, timeutil.RealClock{})
 
 	So(err, ShouldBeNil)
 
