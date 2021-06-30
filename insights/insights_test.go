@@ -223,6 +223,30 @@ func TestEngine(t *testing.T) {
 			nopStep()
 			genInsight(fakeValue{Category: core.ComparativeCategory, Content: fakeContent{T: "13"}, Rating: core.BadRating})
 
+			fakeClock := &timeutil.FakeClock{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)}
+
+			// wrong rating value
+			err = e.RateInsight("fake_insight_type", 1000, fakeClock)
+			So(err, ShouldEqual, core.ErrorWrongRatingValue)
+			nopStep()
+
+			// correct rating
+			err = e.RateInsight("fake_insight_type", 1, fakeClock)
+			So(err, ShouldBeNil)
+			nopStep()
+
+			// allowed to re-rate after two weeks
+			fakeClock.Sleep(core.TwoWeeks + 5*time.Second)
+
+			err = e.RateInsight("fake_insight_type", 1, fakeClock)
+			So(err, ShouldBeNil)
+			nopStep()
+
+			// not allowed to re-rate immediately
+			err = e.RateInsight("fake_insight_type", 0, fakeClock)
+			So(err, ShouldEqual, core.ErrorAlreadyRated)
+			nopStep()
+
 			// stop main loop
 			close(e.txActions)
 
@@ -255,7 +279,7 @@ func TestEngine(t *testing.T) {
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
-				})
+				}, fakeClock)
 
 				So(err, ShouldBeNil)
 
@@ -266,18 +290,24 @@ func TestEngine(t *testing.T) {
 				So(insights[0].ID(), ShouldEqual, 3)
 				So(insights[0].Rating(), ShouldEqual, core.BadRating)
 				So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:07 +0000`))
+				So(*insights[0].UserRating(), ShouldEqual, 1)
+				So(insights[0].UserRatingOld(), ShouldBeFalse)
 
 				So(insights[1].Category(), ShouldEqual, core.IntelCategory)
 				So(insights[1].Content().(*fakeContent).T, ShouldEqual, "35")
 				So(insights[1].ID(), ShouldEqual, 2)
 				So(insights[1].Rating(), ShouldEqual, core.OkRating)
 				So(insights[1].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:05 +0000`))
+				So(*insights[1].UserRating(), ShouldEqual, 1)
+				So(insights[1].UserRatingOld(), ShouldBeFalse)
 
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 				So(insights[2].Content().(*fakeContent).T, ShouldEqual, "42")
 				So(insights[2].ID(), ShouldEqual, 1)
 				So(insights[2].Rating(), ShouldEqual, core.BadRating)
 				So(insights[2].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:02 +0000`))
+				So(*insights[2].UserRating(), ShouldEqual, 1)
+				So(insights[2].UserRatingOld(), ShouldBeFalse)
 			})
 
 			Convey("fetch 2 most recent insights", func() {
@@ -287,7 +317,7 @@ func TestEngine(t *testing.T) {
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					MaxEntries: 2,
-				})
+				}, fakeClock)
 
 				So(err, ShouldBeNil)
 
@@ -313,7 +343,7 @@ func TestEngine(t *testing.T) {
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					OrderBy: core.OrderByCreationAsc,
-				})
+				}, fakeClock)
 
 				So(err, ShouldBeNil)
 
@@ -347,7 +377,7 @@ func TestEngine(t *testing.T) {
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
 					Category: core.IntelCategory,
-				})
+				}, fakeClock)
 
 				So(err, ShouldBeNil)
 
@@ -387,7 +417,7 @@ func TestEngine(t *testing.T) {
 					From: testutil.MustParseTime("0000-01-01 00:00:00 +0000"),
 					To:   testutil.MustParseTime("4000-01-01 00:00:00 +0000"),
 				},
-			})
+			}, timeutil.RealClock{})
 
 			So(err, ShouldBeNil)
 
@@ -586,7 +616,7 @@ func TestEngine(t *testing.T) {
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
 					Category: core.ActiveCategory,
-				})
+				}, timeutil.RealClock{})
 
 				So(err, ShouldBeNil)
 
@@ -601,7 +631,7 @@ func TestEngine(t *testing.T) {
 				summary, ok := insights[1].Content().(*importsummary.Content)
 				So(ok, ShouldBeTrue)
 				expected := []importsummary.ImportedInsight{
-					importsummary.ImportedInsight{
+					{
 						ID:       1,
 						Time:     timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						Category: core.ArchivedCategory,
@@ -624,7 +654,7 @@ func TestEngine(t *testing.T) {
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
 					Category: core.ArchivedCategory,
-				})
+				}, timeutil.RealClock{})
 
 				So(err, ShouldBeNil)
 
@@ -641,7 +671,7 @@ func TestEngine(t *testing.T) {
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
 					},
 					OrderBy: core.OrderByCreationAsc,
-				})
+				}, timeutil.RealClock{})
 
 				So(err, ShouldBeNil)
 
@@ -666,7 +696,7 @@ func TestEngine(t *testing.T) {
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
 					Category: core.LocalCategory,
-				})
+				}, timeutil.RealClock{})
 
 				So(err, ShouldBeNil)
 

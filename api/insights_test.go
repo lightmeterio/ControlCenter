@@ -23,12 +23,14 @@ import (
 )
 
 type fakeFetchedInsight struct {
-	id          int
-	time        time.Time
-	rating      core.Rating
-	category    core.Category
-	contentType string
-	content     core.Content
+	id            int
+	time          time.Time
+	rating        core.Rating
+	category      core.Category
+	contentType   string
+	content       core.Content
+	userRating    *int
+	userRatingOld bool
 }
 
 func (f *fakeFetchedInsight) ID() int {
@@ -53,6 +55,14 @@ func (f *fakeFetchedInsight) ContentType() string {
 
 func (f *fakeFetchedInsight) Content() core.Content {
 	return f.content
+}
+
+func (f *fakeFetchedInsight) UserRating() *int {
+	return f.userRating
+}
+
+func (f *fakeFetchedInsight) UserRatingOld() bool {
+	return f.userRatingOld
 }
 
 type content struct {
@@ -141,22 +151,24 @@ func TestInsights(t *testing.T) {
 				FilterBy:   core.NoFetchFilter,
 				Category:   core.NoCategory,
 				MaxEntries: 0,
-			}).Return([]core.FetchedInsight{
+			}, gomock.Any()).Return([]core.FetchedInsight{
 				&fakeFetchedInsight{
-					id:          1,
-					category:    core.IntelCategory,
-					content:     content{"content1", contentType1},
-					contentType: contentType1,
-					rating:      core.BadRating,
-					time:        time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
+					id:            1,
+					category:      core.IntelCategory,
+					content:       content{"content1", contentType1},
+					contentType:   contentType1,
+					rating:        core.BadRating,
+					time:          time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
+					userRatingOld: true,
 				},
 				&fakeFetchedInsight{
-					id:          2,
-					category:    core.LocalCategory,
-					content:     content{"content2", contentType2},
-					contentType: contentType2,
-					rating:      core.OkRating,
-					time:        time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
+					id:            2,
+					category:      core.LocalCategory,
+					content:       content{"content2", contentType2},
+					contentType:   contentType2,
+					rating:        core.OkRating,
+					time:          time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
+					userRatingOld: true,
 				},
 			}, nil)
 
@@ -172,22 +184,26 @@ func TestInsights(t *testing.T) {
 
 			So(body, ShouldResemble, []interface{}{
 				map[string]interface{}{
-					"category":     "intel",
-					"content":      map[string]interface{}{"v": "content1", "content_type": contentType1},
-					"content_type": contentType1,
-					"id":           float64(1),
-					"rating":       "bad",
-					"time":         "1999-01-01T00:00:00Z",
-					"help_link":    "https://kb.lightemter.io/KB0002",
+					"category":        "intel",
+					"content":         map[string]interface{}{"v": "content1", "content_type": contentType1},
+					"content_type":    contentType1,
+					"id":              float64(1),
+					"rating":          "bad",
+					"time":            "1999-01-01T00:00:00Z",
+					"help_link":       "https://kb.lightemter.io/KB0002",
+					"user_rating":     nil,
+					"user_rating_old": true,
 				},
 				map[string]interface{}{
-					"category":     "local",
-					"content":      map[string]interface{}{"v": "content2", "content_type": contentType2},
-					"content_type": contentType2,
-					"id":           float64(2),
-					"rating":       "ok",
-					"time":         "1999-12-31T00:00:00Z",
-					"help_link":    "https://kb.lightemter.io/KB0001",
+					"category":        "local",
+					"content":         map[string]interface{}{"v": "content2", "content_type": contentType2},
+					"content_type":    contentType2,
+					"id":              float64(2),
+					"rating":          "ok",
+					"time":            "1999-12-31T00:00:00Z",
+					"help_link":       "https://kb.lightemter.io/KB0001",
+					"user_rating":     nil,
+					"user_rating_old": true,
 				},
 			})
 		})

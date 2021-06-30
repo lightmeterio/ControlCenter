@@ -4,10 +4,12 @@
 
 set -e
 
-make release
+APP_VERSION=$(cat VERSION.txt)
 
 (
+  cd tools/cmdline_usage/
+  go build -o lightmeter -ldflags "-X gitlab.com/lightmeter/controlcenter/version.Version=$APP_VERSION"
   echo '```'
-  ./lightmeter -help 2>&1
+  ./lightmeter 2>&1
   echo '```'
 ) > cli_usage.md

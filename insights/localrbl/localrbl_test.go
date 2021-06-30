@@ -211,7 +211,7 @@ func TestLocalRBL(t *testing.T) {
 				insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 					To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-				}})
+				}}, clock)
 
 				So(err, ShouldBeNil)
 
@@ -302,7 +302,7 @@ func TestLocalRBL(t *testing.T) {
 						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 							From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 							To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-						}, OrderBy: core.OrderByCreationAsc})
+						}, OrderBy: core.OrderByCreationAsc}, clock)
 
 						So(err, ShouldBeNil)
 
@@ -361,7 +361,7 @@ func TestLocalRBL(t *testing.T) {
 						insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 							From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 							To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-						}, OrderBy: core.OrderByCreationAsc})
+						}, OrderBy: core.OrderByCreationAsc}, clock)
 
 						So(err, ShouldBeNil)
 
@@ -448,7 +448,7 @@ func TestLocalRBL(t *testing.T) {
 					insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-					}})
+					}}, clock)
 
 					So(err, ShouldBeNil)
 

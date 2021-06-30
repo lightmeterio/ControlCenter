@@ -75,7 +75,7 @@ func (s *HttpServer) Start() error {
 	detective := s.Workspace.Detective()
 
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
-	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher())
+	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher(), s.Workspace.InsightsEngine())
 	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
 	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester(), reader)
 

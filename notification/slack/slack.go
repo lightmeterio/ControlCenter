@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"reflect"
 	"sync"
 )
@@ -101,7 +102,7 @@ func clientAndSettingsForMessenger(m *Notifier) (*slack.Client, *Settings, error
 
 	// update/create client if needed
 	if m.currentSettings == nil || !reflect.DeepEqual(*updatedSettings, *m.currentSettings) {
-		m.client = slack.New(updatedSettings.BearerToken)
+		m.client = slack.New(*updatedSettings.BearerToken)
 		m.currentSettings = updatedSettings
 	}
 
@@ -148,9 +149,9 @@ func tryToNotifyMessage(m *Notifier, message core.Message) error {
 }
 
 type Settings struct {
-	BearerToken string `json:"bearer_token"`
-	Channel     string `json:"channel"`
-	Enabled     bool   `json:"enabled"`
+	BearerToken stringutil.Sensitive `json:"bearer_token,omitempty"`
+	Channel     string               `json:"channel"`
+	Enabled     bool                 `json:"enabled"`
 }
 
 func (m *Notifier) ValidateSettings(s core.Settings) error {

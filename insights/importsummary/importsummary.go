@@ -104,7 +104,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		OrderBy:  core.OrderByCreationAsc,
 		FilterBy: core.FilterByCategory,
 		Category: core.ArchivedCategory,
-	})
+	}, c)
 
 	if err != nil {
 		return errorutil.Wrap(err)

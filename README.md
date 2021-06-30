@@ -272,10 +272,12 @@ Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-
 
 ## Syslog compatibility
 
-If you are using `-watch_dir` or the `LIGHTMETER_WATCH_DIR` environment variable to read the logs,
-you'll be limited to the default syslog time format layout. That means log lines that start like `Oct  4 12:00:00`.
+If you are using `-watch_dir` or the `LIGHTMETER_WATCH_DIR` environment variable to read the logs, we at the moment support only the following syslog file format:
 
-Control Center will emit error messages and not read logs with different configuration.
+| rsyslog.conf                     | command line option                                  | environment variable                                  |
+| -------------------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| `RSYSLOG_TraditionalFileFormat`  | `-log_format default` or not pass this option at all | `LIGHTMETER_LOG_FORMAT=default` or not defined at all |
+| `RSYSLOG_SyslogProtocol23Format` | `-log_format rfc3339`                                | `LIGHTMETER_LOG_FORMAT=rfc3339`                       |
 
 If you use a different format, please let us know via a Gitlab issue.
 
@@ -305,7 +307,38 @@ security layer (VPN, SSH tunnel, etc.).
 
 First, start Control Center with the option `-socket tcp=:9999`, to listen in the TCP port 9999, or `-socket unix=/path/to/socket.sock`.
 
-Additionally, add the command line option `-log_format prepend-rfc3339`, meaning that it expects a time to come in the beginning of each log line.
+#### Using the default JSON encoded logs
+
+Since version 1.8 we support the default JSON encoded logs sent via Logstash, meaning you won't need to change your Logstash configuration.
+
+You'll need to add the command line option `-log_format logstash`, or set the environment variable `LIGHTMETER_LOG_FORMAT=logstash`.
+
+Then configure logstash as following:
+
+```
+filter {
+  if [log][file][path] == "/var/log/mail.log" {
+      clone {
+        add_field => { "log-type" => "mail" }
+        clones => ["lightmeter"]
+      }
+  }
+}
+
+output {
+  if [log-type] == "mail" and [type] == "lightmeter"{
+        tcp {
+            host => "address-of-control-center-host"
+            port => 9999
+        }
+    }
+}
+```
+
+#### Using a custom log format
+
+Alternatively, add the command line option `-log_format prepend-rfc3339` (or the environment variable `LIGHTMETER_LOG_FORMAT=prepend-rfc3339`),
+meaning that it expects a time to come in the beginning of each log line.
 
 Then configure Logstash to something similar to the following (Thank you Alexander Landmesser for the help :-)):
 

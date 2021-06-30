@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
@@ -131,7 +132,7 @@ func buildFakeSettings(lang string, enabled bool) (Settings, slack.Settings) {
 		},
 		slack.Settings{
 			Channel:     "general",
-			BearerToken: "some_slack_key",
+			BearerToken: stringutil.MakeSensitive("some_slack_key"),
 			Enabled:     enabled,
 		}
 }
