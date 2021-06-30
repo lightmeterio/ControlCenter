@@ -196,6 +196,8 @@ type FetchedInsight interface {
 	Rating() Rating
 	Content() Content
 	ContentType() string
+	UserRating() *int
+	UserRatingOld() bool
 }
 
 type FetchFilter int
@@ -218,10 +220,11 @@ type FetchOptions struct {
 	OrderBy    FetchOrder
 	MaxEntries int
 	Category   Category
+	Clock      interface{}
 }
 
 type Fetcher interface {
-	FetchInsights(context.Context, FetchOptions) ([]FetchedInsight, error)
+	FetchInsights(context.Context, FetchOptions, timeutil.Clock) ([]FetchedInsight, error)
 }
 
 type queryKey struct {
@@ -245,16 +248,29 @@ func buildSelectStmt(where, order string) string {
 	// status_category is the one the user sees, and might change over time (like from active to archived).
 	return fmt.Sprintf(`
 	with
-	insights_with_category_status(id, time, actual_category, status_category, rating, content_type, content) as (
+	user_ratings (insight_type, rating, timestamp) as (
+		select *
+		from insights_user_ratings iur
+		where not exists (
+			select *
+			from insights_user_ratings iur2
+			where iur2.insight_type = iur.insight_type
+			  and iur2.timestamp > iur.timestamp  -- only the last user rating per insight_type
+		)
+		group by insight_type  -- edge case, several ratings on the same second
+	),
+	insights_with_status_rating(id, time, actual_category, status_category, rating, content_type, content, user_rating, user_rating_ts) as (
 		select
-			insights.rowid, insights.time, insights.category, ifnull(insights_status.status, %d), insights.rating, insights.content_type, insights.content
+			insights.rowid, insights.time, insights.category, ifnull(insights_status.status, %d), insights.rating, insights.content_type, insights.content, user_ratings.rating, iif(user_ratings.timestamp is not null, user_ratings.timestamp, 0)
 		from
-			insights left join insights_status on insights.rowid = insights_status.insight_id
+			insights
+		left join insights_status on insights.rowid = insights_status.insight_id
+		left join user_ratings on insights.content_type = user_ratings.insight_type
 	)
 	select
-		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content
+		id, time, iif(status_category == %d, status_category, actual_category) as computed_category, rating, content_type, content, user_rating, user_rating_ts
 	from
-		insights_with_category_status
+		insights_with_status_rating
 	where %s
 	order by %s, id
 	limit @limit
@@ -367,12 +383,14 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 }
 
 type fetchedInsight struct {
-	id          int
-	time        time.Time
-	rating      Rating
-	category    Category
-	contentType string
-	content     Content
+	id            int
+	time          time.Time
+	rating        Rating
+	category      Category
+	contentType   string
+	content       Content
+	userRating    *int
+	userRatingOld bool
 }
 
 func (f *fetchedInsight) ID() int {
@@ -399,9 +417,17 @@ func (f *fetchedInsight) Content() Content {
 	return f.content
 }
 
+func (f *fetchedInsight) UserRating() *int {
+	return f.userRating
+}
+
+func (f *fetchedInsight) UserRatingOld() bool {
+	return f.userRatingOld
+}
+
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
-func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]FetchedInsight, error) {
+func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock timeutil.Clock) ([]FetchedInsight, error) {
 	conn, release := f.pool.Acquire()
 
 	defer release()
@@ -436,12 +462,15 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]Fe
 		rating           Rating
 		contentTypeValue int
 		contentBytes     []byte
+		userRating       *int
+		userRatingTs     int64
+		userRatingOld    bool
 	)
 
 	result := []FetchedInsight{}
 
 	for rows.Next() {
-		err = rows.Scan(&id, &ts, &category, &rating, &contentTypeValue, &contentBytes)
+		err = rows.Scan(&id, &ts, &category, &rating, &contentTypeValue, &contentBytes, &userRating, &userRatingTs)
 
 		if err != nil {
 			return []FetchedInsight{}, errorutil.Wrap(err)
@@ -459,13 +488,18 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions) ([]Fe
 			return []FetchedInsight{}, errorutil.Wrap(err)
 		}
 
+		// rating is old if more than two weeks old (or not rated yet, epoch is more than two weeks old)
+		userRatingOld = insightUserRatingIsOld(time.Unix(userRatingTs, 0), clock)
+
 		result = append(result, &fetchedInsight{
-			id:          id,
-			time:        time.Unix(ts, 0).In(time.UTC),
-			category:    category,
-			rating:      rating,
-			contentType: contentType,
-			content:     content,
+			id:            id,
+			time:          time.Unix(ts, 0).In(time.UTC),
+			category:      category,
+			rating:        rating,
+			contentType:   contentType,
+			content:       content,
+			userRating:    userRating,
+			userRatingOld: userRatingOld,
 		})
 	}
 

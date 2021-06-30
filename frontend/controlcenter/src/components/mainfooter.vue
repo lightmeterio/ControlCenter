@@ -25,8 +25,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           >
           <span class="link">
             <a
-              href="mailto:hello@lightmeter.io?subject=Feedback%20on%20Lightmeter%20Control%20Center"
-              title="What would you improve?"
+              :href="FeedbackMailtoLink"
+              :title="FeedbackButtonTitle"
               v-on:click="trackClick('Feedback', 'clickMailTo')"
               target="_blank"
               ><translate>Feedback</translate></a
@@ -46,11 +46,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 <script>
 import tracking from "../mixin/global_shared.js";
+import shared_texts from "../mixin/shared_texts.js";
 import { mapActions } from "vuex";
 
 export default {
   name: "mainfooter",
-  mixins: [tracking],
+  mixins: [tracking, shared_texts],
   data() {
     return {
       year: null

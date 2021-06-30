@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
+	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +53,7 @@ func notificationValuesToPost(values url.Values) url.Values {
 
 func TestSettingsPage(t *testing.T) {
 	Convey("Retrieve all settings", t, func() {
-		setup, _, _, _, _, clear := buildTestSetup(t)
+		setup, _, reader, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		// Approach: as for now we have independent endpoints, we instantiate one server per endpoint
@@ -78,13 +79,12 @@ func TestSettingsPage(t *testing.T) {
 					"skip_cert_check": false,
 					"auth_method":     "none",
 					"enabled":         false,
-					"password":        "",
 					"recipients":      "",
 					"security_type":   "none",
 					"sender":          "",
 					"server_name":     "",
 					"server_port":     float64(0),
-					"username":        ""},
+				},
 				"general": map[string]interface{}{
 					"app_language":      "",
 					"postfix_public_ip": "",
@@ -94,9 +94,8 @@ func TestSettingsPage(t *testing.T) {
 					"language": "",
 				},
 				"slack_notifications": map[string]interface{}{
-					"bearer_token": "",
-					"channel":      "",
-					"enabled":      false,
+					"channel": "",
+					"enabled": false,
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
@@ -147,13 +146,12 @@ func TestSettingsPage(t *testing.T) {
 					"skip_cert_check": false,
 					"auth_method":     "none",
 					"enabled":         false,
-					"password":        "",
 					"recipients":      "",
 					"security_type":   "none",
 					"sender":          "",
 					"server_name":     "",
 					"server_port":     float64(0),
-					"username":        ""},
+				},
 				"general": map[string]interface{}{
 					"app_language":      "en",
 					"postfix_public_ip": "11.22.33.44",
@@ -163,9 +161,8 @@ func TestSettingsPage(t *testing.T) {
 					"language": "en",
 				},
 				"slack_notifications": map[string]interface{}{
-					"bearer_token": "some_token",
-					"channel":      "some_channel",
-					"enabled":      true,
+					"channel": "some_channel",
+					"enabled": true,
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
@@ -204,13 +201,12 @@ func TestSettingsPage(t *testing.T) {
 					"skip_cert_check": false,
 					"auth_method":     "none",
 					"enabled":         false,
-					"password":        "",
 					"recipients":      "",
 					"security_type":   "none",
 					"sender":          "",
 					"server_name":     "",
 					"server_port":     float64(0),
-					"username":        ""},
+				},
 				"general": map[string]interface{}{
 					"app_language":      "",
 					"postfix_public_ip": "",
@@ -220,9 +216,8 @@ func TestSettingsPage(t *testing.T) {
 					"language": "en",
 				},
 				"slack_notifications": map[string]interface{}{
-					"bearer_token": "some_token",
-					"channel":      "some_channel",
-					"enabled":      false,
+					"channel": "some_channel",
+					"enabled": false,
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
@@ -230,6 +225,12 @@ func TestSettingsPage(t *testing.T) {
 			}
 
 			So(body, ShouldResemble, expected)
+
+			slackSettings, err := slack.GetSettings(dummyContext, reader)
+			So(err, ShouldBeNil)
+
+			// The slack settings are indeed in the database
+			So(*slackSettings.BearerToken, ShouldEqual, "some_token")
 		})
 
 		Convey("Email notifications", func() {
@@ -302,13 +303,12 @@ func TestSettingsPage(t *testing.T) {
 						"skip_cert_check": false,
 						"auth_method":     "password",
 						"enabled":         true,
-						"password":        "super_password",
 						"recipients":      "recipient@example.com",
 						"security_type":   "none",
 						"sender":          "sender@example.com",
 						"server_name":     "localhost",
 						"server_port":     float64(2055),
-						"username":        "user@example.com"},
+					},
 					"general": map[string]interface{}{
 						"app_language":      "en",
 						"postfix_public_ip": "11.22.33.44",
@@ -318,9 +318,8 @@ func TestSettingsPage(t *testing.T) {
 						"language": "de",
 					},
 					"slack_notifications": map[string]interface{}{
-						"bearer_token": "",
-						"channel":      "",
-						"enabled":      false,
+						"channel": "",
+						"enabled": false,
 					},
 					"walkthrough": map[string]interface{}{
 						"completed": false,
@@ -328,6 +327,11 @@ func TestSettingsPage(t *testing.T) {
 				}
 
 				So(body, ShouldResemble, expected)
+
+				emailSettings, err := email.GetSettings(dummyContext, reader)
+				So(err, ShouldBeNil)
+				So(*emailSettings.Password, ShouldEqual, "super_password")
+				So(*emailSettings.Username, ShouldEqual, "user@example.com")
 			})
 		})
 	})

@@ -6,14 +6,16 @@ package api
 
 import (
 	"context"
+	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/detective"
+	mock_detective "gitlab.com/lightmeter/controlcenter/detective/mock"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"gitlab.com/lightmeter/controlcenter/workspace"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -32,7 +34,9 @@ func buildCookieClient() *http.Client {
 	return &http.Client{Jar: jar}
 }
 
-func buildTestEnv(t *testing.T) (*httptest.Server, *meta.AsyncWriter, func()) {
+func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective, *meta.AsyncWriter, func()) {
+	ctrl := gomock.NewController(t)
+
 	dir, clearDir := testutil.TempDir(t)
 
 	registrar := &auth.FakeRegistrar{
@@ -42,25 +46,35 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *meta.AsyncWriter, func()) {
 		Password:   "super-secret",
 	}
 
-	ws, err := workspace.NewWorkspace(dir)
-	So(err, ShouldBeNil)
-
-	ws.Run()
+	detective := mock_detective.NewMockDetective(ctrl)
 
 	auth := auth.NewAuthenticator(registrar, dir)
 	mux := http.NewServeMux()
 
-	settingsWriter, settingsReader := ws.SettingsAcessors()
+	settingdDB, removeDB := testutil.TempDBConnection(t)
 
-	HttpDetective(auth, mux, time.UTC, ws.Detective(), &fakeEscalateRequester{}, settingsReader)
+	handler, err := meta.NewHandler(settingdDB, "master")
+	So(err, ShouldBeNil)
+
+	runner := meta.NewRunner(handler)
+
+	done, cancel := runner.Run()
+
+	settingsWriter := runner.Writer()
+	settingsReader := handler.Reader
+
+	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader)
 
 	httpauth.HttpAuthenticator(mux, auth, settingsReader)
 
 	s := httptest.NewServer(mux)
 
-	return s, settingsWriter, func() {
-		So(ws.Close(), ShouldBeNil)
+	return s, detective, settingsWriter, func() {
+		cancel()
+		So(done(), ShouldBeNil)
+		removeDB()
 		clearDir()
+		ctrl.Finish()
 	}
 }
 
@@ -70,8 +84,12 @@ func TestDetectiveAuth(t *testing.T) {
 
 		c := buildCookieClient()
 
-		s, settingsWriter, clear := buildTestEnv(t)
+		s, d, settingsWriter, clear := buildTestEnv(t)
 		defer clear()
+
+		d.EXPECT().
+			CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&detective.MessagesPage{}, nil)
 
 		Convey("Detective API not accessible to non-authenticated user", func() {
 			r, err := c.Get(s.URL + detectiveURL)

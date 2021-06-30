@@ -53,3 +53,12 @@ var ptBrMonths = []string{
 	"janeiro", "fevereiro", "março", "abril", "maio", "junho",
 	"julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 }
+
+func MustParseTimeInterval(from, to string) TimeInterval {
+	i, err := ParseTimeInterval(from, to, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}

@@ -71,7 +71,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(baseInsightRange),
-			}})
+			}}, clock)
 
 			So(err, ShouldBeNil)
 
@@ -101,7 +101,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(len(accessor.Insights), ShouldEqual, 1)
 
-			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: interval})
+			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: interval}, clock)
 
 			So(err, ShouldBeNil)
 
@@ -167,7 +167,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
 				From: baseTime,
 				To:   baseTime.Add(threeHours * 3).Add(time.Second * 1).Add(baseInsightRange),
-			}})
+			}}, clock)
 
 			So(err, ShouldBeNil)
 

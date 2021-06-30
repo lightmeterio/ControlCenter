@@ -25,7 +25,7 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 	# a process name can be postfix or something like /postfix-script
 	# but if we read postfix-127.0.0.2, the process name is just 'postfix',
 	# as the 127.0.0.2 in this case is the IP address
-	processName = '/'? (alnum|'-')+ >setTokBeg %{
+	processName = '/'? (alnum|'-'|'_')+ >setTokBeg %{
 		h.Process = data[tokBeg:p]
 	};
 
