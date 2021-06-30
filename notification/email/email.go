@@ -25,6 +25,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -136,8 +137,8 @@ type Settings struct {
 	SecurityType SecurityType `json:"security_type"`
 	AuthMethod   AuthMethod   `json:"auth_method"`
 
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username stringutil.Sensitive `json:"username,omitempty"`
+	Password stringutil.Sensitive `json:"password,omitempty"`
 }
 
 func addrFromSettings(s Settings) string {
@@ -209,7 +210,7 @@ func sendOnClient(settings Settings, actionOnClient func(*smtp.Client) error) (e
 
 	if hasAuth, _ := c.Extension("AUTH"); hasAuth || settings.AuthMethod == AuthMethodPassword {
 		// TODO: maybe support OAUTHBEARER (OAuth2) as well?
-		auth := sasl.NewPlainClient("", settings.Username, settings.Password)
+		auth := sasl.NewPlainClient("", *settings.Username, *settings.Password)
 
 		if err = c.Auth(auth); err != nil {
 			return errorutil.Wrap(err)

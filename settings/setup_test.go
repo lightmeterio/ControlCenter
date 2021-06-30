@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func TestMessengerSettings(t *testing.T) {
 		Convey("valid messenger settings", func() {
 			s := slack.Settings{
 				Channel:     "donutloop",
-				BearerToken: "fjslfjjsdfljlskjfkdjs",
+				BearerToken: stringutil.MakeSensitive("fjslfjjsdfljlskjfkdjs"),
 			}
 
 			err := slack.SetSettings(context, writer, s)

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -89,8 +90,8 @@ func TestSendEmail(t *testing.T) {
 				Recipients:   "recipient@example2.com, Someone else <recipient2@some.other.address.com>, a.third.one@lala.com",
 				ServerName:   "localhost",
 				ServerPort:   1026,
-				Username:     "username@example.com",
-				Password:     "wrong_password",
+				Username:     stringutil.MakeSensitive("username@example.com"),
+				Password:     stringutil.MakeSensitive("wrong_password"),
 				SecurityType: SecurityTypeNone,
 				AuthMethod:   AuthMethodPassword,
 			}
@@ -120,8 +121,8 @@ func TestSendEmail(t *testing.T) {
 				Recipients:   "recipient@example2.com, Someone else <recipient2@some.other.address.com>, a.third.one@lala.com",
 				ServerName:   "localhost",
 				ServerPort:   1026,
-				Username:     "username@example.com",
-				Password:     "super_password",
+				Username:     stringutil.MakeSensitive("username@example.com"),
+				Password:     stringutil.MakeSensitive("super_password"),
 				SecurityType: SecurityTypeNone,
 				AuthMethod:   AuthMethodPassword,
 			}
