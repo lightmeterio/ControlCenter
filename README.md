@@ -305,7 +305,38 @@ security layer (VPN, SSH tunnel, etc.).
 
 First, start Control Center with the option `-socket tcp=:9999`, to listen in the TCP port 9999, or `-socket unix=/path/to/socket.sock`.
 
-Additionally, add the command line option `-log_format prepend-rfc3339`, meaning that it expects a time to come in the beginning of each log line.
+#### Using the default JSON encoded logs
+
+Since version 1.8 we support the default JSON encoded logs sent via Logstash, meaning you won't need to change your Logstash configuration.
+
+You'll need to add the command line option `-log_format logstash`, or set the environment variable `LIGHTMETER_LOG_FORMAT=logstash`.
+
+Then configure logstash as following:
+
+```
+filter {
+  if [log][file][path] == "/var/log/mail.log" {
+      clone {
+        add_field => { "log-type" => "mail" }
+        clones => ["lightmeter"]
+      }
+  }
+}
+
+output {
+  if [log-type] == "mail" and [type] == "lightmeter"{
+        tcp {
+            host => "address-of-control-center-host"
+            port => 9999
+        }
+    }
+}
+```
+
+#### Using a custom log format
+
+Alternatively, add the command line option `-log_format prepend-rfc3339` (or the environment variable `LIGHTMETER_LOG_FORMAT=prepend-rfc3339`),
+meaning that it expects a time to come in the beginning of each log line.
 
 Then configure Logstash to something similar to the following (Thank you Alexander Landmesser for the help :-)):
 
