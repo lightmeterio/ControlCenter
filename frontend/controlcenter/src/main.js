@@ -158,7 +158,6 @@ getApplicationInfo().then(function(response) {
     // ]
     preInitActions: [["setCustomDimension", 1, response.data.version]]
   });
-  Vue.prototype.$appInfo = response.data;
 });
 
 Vue.config.productionTip = false;
