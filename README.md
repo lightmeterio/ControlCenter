@@ -272,10 +272,12 @@ Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-
 
 ## Syslog compatibility
 
-If you are using `-watch_dir` or the `LIGHTMETER_WATCH_DIR` environment variable to read the logs,
-you'll be limited to the default syslog time format layout. That means log lines that start like `Oct  4 12:00:00`.
+If you are using `-watch_dir` or the `LIGHTMETER_WATCH_DIR` environment variable to read the logs, we at the moment support only the following syslog file format:
 
-Control Center will emit error messages and not read logs with different configuration.
+| rsyslog.conf                     | command line option                                  | environment variable                                  |
+| -------------------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| `RSYSLOG_TraditionalFileFormat`  | `-log_format default` or not pass this option at all | `LIGHTMETER_LOG_FORMAT=default` or not defined at all |
+| `RSYSLOG_SyslogProtocol23Format` | `-log_format rfc3339`                                | `LIGHTMETER_LOG_FORMAT=rfc3339`                       |
 
 If you use a different format, please let us know via a Gitlab issue.
 
