@@ -77,7 +77,20 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 		return errorutil.Wrap(err)
 	}
 
-	response, err := http.Post(d.ReportDestinationURL, "application/json", bytes.NewBuffer(json))
+	ctx, cancelCtx := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+
+	defer cancelCtx()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", d.ReportDestinationURL, bytes.NewBuffer(json))
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.Client{}
+
+	response, err := client.Do(req)
 	if err != nil {
 		log.Err(err).Msgf("Could not send report")
 
