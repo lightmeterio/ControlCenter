@@ -129,7 +129,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	intelCollector, err := intel.New(workspaceDirectory, deliveries)
+	intelCollector, err := intel.New(workspaceDirectory, deliveries, m.Reader)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

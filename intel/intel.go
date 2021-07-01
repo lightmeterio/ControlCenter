@@ -5,40 +5,97 @@
 package intel
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
+	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
+	"net/http"
 	"time"
 )
 
-type dispatcher struct {
+type Metadata struct {
+	LocalIP   *string `json:"postfix_public_ip,omitempty"`
+	PublicURL *string `json:"public_url,omitempty"`
 }
 
-func (d *dispatcher) Dispatch(r collector.Report) error {
-	// TODO: this guy here is responsible for connecting to send the report to our server...
-	// TODO: implement it instead of saving to a file!!!
+type ReportWithMetadata struct {
+	Metadata Metadata         `json:"metadata"`
+	Payload  collector.Report `json:"payload"`
+}
+
+type Dispatcher struct {
+	ReportDestinationURL string
+	SettingsReader       *meta.Reader
+}
+
+func (d *Dispatcher) Dispatch(r collector.Report) error {
 	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
-	json, err := json.Marshal(r)
+	metadata, err := func() (Metadata, error) {
+		settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
+		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+			return Metadata{}, nil
+		}
+
+		if err != nil {
+			return Metadata{}, errorutil.Wrap(err)
+		}
+
+		addr := func(s string) *string {
+			return &s
+		}
+
+		ip := func() *string {
+			if settings.LocalIP != nil {
+				return addr(settings.LocalIP.String())
+			}
+
+			return nil
+		}()
+
+		return Metadata{LocalIP: ip, PublicURL: addr(settings.PublicURL)}, nil
+	}()
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	filename := fmt.Sprintf("/tmp/lightmeter-report-%v.json", time.Now().Unix())
+	reportWithMetadata := ReportWithMetadata{
+		Metadata: metadata,
+		Payload:  r,
+	}
 
-	if err := os.WriteFile(filename, json, os.ModeAppend); err != nil {
+	json, err := json.Marshal(reportWithMetadata)
+	if err != nil {
 		return errorutil.Wrap(err)
+	}
+
+	response, err := http.Post(d.ReportDestinationURL, "application/json", bytes.NewBuffer(json))
+	if err != nil {
+		log.Err(err).Msgf("Could not send report")
+
+		// NOTE: a network error is not a hard error
+		// TODO: maybe retry until it succeeds?
+		return nil
+	}
+
+	if err := response.Body.Close(); err != nil {
+		// Not a fatal error; just ignore it
+		log.Err(err).Msgf("Error closing response body")
+		return nil
 	}
 
 	return nil
 }
 
-func New(workspaceDir string, db *deliverydb.DB) (*collector.Collector, error) {
+func New(workspaceDir string, db *deliverydb.DB, settingsReader *meta.Reader) (*collector.Collector, error) {
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 	}
@@ -48,7 +105,10 @@ func New(workspaceDir string, db *deliverydb.DB) (*collector.Collector, error) {
 		ReportInterval: time.Minute * 30,
 	}
 
-	dispatcher := &dispatcher{}
+	dispatcher := &Dispatcher{
+		SettingsReader:       settingsReader,
+		ReportDestinationURL: "https://intel.lightmeter.io/reports",
+	}
 
 	c, err := collector.New(workspaceDir, options, reporters, dispatcher)
 	if err != nil {
