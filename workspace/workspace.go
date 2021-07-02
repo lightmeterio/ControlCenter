@@ -112,7 +112,13 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	intelCollector, err := intel.New(workspaceDirectory, deliveries, m.Reader)
+	intelOptions := intel.Options{
+		CycleInterval:        time.Second * 30,
+		ReportInterval:       time.Minute * 30,
+		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
+	}
+
+	intelCollector, err := intel.New(workspaceDirectory, deliveries, m.Reader, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
