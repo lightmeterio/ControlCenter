@@ -108,22 +108,32 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	return nil
 }
 
-func New(workspaceDir string, db *deliverydb.DB, settingsReader *meta.Reader) (*collector.Collector, error) {
+type Options struct {
+	// How often should the c
+	CycleInterval time.Duration
+
+	// How often should the reports be dispatched/sent?
+	ReportInterval time.Duration
+
+	ReportDestinationURL string
+}
+
+func New(workspaceDir string, db *deliverydb.DB, settingsReader *meta.Reader, options Options) (*collector.Collector, error) {
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 	}
 
-	options := collector.Options{
-		CycleInterval:  time.Minute * 1,
-		ReportInterval: time.Minute * 30,
+	collectorOptions := collector.Options{
+		CycleInterval:  options.CycleInterval,
+		ReportInterval: options.ReportInterval,
 	}
 
 	dispatcher := &Dispatcher{
 		SettingsReader:       settingsReader,
-		ReportDestinationURL: "https://intel.lightmeter.io/reports",
+		ReportDestinationURL: options.ReportDestinationURL,
 	}
 
-	c, err := collector.New(workspaceDir, options, reporters, dispatcher)
+	c, err := collector.New(workspaceDir, collectorOptions, reporters, dispatcher)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
