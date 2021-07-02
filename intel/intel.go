@@ -81,7 +81,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 	defer cancelCtx()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", d.ReportDestinationURL, bytes.NewBuffer(json))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.ReportDestinationURL, bytes.NewBuffer(json))
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
