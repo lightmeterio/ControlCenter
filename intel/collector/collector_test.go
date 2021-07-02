@@ -69,7 +69,7 @@ func getAllQueuedResults(db *dbconn.PooledPair) ([]testCollectResult, error) {
 	conn, release := db.RoConnPool.Acquire()
 	defer release()
 
-	r, err := conn.Query(`select time, identifier, value from queued_reports order by id`)
+	r, err := conn.Query(`select time, identifier, value from queued_reports where dispatched_time = 0 order by id`)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

@@ -22,9 +22,12 @@ func upBasic(tx *sql.Tx) error {
 	sql := `create table if not exists queued_reports(
 			id integer primary key,
 			time integer not null,
+			dispatched_time integer not null,
 			identifier text not null,
 			value blob not null
 		);
+
+		create index queued_reports_dispatch_time on queued_reports(dispatched_time);
 
 		create table dispatch_times(
 			id integer primary key,

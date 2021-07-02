@@ -34,7 +34,7 @@ func Collect(tx *sql.Tx, clock timeutil.Clock, id string, report ReportPayload) 
 
 	log.Info().Msgf("Collecting report with id %s at %v", id, now)
 
-	if _, err := tx.Exec(`insert into queued_reports(time, identifier, value) values(?, ?, ?)`, now.Unix(), id, j); err != nil {
+	if _, err := tx.Exec(`insert into queued_reports(time, identifier, value, dispatched_time) values(?, ?, ?, 0)`, now.Unix(), id, j); err != nil {
 		return errorutil.Wrap(err)
 	}
 

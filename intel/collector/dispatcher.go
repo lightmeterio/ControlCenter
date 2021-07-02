@@ -51,10 +51,10 @@ func lastReportTime(tx *sql.Tx) (time.Time, error) {
 }
 
 func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatcher) error {
-	// creates a report and delete all the queued reports
+	// creates a report and mark all the queued reports as dispatched
 	// TODO: maybe do the dispatching in a different thread,
 	// in order not to block the transaction?
-	r, err := tx.Query(`select time, identifier, value from queued_reports order by id asc`)
+	r, err := tx.Query(`select time, identifier, value from queued_reports where dispatched_time = 0 order by id asc`)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -113,9 +113,7 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 		return errorutil.Wrap(err)
 	}
 
-	// NOTE: as all queued reports have already been reported, just DELETE THEM ALL!
-	// Risky, I know :-)
-	if _, err := tx.Exec(`delete from queued_reports`); err != nil {
+	if _, err := tx.Exec(`update queued_reports set dispatched_time = ? where dispatched_time = 0`, now.Unix()); err != nil {
 		return errorutil.Wrap(err)
 	}
 
