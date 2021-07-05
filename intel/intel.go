@@ -16,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/version"
 	"net/http"
 	"time"
 )
@@ -25,12 +26,20 @@ type Metadata struct {
 	PublicURL *string `json:"public_url,omitempty"`
 }
 
+type Version struct {
+	Version     string `json:"version"`
+	TagOrBranch string `json:"tag_or_branch"`
+	Commit      string `json:"commit"`
+}
+
 type ReportWithMetadata struct {
 	Metadata Metadata         `json:"metadata"`
+	Version  Version          `json:"app_version"`
 	Payload  collector.Report `json:"payload"`
 }
 
 type Dispatcher struct {
+	versionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
 }
@@ -68,6 +77,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	}
 
 	reportWithMetadata := ReportWithMetadata{
+		Version:  d.versionBuilder(),
 		Metadata: metadata,
 		Payload:  r,
 	}
@@ -129,6 +139,9 @@ func New(workspaceDir string, db *deliverydb.DB, settingsReader *meta.Reader, op
 	}
 
 	dispatcher := &Dispatcher{
+		versionBuilder: func() Version {
+			return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
+		},
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 	}

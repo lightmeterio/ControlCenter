@@ -41,6 +41,10 @@ func (h *fakeReportServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	h.response = v
 }
 
+func fakeVersion() Version {
+	return Version{Version: "1.0", TagOrBranch: "some_branch", Commit: "123456"}
+}
+
 func TestReports(t *testing.T) {
 	Convey("Test Reports", t, func() {
 		handler := &fakeReportServerHandler{}
@@ -56,6 +60,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Server error should not cause the dispatching to fail", func() {
 			err = (&Dispatcher{
+				versionBuilder:       fakeVersion,
 				ReportDestinationURL: "http://completely_wrong_url",
 				SettingsReader:       m.Reader,
 			}).Dispatch(collector.Report{})
@@ -75,6 +80,7 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			err = (&Dispatcher{
+				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 			}).Dispatch(collector.Report{
@@ -91,6 +97,7 @@ func TestReports(t *testing.T) {
 					"postfix_public_ip": "127.0.0.2",
 					"public_url":        "https://example.com",
 				},
+				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
 						"from": "2000-01-01T00:00:00Z",
@@ -109,6 +116,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Do not send settings if not available", func() {
 			err = (&Dispatcher{
+				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 			}).Dispatch(collector.Report{
@@ -121,7 +129,8 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata": map[string]interface{}{},
+				"metadata":    map[string]interface{}{},
+				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
 						"from": "2000-01-01T00:00:00Z",
@@ -137,6 +146,5 @@ func TestReports(t *testing.T) {
 				},
 			})
 		})
-
 	})
 }
