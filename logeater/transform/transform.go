@@ -56,8 +56,8 @@ type defaultTransformer struct {
 	lineNo    uint64
 }
 
-func ParseLine(line []byte, timeBuilder func(parser.Header) time.Time, loc postfix.RecordLocation) (postfix.Record, error) {
-	h, p, err := parser.Parse(line)
+func ParseLine(line []byte, timeBuilder func(parser.Header) time.Time, loc postfix.RecordLocation, format parsertimeutil.TimeFormat) (postfix.Record, error) {
+	h, p, err := parser.ParseWithCustomTimeFormat(line, format)
 
 	if !parser.IsRecoverableError(err) {
 		return postfix.Record{}, errorutil.Wrap(err, loc)
@@ -77,6 +77,8 @@ func ForwardArgs(args ...interface{}) ([]interface{}, error) {
 	return args, nil
 }
 
+var defaultTimeFormat = parsertimeutil.DefaultTimeFormat{}
+
 func (t *defaultTransformer) Transform(line []byte) (postfix.Record, error) {
 	lineNo := t.lineNo
 	t.lineNo++
@@ -88,7 +90,7 @@ func (t *defaultTransformer) Transform(line []byte) (postfix.Record, error) {
 
 	r, err := ParseLine(line, func(h parser.Header) time.Time {
 		return t.converter.Convert(h.Time)
-	}, loc)
+	}, loc, defaultTimeFormat)
 	if err != nil {
 		return postfix.Record{}, errorutil.Wrap(err)
 	}
