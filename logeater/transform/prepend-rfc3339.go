@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-type rfc3399Transformer struct {
+type prependRfc3399Transformer struct {
 	lineNo uint64
 }
 
 // format: time <space> rawline
 // example: 2021-03-06T06:09:00.798Z Mar  6 07:08:59 melian postfix/qmgr[28829]: A1E1E1880093: removed
-func (t *rfc3399Transformer) Transform(line []byte) (postfix.Record, error) {
+func (t *prependRfc3399Transformer) Transform(line []byte) (postfix.Record, error) {
 	lineNo := t.lineNo
 	t.lineNo++
 
@@ -41,7 +41,7 @@ func (t *rfc3399Transformer) Transform(line []byte) (postfix.Record, error) {
 
 	r, err := ParseLine(line[index+1:], func(parser.Header) time.Time {
 		return parsedTime
-	}, loc)
+	}, loc, defaultTimeFormat)
 	if err != nil {
 		return postfix.Record{}, errorutil.Wrap(err)
 	}
@@ -51,6 +51,6 @@ func (t *rfc3399Transformer) Transform(line []byte) (postfix.Record, error) {
 
 func init() {
 	Register("prepend-rfc3339", ForwardArgs, func(args ...interface{}) (Transformer, error) {
-		return &rfc3399Transformer{lineNo: 1}, nil
+		return &prependRfc3399Transformer{lineNo: 1}, nil
 	})
 }
