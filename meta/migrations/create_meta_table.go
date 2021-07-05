@@ -13,6 +13,7 @@ import (
 func init() {
 	migrator.AddMigration("auth", "2_create_meta_table.go", UpMetaTable, DownMetaTable)
 	migrator.AddMigration("master", "1_create_meta_table.go", UpMetaTable, DownMetaTable)
+	migrator.AddMigration("intel", "3_create_meta_table.go", UpMetaTable, DownMetaTable)
 }
 
 func UpMetaTable(tx *sql.Tx) error {

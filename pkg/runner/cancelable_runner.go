@@ -22,7 +22,7 @@ type cancelableRunner struct {
 }
 
 func (r *cancelableRunner) Run() (func() error, func()) {
-	cancel := make(chan struct{})
+	cancel := make(chan struct{}, 1)
 	done := make(chan error)
 
 	r.execute(done, cancel)
