@@ -165,7 +165,7 @@ func NewWithCustomClock(workspace string, options Options, reporters Reporters, 
 					case <-timer.C:
 						if err := pair.RwConn.Tx(func(tx *sql.Tx) error {
 							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
-								return errorutil.Wrap(err)
+								log.Warn().Msgf("Error in intel processing: %v", err)
 							}
 
 							return nil

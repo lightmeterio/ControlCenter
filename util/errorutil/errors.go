@@ -24,11 +24,14 @@ func (e *Error) Unwrap() error {
 }
 
 func (e *Error) Error() string {
+	msg := e.Err.Error()
+
+	msg += fmt.Sprint("\n\tin ", e.Filename, " on line ", e.Line)
 	if len(e.Msg) > 0 {
-		return e.Msg
+		msg += fmt.Sprint(" (", e.Msg, ") ")
 	}
 
-	return e.Err.Error()
+	return msg
 }
 
 // Wrap an error adding more context such as filename and line where wrapping happened
