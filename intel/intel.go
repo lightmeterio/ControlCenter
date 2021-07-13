@@ -11,7 +11,9 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
+	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
+	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -128,9 +130,10 @@ type Options struct {
 	ReportDestinationURL string
 }
 
-func New(workspaceDir string, db *deliverydb.DB, settingsReader *meta.Reader, options Options) (*collector.Collector, error) {
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, options Options) (*collector.Collector, error) {
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
+		insights.NewReporter(fetcher),
 	}
 
 	collectorOptions := collector.Options{

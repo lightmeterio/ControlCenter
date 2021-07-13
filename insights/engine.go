@@ -433,3 +433,15 @@ func (e *Engine) RateInsight(kind string, rating uint, clock timeutil.Clock) err
 
 	return nil
 }
+
+func (e *Engine) GenerateInsight(ctx context.Context, properties core.InsightProperties) {
+	e.txActions <- func(tx *sql.Tx) error {
+		_, err := core.GenerateInsight(ctx, tx, properties)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+}
