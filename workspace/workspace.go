@@ -112,17 +112,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	intelOptions := intel.Options{
-		CycleInterval:        time.Second * 30,
-		ReportInterval:       time.Minute * 30,
-		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
-	}
-
-	intelCollector, err := intel.New(workspaceDirectory, deliveries, m.Reader, intelOptions)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
 	detectiveEscalator := escalator.New()
 
 	translators := translator.New(po.DefaultCatalog)
@@ -146,15 +135,26 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsAcessor, err := insights.NewAccessor(workspaceDirectory)
+	insightsAccessor, err := insights.NewAccessor(workspaceDirectory)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	insightsEngine, err := insights.NewEngine(
-		insightsAcessor,
+		insightsAccessor,
 		notificationCenter,
 		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	intelOptions := intel.Options{
+		CycleInterval:        time.Second * 30,
+		ReportInterval:       time.Minute * 30,
+		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
+	}
+
+	intelCollector, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -183,7 +183,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			deliveries,
 			insightsEngine,
 			m,
-			insightsAcessor,
+			insightsAccessor,
 			intelCollector,
 		),
 		NotificationCenter: notificationCenter,

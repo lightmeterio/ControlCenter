@@ -17,6 +17,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 )
 
+func NoDetectors(creator *creator, options core.Options) []core.Detector {
+	return []core.Detector{}
+}
+
 func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 	return []core.Detector{
 		highrate.NewDetector(creator, options),
