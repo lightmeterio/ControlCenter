@@ -130,8 +130,8 @@ type FakeDirectoryContent struct {
 	contents map[string]fakeFileData
 }
 
-func (f FakeDirectoryContent) fileEntries() fileEntryList {
-	return f.entries
+func (f FakeDirectoryContent) fileEntries() (fileEntryList, error) {
+	return f.entries, nil
 }
 
 func (f FakeDirectoryContent) dirName() string {
@@ -249,7 +249,9 @@ func (f FakeDirectoryContent) watcherForEntry(filename string, offset int64) (fi
 }
 
 func (f FakeDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
-	for _, e := range f.fileEntries() {
+	entries, _ := f.fileEntries()
+
+	for _, e := range entries {
 		if filename == e.filename {
 			return e.modificationTime, nil
 		}
