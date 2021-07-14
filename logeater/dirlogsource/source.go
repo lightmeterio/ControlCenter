@@ -31,7 +31,14 @@ func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnoun
 		return nil, errorutil.Wrap(err)
 	}
 
-	dir, err := dirwatcher.NewDirectoryContent(dirname, rsynced, timeFormat)
+	dir, err := func() (dirwatcher.DirectoryContent, error) {
+		if rsynced {
+			return dirwatcher.NewDirectoryContentForRsync(dirname, timeFormat, patterns)
+		}
+
+		return dirwatcher.NewDirectoryContent(dirname, timeFormat)
+	}()
+
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
