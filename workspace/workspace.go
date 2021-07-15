@@ -255,8 +255,19 @@ func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
 	return ws.escalator
 }
 
-func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {
-	return ws.importAnnouncer
+func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
+	mostRecentTime, err := ws.MostRecentLogTime()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	// first execution. Must import historical insights
+	if mostRecentTime.IsZero() {
+		return ws.importAnnouncer, nil
+	}
+
+	// otherwise skip the historical insights import
+	return announcer.Skipper(ws.importAnnouncer), nil
 }
 
 func (ws *Workspace) Auth() *auth.Auth {

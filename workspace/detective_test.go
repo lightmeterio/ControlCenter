@@ -12,7 +12,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
@@ -45,7 +44,10 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	builder, err := transform.Get("default", year)
 	So(err, ShouldBeNil)
 
-	logSource, err := filelogsource.New(reader, builder, announcer.Skipper(ws.ImportAnnouncer()))
+	importAnnouncer, err := ws.ImportAnnouncer()
+	So(err, ShouldBeNil)
+
+	logSource, err := filelogsource.New(reader, builder, importAnnouncer)
 	So(err, ShouldBeNil)
 
 	done, cancel := ws.Run()

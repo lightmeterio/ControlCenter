@@ -76,7 +76,8 @@ func main() {
 	ws, err := workspace.NewWorkspace(workspaceDir)
 	errorutil.MustSucceed(err)
 
-	importAnnouncer := ws.ImportAnnouncer()
+	importAnnouncer, err := ws.ImportAnnouncer()
+	errorutil.MustSucceed(err)
 
 	logSource, err := func() (logsource.Source, error) {
 		mostRecentTime, err := ws.MostRecentLogTime()
@@ -98,7 +99,7 @@ func main() {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return filelogsource.New(f, builder, ws.ImportAnnouncer())
+		return filelogsource.New(f, builder, importAnnouncer)
 	}()
 
 	errorutil.MustSucceed(err)
