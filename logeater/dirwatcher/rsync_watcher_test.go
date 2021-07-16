@@ -17,6 +17,31 @@ import (
 	"time"
 )
 
+func rsyncCommand(src, dst string) {
+	cmd := exec.Command("rsync", "-rav", src+"/", dst+"/")
+	if err := cmd.Start(); err != nil {
+		panic(err)
+	}
+
+	// give some time to the file rsync watcher to notice the changes. Yes, this is an ugly workaround,
+	// to prevent the unit tests to sporadically fail in the gitlab runners, which are quite flaky.
+	time.Sleep(time.Millisecond * 500)
+
+	if err := cmd.Wait(); err != nil {
+		panic(err)
+	}
+}
+
+func writeFileContentWithModificationTime(filePath string, content string, modTime time.Time) {
+	if err := ioutil.WriteFile(filePath, []byte(content), os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	if err := os.Chtimes(filePath, modTime, modTime); err != nil {
+		panic(err)
+	}
+}
+
 func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 	Convey("Keep track of logs contained in a directory updated periodically by rsync", t, func() {
 		originDir, clearOriginDir := testutil.TempDir(t)
@@ -42,19 +67,11 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 		}
 
 		syncDir := func() {
-			cmd := exec.Command("rsync", "-rav", originDir+"/", dstDir+"/")
-			So(cmd.Start(), ShouldBeNil)
-
-			// give some time to the file rsync watcher to notice the changes. Yes, this is an ugly workaround,
-			// to prevent the unit tests to sporadically fail in the gitlab runners, which are quite flaky.
-			time.Sleep(time.Millisecond * 500)
-
-			So(cmd.Wait(), ShouldBeNil)
+			rsyncCommand(originDir, dstDir)
 		}
 
 		writeFileContent := func(filename string, content string) {
-			filePath := path.Join(originDir, filename)
-			So(ioutil.WriteFile(filePath, []byte(content), os.ModePerm), ShouldBeNil)
+			writeFileContentWithModificationTime(path.Join(originDir, filename), content, time.Now())
 		}
 
 		Convey("Using some offset", func() {

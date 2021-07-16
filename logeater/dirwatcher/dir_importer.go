@@ -432,7 +432,7 @@ type fileWatcher interface {
 
 type DirectoryContent interface {
 	dirName() string
-	fileEntries() fileEntryList
+	fileEntries() (fileEntryList, error)
 	modificationTimeForEntry(filename string) (time.Time, error)
 	readerForEntry(filename string) (fileReader, error)
 	watcherForEntry(filename string, offset int64) (fileWatcher, error)
@@ -466,7 +466,10 @@ func buildQueuesForDirImporter(content DirectoryContent, patterns LogPatterns, i
 		return fileQueues{}, errorutil.Wrap(ErrLogFilesNotFound, "Could not find any matching log files in the directory: ", content.dirName(), " that are more recent than ", initialTime)
 	}
 
-	entries := content.fileEntries()
+	entries, err := content.fileEntries()
+	if err != nil {
+		return onError()
+	}
 
 	if len(entries) == 0 {
 		return onError()

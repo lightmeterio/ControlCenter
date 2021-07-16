@@ -12,7 +12,6 @@ import (
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -21,36 +20,50 @@ import (
 type localDirectoryContent struct {
 	dir     string
 	entries fileEntryList
-	rsynced bool
 	format  parsertimeutil.TimeFormat
 }
 
-func NewDirectoryContent(dir string, rsynced bool, format parsertimeutil.TimeFormat) (DirectoryContent, error) {
-	infos, err := ioutil.ReadDir(dir)
-
+func entriesForDir(dir string) (fileEntryList, error) {
+	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	entries := fileEntryList{}
 
-	for _, i := range infos {
+	for _, i := range dirEntries {
 		name := path.Join(dir, i.Name())
-		entries = append(entries, fileEntry{filename: name, modificationTime: i.ModTime()})
+
+		info, err := i.Info()
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		entry := fileEntry{filename: name, modificationTime: info.ModTime()}
+		entries = append(entries, entry)
 	}
 
-	return &localDirectoryContent{dir: dir, entries: entries, rsynced: rsynced, format: format}, nil
+	return entries, nil
+}
+
+func NewDirectoryContent(dir string, format parsertimeutil.TimeFormat) (DirectoryContent, error) {
+	entries, err := entriesForDir(dir)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &localDirectoryContent{dir: dir, entries: entries, format: format}, nil
 }
 
 func (f *localDirectoryContent) dirName() string {
 	return f.dir
 }
 
-func (f *localDirectoryContent) fileEntries() fileEntryList {
-	return f.entries
+func (f *localDirectoryContent) fileEntries() (fileEntryList, error) {
+	return f.entries, nil
 }
 
-func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func localReaderForEntry(filename string) (fileReader, error) {
 	reader, err := os.Open(filename)
 
 	if err != nil {
@@ -60,8 +73,16 @@ func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, err
 	return ensureReaderIsDecompressed(reader, filename)
 }
 
-func (f *localDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+	return localReaderForEntry(filename)
+}
+
+func localReadSeekerForEntry(filename string) (fileReadSeeker, error) {
 	return os.Open(filename)
+}
+
+func (f *localDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+	return localReadSeekerForEntry(filename)
 }
 
 type localFileWatcher struct {
@@ -84,10 +105,6 @@ func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) 
 }
 
 func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (fileWatcher, error) {
-	if f.rsynced {
-		return &rsyncedFileWatcher{filename, offset, f.format}, nil
-	}
-
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
 		ReOpen:    true,
@@ -103,12 +120,21 @@ func (f *localDirectoryContent) watcherForEntry(filename string, offset int64) (
 	return &localFileWatcher{t, filename, f.format}, nil
 }
 
-func (f *localDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
-	for _, e := range f.entries {
+func localModificationTimeForEntry(entries fileEntryList, filename string) (time.Time, error) {
+	for _, e := range entries {
 		if filename == e.filename {
 			return e.modificationTime, nil
 		}
 	}
 
 	return time.Time{}, errorutil.Wrap(fmt.Errorf("File not found: %v", filename))
+}
+
+func (f *localDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
+	t, err := localModificationTimeForEntry(f.entries, filename)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	return t, nil
 }
