@@ -23,6 +23,7 @@ export function togglePasswordShow() {
   }
 }
 
+// Functions for convenient Matomo events
 export function trackEvent(eventName, value) {
   window._paq.push(["trackEvent", eventName, value]);
 }
