@@ -111,7 +111,7 @@ func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
 		}
 		goto tr0
 tr0:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st2
 	st2:
@@ -162,7 +162,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr4:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st4
 	st4:
@@ -268,7 +268,7 @@ tr41:
 		}
 		goto tr13
 tr13:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st7
 	st7:
@@ -355,7 +355,7 @@ tr16:
 		}
 		goto st7
 tr18:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st10
 	st10:
@@ -438,7 +438,7 @@ tr22:
 //line header.gen.go:439
 		goto st0
 tr11:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st13
 	st13:
@@ -575,7 +575,7 @@ tr43:
 		}
 		goto st0
 tr33:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st21
 	st21:
@@ -592,7 +592,7 @@ tr33:
 		}
 		goto st0
 tr12:
-//line common.rl:25
+//line common.rl:29
  tokBeg = p 
 	goto st22
 	st22:
