@@ -7,6 +7,7 @@ package transform
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
 )
@@ -118,11 +119,30 @@ func TestLogstashJSON(t *testing.T) {
 
 		Convey("Succeeds", func() {
 			r, err := transformer.Transform([]byte(`{"log-source":"filebeat","@version":"1","input":{"type":"log"},"ecs":{"version":"1.6.0"},"message":"Mar 20 07:54:52 mail postfix/smtp[6807]: 586711880093: to=<XXXXXXXX>, relay=XXXXX[XXXXX]:25, delay=4.1, delays=0.15/0.01/1.4/2.5, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 6ECB0A8019A)","log-type":"mail","tags":["beats_input_codec_plain_applied"],"type":"debug","hostname":"melian","@timestamp":"2021-03-20T06:54:55.835Z","log":{"file":{"path":"/var/log/mail.log"},"offset":4020961}}`))
-			expectedTime, _ := time.Parse(time.RFC3339, `2021-03-20T06:54:55.835Z`)
+			So(err, ShouldBeNil)
+			expectedTime, err := time.Parse(time.RFC3339, `2021-03-20T06:54:55.835Z`)
 			So(err, ShouldBeNil)
 			So(r.Time, ShouldResemble, expectedTime)
 			So(r.Header.Host, ShouldEqual, "mail")
 			So(r.Location.Filename, ShouldEqual, "/var/log/mail.log")
+		})
+	})
+}
+
+func TestRFC3339(t *testing.T) {
+	Convey("Test RFC3339", t, func() {
+		builder, err := Get("rfc3339")
+		So(err, ShouldBeNil)
+
+		transformer, err := builder()
+		So(err, ShouldBeNil)
+
+		Convey("Succeeds", func() {
+			r, err := transformer.Transform([]byte(`2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`))
+			So(err, ShouldBeNil)
+			expectedTime := timeutil.MustParseTime(`2021-05-16 00:01:44 +0000`)
+			So(r.Time, ShouldResemble, expectedTime)
+			So(r.Header.Host, ShouldEqual, "mail")
 		})
 	})
 }
