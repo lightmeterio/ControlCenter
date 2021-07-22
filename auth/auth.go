@@ -185,6 +185,7 @@ func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 
 var (
 	ErrInvalidUserId = errors.New(`Invalid User ID`)
+	ErrNoUser        = errors.New(`No registered user`)
 )
 
 func (r *Auth) GetUserDataByID(ctx context.Context, id int) (*UserData, error) {
@@ -345,4 +346,24 @@ func (r *Auth) ChangePassword(ctx context.Context, email, password string) error
 	}
 
 	return nil
+}
+
+func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
+	var userData UserData
+
+	conn, release := r.connPair.RoConnPool.Acquire()
+
+	defer release()
+
+	err := conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoUser
+	}
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &userData, nil
 }
