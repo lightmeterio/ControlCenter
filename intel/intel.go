@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
+	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -130,10 +131,13 @@ type Options struct {
 	ReportDestinationURL string
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, options Options) (*collector.Collector, error) {
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+	logslinePublisher := logslinecount.NewPublisher()
+
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),
+		logslinecount.NewReporter(logslinePublisher),
 	}
 
 	collectorOptions := collector.Options{
@@ -151,8 +155,8 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 
 	c, err := collector.New(workspaceDir, collectorOptions, reporters, dispatcher)
 	if err != nil {
-		return nil, errorutil.Wrap(err)
+		return nil, nil, errorutil.Wrap(err)
 	}
 
-	return c, nil
+	return c, logslinePublisher, nil
 }
