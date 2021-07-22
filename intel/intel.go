@@ -204,10 +204,9 @@ func DefaultVersionBuilder() Version {
 }
 
 func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
-	settingsReader *meta.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
+	auth *auth.Auth, connStats *connectionstats.Stats,
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
-
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),

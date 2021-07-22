@@ -189,9 +189,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		ReportDestinationURL: IntelReportDestinationURL,
 	}
 
+
 	intelCollector, logsLineCountPublisher, err := intel.New(
 		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
 		m.Reader, auth, connStats, intelOptions)
+
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

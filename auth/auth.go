@@ -389,3 +389,23 @@ func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, 
 
 	return nil
 }
+
+func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
+	var userData UserData
+
+	conn, release := r.connPair.RoConnPool.Acquire()
+
+	defer release()
+
+	err := conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoUser
+	}
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &userData, nil
+}
