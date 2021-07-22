@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
-import { trackEvent, trackEventArray } from "@/lib/util";
+import { trackEvent, trackEventArray, updateMatomoEmail } from "@/lib/util";
 
 import axios from "axios";
 axios.defaults.withCredentials = true;
@@ -59,8 +59,10 @@ export function submitLoginForm(formData, callback) {
   axios
     .post(BASE_URL + "login", data)
     .then(function() {
-      trackEvent("Login", "success");
-      callback();
+      updateMatomoEmail().then(function() {
+        trackEvent("Login", "success");
+        callback();
+      });
     })
     .catch(function(err) {
       trackEvent("Login", "error");
@@ -142,13 +144,15 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
           new URLSearchParams(settingsFormData)
         )
         .then(function() {
-          trackEvent("RegisterAdmin", "success");
-          if (settingsData.subscribe_newsletter) {
-            trackEvent("RegisterAdmin", "newsletterOn");
-          }
-          trackEvent("RegisterAdmin", settingsData.email_kind);
+          updateMatomoEmail().then(function() {
+            trackEvent("RegisterAdmin", "success");
+            if (settingsData.subscribe_newsletter) {
+              trackEvent("RegisterAdmin", "newsletterOn");
+            }
+            trackEvent("RegisterAdmin", settingsData.email_kind);
 
-          redirect();
+            redirect();
+          });
         })
         .catch(builderErrorHandler("initSetup"));
     })

@@ -30,7 +30,7 @@ func TestSessionKey(t *testing.T) {
 		var generatedKey, recoveredKey [][]byte
 
 		// NOTE: for now we are generating only one key, but
-		// gennerating multiple ones is desirable
+		// generating multiple ones is desirable
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
 			defer func() { So(auth.Close(), ShouldBeNil) }()
@@ -62,10 +62,15 @@ func TestAuth(t *testing.T) {
 		So(auth, ShouldNotBeNil)
 		defer func() { So(auth.Close(), ShouldBeNil) }()
 
-		Convey("No user is initially registred", func() {
+		Convey("No user is initially registered", func() {
 			ok, err := auth.HasAnyUser(dummyContext)
 			So(err, ShouldBeNil)
 			So(ok, ShouldBeFalse)
+
+			Convey("GetFirstUser returns no user", func() {
+				_, err = auth.GetFirstUser(dummyContext)
+				So(err, ShouldEqual, ErrNoUser)
+			})
 
 			Convey("Login fails", func() {
 				ok, _, err := auth.Authenticate(dummyContext, "user@example.com", "password")
@@ -158,6 +163,14 @@ func TestAuth(t *testing.T) {
 				_, err = auth.Register(dummyContext, "user@email.com", "Another Valid User", `67567567HGFHGFHGhgfghfhg***&*`)
 				So(errors.Is(err, ErrUserAlreadyRegistred), ShouldBeTrue)
 			})
+
+			Convey("GetFirstUser returns the user registered first", func() {
+				firstUser, err := auth.GetFirstUser(dummyContext)
+				So(err, ShouldBeNil)
+				So(firstUser.Id, ShouldEqual, 1)
+				So(firstUser.Email, ShouldEqual, "user.one@example.com")
+				So(firstUser.Name, ShouldEqual, "User One")
+			})
 		})
 
 		Convey("Register User", func() {
@@ -206,6 +219,14 @@ func TestAuth(t *testing.T) {
 				So(userData.Id, ShouldEqual, 1)
 				So(userData.Email, ShouldEqual, "user@example.com")
 				So(userData.Name, ShouldEqual, "Name Surname")
+			})
+
+			Convey("GetFirstUser succeeds", func() {
+				firstUser, err := auth.GetFirstUser(dummyContext)
+				So(err, ShouldBeNil)
+				So(firstUser.Id, ShouldEqual, 1)
+				So(firstUser.Email, ShouldEqual, "user@example.com")
+				So(firstUser.Name, ShouldEqual, "Name Surname")
 			})
 		})
 	})

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getUserInfo } from "@/lib/api.js";
+
 export function togglePasswordShow() {
   let attrValue = document
     .querySelector("#show_hide_password input")
@@ -33,4 +35,10 @@ export function trackEventArray(eventName, value) {
 
 export function trackClick(eventName, value) {
   window._paq.push(["trackEvent", eventName, value]);
+}
+
+export function updateMatomoEmail() {
+  return getUserInfo().then(function(userInfo) {
+    window._paq.push(["setCustomDimension", 2, userInfo.data.Email]);
+  });
 }
