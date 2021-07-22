@@ -43,13 +43,14 @@ type Workspace struct {
 	runner.CancelableRunner
 	closeutil.Closers
 
-	deliveries     *deliverydb.DB
-	tracker        *tracking.Tracker
-	insightsEngine *insights.Engine
-	auth           *auth.Auth
-	rblDetector    *messagerbl.Detector
-	rblChecker     localrbl.Checker
-	intelCollector *collector.Collector
+	deliveries             *deliverydb.DB
+	tracker                *tracking.Tracker
+	insightsEngine         *insights.Engine
+	auth                   *auth.Auth
+	rblDetector            *messagerbl.Detector
+	rblChecker             localrbl.Checker
+	intelCollector         *collector.Collector
+	logsLineCountPublisher postfix.Publisher
 
 	dashboard dashboard.Dashboard
 	detective detective.Detective
@@ -171,7 +172,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
 	}
 
-	intelCollector, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, intelOptions)
+	intelCollector, logsLineCountPublisher, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -181,19 +182,20 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
 	ws := &Workspace{
-		deliveries:          deliveries,
-		tracker:             tracker,
-		insightsEngine:      insightsEngine,
-		auth:                auth,
-		rblDetector:         rblDetector,
-		rblChecker:          rblChecker,
-		dashboard:           dashboard,
-		detective:           messageDetective,
-		escalator:           detectiveEscalator,
-		settingsMetaHandler: m,
-		settingsRunner:      settingsRunner,
-		importAnnouncer:     importAnnouncer,
-		intelCollector:      intelCollector,
+		deliveries:             deliveries,
+		tracker:                tracker,
+		insightsEngine:         insightsEngine,
+		auth:                   auth,
+		rblDetector:            rblDetector,
+		rblChecker:             rblChecker,
+		dashboard:              dashboard,
+		detective:              messageDetective,
+		escalator:              detectiveEscalator,
+		settingsMetaHandler:    m,
+		settingsRunner:         settingsRunner,
+		importAnnouncer:        importAnnouncer,
+		intelCollector:         intelCollector,
+		logsLineCountPublisher: logsLineCountPublisher,
 		Closers: closeutil.New(
 			auth,
 			tracker,
@@ -299,7 +301,7 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
-	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher()}
+	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher(), ws.logsLineCountPublisher}
 }
 
 func (ws *Workspace) HasLogs() bool {
