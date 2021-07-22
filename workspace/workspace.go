@@ -172,7 +172,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
 	}
 
-	intelCollector, logsLineCountPublisher, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, intelOptions)
+	intelCollector, logsLineCountPublisher, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, auth, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
