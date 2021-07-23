@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
+	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -170,6 +171,7 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),
 		logslinecount.NewReporter(logslinePublisher),
+		topdomains.NewReporter(db.ConnPool()),
 	}
 
 	collectorOptions := collector.Options{
