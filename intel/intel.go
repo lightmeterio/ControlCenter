@@ -30,6 +30,8 @@ import (
 	"time"
 )
 
+const SettingKey = "uuid"
+
 type Metadata struct {
 	InstanceID     string  `json:"instance_id"`
 	LocalIP        *string `json:"postfix_public_ip,omitempty"`
@@ -223,7 +225,6 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
 	dispatcher := &Dispatcher{
 		InstanceID:           options.InstanceID,
 		VersionBuilder:       DefaultVersionBuilder,
-		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,
 	}
