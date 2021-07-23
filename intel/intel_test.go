@@ -92,6 +92,7 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			err = (&Dispatcher{
+				InstanceID:           "my-best-uuid",
 				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
@@ -107,6 +108,7 @@ func TestReports(t *testing.T) {
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
 				"metadata": map[string]interface{}{
+					"instance_id":       "my-best-uuid",
 					"postfix_public_ip": "127.0.0.2",
 					"public_url":        "https://example.com",
 					"user_email":        email,
@@ -130,6 +132,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Do not send settings if not available", func() {
 			err = (&Dispatcher{
+				InstanceID:           "my-best-uuid",
 				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
@@ -144,7 +147,7 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{"user_email": email},
+				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid"},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
