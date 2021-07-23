@@ -167,6 +167,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}
 
 	intelOptions := intel.Options{
+		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
 		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
