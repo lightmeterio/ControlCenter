@@ -25,10 +25,13 @@ import (
 	"time"
 )
 
+const SettingKey = "uuid"
+
 type Metadata struct {
-	LocalIP   *string `json:"postfix_public_ip,omitempty"`
-	PublicURL *string `json:"public_url,omitempty"`
-	UserEmail *string `json:"user_email,omitempty"`
+	InstanceID string  `json:"instance_id"`
+	LocalIP    *string `json:"postfix_public_ip,omitempty"`
+	PublicURL  *string `json:"public_url,omitempty"`
+	UserEmail  *string `json:"user_email,omitempty"`
 }
 
 type Version struct {
@@ -44,6 +47,7 @@ type ReportWithMetadata struct {
 }
 
 type Dispatcher struct {
+	InstanceID           string
 	versionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
@@ -54,7 +58,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	metadata, err := func() (Metadata, error) {
-		metadata := Metadata{}
+		metadata := Metadata{InstanceID: d.InstanceID}
 
 		userData, err := d.Auth.GetFirstUser(context.Background())
 		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
@@ -144,7 +148,9 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 }
 
 type Options struct {
-	// How often should the c
+	InstanceID string
+
+	// How often should the intel loop should run
 	CycleInterval time.Duration
 
 	// How often should the reports be dispatched/sent?
@@ -167,6 +173,7 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 	}
 
 	dispatcher := &Dispatcher{
+		InstanceID: options.InstanceID,
 		versionBuilder: func() Version {
 			return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 		},

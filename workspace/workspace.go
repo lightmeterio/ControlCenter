@@ -5,6 +5,9 @@
 package workspace
 
 import (
+	"context"
+	"errors"
+	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
@@ -97,8 +100,22 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	settingsRunner := meta.NewRunner(m)
 
-	if err != nil {
+	// determine instance ID from the database, or create one
+
+	var instanceID string
+	err = m.Reader.RetrieveJson(context.Background(), intel.SettingKey, &instanceID)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
+	}
+
+	if errors.Is(err, meta.ErrNoSuchKey) {
+		instanceID = uuid.NewV4().String()
+		err := m.Writer.StoreJson(context.Background(), intel.SettingKey, instanceID)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
 	}
 
 	dashboard, err := dashboard.New(deliveries.ConnPool())
@@ -150,6 +167,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}
 
 	intelOptions := intel.Options{
+		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
 		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
