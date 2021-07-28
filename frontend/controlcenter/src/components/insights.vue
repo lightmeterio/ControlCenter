@@ -292,7 +292,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <span>{{ insight.modTime }}</span>
                 <div
                   v-if="showUserRating(insight)"
-                  :ref="'userRating' + insight.id"
                   class="user-rating d-flex flex-wrap align-items-center"
                 >
                   <span>
@@ -338,6 +337,7 @@ import { getApplicationInfo, postUserRating } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 import linkify from "vue-linkify";
 import Vue from "vue";
+import { mapActions } from "vuex";
 
 Vue.directive("linkified", linkify);
 
@@ -418,8 +418,11 @@ export default {
         if (i.content_type == insight.content_type) return i.id == insight.id;
     },
     sendUserRating(insight, rating) {
+      let vue = this;
       insight.user_rating_old = false; // hide rating div before next insights refresh
-      postUserRating(insight.content_type, rating);
+      postUserRating(insight.content_type, rating).then(function() {
+        vue.newAlertSuccess(vue.$gettext("Thank you for your feedback"));
+      });
     },
     countDetectiveIssues(insight) {
       return Object.keys(insight.content.messages).length;
@@ -714,7 +717,8 @@ export default {
       };
 
       this.$router.push({ name: "detective", params: params });
-    }
+    },
+    ...mapActions(["newAlertSuccess"])
   }
 };
 

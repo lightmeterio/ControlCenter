@@ -6,6 +6,7 @@ const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
 import { trackEvent, trackEventArray, updateMatomoEmail } from "@/lib/util";
 
 import axios from "axios";
+import { newAlertError, newAlertSuccess } from "@/lib/util.js";
 axios.defaults.withCredentials = true;
 import Vue from "vue";
 
@@ -48,7 +49,7 @@ export function submitGeneralForm(data, successMessage) {
     .then(function() {
       trackEvent("SaveGeneralSettings", "success");
       if (successMessage !== false) {
-        alert(Vue.prototype.$gettext("Saved general settings"));
+        newAlertSuccess(Vue.prototype.$gettext("Saved general settings"));
       }
     })
     .catch(builderErrorHandler("setting_general"));
@@ -83,7 +84,7 @@ export function submitNotificationsSettingsForm(data, trackingInfo) {
         trackEventArray("SaveNotificationSettings", [i, trackingInfo[i]]);
       }
 
-      alert(Vue.prototype.$gettext("Saved notification settings"));
+      newAlertSuccess(Vue.prototype.$gettext("Saved notification settings"));
     })
     .catch(builderErrorHandler("settings"));
 }
@@ -99,7 +100,9 @@ export function submitDetectiveSettingsForm(data, enabled) {
     .then(function() {
       trackEvent("MessageDetectiveEndUsers", enabled ? "enabled" : "disabled");
 
-      alert(Vue.prototype.$gettext("Saved message detective settings"));
+      newAlertSuccess(
+        Vue.prototype.$gettext("Saved message detective settings")
+      );
     })
     .catch(builderErrorHandler("settings"));
 }
@@ -174,7 +177,7 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
           description: err.response.data.detailed.Sequence[0].pattern
         });
 
-        alert(errMessage + "\n" + descMessage);
+        newAlertError(errMessage + "\n" + descMessage);
 
         return;
       }
@@ -273,7 +276,7 @@ function alertError(response, eventName) {
   let translation = Vue.prototype.$gettext("Error: %{err}");
   let message = Vue.prototype.$gettextInterpolate(translation, { err: errMsg });
 
-  alert(message);
+  newAlertError(message);
 }
 
 export function requestWalkthroughCompletedStatus(completed) {
