@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/auth"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -52,10 +53,20 @@ func TestReports(t *testing.T) {
 		s := httptest.NewServer(handler)
 
 		conn, clear := testutil.TempDBConnection(t)
-
 		defer clear()
 
 		m, err := meta.NewHandler(conn, "master")
+		So(err, ShouldBeNil)
+
+		dir, clearDir := testutil.TempDir(t)
+		defer clearDir()
+
+		auth, err := auth.NewAuth(dir, auth.Options{})
+		So(err, ShouldBeNil)
+
+		email := "user@lightmeter.io"
+
+		_, err = auth.Register(context.Background(), email, "username", "that_password_5689")
 		So(err, ShouldBeNil)
 
 		Convey("Server error should not cause the dispatching to fail", func() {
@@ -63,6 +74,7 @@ func TestReports(t *testing.T) {
 				versionBuilder:       fakeVersion,
 				ReportDestinationURL: "http://completely_wrong_url",
 				SettingsReader:       m.Reader,
+				Auth:                 auth,
 			}).Dispatch(collector.Report{})
 
 			So(err, ShouldBeNil)
@@ -80,9 +92,11 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			err = (&Dispatcher{
+				InstanceID:           "my-best-uuid",
 				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
+				Auth:                 auth,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Content: []collector.ReportEntry{
@@ -94,8 +108,10 @@ func TestReports(t *testing.T) {
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
 				"metadata": map[string]interface{}{
+					"instance_id":       "my-best-uuid",
 					"postfix_public_ip": "127.0.0.2",
 					"public_url":        "https://example.com",
+					"user_email":        email,
 				},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
@@ -116,9 +132,11 @@ func TestReports(t *testing.T) {
 
 		Convey("Do not send settings if not available", func() {
 			err = (&Dispatcher{
+				InstanceID:           "my-best-uuid",
 				versionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
+				Auth:                 auth,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Content: []collector.ReportEntry{
@@ -129,7 +147,7 @@ func TestReports(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{},
+				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid"},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{

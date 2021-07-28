@@ -10,7 +10,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/config"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
@@ -33,7 +32,7 @@ func main() {
 		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
 	}
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Str("instanceid", uuid.NewV4().String()).Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Caller().Logger()
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
@@ -46,9 +45,9 @@ func main() {
 		return
 	}
 
-	liabilityDisclamer := `This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see here for details: https://lightmeter.io/lmcc-license.`
+	liabilityDisclaimer := `This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see here for details: https://lightmeter.io/lmcc-license.`
 
-	log.Info().Msg(liabilityDisclamer)
+	log.Info().Msg(liabilityDisclaimer)
 
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 

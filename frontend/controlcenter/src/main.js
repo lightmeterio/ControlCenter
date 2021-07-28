@@ -36,6 +36,7 @@ import authpagefooter from "./components/auth-page-footer";
 import panelpage from "./components/panelpage";
 import mainheader from "./components/mainheader";
 import graphdashboard from "./components/graph-dashboard";
+import alerts from "./components/alerts";
 import mainfooter from "./components/mainfooter";
 import insights from "./components/insights";
 import langaugeSwitcher from "./components/langauge-switcher";
@@ -50,6 +51,7 @@ Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
 Vue.component("langauge-switcher", langaugeSwitcher);
 Vue.component("auth-page-footer", authpagefooter);
+Vue.component("alerts", alerts);
 Vue.component("mainfooter", mainfooter);
 Vue.component("mainheader", mainheader);
 Vue.component("panel-page", panelpage);
@@ -85,9 +87,13 @@ Vue.use(GetTextPlugin, {
   silent: true
 });
 
-import { getApplicationInfo } from "./lib/api.js";
+import {
+  getApplicationInfo,
+  getIsNotLoginOrNotRegistered,
+  getUserInfo
+} from "./lib/api.js";
 
-getApplicationInfo().then(function(response) {
+function initMatomo(appVersion, userEmail = "not-logged-in") {
   Vue.use(VueMatomo, {
     host: "https://matomo.lightmeter.io/",
     siteId: 3,
@@ -156,9 +162,23 @@ getApplicationInfo().then(function(response) {
     //   ['appendToTrackingUrl', 'new_visit=1'],
     //   etc.
     // ]
-    preInitActions: [["setCustomDimension", 1, response.data.version]]
+    preInitActions: [
+      ["setCustomDimension", 1, appVersion],
+      ["setCustomDimension", 2, userEmail]
+    ]
   });
-  Vue.prototype.$appInfo = response.data;
+}
+
+getApplicationInfo().then(function(appInfo) {
+  getIsNotLoginOrNotRegistered()
+    .then(function() {
+      getUserInfo().then(function(userInfo) {
+        initMatomo(appInfo.data.version, userInfo.data.Email);
+      });
+    })
+    .catch(function() {
+      initMatomo(appInfo.data.version, "not-logged-in");
+    });
 });
 
 Vue.config.productionTip = false;

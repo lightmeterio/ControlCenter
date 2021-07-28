@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
@@ -24,9 +25,13 @@ import (
 	"time"
 )
 
+const SettingKey = "uuid"
+
 type Metadata struct {
-	LocalIP   *string `json:"postfix_public_ip,omitempty"`
-	PublicURL *string `json:"public_url,omitempty"`
+	InstanceID string  `json:"instance_id"`
+	LocalIP    *string `json:"postfix_public_ip,omitempty"`
+	PublicURL  *string `json:"public_url,omitempty"`
+	UserEmail  *string `json:"user_email,omitempty"`
 }
 
 type Version struct {
@@ -42,18 +47,31 @@ type ReportWithMetadata struct {
 }
 
 type Dispatcher struct {
+	InstanceID           string
 	versionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
+	Auth                 *auth.Auth
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
 	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	metadata, err := func() (Metadata, error) {
+		metadata := Metadata{InstanceID: d.InstanceID}
+
+		userData, err := d.Auth.GetFirstUser(context.Background())
+		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
+			return Metadata{}, errorutil.Wrap(err)
+		}
+
+		if err == nil {
+			metadata.UserEmail = &userData.Email
+		}
+
 		settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
 		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
-			return Metadata{}, nil
+			return metadata, nil // still returns the email
 		}
 
 		if err != nil {
@@ -64,7 +82,15 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 			return &s
 		}
 
-		ip := func() *string {
+		metadata.PublicURL = func() *string {
+			if settings.PublicURL != "" {
+				return addr(settings.PublicURL)
+			}
+
+			return nil
+		}()
+
+		metadata.LocalIP = func() *string {
 			if settings.LocalIP != nil {
 				return addr(settings.LocalIP.String())
 			}
@@ -72,7 +98,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 			return nil
 		}()
 
-		return Metadata{LocalIP: ip, PublicURL: addr(settings.PublicURL)}, nil
+		return metadata, nil
 	}()
 
 	if err != nil {
@@ -122,7 +148,9 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 }
 
 type Options struct {
-	// How often should the c
+	InstanceID string
+
+	// How often should the intel loop should run
 	CycleInterval time.Duration
 
 	// How often should the reports be dispatched/sent?
@@ -131,9 +159,8 @@ type Options struct {
 	ReportDestinationURL string
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, auth *auth.Auth, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
-
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),
@@ -146,11 +173,13 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 	}
 
 	dispatcher := &Dispatcher{
+		InstanceID: options.InstanceID,
 		versionBuilder: func() Version {
 			return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 		},
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
+		Auth:                 auth,
 	}
 
 	c, err := collector.New(workspaceDir, collectorOptions, reporters, dispatcher)

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getUserInfo } from "@/lib/api.js";
+
 export function togglePasswordShow() {
   let attrValue = document
     .querySelector("#show_hide_password input")
@@ -34,4 +36,32 @@ export function trackEventArray(eventName, value) {
 
 export function trackClick(eventName, value) {
   window._paq.push(["trackEvent", eventName, value]);
+}
+
+export function updateMatomoEmail() {
+  return getUserInfo().then(function(userInfo) {
+    window._paq.push(["setCustomDimension", 2, userInfo.data.Email]);
+  });
+}
+
+// NOTE: This is not ideal and code should rather use their context vue wherever possible
+function getStore() {
+  if (
+    !document.getElementById("app") ||
+    !document.getElementById("app").__vue__ ||
+    !document.getElementById("app").__vue__.$store
+  )
+    return false;
+
+  return document.getElementById("app").__vue__.$store;
+}
+
+export function newAlertError(message) {
+  let store = getStore();
+  store ? store.dispatch("newAlertError", message) : alert(message);
+}
+
+export function newAlertSuccess(message) {
+  let store = getStore();
+  store ? store.dispatch("newAlertSuccess", message) : alert(message);
 }
