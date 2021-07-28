@@ -56,3 +56,25 @@ export function updateMatomoEmail() {
     window._paq.push(["setCustomDimension", 2, userInfo.data.user.email]);
   });
 }
+
+// NOTE: This is not ideal and code should rather use their context vue wherever possible
+function getStore() {
+  if (
+    !document.getElementById("app") ||
+    !document.getElementById("app").__vue__ ||
+    !document.getElementById("app").__vue__.$store
+  )
+    return false;
+
+  return document.getElementById("app").__vue__.$store;
+}
+
+export function newAlertError(message) {
+  let store = getStore();
+  store ? store.dispatch("newAlertError", message) : alert(message);
+}
+
+export function newAlertSuccess(message) {
+  let store = getStore();
+  store ? store.dispatch("newAlertSuccess", message) : alert(message);
+}
