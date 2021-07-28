@@ -434,14 +434,14 @@ A message can have one of the following states:
 
 You can enable the message detective for any unauthenticated users in the Settings Page. 
 
-An authenticated user that you have provided the link to can check the fate of a message independently using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
+Any user (whom you have provided the link to) can check the fate of a message independently, using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
 
 In addition, the user will also have the option to Escalate any Bounced and Expired results to the mail server admin.
 Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further. 
 If you have notifications enabled, this will also trigger a notification. 
 
-If you enable the message detective for your end-users, make sure to share the public page URL with them.  
-Rate limiting is applied on the number of searches, with a current maximum of 20 searches. 
+If you enable the message detective for your end-users, make sure to share the public page URL with them.
+Rate limiting is applied on the number of searches, with a current maximum of 20 searches every 10 minutes.
 
 
 ## Known issues
