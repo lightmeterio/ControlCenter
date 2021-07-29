@@ -237,7 +237,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 	properties := core.InsightProperties{
 		Time:        c.Now(),
 		Category:    core.LocalCategory,
-		Rating:      core.BadRating,
+		Rating:      core.OkRating,
 		ContentType: ContentType,
 		Content: Content{
 			Interval: interval,

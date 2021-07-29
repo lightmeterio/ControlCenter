@@ -159,6 +159,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			So(insights[0].ID(), ShouldEqual, 1)
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
+			So(insights[0].Rating(), ShouldEqual, core.OkRating)
 			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour*8))
 			So(insights[0].Content(), ShouldResemble, &Content{
 				Interval: timeutil.TimeInterval{
