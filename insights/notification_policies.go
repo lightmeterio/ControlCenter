@@ -19,6 +19,10 @@ func (DefaultNotificationPolicy) Reject(n notification.Notification) (bool, erro
 		return true, nil
 	}
 
+	if p.MustBeNotified {
+		return false, nil
+	}
+
 	if _, ok = p.Content.(detectiveescalation.Content); ok {
 		return false, nil
 	}
