@@ -519,11 +519,12 @@ func NewCreator(conn dbconn.RwConn) (*DBCreator, error) {
 }
 
 type InsightProperties struct {
-	Time        time.Time `json:"time"`
-	Category    Category  `json:"category"`
-	Rating      Rating    `json:"rating"`
-	ContentType string    `json:"content_type"`
-	Content     Content   `json:"content"`
+	Time           time.Time `json:"time"`
+	Category       Category  `json:"category"`
+	Rating         Rating    `json:"rating"`
+	ContentType    string    `json:"content_type"`
+	Content        Content   `json:"content"`
+	MustBeNotified bool      `json:"-"`
 }
 
 func (p InsightProperties) Title() notificationCore.ContentComponent {
