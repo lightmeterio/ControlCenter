@@ -8,56 +8,14 @@ import (
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
 )
 
-// allows something to be seen only if before the user registration ends or the user is authenticated
-// TODO: implement unit tests for this function
-// TODO: maybe move it to a more suitable place, as it could be useful to more use cases
-func requireAuthenticationOnlyAfterSystemHasAnyUser(auth *httpauth.Authenticator) httpmiddleware.Middleware {
-	return func(h httpmiddleware.CustomHTTPHandler) httpmiddleware.CustomHTTPHandler {
-		return httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-			// the progress endpoint can only be accessed in case the user is authenticated
-			// or the system registration has not finished yet (aka. no users are registred)
-			hasAnyUser, err := auth.Registrar.HasAnyUser(r.Context())
-			if err != nil {
-				return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
-			}
-
-			if !hasAnyUser {
-				// still pre-registration. Go ahead with the request
-				if err := h.ServeHTTP(w, r); err != nil {
-					return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
-				}
-
-				return nil
-			}
-
-			// Here the user must be authenticated
-			sessionData, err := httpauth.GetSessionData(auth, r)
-			if err != nil {
-				return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errorutil.Wrap(err))
-			}
-
-			if !sessionData.IsAuthenticated() {
-				return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, httpauth.ErrUnauthenticated)
-			}
-
-			if err := h.ServeHTTP(w, r); err != nil {
-				return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
-			}
-
-			return nil
-		})
-	}
-}
-
 func HttpInsightsProgress(auth *httpauth.Authenticator, mux *http.ServeMux, p core.ProgressFetcher) {
 	mux.Handle("/api/v0/importProgress", httpmiddleware.New(
-		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireAuthenticationOnlyAfterSystemHasAnyUser(auth),
+		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), httpmiddleware.RequireAuthenticationOnlyAfterSystemHasAnyUser(auth),
 	).WithEndpoint(importProgressHandler{f: p}))
 }
 
