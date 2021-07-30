@@ -592,6 +592,18 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(countConnectionData(), ShouldEqual, 0)
 					So(countPids(), ShouldEqual, 0)
 				})
+
+				Convey("Virtual local delivery is inbound", func() {
+					postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/22_virtual_delivery.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 1)
+
+					So(pub.results[0][ResultRecipientDomainPartKey].Text(), ShouldEqual, "recipient.example.com")
+					So(pub.results[0][QueueSenderDomainPartKey].Text(), ShouldEqual, "sender.example.com")
+					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
+				})
 			})
 
 			// we expected all results to have been consumed
