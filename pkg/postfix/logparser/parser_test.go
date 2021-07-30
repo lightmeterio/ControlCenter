@@ -641,3 +641,31 @@ func TestRFC3339Time(t *testing.T) {
 		So(h.Time.Second, ShouldEqual, 42)
 	})
 }
+
+func TestVirtualParsing(t *testing.T) {
+	Convey("Virtual delivery uses the same syntax as smtp delivery", t, func() {
+		header, parsed, err := Parse([]byte(`Jul 25 06:17:23 mail postfix/virtual[2438]: 9BD26E0D25: to=<reci@pient.com>, orig_to=<orig@recipient.com>, relay=virtual, delay=1.3, delays=1.2/0.02/0/0.04, dsn=2.0.0, status=sent (delivered to maildir)`))
+		So(parsed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+
+		So(header.Time.Day, ShouldEqual, 25)
+		So(header.Time.Month, ShouldEqual, time.July)
+		So(header.Time.Hour, ShouldEqual, 6)
+		So(header.Time.Minute, ShouldEqual, 17)
+		So(header.Time.Second, ShouldEqual, 23)
+		So(header.Host, ShouldEqual, "mail")
+		So(header.Process, ShouldEqual, "postfix")
+		So(header.Daemon, ShouldEqual, "virtual")
+
+		So(p.Queue, ShouldEqual, "9BD26E0D25")
+		So(p.RecipientLocalPart, ShouldEqual, "reci")
+		So(p.RecipientDomainPart, ShouldEqual, "pient.com")
+		So(p.OrigRecipientLocalPart, ShouldEqual, "orig")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "recipient.com")
+		So(p.RelayName, ShouldEqual, "virtual")
+		So(p.Status, ShouldEqual, SentStatus)
+		So(p.ExtraMessage, ShouldEqual, `(delivered to maildir)`)
+	})
+}
