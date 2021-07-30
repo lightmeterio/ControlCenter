@@ -71,7 +71,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Server error should not cause the dispatching to fail", func() {
 			err = (&Dispatcher{
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: "http://completely_wrong_url",
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
@@ -93,7 +93,7 @@ func TestReports(t *testing.T) {
 
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
@@ -133,7 +133,7 @@ func TestReports(t *testing.T) {
 		Convey("Do not send settings if not available", func() {
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
