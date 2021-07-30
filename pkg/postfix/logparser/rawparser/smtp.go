@@ -9,6 +9,7 @@ func init() {
 	registerHandler("postfix", "lmtp", parseSmtpPayload)
 	registerHandler("postfix", "pipe", parseSmtpPayload)
 	registerHandler("postfix", "local", parseSmtpPayload)
+	registerHandler("postfix", "virtual", parseSmtpPayload)
 }
 
 type RawSmtpSentStatus struct {
