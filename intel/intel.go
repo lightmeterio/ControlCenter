@@ -48,7 +48,7 @@ type ReportWithMetadata struct {
 
 type Dispatcher struct {
 	InstanceID           string
-	versionBuilder       func() Version
+	VersionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
 	Auth                 *auth.Auth
@@ -106,7 +106,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	}
 
 	reportWithMetadata := ReportWithMetadata{
-		Version:  d.versionBuilder(),
+		Version:  d.VersionBuilder(),
 		Metadata: metadata,
 		Payload:  r,
 	}
@@ -159,8 +159,13 @@ type Options struct {
 	ReportDestinationURL string
 }
 
+func DefaultVersionBuilder() Version {
+	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
+}
+
 func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, auth *auth.Auth, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
+
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),
@@ -173,10 +178,8 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 	}
 
 	dispatcher := &Dispatcher{
-		InstanceID: options.InstanceID,
-		versionBuilder: func() Version {
-			return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
-		},
+		InstanceID:           options.InstanceID,
+		VersionBuilder:       DefaultVersionBuilder,
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,

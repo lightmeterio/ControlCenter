@@ -65,6 +65,7 @@ func main() {
 	dispatcher := intel.Dispatcher{
 		ReportDestinationURL: *serverURL,
 		SettingsReader:       m.Reader,
+		VersionBuilder:       intel.DefaultVersionBuilder,
 	}
 
 	err = dispatcher.Dispatch(collector.Report{
