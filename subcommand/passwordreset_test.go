@@ -26,7 +26,7 @@ func TestDatabaseRegisterUsername(t *testing.T) {
 			auth, err := auth.NewAuth(dir, auth.Options{})
 			ShouldBeNil(err)
 
-			email := "marcel@lightmeter.com"
+			email := "marcel@lightmeter.io"
 
 			_, err = auth.Register(context.Background(), email, "donutloop", "l;sdkfl;s;ldfkkl")
 			ShouldBeNil(err)

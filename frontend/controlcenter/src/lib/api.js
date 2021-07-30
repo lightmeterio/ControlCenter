@@ -181,8 +181,18 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
 
         return;
       }
+      // matomo-log the wrong email address
+      if (
+        err.response.data.error == "Please use a valid work email address" ||
+        err.response.data.error ==
+          "This domain does not seem configured for email (no MX record found)"
+      )
+        trackEvent(
+          "RegistrationInvalidEmail",
+          registrationFormData.get("email")
+        );
 
-      alertError(err, "register");
+      alertError(err.response, "register");
     });
 }
 
