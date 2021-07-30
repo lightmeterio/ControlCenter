@@ -17,11 +17,24 @@ var (
 	ErrEmailAddressNotFound = errors.New("Email Address Not Found")
 	ErrWeakPassword         = errors.New("Weak Password")
 	ErrInvalidName          = errors.New("Invalid Name")
+
+	// ATTENTION: the following two error messages are matched in frontend/controlcenter/src/lib/api.js
+	ErrDisposableEmail = errors.New("Please use a valid work email address")
+	ErrNoMX            = errors.New("This domain does not seem configured for email (no MX record found)")
+	// END
 )
 
 func validateEmail(email string) error {
 	if !emailutil.IsValidEmailAddress(email) {
 		return ErrInvalidEmail
+	}
+
+	if !emailutil.HasMX(email) {
+		return ErrNoMX
+	}
+
+	if emailutil.IsDisposableEmailAddress(email) {
+		return ErrDisposableEmail
 	}
 
 	return nil
