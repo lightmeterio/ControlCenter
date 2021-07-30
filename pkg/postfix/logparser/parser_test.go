@@ -603,6 +603,16 @@ func TestSmtpdMailAccepted(t *testing.T) {
 	})
 }
 
+func TestLongQueueId(t *testing.T) {
+	Convey("Long queue id (gitlab issue #504)", t, func() {
+		_, payload, err := Parse([]byte(`Jan 25 06:32:43 mx postfix/smtpd[26382]: 3Pt2mN2VXxznjll: client=h-a4984b7e1cf68ab295d77c5df3[224.93.112.97]`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(SmtpdMailAccepted)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, "3Pt2mN2VXxznjll")
+	})
+}
+
 func TestCleanupMilterReject(t *testing.T) {
 	Convey("Milter reject", t, func() {
 		_, payload, err := Parse([]byte(`Jan 25 18:54:51 mx postfix/cleanup[8966]: B37FD2E05B9: milter-reject: END-OF-MESSAGE from h-ca74a0a011076cd81347f8f11e[254.65.43.194]: 4.7.1 Try again later; from=<bounce+1b6a63.922c68-user=h-ffd2115d4f@h-79b594737831a5d176dabf9.com> to=<h-7abde52c2@h-ffd2115d4f.com> proto=ESMTP helo=<h-ca74a0a011076cd81347f8f11e>`))
