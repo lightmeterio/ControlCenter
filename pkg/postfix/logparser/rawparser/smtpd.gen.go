@@ -8,10 +8,22 @@
 
 package rawparser
 
+import "strconv"
 
-//line smtpd.rl:10
+func mustConvertToInt(s []byte) int {
+	v, err := strconv.Atoi(string(s))
+  if err != nil {
+    // NOTE: only use it when you know the input is really a number!
+    panic(err)
+  }
+  return v
+}
 
-//line smtpd.gen.go:15
+
+
+//line smtpd.rl:22
+
+//line smtpd.gen.go:27
 const smtpdConnect_start int = 1
 const smtpdConnect_first_final int = 18
 const smtpdConnect_error int = 0
@@ -19,7 +31,7 @@ const smtpdConnect_error int = 0
 const smtpdConnect_en_main int = 1
 
 
-//line smtpd.rl:11
+//line smtpd.rl:23
 
 func parseSmtpdConnect(data []byte) (SmtpdConnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -30,12 +42,12 @@ func parseSmtpdConnect(data []byte) (SmtpdConnect, bool) {
 	r := SmtpdConnect{}
 
 
-//line smtpd.gen.go:34
+//line smtpd.gen.go:46
 	{
 	cs = smtpdConnect_start
 	}
 
-//line smtpd.gen.go:39
+//line smtpd.gen.go:51
 	{
 	if p == pe {
 		goto _test_eof
@@ -216,15 +228,15 @@ tr14:
 			goto _test_eof15
 		}
 	st_case_15:
-//line smtpd.gen.go:220
+//line smtpd.gen.go:232
 		if data[p] == 91 {
 			goto tr16
 		}
 		goto st15
 tr16:
-//line smtpd.rl:23
+//line smtpd.rl:35
 
-    r.Host = data[tokBeg:p] 
+    r.Host = data[tokBeg:p]
   
 	goto st16
 	st16:
@@ -232,7 +244,7 @@ tr16:
 			goto _test_eof16
 		}
 	st_case_16:
-//line smtpd.gen.go:236
+//line smtpd.gen.go:248
 		if data[p] == 93 {
 			goto st0
 		}
@@ -246,17 +258,17 @@ tr17:
 			goto _test_eof17
 		}
 	st_case_17:
-//line smtpd.gen.go:250
+//line smtpd.gen.go:262
 		if data[p] == 93 {
 			goto tr19
 		}
 		goto st17
 tr19:
-//line smtpd.rl:27
+//line smtpd.rl:39
 
-    r.IP = data[tokBeg:p] 
+    r.IP = data[tokBeg:p]
   
-//line smtpd.rl:31
+//line smtpd.rl:43
 
     return r, true
   
@@ -266,7 +278,7 @@ tr19:
 			goto _test_eof18
 		}
 	st_case_18:
-//line smtpd.gen.go:270
+//line smtpd.gen.go:282
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -291,24 +303,32 @@ tr19:
 	_out: {}
 	}
 
-//line smtpd.rl:37
+//line smtpd.rl:49
 
 
 	return r, false
 }
 
 
-//line smtpd.rl:43
+//line smtpd.rl:55
 
-//line smtpd.gen.go:304
+//line smtpd.gen.go:316
 const smtpdDisconnect_start int = 1
-const smtpdDisconnect_first_final int = 21
+const smtpdDisconnect_first_final int = 26
 const smtpdDisconnect_error int = 0
 
 const smtpdDisconnect_en_main int = 1
 
 
-//line smtpd.rl:44
+//line smtpd.rl:56
+
+func smtpdDisconnectStatFromValues(composed bool, firstValue, secondValue int) SmtpdDisconnectStat {
+  if composed {
+    return SmtpdDisconnectStat{Success: firstValue, Total: secondValue}
+  }
+
+  return SmtpdDisconnectStat{Success: firstValue, Total: firstValue}
+}
 
 func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -316,15 +336,22 @@ func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
 
 	_ = eof
 
-	r := SmtpdDisconnect{}
+	r := SmtpdDisconnect{Stats: map[string]SmtpdDisconnectStat{}}
+
+  var (
+    currentStatKey string
+    firstStat int
+    secondStat int
+    composedStat bool
+  )
 
 
-//line smtpd.gen.go:323
+//line smtpd.gen.go:350
 	{
 	cs = smtpdDisconnect_start
 	}
 
-//line smtpd.gen.go:328
+//line smtpd.gen.go:355
 	{
 	if p == pe {
 		goto _test_eof
@@ -374,6 +401,18 @@ func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
 		goto st_case_20
 	case 21:
 		goto st_case_21
+	case 22:
+		goto st_case_22
+	case 23:
+		goto st_case_23
+	case 24:
+		goto st_case_24
+	case 26:
+		goto st_case_26
+	case 25:
+		goto st_case_25
+	case 27:
+		goto st_case_27
 	}
 	goto st_out
 	st_case_1:
@@ -538,15 +577,15 @@ tr17:
 			goto _test_eof18
 		}
 	st_case_18:
-//line smtpd.gen.go:542
+//line smtpd.gen.go:581
 		if data[p] == 91 {
 			goto tr19
 		}
 		goto st18
 tr19:
-//line smtpd.rl:56
+//line smtpd.rl:83
 
-    r.Host = data[tokBeg:p] 
+    r.Host = data[tokBeg:p]
   
 	goto st19
 	st19:
@@ -554,7 +593,7 @@ tr19:
 			goto _test_eof19
 		}
 	st_case_19:
-//line smtpd.gen.go:558
+//line smtpd.gen.go:597
 		if data[p] == 93 {
 			goto st0
 		}
@@ -568,19 +607,15 @@ tr20:
 			goto _test_eof20
 		}
 	st_case_20:
-//line smtpd.gen.go:572
+//line smtpd.gen.go:611
 		if data[p] == 93 {
 			goto tr22
 		}
 		goto st20
 tr22:
-//line smtpd.rl:60
+//line smtpd.rl:87
 
-    r.IP = data[tokBeg:p] 
-  
-//line smtpd.rl:64
-
-    return r, true
+    r.IP = data[tokBeg:p]
   
 	goto st21
 	st21:
@@ -588,7 +623,143 @@ tr22:
 			goto _test_eof21
 		}
 	st_case_21:
-//line smtpd.gen.go:592
+//line smtpd.gen.go:627
+		if data[p] == 32 {
+			goto st22
+		}
+		goto st0
+tr29:
+//line smtpd.rl:91
+
+    firstStat = mustConvertToInt(data[tokBeg:p])
+  
+//line smtpd.rl:107
+
+    r.Stats[currentStatKey] = smtpdDisconnectStatFromValues(composedStat, firstStat, secondStat)
+    firstStat = 0
+    secondStat = 0
+    composedStat = false
+  
+	goto st22
+tr32:
+//line smtpd.rl:95
+
+    composedStat = true
+    secondStat = mustConvertToInt(data[tokBeg:p])
+  
+//line smtpd.rl:107
+
+    r.Stats[currentStatKey] = smtpdDisconnectStatFromValues(composedStat, firstStat, secondStat)
+    firstStat = 0
+    secondStat = 0
+    composedStat = false
+  
+	goto st22
+	st22:
+		if p++; p == pe {
+			goto _test_eof22
+		}
+	st_case_22:
+//line smtpd.gen.go:664
+		switch {
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto tr24
+			}
+		case data[p] >= 65:
+			goto tr24
+		}
+		goto st0
+tr24:
+//line common.rl:29
+ tokBeg = p 
+	goto st23
+	st23:
+		if p++; p == pe {
+			goto _test_eof23
+		}
+	st_case_23:
+//line smtpd.gen.go:683
+		if data[p] == 61 {
+			goto tr25
+		}
+		switch {
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st23
+			}
+		case data[p] >= 65:
+			goto st23
+		}
+		goto st0
+tr25:
+//line smtpd.rl:103
+
+    currentStatKey = string(data[tokBeg:p])
+  
+	goto st24
+	st24:
+		if p++; p == pe {
+			goto _test_eof24
+		}
+	st_case_24:
+//line smtpd.gen.go:707
+		if 48 <= data[p] && data[p] <= 57 {
+			goto tr27
+		}
+		goto st0
+tr27:
+//line common.rl:29
+ tokBeg = p 
+	goto st26
+	st26:
+		if p++; p == pe {
+			goto _test_eof26
+		}
+	st_case_26:
+//line smtpd.gen.go:721
+		switch data[p] {
+		case 32:
+			goto tr29
+		case 47:
+			goto tr30
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st26
+		}
+		goto st0
+tr30:
+//line smtpd.rl:91
+
+    firstStat = mustConvertToInt(data[tokBeg:p])
+  
+	goto st25
+	st25:
+		if p++; p == pe {
+			goto _test_eof25
+		}
+	st_case_25:
+//line smtpd.gen.go:743
+		if 48 <= data[p] && data[p] <= 57 {
+			goto tr28
+		}
+		goto st0
+tr28:
+//line common.rl:29
+ tokBeg = p 
+	goto st27
+	st27:
+		if p++; p == pe {
+			goto _test_eof27
+		}
+	st_case_27:
+//line smtpd.gen.go:757
+		if data[p] == 32 {
+			goto tr32
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st27
+		}
 		goto st0
 	st_out:
 	_test_eof2: cs = 2; goto _test_eof
@@ -611,21 +782,66 @@ tr22:
 	_test_eof19: cs = 19; goto _test_eof
 	_test_eof20: cs = 20; goto _test_eof
 	_test_eof21: cs = 21; goto _test_eof
+	_test_eof22: cs = 22; goto _test_eof
+	_test_eof23: cs = 23; goto _test_eof
+	_test_eof24: cs = 24; goto _test_eof
+	_test_eof26: cs = 26; goto _test_eof
+	_test_eof25: cs = 25; goto _test_eof
+	_test_eof27: cs = 27; goto _test_eof
 
 	_test_eof: {}
+	if p == eof {
+		switch cs {
+		case 26:
+//line smtpd.rl:91
+
+    firstStat = mustConvertToInt(data[tokBeg:p])
+  
+//line smtpd.rl:107
+
+    r.Stats[currentStatKey] = smtpdDisconnectStatFromValues(composedStat, firstStat, secondStat)
+    firstStat = 0
+    secondStat = 0
+    composedStat = false
+  
+//line smtpd.rl:114
+
+    return r, true
+  
+		case 27:
+//line smtpd.rl:95
+
+    composedStat = true
+    secondStat = mustConvertToInt(data[tokBeg:p])
+  
+//line smtpd.rl:107
+
+    r.Stats[currentStatKey] = smtpdDisconnectStatFromValues(composedStat, firstStat, secondStat)
+    firstStat = 0
+    secondStat = 0
+    composedStat = false
+  
+//line smtpd.rl:114
+
+    return r, true
+  
+//line smtpd.gen.go:829
+		}
+	}
+
 	_out: {}
 	}
 
-//line smtpd.rl:71
+//line smtpd.rl:121
 
 
   return r, false
 }
 
 
-//line smtpd.rl:77
+//line smtpd.rl:127
 
-//line smtpd.gen.go:629
+//line smtpd.gen.go:845
 const smtpdMailAccepted_start int = 1
 const smtpdMailAccepted_first_final int = 36
 const smtpdMailAccepted_error int = 0
@@ -633,7 +849,7 @@ const smtpdMailAccepted_error int = 0
 const smtpdMailAccepted_en_main int = 1
 
 
-//line smtpd.rl:78
+//line smtpd.rl:128
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
 func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
@@ -645,12 +861,12 @@ func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
 	r := SmtpdMailAccepted{}
 
 
-//line smtpd.gen.go:649
+//line smtpd.gen.go:865
 	{
 	cs = smtpdMailAccepted_start
 	}
 
-//line smtpd.gen.go:654
+//line smtpd.gen.go:870
 	{
 	if p == pe {
 		goto _test_eof
@@ -764,7 +980,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line smtpd.gen.go:768
+//line smtpd.gen.go:984
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1027,9 +1243,9 @@ tr0:
 		}
 		goto st0
 tr14:
-//line smtpd.rl:91
+//line smtpd.rl:141
 
-    r.Queue = data[tokBeg:p] 
+    r.Queue = data[tokBeg:p]
   
 	goto st13
 	st13:
@@ -1037,7 +1253,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line smtpd.gen.go:1041
+//line smtpd.gen.go:1257
 		if data[p] == 32 {
 			goto st14
 		}
@@ -1123,15 +1339,15 @@ tr32:
 			goto _test_eof22
 		}
 	st_case_22:
-//line smtpd.gen.go:1127
+//line smtpd.gen.go:1343
 		if data[p] == 91 {
 			goto tr34
 		}
 		goto st22
 tr34:
-//line smtpd.rl:95
+//line smtpd.rl:145
 
-    r.Host = data[tokBeg:p] 
+    r.Host = data[tokBeg:p]
   
 	goto st23
 	st23:
@@ -1139,7 +1355,7 @@ tr34:
 			goto _test_eof23
 		}
 	st_case_23:
-//line smtpd.gen.go:1143
+//line smtpd.gen.go:1359
 		if data[p] == 93 {
 			goto st0
 		}
@@ -1153,17 +1369,17 @@ tr35:
 			goto _test_eof24
 		}
 	st_case_24:
-//line smtpd.gen.go:1157
+//line smtpd.gen.go:1373
 		if data[p] == 93 {
 			goto tr37
 		}
 		goto st24
 tr37:
-//line smtpd.rl:99
+//line smtpd.rl:149
 
-    r.IP = data[tokBeg:p] 
+    r.IP = data[tokBeg:p]
   
-//line smtpd.rl:103
+//line smtpd.rl:153
 
     return r, true
   
@@ -1173,7 +1389,7 @@ tr37:
 			goto _test_eof36
 		}
 	st_case_36:
-//line smtpd.gen.go:1177
+//line smtpd.gen.go:1393
 		goto st0
 	st25:
 		if p++; p == pe {
@@ -1364,7 +1580,7 @@ tr2:
 			goto _test_eof35
 		}
 	st_case_35:
-//line smtpd.gen.go:1368
+//line smtpd.gen.go:1584
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1419,16 +1635,16 @@ tr2:
 	_out: {}
 	}
 
-//line smtpd.rl:110
+//line smtpd.rl:160
 
 
   return r, false
 }
 
 
-//line smtpd.rl:116
+//line smtpd.rl:166
 
-//line smtpd.gen.go:1432
+//line smtpd.gen.go:1648
 const smtpdReject_start int = 1
 const smtpdReject_first_final int = 34
 const smtpdReject_error int = 0
@@ -1436,7 +1652,7 @@ const smtpdReject_error int = 0
 const smtpdReject_en_main int = 1
 
 
-//line smtpd.rl:117
+//line smtpd.rl:167
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
 func parseSmtpdReject(data []byte) (SmtpdReject, bool) {
@@ -1448,12 +1664,12 @@ func parseSmtpdReject(data []byte) (SmtpdReject, bool) {
 	r := SmtpdReject{}
 
 
-//line smtpd.gen.go:1452
+//line smtpd.gen.go:1668
 	{
 	cs = smtpdReject_start
 	}
 
-//line smtpd.gen.go:1457
+//line smtpd.gen.go:1673
 	{
 	if p == pe {
 		goto _test_eof
@@ -1563,7 +1779,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line smtpd.gen.go:1567
+//line smtpd.gen.go:1783
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1826,9 +2042,9 @@ tr0:
 		}
 		goto st0
 tr14:
-//line smtpd.rl:130
+//line smtpd.rl:180
 
-    r.Queue = data[tokBeg:p] 
+    r.Queue = data[tokBeg:p]
   
 	goto st13
 	st13:
@@ -1836,7 +2052,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line smtpd.gen.go:1840
+//line smtpd.gen.go:2056
 		if data[p] == 32 {
 			goto st14
 		}
@@ -1922,16 +2138,16 @@ tr14:
 tr33:
 //line common.rl:29
  tokBeg = p 
-//line smtpd.rl:136
+//line smtpd.rl:186
 
-    r.ExtraMessage = data[tokBeg:eof] 
+    r.ExtraMessage = data[tokBeg:eof]
     return r, true
   
 	goto st34
 tr34:
-//line smtpd.rl:136
+//line smtpd.rl:186
 
-    r.ExtraMessage = data[tokBeg:eof] 
+    r.ExtraMessage = data[tokBeg:eof]
     return r, true
   
 	goto st34
@@ -1940,7 +2156,7 @@ tr34:
 			goto _test_eof34
 		}
 	st_case_34:
-//line smtpd.gen.go:1944
+//line smtpd.gen.go:2160
 		goto tr34
 	st23:
 		if p++; p == pe {
@@ -2131,7 +2347,7 @@ tr2:
 			goto _test_eof33
 		}
 	st_case_33:
-//line smtpd.gen.go:2135
+//line smtpd.gen.go:2351
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -2184,7 +2400,7 @@ tr2:
 	_out: {}
 	}
 
-//line smtpd.rl:143
+//line smtpd.rl:193
 
 
   return r, false

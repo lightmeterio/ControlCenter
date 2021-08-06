@@ -572,6 +572,23 @@ func TestSmtpdDisconnect(t *testing.T) {
 			So(cast, ShouldBeTrue)
 			So(p.IP, ShouldEqual, net.ParseIP(`1002:1712:4e2b:d061:5dff:19f:c85f:a48f`))
 		})
+
+		Convey("Several params", func() {
+			_, payload, err := Parse([]byte(`Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdDisconnect)
+			So(cast, ShouldBeTrue)
+			So(p.Stats, ShouldResemble, map[string]SmtpdDisconnectStat{
+				"ehlo":     {Success: 1, Total: 1},
+				"auth":     {Success: 8, Total: 14},
+				"mail":     {Success: 1, Total: 1},
+				"rcpt":     {Success: 0, Total: 1},
+				"data":     {Success: 0, Total: 1},
+				"rset":     {Success: 1, Total: 1},
+				"commands": {Success: 3, Total: 19},
+			})
+		})
+
 	})
 }
 
