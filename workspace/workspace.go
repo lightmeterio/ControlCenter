@@ -9,6 +9,7 @@ import (
 	"errors"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/detective"
@@ -46,6 +47,7 @@ type Workspace struct {
 
 	deliveries              *deliverydb.DB
 	tracker                 *tracking.Tracker
+	connStats               *connectionstats.Stats
 	insightsEngine          *insights.Engine
 	auth                    *auth.Auth
 	rblDetector             *messagerbl.Detector
@@ -168,6 +170,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	connStats, err := connectionstats.New(workspaceDirectory)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	intelOptions := intel.Options{
 		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
@@ -175,7 +182,9 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		ReportDestinationURL: IntelReportDestinationURL,
 	}
 
-	intelCollector, logsLineCountPublisher, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, auth, intelOptions)
+	intelCollector, logsLineCountPublisher, err := intel.New(
+		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
+		m.Reader, auth, connStats, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -188,6 +197,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		deliveries:              deliveries,
 		tracker:                 tracker,
 		insightsEngine:          insightsEngine,
+		connStats:               connStats,
 		auth:                    auth,
 		rblDetector:             rblDetector,
 		rblChecker:              rblChecker,
@@ -208,6 +218,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			m,
 			insightsAccessor,
 			intelCollector,
+			connStats,
 		),
 		NotificationCenter: notificationCenter,
 	}
@@ -222,6 +233,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
 		doneImporter, cancelImporter := ws.importAnnouncer.Run()
 		doneCollector, cancelCollector := intelCollector.Run()
+		doneConnStats, cancelConnStats := connStats.Run()
 
 		go func() {
 			<-cancel
@@ -231,6 +243,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			cancelInsights()
 			cancelImporter()
 			cancelCollector()
+			cancelConnStats()
 		}()
 
 		go func() {
@@ -241,6 +254,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			errorutil.MustSucceed(doneInsights())
 			errorutil.MustSucceed(doneImporter())
 			errorutil.MustSucceed(doneCollector())
+			errorutil.MustSucceed(doneConnStats())
 
 			// TODO: return a combination of the "children" errors!
 			done <- nil
@@ -310,6 +324,7 @@ func (ws *Workspace) NewPublisher() postfix.Publisher {
 		ws.rblDetector.NewPublisher(),
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
+		ws.connStats.Publisher(),
 	}
 }
 

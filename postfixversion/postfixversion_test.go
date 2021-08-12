@@ -49,7 +49,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 
 		p := NewPublisher(settingsWriter)
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/postfix-script[15017]: starting the Postfix mail system"), p)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/postfix-script[15017]: starting the Postfix mail system"), p, 2020)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version unset", func() {
@@ -58,7 +58,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 			So(version, ShouldBeNil)
 		})
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2020)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version set", func() {
@@ -67,7 +67,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 			So(*version, ShouldEqual, "3.4.14")
 		})
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 42.0, configuration /etc/postfix"), p)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 42.0, configuration /etc/postfix"), p, 2020)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version overriden", func() {
