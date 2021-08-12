@@ -179,7 +179,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Send postfix version", func() {
 			p := postfixversion.NewPublisher(runner.Writer())
-			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p)
+			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000)
 			time.Sleep(100 * time.Millisecond)
 
 			err = (&Dispatcher{
