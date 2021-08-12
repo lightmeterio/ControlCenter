@@ -42,7 +42,7 @@ import (
 )
 
 type Workspace struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	closeutil.Closers
 
 	deliveries              *deliverydb.DB
@@ -193,7 +193,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
-	ws := &Workspace{
+	return &Workspace{
 		deliveries:              deliveries,
 		tracker:                 tracker,
 		insightsEngine:          insightsEngine,
@@ -221,47 +221,30 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			connStats,
 		),
 		NotificationCenter: notificationCenter,
-	}
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			// Convert this one here to CancellableRunner!
+			rblChecker.StartListening()
 
-	ws.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		// Convert this one here to CancellableRunner!
-		ws.rblChecker.StartListening()
+			doneAll, cancelAll := runner.Run(
+				insightsEngine, settingsRunner, rblDetector,
+				logsRunner, importAnnouncer, intelCollector, connStats,
+			)
 
-		doneInsights, cancelInsights := ws.insightsEngine.Run()
-		doneSettings, cancelSettings := ws.settingsRunner.Run()
-		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
-		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
-		doneImporter, cancelImporter := ws.importAnnouncer.Run()
-		doneCollector, cancelCollector := intelCollector.Run()
-		doneConnStats, cancelConnStats := connStats.Run()
+			go func() {
+				<-cancel
+				cancelAll()
+			}()
 
-		go func() {
-			<-cancel
-			cancelLogsRunner()
-			cancelMsgRbl()
-			cancelSettings()
-			cancelInsights()
-			cancelImporter()
-			cancelCollector()
-			cancelConnStats()
-		}()
+			go func() {
+				if err := doneAll(); err != nil {
+					done <- errorutil.Wrap(err)
+					return
+				}
 
-		go func() {
-			// TODO: handle errors!
-			errorutil.MustSucceed(doneLogsRunner())
-			errorutil.MustSucceed(doneMsgRbl())
-			errorutil.MustSucceed(doneSettings())
-			errorutil.MustSucceed(doneInsights())
-			errorutil.MustSucceed(doneImporter())
-			errorutil.MustSucceed(doneCollector())
-			errorutil.MustSucceed(doneConnStats())
-
-			// TODO: return a combination of the "children" errors!
-			done <- nil
-		}()
-	})
-
-	return ws, nil
+				done <- nil
+			}()
+		}),
+	}, nil
 }
 
 func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
