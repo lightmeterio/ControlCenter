@@ -11,9 +11,11 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
+	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
@@ -191,7 +193,9 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, auth *auth.Auth, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
+	settingsReader *meta.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
+	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
@@ -199,6 +203,7 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 		insights.NewReporter(fetcher),
 		logslinecount.NewReporter(logslinePublisher),
 		topdomains.NewReporter(db.ConnPool()),
+		intelConnectionStats.NewReporter(connStats.ConnPool()),
 	}
 
 	collectorOptions := collector.Options{
