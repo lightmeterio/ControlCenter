@@ -1,0 +1,11 @@
+Jul  8 17:05:18 mail postfix/postscreen[21130]: CONNECT from [1.2.3.4]:55382 to [4.5.6.7]:25
+Jul  8 17:05:18 mail postfix/dnsblog[21133]: addr 1.2.3.4 listed by domain zen.spamhaus.org as 127.0.0.3
+Jul  8 17:05:24 mail postfix/postscreen[21130]: DNSBL rank 2 for [1.2.3.4]:55382
+Jul  8 17:05:24 mail postfix/smtpd[21134]: warning: hostname some.client.com does not resolve to address 1.2.3.4
+Jul  8 17:05:24 mail postfix/smtpd[21134]: connect from unknown[1.2.3.4]
+Jul  8 17:05:24 mail postfix/smtpd[21134]: EA015DF2B6: client=unknown[1.2.3.4]
+Jul  8 17:05:24 mail postfix/cleanup[21137]: EA015DF2B6: message-id=<super-message-id>
+Jul  8 17:05:25 mail postfix/qmgr[20149]: EA015DF2B6: from=<sender@sender.example.com>, size=17554, nrcpt=1 (queue active)
+Jul  8 17:05:25 mail postfix/smtpd[21134]: disconnect from unknown[1.2.3.4] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Jul  8 17:05:25 mail postfix/virtual[21138]: EA015DF2B6: to=<recipient@recipient.example.com>, relay=virtual, delay=0.16, delays=0.11/0.03/0/0.02, dsn=2.0.0, status=sent (delivered to maildir)
+Jul  8 17:05:25 mail postfix/qmgr[20149]: EA015DF2B6: removed

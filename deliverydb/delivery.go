@@ -12,8 +12,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -21,22 +21,21 @@ import (
 	"time"
 )
 
-type dbAction func(*sql.Tx, preparedStmts) error
+type dbAction = dbrunner.Action
 
 type DB struct {
-	runner.CancelableRunner
+	dbrunner.Runner
 	closeutil.Closers
 
-	connPair  *dbconn.PooledPair
-	dbActions chan dbAction
-	stmts     preparedStmts
+	connPair *dbconn.PooledPair
+	stmts    preparedStmts
 }
 
 const (
 	filename = "logs.db"
 )
 
-type stmtKey uint
+type stmtKey = uint
 
 const (
 	selectIdFromRemoteDomain stmtKey = iota
@@ -104,23 +103,6 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	insertExpiredQueue:              `insert into expired_queues(queue_id, expired_ts) values(?, ?)`,
 }
 
-// TODO: close such statements when the tracker is deleted!!!
-func prepareRwStmts(conn dbconn.RwConn) (preparedStmts, error) {
-	stmts := preparedStmts{}
-
-	for k, v := range stmtsText {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
-			return preparedStmts{}, errorutil.Wrap(err)
-		}
-
-		stmts[k] = stmt
-	}
-
-	return stmts, nil
-}
-
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	// FIXME: this is an ugly workaround. Ideally the domain mapping should come from a virtual table,
 	// computed from the domain mapped configuration.
@@ -174,38 +156,18 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	stmts, err := prepareRwStmts(connPair.RwConn)
-	if err != nil {
+	stmts := preparedStmts{}
+
+	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts[:]); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	dbActions := make(chan dbAction, 1024*1000)
-
-	db := DB{
-		connPair:  connPair,
-		dbActions: dbActions,
-		Closers:   closeutil.New(connPair),
-		stmts:     stmts,
-	}
-
-	db.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		go func() {
-			<-cancel
-			close(dbActions)
-		}()
-
-		go func() {
-			done <- func() error {
-				if err := fillDatabase(connPair.RwConn, stmts, dbActions); err != nil {
-					return errorutil.Wrap(err)
-				}
-
-				return nil
-			}()
-		}()
-	})
-
-	return &db, nil
+	return &DB{
+		connPair: connPair,
+		Closers:  closeutil.New(connPair),
+		stmts:    stmts,
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts[:]),
+	}, nil
 }
 
 type resultsPublisher struct {
@@ -250,7 +212,7 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 	return id, nil
 }
 
-func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName string) (int64, error) {
+func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmts, domainName string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectIdFromRemoteDomain], stmts[insertRemoteDomain], domainName)
 
 	if err != nil {
@@ -260,7 +222,7 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName str
 	return id, nil
 }
 
-func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
+func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
 	if domainName.IsNone() {
 		return 0, false, nil
 	}
@@ -279,7 +241,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domain
 	return id, true, nil
 }
 
-func getUniqueDeliveryServerID(tx *sql.Tx, stmts preparedStmts, hostname string) (int64, error) {
+func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbrunner.PreparedStmts, hostname string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectDeliveryServerByHostname], stmts[insertDeliveryServer], hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -288,7 +250,7 @@ func getUniqueDeliveryServerID(tx *sql.Tx, stmts preparedStmts, hostname string)
 	return id, nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, stmts preparedStmts, messageId string) (int64, error) {
+func getUniqueMessageId(tx *sql.Tx, stmts dbrunner.PreparedStmts, messageId string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectMessageIdsByValue], stmts[insertMessageId], messageId)
 
 	if err != nil {
@@ -298,7 +260,7 @@ func getUniqueMessageId(tx *sql.Tx, stmts preparedStmts, messageId string) (int6
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, stmts dbrunner.PreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName.IsNone() || relayIP.IsNone() {
 		return 0, false, nil
@@ -312,7 +274,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP 
 	return id, true, nil
 }
 
-func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Result) (sql.Result, error) {
+func insertMandatoryResultFields(tx *sql.Tx, stmts dbrunner.PreparedStmts, tr tracking.Result) (sql.Result, error) {
 	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -381,8 +343,8 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 	return e.ValueOrNil()
 }
 
-func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
-	return func(tx *sql.Tx, stmts preparedStmts) (err error) {
+func buildAction(tr tracking.Result) func(*sql.Tx, dbrunner.PreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Object("result", tr).Msg("Failed to store delivery message")
@@ -410,7 +372,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 	}
 }
 
-func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts preparedStmts) error {
+func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
 	result, err := insertMandatoryResultFields(tx, stmts, tr)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -477,7 +439,7 @@ func (p *resultsPublisher) Publish(r tracking.Result) {
 }
 
 func (db *DB) ResultsPublisher() tracking.ResultPublisher {
-	return &resultsPublisher{dbActions: db.dbActions}
+	return &resultsPublisher{dbActions: db.Actions}
 }
 
 func (db *DB) HasLogs() bool {
@@ -514,83 +476,4 @@ func (db *DB) MostRecentLogTime() (time.Time, error) {
 
 func (db *DB) ConnPool() *dbconn.RoPool {
 	return db.connPair.RoConnPool
-}
-
-func fillDatabase(conn dbconn.RwConn, stmts preparedStmts, dbActions <-chan dbAction) error {
-	var (
-		tx                  *sql.Tx = nil
-		countPerTransaction int64
-	)
-
-	startTransaction := func() error {
-		var err error
-		if tx, err = conn.Begin(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	closeTransaction := func() error {
-		// no transaction to commit
-		if tx == nil {
-			return nil
-		}
-
-		// NOTE: improve it to be used for benchmarking
-		log.Info().Msgf("Inserted %d rows in a transaction", countPerTransaction)
-
-		if err := tx.Commit(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		countPerTransaction = 0
-		tx = nil
-
-		return nil
-	}
-
-	tryToDoAction := func(action dbAction) error {
-		if tx == nil {
-			if err := startTransaction(); err != nil {
-				return errorutil.Wrap(err)
-			}
-		}
-
-		if err := action(tx, stmts); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		countPerTransaction++
-
-		return nil
-	}
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := closeTransaction(); err != nil {
-				return errorutil.Wrap(err)
-			}
-		case action, ok := <-dbActions:
-			{
-				if !ok {
-					log.Info().Msg("Committing because there's nothing left")
-
-					// cancel() has been called!!!
-					if err := closeTransaction(); err != nil {
-						return errorutil.Wrap(err)
-					}
-
-					return nil
-				}
-
-				if err := tryToDoAction(action); err != nil {
-					return errorutil.Wrap(err)
-				}
-			}
-		}
-	}
 }

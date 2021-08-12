@@ -136,7 +136,7 @@ type txActions struct {
 type resultsNotifiers []*resultsNotifier
 
 type Tracker struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 
 	stmts            trackerStmts
 	dbconn           *dbconn.PooledPair
@@ -231,7 +231,7 @@ func buildResultsNotifier(
 
 	roConn, releaseConn := pool.Acquire()
 
-	resultsNotifier.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
+	resultsNotifier.CancellableRunner = runner.NewCancellableRunner(func(done runner.DoneChan, _ runner.CancelChan) {
 		go func() {
 			done <- func() error {
 				log.Debug().Msgf("Tracking notifier %d has just started!", resultsNotifier.id)
@@ -309,7 +309,7 @@ func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
 	}
 
 	// TODO: cleanup this cancel/waitForDone code that is a total mess and impossible to understand!!!
-	tracker.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+	tracker.CancellableRunner = runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		go func() {
 			wg.Wait()
 

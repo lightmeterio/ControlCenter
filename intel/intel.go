@@ -11,13 +11,17 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
+	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
+	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -28,10 +32,11 @@ import (
 const SettingKey = "uuid"
 
 type Metadata struct {
-	InstanceID string  `json:"instance_id"`
-	LocalIP    *string `json:"postfix_public_ip,omitempty"`
-	PublicURL  *string `json:"public_url,omitempty"`
-	UserEmail  *string `json:"user_email,omitempty"`
+	InstanceID     string  `json:"instance_id"`
+	LocalIP        *string `json:"postfix_public_ip,omitempty"`
+	PublicURL      *string `json:"public_url,omitempty"`
+	UserEmail      *string `json:"user_email,omitempty"`
+	PostfixVersion *string `json:"postfix_version,omitempty"`
 }
 
 type Version struct {
@@ -48,7 +53,7 @@ type ReportWithMetadata struct {
 
 type Dispatcher struct {
 	InstanceID           string
-	versionBuilder       func() Version
+	VersionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
 	Auth                 *auth.Auth
@@ -58,7 +63,11 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	metadata, err := func() (Metadata, error) {
+		// InstanceID is always available
 		metadata := Metadata{InstanceID: d.InstanceID}
+
+		// there can be a postfix version even with no user registered
+		metadata.PostfixVersion = d.getPostfixVersion()
 
 		userData, err := d.Auth.GetFirstUser(context.Background())
 		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
@@ -69,34 +78,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 			metadata.UserEmail = &userData.Email
 		}
 
-		settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
-		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
-			return metadata, nil // still returns the email
-		}
-
-		if err != nil {
-			return Metadata{}, errorutil.Wrap(err)
-		}
-
-		addr := func(s string) *string {
-			return &s
-		}
-
-		metadata.PublicURL = func() *string {
-			if settings.PublicURL != "" {
-				return addr(settings.PublicURL)
-			}
-
-			return nil
-		}()
-
-		metadata.LocalIP = func() *string {
-			if settings.LocalIP != nil {
-				return addr(settings.LocalIP.String())
-			}
-
-			return nil
-		}()
+		metadata.PublicURL, metadata.LocalIP = d.getGlobalSettings()
 
 		return metadata, nil
 	}()
@@ -106,7 +88,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	}
 
 	reportWithMetadata := ReportWithMetadata{
-		Version:  d.versionBuilder(),
+		Version:  d.VersionBuilder(),
 		Metadata: metadata,
 		Payload:  r,
 	}
@@ -147,6 +129,54 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	return nil
 }
 
+func (d *Dispatcher) getGlobalSettings() (*string, *string) {
+	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving global settings")
+	}
+
+	if err != nil {
+		return nil, nil
+	}
+
+	addr := func(s string) *string {
+		return &s
+	}
+
+	publicURL := func() *string {
+		if settings.PublicURL != "" {
+			return addr(settings.PublicURL)
+		}
+
+		return nil
+	}()
+
+	localIP := func() *string {
+		if settings.LocalIP != nil {
+			return addr(settings.LocalIP.String())
+		}
+
+		return nil
+	}()
+
+	return publicURL, localIP
+}
+
+func (d *Dispatcher) getPostfixVersion() *string {
+	var version string
+	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving postfix version")
+	}
+
+	if err != nil {
+		return nil
+	}
+
+	return &version
+}
+
 type Options struct {
 	InstanceID string
 
@@ -159,12 +189,21 @@ type Options struct {
 	ReportDestinationURL string
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsReader *meta.Reader, auth *auth.Auth, options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+func DefaultVersionBuilder() Version {
+	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
+}
+
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
+	settingsReader *meta.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
+	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
+
 	reporters := collector.Reporters{
 		mailactivity.NewReporter(db.ConnPool()),
 		insights.NewReporter(fetcher),
 		logslinecount.NewReporter(logslinePublisher),
+		topdomains.NewReporter(db.ConnPool()),
+		intelConnectionStats.NewReporter(connStats.ConnPool()),
 	}
 
 	collectorOptions := collector.Options{
@@ -173,10 +212,8 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, settingsR
 	}
 
 	dispatcher := &Dispatcher{
-		InstanceID: options.InstanceID,
-		versionBuilder: func() Version {
-			return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
-		},
+		InstanceID:           options.InstanceID,
+		VersionBuilder:       DefaultVersionBuilder,
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,

@@ -9,6 +9,7 @@ import (
 	"errors"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/detective"
@@ -30,6 +31,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -40,17 +42,19 @@ import (
 )
 
 type Workspace struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	closeutil.Closers
 
-	deliveries             *deliverydb.DB
-	tracker                *tracking.Tracker
-	insightsEngine         *insights.Engine
-	auth                   *auth.Auth
-	rblDetector            *messagerbl.Detector
-	rblChecker             localrbl.Checker
-	intelCollector         *collector.Collector
-	logsLineCountPublisher postfix.Publisher
+	deliveries              *deliverydb.DB
+	tracker                 *tracking.Tracker
+	connStats               *connectionstats.Stats
+	insightsEngine          *insights.Engine
+	auth                    *auth.Auth
+	rblDetector             *messagerbl.Detector
+	rblChecker              localrbl.Checker
+	intelCollector          *collector.Collector
+	logsLineCountPublisher  postfix.Publisher
+	postfixVersionPublisher postfixversion.Publisher
 
 	dashboard dashboard.Dashboard
 	detective detective.Detective
@@ -166,14 +170,21 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	connStats, err := connectionstats.New(workspaceDirectory)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	intelOptions := intel.Options{
 		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
-		ReportDestinationURL: "https://intelligence.lightmeter.io/reports",
+		ReportDestinationURL: IntelReportDestinationURL,
 	}
 
-	intelCollector, logsLineCountPublisher, err := intel.New(workspaceDirectory, deliveries, insightsEngine.Fetcher(), m.Reader, auth, intelOptions)
+	intelCollector, logsLineCountPublisher, err := intel.New(
+		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
+		m.Reader, auth, connStats, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -182,21 +193,23 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
-	ws := &Workspace{
-		deliveries:             deliveries,
-		tracker:                tracker,
-		insightsEngine:         insightsEngine,
-		auth:                   auth,
-		rblDetector:            rblDetector,
-		rblChecker:             rblChecker,
-		dashboard:              dashboard,
-		detective:              messageDetective,
-		escalator:              detectiveEscalator,
-		settingsMetaHandler:    m,
-		settingsRunner:         settingsRunner,
-		importAnnouncer:        importAnnouncer,
-		intelCollector:         intelCollector,
-		logsLineCountPublisher: logsLineCountPublisher,
+	return &Workspace{
+		deliveries:              deliveries,
+		tracker:                 tracker,
+		insightsEngine:          insightsEngine,
+		connStats:               connStats,
+		auth:                    auth,
+		rblDetector:             rblDetector,
+		rblChecker:              rblChecker,
+		dashboard:               dashboard,
+		detective:               messageDetective,
+		escalator:               detectiveEscalator,
+		settingsMetaHandler:     m,
+		settingsRunner:          settingsRunner,
+		importAnnouncer:         importAnnouncer,
+		intelCollector:          intelCollector,
+		logsLineCountPublisher:  logsLineCountPublisher,
+		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		Closers: closeutil.New(
 			auth,
 			tracker,
@@ -205,46 +218,33 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			m,
 			insightsAccessor,
 			intelCollector,
+			connStats,
 		),
 		NotificationCenter: notificationCenter,
-	}
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			// Convert this one here to CancellableRunner!
+			rblChecker.StartListening()
 
-	ws.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		// Convert this one here to CancellableRunner!
-		ws.rblChecker.StartListening()
+			doneAll, cancelAll := runner.Run(
+				insightsEngine, settingsRunner, rblDetector,
+				logsRunner, importAnnouncer, intelCollector, connStats,
+			)
 
-		doneInsights, cancelInsights := ws.insightsEngine.Run()
-		doneSettings, cancelSettings := ws.settingsRunner.Run()
-		doneMsgRbl, cancelMsgRbl := ws.rblDetector.Run()
-		doneLogsRunner, cancelLogsRunner := logsRunner.Run()
-		doneImporter, cancelImporter := ws.importAnnouncer.Run()
-		doneCollector, cancelCollector := intelCollector.Run()
+			go func() {
+				<-cancel
+				cancelAll()
+			}()
 
-		go func() {
-			<-cancel
-			cancelLogsRunner()
-			cancelMsgRbl()
-			cancelSettings()
-			cancelInsights()
-			cancelImporter()
-			cancelCollector()
-		}()
+			go func() {
+				if err := doneAll(); err != nil {
+					done <- errorutil.Wrap(err)
+					return
+				}
 
-		go func() {
-			// TODO: handle errors!
-			errorutil.MustSucceed(doneLogsRunner())
-			errorutil.MustSucceed(doneMsgRbl())
-			errorutil.MustSucceed(doneSettings())
-			errorutil.MustSucceed(doneInsights())
-			errorutil.MustSucceed(doneImporter())
-			errorutil.MustSucceed(doneCollector())
-
-			// TODO: return a combination of the "children" errors!
-			done <- nil
-		}()
-	})
-
-	return ws, nil
+				done <- nil
+			}()
+		}),
+	}, nil
 }
 
 func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
@@ -302,7 +302,13 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
-	return postfix.ComposedPublisher{ws.tracker.Publisher(), ws.rblDetector.NewPublisher(), ws.logsLineCountPublisher}
+	return postfix.ComposedPublisher{
+		ws.tracker.Publisher(),
+		ws.rblDetector.NewPublisher(),
+		ws.logsLineCountPublisher,
+		ws.postfixVersionPublisher,
+		ws.connStats.Publisher(),
+	}
 }
 
 func (ws *Workspace) HasLogs() bool {

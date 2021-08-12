@@ -6,7 +6,6 @@ package mailactivity
 
 import (
 	"database/sql"
-	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -43,8 +42,6 @@ func execQuery(conn *dbconn.RoPooledConn, interval timeutil.TimeInterval, condit
 	var value int
 
 	query := `select count(*) from deliveries where delivery_ts >= ? and delivery_ts <= ? and ` + condition
-
-	log.Info().Msgf("query: %s", query)
 
 	args = append([]interface{}{interval.From.Unix(), interval.To.Unix()}, args...)
 

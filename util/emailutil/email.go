@@ -7,6 +7,7 @@ package emailutil
 
 import (
 	"errors"
+	"net"
 	"regexp"
 	"strings"
 )
@@ -33,4 +34,28 @@ func Split(email string) (local string, domain string, err error) {
 	}
 
 	return emailParts[0], emailParts[1], nil
+}
+
+func HasMX(email string) bool {
+	_, domain, err := Split(email)
+
+	if err != nil {
+		return false
+	}
+
+	mxs, err := net.LookupMX(domain)
+
+	return err == nil && len(mxs) > 0
+}
+
+func IsDisposableEmailAddress(email string) bool {
+	_, domain, err := Split(email)
+
+	if err != nil {
+		return false
+	}
+
+	_, isDisposable := disposableDomains[domain]
+
+	return isDisposable
 }

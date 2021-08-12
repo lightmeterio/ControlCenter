@@ -18,10 +18,14 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"strings"
+	"time"
 )
 
 func init() {
@@ -58,6 +62,14 @@ func TestReports(t *testing.T) {
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
+		runner := meta.NewRunner(m)
+		done, cancel := runner.Run()
+
+		defer func() {
+			cancel()
+			So(done(), ShouldBeNil)
+		}()
+
 		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
@@ -71,7 +83,7 @@ func TestReports(t *testing.T) {
 
 		Convey("Server error should not cause the dispatching to fail", func() {
 			err = (&Dispatcher{
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: "http://completely_wrong_url",
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
@@ -93,7 +105,7 @@ func TestReports(t *testing.T) {
 
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
@@ -133,7 +145,7 @@ func TestReports(t *testing.T) {
 		Convey("Do not send settings if not available", func() {
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
-				versionBuilder:       fakeVersion,
+				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
@@ -148,6 +160,45 @@ func TestReports(t *testing.T) {
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
 				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid"},
+				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
+				"payload": map[string]interface{}{
+					"interval": map[string]interface{}{
+						"from": "2000-01-01T00:00:00Z",
+						"to":   "2000-01-01T10:00:00Z",
+					},
+					"content": []interface{}{
+						map[string]interface{}{
+							"time":    "2000-01-01T01:00:00Z",
+							"id":      "some_id",
+							"payload": "some_payload",
+						},
+					},
+				},
+			})
+		})
+
+		Convey("Send postfix version", func() {
+			p := postfixversion.NewPublisher(runner.Writer())
+			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000)
+			time.Sleep(100 * time.Millisecond)
+
+			err = (&Dispatcher{
+				InstanceID:           "my-best-uuid",
+				VersionBuilder:       fakeVersion,
+				ReportDestinationURL: s.URL,
+				SettingsReader:       m.Reader,
+				Auth:                 auth,
+			}).Dispatch(collector.Report{
+				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
+				Content: []collector.ReportEntry{
+					{Time: timeutil.MustParseTime(`2000-01-01 01:00:00 +0000`), ID: "some_id", Payload: "some_payload"},
+				},
+			})
+
+			So(err, ShouldBeNil)
+
+			So(handler.response, ShouldResemble, map[string]interface{}{
+				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "postfix_version": "3.4.14"},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
