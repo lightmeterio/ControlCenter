@@ -65,7 +65,7 @@ type Detector struct {
 	nonDeliveredChan chan record
 	resultsChan      chan Results
 	matchers         matchers
-	runner.CancelableRunner
+	runner.CancellableRunner
 }
 
 const (
@@ -137,7 +137,7 @@ func New(settings globalsettings.IPAddressGetter) *Detector {
 		}()
 	}
 
-	d.CancelableRunner = runner.NewCancelableRunner(execute)
+	d.CancellableRunner = runner.NewCancellableRunner(execute)
 
 	return d
 }

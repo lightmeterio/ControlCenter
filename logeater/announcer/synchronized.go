@@ -15,7 +15,7 @@ import (
 type MostRecentLogTimeProvider func() (time.Time, error)
 
 type SynchronizingAnnouncer struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 
 	progressChan chan Progress
 	announcer    ImportAnnouncer
@@ -109,7 +109,7 @@ func newSynchronizingAnnouncerWithCustomClock(
 	return &SynchronizingAnnouncer{
 		progressChan: progressChan,
 		announcer:    announcer,
-		CancelableRunner: runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
 				for p := range progressChan {
 					succeeded, err := waitUntilTimeProvidedIsPastProgressTime(p, primaryChecker, primaryTimeout, clock, sleepTime)

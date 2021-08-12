@@ -12,7 +12,7 @@ import (
 )
 
 type logsRunner struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 
 	tracker    *tracking.Tracker
 	deliveries *deliverydb.DB
@@ -21,7 +21,7 @@ type logsRunner struct {
 func newLogsRunner(tracker *tracking.Tracker, deliveries *deliverydb.DB) *logsRunner {
 	r := &logsRunner{deliveries: deliveries, tracker: tracker}
 
-	r.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+	r.CancellableRunner = runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		trackerDone, trackerCancel := tracker.Run()
 		deliveriesDone, deliveriesCancel := deliveries.Run()
 

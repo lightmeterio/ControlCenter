@@ -110,7 +110,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 }
 
 type Collector struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	closeutil.Closers
 
 	reporters Reporters
@@ -148,7 +148,7 @@ func NewWithCustomClock(workspace string, options Options, reporters Reporters, 
 	return &Collector{
 		reporters: reporters,
 		Closers:   closers,
-		CancelableRunner: runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
 				timer := time.NewTicker(options.CycleInterval)
 

@@ -21,7 +21,7 @@ type Action func(*sql.Tx, PreparedStmts) error
 type StmtsText map[uint]string
 
 type Runner struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	stmts   PreparedStmts
 	Actions chan Action
 }
@@ -32,7 +32,7 @@ func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, st
 	return Runner{
 		stmts:   stmts,
 		Actions: actions,
-		CancelableRunner: runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
 				<-cancel
 				close(actions)

@@ -22,7 +22,7 @@ type resultInfo struct {
 }
 
 type resultsNotifier struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	resultsToNotify <-chan resultInfos
 	publisher       ResultPublisher
 	counter         uint64
