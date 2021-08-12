@@ -92,7 +92,7 @@ func main() {
 
 	go func() {
 		err := done()
-		errorutil.Dief(conf.Verbose, err, "Error: Workspace execution has ended, which should never happen here!")
+		errorutil.Dief(true, err, "Error: Workspace execution has ended, which should never happen here!")
 	}()
 
 	go func() {

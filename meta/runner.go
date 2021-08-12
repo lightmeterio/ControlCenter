@@ -16,13 +16,13 @@ import (
 type Runner struct {
 	writer       *Writer
 	requestsChan chan storeRequest
-	runner.CancelableRunner
+	runner.CancellableRunner
 }
 
 func NewRunner(h *Handler) *Runner {
 	r := &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
 
-	cancelableRunner := runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+	cancelableRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		go func() {
 			<-cancel
 			close(r.requestsChan)
@@ -34,7 +34,7 @@ func NewRunner(h *Handler) *Runner {
 		}()
 	})
 
-	r.CancelableRunner = cancelableRunner
+	r.CancellableRunner = cancelableRunner
 
 	return r
 }

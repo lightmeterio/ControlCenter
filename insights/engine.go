@@ -73,7 +73,7 @@ func (c *Accessor) NotificationPolicy() notification.Policy {
 }
 
 type Engine struct {
-	runner.CancelableRunner
+	runner.CancellableRunner
 	accessor        *Accessor
 	core            *core.Core
 	txActions       chan txAction
@@ -150,7 +150,7 @@ func NewCustomEngine(
 		}()
 	}
 
-	e.CancelableRunner = runner.NewCancelableRunner(execute)
+	e.CancellableRunner = runner.NewCancellableRunner(execute)
 
 	return e, nil
 }
