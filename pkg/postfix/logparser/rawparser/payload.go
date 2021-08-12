@@ -25,4 +25,5 @@ type RawPayload struct {
 	CleanupMilterReject   CleanupMilterReject
 	BounceCreated         BounceCreated
 	Pickup                Pickup
+	Version               Version
 }

@@ -19,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -29,10 +30,11 @@ import (
 const SettingKey = "uuid"
 
 type Metadata struct {
-	InstanceID string  `json:"instance_id"`
-	LocalIP    *string `json:"postfix_public_ip,omitempty"`
-	PublicURL  *string `json:"public_url,omitempty"`
-	UserEmail  *string `json:"user_email,omitempty"`
+	InstanceID     string  `json:"instance_id"`
+	LocalIP        *string `json:"postfix_public_ip,omitempty"`
+	PublicURL      *string `json:"public_url,omitempty"`
+	UserEmail      *string `json:"user_email,omitempty"`
+	PostfixVersion *string `json:"postfix_version,omitempty"`
 }
 
 type Version struct {
@@ -59,7 +61,11 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	metadata, err := func() (Metadata, error) {
+		// InstanceID is always available
 		metadata := Metadata{InstanceID: d.InstanceID}
+
+		// there can be a postfix version even with no user registered
+		metadata.PostfixVersion = d.getPostfixVersion()
 
 		userData, err := d.Auth.GetFirstUser(context.Background())
 		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
@@ -70,34 +76,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 			metadata.UserEmail = &userData.Email
 		}
 
-		settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
-		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
-			return metadata, nil // still returns the email
-		}
-
-		if err != nil {
-			return Metadata{}, errorutil.Wrap(err)
-		}
-
-		addr := func(s string) *string {
-			return &s
-		}
-
-		metadata.PublicURL = func() *string {
-			if settings.PublicURL != "" {
-				return addr(settings.PublicURL)
-			}
-
-			return nil
-		}()
-
-		metadata.LocalIP = func() *string {
-			if settings.LocalIP != nil {
-				return addr(settings.LocalIP.String())
-			}
-
-			return nil
-		}()
+		metadata.PublicURL, metadata.LocalIP = d.getGlobalSettings()
 
 		return metadata, nil
 	}()
@@ -146,6 +125,54 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	}
 
 	return nil
+}
+
+func (d *Dispatcher) getGlobalSettings() (*string, *string) {
+	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
+	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving global settings")
+	}
+
+	if err != nil {
+		return nil, nil
+	}
+
+	addr := func(s string) *string {
+		return &s
+	}
+
+	publicURL := func() *string {
+		if settings.PublicURL != "" {
+			return addr(settings.PublicURL)
+		}
+
+		return nil
+	}()
+
+	localIP := func() *string {
+		if settings.LocalIP != nil {
+			return addr(settings.LocalIP.String())
+		}
+
+		return nil
+	}()
+
+	return publicURL, localIP
+}
+
+func (d *Dispatcher) getPostfixVersion() *string {
+	var version string
+	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving postfix version")
+	}
+
+	if err != nil {
+		return nil
+	}
+
+	return &version
 }
 
 type Options struct {
