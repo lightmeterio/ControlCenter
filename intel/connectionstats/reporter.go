@@ -95,6 +95,11 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		return errorutil.Wrap(err)
 	}
 
+	// reports nothing if there are no connections in the given time
+	if len(entries) == 0 {
+		return nil
+	}
+
 	report := report{
 		Interval: interval,
 		Entries:  entries,
