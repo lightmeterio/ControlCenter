@@ -72,6 +72,11 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
 
+			// on this execution, no new connections have been done, so nothing is reported
+			clock.Sleep(10 * time.Minute)
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
 			// data collected
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
@@ -83,7 +88,7 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 
 		So(dispatcher.reports, ShouldResemble, []collector.Report{
 			{
-				Interval: timeutil.TimeInterval{From: time.Time{}, To: baseTime.Add(20 * time.Minute)},
+				Interval: timeutil.TimeInterval{From: time.Time{}, To: baseTime.Add(30 * time.Minute)},
 				Content: []collector.ReportEntry{
 					{
 						Time: baseTime.Add(10 * time.Minute),
