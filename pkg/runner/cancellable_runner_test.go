@@ -88,6 +88,12 @@ func TestMultipleCancellableRunners(t *testing.T) {
 			cancel()
 
 			So(done(), ShouldEqual, testErr)
+
+			// one runner has failed, but the others might still be running,
+			// potentially mutating the counter
+			mutex.Lock()
+			defer mutex.Unlock()
+
 			So(doneCounter, ShouldEqual, 3)
 		})
 	})
