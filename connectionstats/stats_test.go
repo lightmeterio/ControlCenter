@@ -34,12 +34,16 @@ func TestSmtpConnectionStats(t *testing.T) {
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
 Aug 28 20:12:52 mx postfix/smtps/smtpd[8377]: connect from unknown[1002:1712:4e2b:d061:5dff:19f:c85f:a48f]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: connect from unknown[unknown]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: SSL_accept error from unknown[unknown]: Connection reset by peer
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: lost connection after CONNECT from unknown[unknown]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: disconnect from unknown[unknown] ehlo=1 auth=0/1 commands=1/2
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 		`), pub, 2020)
 
 		cancel()
-		done()
+		So(done(), ShouldBeNil)
 
 		var pool *dbconn.RoPool = stats.ConnPool()
 

@@ -139,15 +139,15 @@ type publisher struct {
 	actions chan<- dbAction
 }
 
-func buildAction(time time.Time, payload parser.SmtpdDisconnect) dbAction {
+func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
 	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
 		stmt := tx.Stmt(stmts[insertDisconnectKey])
 
 		defer stmt.Close()
 
-		r, err := stmt.Exec(time.Unix(), payload.IP)
+		r, err := stmt.Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
-			return errorutil.Wrap(err)
+			return errorutil.Wrap(err, record.Location)
 		}
 
 		connectionId, err := r.LastInsertId()
@@ -201,9 +201,13 @@ func (pub *publisher) Publish(r postfix.Record) {
 		return
 	}
 
+	if p.IP == nil {
+		return
+	}
+
 	// NOTE: we want to store statistics of connections that tried, either successfully or not, to authenticate
 	if _, ok := p.Stats[commandAsString(AuthCommand)]; ok {
-		pub.actions <- buildAction(r.Time, p)
+		pub.actions <- buildAction(r, p)
 	}
 }
 
