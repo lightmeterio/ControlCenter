@@ -257,3 +257,23 @@ func (s *Stats) Publisher() postfix.Publisher {
 func (s *Stats) ConnPool() *dbconn.RoPool {
 	return s.conn.RoConnPool
 }
+
+func (s *Stats) MostRecentLogTime() (time.Time, error) {
+	conn, release := s.conn.RoConnPool.Acquire()
+
+	defer release()
+
+	var ts int64
+
+	err := conn.QueryRow(`select disconnection_ts from connections order by id desc limit 1`).Scan(&ts)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	return time.Unix(ts, 0).In(time.UTC), nil
+}
