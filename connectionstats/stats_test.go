@@ -28,6 +28,12 @@ func TestSmtpConnectionStats(t *testing.T) {
 		stats, err := New(ws)
 		So(err, ShouldBeNil)
 
+		{
+			mostRecentTime, err := stats.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(mostRecentTime, ShouldResemble, time.Time{})
+		}
+
 		pub := stats.Publisher()
 		done, cancel := stats.Run()
 
@@ -40,6 +46,12 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 
 		cancel()
 		done()
+
+		{
+			mostRecentTime, err := stats.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(mostRecentTime, ShouldResemble, timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`))
+		}
 
 		var pool *dbconn.RoPool = stats.ConnPool()
 
