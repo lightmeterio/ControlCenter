@@ -75,13 +75,12 @@ func TestWorkspaceExecution(t *testing.T) {
 
 			defer ws.Close()
 
-			done, cancel := ws.Run()
-
+			// needed to prevent the insights execution of blocking
 			importAnnouncer, err := ws.ImportAnnouncer()
 			So(err, ShouldBeNil)
-
-			// needed to prevent the insights execution of blocking
 			announcer.Skip(importAnnouncer)
+
+			done, cancel := ws.Run()
 
 			cancel()
 
@@ -102,10 +101,12 @@ func TestMostRecentLogTime(t *testing.T) {
 
 		defer ws.Close()
 
-		done, cancel := ws.Run()
-
 		// needed to prevent the insights execution of blocking
-		announcer.Skip(ws.ImportAnnouncer())
+		importAnnouncer, err := ws.ImportAnnouncer()
+		So(err, ShouldBeNil)
+		announcer.Skip(importAnnouncer)
+
+		done, cancel := ws.Run()
 
 		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/1_bounce_simple.log", ws.NewPublisher(), 2020)
 
