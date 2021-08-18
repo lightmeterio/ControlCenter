@@ -5,11 +5,7 @@
 package httpauth_test
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"github.com/gorilla/sessions"
-	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"io/ioutil"
@@ -23,68 +19,18 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type fakeRegistrar struct {
-	sessionKey                        []byte
-	email                             string
-	name                              string
-	password                          string
-	authenticated                     bool
-	shouldFailToRegister              bool
-	shouldFailToAuthenticate          bool
-	authenticateYieldsError           bool
-	shouldFailToCheckIfThereIsAnyUser bool
-}
-
-func (f *fakeRegistrar) Register(ctx context.Context, email, name, password string) (int64, error) {
-	if f.shouldFailToRegister {
-		return -1, errors.New("Weak Password")
-	}
-
-	f.authenticated = true
-	f.name = name
-	f.email = email
-	f.password = password
-	return 1, nil
-}
-
-func (f *fakeRegistrar) HasAnyUser(ctx context.Context) (bool, error) {
-	if f.shouldFailToCheckIfThereIsAnyUser {
-		return false, errors.New("Some very severe error. Really")
-	}
-
-	return len(f.email) > 0, nil
-}
-
-func (f *fakeRegistrar) GetUserDataByID(ctx context.Context, id int) (*auth.UserData, error) {
-	return &auth.UserData{Id: 1, Name: "Donutloop", Email: "example@test.de"}, nil
-}
-
-func (f *fakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, auth.UserData, error) {
-	if f.authenticateYieldsError {
-		return false, auth.UserData{}, errors.New("Fail On Authentication")
-	}
-
-	if f.shouldFailToAuthenticate {
-		return false, auth.UserData{}, nil
-	}
-
-	return email == f.email && password == f.password, auth.UserData{Name: f.name, Email: f.email}, nil
-}
-
-func (f *fakeRegistrar) CookieStore() sessions.Store {
-	return sessions.NewCookieStore(f.sessionKey)
-}
+type fakeRegistrar = httpauthsub.FakeRegistrar
 
 func TestHTTPAuthV2(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
 		failedAttempts := 0
 
 		registrar := &fakeRegistrar{
-			sessionKey:                        []byte("session_key_1_super_secret"),
-			authenticated:                     false,
-			shouldFailToRegister:              false,
-			shouldFailToAuthenticate:          false,
-			shouldFailToCheckIfThereIsAnyUser: false,
+			SessionKey:                        []byte("session_key_1_super_secret"),
+			Authenticated:                     false,
+			ShouldFailToRegister:              false,
+			ShouldFailToAuthenticate:          false,
+			ShouldFailToCheckIfThereIsAnyUser: false,
 		}
 
 		mux := http.NewServeMux()
@@ -130,7 +76,7 @@ func TestHTTPAuthV2(t *testing.T) {
 			})
 
 			Convey("Login will fail due to some error with the authenticator", func() {
-				registrar.authenticateYieldsError = true
+				registrar.AuthenticateYieldsError = true
 				r, err := c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"some_password"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusInternalServerError)
@@ -214,7 +160,7 @@ func TestHTTPAuthV2(t *testing.T) {
 				})
 
 				Convey("Some validation makes the registring fail", func() {
-					registrar.shouldFailToRegister = true
+					registrar.ShouldFailToRegister = true
 
 					r, err := c.PostForm(s.URL+"/register", url.Values{
 						"name":     {"donutloop"},
@@ -308,9 +254,9 @@ func TestHTTPAuthV2(t *testing.T) {
 		Convey("user has not login", func() {
 			c := buildCookieClient()
 
-			registrar.email = "user@example.com"
-			registrar.password = "654321"
-			registrar.name = "Sakura"
+			registrar.Email = "user@example.com"
+			registrar.Password = "654321"
+			registrar.Name = "Sakura"
 
 			// check login
 			r, err := c.Get(s.URL + "/auth/check")

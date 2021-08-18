@@ -25,6 +25,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
+	"io"
 	"net/http"
 	"time"
 )
@@ -56,7 +57,7 @@ type Dispatcher struct {
 	VersionBuilder       func() Version
 	ReportDestinationURL string
 	SettingsReader       *meta.Reader
-	Auth                 *auth.Auth
+	Auth                 auth.Registrar
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
@@ -120,10 +121,21 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 		return nil
 	}
 
-	if err := response.Body.Close(); err != nil {
-		// Not a fatal error; just ignore it
-		log.Err(err).Msgf("Error closing response body")
-		return nil
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			// Not a fatal error; just ignore it
+			log.Err(err).Msgf("Error closing response body")
+		}
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Err(err).Msgf("Could not send report")
+			return nil
+		}
+
+		log.Error().Msgf(`Request failed with error code %v and error: %v`, response.Status, string(body))
 	}
 
 	return nil
