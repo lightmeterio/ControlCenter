@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"flag"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/intel"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -25,6 +26,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -35,11 +37,13 @@ func init() {
 }
 
 func main() {
-	serverURL := flag.String("server_url", "https://example.com/somewhere", "URL for the endppoint that receives the reports")
+	serverURL := flag.String("server_url", "", "URL for the endppoint that receives the reports")
 	postfixIP := flag.String("postfix_ip", "", "Postfix IP address")
 	publicURL := flag.String("public_url", "", "Public Lightmeter url")
 
 	flag.Parse()
+
+	log.Printf("%v, %v, %v", *serverURL, *postfixIP, *publicURL)
 
 	dir, err := ioutil.TempDir("", "")
 	errorutil.MustSucceed(err)
@@ -62,10 +66,14 @@ func main() {
 
 	errorutil.MustSucceed(err)
 
+	auth := &auth.FakeRegistrar{Email: "user@example.com"}
+
 	dispatcher := intel.Dispatcher{
 		ReportDestinationURL: *serverURL,
 		SettingsReader:       m.Reader,
 		VersionBuilder:       intel.DefaultVersionBuilder,
+		InstanceID:           "8946c49f-22ee-4577-bcbc-121ac8c715c9",
+		Auth:                 auth,
 	}
 
 	err = dispatcher.Dispatch(collector.Report{

@@ -30,6 +30,7 @@ type Registrar interface {
 	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
 	HasAnyUser(ctx context.Context) (bool, error)
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
+	GetFirstUser(ctx context.Context) (*UserData, error)
 }
 
 type RegistrarWithSessionKeys interface {

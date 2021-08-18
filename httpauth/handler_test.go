@@ -5,7 +5,6 @@
 package httpauth_test
 
 import (
-	"context"
 	"encoding/json"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
