@@ -77,8 +77,11 @@ func TestWorkspaceExecution(t *testing.T) {
 
 			done, cancel := ws.Run()
 
+			importAnnouncer, err := ws.ImportAnnouncer()
+			So(err, ShouldBeNil)
+
 			// needed to prevent the insights execution of blocking
-			announcer.Skip(ws.ImportAnnouncer())
+			announcer.Skip(importAnnouncer)
 
 			cancel()
 
