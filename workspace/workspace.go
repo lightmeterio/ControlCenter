@@ -38,6 +38,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
+	"sort"
 	"time"
 )
 
@@ -65,7 +66,8 @@ type Workspace struct {
 	settingsMetaHandler *meta.Handler
 	settingsRunner      *meta.Runner
 
-	importAnnouncer *announcer.SynchronizingAnnouncer
+	importAnnouncer         *announcer.SynchronizingAnnouncer
+	connectionStatsAccessor *connectionstats.Accessor
 }
 
 func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
@@ -175,6 +177,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	connectionStatsAccessor, err := connectionstats.NewAccessor(connStats.ConnPool())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	intelOptions := intel.Options{
 		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
@@ -210,6 +217,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		intelCollector:          intelCollector,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
+		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
 			auth,
 			tracker,
@@ -267,6 +275,10 @@ func (ws *Workspace) Dashboard() dashboard.Dashboard {
 	return ws.dashboard
 }
 
+func (ws *Workspace) ConnectionStatsAccessor() *connectionstats.Accessor {
+	return ws.connectionStatsAccessor
+}
+
 func (ws *Workspace) Detective() detective.Detective {
 	return ws.detective
 }
@@ -275,12 +287,37 @@ func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
 	return ws.escalator
 }
 
-func (ws *Workspace) ImportAnnouncer() announcer.ImportAnnouncer {
-	return ws.importAnnouncer
+func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
+	mostRecentTime, err := ws.MostRecentLogTime()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	// first execution. Must import historical insights
+	if mostRecentTime.IsZero() {
+		return ws.importAnnouncer, nil
+	}
+
+	// otherwise skip the historical insights import
+	return announcer.Skipper(ws.importAnnouncer), nil
 }
 
 func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
+}
+
+type mostRecentTimes [3]time.Time
+
+func (t mostRecentTimes) Len() int {
+	return len(t)
+}
+
+func (t mostRecentTimes) Less(i, j int) bool {
+	return t[i].Before(t[j])
+}
+
+func (t mostRecentTimes) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }
 
 func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
@@ -294,11 +331,16 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	if mostRecentTrackerTime.After(mostRecentDeliverTime) {
-		return mostRecentTrackerTime, nil
+	mostRecentConnStatsTime, err := ws.connStats.MostRecentLogTime()
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	return mostRecentDeliverTime, nil
+	times := mostRecentTimes{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
+
+	sort.Sort(times)
+
+	return times[len(times)-1], nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {

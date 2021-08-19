@@ -8,7 +8,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 )
 
@@ -73,10 +75,12 @@ func TestWorkspaceExecution(t *testing.T) {
 
 			defer ws.Close()
 
-			done, cancel := ws.Run()
-
 			// needed to prevent the insights execution of blocking
-			announcer.Skip(ws.ImportAnnouncer())
+			importAnnouncer, err := ws.ImportAnnouncer()
+			So(err, ShouldBeNil)
+			announcer.Skip(importAnnouncer)
+
+			done, cancel := ws.Run()
 
 			cancel()
 
@@ -84,5 +88,36 @@ func TestWorkspaceExecution(t *testing.T) {
 
 			So(ws.HasLogs(), ShouldBeFalse)
 		})
+	})
+}
+
+func TestMostRecentLogTime(t *testing.T) {
+	Convey("MostRecentLogTime", t, func() {
+		dir, clearDir := testutil.TempDir(t)
+		defer clearDir()
+
+		ws, err := NewWorkspace(dir)
+		So(err, ShouldBeNil)
+
+		defer ws.Close()
+
+		// needed to prevent the insights execution of blocking
+		importAnnouncer, err := ws.ImportAnnouncer()
+		So(err, ShouldBeNil)
+		announcer.Skip(importAnnouncer)
+
+		done, cancel := ws.Run()
+
+		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/1_bounce_simple.log", ws.NewPublisher(), 2020)
+
+		cancel()
+
+		So(done(), ShouldBeNil)
+
+		mostRecentTime, err := ws.MostRecentLogTime()
+		So(err, ShouldBeNil)
+		So(mostRecentTime, ShouldResemble, timeutil.MustParseTime(`2020-06-03 10:40:59 +0000`))
+
+		So(ws.HasLogs(), ShouldBeTrue)
 	})
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/config"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
@@ -112,16 +111,6 @@ func main() {
 	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
-func importAnnouncerOnlyForFirstExecution(initialTime time.Time, a announcer.ImportAnnouncer) announcer.ImportAnnouncer {
-	// first execution. Must import historical insights
-	if initialTime.IsZero() {
-		return a
-	}
-
-	// otherwise skip the historical insights import
-	return announcer.Skipper(a)
-}
-
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
 	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory)
 	if err != nil {
@@ -139,12 +128,10 @@ func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logso
 }
 
 func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Source, error) {
-	mostRecentTime, err := ws.MostRecentLogTime()
+	announcer, err := ws.ImportAnnouncer()
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
-
-	announcer := importAnnouncerOnlyForFirstExecution(mostRecentTime, ws.ImportAnnouncer())
 
 	patterns := func(patterns []string) dirwatcher.LogPatterns {
 		if len(patterns) == 0 {
@@ -155,6 +142,11 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 	}(conf.LogPatterns)
 
 	if len(conf.DirToWatch) > 0 {
+		mostRecentTime, err := ws.MostRecentLogTime()
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
 		s, err := dirlogsource.New(conf.DirToWatch, mostRecentTime, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
 		if err != nil {
 			return nil, errorutil.Wrap(err)

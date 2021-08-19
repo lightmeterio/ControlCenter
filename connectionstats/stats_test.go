@@ -5,6 +5,7 @@
 package connectionstats
 
 import (
+	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -28,18 +29,34 @@ func TestSmtpConnectionStats(t *testing.T) {
 		stats, err := New(ws)
 		So(err, ShouldBeNil)
 
+		{
+			mostRecentTime, err := stats.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(mostRecentTime, ShouldResemble, time.Time{})
+		}
+
 		pub := stats.Publisher()
 		done, cancel := stats.Run()
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
 Aug 28 20:12:52 mx postfix/smtps/smtpd[8377]: connect from unknown[1002:1712:4e2b:d061:5dff:19f:c85f:a48f]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: connect from unknown[unknown]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: SSL_accept error from unknown[unknown]: Connection reset by peer
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: lost connection after CONNECT from unknown[unknown]
+Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: disconnect from unknown[unknown] ehlo=1 auth=0/1 commands=1/2
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 		`), pub, 2020)
 
 		cancel()
-		done()
+		So(done(), ShouldBeNil)
+
+		{
+			mostRecentTime, err := stats.MostRecentLogTime()
+			So(err, ShouldBeNil)
+			So(mostRecentTime, ShouldResemble, timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`))
+		}
 
 		var pool *dbconn.RoPool = stats.ConnPool()
 
@@ -106,5 +123,65 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 			{time: expectedTime2, ip: expectedIP2, cmd: QuitCommand, success: 1, total: 1},
 			{time: expectedTime2, ip: expectedIP2, cmd: RcptCommand, success: 1, total: 1},
 		})
+	})
+}
+
+func TestSmtpConnectionAccessor(t *testing.T) {
+	Convey("Smtp Connection Stats", t, func() {
+		ws, clearWs := testutil.TempDir(t)
+		defer clearWs()
+
+		stats, err := New(ws)
+		So(err, ShouldBeNil)
+
+		pub := stats.Publisher()
+
+		var pool *dbconn.RoPool = stats.ConnPool()
+
+		accessor, err := NewAccessor(pool)
+		So(err, ShouldBeNil)
+
+		{
+			// Before any logs, nothing should be returned
+			attempts, err := accessor.FetchAuthAttempts(context.Background(), timeutil.TimeInterval{
+				From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   timeutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+			})
+
+			So(err, ShouldBeNil)
+
+			So(attempts.IPs, ShouldResemble, []string{})
+			So(attempts.Attempts, ShouldResemble, []AttemptDesc{})
+		}
+
+		done, cancel := stats.Run()
+
+		postfixutil.ReadFromTestReader(strings.NewReader(`
+Jan 10 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[4.3.2.1] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6
+Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
+Sep  3 10:40:57 mail postfix/smtpd[8377]: disconnect from lalala.com[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 commands=1/2
+Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+		`), pub, 2020)
+
+		cancel()
+		done()
+
+		{
+			// After the logs, we should have some results, and we get a subset of it. The first and last log lines are out
+			attempts, err := accessor.FetchAuthAttempts(context.Background(), timeutil.TimeInterval{
+				From: timeutil.MustParseTime(`2020-07-01 00:00:00 +0000`),
+				To:   timeutil.MustParseTime(`2020-10-01 00:00:00 +0000`),
+			})
+
+			So(err, ShouldBeNil)
+
+			So(attempts.IPs, ShouldResemble, []string{"1002:1712:4e2b:d061:5dff:19f:c85f:a48f", "11.22.33.44", "22.33.44.55"})
+			So(attempts.Attempts, ShouldResemble, []AttemptDesc{
+				{Time: timeutil.MustParseTime(`2020-07-13 17:41:40 +0000`).Unix(), IPIndex: 1, Status: "suspicious"},
+				{Time: timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "failed"},
+				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok"},
+			})
+		}
 	})
 }

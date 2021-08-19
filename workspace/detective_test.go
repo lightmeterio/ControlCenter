@@ -45,7 +45,12 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	builder, err := transform.Get("default", year)
 	So(err, ShouldBeNil)
 
-	logSource, err := filelogsource.New(reader, builder, announcer.Skipper(ws.ImportAnnouncer()))
+	// needed to prevent the insights execution of blocking
+	importAnnouncer, err := ws.ImportAnnouncer()
+	So(err, ShouldBeNil)
+	announcer.Skip(importAnnouncer)
+
+	logSource, err := filelogsource.New(reader, builder, importAnnouncer)
 	So(err, ShouldBeNil)
 
 	done, cancel := ws.Run()
