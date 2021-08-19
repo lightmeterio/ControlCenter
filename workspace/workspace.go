@@ -66,7 +66,8 @@ type Workspace struct {
 	settingsMetaHandler *meta.Handler
 	settingsRunner      *meta.Runner
 
-	importAnnouncer *announcer.SynchronizingAnnouncer
+	importAnnouncer         *announcer.SynchronizingAnnouncer
+	connectionStatsAccessor *connectionstats.Accessor
 }
 
 func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
@@ -176,6 +177,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	connectionStatsAccessor, err := connectionstats.NewAccessor(connStats.ConnPool())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	intelOptions := intel.Options{
 		InstanceID:           instanceID,
 		CycleInterval:        time.Second * 30,
@@ -211,6 +217,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		intelCollector:          intelCollector,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
+		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
 			auth,
 			tracker,
@@ -266,6 +273,10 @@ func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
 
 func (ws *Workspace) Dashboard() dashboard.Dashboard {
 	return ws.dashboard
+}
+
+func (ws *Workspace) ConnectionStatsAccessor() *connectionstats.Accessor {
+	return ws.connectionStatsAccessor
 }
 
 func (ws *Workspace) Detective() detective.Detective {

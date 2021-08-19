@@ -427,10 +427,6 @@ export default {
   min-height: 30vh;
 }
 
-#insights-page .modebar {
-  display: none;
-}
-
 #insights-page .vue-daterange-picker .calendars {
   flex-wrap: nowrap;
 }
