@@ -75,6 +75,8 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
+	dbconn.SetWorkspace(workspaceDirectory)
+
 	deliveries, err := deliverydb.New(workspaceDirectory, &domainmapping.DefaultMapping)
 
 	if err != nil {

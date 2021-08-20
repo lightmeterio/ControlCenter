@@ -34,10 +34,11 @@ func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
 	return nil
 }
 
+// TODO: remove tx
 func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 	var running bool
 
-	err := meta.Retrieve(ctx, tx, HistoricalImportKey, &running)
+	err := meta.Retrieve(ctx, nil, HistoricalImportKey, &running)
 
 	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 		return false, nil

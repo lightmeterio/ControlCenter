@@ -48,7 +48,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		lastExecTime, err := func() (time.Time, error) {
 			var lastExecTs int64
 
-			err := meta.Retrieve(context.Background(), tx, r.ID(), &lastExecTs)
+			err := meta.Retrieve(context.Background(), nil, r.ID(), &lastExecTs)
 
 			// first execution. Not an error
 			if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
@@ -71,7 +71,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		now := clock.Now()
 
 		storeLastExec := func() error {
-			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
+			if err := meta.Store(context.Background(), nil, []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
 				return errorutil.Wrap(err, "id:", r.ID())
 			}
 

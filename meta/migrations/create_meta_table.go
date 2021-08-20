@@ -27,6 +27,13 @@ func UpMetaTable(tx *sql.Tx) error {
 		return errorutil.Wrap(err)
 	}
 
+	sql = `create unique index if not exists unique_key on meta (key)`
+
+	_, err = tx.Exec(sql)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	return nil
 }
 
