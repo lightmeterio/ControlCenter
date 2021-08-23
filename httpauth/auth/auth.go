@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/intel"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
