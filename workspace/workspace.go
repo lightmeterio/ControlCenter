@@ -32,12 +32,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
-	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
-	"path"
 	"sort"
 	"time"
 )
@@ -63,8 +61,7 @@ type Workspace struct {
 
 	NotificationCenter *notification.Center
 
-	settingsMetaHandler *meta.Handler
-	settingsRunner      *meta.Runner
+	settingsRunner *meta.Runner
 
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
@@ -94,24 +91,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	metadataConnPair, err := dbconn.Open(path.Join(workspaceDirectory, "master.db"), 5)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := meta.NewHandler(metadataConnPair, "master")
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	settingsRunner := meta.NewRunner(m)
+	settingsRunner := meta.NewRunner(dbconn.DbMaster)
 
 	// determine instance ID from the database, or create one
-
 	var instanceID string
-	err = m.Reader.RetrieveJson(context.Background(), meta.UuidMetaKey, &instanceID)
+	err = meta.RetrieveJson(context.Background(), dbconn.DbMaster, intel.SettingKey, &instanceID)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
@@ -119,7 +103,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	if errors.Is(err, meta.ErrNoSuchKey) {
 		instanceID = uuid.NewV4().String()
-		err := m.Writer.StoreJson(context.Background(), meta.UuidMetaKey, instanceID)
+		err := meta.StoreJson(context.Background(), dbconn.DbMaster, intel.SettingKey, instanceID)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
@@ -145,21 +129,21 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
 
 	notifiers := map[string]notification.Notifier{
-		slack.SettingKey: slack.New(notificationPolicies, m.Reader),
-		email.SettingKey: email.New(notificationPolicies, m.Reader),
+		slack.SettingKey: slack.New(notificationPolicies),
+		email.SettingKey: email.New(notificationPolicies),
 	}
 
 	policy := &insights.DefaultNotificationPolicy{}
 
-	notificationCenter := notification.New(m.Reader, translators, policy, notifiers)
+	notificationCenter := notification.New(translators, policy, notifiers)
 
-	rblChecker := localrbl.NewChecker(m.Reader, localrbl.Options{
+	rblChecker := localrbl.NewChecker(localrbl.Options{
 		NumberOfWorkers:  10,
 		Lookup:           localrbl.RealLookup,
 		RBLProvidersURLs: localrbl.DefaultRBLs,
 	})
 
-	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
+	rblDetector := messagerbl.New()
 
 	insightsAccessor, err := insights.NewAccessor(workspaceDirectory)
 	if err != nil {
@@ -194,8 +178,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
 		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
-		m.Reader, auth, connStats, intelOptions)
-
+		auth, connStats, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -215,7 +198,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		dashboard:               dashboard,
 		detective:               messageDetective,
 		escalator:               detectiveEscalator,
-		settingsMetaHandler:     m,
 		settingsRunner:          settingsRunner,
 		importAnnouncer:         importAnnouncer,
 		intelCollector:          intelCollector,
@@ -223,11 +205,9 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
-			auth,
 			tracker,
 			deliveries,
 			insightsEngine,
-			m,
 			insightsAccessor,
 			intelCollector,
 			connStats,
@@ -259,8 +239,8 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
-	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
+func (ws *Workspace) SettingsWriter() *meta.AsyncWriter {
+	return ws.settingsRunner.Writer()
 }
 
 func (ws *Workspace) InsightsEngine() *insights.Engine {
@@ -269,10 +249,6 @@ func (ws *Workspace) InsightsEngine() *insights.Engine {
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
-}
-
-func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
-	return ws.insightsEngine.ProgressFetcher()
 }
 
 func (ws *Workspace) Dashboard() dashboard.Dashboard {

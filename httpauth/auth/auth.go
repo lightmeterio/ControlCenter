@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
@@ -263,9 +264,9 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 }
 
 // Check that end-users' detective is enabled, or user is authenticated
-func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader *meta.Reader) error {
+func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	settings := detectivesettings.Settings{}
-	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+	err := meta.RetrieveJson(r.Context(), dbconn.DbMaster, detectivesettings.SettingKey, &settings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))

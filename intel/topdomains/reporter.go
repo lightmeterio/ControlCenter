@@ -49,14 +49,14 @@ func buildTimeIntervalCondition(tx *sql.Tx, clock timeutil.Clock) (query string,
 			return
 		}
 
-		if sErr := meta.Store(context.Background(), tx, []meta.Item{{Key: alreadyExecutedFlag, Value: true}}); sErr != nil {
+		if sErr := meta.Store(context.Background(), dbconn.DbIntel, []meta.Item{{Key: alreadyExecutedFlag, Value: true}}); sErr != nil {
 			err = sErr
 		}
 	}()
 
 	var alreadyExecuted bool
 
-	err = meta.Retrieve(context.Background(), tx, alreadyExecutedFlag, &alreadyExecuted)
+	err = meta.Retrieve(context.Background(), dbconn.DbIntel, alreadyExecutedFlag, &alreadyExecuted)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return "", nil, errorutil.Wrap(err)
 	}

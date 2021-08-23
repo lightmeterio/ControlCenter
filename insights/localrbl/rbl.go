@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
@@ -194,7 +195,7 @@ func maybeCreateInsightForResult(ctx context.Context, d *detector, r localrbl.Re
 
 	return generateInsight(tx, c, d.creator, Content{
 		ScanInterval: r.Interval,
-		Address:      d.options.Checker.IPAddress(context.Background()),
+		Address:      globalsettings.IPAddress(context.Background()),
 		RBLs:         r.RBLs,
 	})
 }

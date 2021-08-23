@@ -21,6 +21,7 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	smtp "github.com/emersion/go-smtp"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -259,14 +260,14 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 }
 
 // FIXME: this function is copied from notification/slack!!!
-func New(policy core.Policy, reader *meta.Reader) *Notifier {
+func New(policy core.Policy) *Notifier {
 	fetcher := func() (*Settings, *globalsettings.Settings, error) {
-		settings, err := GetSettings(context.Background(), reader)
+		settings, err := GetSettings(context.Background())
 		if err != nil {
 			return nil, nil, errorutil.Wrap(err)
 		}
 
-		globalSettings, err := globalsettings.GetSettings(context.Background(), reader)
+		globalSettings, err := globalsettings.GetSettings(context.Background())
 		if err != nil {
 			return nil, nil, errorutil.Wrap(err)
 		}
@@ -499,10 +500,10 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context) (*Settings, error) {
 	settings := &Settings{}
 
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
+	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, settings)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

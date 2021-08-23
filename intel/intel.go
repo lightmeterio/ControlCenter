@@ -20,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -56,7 +57,6 @@ type Dispatcher struct {
 	InstanceID           string
 	VersionBuilder       func() Version
 	ReportDestinationURL string
-	SettingsReader       *meta.Reader
 	Auth                 auth.Registrar
 }
 
@@ -142,7 +142,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 }
 
 func (d *Dispatcher) getGlobalSettings() (*string, *string) {
-	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
+	settings, err := globalsettings.GetSettings(context.Background())
 	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving global settings")
 	}
@@ -176,7 +176,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 
 func (d *Dispatcher) getPostfixVersion() *string {
 	var version string
-	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
+	err := meta.RetrieveJson(context.Background(), dbconn.DbMaster, postfixversion.SettingKey, &version)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version")
@@ -205,8 +205,12 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
+<<<<<<< HEAD
 func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
 	auth *auth.Auth, connStats *connectionstats.Stats,
+=======
+func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, auth *auth.Auth, connStats *connectionstats.Stats,
+>>>>>>> 62ec9c58 (Remove meta.Reader and .Writer, reduce function arguments.)
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 	reporters := collector.Reporters{

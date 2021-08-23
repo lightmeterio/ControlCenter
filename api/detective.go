@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
@@ -22,7 +23,7 @@ import (
 	"time"
 )
 
-func requireDetectiveAuth(auth *httpauth.Authenticator, settingsReader *meta.Reader) httpmiddleware.Middleware {
+func requireDetectiveAuth(auth *httpauth.Authenticator) httpmiddleware.Middleware {
 	return func(h httpmiddleware.CustomHTTPHandler) httpmiddleware.CustomHTTPHandler {
 		return httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 			/* The detective handler can be accessed if authenticated
@@ -30,7 +31,7 @@ func requireDetectiveAuth(auth *httpauth.Authenticator, settingsReader *meta.Rea
 			 */
 
 			settings := detectivesettings.Settings{}
-			err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+			err := meta.RetrieveJson(r.Context(), dbconn.DbMaster, detectivesettings.SettingKey, &settings)
 			if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 				return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 			}
@@ -128,8 +129,8 @@ func (h oldestAvailableTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	return httputil.WriteJson(w, OldestAvailableTimeResponse{Time: &time}, http.StatusOK)
 }
 
-func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *meta.Reader) {
-	publicIfEnabled := httpmiddleware.New(httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth, settingsReader))
+func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester) {
+	publicIfEnabled := httpmiddleware.New(httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth))
 	mux.Handle("/api/v0/checkMessageDeliveryStatus", publicIfEnabled.WithEndpoint(checkMessageDeliveryHandler{detective}))
 	mux.Handle("/api/v0/escalateMessage", publicIfEnabled.WithEndpoint(detectiveEscalatorHandler{requester: escalator, detective: detective}))
 	mux.Handle("/api/v0/oldestAvailableTimeForMessageDetective", publicIfEnabled.WithEndpoint(oldestAvailableTimeHandler{detective: detective}))

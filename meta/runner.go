@@ -6,6 +6,7 @@ package meta
 
 import (
 	"context"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -14,13 +15,13 @@ import (
 // Runner aims to serialize all requests to write in a single goroutine,
 // which effectively owns writing access to the connection
 type Runner struct {
-	writer       *Writer
+	db           *dbconn.DB
 	requestsChan chan storeRequest
 	runner.CancellableRunner
 }
 
-func NewRunner(h *Handler) *Runner {
-	r := &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
+func NewRunner(db *dbconn.DB) *Runner {
+	r := &Runner{db: db, requestsChan: make(chan storeRequest)}
 
 	cancelableRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		go func() {
@@ -29,7 +30,7 @@ func NewRunner(h *Handler) *Runner {
 		}()
 
 		go func() {
-			runnerLoop(r.writer, r.requestsChan)
+			r.loop()
 			done <- nil
 		}()
 	})
@@ -108,27 +109,27 @@ func (w *AsyncWriter) StoreJsonSync(ctx context.Context, key, value interface{})
 	}
 }
 
-func handleRequest(ctx context.Context, writer *Writer, req storeRequest) {
+func (r *Runner) handleRequest(ctx context.Context, req storeRequest) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
 
 	defer cancel()
 
 	err := func() error {
 		if req.jsonKey != nil {
-			return writer.StoreJson(ctx, req.jsonKey, req.jsonValue)
+			return StoreJson(ctx, r.db, req.jsonKey, req.jsonValue)
 		}
 
-		return writer.Store(ctx, req.items)
+		return Store(ctx, r.db, req.items)
 	}()
 
 	req.errChan <- err
 	close(req.errChan)
 }
 
-func runnerLoop(writer *Writer, requestsChan chan storeRequest) {
+func (r *Runner) loop() {
 	loopContext := context.Background()
 
-	for req := range requestsChan {
-		handleRequest(loopContext, writer, req)
+	for req := range r.requestsChan {
+		r.handleRequest(loopContext, req)
 	}
 }

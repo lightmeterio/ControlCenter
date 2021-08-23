@@ -32,7 +32,6 @@ import (
 
 type Settings struct {
 	writer *meta.AsyncWriter
-	reader *meta.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   *notification.Center
@@ -40,13 +39,11 @@ type Settings struct {
 }
 
 func NewSettings(writer *meta.AsyncWriter,
-	reader *meta.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter *notification.Center,
 ) *Settings {
 	s := &Settings{
 		writer:               writer,
-		reader:               reader,
 		initialSetupSettings: initialSetupSettings,
 		notificationCenter:   notificationCenter,
 	}
@@ -132,32 +129,32 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	ctx := r.Context()
 
-	slackSettings, err := slack.GetSettings(ctx, h.reader)
+	slackSettings, err := slack.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	emailSettings, err := email.GetSettings(ctx, h.reader)
+	emailSettings, err := email.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	notificationSettings, err := notification.GetSettings(ctx, h.reader)
+	notificationSettings, err := notification.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	globalSettings, err := globalsettings.GetSettings(ctx, h.reader)
+	globalSettings, err := globalsettings.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	walkthroughSettings, err := walkthrough.GetSettings(ctx, h.reader)
+	walkthroughSettings, err := walkthrough.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	detectiveSettings, err := detective.GetSettings(ctx, h.reader)
+	detectiveSettings, err := detective.GetSettings(ctx)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
@@ -199,7 +196,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 
 	if r.Form.Get("action") == "clear" {
 		currentSettings, err := func() (globalsettings.Settings, error) {
-			s, err := globalsettings.GetSettings(r.Context(), h.reader)
+			s, err := globalsettings.GetSettings(r.Context())
 
 			if err != nil {
 				return globalsettings.Settings{}, errorutil.Wrap(err)
@@ -246,7 +243,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 	publicURL := r.Form.Get("public_url")
 
 	currentSettings, err := func() (globalsettings.Settings, error) {
-		s, err := globalsettings.GetSettings(r.Context(), h.reader)
+		s, err := globalsettings.GetSettings(r.Context())
 
 		if err != nil {
 			return globalsettings.Settings{}, errorutil.Wrap(err)

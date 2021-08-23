@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -47,10 +48,10 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context) (*Settings, error) {
 	settings := &Settings{}
 
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
+	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, settings)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -58,9 +59,9 @@ func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
 	return settings, nil
 }
 
-func New(reader *meta.Reader, translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {
+func New(translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {
 	return NewWithCustomLanguageFetcher(translators, policy, func() (language.Tag, error) {
-		settings, err := GetSettings(context.Background(), reader)
+		settings, err := GetSettings(context.Background())
 		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 			// setting not found
 			return language.English, nil

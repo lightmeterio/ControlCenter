@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
-// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -18,27 +17,26 @@ import (
 
 const HistoricalImportKey = "historical_import_running"
 
-func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
+func DisableHistoricalImportFlag(ctx context.Context) error {
+	if err := meta.Store(ctx, dbconn.DbInsights, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
+func EnableHistoricalImportFlag(ctx context.Context) error {
+	if err := meta.Store(ctx, dbconn.DbInsights, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-// TODO: remove tx
-func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
+func IsHistoricalImportRunning(ctx context.Context) (bool, error) {
 	var running bool
 
-	err := meta.Retrieve(ctx, nil, HistoricalImportKey, &running)
+	err := meta.Retrieve(ctx, dbconn.DbInsights, HistoricalImportKey, &running)
 
 	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 		return false, nil
@@ -51,21 +49,6 @@ func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 	return running, nil
 }
 
-func IsHistoricalImportRunningFromPool(ctx context.Context, pool *dbconn.RoPool) (bool, error) {
-	v, err := meta.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
-
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
-		return false, nil
-	}
-
-	if err != nil {
-		return false, errorutil.Wrap(err)
-	}
-
-	// NOTE: Meh, SQLite converts bool into int64...
-	return v.(int64) != 0, nil
-}
-
 func ArchiveInsight(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {
 	if _, err := tx.ExecContext(ctx, "insert into insights_status(insight_id, status, timestamp) values(?, ?, ?)", id, ArchivedCategory, time.Unix()); err != nil {
 		return errorutil.Wrap(err)
@@ -75,7 +58,7 @@ func ArchiveInsight(ctx context.Context, tx *sql.Tx, id int64, time time.Time) e
 }
 
 func ArchiveInsightIfHistoricalImportIsRunning(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {
-	running, err := IsHistoricalImportRunning(ctx, tx)
+	running, err := IsHistoricalImportRunning(ctx)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

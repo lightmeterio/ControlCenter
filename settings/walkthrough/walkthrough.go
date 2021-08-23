@@ -6,6 +6,7 @@ package walkthrough
 
 import (
 	"context"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -24,10 +25,10 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context) (*Settings, error) {
 	var settings Settings
 
-	err := reader.RetrieveJson(ctx, SettingKey, &settings)
+	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, &settings)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)

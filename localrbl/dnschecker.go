@@ -9,7 +9,6 @@ import (
 	"errors"
 	"github.com/mrichman/godnsbl"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -24,15 +23,12 @@ var (
 )
 
 type dnsChecker struct {
-	*globalsettings.MetaReaderGetter
-
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
-	meta               *meta.Reader
 }
 
-func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
+func newDnsChecker(options Options) *dnsChecker {
 	if options.NumberOfWorkers < 1 {
 		log.Panic().Msgf("DnsChecker should have a number of workers greater than 1 and not %d!", options.NumberOfWorkers)
 	}
@@ -42,16 +38,14 @@ func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
 	}
 
 	return &dnsChecker{
-		MetaReaderGetter:   globalsettings.New(meta),
 		checkerStartChan:   make(chan time.Time, 32),
 		checkerResultsChan: make(chan Results),
 		options:            options,
-		meta:               meta,
 	}
 }
 
-func NewChecker(meta *meta.Reader, options Options) Checker {
-	return newDnsChecker(meta, options)
+func NewChecker(options Options) Checker {
+	return newDnsChecker(options)
 }
 
 func (c *dnsChecker) Close() error {
@@ -100,7 +94,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	results := make([]godnsbl.Result, len(checker.options.RBLProvidersURLs))
 
-	ip := checker.IPAddress(ctx)
+	ip := globalsettings.IPAddress(ctx)
 
 	if err := ctx.Err(); err != nil {
 		errorutil.LogErrorf(err, "obtaining IP address from settings on RBL Check")

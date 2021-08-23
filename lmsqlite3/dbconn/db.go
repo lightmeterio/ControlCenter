@@ -7,11 +7,19 @@ package dbconn
 import (
 	"context"
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
 )
 
-var workspace string
+var (
+	workspace string
+
+	DbAuth     = newDb("auth")
+	DbIntel    = newDb("intel-collector")
+	DbInsights = newDb("insights")
+	DbMaster   = newDb("master")
+)
 
 func SetWorkspace(workspaceDirectory string) {
 	workspace = workspaceDirectory
@@ -43,6 +51,10 @@ func (db *DB) open() error {
 			return err
 		}
 
+		if err := migrator.Run(pooledPair.RwConn.DB, db.dbName); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		pooledPairs[db.dbName] = pooledPair
 	}
 
@@ -51,7 +63,7 @@ func (db *DB) open() error {
 	return nil
 }
 
-func New(dbName string) *DB {
+func newDb(dbName string) *DB {
 	return &DB{dbName: dbName}
 }
 

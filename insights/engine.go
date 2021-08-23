@@ -80,7 +80,6 @@ type Engine struct {
 	fetcher         core.Fetcher
 	closers         closeutil.Closers
 	importAnnouncer importAnnouncer
-	progressFetcher core.ProgressFetcher
 }
 
 func NewCustomEngine(
@@ -91,11 +90,6 @@ func NewCustomEngine(
 	additionalActions func([]core.Detector, dbconn.RwConn, core.Clock) error,
 ) (*Engine, error) {
 	creator, err := newCreator(c.conn.RwConn, notificationCenter)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	progressFetcher, err := core.NewProgressFetcher(c.conn.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -124,7 +118,6 @@ func NewCustomEngine(
 		fetcher:         fetcher,
 		closers:         closeutil.New(c, core),
 		importAnnouncer: announcer,
-		progressFetcher: progressFetcher,
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -248,7 +241,7 @@ type doNotGenerateNotificationsDuringImportPolicy struct {
 }
 
 func (p *doNotGenerateNotificationsDuringImportPolicy) Reject(n notification.Notification) (bool, error) {
-	running, err := core.IsHistoricalImportRunningFromPool(context.Background(), p.pool)
+	running, err := core.IsHistoricalImportRunning(context.Background())
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
@@ -265,7 +258,7 @@ func runOnHistoricalData(e *Engine) error {
 	if interval.IsZero() {
 		// in case we skip the import
 		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
+			if err := meta.Store(context.Background(), dbconn.DbMaster, []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
 				return errorutil.Wrap(err)
 			}
 
@@ -348,7 +341,7 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 	}
 
 	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
+		if err := core.EnableHistoricalImportFlag(context.Background()); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -363,7 +356,7 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 	}
 
 	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-		if err := core.DisableHistoricalImportFlag(context.Background(), tx); err != nil {
+		if err := core.DisableHistoricalImportFlag(context.Background()); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -409,10 +402,6 @@ func (e *Engine) Fetcher() core.Fetcher {
 
 func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {
 	return &e.importAnnouncer
-}
-
-func (e *Engine) ProgressFetcher() core.ProgressFetcher {
-	return e.progressFetcher
 }
 
 func (e *Engine) RateInsight(kind string, rating uint, clock timeutil.Clock) error {

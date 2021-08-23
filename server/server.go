@@ -51,9 +51,9 @@ func (s *HttpServer) Start() error {
 
 	initialSetupSettings := settings.NewInitialSetupSettings(newsletter.NewSubscriber("https://phplist.lightmeter.io/"))
 
-	writer, reader := s.Workspace.SettingsAcessors()
+	writer := s.Workspace.SettingsWriter()
 
-	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter)
+	setup := httpsettings.NewSettings(writer, initialSetupSettings, s.Workspace.NotificationCenter)
 
 	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
 
@@ -76,13 +76,13 @@ func (s *HttpServer) Start() error {
 
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher(), s.Workspace.InsightsEngine())
-	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
-	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester(), reader)
+	api.HttpInsightsProgress(auth, mux)
+	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester())
 	api.HttpConnectionsDashboard(auth, mux, s.Timezone, s.Workspace.ConnectionStatsAccessor())
 
 	setup.HttpSetup(mux, auth)
 
-	httpauth.HttpAuthenticator(mux, auth, reader)
+	httpauth.HttpAuthenticator(mux, auth)
 
 	server := http.Server{Handler: wrap(mux)}
 

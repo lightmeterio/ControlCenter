@@ -46,7 +46,6 @@ type Options struct {
 type Auth struct {
 	options  Options
 	connPair *dbconn.PooledPair
-	meta     *meta.Handler
 }
 
 var (
@@ -229,7 +228,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	ctx := context.Background()
 
-	err := r.meta.Reader.RetrieveJson(ctx, "session_key", &keys)
+	err := meta.RetrieveJson(ctx, dbconn.DbAuth, "session_key", &keys)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
@@ -243,7 +242,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
-	err = r.meta.Writer.StoreJson(ctx, "session_key", keys)
+	err = meta.StoreJson(ctx, dbconn.DbAuth, "session_key", keys)
 
 	errorutil.MustSucceed(err, "Generating session keys")
 
@@ -271,17 +270,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewHandler(connPair, "auth")
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &Auth{options: options, connPair: connPair, meta: m}, nil
-}
-
-func (r *Auth) Close() error {
-	return r.meta.Close()
+	return &Auth{options: options, connPair: connPair}, nil
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {

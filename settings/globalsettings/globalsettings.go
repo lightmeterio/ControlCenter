@@ -7,6 +7,7 @@ package globalsettings
 import (
 	"context"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
@@ -22,20 +23,8 @@ type Settings struct {
 	PublicURL   string `json:"public_url"`
 }
 
-type IPAddressGetter interface {
-	IPAddress(context.Context) net.IP
-}
-
-type MetaReaderGetter struct {
-	meta *meta.Reader
-}
-
-func New(m *meta.Reader) *MetaReaderGetter {
-	return &MetaReaderGetter{meta: m}
-}
-
-func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
-	settings, err := GetSettings(ctx, r.meta)
+func IPAddress(ctx context.Context) net.IP {
+	settings, err := GetSettings(ctx)
 
 	if err != nil {
 		if !errors.Is(err, meta.ErrNoSuchKey) {
@@ -56,10 +45,10 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context) (*Settings, error) {
 	var settings Settings
 
-	err := reader.RetrieveJson(ctx, SettingKey, &settings)
+	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, &settings)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)

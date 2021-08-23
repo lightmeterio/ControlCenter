@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/slack-go/slack"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -61,11 +62,11 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	return !s.Enabled, nil
 }
 
-func New(policy core.Policy, reader *meta.Reader) *Notifier {
+func New(policy core.Policy) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
-		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
+		if err := meta.RetrieveJson(context.Background(), dbconn.DbMaster, SettingKey, &s); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -211,10 +212,10 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context) (*Settings, error) {
 	settings := &Settings{}
 
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
+	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, settings)
 	if err != nil {
 		return nil, errorutil.Wrap(err, "could not get slack settings")
 	}
