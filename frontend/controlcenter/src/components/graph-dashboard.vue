@@ -76,7 +76,7 @@ export default {
       return this.$gettext("Deferred Domains");
     },
     SmtpConnectionsOverTime: function() {
-      return this.$gettext("SMTP Connections");
+      return this.$gettext("SMTP Logins");
     }
   },
   beforeDestroy() {
@@ -226,8 +226,8 @@ export default {
         let yValues = [];
         let colors = [];
 
-        let okColor = "#00ff00";
-        let failedColor = "#ff0000";
+        let okColor = "#86C528";
+        let failedColor = "#EA3939";
         let suspiciousColor = "#0000ff";
 
         let statusAsColor = function(s) {
