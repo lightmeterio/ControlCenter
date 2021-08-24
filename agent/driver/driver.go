@@ -10,5 +10,5 @@ import (
 )
 
 type Driver interface {
-	ExecuteCommand(ctx context.Context, command []string, stdout, stderr io.Writer) error
+	ExecuteCommand(ctx context.Context, command []string, stdin io.Reader, stdout, stderr io.Writer) error
 }

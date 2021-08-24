@@ -37,12 +37,12 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("Command exited with error code %v", e.errorCode)
 }
 
-func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, stdout, stderr io.Writer) error {
+func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	config := types.ExecConfig{
 		User:         d.user,
 		AttachStdout: true,
 		AttachStderr: true,
-		AttachStdin:  false,
+		AttachStdin:  stdin != nil,
 		Detach:       false,
 		Cmd:          command,
 		WorkingDir:   "/",
@@ -66,12 +66,28 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 
 	defer response.Close()
 
-	done := make(chan error, 1)
+	doneReading := make(chan error, 1)
+	doneWriting := make(chan error, 1)
 
 	go func() {
-		var err error
-		_, err = stdcopy.StdCopy(stdout, stderr, response.Reader)
-		done <- err
+		if stdin == nil {
+			doneWriting <- nil
+			return
+		}
+
+		_, err := io.Copy(response.Conn, stdin)
+
+		if err := response.CloseWrite(); err != nil {
+			doneWriting <- err
+			return
+		}
+
+		doneWriting <- err
+	}()
+
+	go func() {
+		_, err := stdcopy.StdCopy(stdout, stderr, response.Reader)
+		doneReading <- err
 	}()
 
 	if err := d.client.ContainerExecStart(ctx, idResponse.ID, execStartCheck); err != nil {
@@ -87,14 +103,16 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 		return &Error{errorCode: inspect.ExitCode}
 	}
 
-	select {
-	case err := <-done:
-		if err != nil {
-			return errorutil.Wrap(err)
+	for _, c := range []chan error{doneWriting, doneReading} {
+		select {
+		case err := <-c:
+			if err != nil {
+				return errorutil.Wrap(err)
+			}
+		case <-ctx.Done():
+			return errorutil.Wrap(ctx.Err())
 		}
-
-		return nil
-	case <-ctx.Done():
-		return errorutil.Wrap(ctx.Err())
 	}
+
+	return nil
 }

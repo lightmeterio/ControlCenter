@@ -12,31 +12,67 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
-	driver, err := driver.NewDockerDriver(os.Getenv("POSTFIX_CONTAINER"), "0")
+	d, err := driver.NewDockerDriver(os.Getenv("POSTFIX_CONTAINER"), "0")
 	if err != nil {
 		panic(err)
 	}
 
-	var (
-		stdout bytes.Buffer
-	)
+	ctx := context.Background()
 
-	if err := driver.ExecuteCommand(context.Background(), []string{"postconf"}, &stdout, io.Discard); err != nil {
-		panic(err)
+	{
+		stdout := bytes.Buffer{}
+
+		if err := d.ExecuteCommand(ctx, []string{"postconf"}, nil, &stdout, io.Discard); err != nil {
+			panic(err)
+		}
+
+		conf, err := parser.Parse(stdout.Bytes())
+		if err != nil {
+			panic(err)
+		}
+
+		version, err := conf.Resolve("mail_version")
+		if err != nil {
+			panic(err)
+		}
+
+		log.Println("Version: ", version)
 	}
 
-	conf, err := parser.Parse(stdout.Bytes())
-	if err != nil {
-		panic(err)
+	{
+		stdout := bytes.Buffer{}
+
+		// send some input to the command. In this case, just invert the content sent
+		if err := d.ExecuteCommand(ctx, []string{"rev"}, strings.NewReader("Mamamia!\nAnother Line"), &stdout, io.Discard); err != nil {
+			panic(err)
+		}
+
+		log.Println(stdout.String())
 	}
 
-	version, err := conf.Resolve("mail_version")
-	if err != nil {
-		panic(err)
-	}
+	{
+		filename := "/tmp/temp_file.txt"
 
-	log.Println("Version: ", version)
+		defer func() {
+			if err := d.ExecuteCommand(ctx, []string{"rm", "-f", filename}, nil, io.Discard, io.Discard); err != nil {
+				panic(err)
+			}
+		}()
+
+		if err := driver.WriteFileContent(ctx, d, filename, strings.NewReader("Desired\nFile\nContent")); err != nil {
+			panic(err)
+		}
+
+		stdout := bytes.Buffer{}
+
+		if err := driver.ReadFileContent(ctx, d, filename, &stdout); err != nil {
+			panic(err)
+		}
+
+		log.Println(stdout.String())
+	}
 }
