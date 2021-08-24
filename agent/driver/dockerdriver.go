@@ -37,11 +37,19 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("Command exited with error code %v", e.errorCode)
 }
 
+func streamOrDiscard(r io.Writer) io.Writer {
+	if r != nil {
+		return r
+	}
+
+	return io.Discard
+}
+
 func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	config := types.ExecConfig{
 		User:         d.user,
-		AttachStdout: true,
-		AttachStderr: true,
+		AttachStdout: stdout != nil,
+		AttachStderr: stderr != nil,
 		AttachStdin:  stdin != nil,
 		Detach:       false,
 		Cmd:          command,
@@ -86,7 +94,13 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 	}()
 
 	go func() {
-		_, err := stdcopy.StdCopy(stdout, stderr, response.Reader)
+		if stdout == nil && stderr == nil {
+			doneReading <- nil
+			return
+		}
+
+		_, err := stdcopy.StdCopy(streamOrDiscard(stdout), streamOrDiscard(stderr), response.Reader)
+
 		doneReading <- err
 	}()
 

@@ -9,14 +9,23 @@ import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/agent/driver"
 	"gitlab.com/lightmeter/controlcenter/agent/parser"
-	"io"
 	"log"
 	"os"
 	"strings"
 )
 
+func buildDriver() (driver.Driver, error) {
+	container, useDocker := os.LookupEnv("POSTFIX_CONTAINER")
+
+	if !useDocker {
+		return &driver.LocalDriver{}, nil
+	}
+
+	return driver.NewDockerDriver(container, "0")
+}
+
 func main() {
-	d, err := driver.NewDockerDriver(os.Getenv("POSTFIX_CONTAINER"), "0")
+	d, err := buildDriver()
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +35,7 @@ func main() {
 	{
 		stdout := bytes.Buffer{}
 
-		if err := d.ExecuteCommand(ctx, []string{"postconf"}, nil, &stdout, io.Discard); err != nil {
+		if err := d.ExecuteCommand(ctx, []string{"postconf"}, nil, &stdout, nil); err != nil {
 			panic(err)
 		}
 
@@ -47,7 +56,7 @@ func main() {
 		stdout := bytes.Buffer{}
 
 		// send some input to the command. In this case, just invert the content sent
-		if err := d.ExecuteCommand(ctx, []string{"rev"}, strings.NewReader("Mamamia!\nAnother Line"), &stdout, io.Discard); err != nil {
+		if err := d.ExecuteCommand(ctx, []string{"rev"}, strings.NewReader("Mamamia!\nAnother Line"), &stdout, nil); err != nil {
 			panic(err)
 		}
 
@@ -58,7 +67,7 @@ func main() {
 		filename := "/tmp/temp_file.txt"
 
 		defer func() {
-			if err := d.ExecuteCommand(ctx, []string{"rm", "-f", filename}, nil, io.Discard, io.Discard); err != nil {
+			if err := d.ExecuteCommand(ctx, []string{"rm", "-f", filename}, nil, nil, nil); err != nil {
 				panic(err)
 			}
 		}()
