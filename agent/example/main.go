@@ -9,6 +9,7 @@ import (
 	"context"
 	"gitlab.com/lightmeter/controlcenter/agent/driver"
 	"gitlab.com/lightmeter/controlcenter/agent/parser"
+	"gitlab.com/lightmeter/controlcenter/agent/postfix"
 	"log"
 	"os"
 	"strings"
@@ -32,6 +33,32 @@ func main() {
 
 	ctx := context.Background()
 
+	// For debug only
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+	driver.Stdout = &stdout
+	driver.Stderr = &stderr
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Stdout: > %s", stdout.String())
+			log.Printf("Stderr: > %s", stderr.String())
+			panic(r)
+		}
+	}()
+
+	//basicDriverStuff(ctx, d)
+
+	configurePostfix(ctx, d)
+}
+
+func configurePostfix(ctx context.Context, d driver.Driver) {
+	if err := postfix.BlockIPs(ctx, d, []string{"123.456.789", "221.221.221.221"}); err != nil {
+		panic(err)
+	}
+}
+
+func basicDriverStuff(ctx context.Context, d driver.Driver) {
 	{
 		stdout := bytes.Buffer{}
 

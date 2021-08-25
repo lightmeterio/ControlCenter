@@ -108,15 +108,6 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 		return errorutil.Wrap(err)
 	}
 
-	inspect, err := d.client.ContainerExecInspect(ctx, idResponse.ID)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if inspect.ExitCode != 0 {
-		return &Error{errorCode: inspect.ExitCode}
-	}
-
 	for _, c := range []chan error{doneWriting, doneReading} {
 		select {
 		case err := <-c:
@@ -126,6 +117,15 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 		case <-ctx.Done():
 			return errorutil.Wrap(ctx.Err())
 		}
+	}
+
+	inspect, err := d.client.ContainerExecInspect(ctx, idResponse.ID)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if inspect.ExitCode != 0 {
+		return &Error{errorCode: inspect.ExitCode}
 	}
 
 	return nil

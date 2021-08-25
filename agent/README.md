@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Lightmeter Agent
 
 This is an experiment for a daemon that runs together with Postfix and is responsible for communicating with it.

@@ -22,6 +22,7 @@ func (d *LocalDriver) ExecuteCommand(ctx context.Context, command []string, stdi
 		return ErrInvalidCommand
 	}
 
+	//nolint:gosec
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 
 	if stdin != nil {
@@ -37,7 +38,7 @@ func (d *LocalDriver) ExecuteCommand(ctx context.Context, command []string, stdi
 	}
 
 	if err := cmd.Run(); err != nil {
-		errorutil.Wrap(err)
+		return errorutil.Wrap(err)
 	}
 
 	return nil

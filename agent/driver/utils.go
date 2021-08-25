@@ -11,9 +11,14 @@ import (
 	"io"
 )
 
+var (
+	Stdout io.Writer = nil
+	Stderr io.Writer = nil
+)
+
 func ReadFileContent(ctx context.Context, driver Driver, filepath string, dst io.Writer) error {
 	// then get the content
-	if err := driver.ExecuteCommand(context.Background(), []string{"cat", filepath}, nil, dst, io.Discard); err != nil {
+	if err := driver.ExecuteCommand(context.Background(), []string{"cat", filepath}, nil, dst, Stderr); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -23,7 +28,7 @@ func ReadFileContent(ctx context.Context, driver Driver, filepath string, dst io
 func WriteFileContent(ctx context.Context, driver Driver, filepath string, src io.Reader) error {
 	catCommand := fmt.Sprintf(`cat > %s`, filepath)
 
-	if err := driver.ExecuteCommand(context.Background(), []string{`sh`, `-c`, catCommand}, src, io.Discard, io.Discard); err != nil {
+	if err := driver.ExecuteCommand(context.Background(), []string{`sh`, `-c`, catCommand}, src, Stdout, Stderr); err != nil {
 		return errorutil.Wrap(err)
 	}
 
