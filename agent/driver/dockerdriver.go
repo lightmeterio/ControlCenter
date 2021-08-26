@@ -48,8 +48,8 @@ func streamOrDiscard(r io.Writer) io.Writer {
 func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	config := types.ExecConfig{
 		User:         d.user,
-		AttachStdout: stdout != nil,
-		AttachStderr: stderr != nil,
+		AttachStdout: true,
+		AttachStderr: true,
 		AttachStdin:  stdin != nil,
 		Detach:       false,
 		Cmd:          command,
@@ -74,8 +74,8 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 
 	defer response.Close()
 
-	doneReading := make(chan error, 1)
-	doneWriting := make(chan error, 1)
+	doneReading := make(chan error)
+	doneWriting := make(chan error)
 
 	go func() {
 		if stdin == nil {
@@ -94,11 +94,6 @@ func (d *DockerDriver) ExecuteCommand(ctx context.Context, command []string, std
 	}()
 
 	go func() {
-		if stdout == nil && stderr == nil {
-			doneReading <- nil
-			return
-		}
-
 		_, err := stdcopy.StdCopy(streamOrDiscard(stdout), streamOrDiscard(stderr), response.Reader)
 
 		doneReading <- err

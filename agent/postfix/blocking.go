@@ -28,6 +28,7 @@ func buildIPList(ctx context.Context, d driver.Driver) (ipList, error) {
 
 	// Does nothing if the lmdb database does not exist, as it'll be created when postmap is called
 	if err := d.ExecuteCommand(ctx, []string{"stat", dbFilename}, nil, io.Discard, io.Discard); err != nil {
+		//nolint:nilerr
 		return ipList{}, nil
 	}
 
@@ -103,8 +104,6 @@ func BlockIPs(ctx context.Context, d driver.Driver, ips []string) error {
 		blockedIps[ip] = struct{}{}
 	}
 
-	// TODO: read ips already in the configuration,
-	// to prevent duplicating entries or missing existing ones
 	content := bytes.Buffer{}
 
 	// TODO: write the file while storing it, to preventing allocating memory to all of it

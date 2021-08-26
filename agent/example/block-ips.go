@@ -43,12 +43,6 @@ func main() {
 	driver.Stdout = &stdout
 	driver.Stderr = &stderr
 
-	{
-		if err := d.ExecuteCommand(ctx, []string{"stat", "/some/inexistent/path"}, nil, driver.Stdout, driver.Stderr); err == nil {
-			panic("We must get an error here!")
-		}
-	}
-
 	if err := postfix.BlockIPs(ctx, d, ips); err != nil {
 		log.Printf("Stdout: > %s", stdout.String())
 		log.Printf("Stderr: > %s", stderr.String())
