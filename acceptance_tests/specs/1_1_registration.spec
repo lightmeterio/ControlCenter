@@ -13,7 +13,7 @@ Tags: failure
 * Expect registration to fail
 * Click on "Register"
 
-## Registraton succeeds
+## Registration succeeds
 Tags: success
 
 * Go to registration page

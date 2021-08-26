@@ -28,6 +28,7 @@ import "@fortawesome/fontawesome-free/css/all.css";
 import "./assets/css/panel-page.css";
 
 import "@fortawesome/fontawesome-free/js/all.js";
+
 /*
   Import components
  */
@@ -85,9 +86,13 @@ Vue.use(GetTextPlugin, {
   silent: true
 });
 
-import { getApplicationInfo } from "./lib/api.js";
+import {
+  getApplicationInfo,
+  getIsNotLoginOrNotRegistered,
+  getUserInfo
+} from "./lib/api.js";
 
-getApplicationInfo().then(function(response) {
+function initMatomo(appVersion, userEmail = "not-logged-in") {
   Vue.use(VueMatomo, {
     host: "https://matomo.lightmeter.io/",
     siteId: 3,
@@ -156,8 +161,23 @@ getApplicationInfo().then(function(response) {
     //   ['appendToTrackingUrl', 'new_visit=1'],
     //   etc.
     // ]
-    preInitActions: [["setCustomDimension", 1, response.data.version]]
+    preInitActions: [
+      ["setCustomDimension", 1, appVersion],
+      ["setCustomDimension", 2, userEmail]
+    ]
   });
+}
+
+getApplicationInfo().then(function(appInfo) {
+  getIsNotLoginOrNotRegistered()
+    .then(function() {
+      getUserInfo().then(function(userInfo) {
+        initMatomo(appInfo.data.version, userInfo.data.user.email);
+      });
+    })
+    .catch(function() {
+      initMatomo(appInfo.data.version, "not-logged-in");
+    });
 });
 
 Vue.config.productionTip = false;

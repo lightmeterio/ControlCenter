@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
-import { trackEvent, trackEventArray } from "@/lib/util";
+import { trackEvent, trackEventArray, updateMatomoEmail } from "@/lib/util";
+import posthog from "posthog-js";
 
 import axios from "axios";
 axios.defaults.withCredentials = true;
@@ -59,8 +60,10 @@ export function submitLoginForm(formData, callback) {
   axios
     .post(BASE_URL + "login", data)
     .then(function() {
-      trackEvent("Login", "success");
-      callback();
+      updateMatomoEmail().then(function() {
+        trackEvent("Login", "success");
+        callback();
+      });
     })
     .catch(function(err) {
       trackEvent("Login", "error");
@@ -124,6 +127,7 @@ export function logout(redirect) {
   axios
     .post(BASE_URL + "logout", null)
     .then(function() {
+      posthog.reset();
       redirect();
     })
     .catch(builderErrorHandler("logout"));
@@ -142,13 +146,15 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
           new URLSearchParams(settingsFormData)
         )
         .then(function() {
-          trackEvent("RegisterAdmin", "success");
-          if (settingsData.subscribe_newsletter) {
-            trackEvent("RegisterAdmin", "newsletterOn");
-          }
-          trackEvent("RegisterAdmin", settingsData.email_kind);
+          updateMatomoEmail().then(function() {
+            trackEvent("RegisterAdmin", "success");
+            if (settingsData.subscribe_newsletter) {
+              trackEvent("RegisterAdmin", "newsletterOn");
+            }
+            trackEvent("RegisterAdmin", settingsData.email_kind);
 
-          redirect();
+            redirect();
+          });
         })
         .catch(builderErrorHandler("initSetup"));
     })
@@ -174,8 +180,18 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
 
         return;
       }
+      // matomo-log the wrong email address
+      if (
+        err.response.data.error == "Please use a valid work email address" ||
+        err.response.data.error ==
+          "This domain does not seem configured for email (no MX record found)"
+      )
+        trackEvent(
+          "RegistrationInvalidEmail",
+          registrationFormData.get("email")
+        );
 
-      alertError(err, "register");
+      alertError(err.response, "register");
     });
 }
 
