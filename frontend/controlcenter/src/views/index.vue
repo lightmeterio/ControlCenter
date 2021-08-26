@@ -324,7 +324,7 @@ export default {
     let vue = this;
 
     getUserInfo().then(function(response) {
-      vue.username = response.data.Name;
+      vue.username = response.data.user.name;
     });
   },
   destroyed() {

@@ -17,6 +17,8 @@ import (
 	"reflect"
 )
 
+const UuidMetaKey = "uuid"
+
 var (
 	ErrNoSuchKey = errors.New("No Such Key")
 )

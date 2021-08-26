@@ -30,6 +30,7 @@ const {
 const assert = require("assert");
 const child_process = require("child_process")
 const tmp = require("tmp")
+const path = require("path")
 
 tmp.setGracefulCleanup();
 
@@ -60,23 +61,30 @@ afterSuite(async () => {
     });
 });
 
-gauge.screenshotFn = async function() {
-    return await screenshot({ encoding: 'base64' });
+// Replaced previous deprecated screenshotFn by customScreenshotWriter, see
+// https://docs.gauge.org/writing-specifications.html?&language=javascript#taking-custom-screenshots
+gauge.customScreenshotWriter = async function () {
+    const screenshotFilePath = path.join(process.env['gauge_screenshots_dir'], `screenshot-${process.hrtime.bigint()}.png`);
+    await screenshot({ path: screenshotFilePath });
+    return path.basename(screenshotFilePath);
 };
 
+// Add 'waitForEvents' following this comment: https://github.com/getgauge/taiko/issues/393#issuecomment-467719663
+let waitOpt = {waitForEvents:['loadEventFired']};
+
 step("Go to homepage", async () => {
-    await goto('localhost:8080/#/');
-    await reload()
+    await goto('http://localhost:8080/#/', waitOpt);
+    await reload(waitOpt)
 });
 
 step("Go to registration page", async () => {
-    await goto('localhost:8080/#/register');
-    await reload()
+    await goto('http://localhost:8080/#/register', waitOpt);
+    await reload(waitOpt)
 });
 
 step("Go to login page", async () => {
-    await goto('localhost:8080/#/login');
-    await reload()
+    await goto('http://localhost:8080/#/login', waitOpt);
+    await reload(waitOpt)
 });
 
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {

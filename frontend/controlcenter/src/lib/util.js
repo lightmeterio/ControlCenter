@@ -2,6 +2,13 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getUserInfo, getApplicationInfo } from "@/lib/api.js";
+import posthog from "posthog-js";
+
+posthog.init("phc_WuCKJ0vL2fNge72as4MarP5Y5w13xn3FOZAisy9ofnN", {
+  api_host: "https://posthog.lightmeter.io"
+});
+
 export function togglePasswordShow() {
   let attrValue = document
     .querySelector("#show_hide_password input")
@@ -24,13 +31,28 @@ export function togglePasswordShow() {
 }
 
 export function trackEvent(eventName, value) {
+  posthog.capture(eventName, { property: value });
   window._paq.push(["trackEvent", eventName, value]);
 }
 
 export function trackEventArray(eventName, value) {
+  posthog.capture(eventName, { property: value });
   window._paq.push(["trackEvent", eventName].concat(value));
 }
 
 export function trackClick(eventName, value) {
+  posthog.capture(eventName, { property: value });
   window._paq.push(["trackEvent", eventName, value]);
+}
+
+export function updateMatomoEmail() {
+  return getUserInfo().then(function(userInfo) {
+    getApplicationInfo().then(function(appInfo) {
+      posthog.identify(userInfo.data.instance_id, {
+        email: userInfo.data.user.email,
+        appVersion: appInfo.data.version
+      });
+    });
+    window._paq.push(["setCustomDimension", 2, userInfo.data.user.email]);
+  });
 }

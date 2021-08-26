@@ -5,6 +5,9 @@
 package workspace
 
 import (
+	"context"
+	"errors"
+	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
@@ -93,8 +96,22 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	settingsRunner := meta.NewRunner(m)
 
-	if err != nil {
+	// determine instance ID from the database, or create one
+
+	var instanceID string
+	err = m.Reader.RetrieveJson(context.Background(), meta.UuidMetaKey, &instanceID)
+
+	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
+	}
+
+	if errors.Is(err, meta.ErrNoSuchKey) {
+		instanceID = uuid.NewV4().String()
+		err := m.Writer.StoreJson(context.Background(), meta.UuidMetaKey, instanceID)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
 	}
 
 	dashboard, err := dashboard.New(deliveries.ConnPool())

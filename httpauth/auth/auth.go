@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
@@ -306,14 +307,21 @@ func GetSessionData(auth *Authenticator, r *http.Request) (*SessionData, error) 
 	return sessionData, nil
 }
 
-func HandleGetUserData(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
+type UserSystemData struct {
+	UserData   *auth.UserData `json:"user"`
+	InstanceID string         `json:"instance_id"`
+}
+
+func HandleGetUserSystemData(auth *Authenticator, settingsReader *meta.Reader, w http.ResponseWriter, r *http.Request) error {
 	sessionData, err := GetSessionData(auth, r)
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized: is not authenticated"))
 	}
 
+	userSystemData := UserSystemData{}
+
 	// refresh user data
-	userData, err := auth.Registrar.GetUserDataByID(r.Context(), sessionData.ID)
+	userSystemData.UserData, err = auth.Registrar.GetUserDataByID(r.Context(), sessionData.ID)
 	if err != nil {
 		// FIXME: we should check for ErrInvalidUserID, implemented in the base "auth" package!
 		if errors.Is(err, sql.ErrNoRows) {
@@ -323,7 +331,15 @@ func HandleGetUserData(auth *Authenticator, w http.ResponseWriter, r *http.Reque
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
-	b, err := json.Marshal(userData)
+	// retrieve lmcc uuid
+	err = settingsReader.RetrieveJson(context.Background(), meta.UuidMetaKey, &userSystemData.InstanceID)
+
+	if err != nil {
+		// should never happen, uuid should always exist and be available
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	b, err := json.Marshal(userSystemData)
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
