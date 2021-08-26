@@ -2,15 +2,21 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package parser
+package postconf
 
 import (
+	"bytes"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
+func parse(content []byte) (*Values, error) {
+	buffer := bytes.NewBuffer(content)
+	return Parse(buffer)
+}
+
 func TestPostconfParser(t *testing.T) {
-	Convey("Postconf parser", t, func() {
+	Convey("Postconf postconf", t, func() {
 		complexExample :=
 			`
 smtpd_tls_eckey_file = $smtpd_tls_eccert_file
@@ -22,7 +28,7 @@ mynetworks_style = ${{$compatibility_level} < {2} ? {subnet} : {host}}
 		_ = complexExample
 
 		Convey("Basic parsing", func() {
-			conf, err := Parse([]byte(`smtpd_tls_eckey_file = $smtpd_tls_eccert_file
+			conf, err := parse([]byte(`smtpd_tls_eckey_file = $smtpd_tls_eccert_file
 smtpd_tls_eccert_file = /some/path
 empty_value =
 refers_to_empty_value = $empty_value
@@ -60,7 +66,7 @@ refers_to_link = $smtpd_tls_eckey_file`))
 
 		Convey("Interpolated Values", func() {
 			// TODO: implement Resolv() for such cases?
-			conf, err := Parse([]byte(`value1 = 3
+			conf, err := parse([]byte(`value1 = 3
 value2 = mamamia
 value3 = $value1 something ${value2}s
 value4 = $value2`))

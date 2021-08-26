@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/bmatsuo/lmdb-go/lmdb"
 	"gitlab.com/lightmeter/controlcenter/agent/driver"
-	"gitlab.com/lightmeter/controlcenter/agent/parser"
+	"gitlab.com/lightmeter/controlcenter/agent/postconf"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"os"
@@ -142,14 +142,14 @@ func BlockIPs(ctx context.Context, d driver.Driver, ips []string) error {
 	return nil
 }
 
-func getPostconf(ctx context.Context, d driver.Driver, args ...string) (*parser.Parser, error) {
+func getPostconf(ctx context.Context, d driver.Driver, args ...string) (*postconf.Values, error) {
 	stdout := bytes.Buffer{}
 
 	if err := d.ExecuteCommand(ctx, append([]string{"postconf"}, args...), nil, &stdout, driver.Stderr); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	conf, err := parser.Parse(stdout.Bytes())
+	conf, err := postconf.Parse(&stdout)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

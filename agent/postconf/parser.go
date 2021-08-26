@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package parser
+package postconf
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
+	"io"
 	"regexp"
 )
 
@@ -15,7 +15,7 @@ import (
 var lineRegexp = regexp.MustCompile(`([\w_]+)\s=(\s(([^$].*)|\$(.+)))?`)
 
 type entry struct {
-	parser *Parser
+	postconf *Values
 
 	key           string
 	rawValue      string
@@ -23,17 +23,16 @@ type entry struct {
 	variableValue string
 }
 
-type Parser struct {
+type Values struct {
 	entries map[string]entry
 }
 
 var ErrParsing = errors.New(`Parsing error`)
 
-func Parse(content []byte) (*Parser, error) {
-	buffer := bytes.NewBuffer(content)
+func Parse(buffer io.Reader) (*Values, error) {
 	scanner := bufio.NewScanner(buffer)
 
-	p := &Parser{entries: map[string]entry{}}
+	p := &Values{entries: map[string]entry{}}
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -49,7 +48,7 @@ func Parse(content []byte) (*Parser, error) {
 		absoluteValue := string(matches[4])
 		variableValue := string(matches[5])
 
-		p.entries[key] = entry{parser: p, key: key, absoluteValue: absoluteValue, variableValue: variableValue, rawValue: rawValue}
+		p.entries[key] = entry{postconf: p, key: key, absoluteValue: absoluteValue, variableValue: variableValue, rawValue: rawValue}
 	}
 
 	return p, nil
@@ -58,8 +57,8 @@ func Parse(content []byte) (*Parser, error) {
 var ErrKeyNotFound = errors.New(`Key not found`)
 
 // TODO: Meh! It turns out that `postfix -x` already resolves all the settings,
-// leaving with no needs for a custom variable parser!
-func (p *Parser) Resolve(key string) (string, error) {
+// leaving with no needs for a custom variable postconf!
+func (p *Values) Resolve(key string) (string, error) {
 	if v, ok := p.entries[key]; ok {
 		return v.Resolve(), nil
 	}
@@ -67,7 +66,7 @@ func (p *Parser) Resolve(key string) (string, error) {
 	return "", ErrKeyNotFound
 }
 
-func (p *Parser) Value(key string) (string, error) {
+func (p *Values) Value(key string) (string, error) {
 	if v, ok := p.entries[key]; ok {
 		return v.Value(), nil
 	}
@@ -84,7 +83,7 @@ func (e *entry) Resolve() string {
 		return e.absoluteValue
 	}
 
-	otherEntry, ok := e.parser.entries[e.variableValue]
+	otherEntry, ok := e.postconf.entries[e.variableValue]
 	if !ok {
 		return ""
 	}
