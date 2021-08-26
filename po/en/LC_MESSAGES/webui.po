@@ -174,11 +174,11 @@ msgstr "Enter IP address"
 msgid "Enter Public URL"
 msgstr "Enter Public URL"
 
-#: frontend/controlcenter/src/lib/api.js:269
+#: frontend/controlcenter/src/lib/api.js:285
 msgid "Error: %{err}"
 msgstr "Error: %{err}"
 
-#: frontend/controlcenter/src/lib/api.js:162
+#: frontend/controlcenter/src/lib/api.js:168
 msgid "Error: %{error}."
 msgstr "Error: %{error}."
 
@@ -203,7 +203,7 @@ msgstr "Feature usage data is shared with a private Open Source analytics system
 msgid "Feedback"
 msgstr "Feedback"
 
-#: frontend/controlcenter/src/mixin/shared_texts.js:14
+#: frontend/controlcenter/src/mixin/shared_texts.js:29
 msgid "Feedback on Lightmeter"
 msgstr "Feedback on Lightmeter"
 
@@ -215,7 +215,7 @@ msgstr "Filter"
 msgid "Finish"
 msgstr "Finish"
 
-#: frontend/controlcenter/src/mixin/shared_texts.js:19
+#: frontend/controlcenter/src/mixin/shared_texts.js:34
 msgid "First installed"
 msgstr "First installed"
 
@@ -317,7 +317,7 @@ msgstr "Let's Go!"
 msgid "Lightmeter website"
 msgstr "Lightmeter website"
 
-#: frontend/controlcenter/src/mixin/shared_texts.js:8
+#: frontend/controlcenter/src/mixin/shared_texts.js:10
 msgid "Lightmeter will check your IP against the most popular available RBLs and detect blocks"
 msgstr "Lightmeter will check your IP against the most popular available RBLs and detect blocks"
 
@@ -411,7 +411,7 @@ msgstr "More on status codes: %{openLink}IANA's reference list%{closeLink}"
 msgid "Most of my mail is…"
 msgstr "Most of my mail is…"
 
-#: frontend/controlcenter/src/mixin/shared_texts.js:17
+#: frontend/controlcenter/src/mixin/shared_texts.js:32
 msgid "My thoughts on Lightmeter"
 msgstr "My thoughts on Lightmeter"
 
@@ -593,15 +593,15 @@ msgstr "Return notification sent back to original sender"
 msgid "Save"
 msgstr "Save"
 
-#: frontend/controlcenter/src/lib/api.js:51
+#: frontend/controlcenter/src/lib/api.js:52
 msgid "Saved general settings"
 msgstr "Saved general settings"
 
-#: frontend/controlcenter/src/lib/api.js:100
+#: frontend/controlcenter/src/lib/api.js:103
 msgid "Saved message detective settings"
 msgstr "Saved message detective settings"
 
-#: frontend/controlcenter/src/lib/api.js:84
+#: frontend/controlcenter/src/lib/api.js:87
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
@@ -732,7 +732,7 @@ msgid "Username"
 msgstr "Username"
 
 #: frontend/controlcenter/src/components/mainheader.vue:29
-#: frontend/controlcenter/src/mixin/shared_texts.js:21
+#: frontend/controlcenter/src/mixin/shared_texts.js:36
 msgid "Version"
 msgstr "Version"
 
@@ -740,7 +740,7 @@ msgstr "Version"
 msgid "View all archived"
 msgstr "View all archived"
 
-#: frontend/controlcenter/src/lib/api.js:166
+#: frontend/controlcenter/src/lib/api.js:172
 msgid "Vulnerable to: %{description}."
 msgstr "Vulnerable to: %{description}."
 
@@ -764,7 +764,7 @@ msgstr "Welcome"
 msgid "Welcome to Lightmeter %{version}"
 msgstr "Welcome to Lightmeter %{version}"
 
-#: frontend/controlcenter/src/mixin/shared_texts.js:11
+#: frontend/controlcenter/src/mixin/shared_texts.js:13
 msgid "What would you improve?"
 msgstr "What would you improve?"
 
