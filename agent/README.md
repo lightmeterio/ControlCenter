@@ -18,12 +18,14 @@ First of, start Postfix, via docker:
 ```sh
 > docker run -it --rm --name my_postfix alpine:latest
 # Inside docker:
-> apk update && apk add postfix
+> apk update && apk add postfix rsyslog && rsyslogd && postfix start && tail -f /var/log/mail.log
 ```
 
-Then in another terminal, run the agent:
+Then in another terminal, run the test program that instructs Postfix to block a list of IP addresses
+of connecting to the server.
+
 ```sh
 export POSTFIX_CONTAINER=my_postfix
 cd example
-go run ./main.go
+go run ./block-ips.go 123.456.789.123 [more ips here, separated by space...]
 ```

@@ -8,9 +8,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/bmatsuo/lmdb-go/lmdb"
 	"gitlab.com/lightmeter/controlcenter/agent/driver"
 	"gitlab.com/lightmeter/controlcenter/agent/parser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"io"
+	"os"
 	"strings"
 )
 
@@ -18,20 +21,95 @@ const checkFilename = "/etc/postfix/lightmeter_checks"
 
 var checkFilenamePostconfLine = fmt.Sprintf("check_client_access lmdb:%s", checkFilename)
 
-type CheckRecord struct {
-	IP      string
-	Action  string
-	Message string
+type ipList map[string]struct{}
+
+func buildIPList(ctx context.Context, d driver.Driver) (ipList, error) {
+	dbFilename := fmt.Sprintf("%s.lmdb", checkFilename)
+
+	// Does nothing if the lmdb database does not exist, as it'll be created when postmap is called
+	if err := d.ExecuteCommand(ctx, []string{"stat", dbFilename}, nil, io.Discard, io.Discard); err != nil {
+		return ipList{}, nil
+	}
+
+	env, err := lmdb.NewEnv()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	blockFile, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	tempCopyFilename := blockFile.Name()
+
+	defer func() { _ = os.Remove(tempCopyFilename) }()
+
+	if err := driver.ReadFileContent(ctx, d, dbFilename, blockFile); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := blockFile.Close(); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := env.Open(tempCopyFilename, lmdb.Readonly|lmdb.NoSubdir, 0600); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	ipList := ipList{}
+
+	if err := env.View(func(tx *lmdb.Txn) (err error) {
+		dbi, err := tx.OpenRoot(0)
+		if err != nil {
+			return err
+		}
+
+		cur, err := tx.OpenCursor(dbi)
+		if err != nil {
+			return err
+		}
+
+		defer cur.Close()
+
+		for {
+			k, _, err := cur.Get(nil, nil, lmdb.Next)
+			if lmdb.IsNotFound(err) {
+				return nil
+			}
+
+			if err != nil {
+				return err
+			}
+
+			keyWithoutNullTerminator := string(bytes.Trim(k, "\x00"))
+
+			ipList[keyWithoutNullTerminator] = struct{}{}
+		}
+	}); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return ipList, nil
 }
 
 func BlockIPs(ctx context.Context, d driver.Driver, ips []string) error {
+	blockedIps, err := buildIPList(ctx, d)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	for _, ip := range ips {
+		blockedIps[ip] = struct{}{}
+	}
+
 	// TODO: read ips already in the configuration,
 	// to prevent duplicating entries or missing existing ones
 	content := bytes.Buffer{}
 
 	// TODO: write the file while storing it, to preventing allocating memory to all of it
 	// which is bad if the number of IPs is very large...
-	for _, ip := range ips {
+	for ip := range blockedIps {
 		content.WriteString(fmt.Sprintf("%s REJECT Your IP is Blocked\n", ip))
 	}
 

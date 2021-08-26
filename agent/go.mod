@@ -3,6 +3,7 @@ module gitlab.com/lightmeter/controlcenter/agent
 go 1.16
 
 require (
+	github.com/bmatsuo/lmdb-go v1.8.0 // indirect
 	github.com/containerd/containerd v1.5.5 // indirect
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
