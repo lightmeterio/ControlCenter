@@ -109,27 +109,27 @@ func (w *AsyncWriter) StoreJsonSync(ctx context.Context, key, value interface{})
 	}
 }
 
-func (r *Runner) handleRequest(ctx context.Context, req storeRequest) {
+func (runner *Runner) handleRequest(ctx context.Context, req storeRequest) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
 
 	defer cancel()
 
 	err := func() error {
 		if req.jsonKey != nil {
-			return StoreJson(ctx, r.db, req.jsonKey, req.jsonValue)
+			return StoreJson(ctx, runner.db, req.jsonKey, req.jsonValue)
 		}
 
-		return Store(ctx, r.db, req.items)
+		return Store(ctx, runner.db, req.items)
 	}()
 
 	req.errChan <- err
 	close(req.errChan)
 }
 
-func (r *Runner) loop() {
+func (runner *Runner) loop() {
 	loopContext := context.Background()
 
-	for req := range r.requestsChan {
-		r.handleRequest(loopContext, req)
+	for req := range runner.requestsChan {
+		runner.handleRequest(loopContext, req)
 	}
 }

@@ -26,6 +26,7 @@ var (
 
 func InitialiseDatabasesWithWorkspace(workspaceDirectory string) error {
 	var once sync.Once
+
 	once.Do(func() {
 		workspace = workspaceDirectory
 
@@ -140,5 +141,6 @@ func (c DatabasesCloser) Close() error {
 	for _, db := range dbs {
 		db.Closers.Close()
 	}
+
 	return nil
 }

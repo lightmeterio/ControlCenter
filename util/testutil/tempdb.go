@@ -22,7 +22,8 @@ func TempDatabases(t *testing.T) (dir string, closeDatabases func()) {
 	}
 
 	return dir, func() {
-		dbconn.DatabasesCloser{}.Close()
+		err := dbconn.DatabasesCloser{}.Close()
+		So(err, ShouldBeNil)
 		clearDir()
 	}
 }

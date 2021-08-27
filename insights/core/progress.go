@@ -36,6 +36,7 @@ func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 	// If we skipt the import, there should be no progress info available
 	var skipImport interface{}
 	err = meta.Retrieve(ctx, dbconn.Db("master"), "skip_import", &skipImport)
+
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return Progress{}, errorutil.Wrap(err)
 	}
