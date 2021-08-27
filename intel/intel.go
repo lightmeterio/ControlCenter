@@ -30,8 +30,6 @@ import (
 	"time"
 )
 
-const SettingKey = "uuid"
-
 type Metadata struct {
 	InstanceID     string  `json:"instance_id"`
 	LocalIP        *string `json:"postfix_public_ip,omitempty"`

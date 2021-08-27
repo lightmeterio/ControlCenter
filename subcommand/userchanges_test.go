@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
-	"gitlab.com/lightmeter/controlcenter/intel"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -80,7 +79,7 @@ func TestChangeUserInfo(t *testing.T) {
 
 		uuid := uuid.NewV4().String()
 		writer := runner.Writer()
-		writer.StoreJsonSync(dummyContext, intel.SettingKey, uuid)
+		writer.StoreJsonSync(dummyContext, meta.UuidMetaKey, uuid)
 
 		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)
 
