@@ -129,8 +129,8 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 }
 
 var (
-	ErrorWrongRatingValue = errors.New("Wrong rating value")
-	ErrorAlreadyRated     = errors.New("User rating was submitted in the last two weeks")
+	ErrWrongRatingValue = errors.New("Wrong rating value")
+	ErrAlreadyRated     = errors.New("User rating was submitted in the last two weeks")
 )
 
 func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeutil.Clock) (int, error) {
@@ -143,7 +143,7 @@ func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeuti
 
 	// Check that rating is 0, 1 or 2
 	if rating > 2 {
-		return 0, ErrorWrongRatingValue
+		return 0, ErrWrongRatingValue
 	}
 
 	// Check that insight type wasn't rated in the last 2 weeks
@@ -168,7 +168,7 @@ func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeuti
 	}
 
 	if !insightUserRatingIsOld(time.Unix(ts, 0), clock) {
-		return 0, ErrorAlreadyRated
+		return 0, ErrAlreadyRated
 	}
 
 	return insightType, nil

@@ -13,6 +13,7 @@ run:
 linters:
   enable-all: true
   disable:
+    - promlinter
     - nolintlint
     - thelper
     - exhaustivestruct

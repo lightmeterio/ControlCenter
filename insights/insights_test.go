@@ -227,7 +227,7 @@ func TestEngine(t *testing.T) {
 
 			// wrong rating value
 			err = e.RateInsight("fake_insight_type", 1000, fakeClock)
-			So(err, ShouldEqual, core.ErrorWrongRatingValue)
+			So(err, ShouldEqual, core.ErrWrongRatingValue)
 			nopStep()
 
 			// correct rating
@@ -244,7 +244,7 @@ func TestEngine(t *testing.T) {
 
 			// not allowed to re-rate immediately
 			err = e.RateInsight("fake_insight_type", 0, fakeClock)
-			So(err, ShouldEqual, core.ErrorAlreadyRated)
+			So(err, ShouldEqual, core.ErrAlreadyRated)
 			nopStep()
 
 			// stop main loop
