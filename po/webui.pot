@@ -167,11 +167,11 @@ msgstr ""
 msgid "Enter Public URL"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:285
+#: ./frontend/controlcenter/src/lib/api.js:269
 msgid "Error: %{err}"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:168
+#: ./frontend/controlcenter/src/lib/api.js:162
 msgid "Error: %{error}."
 msgstr ""
 
@@ -196,7 +196,7 @@ msgstr ""
 msgid "Feedback"
 msgstr ""
 
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:29
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:14
 msgid "Feedback on Lightmeter"
 msgstr ""
 
@@ -208,7 +208,7 @@ msgstr ""
 msgid "Finish"
 msgstr ""
 
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:34
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:19
 msgid "First installed"
 msgstr ""
 
@@ -308,7 +308,7 @@ msgstr ""
 msgid "Lightmeter website"
 msgstr ""
 
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:10
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:8
 msgid "Lightmeter will check your IP against the most popular available RBLs and detect blocks"
 msgstr ""
 
@@ -402,7 +402,7 @@ msgstr ""
 msgid "Most of my mail is…"
 msgstr ""
 
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:32
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:17
 msgid "My thoughts on Lightmeter"
 msgstr ""
 
@@ -581,15 +581,15 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:52
+#: ./frontend/controlcenter/src/lib/api.js:51
 msgid "Saved general settings"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:103
+#: ./frontend/controlcenter/src/lib/api.js:100
 msgid "Saved message detective settings"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:87
+#: ./frontend/controlcenter/src/lib/api.js:84
 msgid "Saved notification settings"
 msgstr ""
 
@@ -718,7 +718,7 @@ msgid "Username"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/mainheader.vue:29
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:36
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:21
 msgid "Version"
 msgstr ""
 
@@ -726,7 +726,7 @@ msgstr ""
 msgid "View all archived"
 msgstr ""
 
-#: ./frontend/controlcenter/src/lib/api.js:172
+#: ./frontend/controlcenter/src/lib/api.js:166
 msgid "Vulnerable to: %{description}."
 msgstr ""
 
@@ -750,7 +750,7 @@ msgstr ""
 msgid "Welcome to Lightmeter %{version}"
 msgstr ""
 
-#: ./frontend/controlcenter/src/mixin/shared_texts.js:13
+#: ./frontend/controlcenter/src/mixin/shared_texts.js:11
 msgid "What would you improve?"
 msgstr ""
 
