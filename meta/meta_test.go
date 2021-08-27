@@ -9,7 +9,6 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -32,10 +31,6 @@ func TestSimpleValues(t *testing.T) {
 
 		reader := handler.Reader
 		writer := handler.Writer
-
-		defer func() {
-			errorutil.MustSucceed(handler.Close())
-		}()
 
 		Convey("Key not found", func() {
 			_, err := reader.Retrieve(dummyContext, "key1")
@@ -82,8 +77,6 @@ func TestJsonValues(t *testing.T) {
 
 		handler, err := NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(handler.Close()) }()
 
 		reader := handler.Reader
 		writer := handler.Writer

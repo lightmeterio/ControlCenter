@@ -20,7 +20,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
@@ -397,8 +396,6 @@ func TestLocalRBL(t *testing.T) {
 
 					m, err := meta.NewHandler(conn, "master")
 					So(err, ShouldBeNil)
-
-					defer func() { errorutil.MustSucceed(m.Close()) }()
 
 					{
 						settings := globalsettings.Settings{

@@ -118,7 +118,7 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 			RoConn:  Ro(reader),
 			LocalId: i,
 			Stmts:   map[interface{}]*sql.Stmt{},
-			Closers: closeutil.New(),
+			Closers: closeutil.New(newConnCloser(filename, ROMode, reader)),
 		}
 
 		pool.conns = append(pool.conns, conn)
@@ -127,5 +127,5 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		pool.pool <- conn
 	}
 
-	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(writer, pool)}, nil
+	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool)}, nil
 }
