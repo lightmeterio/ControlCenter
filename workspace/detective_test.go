@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
@@ -104,7 +105,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "400643011B47",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									expectedTime.In(time.UTC),
 									expectedTime.In(time.UTC),
@@ -161,7 +162,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "23EBE3D5C0",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									5,
 									time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
@@ -169,7 +170,7 @@ func TestDetective(t *testing.T) {
 									"4.1.1",
 									&expectedExpiredTime,
 								},
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
@@ -205,7 +206,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "95154657C",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
@@ -218,7 +219,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "D390B657C",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),

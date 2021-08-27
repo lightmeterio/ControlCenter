@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
@@ -26,8 +27,6 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-type fakeRegistrar = httpauthsub.FakeRegistrar
-
 func buildCookieClient() *http.Client {
 	jar, err := cookiejar.New(&cookiejar.Options{})
 	So(err, ShouldBeNil)
@@ -38,39 +37,22 @@ const originalTestPassword = `(1Yow@byU]>`
 
 var dummyContext = context.Background()
 
-func tempWorkspaceWithUserSetup(t *testing.T) (string, func()) {
-	dir, clearDir := testutil.TempDir(t)
-
-	auth, err := auth.NewAuth(dir, auth.Options{})
-	So(err, ShouldBeNil)
-
-	defer func() { So(auth.Close(), ShouldBeNil) }()
-
-	_, err = auth.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
-	So(err, ShouldBeNil)
-
-	return dir, clearDir
-}
-
 func TestChangeUserInfo(t *testing.T) {
 	Convey("Change User Info", t, func() {
-		dir, clearDir := tempWorkspaceWithUserSetup(t)
-		defer clearDir()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		a, err := auth.NewAuth(dir, auth.Options{})
+		So(err, ShouldBeNil)
+
+		_, err = a.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
 		So(err, ShouldBeNil)
 
 		authenticator := httpauthsub.NewAuthenticator(a, dir)
 
 		mux := http.NewServeMux()
 
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
-
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		runner := meta.NewRunner(m)
+		runner := meta.NewRunner(dbconn.Db("master"))
 		done, cancel := runner.Run()
 		defer func() {
 			cancel()
@@ -81,7 +63,7 @@ func TestChangeUserInfo(t *testing.T) {
 		writer := runner.Writer()
 		writer.StoreJsonSync(dummyContext, meta.UuidMetaKey, uuid)
 
-		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)
+		httpauth.HttpAuthenticator(mux, authenticator)
 
 		s := httptest.NewServer(mux)
 		defer s.Close()

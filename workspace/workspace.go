@@ -32,6 +32,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -72,7 +73,9 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	dbconn.SetWorkspace(workspaceDirectory)
+	if err := dbconn.InitialiseDatabasesWithWorkspace(workspaceDirectory); err != nil {
+		panic(err)
+	}
 
 	deliveries, err := deliverydb.New(workspaceDirectory, &domainmapping.DefaultMapping)
 
@@ -91,11 +94,11 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	settingsRunner := meta.NewRunner(dbconn.DbMaster)
+	settingsRunner := meta.NewRunner(dbconn.Db("master"))
 
 	// determine instance ID from the database, or create one
 	var instanceID string
-	err = meta.RetrieveJson(context.Background(), dbconn.DbMaster, intel.SettingKey, &instanceID)
+	err = meta.RetrieveJson(context.Background(), dbconn.Db("master"), intel.SettingKey, &instanceID)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
@@ -103,7 +106,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	if errors.Is(err, meta.ErrNoSuchKey) {
 		instanceID = uuid.NewV4().String()
-		err := meta.StoreJson(context.Background(), dbconn.DbMaster, intel.SettingKey, instanceID)
+		err := meta.StoreJson(context.Background(), dbconn.Db("master"), intel.SettingKey, instanceID)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
@@ -143,7 +146,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		RBLProvidersURLs: localrbl.DefaultRBLs,
 	})
 
-	rblDetector := messagerbl.New()
+	rblDetector := messagerbl.New(&globalsettings.SettingsIpGetter{})
 
 	insightsAccessor, err := insights.NewAccessor(workspaceDirectory)
 	if err != nil {
@@ -175,7 +178,6 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		ReportDestinationURL: IntelReportDestinationURL,
 	}
 
-
 	intelCollector, logsLineCountPublisher, err := intel.New(
 		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
 		auth, connStats, intelOptions)
@@ -205,6 +207,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
+			dbconn.DatabasesCloser{},
 			tracker,
 			deliveries,
 			insightsEngine,
@@ -249,6 +252,10 @@ func (ws *Workspace) InsightsEngine() *insights.Engine {
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
 	return ws.insightsEngine.Fetcher()
+}
+
+func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
+	return ws.insightsEngine.ProgressFetcher()
 }
 
 func (ws *Workspace) Dashboard() dashboard.Dashboard {

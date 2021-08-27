@@ -266,7 +266,7 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 // Check that end-users' detective is enabled, or user is authenticated
 func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	settings := detectivesettings.Settings{}
-	err := meta.RetrieveJson(r.Context(), dbconn.DbMaster, detectivesettings.SettingKey, &settings)
+	err := meta.RetrieveJson(r.Context(), dbconn.Db("master"), detectivesettings.SettingKey, &settings)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -313,7 +313,7 @@ type UserSystemData struct {
 	InstanceID string         `json:"instance_id"`
 }
 
-func HandleGetUserSystemData(auth *Authenticator, settingsReader *meta.Reader, w http.ResponseWriter, r *http.Request) error {
+func HandleGetUserSystemData(auth *Authenticator, w http.ResponseWriter, r *http.Request) error {
 	sessionData, err := GetSessionData(auth, r)
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized: is not authenticated"))
@@ -333,7 +333,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader *meta.Reader, w
 	}
 
 	// retrieve lmcc uuid
-	err = settingsReader.RetrieveJson(context.Background(), meta.UuidMetaKey, &userSystemData.InstanceID)
+	err = meta.RetrieveJson(context.Background(), dbconn.Db("master"), meta.UuidMetaKey, &userSystemData.InstanceID)
 
 	if err != nil {
 		// should never happen, uuid should always exist and be available

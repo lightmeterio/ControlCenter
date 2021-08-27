@@ -17,6 +17,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -56,25 +57,19 @@ func TestReports(t *testing.T) {
 
 		s := httptest.NewServer(handler)
 
-		conn, clear := testutil.TempDBConnection(t)
-		defer clear()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		m, err := meta.NewHandler(conn, "master")
+		auth, err := auth.NewAuth(dir, auth.Options{})
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
+		runner := meta.NewRunner(dbconn.Db("master"))
 		done, cancel := runner.Run()
 
 		defer func() {
 			cancel()
 			So(done(), ShouldBeNil)
 		}()
-
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
-
-		auth, err := auth.NewAuth(dir, auth.Options{})
-		So(err, ShouldBeNil)
 
 		email := "user@lightmeter.io"
 
@@ -85,7 +80,6 @@ func TestReports(t *testing.T) {
 			err = (&Dispatcher{
 				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: "http://completely_wrong_url",
-				SettingsReader:       m.Reader,
 				Auth:                 auth,
 			}).Dispatch(collector.Report{})
 
@@ -95,7 +89,7 @@ func TestReports(t *testing.T) {
 		})
 
 		Convey("Send settings if available", func() {
-			err := m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
+			err := meta.StoreJson(context.Background(), dbconn.Db("master"), globalsettings.SettingKey, globalsettings.Settings{
 				LocalIP:     net.ParseIP(`127.0.0.2`),
 				APPLanguage: "en",
 				PublicURL:   "https://example.com",
@@ -107,7 +101,6 @@ func TestReports(t *testing.T) {
 				InstanceID:           "my-best-uuid",
 				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
-				SettingsReader:       m.Reader,
 				Auth:                 auth,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
@@ -147,7 +140,6 @@ func TestReports(t *testing.T) {
 				InstanceID:           "my-best-uuid",
 				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
-				SettingsReader:       m.Reader,
 				Auth:                 auth,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
@@ -186,7 +178,6 @@ func TestReports(t *testing.T) {
 				InstanceID:           "my-best-uuid",
 				VersionBuilder:       fakeVersion,
 				ReportDestinationURL: s.URL,
-				SettingsReader:       m.Reader,
 				Auth:                 auth,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},

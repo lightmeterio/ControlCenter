@@ -176,7 +176,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 
 func (d *Dispatcher) getPostfixVersion() *string {
 	var version string
-	err := meta.RetrieveJson(context.Background(), dbconn.DbMaster, postfixversion.SettingKey, &version)
+	err := meta.RetrieveJson(context.Background(), dbconn.Db("master"), postfixversion.SettingKey, &version)
 
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version")
@@ -205,12 +205,8 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-<<<<<<< HEAD
 func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
 	auth *auth.Auth, connStats *connectionstats.Stats,
-=======
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher, auth *auth.Auth, connStats *connectionstats.Stats,
->>>>>>> 62ec9c58 (Remove meta.Reader and .Writer, reduce function arguments.)
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 	reporters := collector.Reporters{

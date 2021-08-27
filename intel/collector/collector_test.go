@@ -11,7 +11,6 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -105,11 +104,10 @@ func getAllQueuedResults(db *dbconn.PooledPair) ([]testCollectResult, error) {
 
 func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
-		db, clear := testutil.TempDBConnection(t)
-		defer clear()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		err := migrator.Run(db.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
+		db := dbconn.Db("intel")
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 		r2 := &fakeReporter{interval: time.Second * 5, id: "fake_2", count: 35}
@@ -118,7 +116,7 @@ func TestReporters(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -157,7 +155,7 @@ func TestReporters(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(results, ShouldResemble, []testCollectResult{
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:03 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -165,7 +163,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:05 +0000`),
 				id:   "fake_2",
 				value: map[string]interface{}{
@@ -173,7 +171,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:07 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -181,7 +179,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -189,7 +187,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
 				id:   "fake_2",
 				value: map[string]interface{}{
@@ -203,11 +201,10 @@ func TestReporters(t *testing.T) {
 
 func TestDispatcher(t *testing.T) {
 	Convey("Test Dispatcher", t, func() {
-		db, clear := testutil.TempDBConnection(t)
-		defer clear()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		err := migrator.Run(db.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
+		db := dbconn.Db("intel")
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 		r2 := &fakeReporter{interval: time.Second * 5, id: "fake_2", count: 35}
@@ -216,7 +213,7 @@ func TestDispatcher(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -256,7 +253,7 @@ func TestDispatcher(t *testing.T) {
 		clock.Sleep(time.Second * 10)
 
 		err = db.RwConn.Tx(func(tx *sql.Tx) error {
-			err := TryToDispatchReports(tx, clock, dispatcher)
+			err := TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 			return nil
 		})
@@ -326,7 +323,7 @@ func TestDispatcher(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			clock.Sleep(time.Second * 10)
-			err = TryToDispatchReports(tx, clock, dispatcher)
+			err = TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			return nil
@@ -369,11 +366,10 @@ func TestDispatcher(t *testing.T) {
 
 func TestCollectorSteps(t *testing.T) {
 	Convey("Test Collector Steps", t, func() {
-		db, clear := testutil.TempDBConnection(t)
-		defer clear()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		err := migrator.Run(db.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
+		db := dbconn.Db("intel")
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 
@@ -383,7 +379,7 @@ func TestCollectorSteps(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)
@@ -414,11 +410,11 @@ func TestCollectorSteps(t *testing.T) {
 
 func TestCollector(t *testing.T) {
 	Convey("Test Collector", t, func() {
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
+
 		reporters := Reporters{&fakeReporter{interval: 1 * time.Second, id: "fake_1", count: 42}}
 		dispatcher := &fakeDispatcher{}
-
-		dir, clear := testutil.TempDir(t)
-		defer clear()
 
 		// NOTE: the report times have only precision of seconds only (as they are stored in the database as a int64 timestamp)
 		collector, err := New(dir, Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}, reporters, dispatcher)

@@ -5,11 +5,13 @@
 package httpauth_test
 
 import (
+	"context"
 	"encoding/json"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
@@ -37,13 +39,10 @@ func buildCookieClient() *http.Client {
 
 func TestHTTPAuth(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		runner := meta.NewRunner(m)
+		runner := meta.NewRunner(dbconn.Db("master"))
 		done, cancel := runner.Run()
 		defer func() {
 			cancel()
@@ -67,7 +66,7 @@ func TestHTTPAuth(t *testing.T) {
 		mux := http.NewServeMux()
 
 		a := httpauthsub.NewAuthenticatorWithOptions(registrar)
-		httpauth.HttpAuthenticator(mux, a, m.Reader)
+		httpauth.HttpAuthenticator(mux, a)
 
 		s := httptest.NewServer(mux)
 		defer s.Close()

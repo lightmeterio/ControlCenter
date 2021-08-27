@@ -34,7 +34,7 @@ func Collect(tx *sql.Tx, clock timeutil.Clock, id string, report ReportPayload) 
 
 	log.Info().Msgf("Collecting report with id %s at %v", id, now)
 
-	if _, err := tx.Exec(`insert into queued_reports(time, identifier, value, dispatched_time) values(?, ?, ?, 0)`, now.Unix(), id, j); err != nil {
+	if err := dbconn.Db("intel").Write(`insert into queued_reports(time, identifier, value, dispatched_time) values(?, ?, ?, 0)`, now.Unix(), id, j); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -48,7 +48,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		lastExecTime, err := func() (time.Time, error) {
 			var lastExecTs int64
 
-			err := meta.Retrieve(context.Background(), dbconn.DbIntel, r.ID(), &lastExecTs)
+			err := meta.Retrieve(context.Background(), dbconn.Db("intel"), r.ID(), &lastExecTs)
 
 			// first execution. Not an error
 			if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
@@ -71,7 +71,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		now := clock.Now()
 
 		storeLastExec := func() error {
-			if err := meta.Store(context.Background(), dbconn.DbIntel, []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
+			if err := meta.Store(context.Background(), dbconn.Db("intel"), []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
 				return errorutil.Wrap(err, "id:", r.ID())
 			}
 

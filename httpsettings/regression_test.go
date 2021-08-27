@@ -8,7 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -24,11 +23,8 @@ func buildCookieClient() *http.Client {
 
 func TestRegressions(t *testing.T) {
 	Convey("Regressions", t, func() {
-		setup, _, _, _, _, clear := buildTestSetup(t)
+		dir, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
-
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
 
 		registrar := &auth.FakeRegistrar{
 			SessionKey: []byte("some_key"),
@@ -42,7 +38,7 @@ func TestRegressions(t *testing.T) {
 
 		setup.HttpSetup(mux, auth)
 
-		httpauth.HttpAuthenticator(mux, auth, nil)
+		httpauth.HttpAuthenticator(mux, auth)
 
 		s := httptest.NewServer(mux)
 

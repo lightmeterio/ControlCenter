@@ -76,7 +76,7 @@ func (s *HttpServer) Start() error {
 
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher(), s.Workspace.InsightsEngine())
-	api.HttpInsightsProgress(auth, mux)
+	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
 	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester())
 	api.HttpConnectionsDashboard(auth, mux, s.Timezone, s.Workspace.ConnectionStatsAccessor())
 

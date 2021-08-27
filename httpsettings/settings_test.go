@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
@@ -22,7 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
 	"net"
@@ -70,13 +70,10 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *notification.Center, *fakeSlackPoster, func()) {
-	conn, closeConn := testutil.TempDBConnection(t)
+func buildTestSetup(t *testing.T) (string, *Settings, *meta.AsyncWriter, *notification.Center, *fakeSlackPoster, func()) {
+	dir, closeDatabases := testutil.TempDatabases(t)
 
-	m, err := meta.NewHandler(conn, "master")
-	So(err, ShouldBeNil)
-
-	runner := meta.NewRunner(m)
+	runner := meta.NewRunner(dbconn.Db("master"))
 	done, cancel := runner.Run()
 
 	writer := runner.Writer()
@@ -85,7 +82,7 @@ func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *
 
 	fakeNotifier := &fakeNotifier{}
 
-	slackNotifier := slack.New(notification.PassPolicy, m.Reader)
+	slackNotifier := slack.New(notification.PassPolicy)
 
 	fakeSlackPoster := &fakeSlackPoster{}
 
@@ -94,7 +91,7 @@ func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *
 		return fakeSlackPoster
 	}
 
-	emailNotifier := email.New(notification.PassPolicy, m.Reader)
+	emailNotifier := email.New(notification.PassPolicy)
 
 	notifiers := map[string]notification.Notifier{
 		slack.SettingKey: slackNotifier,
@@ -102,21 +99,20 @@ func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *
 		"fake":           fakeNotifier,
 	}
 
-	center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), notification.PassPolicy, notifiers)
+	center := notification.New(translator.New(catalog.NewBuilder()), notification.PassPolicy, notifiers)
 
-	setup := NewSettings(writer, m.Reader, initialSetupSettings, center)
+	setup := NewSettings(writer, initialSetupSettings, center)
 
-	return setup, writer, m.Reader, center, fakeSlackPoster, func() {
+	return dir, setup, writer, center, fakeSlackPoster, func() {
 		cancel()
 		done()
-		errorutil.MustSucceed(m.Close())
-		closeConn()
+		closeDatabases()
 	}
 }
 
 func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
-		setup, _, _, _, _, clear := buildTestSetup(t)
+		_, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -220,7 +216,7 @@ func TestInitialSetup(t *testing.T) {
 
 func TestAppSettings(t *testing.T) {
 	Convey("Settings Setup", t, func() {
-		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		_, setup, writer, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -246,7 +242,7 @@ func TestAppSettings(t *testing.T) {
 
 			// The IP address must be intact
 			settings := globalsettings.Settings{}
-			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err = meta.RetrieveJson(context.Background(), dbconn.Db("master"), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.APPLanguage, ShouldEqual, "de")
@@ -255,7 +251,7 @@ func TestAppSettings(t *testing.T) {
 	})
 
 	Convey("Clear general settings", t, func() {
-		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		_, setup, writer, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -273,7 +269,7 @@ func TestAppSettings(t *testing.T) {
 
 			// Check that the settings are set
 			settings := globalsettings.Settings{}
-			err := reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err := meta.RetrieveJson(context.Background(), dbconn.Db("master"), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
@@ -288,7 +284,7 @@ func TestAppSettings(t *testing.T) {
 
 			// The IP address and postfix URL must be cleared, but the language should stay
 			settings = globalsettings.Settings{}
-			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err = meta.RetrieveJson(context.Background(), dbconn.Db("master"), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.LocalIP, ShouldBeNil)
@@ -329,7 +325,7 @@ func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 
 func TestSlackNotifications(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		setup, _, reader, center, fakeSlackPoster, clear := buildTestSetup(t)
+		_, setup, _, center, fakeSlackPoster, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -379,7 +375,7 @@ func TestSlackNotifications(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					mo := new(slack.Settings)
-					err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+					err = meta.RetrieveJson(dummyContext, dbconn.Db("master"), slack.SettingKey, mo)
 					So(err, ShouldBeNil)
 
 					So(mo.Channel, ShouldEqual, "donutloop")
@@ -413,7 +409,7 @@ func TestSlackNotifications(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				mo := new(slack.Settings)
-				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+				err = meta.RetrieveJson(dummyContext, dbconn.Db("master"), slack.SettingKey, mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
@@ -443,14 +439,14 @@ func TestSlackNotifications(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
 				mo := new(slack.Settings)
-				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+				err = meta.RetrieveJson(dummyContext, dbconn.Db("master"), slack.SettingKey, mo)
 				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
 			})
 		})
 	})
 
 	Convey("Reset slack settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		_, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -474,7 +470,7 @@ func TestSlackNotifications(t *testing.T) {
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 			mo := new(slack.Settings)
-			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			err = meta.RetrieveJson(dummyContext, dbconn.Db("master"), slack.SettingKey, mo)
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "general")
@@ -488,7 +484,7 @@ func TestSlackNotifications(t *testing.T) {
 
 			// The slack fields should be cleared
 			mo = new(slack.Settings)
-			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			err = meta.RetrieveJson(dummyContext, dbconn.Db("master"), slack.SettingKey, mo)
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "")
@@ -499,7 +495,7 @@ func TestSlackNotifications(t *testing.T) {
 
 func TestEmailNotifications(t *testing.T) {
 	Convey("Email Notifications", t, func() {
-		setup, w, _, center, _, clear := buildTestSetup(t)
+		_, setup, w, center, _, clear := buildTestSetup(t)
 		defer clear()
 
 		// set some basic global settings required by the email notifier
@@ -603,7 +599,7 @@ func TestEmailNotifications(t *testing.T) {
 	})
 
 	Convey("Reset email settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		_, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		emailBackend := &email.FakeMailBackend{ExpectedUser: "user@example.com", ExpectedPassword: "super_password"}
@@ -637,10 +633,10 @@ func TestEmailNotifications(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-			settings, err := email.GetSettings(context.Background(), reader)
+			settings, err := email.GetSettings(context.Background())
 			So(err, ShouldBeNil)
 
-			err = reader.RetrieveJson(context.Background(), email.SettingKey, &settings)
+			err = meta.RetrieveJson(context.Background(), dbconn.Db("master"), email.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.Sender, ShouldEqual, "sender@example.com")
@@ -652,7 +648,7 @@ func TestEmailNotifications(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
-			settings, err = email.GetSettings(context.Background(), reader)
+			settings, err = email.GetSettings(context.Background())
 			So(err, ShouldBeNil)
 
 			So(settings.Sender, ShouldEqual, "")
@@ -663,14 +659,14 @@ func TestEmailNotifications(t *testing.T) {
 
 func TestWalkthroughSettings(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		_, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
 		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		w := &walkthrough.Settings{}
-		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), meta.ErrNoSuchKey), ShouldBeTrue)
+		So(errors.Is(meta.RetrieveJson(dummyContext, dbconn.Db("master"), walkthrough.SettingKey, w), meta.ErrNoSuchKey), ShouldBeTrue)
 
 		c := &http.Client{}
 
@@ -719,7 +715,7 @@ func TestWalkthroughSettings(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					w := &walkthrough.Settings{}
-					So(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), ShouldBeNil)
+					So(meta.RetrieveJson(dummyContext, dbconn.Db("master"), walkthrough.SettingKey, w), ShouldBeNil)
 					So(w.Completed, ShouldBeTrue)
 
 					Convey("Retrieve", func() {

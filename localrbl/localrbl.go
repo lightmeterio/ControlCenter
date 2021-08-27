@@ -5,6 +5,7 @@
 package localrbl
 
 import (
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
 	"time"
@@ -29,6 +30,7 @@ type Results struct {
 
 type Checker interface {
 	io.Closer
+	globalsettings.IPAddressGetter
 	StartListening()
 	NotifyNewScan(time.Time)
 	Step(time.Time, func(Results) error, func() error) error

@@ -13,7 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -28,8 +28,8 @@ func init() {
 
 func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
-		dir, clear := testutil.TempDir(t)
-		defer clear()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		stats, err := connectionstats.New(dir)
 		So(err, ShouldBeNil)
@@ -51,11 +51,7 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 
 		baseTime := timeutil.MustParseTime(`2020-01-01 00:00:00 +0000`)
 
-		intelDb, clear := testutil.TempDBConnection(t)
-		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
+		intelDb := dbconn.Db("intel")
 
 		reporter := NewReporter(stats.ConnPool())
 
@@ -78,7 +74,7 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 			So(err, ShouldBeNil)
 
 			// data collected
-			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			err = collector.TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			return nil

@@ -10,7 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -59,8 +59,10 @@ func init() {
 
 func TestDatabaseMigrationUp(t *testing.T) {
 	Convey("Migration succeeds", t, func() {
-		connPair, clear := testutil.TempDBConnection(t, "insights.db")
-		defer clear()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
+
+		connPair := dbconn.Db("insights")
 
 		Convey("Test json names fixup", func() {
 			// Initial setup

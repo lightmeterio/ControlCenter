@@ -18,7 +18,7 @@ import (
 const HistoricalImportKey = "historical_import_running"
 
 func DisableHistoricalImportFlag(ctx context.Context) error {
-	if err := meta.Store(ctx, dbconn.DbInsights, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
+	if err := meta.Store(ctx, dbconn.Db("insights"), []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -26,7 +26,7 @@ func DisableHistoricalImportFlag(ctx context.Context) error {
 }
 
 func EnableHistoricalImportFlag(ctx context.Context) error {
-	if err := meta.Store(ctx, dbconn.DbInsights, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
+	if err := meta.Store(ctx, dbconn.Db("insights"), []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -36,7 +36,7 @@ func EnableHistoricalImportFlag(ctx context.Context) error {
 func IsHistoricalImportRunning(ctx context.Context) (bool, error) {
 	var running bool
 
-	err := meta.Retrieve(ctx, dbconn.DbInsights, HistoricalImportKey, &running)
+	err := meta.Retrieve(ctx, dbconn.Db("insights"), HistoricalImportKey, &running)
 
 	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
 		return false, nil

@@ -23,7 +23,13 @@ type Settings struct {
 	PublicURL   string `json:"public_url"`
 }
 
-func IPAddress(ctx context.Context) net.IP {
+type IPAddressGetter interface {
+	IPAddress(context.Context) net.IP
+}
+
+type SettingsIpGetter struct{}
+
+func (r *SettingsIpGetter) IPAddress(ctx context.Context) net.IP {
 	settings, err := GetSettings(ctx)
 
 	if err != nil {
@@ -48,7 +54,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 func GetSettings(ctx context.Context) (*Settings, error) {
 	var settings Settings
 
-	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, &settings)
+	err := meta.RetrieveJson(ctx, dbconn.Db("master"), SettingKey, &settings)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)

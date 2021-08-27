@@ -9,9 +9,9 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -44,15 +44,10 @@ func TestMessengerSettings(t *testing.T) {
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		runner := meta.NewRunner(m)
+		runner := meta.NewRunner(dbconn.Db("master"))
 		writer := runner.Writer()
 		done, cancel := runner.Run()
 
@@ -67,7 +62,7 @@ func TestMessengerSettings(t *testing.T) {
 			err := slack.SetSettings(context, writer, s)
 			So(err, ShouldBeNil)
 
-			retrievedSetting, err := slack.GetSettings(dummyContext, m.Reader)
+			retrievedSetting, err := slack.GetSettings(dummyContext)
 			So(err, ShouldBeNil)
 
 			So(retrievedSetting, ShouldResemble, &s)
@@ -79,14 +74,12 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		m, err := meta.NewHandler(conn, "master")
-		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(m.Close()) }()
+		db := dbconn.Db("master")
 
-		runner := meta.NewRunner(m)
+		runner := meta.NewRunner(db)
 		writer := runner.Writer()
 		done, cancel := runner.Run()
 
@@ -123,13 +116,15 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
 
-			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
+			var r string
+			err = meta.Retrieve(dummyContext, db, "mail_kind", &r)
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindMarketing)
 
-			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			var i int64
+			err = meta.Retrieve(dummyContext, db, "subscribe_newsletter", &i)
 			So(err, ShouldBeNil)
-			So(r, ShouldEqual, 1)
+			So(i, ShouldEqual, 1)
 		})
 
 		Convey("Succeeds not subscribing", func() {
@@ -142,13 +137,15 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
 
-			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
+			var r string
+			err = meta.Retrieve(dummyContext, db, "mail_kind", &r)
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, MailKindTransactional)
 
-			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			var i int64
+			err = meta.Retrieve(dummyContext, db, "subscribe_newsletter", &i)
 			So(err, ShouldBeNil)
-			So(r, ShouldEqual, 0)
+			So(i, ShouldEqual, 0)
 		})
 	})
 }

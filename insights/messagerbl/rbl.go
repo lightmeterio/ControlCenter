@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"time"
@@ -134,7 +133,7 @@ func maybeAddNewInsightFromMessage(d *detector, r messagerbl.Result, c core.Cloc
 	}
 
 	content := Content{
-		Address:   globalsettings.IPAddress(context.Background()),
+		Address:   d.options.Detector.IPAddress(context.Background()),
 		Message:   r.Payload.ExtraMessage,
 		Recipient: r.Payload.RecipientDomainPart,
 		Status:    r.Payload.Status.String(),

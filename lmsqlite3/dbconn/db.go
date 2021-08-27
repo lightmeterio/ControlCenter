@@ -7,64 +7,76 @@ package dbconn
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"path"
+	"sync"
 )
+
+type DB = PooledPair
 
 var (
 	workspace string
-
-	DbAuth     = newDb("auth")
-	DbIntel    = newDb("intel-collector")
-	DbInsights = newDb("insights")
-	DbMaster   = newDb("master")
+	dbNames   = []string{"auth", "intel", "intel-collector", "insights", "master"}
+	dbs       = map[string]*DB{}
 )
 
-func SetWorkspace(workspaceDirectory string) {
-	workspace = workspaceDirectory
-}
+func InitialiseDatabasesWithWorkspace(workspaceDirectory string) error {
+	var once sync.Once
+	once.Do(func() {
+		workspace = workspaceDirectory
 
-type DB struct {
-	dbName     string
-	pooledPair *PooledPair
-}
+		for _, dbName := range dbNames {
+			db, err := newDb(dbName)
 
-var pooledPairs = map[string]*PooledPair{}
+			if err != nil {
+				log.Warn().Msgf("Failed opening database '%s' with error: %v", dbName, err)
+				dbs[dbName] = nil
+				continue
+			}
 
-func (db *DB) open() error {
-	if workspace == "" {
-		panic("Workspace for databases not set")
-	}
-
-	if db.pooledPair != nil {
-		return nil
-	}
-
-	_, found := pooledPairs[db.dbName]
-
-	if !found {
-		// TODO mutex'ed database opening
-		pooledPair, err := Open(path.Join(workspace, db.dbName), 5)
-
-		if err != nil {
-			return err
+			dbs[dbName] = db
 		}
+	})
 
-		if err := migrator.Run(pooledPair.RwConn.DB, db.dbName); err != nil {
-			return errorutil.Wrap(err)
+	for _, db := range dbs {
+		if db == nil {
+			return errors.New("Databases could not be properly initialised")
 		}
-
-		pooledPairs[db.dbName] = pooledPair
 	}
-
-	db.pooledPair = pooledPairs[db.dbName]
 
 	return nil
 }
 
-func newDb(dbName string) *DB {
-	return &DB{dbName: dbName}
+func newDb(dbName string) (*DB, error) {
+	if workspace == "" {
+		panic("Workspace for databases not set")
+	}
+
+	pooledPair, err := Open(path.Join(workspace, dbName), 5)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := migrator.Run(pooledPair.RwConn.DB, dbName); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return pooledPair, nil
+}
+
+func Db(dbName string) *DB {
+	db, ok := dbs[dbName]
+
+	if !ok {
+		panic(fmt.Sprintf("Database '%s' hasn't been initialized", dbName))
+	}
+
+	return db
 }
 
 type Query struct {
@@ -72,40 +84,30 @@ type Query struct {
 	Args  []interface{}
 }
 
-type Row struct {
-	otherError error // non-nil if there was an error before .Scan was called (e.g. opening db)
-	row        *sql.Row
-}
-
-func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row {
-	err := db.open()
-
-	if err != nil {
-		return &Row{otherError: errorutil.Wrap(err)}
-	}
-
-	conn, release := db.pooledPair.RoConnPool.Acquire()
+func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	conn, release := db.RoConnPool.Acquire()
 	defer release()
 
-	return &Row{row: conn.QueryRowContext(ctx, query, args...)}
+	return conn.Query(query, args...)
 }
 
-func (r *Row) Scan(values ...interface{}) error {
-	if r.otherError != nil {
-		return r.otherError
-	}
+func (db *DB) QueryRow(query string, args ...interface{}) *sql.Row {
+	return db.QueryRowContext(context.Background(), query, args...)
+}
 
-	return r.row.Scan(values...)
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	conn, release := db.RoConnPool.Acquire()
+	defer release()
+
+	return conn.QueryRowContext(ctx, query, args...)
+}
+
+func (db *DB) Write(query string, args ...interface{}) error {
+	return db.Transaction(context.Background(), []Query{{query, args}})
 }
 
 func (db *DB) Transaction(ctx context.Context, queries []Query) error {
-	err := db.open()
-
-	if err != nil {
-		return err
-	}
-
-	tx, err := db.pooledPair.RwConn.BeginTx(ctx, nil)
+	tx, err := db.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -132,9 +134,11 @@ func (db *DB) Transaction(ctx context.Context, queries []Query) error {
 	return nil
 }
 
-// TODO: call CloseAll() upon lmcc termination
-func CloseAll() {
-	for _, db := range pooledPairs {
+type DatabasesCloser struct{}
+
+func (c DatabasesCloser) Close() error {
+	for _, db := range dbs {
 		db.Closers.Close()
 	}
+	return nil
 }

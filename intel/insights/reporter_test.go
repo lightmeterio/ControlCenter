@@ -16,7 +16,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
@@ -90,19 +89,15 @@ func mustEncodeTimeJson(v time.Time) string {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Insights Count Reporter", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		accessor, err := insights.NewAccessor(dir)
 		So(err, ShouldBeNil)
 
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
-		intelDb, clear := testutil.TempDBConnection(t)
-		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
+		intelDb := dbconn.Db("intel")
 
 		e, err := insights.NewCustomEngine(
 			accessor,
@@ -165,14 +160,14 @@ func TestReporter(t *testing.T) {
 			err := reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
 
-			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			err = collector.TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			clock.Sleep(fifteenMin)
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
 
-			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			err = collector.TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			return nil

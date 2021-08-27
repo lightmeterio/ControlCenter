@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -37,7 +38,7 @@ func buildCookieClient() *http.Client {
 func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective, *meta.AsyncWriter, func()) {
 	ctrl := gomock.NewController(t)
 
-	dir, clearDir := testutil.TempDir(t)
+	dir, closeDatabases := testutil.TempDatabases(t)
 
 	registrar := &auth.FakeRegistrar{
 		SessionKey: []byte("some_key"),
@@ -51,29 +52,21 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 	auth := auth.NewAuthenticator(registrar, dir)
 	mux := http.NewServeMux()
 
-	settingdDB, removeDB := testutil.TempDBConnection(t)
-
-	handler, err := meta.NewHandler(settingdDB, "master")
-	So(err, ShouldBeNil)
-
-	runner := meta.NewRunner(handler)
-
+	runner := meta.NewRunner(dbconn.Db("master"))
 	done, cancel := runner.Run()
 
 	settingsWriter := runner.Writer()
-	settingsReader := handler.Reader
 
-	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader)
+	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{})
 
-	httpauth.HttpAuthenticator(mux, auth, settingsReader)
+	httpauth.HttpAuthenticator(mux, auth)
 
 	s := httptest.NewServer(mux)
 
 	return s, detective, settingsWriter, func() {
 		cancel()
 		So(done(), ShouldBeNil)
-		removeDB()
-		clearDir()
+		closeDatabases()
 		ctrl.Finish()
 	}
 }

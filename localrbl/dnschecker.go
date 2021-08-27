@@ -23,6 +23,8 @@ var (
 )
 
 type dnsChecker struct {
+	*globalsettings.SettingsIpGetter
+
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
@@ -94,7 +96,7 @@ func startNewScan(checker *dnsChecker, t time.Time) {
 
 	results := make([]godnsbl.Result, len(checker.options.RBLProvidersURLs))
 
-	ip := globalsettings.IPAddress(ctx)
+	ip := checker.IPAddress(ctx)
 
 	if err := ctx.Err(); err != nil {
 		errorutil.LogErrorf(err, "obtaining IP address from settings on RBL Check")

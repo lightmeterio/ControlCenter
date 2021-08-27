@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -32,8 +33,10 @@ func TestReporter(t *testing.T) {
 
 		reporter := NewReporter(pub)
 
-		intelDb, clear := testutil.TempDBConnection(t)
-		defer clear()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
+
+		intelDb := dbconn.Db("intel")
 
 		err := migrator.Run(intelDb.RwConn.DB, "intel")
 		So(err, ShouldBeNil)
@@ -57,7 +60,7 @@ func TestReporter(t *testing.T) {
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
 
-			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			err = collector.TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			return nil

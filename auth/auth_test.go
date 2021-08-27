@@ -24,8 +24,8 @@ var (
 
 func TestSessionKey(t *testing.T) {
 	Convey("Test Session Key", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		var generatedKey, recoveredKey [][]byte
 
@@ -33,7 +33,6 @@ func TestSessionKey(t *testing.T) {
 		// generating multiple ones is desirable
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
-			defer func() { So(auth.Close(), ShouldBeNil) }()
 			generatedKey = auth.SessionKeys()
 			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
@@ -42,7 +41,6 @@ func TestSessionKey(t *testing.T) {
 
 		{
 			auth, _ := NewAuth(path.Join(dir), Options{})
-			defer func() { So(auth.Close(), ShouldBeNil) }()
 			recoveredKey = auth.SessionKeys()
 		}
 
@@ -54,13 +52,12 @@ func TestAuth(t *testing.T) {
 	strongPassword := `ghjzfpailduifiapdq9um6ysuubvtjywAqbnadq+aUerxrqhfp`
 
 	Convey("Test Auth", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		auth, err := NewAuth(path.Join(dir), Options{})
 		So(err, ShouldBeNil)
 		So(auth, ShouldNotBeNil)
-		defer func() { So(auth.Close(), ShouldBeNil) }()
 
 		Convey("No user is initially registered", func() {
 			ok, err := auth.HasAnyUser(dummyContext)
@@ -124,8 +121,6 @@ func TestAuth(t *testing.T) {
 			auth, err := NewAuth(path.Join(dir), Options{AllowMultipleUsers: true})
 
 			So(err, ShouldBeNil)
-
-			defer func() { So(auth.Close(), ShouldBeNil) }()
 
 			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
 			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`
@@ -234,28 +229,22 @@ func TestAuth(t *testing.T) {
 
 const originalTestPassword = `(1Yow@byU]>`
 
-func tempWorkspaceWithUserSetup(t *testing.T) (string, func()) {
-	dir, clearDir := testutil.TempDir(t)
+func tempWorkspaceWithUserSetup(t *testing.T) (*Auth, func()) {
+	dir, closeDatabases := testutil.TempDatabases(t)
 
 	auth, err := NewAuth(path.Join(dir), Options{})
 	So(err, ShouldBeNil)
 
-	defer func() { So(auth.Close(), ShouldBeNil) }()
-
 	_, err = auth.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
 	So(err, ShouldBeNil)
 
-	return dir, clearDir
+	return auth, closeDatabases
 }
 
 func TestResetPassword(t *testing.T) {
 	Convey("Reset Password", t, func() {
-		dir, clearDir := tempWorkspaceWithUserSetup(t)
-		defer clearDir()
-
-		auth, err := NewAuth(path.Join(dir), Options{})
-		So(err, ShouldBeNil)
-		defer func() { So(auth.Close(), ShouldBeNil) }()
+		auth, clear := tempWorkspaceWithUserSetup(t)
+		defer clear()
 
 		Convey("Fails", func() {
 			Convey("Invalid user", func() {
@@ -290,12 +279,8 @@ func TestResetPassword(t *testing.T) {
 
 func TestChangeUserInfo(t *testing.T) {
 	Convey("Change User Info", t, func() {
-		dir, clearDir := tempWorkspaceWithUserSetup(t)
-		defer clearDir()
-
-		auth, err := NewAuth(path.Join(dir), Options{})
-		So(err, ShouldBeNil)
-		defer func() { So(auth.Close(), ShouldBeNil) }()
+		auth, clear := tempWorkspaceWithUserSetup(t)
+		defer clear()
 
 		Convey("Invalid user", func() {
 			So(errors.Is(auth.ChangeUserInfo(dummyContext, "invalid.user@example.com", "new.email@example.com", "New Name", ``), ErrEmailAddressNotFound), ShouldBeTrue)

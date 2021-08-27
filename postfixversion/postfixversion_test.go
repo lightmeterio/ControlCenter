@@ -8,6 +8,7 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
@@ -21,22 +22,19 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-func getVersion(settingsReader *meta.Reader) (*string, error) {
+func getVersion() (*string, error) {
 	var version *string
-	err := settingsReader.RetrieveJson(context.Background(), SettingKey, &version)
+	err := meta.RetrieveJson(context.Background(), dbconn.Db("master"), SettingKey, &version)
 	unwrappedErr := errorutil.TryToUnwrap(err)
 	return version, unwrappedErr
 }
 
 func TestPostfixVersionPublisher(t *testing.T) {
 	Convey("TestPostfixVersion", t, func() {
-		settingdDB, removeDB := testutil.TempDBConnection(t)
-		defer removeDB()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		handler, err := meta.NewHandler(settingdDB, "master")
-		So(err, ShouldBeNil)
-
-		runner := meta.NewRunner(handler)
+		runner := meta.NewRunner(dbconn.Db("master"))
 		done, cancel := runner.Run()
 
 		defer func() {
@@ -45,7 +43,6 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		}()
 
 		settingsWriter := runner.Writer()
-		settingsReader := handler.Reader
 
 		p := NewPublisher(settingsWriter)
 
@@ -53,7 +50,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version unset", func() {
-			version, err := getVersion(settingsReader)
+			version, err := getVersion()
 			So(err, ShouldEqual, meta.ErrNoSuchKey)
 			So(version, ShouldBeNil)
 		})
@@ -62,7 +59,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version set", func() {
-			version, err := getVersion(settingsReader)
+			version, err := getVersion()
 			So(err, ShouldBeNil)
 			So(*version, ShouldEqual, "3.4.14")
 		})
@@ -71,7 +68,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version overriden", func() {
-			version, err := getVersion(settingsReader)
+			version, err := getVersion()
 			So(err, ShouldBeNil)
 			So(*version, ShouldEqual, "42.0")
 		})

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
@@ -49,13 +50,12 @@ func publishResults(pub tracking.ResultPublisher, results ...mappedResult) {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Reporter", t, func() {
-		dir, clear := testutil.TempDir(t)
-		defer clear()
+		dir, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
 		baseTime := testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)
 
-		intelDb, clear := testutil.TempDBConnection(t)
-		defer clear()
+		intelDb := dbconn.Db("intel")
 
 		err := migrator.Run(intelDb.RwConn.DB, "intel")
 		So(err, ShouldBeNil)
@@ -220,7 +220,7 @@ func TestReporter(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			// finally, collect it
-			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			err = collector.TryToDispatchReports(clock, dispatcher)
 			So(err, ShouldBeNil)
 
 			return nil

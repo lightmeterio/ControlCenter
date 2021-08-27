@@ -7,7 +7,7 @@ package meta
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -18,19 +18,12 @@ func init() {
 
 func TestRunner(t *testing.T) {
 	Convey("Test Runner", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
-		defer closeConn()
+		_, closeDatabases := testutil.TempDatabases(t)
+		defer closeDatabases()
 
-		handler, err := NewHandler(conn, "master")
-		So(err, ShouldBeNil)
+		db := dbconn.Db("master")
 
-		defer func() {
-			errorutil.MustSucceed(handler.Close())
-		}()
-
-		reader := handler.Reader
-
-		runner := NewRunner(handler)
+		runner := NewRunner(db)
 
 		done, cancel := runner.Run()
 
@@ -46,11 +39,12 @@ func TestRunner(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
-			v, err := reader.Retrieve(dummyContext, "key1")
+			var v string
+			err = Retrieve(dummyContext, db, "key1", &v)
 			So(err, ShouldBeNil)
 			So(v, ShouldEqual, "value1")
 
-			v, err = reader.Retrieve(dummyContext, "key2")
+			err = Retrieve(dummyContext, db, "key2", &v)
 			So(err, ShouldBeNil)
 			So(v, ShouldEqual, "value2")
 
@@ -58,12 +52,12 @@ func TestRunner(t *testing.T) {
 				err := writer.Store([]Item{{Key: "key1", Value: "another_value1"}}).Wait()
 				So(err, ShouldBeNil)
 
-				v, err := reader.Retrieve(dummyContext, "key1")
+				err = Retrieve(dummyContext, db, "key1", &v)
 				So(err, ShouldBeNil)
 				So(v, ShouldEqual, "another_value1")
 
 				// key2 keeps the same value
-				v, err = reader.Retrieve(dummyContext, "key2")
+				err = Retrieve(dummyContext, db, "key2", &v)
 				So(err, ShouldBeNil)
 				So(v, ShouldEqual, "value2")
 			})
@@ -76,7 +70,7 @@ func TestRunner(t *testing.T) {
 
 				Convey("Successful read value", func() {
 					var readValue []int
-					err := reader.RetrieveJson(dummyContext, "key1", &readValue)
+					err := RetrieveJson(dummyContext, db, "key1", &readValue)
 					So(err, ShouldBeNil)
 					So(readValue, ShouldResemble, origValue)
 				})
@@ -86,7 +80,7 @@ func TestRunner(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					var retrieved []string
-					err = reader.RetrieveJson(dummyContext, "key1", &retrieved)
+					err = RetrieveJson(dummyContext, db, "key1", &retrieved)
 					So(err, ShouldBeNil)
 					So(retrieved, ShouldResemble, []string{"one", "two"})
 				})

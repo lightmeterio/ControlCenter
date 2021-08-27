@@ -31,7 +31,7 @@ func requireDetectiveAuth(auth *httpauth.Authenticator) httpmiddleware.Middlewar
 			 */
 
 			settings := detectivesettings.Settings{}
-			err := meta.RetrieveJson(r.Context(), dbconn.DbMaster, detectivesettings.SettingKey, &settings)
+			err := meta.RetrieveJson(r.Context(), dbconn.Db("master"), detectivesettings.SettingKey, &settings)
 			if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 				return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 			}

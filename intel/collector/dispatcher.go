@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"time"
 )
 
@@ -33,10 +34,10 @@ type Report struct {
 	Content  []ReportEntry         `json:"content"`
 }
 
-func lastReportTime(tx *sql.Tx) (time.Time, error) {
+func lastReportTime() (time.Time, error) {
 	var ts int64
 
-	err := tx.QueryRow(`select time from dispatch_times order by id desc limit 1`).Scan(&ts)
+	err := dbconn.Db("intel").QueryRow(`select time from dispatch_times order by id desc limit 1`).Scan(&ts)
 
 	// first execution. Initial time undefined
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -50,11 +51,11 @@ func lastReportTime(tx *sql.Tx) (time.Time, error) {
 	return time.Unix(ts, 0).In(time.UTC), nil
 }
 
-func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatcher) error {
+func TryToDispatchReports(clock timeutil.Clock, dispatcher Dispatcher) error {
 	// creates a report and mark all the queued reports as dispatched
 	// TODO: maybe do the dispatching in a different thread,
 	// in order not to block the transaction?
-	r, err := tx.Query(`select time, identifier, value from queued_reports where dispatched_time = 0 order by id asc`)
+	r, err := dbconn.Db("intel").Query(`select time, identifier, value from queued_reports where dispatched_time = 0 order by id asc`)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -63,7 +64,7 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 		errorutil.MustSucceed(r.Close())
 	}()
 
-	initialTime, err := lastReportTime(tx)
+	initialTime, err := lastReportTime()
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -109,19 +110,19 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 		return errorutil.Wrap(err)
 	}
 
-	if err := storeDispatchTime(tx, now); err != nil {
+	if err := storeDispatchTime(now); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := tx.Exec(`update queued_reports set dispatched_time = ? where dispatched_time = 0`, now.Unix()); err != nil {
+	if err := dbconn.Db("intel").Write(`update queued_reports set dispatched_time = ? where dispatched_time = 0`, now.Unix()); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func storeDispatchTime(tx *sql.Tx, time time.Time) error {
-	if _, err := tx.Exec(`insert into dispatch_times(time) values(?)`, time.Unix()); err != nil {
+func storeDispatchTime(time time.Time) error {
+	if err := dbconn.Db("intel").Write(`insert into dispatch_times(time) values(?)`, time.Unix()); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -133,7 +134,7 @@ func Step(tx *sql.Tx, clock timeutil.Clock, reporters Reporters, dispatcher Disp
 		return errorutil.Wrap(err)
 	}
 
-	lastDispatchTime, err := lastReportTime(tx)
+	lastDispatchTime, err := lastReportTime()
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -147,7 +148,7 @@ func Step(tx *sql.Tx, clock timeutil.Clock, reporters Reporters, dispatcher Disp
 		return nil
 	}
 
-	if err := TryToDispatchReports(tx, clock, dispatcher); err != nil {
+	if err := TryToDispatchReports(clock, dispatcher); err != nil {
 		return errorutil.Wrap(err)
 	}
 

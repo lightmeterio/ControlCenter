@@ -15,12 +15,12 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
@@ -392,25 +392,19 @@ func TestLocalRBL(t *testing.T) {
 
 				// TODO: move this test to its own test function
 				Convey("Use real DNS checker", func() {
-					conn, closeConn := testutil.TempDBConnection(t)
-					defer closeConn()
-
-					m, err := meta.NewHandler(conn, "master")
-					So(err, ShouldBeNil)
-
-					defer func() { errorutil.MustSucceed(m.Close()) }()
+					_, closeDatabases := testutil.TempDatabases(t)
+					defer closeDatabases()
 
 					{
 						settings := globalsettings.Settings{
 							LocalIP: net.ParseIP("11.22.33.44"),
 						}
 
-						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)
-
+						err := meta.StoreJson(dummyContext, dbconn.Db("master"), globalsettings.SettingKey, &settings)
 						So(err, ShouldBeNil)
 					}
 
-					checker := localrbl.NewChecker(m.Reader, localrbl.Options{
+					checker := localrbl.NewChecker(localrbl.Options{
 						NumberOfWorkers:  2,
 						Lookup:           fakeLookup,
 						RBLProvidersURLs: []string{"rbl1-blocked", "rbl2", "rbl3-blocked", "rbl4-blocked", "rbl5"},

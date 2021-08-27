@@ -14,7 +14,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -46,29 +45,25 @@ func (c *FakeAccessor) GenerateInsight(ctx context.Context, tx *sql.Tx, properti
 // NewFakeAccessor returns an acessor that implements core.Fetcher and core.Creator
 // using a temporary database that should be delete using clear()
 func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
-	connPair, removeDir := testutil.TempDBConnection(t, "insights")
+	_, closeDatabases := testutil.TempDatabases(t)
 
-	if err := migrator.Run(connPair.RwConn.DB, "insights"); err != nil {
-		t.Fatal(err)
-	}
-
-	creator, err := core.NewCreator(connPair.RwConn)
+	creator, err := core.NewCreator(dbconn.Db("insights").RwConn)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fetcher, err := core.NewFetcher(connPair.RoConnPool)
+	fetcher, err := core.NewFetcher(dbconn.Db("insights").RoConnPool)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return &FakeAccessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}, ConnPair: connPair},
+	return &FakeAccessor{DBCreator: creator, Fetcher: fetcher, Insights: []int64{}, ConnPair: dbconn.Db("insights")},
 		func() {
-			if connPair.Close(); err != nil {
+			if err := dbconn.Db("insights").Close(); err != nil {
 				t.Fatal(err)
 			}
 
-			removeDir()
+			closeDatabases()
 		}
 }
 

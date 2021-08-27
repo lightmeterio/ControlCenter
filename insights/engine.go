@@ -80,6 +80,7 @@ type Engine struct {
 	fetcher         core.Fetcher
 	closers         closeutil.Closers
 	importAnnouncer importAnnouncer
+	progressFetcher core.ProgressFetcher
 }
 
 func NewCustomEngine(
@@ -90,6 +91,11 @@ func NewCustomEngine(
 	additionalActions func([]core.Detector, dbconn.RwConn, core.Clock) error,
 ) (*Engine, error) {
 	creator, err := newCreator(c.conn.RwConn, notificationCenter)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	progressFetcher, err := core.NewProgressFetcher()
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -118,6 +124,7 @@ func NewCustomEngine(
 		fetcher:         fetcher,
 		closers:         closeutil.New(c, core),
 		importAnnouncer: announcer,
+		progressFetcher: progressFetcher,
 	}
 
 	execute := func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -258,7 +265,7 @@ func runOnHistoricalData(e *Engine) error {
 	if interval.IsZero() {
 		// in case we skip the import
 		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-			if err := meta.Store(context.Background(), dbconn.DbMaster, []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
+			if err := meta.Store(context.Background(), dbconn.Db("master"), []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
 				return errorutil.Wrap(err)
 			}
 
@@ -315,7 +322,7 @@ func generateInsightsDuringImportProgress(e *Engine, start time.Time) (timeutil.
 				log.Info().Msgf("Finished importing historical data in the time %v", progress.Time)
 			}
 
-			if _, err := tx.Exec(`insert into import_progress(value, timestamp, exec_timestamp) values(?, ?, ?)`, progress.Progress, progress.Time.Unix(), time.Now().Unix()); err != nil {
+			if err := dbconn.Db("insights").Write(`insert into import_progress(value, timestamp, exec_timestamp) values(?, ?, ?)`, progress.Progress, progress.Time.Unix(), time.Now().Unix()); err != nil {
 				return errorutil.Wrap(err)
 			}
 
@@ -402,6 +409,10 @@ func (e *Engine) Fetcher() core.Fetcher {
 
 func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {
 	return &e.importAnnouncer
+}
+
+func (e *Engine) ProgressFetcher() core.ProgressFetcher {
+	return e.progressFetcher
 }
 
 func (e *Engine) RateInsight(kind string, rating uint, clock timeutil.Clock) error {

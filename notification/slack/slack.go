@@ -66,7 +66,7 @@ func New(policy core.Policy) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
-		if err := meta.RetrieveJson(context.Background(), dbconn.DbMaster, SettingKey, &s); err != nil {
+		if err := meta.RetrieveJson(context.Background(), dbconn.Db("master"), SettingKey, &s); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -215,7 +215,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 func GetSettings(ctx context.Context) (*Settings, error) {
 	settings := &Settings{}
 
-	err := meta.RetrieveJson(ctx, dbconn.DbMaster, SettingKey, settings)
+	err := meta.RetrieveJson(ctx, dbconn.Db("master"), SettingKey, settings)
 	if err != nil {
 		return nil, errorutil.Wrap(err, "could not get slack settings")
 	}

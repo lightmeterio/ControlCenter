@@ -29,7 +29,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path"
 )
 
 func init() {
@@ -50,15 +49,14 @@ func main() {
 
 	defer os.RemoveAll(dir)
 
-	conn, err := dbconn.Open(path.Join(dir, "settings.db"), 5)
-	errorutil.MustSucceed(err)
+	if err := dbconn.InitialiseDatabasesWithWorkspace(dir); err != nil {
+		panic(err)
+	}
+	defer dbconn.DatabasesCloser{}.Close()
 
-	defer conn.Close()
+	db := dbconn.Db("master")
 
-	m, err := meta.NewHandler(conn, "master")
-	errorutil.Wrap(err)
-
-	err = m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
+	err = meta.StoreJson(context.Background(), db, globalsettings.SettingKey, globalsettings.Settings{
 		LocalIP:     net.ParseIP(*postfixIP),
 		APPLanguage: "en",
 		PublicURL:   *publicURL,
@@ -70,7 +68,6 @@ func main() {
 
 	dispatcher := intel.Dispatcher{
 		ReportDestinationURL: *serverURL,
-		SettingsReader:       m.Reader,
 		VersionBuilder:       intel.DefaultVersionBuilder,
 		InstanceID:           "8946c49f-22ee-4577-bcbc-121ac8c715c9",
 		Auth:                 auth,

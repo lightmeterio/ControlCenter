@@ -12,7 +12,6 @@ import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
-	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -22,7 +21,7 @@ import (
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, Content{
 		ScanInterval: timeutil.TimeInterval{From: c.Now(), To: c.Now().Add(time.Second * 30)},
-		Address:      globalsettings.IPAddress(context.Background()),
+		Address:      d.options.Checker.IPAddress(context.Background()),
 		RBLs: []localrbl.ContentElement{
 			{RBL: "rbl.com", Text: "Funny reason"},
 			{RBL: "anotherrbl.de", Text: "Another funny reason at http://example.com Website"},

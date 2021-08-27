@@ -13,13 +13,15 @@ import (
 	"net/http"
 )
 
-func HttpInsightsProgress(auth *httpauth.Authenticator, mux *http.ServeMux) {
+func HttpInsightsProgress(auth *httpauth.Authenticator, mux *http.ServeMux, p core.ProgressFetcher) {
 	mux.Handle("/api/v0/importProgress", httpmiddleware.New(
 		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), httpmiddleware.RequireAuthenticationOnlyAfterSystemHasAnyUser(auth),
-	).WithEndpoint(importProgressHandler{}))
+	).WithEndpoint(importProgressHandler{f: p}))
 }
 
-type importProgressHandler struct{}
+type importProgressHandler struct {
+	f core.ProgressFetcher
+}
 
 // @Summary Fetch Insights
 // @Produce json
@@ -27,7 +29,7 @@ type importProgressHandler struct{}
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/importProgress [get]
 func (h importProgressHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
-	p, err := core.GetProgress(r.Context())
+	p, err := h.f.Progress(r.Context())
 	if err != nil {
 		return errorutil.Wrap(err, "Error obtaining import progress")
 	}

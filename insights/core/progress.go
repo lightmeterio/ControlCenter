@@ -20,7 +20,14 @@ type Progress struct {
 	Active bool       `json:"active"`
 }
 
-func GetProgress(ctx context.Context) (Progress, error) {
+type ProgressFetcher interface {
+	// Progress, from 0 to 100
+	Progress(context.Context) (Progress, error)
+}
+
+type progressFetcher struct{}
+
+func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 	running, err := IsHistoricalImportRunning(ctx)
 	if err != nil {
 		return Progress{}, errorutil.Wrap(err)
@@ -28,7 +35,7 @@ func GetProgress(ctx context.Context) (Progress, error) {
 
 	// If we skipt the import, there should be no progress info available
 	var skipImport interface{}
-	err = meta.Retrieve(ctx, dbconn.DbMaster, "skip_import", &skipImport)
+	err = meta.Retrieve(ctx, dbconn.Db("master"), "skip_import", &skipImport)
 	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
 		return Progress{}, errorutil.Wrap(err)
 	}
@@ -45,7 +52,7 @@ func GetProgress(ctx context.Context) (Progress, error) {
 		ts    int64
 	)
 
-	err = dbconn.DbInsights.QueryRowContext(ctx, `select value, timestamp from import_progress order by rowid desc limit 1`).Scan(&value, &ts)
+	err = dbconn.Db("insights").QueryRowContext(ctx, `select value, timestamp from import_progress order by rowid desc limit 1`).Scan(&value, &ts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// before the import starts
@@ -60,4 +67,8 @@ func GetProgress(ctx context.Context) (Progress, error) {
 
 	// during or after the import process
 	return Progress{Value: &value, Time: &time, Active: running}, nil
+}
+
+func NewProgressFetcher() (ProgressFetcher, error) {
+	return &progressFetcher{}, nil
 }

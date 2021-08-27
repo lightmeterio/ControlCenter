@@ -54,10 +54,6 @@ func PerformUserInfoChange(verbose bool, workspaceDirectory, email, newEmail, na
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error Changing user Info password")
 	}
 
-	if err := auth.Close(); err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error closing auth database")
-	}
-
 	// Finally, reset all existing sessions
 	if err := removeAllHTTPSessions(workspaceDirectory); err != nil {
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Could not clear current sessions")

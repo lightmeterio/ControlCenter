@@ -53,7 +53,7 @@ func notificationValuesToPost(values url.Values) url.Values {
 
 func TestSettingsPage(t *testing.T) {
 	Convey("Retrieve all settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		_, setup, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		// Approach: as for now we have independent endpoints, we instantiate one server per endpoint
@@ -226,7 +226,7 @@ func TestSettingsPage(t *testing.T) {
 
 			So(body, ShouldResemble, expected)
 
-			slackSettings, err := slack.GetSettings(dummyContext, reader)
+			slackSettings, err := slack.GetSettings(dummyContext)
 			So(err, ShouldBeNil)
 
 			// The slack settings are indeed in the database
@@ -328,7 +328,7 @@ func TestSettingsPage(t *testing.T) {
 
 				So(body, ShouldResemble, expected)
 
-				emailSettings, err := email.GetSettings(dummyContext, reader)
+				emailSettings, err := email.GetSettings(dummyContext)
 				So(err, ShouldBeNil)
 				So(*emailSettings.Password, ShouldEqual, "super_password")
 				So(*emailSettings.Username, ShouldEqual, "user@example.com")

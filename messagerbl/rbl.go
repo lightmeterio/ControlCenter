@@ -60,6 +60,7 @@ type Result struct {
 }
 
 type Detector struct {
+	globalsettings.IPAddressGetter
 	nonDeliveredChan chan record
 	resultsChan      chan Results
 	matchers         matchers
@@ -74,8 +75,9 @@ const (
 	MsgBufferSize = 1024
 )
 
-func New() *Detector {
+func New(settings globalsettings.IPAddressGetter) *Detector {
 	d := &Detector{
+		IPAddressGetter:  settings,
 		nonDeliveredChan: make(chan record, MsgBufferSize),
 		resultsChan:      make(chan Results, MsgBufferSize),
 		matchers:         defaultMatchers,
@@ -115,7 +117,7 @@ func New() *Detector {
 						return
 					}
 
-					result, matched := messageMatchesAnyHosts(d.matchers, r)
+					result, matched := messageMatchesAnyHosts(d.IPAddressGetter, d.matchers, r)
 
 					if !matched {
 						break
@@ -146,7 +148,7 @@ func (d *Detector) NewPublisher() *Publisher {
 // TODO: this function should be optimized to lookup all patterns in a single shot.
 // One way to implement it is to convert all individual regexes into a single huge
 // automata. Ragel is a good candidate for it.
-func messageMatchesAnyHosts(matchers matchers, r record) (Result, bool) {
+func messageMatchesAnyHosts(settings globalsettings.IPAddressGetter, matchers matchers, r record) (Result, bool) {
 	for _, m := range matchers {
 		if m.match(r) {
 			ip := func() net.IP {
@@ -154,7 +156,7 @@ func messageMatchesAnyHosts(matchers matchers, r record) (Result, bool) {
 					return r.header.ProcessIP
 				}
 
-				return globalsettings.IPAddress(context.Background())
+				return settings.IPAddress(context.Background())
 			}()
 
 			return Result{
@@ -178,6 +180,7 @@ type Results struct {
 }
 
 type Stepper interface {
+	globalsettings.IPAddressGetter
 	Step(withResult func([]Results) error) error
 }
 
