@@ -14,8 +14,17 @@ import (
 	"time"
 )
 
-// TODO: implement closing all statements!
-type PreparedStmts = []*sql.Stmt
+type PreparedStmts []*sql.Stmt
+
+func (stmts PreparedStmts) Close() error {
+	for _, stmt := range stmts {
+		if err := stmt.Close(); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
 
 type Action func(*sql.Tx, PreparedStmts) error
 
