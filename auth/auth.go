@@ -30,6 +30,8 @@ type Registrar interface {
 	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
 	HasAnyUser(ctx context.Context) (bool, error)
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
+	GetFirstUser(ctx context.Context) (*UserData, error)
+	ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error
 }
 
 type RegistrarWithSessionKeys interface {
@@ -298,56 +300,6 @@ func nameForEmail(tx *sql.Tx, email string) (string, error) {
 	return name, nil
 }
 
-func updatePassword(tx *sql.Tx, email, password string) error {
-	_, err := tx.Exec(`update users set password = lm_bcrypt_sum(?) where email = ?`, password, email)
-
-	if err != nil {
-		return errorutil.Wrap(err, "executing password reset query")
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
-func (r *Auth) ChangePassword(ctx context.Context, email, password string) error {
-	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
-		}
-	}()
-
-	name, err := nameForEmail(tx, email)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := validatePassword(email, name, password); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := updatePassword(tx, email, password); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
 	var userData UserData
 
@@ -366,4 +318,74 @@ func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
 	}
 
 	return &userData, nil
+}
+
+func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
+	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	defer func() {
+		if err != nil {
+			errorutil.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
+		}
+	}()
+
+	queryMustChangeOneRecord := func(query string, args ...interface{}) error {
+		result, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		rowsAfftected, err := result.RowsAffected()
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if rowsAfftected != 1 {
+			return ErrEmailAddressNotFound
+		}
+
+		return nil
+	}
+
+	if len(newName) > 0 {
+		if err = queryMustChangeOneRecord(`update users set name = ? where email = ?`, newName, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if len(newPassword) > 0 {
+		name, err := nameForEmail(tx, oldEmail)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := validatePassword(oldEmail, name, newPassword); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err = queryMustChangeOneRecord(`update users set password = lm_bcrypt_sum(?) where email = ?`, newPassword, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if len(newEmail) > 0 {
+		if err = validateEmail(newEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err = queryMustChangeOneRecord(`update users set email = ? where email = ?`, newEmail, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
 }

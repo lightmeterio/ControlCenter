@@ -26,6 +26,18 @@ import (
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
 
+func changeUserInfo(conf config.Config) {
+	if !(len(conf.ChangeUserInfoNewEmail) > 0 || len(conf.ChangeUserInfoNewName) > 0 || len(conf.PasswordToReset) > 0) {
+		errorutil.Dief(conf.Verbose, nil, "No new user info to be changed")
+	}
+
+	subcommand.PerformUserInfoChange(conf.Verbose,
+		conf.WorkspaceDirectory, conf.EmailToChange,
+		conf.ChangeUserInfoNewEmail, conf.ChangeUserInfoNewName,
+		conf.PasswordToReset,
+	)
+}
+
 func main() {
 	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
 	if err != nil {
@@ -56,8 +68,8 @@ func main() {
 		return
 	}
 
-	if len(conf.EmailToPasswdReset) > 0 {
-		subcommand.PerformPasswordReset(conf.Verbose, conf.WorkspaceDirectory, conf.EmailToPasswdReset, conf.PasswordToReset)
+	if len(conf.EmailToChange) > 0 {
+		changeUserInfo(conf)
 		return
 	}
 

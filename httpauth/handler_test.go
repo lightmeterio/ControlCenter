@@ -30,7 +30,13 @@ func init() {
 
 type fakeRegistrar = httpauthsub.FakeRegistrar
 
-func TestHTTPAuthV2(t *testing.T) {
+func buildCookieClient() *http.Client {
+	jar, err := cookiejar.New(&cookiejar.Options{})
+	So(err, ShouldBeNil)
+	return &http.Client{Jar: jar}
+}
+
+func TestHTTPAuth(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
 		conn, closeConn := testutil.TempDBConnection(t)
 		defer closeConn()
@@ -67,13 +73,7 @@ func TestHTTPAuthV2(t *testing.T) {
 		s := httptest.NewServer(mux)
 		defer s.Close()
 
-		buildCookieClient := func() *http.Client {
-			jar, err := cookiejar.New(&cookiejar.Options{})
-			So(err, ShouldBeNil)
-			return &http.Client{Jar: jar}
-		}
-
-		Convey("UnAuthenticated and unregistred user", func() {
+		Convey("Unauthenticated and unregistred user", func() {
 			c := buildCookieClient()
 			defer c.CloseIdleConnections()
 
