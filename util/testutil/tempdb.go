@@ -26,6 +26,7 @@ func TempDatabases(t *testing.T) (dir string, closeDatabases func()) {
 		if err != nil {
 			panic("Could not close databases")
 		}
+		
 		clearDir()
 	}
 }
