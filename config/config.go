@@ -30,12 +30,15 @@ type Config struct {
 	LogPatterns               []string
 	Address                   string
 	Verbose                   bool
-	EmailToPasswdReset        string
-	PasswordToReset           string
 	Timezone                  *time.Location
 	LogYear                   int
 	Socket                    string
 	LogFormat                 string
+
+	EmailToChange          string
+	PasswordToReset        string
+	ChangeUserInfoNewEmail string
+	ChangeUserInfoNewName  string
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -96,9 +99,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.BoolVar(&conf.Verbose, "verbose", b, "Be Verbose")
 
-	fs.StringVar(&conf.EmailToPasswdReset, "email_reset", "", "Reset password for user (implies -password and depends on -workspace)")
-
+	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
+
+	fs.StringVar(&conf.ChangeUserInfoNewEmail, "new_email", "", "Update user email (depends on -email_reset)")
+	fs.StringVar(&conf.ChangeUserInfoNewName, "new_user_name", "", "Update user name (depends on -email_reset)")
 
 	fs.StringVar(&conf.Socket, "logs_socket",
 		lookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),

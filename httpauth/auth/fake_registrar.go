@@ -67,3 +67,15 @@ func (f *FakeRegistrar) CookieStore() sessions.Store {
 func (f *FakeRegistrar) SessionKeys() [][]byte {
 	return [][]byte{f.SessionKey}
 }
+
+func (f *FakeRegistrar) GetFirstUser(context.Context) (*auth.UserData, error) {
+	return &auth.UserData{Name: f.Name, Email: f.Email}, nil
+}
+
+func (f *FakeRegistrar) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
+	f.Email = newEmail
+	f.Name = newName
+	f.Password = newPassword
+
+	return nil
+}
