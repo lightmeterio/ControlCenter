@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 )
@@ -27,16 +26,8 @@ type Reader struct {
 	pool *dbconn.RoPool
 }
 
-func (reader *Reader) Close() error {
-	return reader.pool.Close()
-}
-
 func NewReader(pool *dbconn.RoPool) *Reader {
 	return &Reader{pool: pool}
-}
-
-func (writer *Writer) Close() error {
-	return writer.db.Close()
 }
 
 type Writer struct {
@@ -46,16 +37,6 @@ type Writer struct {
 type Handler struct {
 	Reader *Reader
 	Writer *Writer
-
-	closers closeutil.Closers
-}
-
-func (h *Handler) Close() error {
-	if err := h.closers.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
 }
 
 func NewHandler(conn *dbconn.PooledPair, databaseName string) (*Handler, error) {
@@ -67,9 +48,8 @@ func NewHandler(conn *dbconn.PooledPair, databaseName string) (*Handler, error) 
 	writer := &Writer{conn.RwConn}
 
 	return &Handler{
-		Reader:  reader,
-		Writer:  writer,
-		closers: closeutil.New(reader, writer),
+		Reader: reader,
+		Writer: writer,
 	}, nil
 }
 

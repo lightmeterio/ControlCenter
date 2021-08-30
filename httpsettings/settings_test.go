@@ -22,7 +22,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
 	"net"
@@ -109,7 +108,6 @@ func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *
 	return setup, writer, m.Reader, center, fakeSlackPoster, func() {
 		cancel()
 		done()
-		errorutil.MustSucceed(m.Close())
 		closeConn()
 	}
 }

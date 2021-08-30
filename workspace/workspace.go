@@ -223,10 +223,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			tracker,
 			deliveries,
 			insightsEngine,
-			m,
 			insightsAccessor,
 			intelCollector,
 			connStats,
+			metadataConnPair,
 		),
 		NotificationCenter: notificationCenter,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {

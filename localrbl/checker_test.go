@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
 	"strings"
@@ -35,8 +34,6 @@ func TestDnsRBL(t *testing.T) {
 
 		meta, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-
-		defer func() { errorutil.MustSucceed(meta.Close()) }()
 
 		lookup := func(rblList string, targetHost string) godnsbl.RBLResults {
 			// the sleep here is just to "simulate" an actual call,

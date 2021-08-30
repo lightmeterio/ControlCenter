@@ -7,6 +7,7 @@ package workspace
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -88,6 +89,9 @@ func TestWorkspaceExecution(t *testing.T) {
 
 			So(ws.HasLogs(), ShouldBeFalse)
 		})
+
+		So(dbconn.CountOpenConnections(), ShouldEqual, 0)
+		So(dbconn.CountDetails(), ShouldResemble, map[dbconn.CounterKey]int{})
 	})
 }
 

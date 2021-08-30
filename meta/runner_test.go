@@ -7,7 +7,6 @@ package meta
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -23,10 +22,6 @@ func TestRunner(t *testing.T) {
 
 		handler, err := NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-
-		defer func() {
-			errorutil.MustSucceed(handler.Close())
-		}()
 
 		reader := handler.Reader
 

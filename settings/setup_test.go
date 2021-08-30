@@ -11,7 +11,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/meta"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -50,8 +49,6 @@ func TestMessengerSettings(t *testing.T) {
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
 		runner := meta.NewRunner(m)
 		writer := runner.Writer()
 		done, cancel := runner.Run()
@@ -84,7 +81,6 @@ func TestInitialSetup(t *testing.T) {
 
 		m, err := meta.NewHandler(conn, "master")
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(m.Close()) }()
 
 		runner := meta.NewRunner(m)
 		writer := runner.Writer()

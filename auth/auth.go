@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"path"
@@ -44,6 +45,8 @@ type Options struct {
 }
 
 type Auth struct {
+	closeutil.Closers
+
 	options  Options
 	connPair *dbconn.PooledPair
 	meta     *meta.Handler
@@ -277,11 +280,7 @@ func NewAuth(dirname string, options Options) (*Auth, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &Auth{options: options, connPair: connPair, meta: m}, nil
-}
-
-func (r *Auth) Close() error {
-	return r.meta.Close()
+	return &Auth{options: options, connPair: connPair, meta: m, Closers: closeutil.New(connPair)}, nil
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {
