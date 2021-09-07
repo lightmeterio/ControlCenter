@@ -18,7 +18,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
+	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
@@ -100,8 +102,14 @@ func TestReports(t *testing.T) {
 				APPLanguage: "en",
 				PublicURL:   "https://example.com",
 			})
-
 			So(err, ShouldBeNil)
+
+			initSettings := settings.NewInitialSetupSettings(&newsletter.FakeNewsletterSubscriber{})
+
+			So(initSettings.Set(context.Background(), runner.Writer(), settings.InitialOptions{
+				SubscribeToNewsletter: false,
+				MailKind:              settings.MailKindMarketing},
+			), ShouldBeNil)
 
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
@@ -124,6 +132,7 @@ func TestReports(t *testing.T) {
 					"postfix_public_ip": "127.0.0.2",
 					"public_url":        "https://example.com",
 					"user_email":        email,
+					"mail_kind":         string(settings.MailKindMarketing),
 				},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{

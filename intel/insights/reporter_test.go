@@ -137,6 +137,13 @@ func TestReporter(t *testing.T) {
 			Category:    core.LocalCategory,
 		})
 
+		// generate a report with non-"local" category, which shouldn't be counted
+		e.GenerateInsight(dummyContext, core.InsightProperties{
+			Time:        baseTimePlus15m.Add(12 * time.Minute),
+			ContentType: "fake_type_3",
+			Category:    core.IntelCategory,
+		})
+
 		doneInsights, cancelInsights := e.Run()
 
 		time.Sleep(100 * time.Millisecond)

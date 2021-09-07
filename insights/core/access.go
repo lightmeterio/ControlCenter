@@ -55,12 +55,12 @@ func (c Category) TplString() string {
 
 const (
 	NoCategory          Category = 0
-	LocalCategory       Category = 1
-	NewsCategory        Category = 2
-	ComparativeCategory Category = 3
-	IntelCategory       Category = 4
-	ArchivedCategory    Category = 5
-	ActiveCategory      Category = 6
+	LocalCategory       Category = 1 // insights generated from logs - high bounce/deferred, mail activity, rbl checks...
+	NewsCategory        Category = 2 // insights showing lightmeter.io RSS items
+	ComparativeCategory Category = 3 // not used yet
+	IntelCategory       Category = 4 // sent by Network Intelligence central server
+	ArchivedCategory    Category = 5 // meta-category, not stored in database
+	ActiveCategory      Category = 6 // same, opposite to archived
 )
 
 func (c Category) MarshalJSON() ([]byte, error) {

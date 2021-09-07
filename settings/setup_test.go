@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -23,20 +24,6 @@ var (
 
 func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
-}
-
-type fakeNewsletterSubscriber struct {
-	shouldFailToSubscribe bool
-	hasSubscribed         bool
-}
-
-func (s *fakeNewsletterSubscriber) Subscribe(context context.Context, email string) error {
-	if s.shouldFailToSubscribe {
-		return errors.New(`Fail to Subscribe!!!`)
-	}
-
-	s.hasSubscribed = true
-	return nil
 }
 
 func TestMessengerSettings(t *testing.T) {
@@ -88,7 +75,7 @@ func TestInitialSetup(t *testing.T) {
 
 		defer func() { cancel(); done() }()
 
-		newsletterSubscriber := &fakeNewsletterSubscriber{}
+		newsletterSubscriber := &newsletter.FakeNewsletterSubscriber{}
 
 		s := NewInitialSetupSettings(newsletterSubscriber)
 
@@ -100,7 +87,7 @@ func TestInitialSetup(t *testing.T) {
 		})
 
 		Convey("Fails to Subscribe", func() {
-			newsletterSubscriber.shouldFailToSubscribe = true
+			newsletterSubscriber.ShouldFailToSubscribe = true
 
 			So(errors.Is(s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
@@ -117,7 +104,7 @@ func TestInitialSetup(t *testing.T) {
 			)
 
 			So(err, ShouldBeNil)
-			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
+			So(newsletterSubscriber.HasSubscribed, ShouldBeTrue)
 
 			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
@@ -136,7 +123,7 @@ func TestInitialSetup(t *testing.T) {
 			)
 
 			So(err, ShouldBeNil)
-			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
+			So(newsletterSubscriber.HasSubscribed, ShouldBeFalse)
 
 			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
