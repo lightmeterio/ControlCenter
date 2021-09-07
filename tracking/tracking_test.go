@@ -54,13 +54,13 @@ func readFromTestContent(content string, pub postfix.Publisher) {
 func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker, func()) {
 	pub := &fakeResultPublisher{}
 
-	dir, clearDir := testutil.TempDir(t)
-	tracker, err := New(dir, pub)
+	conn, closeConn := testutil.TempDBConnectionMigrated(t, "logtracker")
+	tracker, err := New(conn, pub)
 	So(err, ShouldBeNil)
 
 	return pub, tracker, func() {
 		So(tracker.Close(), ShouldBeNil)
-		clearDir()
+		closeConn()
 	}
 }
 

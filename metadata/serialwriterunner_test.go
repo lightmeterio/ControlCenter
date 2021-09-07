@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package meta
+package metadata
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
@@ -17,15 +17,15 @@ func init() {
 
 func TestRunner(t *testing.T) {
 	Convey("Test Runner", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		handler, err := NewHandler(conn, "master")
+		handler, err := NewHandler(conn)
 		So(err, ShouldBeNil)
 
 		reader := handler.Reader
 
-		runner := NewRunner(handler)
+		runner := NewSerialWriteRunner(handler)
 
 		done, cancel := runner.Run()
 

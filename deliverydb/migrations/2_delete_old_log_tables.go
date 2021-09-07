@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("deliverydb", "2_delete_old_log_tables.go", upDeleteOldTables, downDeleteOldTables)
+	migrator.AddMigration("logs", "2_delete_old_log_tables.go", upDeleteOldTables, downDeleteOldTables)
 }
 
 func upDeleteOldTables(tx *sql.Tx) error {

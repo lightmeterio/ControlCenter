@@ -10,7 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -19,7 +19,7 @@ import (
 const HistoricalImportKey = "historical_import_running"
 
 func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
+	if err := metadata.Store(ctx, tx, []metadata.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -27,7 +27,7 @@ func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
 }
 
 func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
+	if err := metadata.Store(ctx, tx, []metadata.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -37,9 +37,9 @@ func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
 func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 	var running bool
 
-	err := meta.Retrieve(ctx, tx, HistoricalImportKey, &running)
+	err := metadata.Retrieve(ctx, tx, HistoricalImportKey, &running)
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return false, nil
 	}
 
@@ -51,9 +51,9 @@ func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 }
 
 func IsHistoricalImportRunningFromPool(ctx context.Context, pool *dbconn.RoPool) (bool, error) {
-	v, err := meta.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
+	v, err := metadata.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return false, nil
 	}
 

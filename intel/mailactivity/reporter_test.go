@@ -14,7 +14,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -43,17 +42,15 @@ func publishResult(pub tracking.ResultPublisher, mp mappedResult) {
 
 func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
-		dir, clear := testutil.TempDir(t)
+		db, clear := testutil.TempDBConnectionMigrated(t, "logs")
 		defer clear()
 
 		baseTime := testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)
 
 		// fill delivery database with some values
 		{
-			delivery, err := deliverydb.New(dir, &domainmapping.Mapper{})
+			delivery, err := deliverydb.New(db, &domainmapping.Mapper{})
 			So(err, ShouldBeNil)
-
-			defer delivery.Close()
 
 			done, cancel := delivery.Run()
 
@@ -183,14 +180,11 @@ func TestReporters(t *testing.T) {
 			So(done(), ShouldBeNil)
 		}
 
-		delivery, err := deliverydb.New(dir, &domainmapping.Mapper{})
+		delivery, err := deliverydb.New(db, &domainmapping.Mapper{})
 		So(err, ShouldBeNil)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		reporter := NewReporter(delivery.ConnPool())
 

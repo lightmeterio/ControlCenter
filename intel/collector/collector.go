@@ -7,8 +7,7 @@ package collector
 import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -20,7 +19,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"path"
 	"time"
 )
 
@@ -48,10 +46,10 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		lastExecTime, err := func() (time.Time, error) {
 			var lastExecTs int64
 
-			err := meta.Retrieve(context.Background(), tx, r.ID(), &lastExecTs)
+			err := metadata.Retrieve(context.Background(), tx, r.ID(), &lastExecTs)
 
 			// first execution. Not an error
-			if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+			if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 				return time.Time{}, nil
 			}
 
@@ -71,7 +69,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		now := clock.Now()
 
 		storeLastExec := func() error {
-			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
+			if err := metadata.Store(context.Background(), tx, []metadata.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
 				return errorutil.Wrap(err, "id:", r.ID())
 			}
 
@@ -124,22 +122,13 @@ type Options struct {
 	ReportInterval time.Duration
 }
 
-func New(workspace string, options Options, reporters Reporters, dispatcher Dispatcher) (*Collector, error) {
-	return NewWithCustomClock(workspace, options, reporters, dispatcher, &timeutil.RealClock{})
+func New(intelDb *dbconn.PooledPair, options Options, reporters Reporters, dispatcher Dispatcher) (*Collector, error) {
+	return NewWithCustomClock(intelDb, options, reporters, dispatcher, &timeutil.RealClock{})
 }
 
 // NOTE: New takes ownwership of the reporters, calling Close() when it ends
-func NewWithCustomClock(workspace string, options Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
-	pair, err := dbconn.Open(path.Join(workspace, "intel-collector.db"), 4)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	if err := migrator.Run(pair.RwConn.DB, "intel"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	closers := closeutil.New(pair)
+func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
+	closers := closeutil.New()
 
 	for _, r := range reporters {
 		closers.Add(r)

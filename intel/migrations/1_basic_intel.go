@@ -11,11 +11,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	// The meta table is defined in the meta package
-	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 )
 
 func init() {
-	migrator.AddMigration("intel", "1_basic_intel.go", upBasic, downBasic)
+	migrator.AddMigration("intel-collector", "1_basic_intel.go", upBasic, downBasic)
 }
 
 func upBasic(tx *sql.Tx) error {

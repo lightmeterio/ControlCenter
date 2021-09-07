@@ -13,8 +13,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
-	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
@@ -69,13 +69,13 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func buildTestSetup(t *testing.T) (*Settings, *meta.AsyncWriter, *meta.Reader, *notification.Center, *fakeSlackPoster, func()) {
-	conn, closeConn := testutil.TempDBConnection(t)
+func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, *metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
+	conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 
-	m, err := meta.NewHandler(conn, "master")
+	m, err := metadata.NewHandler(conn)
 	So(err, ShouldBeNil)
 
-	runner := meta.NewRunner(m)
+	runner := metadata.NewSerialWriteRunner(m)
 	done, cancel := runner.Run()
 
 	writer := runner.Writer()
@@ -442,7 +442,7 @@ func TestSlackNotifications(t *testing.T) {
 
 				mo := new(slack.Settings)
 				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
-				So(errors.Is(err, meta.ErrNoSuchKey), ShouldBeTrue)
+				So(errors.Is(err, metadata.ErrNoSuchKey), ShouldBeTrue)
 			})
 		})
 	})
@@ -668,7 +668,7 @@ func TestWalkthroughSettings(t *testing.T) {
 		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		w := &walkthrough.Settings{}
-		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), meta.ErrNoSuchKey), ShouldBeTrue)
+		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
 
 		c := &http.Client{}
 

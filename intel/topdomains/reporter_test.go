@@ -14,7 +14,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -49,16 +48,10 @@ func publishResults(pub tracking.ResultPublisher, results ...mappedResult) {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Reporter", t, func() {
-		dir, clear := testutil.TempDir(t)
-		defer clear()
-
 		baseTime := testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
@@ -66,10 +59,11 @@ func TestReporter(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		delivery, err := deliverydb.New(dir, &domainmapping.Mapper{})
-		So(err, ShouldBeNil)
+		logsDb, clear := testutil.TempDBConnectionMigrated(t, "logs")
+		defer clear()
 
-		defer delivery.Close()
+		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{})
+		So(err, ShouldBeNil)
 
 		done, cancel := delivery.Run()
 

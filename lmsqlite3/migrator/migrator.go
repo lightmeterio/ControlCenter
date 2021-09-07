@@ -240,5 +240,9 @@ func AddMigration(databaseName string, filename string, up func(*sql.Tx) error, 
 		registeredGoMigrations[databaseName] = map[int64]*goose.Migration{}
 	}
 
+	if existingMigration, exists := registeredGoMigrations[databaseName][v]; exists {
+		panic(fmt.Sprintf("Can't register migration '%s' for database '%s', migration #%d already registered: '%s'", filename, databaseName, existingMigration.Version, existingMigration.Source))
+	}
+
 	registeredGoMigrations[databaseName][v] = migration
 }

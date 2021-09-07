@@ -11,13 +11,10 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"time"
 )
 
@@ -25,15 +22,10 @@ type dbAction = dbrunner.Action
 
 type DB struct {
 	dbrunner.Runner
-	closeutil.Closers
 
 	connPair *dbconn.PooledPair
 	stmts    preparedStmts
 }
-
-const (
-	filename = "logs.db"
-)
 
 type stmtKey = uint
 
@@ -129,30 +121,8 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
-	dbFilename := path.Join(workspace, filename)
-
-	connPair, err := dbconn.Open(dbFilename, 10)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
-		}
-	}()
-
-	if err := migrator.Run(connPair.RwConn.DB, "deliverydb"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -164,7 +134,6 @@ func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
 
 	return &DB{
 		connPair: connPair,
-		Closers:  closeutil.New(connPair),
 		stmts:    stmts,
 		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts[:]),
 	}, nil

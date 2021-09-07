@@ -23,10 +23,10 @@ func init() {
 
 func TestSmtpConnectionStats(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		ws, clearWs := testutil.TempDir(t)
-		defer clearWs()
+		db, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
+		defer closeConn()
 
-		stats, err := New(ws)
+		stats, err := New(db)
 		So(err, ShouldBeNil)
 
 		{
@@ -128,10 +128,10 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 
 func TestSmtpConnectionAccessor(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		ws, clearWs := testutil.TempDir(t)
-		defer clearWs()
+		db, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
+		defer closeConn()
 
-		stats, err := New(ws)
+		stats, err := New(db)
 		So(err, ShouldBeNil)
 
 		pub := stats.Publisher()

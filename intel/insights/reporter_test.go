@@ -16,7 +16,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
@@ -90,19 +89,16 @@ func mustEncodeTimeJson(v time.Time) string {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Insights Count Reporter", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
+		defer closeConn()
 
-		accessor, err := insights.NewAccessor(dir)
+		accessor, err := insights.NewAccessor(conn)
 		So(err, ShouldBeNil)
 
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		e, err := insights.NewCustomEngine(
 			accessor,

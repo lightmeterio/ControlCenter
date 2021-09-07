@@ -15,13 +15,14 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"log"
 	"net"
 	"testing"
 	"time"
 )
 
 var fakeMapping domainmapping.Mapper
+
+const databaseName = "logs"
 
 func init() {
 	var err error
@@ -31,14 +32,12 @@ func init() {
 }
 
 func TestDatabaseCreation(t *testing.T) {
-	Convey("Creation succeceds", t, func() {
-		ws, clearWs := testutil.TempDir(t)
-		defer clearWs()
-
-		log.Println("database name:", ws)
+	Convey("Creation succeeds", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, databaseName)
+		defer closeConn()
 
 		Convey("Insert some values", func() {
-			db, err := New(ws, &fakeMapping)
+			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
 
 			done, cancel := db.Run()
@@ -50,8 +49,6 @@ func TestDatabaseCreation(t *testing.T) {
 
 			cancel()
 			done()
-
-			So(db.Close(), ShouldBeNil)
 		})
 	})
 }
@@ -135,11 +132,11 @@ func deliveryStatus(dashboard dashboard.Dashboard, interval timeutil.TimeInterva
 
 func TestEntriesInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, databaseName)
+		defer closeConn()
 
-		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard, func()) {
-			db, err := New(dir, &fakeMapping)
+		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
+			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
 			done, cancel := db.Run()
 			pub := db.ResultsPublisher()
@@ -147,9 +144,7 @@ func TestEntriesInsertion(t *testing.T) {
 			dashboard, err := dashboard.New(db.ConnPool())
 			So(err, ShouldBeNil)
 
-			return db, done, cancel, pub, dashboard, func() {
-				So(db.Close(), ShouldBeNil)
-			}
+			return db, done, cancel, pub, dashboard
 		}
 
 		fakeMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string, dir tracking.MessageDirection) tracking.Result {
@@ -192,8 +187,7 @@ func TestEntriesInsertion(t *testing.T) {
 
 		Convey("Inserting entries", func() {
 			Convey("Inserts nothing", func() {
-				db, done, cancel, _, dashboard, dtor := buildWs()
-				defer dtor()
+				db, done, cancel, _, dashboard := buildWs()
 				cancel()
 				So(done(), ShouldBeNil)
 
@@ -206,8 +200,7 @@ func TestEntriesInsertion(t *testing.T) {
 			})
 
 			Convey("Incoming messages don't show in the dashboard", func() {
-				db, done, cancel, pub, dashboard, dtor := buildWs()
-				defer dtor()
+				db, done, cancel, pub, dashboard := buildWs()
 
 				pub.Publish(smtpStatusIncomingRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
 				pub.Publish(smtpStatusIncomingRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-02 13:10:11 +0000`)))
@@ -229,8 +222,7 @@ func TestEntriesInsertion(t *testing.T) {
 			})
 
 			Convey("Local messages with same domain sender are shown", func() {
-				db, done, cancel, pub, d, dtor := buildWs()
-				defer dtor()
+				db, done, cancel, pub, d := buildWs()
 
 				pub.Publish(smtpStatusIncomingRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
 				pub.Publish(smtpStatusIncomingRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-02 13:10:11 +0000`)))
@@ -265,8 +257,7 @@ func TestEntriesInsertion(t *testing.T) {
 			})
 
 			Convey("Inserts one log entry", func() {
-				db, done, cancel, pub, dashboard, dtor := buildWs()
-				defer dtor()
+				db, done, cancel, pub, dashboard := buildWs()
 
 				pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
 				cancel()
@@ -282,8 +273,7 @@ func TestEntriesInsertion(t *testing.T) {
 
 			Convey("Insert, reopen, insert", func() {
 				func() {
-					_, done, cancel, pub, _, dtor := buildWs()
-					defer dtor()
+					_, done, cancel, pub, _ := buildWs()
 
 					// this one is before the time interval
 					pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-11-02 13:10:10 +0000`)))
@@ -294,8 +284,7 @@ func TestEntriesInsertion(t *testing.T) {
 				}()
 
 				// reopen workspace and add another log
-				db, done, cancel, pub, dashboard, dtor := buildWs()
-				defer dtor()
+				db, done, cancel, pub, dashboard := buildWs()
 
 				pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
 				pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
@@ -322,8 +311,7 @@ func TestEntriesInsertion(t *testing.T) {
 			}
 
 			Convey("Many different smtp status", func() {
-				_, done, cancel, pub, d, dtor := buildWs()
-				defer dtor()
+				_, done, cancel, pub, d := buildWs()
 
 				interval := parseTimeInterval("1999-12-02", "2000-03-11")
 
@@ -397,8 +385,7 @@ func TestEntriesInsertion(t *testing.T) {
 			})
 
 			Convey("Group According to Domain mapping", func() {
-				_, done, cancel, pub, d, dtor := buildWs()
-				defer dtor()
+				_, done, cancel, pub, d := buildWs()
 
 				{
 					s := parser.SentStatus

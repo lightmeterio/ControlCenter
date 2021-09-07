@@ -13,7 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -28,10 +27,10 @@ func init() {
 
 func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
-		dir, clear := testutil.TempDir(t)
-		defer clear()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
+		defer closeConn()
 
-		stats, err := connectionstats.New(dir)
+		stats, err := connectionstats.New(conn)
 		So(err, ShouldBeNil)
 
 		pub := stats.Publisher()
@@ -51,11 +50,8 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 
 		baseTime := timeutil.MustParseTime(`2020-01-01 00:00:00 +0000`)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		reporter := NewReporter(stats.ConnPool())
 

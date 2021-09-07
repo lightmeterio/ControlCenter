@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package meta
+package metadata
 
 import (
 	"context"
@@ -23,10 +23,10 @@ func init() {
 
 func TestSimpleValues(t *testing.T) {
 	Convey("Test Meta", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		handler, err := NewHandler(conn, "master")
+		handler, err := NewHandler(conn)
 		So(err, ShouldBeNil)
 
 		reader := handler.Reader
@@ -72,10 +72,10 @@ func TestSimpleValues(t *testing.T) {
 
 func TestJsonValues(t *testing.T) {
 	Convey("Test Json Values", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		handler, err := NewHandler(conn, "master")
+		handler, err := NewHandler(conn)
 		So(err, ShouldBeNil)
 
 		reader := handler.Reader

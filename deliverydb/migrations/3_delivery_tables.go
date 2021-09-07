@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("deliverydb", "3_delivery_tables.go", upCreateDeliveryTables, downCreateDeliveryTables)
+	migrator.AddMigration("logs", "3_delivery_tables.go", upCreateDeliveryTables, downCreateDeliveryTables)
 }
 
 func upCreateDeliveryTables(tx *sql.Tx) error {

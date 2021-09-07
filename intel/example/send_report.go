@@ -21,7 +21,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -50,13 +51,16 @@ func main() {
 
 	defer os.RemoveAll(dir)
 
-	conn, err := dbconn.Open(path.Join(dir, "settings.db"), 5)
+	conn, err := dbconn.Open(path.Join(dir, "master.db"), 5)
 	errorutil.MustSucceed(err)
 
 	defer conn.Close()
 
-	m, err := meta.NewHandler(conn, "master")
-	errorutil.Wrap(err)
+	err = migrator.Run(conn.RwConn.DB, "master")
+	errorutil.MustSucceed(err)
+
+	m, err := metadata.NewHandler(conn)
+	errorutil.MustSucceed(err)
 
 	err = m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
 		LocalIP:     net.ParseIP(*postfixIP),

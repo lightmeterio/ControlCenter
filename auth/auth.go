@@ -12,12 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	"gitlab.com/lightmeter/controlcenter/meta"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"path"
 )
 
 type UserData struct {
@@ -45,11 +42,9 @@ type Options struct {
 }
 
 type Auth struct {
-	closeutil.Closers
-
 	options  Options
 	connPair *dbconn.PooledPair
-	meta     *meta.Handler
+	meta     *metadata.Handler
 }
 
 var (
@@ -234,7 +229,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	err := r.meta.Reader.RetrieveJson(ctx, "session_key", &keys)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
 	}
 
@@ -253,34 +248,14 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func NewAuth(dirname string, options Options) (*Auth, error) {
-	connPair, err := dbconn.Open(path.Join(dirname, "auth.db"), 5)
+func NewAuth(connPair *dbconn.PooledPair, options Options) (*Auth, error) {
+	m, err := metadata.NewHandler(connPair)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing DB connection on error")
-		}
-	}()
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := meta.NewHandler(connPair, "auth")
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &Auth{options: options, connPair: connPair, meta: m, Closers: closeutil.New(connPair)}, nil
+	return &Auth{options: options, connPair: connPair, meta: m}, nil
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {

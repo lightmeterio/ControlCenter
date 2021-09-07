@@ -21,10 +21,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
@@ -63,11 +64,38 @@ type Workspace struct {
 
 	NotificationCenter *notification.Center
 
-	settingsMetaHandler *meta.Handler
-	settingsRunner      *meta.Runner
+	settingsMetaHandler *metadata.Handler
+	settingsRunner      *metadata.SerialWriteRunner
 
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
+}
+
+type dbMap map[string]*dbconn.PooledPair
+
+func (allDbs dbMap) Close() error {
+	for _, db := range allDbs {
+		if err := db.Close(); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
+	dbFilename := path.Join(directory, databaseName+".db")
+	connPair, err := dbconn.Open(dbFilename, 10)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := migrator.Run(connPair.RwConn.DB, databaseName); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return connPair, nil
 }
 
 func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
@@ -75,49 +103,55 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	deliveries, err := deliverydb.New(workspaceDirectory, &domainmapping.DefaultMapping)
+	allDatabases := dbMap{}
+
+	for _, databaseName := range []string{"auth", "connections", "insights", "intel-collector", "logs", "logtracker", "master"} {
+		db, err := newDb(workspaceDirectory, databaseName)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err, "Error opening databases in directory ", workspaceDirectory)
+		}
+
+		allDatabases[databaseName] = db
+	}
+
+	deliveries, err := deliverydb.New(allDatabases["logs"], &domainmapping.DefaultMapping)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(workspaceDirectory, deliveries.ResultsPublisher())
+	tracker, err := tracking.New(allDatabases["logtracker"], deliveries.ResultsPublisher())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	metadataConnPair, err := dbconn.Open(path.Join(workspaceDirectory, "master.db"), 5)
+	auth, err := auth.NewAuth(allDatabases["auth"], auth.Options{})
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewHandler(metadataConnPair, "master")
+	m, err := metadata.NewHandler(allDatabases["master"])
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	settingsRunner := meta.NewRunner(m)
+	settingsRunner := metadata.NewSerialWriteRunner(m)
 
 	// determine instance ID from the database, or create one
 
 	var instanceID string
-	err = m.Reader.RetrieveJson(context.Background(), meta.UuidMetaKey, &instanceID)
+	err = m.Reader.RetrieveJson(context.Background(), metadata.UuidMetaKey, &instanceID)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if errors.Is(err, meta.ErrNoSuchKey) {
+	if errors.Is(err, metadata.ErrNoSuchKey) {
 		instanceID = uuid.NewV4().String()
-		err := m.Writer.StoreJson(context.Background(), meta.UuidMetaKey, instanceID)
+		err := m.Writer.StoreJson(context.Background(), metadata.UuidMetaKey, instanceID)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
@@ -159,7 +193,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsAccessor, err := insights.NewAccessor(workspaceDirectory)
+	insightsAccessor, err := insights.NewAccessor(allDatabases["insights"])
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -172,7 +206,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	connStats, err := connectionstats.New(workspaceDirectory)
+	connStats, err := connectionstats.New(allDatabases["connections"])
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -190,7 +224,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
-		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
+		allDatabases["intel-collector"], deliveries, insightsEngine.Fetcher(),
 		m.Reader, auth, connStats, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -219,14 +253,10 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
-			auth,
 			tracker,
-			deliveries,
 			insightsEngine,
-			insightsAccessor,
 			intelCollector,
-			connStats,
-			metadataConnPair,
+			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
@@ -255,7 +285,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
+func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, *metadata.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 

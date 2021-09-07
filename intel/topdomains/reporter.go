@@ -10,7 +10,7 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -49,20 +49,20 @@ func buildTimeIntervalCondition(tx *sql.Tx, clock timeutil.Clock) (query string,
 			return
 		}
 
-		if sErr := meta.Store(context.Background(), tx, []meta.Item{{Key: alreadyExecutedFlag, Value: true}}); sErr != nil {
+		if sErr := metadata.Store(context.Background(), tx, []metadata.Item{{Key: alreadyExecutedFlag, Value: true}}); sErr != nil {
 			err = sErr
 		}
 	}()
 
 	var alreadyExecuted bool
 
-	err = meta.Retrieve(context.Background(), tx, alreadyExecutedFlag, &alreadyExecuted)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	err = metadata.Retrieve(context.Background(), tx, alreadyExecutedFlag, &alreadyExecuted)
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return "", nil, errorutil.Wrap(err)
 	}
 
 	// there was a prior execution. Use time in the interval
-	if errors.Is(err, meta.ErrNoSuchKey) {
+	if errors.Is(err, metadata.ErrNoSuchKey) {
 		// First execution. Use all data available (it can be quite slow in existing deployments with large of data in the database)
 		return `and deliveries.delivery_ts <= ?`, []interface{}{clock.Now().Unix()}, nil
 	}

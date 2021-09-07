@@ -10,7 +10,7 @@ import (
 	"github.com/mrichman/godnsbl"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
@@ -29,10 +29,10 @@ func init() {
 
 func TestDnsRBL(t *testing.T) {
 	Convey("Test Local RBL", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		meta, err := meta.NewHandler(conn, "master")
+		meta, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
 		lookup := func(rblList string, targetHost string) godnsbl.RBLResults {

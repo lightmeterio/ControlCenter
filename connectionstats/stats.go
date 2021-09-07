@@ -10,13 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/connectionstats/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"time"
 )
 
@@ -213,33 +210,12 @@ func (pub *publisher) Publish(r postfix.Record) {
 
 type Stats struct {
 	dbrunner.Runner
-	closeutil.Closers
 
 	conn  *dbconn.PooledPair
 	stmts preparedStmts
 }
 
-const filename = "connections.db"
-
-func New(workspace string) (*Stats, error) {
-	dbFilename := path.Join(workspace, filename)
-
-	connPair, err := dbconn.Open(dbFilename, 10)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
-		}
-	}()
-
-	if err := migrator.Run(connPair.RwConn.DB, "connectionstats"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
+func New(connPair *dbconn.PooledPair) (*Stats, error) {
 	stmts := preparedStmts{}
 
 	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts[:]); err != nil {
@@ -247,10 +223,9 @@ func New(workspace string) (*Stats, error) {
 	}
 
 	return &Stats{
-		conn:    connPair,
-		stmts:   stmts,
-		Closers: closeutil.New(connPair),
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts[:]),
+		conn:   connPair,
+		stmts:  stmts,
+		Runner: dbrunner.New(500*time.Millisecond, 4096, connPair, stmts[:]),
 	}, nil
 }
 
