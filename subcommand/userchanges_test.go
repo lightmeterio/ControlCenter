@@ -11,12 +11,15 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -38,39 +41,35 @@ const originalTestPassword = `(1Yow@byU]>`
 
 var dummyContext = context.Background()
 
-func tempWorkspaceWithUserSetup(t *testing.T) (string, func()) {
-	dir, clearDir := testutil.TempDir(t)
-
-	auth, err := auth.NewAuth(dir, auth.Options{})
-	So(err, ShouldBeNil)
-
-	defer func() { So(auth.Close(), ShouldBeNil) }()
-
-	_, err = auth.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
-	So(err, ShouldBeNil)
-
-	return dir, clearDir
-}
-
 func TestChangeUserInfo(t *testing.T) {
 	Convey("Change User Info", t, func() {
-		dir, clearDir := tempWorkspaceWithUserSetup(t)
+		dir, clearDir := testutil.TempDir(t)
 		defer clearDir()
 
-		a, err := auth.NewAuth(dir, auth.Options{})
+		authDb, err := dbconn.Open(path.Join(dir, "auth.db"), 10)
+		So(err, ShouldBeNil)
+		defer authDb.Close()
+
+		err = migrator.Run(authDb.RwConn.DB, "auth")
+		So(err, ShouldBeNil)
+
+		a, err := auth.NewAuth(authDb, auth.Options{})
+		So(err, ShouldBeNil)
+
+		_, err = a.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
 		So(err, ShouldBeNil)
 
 		authenticator := httpauthsub.NewAuthenticator(a, dir)
 
 		mux := http.NewServeMux()
 
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnection(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
+		runner := metadata.NewSerialWriteRunner(m)
 		done, cancel := runner.Run()
 		defer func() {
 			cancel()
@@ -79,7 +78,7 @@ func TestChangeUserInfo(t *testing.T) {
 
 		uuid := uuid.NewV4().String()
 		writer := runner.Writer()
-		writer.StoreJsonSync(dummyContext, meta.UuidMetaKey, uuid)
+		writer.StoreJsonSync(dummyContext, metadata.UuidMetaKey, uuid)
 
 		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)
 

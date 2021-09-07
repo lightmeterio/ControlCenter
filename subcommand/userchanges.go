@@ -8,6 +8,8 @@ import (
 	"context"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
@@ -40,22 +42,29 @@ func removeAllHTTPSessions(workspaceDirectory string) error {
 }
 
 func PerformUserInfoChange(verbose bool, workspaceDirectory, email, newEmail, name, password string) {
-	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
+	connPair, err := dbconn.Open(path.Join(workspaceDirectory, "auth.db"), 10)
 
 	if err != nil {
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening auth database")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer connPair.Close()
 
+	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error migrating auth database")
+	}
+
+	auth, err := auth.NewAuth(connPair, auth.Options{})
+
+	if err != nil {
+		errorutil.Dief(verbose, errorutil.Wrap(err), "Error instanciating auth object")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	if err := auth.ChangeUserInfo(ctx, email, newEmail, name, password); err != nil {
 		errorutil.Dief(verbose, errorutil.Wrap(err), "Error Changing user Info password")
-	}
-
-	if err := auth.Close(); err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error closing auth database")
 	}
 
 	// Finally, reset all existing sessions

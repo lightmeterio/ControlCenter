@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("deliverydb", "1_create_table_postfix_smtp_message_status.go", upCreateOldLogTables, downCreateOldLogTables)
+	migrator.AddMigration("logs", "1_create_table_postfix_smtp_message_status.go", upCreateOldLogTables, downCreateOldLogTables)
 }
 
 func upCreateOldLogTables(tx *sql.Tx) error {

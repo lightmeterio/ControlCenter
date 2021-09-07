@@ -12,15 +12,13 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/importsummary"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"path"
 	"time"
 )
 
@@ -44,28 +42,11 @@ func (a *importAnnouncer) AnnounceProgress(p announcer.Progress) {
 }
 
 type Accessor struct {
-	closeutil.Closers
 	conn *dbconn.PooledPair
 }
 
-func NewAccessor(workspaceDir string) (*Accessor, error) {
-	stateConn, err := dbconn.Open(path.Join(workspaceDir, "insights.db"), 10)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(stateConn.Close())
-		}
-	}()
-
-	if err := migrator.Run(stateConn.RwConn.DB, "insights"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &Accessor{conn: stateConn, Closers: closeutil.New(stateConn)}, nil
+func NewAccessor(stateConn *dbconn.PooledPair) (*Accessor, error) {
+	return &Accessor{conn: stateConn}, nil
 }
 
 func (c *Accessor) NotificationPolicy() notification.Policy {
@@ -122,7 +103,7 @@ func NewCustomEngine(
 		core:            core,
 		txActions:       make(chan txAction, 1024),
 		fetcher:         fetcher,
-		closers:         closeutil.New(c, core),
+		closers:         closeutil.New(core),
 		importAnnouncer: announcer,
 		progressFetcher: progressFetcher,
 	}
@@ -265,7 +246,7 @@ func runOnHistoricalData(e *Engine) error {
 	if interval.IsZero() {
 		// in case we skip the import
 		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: "skip_import", Value: true}}); err != nil {
+			if err := metadata.Store(context.Background(), tx, []metadata.Item{{Key: "skip_import", Value: true}}); err != nil {
 				return errorutil.Wrap(err)
 			}
 

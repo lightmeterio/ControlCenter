@@ -17,7 +17,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -56,13 +56,13 @@ func TestReports(t *testing.T) {
 
 		s := httptest.NewServer(handler)
 
-		conn, clear := testutil.TempDBConnection(t)
+		conn, clear := testutil.TempDBConnectionMigrated(t, "master")
 		defer clear()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
+		runner := metadata.NewSerialWriteRunner(m)
 		done, cancel := runner.Run()
 
 		defer func() {
@@ -70,10 +70,10 @@ func TestReports(t *testing.T) {
 			So(done(), ShouldBeNil)
 		}()
 
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		authConn, closeConn := testutil.TempDBConnectionMigrated(t, "auth")
+		defer closeConn()
 
-		auth, err := auth.NewAuth(dir, auth.Options{})
+		auth, err := auth.NewAuth(authConn, auth.Options{})
 		So(err, ShouldBeNil)
 
 		email := "user@lightmeter.io"

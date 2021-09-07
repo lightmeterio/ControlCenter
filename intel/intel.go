@@ -20,7 +20,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -54,7 +55,7 @@ type Dispatcher struct {
 	InstanceID           string
 	VersionBuilder       func() Version
 	ReportDestinationURL string
-	SettingsReader       *meta.Reader
+	SettingsReader       *metadata.Reader
 	Auth                 auth.Registrar
 }
 
@@ -141,7 +142,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving global settings")
 	}
 
@@ -176,7 +177,7 @@ func (d *Dispatcher) getPostfixVersion() *string {
 	var version string
 	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version")
 	}
 
@@ -203,16 +204,16 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
-	settingsReader *meta.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
+func New(intelDb *dbconn.PooledPair, deliveryDb *deliverydb.DB, fetcher core.Fetcher,
+	settingsReader *metadata.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
-		mailactivity.NewReporter(db.ConnPool()),
+		mailactivity.NewReporter(deliveryDb.ConnPool()),
 		insights.NewReporter(fetcher),
 		logslinecount.NewReporter(logslinePublisher),
-		topdomains.NewReporter(db.ConnPool()),
+		topdomains.NewReporter(deliveryDb.ConnPool()),
 		intelConnectionStats.NewReporter(connStats.ConnPool()),
 	}
 
@@ -229,7 +230,7 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
 		Auth:                 auth,
 	}
 
-	c, err := collector.New(workspaceDir, collectorOptions, reporters, dispatcher)
+	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)
 	if err != nil {
 		return nil, nil, errorutil.Wrap(err)
 	}

@@ -9,7 +9,7 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -43,13 +43,13 @@ func TestMessengerSettings(t *testing.T) {
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
+		runner := metadata.NewSerialWriteRunner(m)
 		writer := runner.Writer()
 		done, cancel := runner.Run()
 
@@ -76,13 +76,13 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
+		runner := metadata.NewSerialWriteRunner(m)
 		writer := runner.Writer()
 		done, cancel := runner.Run()
 

@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -32,17 +31,14 @@ func TestReporter(t *testing.T) {
 
 		reporter := NewReporter(pub)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
 		dispatcher := &fakeDispatcher{}
 
-		err = intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err := intelDb.RwConn.Tx(func(tx *sql.Tx) error {
 			// fill publsher with some values
 			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020)
 

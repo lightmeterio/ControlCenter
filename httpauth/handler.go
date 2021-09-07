@@ -7,11 +7,11 @@ package httpauth
 import (
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"net/http"
 )
 
-func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *meta.Reader) {
+func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *metadata.Reader) {
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 
 	mux.Handle("/auth/check", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {

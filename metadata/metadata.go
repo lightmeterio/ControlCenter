@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package meta
+package metadata
 
 import (
 	"context"
@@ -10,8 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 )
@@ -39,11 +38,7 @@ type Handler struct {
 	Writer *Writer
 }
 
-func NewHandler(conn *dbconn.PooledPair, databaseName string) (*Handler, error) {
-	if err := migrator.Run(conn.RwConn.DB, databaseName); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
+func NewHandler(conn *dbconn.PooledPair) (*Handler, error) {
 	reader := NewReader(conn.RoConnPool)
 	writer := &Writer{conn.RwConn}
 
@@ -88,18 +83,10 @@ func (writer *Writer) Store(ctx context.Context, items []Item) error {
 
 func Store(ctx context.Context, tx *sql.Tx, items []Item) error {
 	for _, i := range items {
-		var id int
-		err := tx.QueryRowContext(ctx, `select rowid from meta where key = ?`, i.Key).Scan(&id)
-
-		query, args := func() (string, []interface{}) {
-			if errors.Is(err, sql.ErrNoRows) {
-				return `insert into meta(key, value) values(?, ?)`, []interface{}{i.Key, i.Value}
-			}
-
-			return `update meta set value = ? where rowid = ?`, []interface{}{i.Value, id}
-		}()
-
-		if _, err := tx.Exec(query, args...); err != nil {
+		if _, err := tx.Exec(`
+			insert into meta(key, value) values(?, ?)
+			on conflict(key) do update set value = ?;
+		`, i.Key, i.Value, i.Value); err != nil {
 			return errorutil.Wrap(err)
 		}
 	}

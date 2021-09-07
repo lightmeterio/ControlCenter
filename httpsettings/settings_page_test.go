@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
 	"io"

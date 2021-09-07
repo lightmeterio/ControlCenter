@@ -159,10 +159,10 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
+		defer closeConn()
 
-		c, err := NewAccessor(dir)
+		c, err := NewAccessor(conn)
 		So(err, ShouldBeNil)
 
 		notifier := &fakeNotifier{}

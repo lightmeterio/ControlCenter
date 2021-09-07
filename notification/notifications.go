@@ -9,7 +9,7 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/text/language"
@@ -39,7 +39,7 @@ type Settings struct {
 
 const SettingKey = "notifications"
 
-func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -47,7 +47,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
 	settings := &Settings{}
 
 	err := reader.RetrieveJson(ctx, SettingKey, settings)
@@ -58,10 +58,10 @@ func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
 	return settings, nil
 }
 
-func New(reader *meta.Reader, translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {
+func New(reader *metadata.Reader, translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {
 	return NewWithCustomLanguageFetcher(translators, policy, func() (language.Tag, error) {
 		settings, err := GetSettings(context.Background(), reader)
-		if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+		if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 			// setting not found
 			return language.English, nil
 		}

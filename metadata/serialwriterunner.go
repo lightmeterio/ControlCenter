@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package meta
+package metadata
 
 import (
 	"context"
@@ -11,16 +11,16 @@ import (
 	"time"
 )
 
-// Runner aims to serialize all requests to write in a single goroutine,
+// SerialWriteRunner aims to serialize all requests to write in a single goroutine,
 // which effectively owns writing access to the connection
-type Runner struct {
+type SerialWriteRunner struct {
 	writer       *Writer
 	requestsChan chan storeRequest
 	runner.CancellableRunner
 }
 
-func NewRunner(h *Handler) *Runner {
-	r := &Runner{writer: h.Writer, requestsChan: make(chan storeRequest)}
+func NewSerialWriteRunner(h *Handler) *SerialWriteRunner {
+	r := &SerialWriteRunner{writer: h.Writer, requestsChan: make(chan storeRequest)}
 
 	cancelableRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		go func() {
@@ -48,7 +48,7 @@ func NewRunner(h *Handler) *Runner {
 // as SQLite can be slow on storing multiple independent pieces of data, but is quite efficient
 // when grouping them into a single transaction.
 type AsyncWriter struct {
-	runner *Runner
+	runner *SerialWriteRunner
 }
 
 // A request to store something, done asynchronously
@@ -73,7 +73,7 @@ func (r *AsyncWriteResult) Wait() error {
 	return <-r.Done()
 }
 
-func (runner *Runner) Writer() *AsyncWriter {
+func (runner *SerialWriteRunner) Writer() *AsyncWriter {
 	return &AsyncWriter{runner: runner}
 }
 

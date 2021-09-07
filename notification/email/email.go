@@ -21,7 +21,7 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	smtp "github.com/emersion/go-smtp"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -247,7 +247,7 @@ type disabledFromSettingsPolicy struct {
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	s, _, err := p.settingsFetcher()
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return true, nil
 	}
 
@@ -259,7 +259,7 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 }
 
 // FIXME: this function is copied from notification/slack!!!
-func New(policy core.Policy, reader *meta.Reader) *Notifier {
+func New(policy core.Policy, reader *metadata.Reader) *Notifier {
 	fetcher := func() (*Settings, *globalsettings.Settings, error) {
 		settings, err := GetSettings(context.Background(), reader)
 		if err != nil {
@@ -491,7 +491,7 @@ func (*Notifier) ValidateSettings(s core.Settings) error {
 	return nil
 }
 
-func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -499,7 +499,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
 	settings := &Settings{}
 
 	err := reader.RetrieveJson(ctx, SettingKey, settings)

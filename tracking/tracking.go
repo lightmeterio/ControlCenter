@@ -9,13 +9,11 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"reflect"
 	"sync"
 	"time"
@@ -207,10 +205,6 @@ func (t *Tracker) Close() error {
 		return errorutil.Wrap(err)
 	}
 
-	if err := t.dbconn.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
 	return nil
 }
 
@@ -257,25 +251,7 @@ func buildResultsNotifier(
 
 const numberOfNotifiers = 1
 
-func New(workspaceDir string, pub ResultPublisher) (*Tracker, error) {
-	conn, err := dbconn.Open(path.Join(workspaceDir, "logtracker.db"), numberOfNotifiers+5)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			// TODO: do not panic here, but return the error to the caller
-			errorutil.MustSucceed(conn.Close())
-		}
-	}()
-
-	err = migrator.Run(conn.RwConn.DB, "logtracker")
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
+func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 	trackerStmts, err := prepareTrackerRwStmts(conn.RwConn)
 	if err != nil {
 		return nil, errorutil.Wrap(err)

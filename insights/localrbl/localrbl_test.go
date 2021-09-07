@@ -16,7 +16,7 @@ import (
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -391,10 +391,10 @@ func TestLocalRBL(t *testing.T) {
 
 				// TODO: move this test to its own test function
 				Convey("Use real DNS checker", func() {
-					conn, closeConn := testutil.TempDBConnection(t)
+					conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 					defer closeConn()
 
-					m, err := meta.NewHandler(conn, "master")
+					m, err := metadata.NewHandler(conn)
 					So(err, ShouldBeNil)
 
 					{
