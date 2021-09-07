@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <footer class="mt-auto">
     <div class="container">
       <div class="row justify-content-between">
-        <div class="col-md-6 mt-md-0 mt-3 align-left">
+        <div class="col-md-10 mt-md-0 mt-3 align-left">
           <a
             href="https://lightmeter.io/about/"
             title="About Lightmeter"
@@ -35,12 +35,64 @@ SPDX-License-Identifier: AGPL-3.0-only
           <b-button class="link" @click="runWalkthrough()"
             ><translate>Walkthrough</translate></b-button
           >
+          <span
+            class="link"
+            v-b-modal.modal-telemetry
+            data-toggle="tooltip"
+            data-placement="bottom"
+            title="Network Intelligence"
+          >
+            Network Intelligence
+          </span>
         </div>
 
         <div class="col-md-2 mb-md-0 mb-2 align-right">
-          <langauge-switcher></langauge-switcher>
+          <language-switcher></language-switcher>
         </div>
       </div>
+
+      <b-modal
+        ref="modal-telemetry"
+        id="modal-telemetry"
+        hide-footer
+        title="Network Intelligence"
+        cancel-only
+      >
+        <p>
+          The following <i>Network Intelligence reports</i> are regularly sent
+          to a central Lightmeter server:
+        </p>
+        <ul>
+          <li>
+            <b>connectionstats</b>: collects the IP addresses and timestamps of
+            incoming SMTP connections that try to authenticate on ports 587 or
+            465. This data is obtained from the Postfix logs. It is used to
+            identify and help prevent brute force attacks via the SMTP protocol
+            based on automated threat sharing between Lightmeter users.
+          </li>
+          <li>
+            <b>insights</b>: collects general statistics about recently
+            generated Lightmeter insights. This data is used to improve the
+            frequency of insights generation, e.g. avoiding too many
+            notifications.
+          </li>
+          <li>
+            <b>logslinecount</b>: reports general non-identifiable information
+            about which kinds of logs Postfix generates, and whether they are
+            currently supported by <i>Lightmeter ControlCenter</i>. This is used
+            to identify and prioritise support for unsupporter log events.
+          </li>
+          <li>
+            <b>mailactivity</b>: collects statistics about the number of sent,
+            bounced, deferred, and received messages. This helps identify
+            Lightmeter performance issues and benchmark network health.
+          </li>
+          <li>
+            <b>topdomains</b>: reports the domains that Postfix is managing
+            locally. This is used to verify that reports are authentic.
+          </li>
+        </ul>
+      </b-modal>
     </div>
   </footer>
 </template>

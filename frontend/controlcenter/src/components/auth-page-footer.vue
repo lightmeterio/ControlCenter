@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <span render-html="true" v-translate>
         Made with %{heart} by %{openLink}Open Source professionals%{closeLink}
       </span>
-      <langauge-switcher></langauge-switcher>
+      <language-switcher></language-switcher>
     </b-container>
   </footer>
 </template>

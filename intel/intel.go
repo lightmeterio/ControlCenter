@@ -37,6 +37,7 @@ type Metadata struct {
 	PublicURL      *string `json:"public_url,omitempty"`
 	UserEmail      *string `json:"user_email,omitempty"`
 	PostfixVersion *string `json:"postfix_version,omitempty"`
+	MailKind       *string `json:"mail_kind,omitempty"`
 }
 
 type Version struct {
@@ -71,14 +72,14 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 		userData, err := d.Auth.GetFirstUser(context.Background())
 		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
-			return Metadata{}, errorutil.Wrap(err)
+			return metadata, errorutil.Wrap(err)
 		}
 
 		if err == nil {
 			metadata.UserEmail = &userData.Email
 		}
 
-		metadata.PublicURL, metadata.LocalIP = d.getGlobalSettings()
+		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
 
 		return metadata, nil
 	}()
@@ -140,14 +141,15 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	return nil
 }
 
-func (d *Dispatcher) getGlobalSettings() (*string, *string) {
+func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
+
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving global settings")
 	}
 
 	if err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	addr := func(s string) *string {
@@ -170,7 +172,28 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 		return nil
 	}()
 
-	return publicURL, localIP
+	mailKind := func() *string {
+		mailKind, err := d.SettingsReader.Retrieve(context.Background(), "mail_kind")
+
+		if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+			log.Warn().Msgf("Unexpected error retrieving mail_kind")
+		}
+
+		if err != nil {
+			return nil
+		}
+
+		s, ok := mailKind.(string)
+
+		if !ok {
+			log.Warn().Msgf("mail_kind couldn't be cast to string")
+			return nil
+		}
+
+		return &s
+	}()
+
+	return publicURL, localIP, mailKind
 }
 
 func (d *Dispatcher) getPostfixVersion() *string {

@@ -47,6 +47,8 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 
 	fetchedInsights, err := r.fetcher.FetchInsights(context.Background(), core.FetchOptions{
 		Interval: interval,
+		FilterBy: core.FilterByCategory,
+		Category: core.LocalCategory,
 	}, clock)
 
 	if err != nil {
