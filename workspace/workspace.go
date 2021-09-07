@@ -39,7 +39,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
-	"sort"
 	"time"
 )
 
@@ -336,20 +335,6 @@ func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
 }
 
-type mostRecentTimes [3]time.Time
-
-func (t mostRecentTimes) Len() int {
-	return len(t)
-}
-
-func (t mostRecentTimes) Less(i, j int) bool {
-	return t[i].Before(t[j])
-}
-
-func (t mostRecentTimes) Swap(i, j int) {
-	t[i], t[j] = t[j], t[i]
-}
-
 func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 	mostRecentDeliverTime, err := ws.deliveries.MostRecentLogTime()
 	if err != nil {
@@ -366,11 +351,17 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	times := mostRecentTimes{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
+	times := []time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
 
-	sort.Sort(times)
+	mostRecent := time.Time{}
 
-	return times[len(times)-1], nil
+	for _, t := range times {
+		if t.After(mostRecent) {
+			mostRecent = t
+		}
+	}
+
+	return mostRecent, nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {

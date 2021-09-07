@@ -87,6 +87,7 @@ type PooledPair struct {
 
 	RwConn     RwConn
 	RoConnPool *RoPool
+	Filename   string
 }
 
 func Open(filename string, poolSize int) (*PooledPair, error) {
@@ -127,5 +128,5 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		pool.pool <- conn
 	}
 
-	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool)}, nil
+	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
 }
