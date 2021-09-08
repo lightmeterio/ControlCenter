@@ -70,16 +70,16 @@ type Workspace struct {
 	connectionStatsAccessor *connectionstats.Accessor
 }
 
-type dbMap map[string]*dbconn.PooledPair
+type databases struct {
+	closeutil.Closers
 
-func (allDbs dbMap) Close() error {
-	for _, db := range allDbs {
-		if err := db.Close(); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	return nil
+	Auth           *dbconn.PooledPair
+	Connections    *dbconn.PooledPair
+	Insights       *dbconn.PooledPair
+	IntelCollector *dbconn.PooledPair
+	Logs           *dbconn.PooledPair
+	LogTracker     *dbconn.PooledPair
+	Master         *dbconn.PooledPair
 }
 
 func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
@@ -102,36 +102,49 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	allDatabases := dbMap{}
+	allDatabases := databases{Closers: closeutil.New()}
 
-	for _, databaseName := range []string{"auth", "connections", "insights", "intel-collector", "logs", "logtracker", "master"} {
-		db, err := newDb(workspaceDirectory, databaseName)
+	for _, s := range []struct {
+		name string
+		db   **dbconn.PooledPair
+	}{
+		{"auth", &allDatabases.Auth},
+		{"connections", &allDatabases.Connections},
+		{"insights", &allDatabases.Insights},
+		{"intel-collector", &allDatabases.IntelCollector},
+		{"logs", &allDatabases.Logs},
+		{"logtracker", &allDatabases.LogTracker},
+		{"master", &allDatabases.Master},
+	} {
+		db, err := newDb(workspaceDirectory, s.name)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err, "Error opening databases in directory ", workspaceDirectory)
 		}
 
-		allDatabases[databaseName] = db
+		*s.db = db
+
+		allDatabases.Closers.Add(db)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases["logs"], &domainmapping.DefaultMapping)
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(allDatabases["logtracker"], deliveries.ResultsPublisher())
+	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := auth.NewAuth(allDatabases["auth"], auth.Options{})
+	auth, err := auth.NewAuth(allDatabases.Auth, auth.Options{})
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := metadata.NewHandler(allDatabases["master"])
+	m, err := metadata.NewHandler(allDatabases.Master)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -192,7 +205,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsAccessor, err := insights.NewAccessor(allDatabases["insights"])
+	insightsAccessor, err := insights.NewAccessor(allDatabases.Insights)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -205,7 +218,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	connStats, err := connectionstats.New(allDatabases["connections"])
+	connStats, err := connectionstats.New(allDatabases.Connections)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -223,7 +236,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	}
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
-		allDatabases["intel-collector"], deliveries, insightsEngine.Fetcher(),
+		allDatabases.IntelCollector, deliveries, insightsEngine.Fetcher(),
 		m.Reader, auth, connStats, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
