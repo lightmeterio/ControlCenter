@@ -4,14 +4,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build !codeanalysis
 // +build !codeanalysis
 
 package rawparser
 
 
-//line bounce.rl:10
+//line bounce.rl:11
 
-//line bounce.gen.go:15
+//line bounce.gen.go:16
 const bounceCreated_start int = 1
 const bounceCreated_first_final int = 90
 const bounceCreated_error int = 0
@@ -19,7 +20,7 @@ const bounceCreated_error int = 0
 const bounceCreated_en_main int = 1
 
 
-//line bounce.rl:11
+//line bounce.rl:12
 
 func parseBounceCreated(data []byte) (BounceCreated, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -30,12 +31,12 @@ func parseBounceCreated(data []byte) (BounceCreated, bool) {
 	r := BounceCreated{}
 
 
-//line bounce.gen.go:34
+//line bounce.gen.go:35
 	{
 	cs = bounceCreated_start
 	}
 
-//line bounce.gen.go:39
+//line bounce.gen.go:40
 	{
 	if p == pe {
 		goto _test_eof
@@ -267,7 +268,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line bounce.gen.go:271
+//line bounce.gen.go:272
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -530,7 +531,7 @@ tr0:
 		}
 		goto st0
 tr14:
-//line bounce.rl:23
+//line bounce.rl:24
 
 		r.Queue = data[tokBeg:p]
 	
@@ -540,7 +541,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line bounce.gen.go:544
+//line bounce.gen.go:545
 		if data[p] == 32 {
 			goto st14
 		}
@@ -913,7 +914,7 @@ tr63:
 			goto _test_eof52
 		}
 	st_case_52:
-//line bounce.gen.go:917
+//line bounce.gen.go:918
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1025,7 +1026,7 @@ tr63:
 		}
 		goto st0
 tr73:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1036,7 +1037,7 @@ tr73:
 			goto _test_eof90
 		}
 	st_case_90:
-//line bounce.gen.go:1040
+//line bounce.gen.go:1041
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1056,7 +1057,7 @@ tr73:
 		}
 		goto st0
 tr91:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1067,7 +1068,7 @@ tr91:
 			goto _test_eof91
 		}
 	st_case_91:
-//line bounce.gen.go:1071
+//line bounce.gen.go:1072
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1087,7 +1088,7 @@ tr91:
 		}
 		goto st0
 tr92:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1098,7 +1099,7 @@ tr92:
 			goto _test_eof92
 		}
 	st_case_92:
-//line bounce.gen.go:1102
+//line bounce.gen.go:1103
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1118,7 +1119,7 @@ tr92:
 		}
 		goto st0
 tr93:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1129,7 +1130,7 @@ tr93:
 			goto _test_eof93
 		}
 	st_case_93:
-//line bounce.gen.go:1133
+//line bounce.gen.go:1134
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1149,7 +1150,7 @@ tr93:
 		}
 		goto st0
 tr94:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1160,7 +1161,7 @@ tr94:
 			goto _test_eof94
 		}
 	st_case_94:
-//line bounce.gen.go:1164
+//line bounce.gen.go:1165
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1180,7 +1181,7 @@ tr94:
 		}
 		goto st0
 tr75:
-//line bounce.rl:29
+//line bounce.rl:30
 
 		r.ChildQueue = data[tokBeg:eof]
 		return r, true
@@ -1191,7 +1192,7 @@ tr75:
 			goto _test_eof95
 		}
 	st_case_95:
-//line bounce.gen.go:1195
+//line bounce.gen.go:1196
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1394,7 +1395,7 @@ tr64:
 			goto _test_eof67
 		}
 	st_case_67:
-//line bounce.gen.go:1398
+//line bounce.gen.go:1399
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1696,7 +1697,7 @@ tr2:
 			goto _test_eof89
 		}
 	st_case_89:
-//line bounce.gen.go:1700
+//line bounce.gen.go:1701
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1810,7 +1811,7 @@ tr2:
 	_out: {}
 	}
 
-//line bounce.rl:36
+//line bounce.rl:37
 
 
 	return r, false

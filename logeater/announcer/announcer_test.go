@@ -121,7 +121,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 			So(finalAnnouncer.Start.IsZero(), ShouldBeTrue)
 			So(finalAnnouncer.Progress(), ShouldResemble, []Progress{
-				Progress{Finished: true, Progress: 100, Time: time.Time{}},
+				{Finished: true, Progress: 100, Time: time.Time{}},
 			})
 
 			So(primaryTimes.counter, ShouldEqual, 0)
@@ -164,12 +164,12 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 
 			So(finalAnnouncer.Start, ShouldResemble, baseTime)
 			So(finalAnnouncer.Progress(), ShouldResemble, []Progress{
-				Progress{Finished: false, Progress: 5, Time: baseTime.Add(time.Second * 10)},
-				Progress{Finished: false, Progress: 10, Time: baseTime.Add(time.Second * 20)},
-				Progress{Finished: false, Progress: 15, Time: baseTime.Add(time.Second * 30)},
-				Progress{Finished: false, Progress: 20, Time: baseTime.Add(time.Second * 35)},
-				Progress{Finished: false, Progress: 25, Time: baseTime.Add(time.Second * 50)},
-				Progress{Finished: true, Progress: 100, Time: baseTime.Add(time.Second * 60)},
+				{Finished: false, Progress: 5, Time: baseTime.Add(time.Second * 10)},
+				{Finished: false, Progress: 10, Time: baseTime.Add(time.Second * 20)},
+				{Finished: false, Progress: 15, Time: baseTime.Add(time.Second * 30)},
+				{Finished: false, Progress: 20, Time: baseTime.Add(time.Second * 35)},
+				{Finished: false, Progress: 25, Time: baseTime.Add(time.Second * 50)},
+				{Finished: true, Progress: 100, Time: baseTime.Add(time.Second * 60)},
 			})
 
 			So(clock.Now(), ShouldResemble, timeutil.MustParseTime(`2020-10-10 00:00:09 +0000`))
