@@ -5,6 +5,7 @@
 package runner
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 )
 
@@ -74,4 +75,42 @@ func Run(runners ...CancellableRunner) (done func() error, cancel func()) {
 				c <- struct{}{}
 			}
 		}
+}
+
+type CombinedCancellableRunners struct {
+	runners []CancellableRunner
+	runner  *cancellableRunner
+}
+
+func NewCombinedCancellableRunners(runners ...CancellableRunner) CancellableRunner {
+	return &CombinedCancellableRunners{
+		runners: runners,
+		runner: &cancellableRunner{
+			execute: func(done DoneChan, cancel CancelChan) {
+				doneAll, cancelAll := Run(runners...)
+
+				go func() {
+					<-cancel
+					cancelAll()
+				}()
+
+				go func() {
+					if err := doneAll(); err != nil {
+						done <- errorutil.Wrap(err)
+						return
+					}
+
+					done <- nil
+				}()
+			},
+		},
+	}
+}
+
+func (r *CombinedCancellableRunners) Run() (func() error, func()) {
+	return Run(r)
+}
+
+func (r *CombinedCancellableRunners) self() *cancellableRunner {
+	return r.runner
 }
