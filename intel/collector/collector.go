@@ -8,6 +8,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -134,37 +135,40 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 		closers.Add(r)
 	}
 
-	return &Collector{
-		reporters: reporters,
-		Closers:   closers,
-		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-			go func() {
-				timer := time.NewTicker(options.CycleInterval)
+	stmts := dbrunner.PreparedStmts{}
 
-				for {
-					select {
-					case <-cancel:
-						log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
+	dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts)
 
-						done <- nil
+	mainRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		go func() {
+			timer := time.NewTicker(options.CycleInterval)
 
-						timer.Stop()
+			for {
+				select {
+				case <-cancel:
+					log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
 
-						return
-					case <-timer.C:
-						if err := pair.RwConn.Tx(func(tx *sql.Tx) error {
-							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
-								return errorutil.Wrap(err)
-							}
+					done <- nil
 
-							return nil
-						}); err != nil {
-							done <- err
-							return
+					timer.Stop()
+
+					return
+				case <-timer.C:
+					dbRunner.Actions <- func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+						if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
+							return errorutil.Wrap(err)
 						}
+
+						return nil
 					}
 				}
-			}()
-		}),
+			}
+		}()
+	})
+
+	return &Collector{
+		reporters:         reporters,
+		Closers:           closers,
+		CancellableRunner: runner.NewCombinedCancellableRunners(dbRunner, mainRunner),
 	}, nil
 }
