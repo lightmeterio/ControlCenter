@@ -24,7 +24,7 @@ type DB struct {
 	dbrunner.Runner
 
 	connPair *dbconn.PooledPair
-	stmts    preparedStmts
+	stmts    dbrunner.PreparedStmts
 }
 
 type stmtKey = uint
@@ -49,8 +49,6 @@ const (
 
 	lastStmtKey
 )
-
-type preparedStmts [lastStmtKey]*sql.Stmt
 
 var stmtsText = map[stmtKey]string{
 	selectIdFromRemoteDomain:       `select id from remote_domains where domain = ?`,
@@ -126,16 +124,16 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
-	stmts := preparedStmts{}
+	stmts := make(dbrunner.PreparedStmts, lastStmtKey)
 
-	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts[:]); err != nil {
+	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &DB{
 		connPair: connPair,
 		stmts:    stmts,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts[:]),
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
 	}, nil
 }
 

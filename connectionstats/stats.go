@@ -184,8 +184,6 @@ const (
 	lastStmtKey
 )
 
-type preparedStmts [lastStmtKey]*sql.Stmt
-
 var stmtsText = map[uint]string{
 	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
@@ -212,20 +210,20 @@ type Stats struct {
 	dbrunner.Runner
 
 	conn  *dbconn.PooledPair
-	stmts preparedStmts
+	stmts dbrunner.PreparedStmts
 }
 
 func New(connPair *dbconn.PooledPair) (*Stats, error) {
-	stmts := preparedStmts{}
+	stmts := make(dbrunner.PreparedStmts, lastStmtKey)
 
-	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts[:]); err != nil {
+	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &Stats{
 		conn:   connPair,
 		stmts:  stmts,
-		Runner: dbrunner.New(500*time.Millisecond, 4096, connPair, stmts[:]),
+		Runner: dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
 	}, nil
 }
 
