@@ -13,7 +13,6 @@ type CancelChan <-chan struct{}
 type DoneChan chan<- error
 
 type CancellableRunner interface {
-	Run() (done func() error, cancel func())
 	self() *cancellableRunner
 }
 
@@ -25,10 +24,6 @@ func NewCancellableRunner(execute func(done DoneChan, cancel CancelChan)) Cancel
 
 type cancellableRunner struct {
 	execute func(done DoneChan, cancel CancelChan)
-}
-
-func (r *cancellableRunner) Run() (func() error, func()) {
-	return Run(r)
 }
 
 func (r *cancellableRunner) self() *cancellableRunner {
@@ -105,10 +100,6 @@ func NewCombinedCancellableRunners(runners ...CancellableRunner) CancellableRunn
 			},
 		},
 	}
-}
-
-func (r *CombinedCancellableRunners) Run() (func() error, func()) {
-	return Run(r)
 }
 
 func (r *CombinedCancellableRunners) self() *cancellableRunner {

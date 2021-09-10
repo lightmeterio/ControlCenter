@@ -22,8 +22,8 @@ func newLogsRunner(tracker *tracking.Tracker, deliveries *deliverydb.DB) *logsRu
 	r := &logsRunner{deliveries: deliveries, tracker: tracker}
 
 	r.CancellableRunner = runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		trackerDone, trackerCancel := tracker.Run()
-		deliveriesDone, deliveriesCancel := deliveries.Run()
+		trackerDone, trackerCancel := runner.Run(tracker)
+		deliveriesDone, deliveriesCancel := runner.Run(deliveries)
 
 		go func() {
 			<-cancel

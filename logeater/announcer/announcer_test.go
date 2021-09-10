@@ -7,6 +7,7 @@ package announcer
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
@@ -112,7 +113,7 @@ func TestSynchronizedAnnouncer(t *testing.T) {
 		combinedAnnouncer := newSynchronizingAnnouncerWithCustomClock(finalAnnouncer, clock, primaryTimes.next, secondaryTimes.next,
 			time.Second*1, time.Second*3, time.Second*6)
 
-		done, cancel := combinedAnnouncer.Run()
+		done, cancel := runner.Run(combinedAnnouncer)
 
 		Convey("Skip", func() {
 			Skip(combinedAnnouncer)

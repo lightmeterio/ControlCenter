@@ -19,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
@@ -64,8 +65,8 @@ func TestReports(t *testing.T) {
 		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(m)
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() {
 			cancel()
@@ -106,7 +107,7 @@ func TestReports(t *testing.T) {
 
 			initSettings := settings.NewInitialSetupSettings(&newsletter.FakeNewsletterSubscriber{})
 
-			So(initSettings.Set(context.Background(), runner.Writer(), settings.InitialOptions{
+			So(initSettings.Set(context.Background(), writeRunner.Writer(), settings.InitialOptions{
 				SubscribeToNewsletter: false,
 				MailKind:              settings.MailKindMarketing},
 			), ShouldBeNil)
@@ -187,7 +188,7 @@ func TestReports(t *testing.T) {
 		})
 
 		Convey("Send postfix version", func() {
-			p := postfixversion.NewPublisher(runner.Writer())
+			p := postfixversion.NewPublisher(writeRunner.Writer())
 			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000)
 			time.Sleep(100 * time.Millisecond)
 

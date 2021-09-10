@@ -19,6 +19,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
@@ -75,10 +76,10 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, *metadata.R
 	m, err := metadata.NewHandler(conn)
 	So(err, ShouldBeNil)
 
-	runner := metadata.NewSerialWriteRunner(m)
-	done, cancel := runner.Run()
+	writeRunner := metadata.NewSerialWriteRunner(m)
+	done, cancel := runner.Run(writeRunner)
 
-	writer := runner.Writer()
+	writer := writeRunner.Writer()
 
 	initialSetupSettings := settings.NewInitialSetupSettings(&dummySubscriber{})
 

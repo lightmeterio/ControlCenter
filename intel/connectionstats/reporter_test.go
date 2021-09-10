@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -35,7 +36,7 @@ func TestReporters(t *testing.T) {
 
 		pub := stats.Publisher()
 
-		done, cancel := stats.Run()
+		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jan  1 00:00:30 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19

@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/socketsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -77,7 +78,7 @@ func main() {
 		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", conf.WorkspaceDirectory)
 	}
 
-	done, cancel := ws.Run()
+	done, cancel := runner.Run(ws)
 
 	// only import logs and exit when they end. Does not start web server.
 	// It's useful for benchmarking importing logs.

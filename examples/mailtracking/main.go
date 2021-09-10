@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
@@ -123,7 +124,7 @@ func main() {
 
 	logReader := logsource.NewReader(logSource, publisher)
 
-	done, cancel := t.Run()
+	done, cancel := runner.Run(t)
 
 	err = logReader.Run()
 

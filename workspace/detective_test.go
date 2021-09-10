@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
@@ -53,7 +54,7 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	logSource, err := filelogsource.New(reader, builder, importAnnouncer)
 	So(err, ShouldBeNil)
 
-	done, cancel := ws.Run()
+	done, cancel := runner.Run(ws)
 
 	logReader := logsource.NewReader(logSource, ws.NewPublisher())
 
