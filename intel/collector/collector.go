@@ -137,38 +137,37 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 
 	stmts := dbrunner.PreparedStmts{}
 
-	dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts)
+	return &Collector{
+		reporters: reporters,
+		Closers:   closers,
+		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts)
+			dbRunnerDone, dbRunnerCancel := runner.Run(dbRunner)
 
-	mainRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		go func() {
-			timer := time.NewTicker(options.CycleInterval)
+			go func() {
+				timer := time.NewTicker(options.CycleInterval)
 
-			for {
-				select {
-				case <-cancel:
-					log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
+				for {
+					select {
+					case <-cancel:
+						log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
 
-					done <- nil
+						timer.Stop()
+						dbRunnerCancel()
+						done <- dbRunnerDone()
 
-					timer.Stop()
+						return
+					case <-timer.C:
+						dbRunner.Actions <- func(tx *sql.Tx, _ dbrunner.PreparedStmts) error {
+							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
+								return errorutil.Wrap(err)
+							}
 
-					return
-				case <-timer.C:
-					dbRunner.Actions <- func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
-						if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
-							return errorutil.Wrap(err)
+							return nil
 						}
-
-						return nil
 					}
 				}
-			}
-		}()
-	})
-
-	return &Collector{
-		reporters:         reporters,
-		Closers:           closers,
-		CancellableRunner: runner.NewCombinedCancellableRunners(dbRunner, mainRunner),
+			}()
+		}),
 	}, nil
 }
