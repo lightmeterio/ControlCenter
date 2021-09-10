@@ -207,6 +207,14 @@ func TestReporters(t *testing.T) {
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 
+			// no activity here, therefore no reports sent
+			clock.Sleep(10 * time.Minute)
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
 			return nil
 		})
 

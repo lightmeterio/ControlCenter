@@ -56,6 +56,14 @@ func TestReporter(t *testing.T) {
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 
+			// no new lines read, therefore no reports are sent
+			clock.Sleep(10 * time.Minute)
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
 			return nil
 		})
 

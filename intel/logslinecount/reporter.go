@@ -60,8 +60,15 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 
 	flushPublisher(r.pub, counters)
 
+	total := 0
+
 	for k, v := range counters {
 		report.Counters[computeKey(k)] = v
+		total += v.Supported + v.Unsupported
+	}
+
+	if total == 0 {
+		return nil
 	}
 
 	if err := collector.Collect(tx, clock, r.ID(), &report); err != nil {
