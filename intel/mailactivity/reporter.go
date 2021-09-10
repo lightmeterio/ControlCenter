@@ -83,6 +83,10 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		return errorutil.Wrap(err)
 	}
 
+	if numberOfSent+numberOfDeferred+numberOfBounced+numberOfReceived == 0 {
+		return nil
+	}
+
 	report := report{
 		Interval:         interval,
 		NumberOfSent:     numberOfSent,

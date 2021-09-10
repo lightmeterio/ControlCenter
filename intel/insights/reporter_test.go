@@ -178,6 +178,14 @@ func TestReporter(t *testing.T) {
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 
+			// spend some time, with no insights being created. Those should not be reported
+			clock.Sleep(fifteenMin)
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
 			return nil
 		})
 

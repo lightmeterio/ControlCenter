@@ -217,6 +217,13 @@ func TestReporter(t *testing.T) {
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 
+			// after two hours, nothing has happened, therefore no new report is sent
+			clock.Sleep(2 * time.Hour)
+			err = reporters.Step(tx, clock)
+			So(err, ShouldBeNil)
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
 			return nil
 		})
 

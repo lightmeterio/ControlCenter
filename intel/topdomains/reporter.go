@@ -157,6 +157,10 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		return errorutil.Wrap(err)
 	}
 
+	if len(report.SenderDomains)+len(report.RecipientDomains) == 0 {
+		return nil
+	}
+
 	if err := collector.Collect(tx, clock, r.ID(), &report); err != nil {
 		return errorutil.Wrap(err)
 	}
