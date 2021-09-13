@@ -27,18 +27,10 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-// TODO: move this to some place where it can be reused!
-type mappedResult map[tracking.ResultEntryType]tracking.ResultEntry
+type mappedResult = tracking.MappedResult
 
-// TODO: move this to some place where it can be reused!
 func publishResult(pub tracking.ResultPublisher, mp mappedResult) {
-	r := tracking.Result{}
-
-	for k, v := range mp {
-		r[k] = v
-	}
-
-	pub.Publish(r)
+	pub.Publish(mp.Result())
 }
 
 func TestReporters(t *testing.T) {

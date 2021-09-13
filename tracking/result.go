@@ -259,3 +259,16 @@ func (r Result) MarshalZerologObject(e *zerolog.Event) {
 type ResultPublisher interface {
 	Publish(Result)
 }
+
+// Useful for tests, makes it easier to create results
+type MappedResult map[ResultEntryType]ResultEntry
+
+func (m MappedResult) Result() Result {
+	r := Result{}
+
+	for k, v := range m {
+		r[k] = v
+	}
+
+	return r
+}

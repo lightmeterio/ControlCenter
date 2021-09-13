@@ -637,12 +637,13 @@ func TestTrackingFromFiles(t *testing.T) {
 func TestResultEncoding(t *testing.T) {
 	Convey("Results encoding", t, func() {
 		Convey("JSON", func() {
-			original := Result{}
-			original[ConnectionBeginKey] = ResultEntryFloat64(3.14)
-			original[ConnectionEndKey] = ResultEntryInt64(42)
-			original[ConnectionClientHostnameKey] = ResultEntryText("hello world")
-			original[ConnectionClientIPKey] = ResultEntryBlob([]byte{0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01})
-			original[QueueBeginKey] = ResultEntryBlob([]byte{192, 168, 1, 124})
+			original := MappedResult{
+				ConnectionBeginKey:          ResultEntryFloat64(3.14),
+				ConnectionEndKey:            ResultEntryInt64(42),
+				ConnectionClientHostnameKey: ResultEntryText("hello world"),
+				ConnectionClientIPKey:       ResultEntryBlob([]byte{0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01}),
+				QueueBeginKey:               ResultEntryBlob([]byte{192, 168, 1, 124}),
+			}.Result()
 
 			encoded, err := json.Marshal(original)
 			So(err, ShouldBeNil)
