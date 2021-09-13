@@ -48,6 +48,17 @@ const (
 	insertQueueParenting
 	insertExpiredQueue
 
+	selectOldDeliveries
+	deleteOldDeliveries
+	selectQueueIdForDeliveryId
+	countDeliveriesWithQueue
+	deleteDeliveryQueueById
+	deleteExpiredQueuesByQueueId
+	deleteQueueParentingByQueueId
+	deleteQueueById
+	countDeliveriesWithMessageId
+	deleteMessageIdById
+
 	lastStmtKey
 )
 
@@ -92,6 +103,38 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	findQueueByName:                 `select id from queues where name = ?`,
 	insertQueueParenting:            `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
 	insertExpiredQueue:              `insert into expired_queues(queue_id, expired_ts) values(?, ?)`,
+	selectOldDeliveries: `with time_cut as (
+		select
+			(delivery_ts - ?) as v
+		from
+			deliveries
+		order by
+			delivery_ts desc limit 1
+	)
+	select
+		deliveries.id, deliveries.message_id
+	from
+		deliveries join time_cut
+			on deliveries.delivery_ts < time_cut.v`,
+	deleteOldDeliveries: `delete from deliveries where id = ?`,
+	selectQueueIdForDeliveryId: `select
+	delivery_queue.id, delivery_queue.queue_id
+from
+	delivery_queue join deliveries on delivery_queue.delivery_id = deliveries.id
+where
+	deliveries.id = ?	`,
+	countDeliveriesWithQueue: `select
+	count(*)
+from
+	deliveries join delivery_queue on delivery_queue.delivery_id = deliveries.id
+where
+	delivery_queue.queue_id = ?`,
+	deleteDeliveryQueueById:       `delete from delivery_queue where id = ?`,
+	deleteExpiredQueuesByQueueId:  `delete from expired_queues where queue_id = ?`,
+	deleteQueueParentingByQueueId: `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
+	deleteQueueById:               `delete from queues where id = ?`,
+	countDeliveriesWithMessageId:  `select count(*) from deliveries join messageids on deliveries.message_id = messageids.id where messageids.id = ?`,
+	deleteMessageIdById:           `delete from messageids where id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {

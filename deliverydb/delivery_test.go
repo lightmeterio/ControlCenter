@@ -428,3 +428,280 @@ func TestEntriesInsertion(t *testing.T) {
 		})
 	})
 }
+
+func TestCleaningOldEntries(t *testing.T) {
+	Convey("Clean old entries", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, databaseName)
+		defer closeConn()
+
+		// TODO: do not duplicate this function!
+		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
+			db, err := New(conn, &fakeMapping)
+			So(err, ShouldBeNil)
+			done, cancel := runner.Run(db)
+			pub := db.ResultsPublisher()
+
+			dashboard, err := dashboard.New(db.ConnPool())
+			So(err, ShouldBeNil)
+
+			return db, done, cancel, pub, dashboard
+		}
+
+		db, done, cancel, pub, d := buildWs()
+
+		// TODO: have some entries before the time, some with parenting relationship,
+		// some expired
+
+		baseTime := timeutil.MustParseTime(`2020-01-01 10:00:00 +0000`)
+
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender1"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient1"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_1"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay1.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+		}.Result())
+
+		// a bounced message, followed by a return message
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.BouncedStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender2.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender2"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient2.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient2"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_2"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay2.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A2"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("4.0.0"),
+		}.Result())
+
+		// returned here
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Minute * 31).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("recipient2.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("recipient2"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("sender2.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("sender2"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_3"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Minute * 31).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Minute * 31).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay2.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A3"),
+			tracking.ParentQueueDeliveryNameKey:   tracking.ResultEntryText("A2"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+		}.Result())
+
+		// Deferred once and then expired
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.DeferredStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Hour * 1).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender2.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender2"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient2.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient2"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_4"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Hour * 1).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Hour * 1).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay2.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A4"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("5.0.0"),
+		}.Result())
+
+		// expires here
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.ExpiredStatus)),
+			tracking.MessageExpiredTime:           tracking.ResultEntryInt64(baseTime.Add(time.Hour * 2).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender2.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender2"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient2.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient2"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_4"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Hour * 2).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Hour * 2).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay2.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A4"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("5.0.0"),
+		}.Result())
+
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.BouncedStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender1"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient1"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_5"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay1.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A5"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+		}.Result())
+
+		// a normal outbound message
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Add(time.Minute * 5).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender1"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient1"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_6"),
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Add(time.Minute * 5).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Add(time.Minute * 5).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay1.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A6"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+		}.Result())
+
+		// delete all messages older than 6min, which include all except the last two ones
+		db.Actions <- makeCleanAction(time.Minute * 6)
+
+		cancel()
+		So(done(), ShouldBeNil)
+
+		So(deliveryStatus(d, timeutil.MustParseTimeInterval("2020-01-01", "2020-12-31")), ShouldResemble, dashboard.Pairs{
+			dashboard.Pair{Key: "sent", Value: 1},
+			dashboard.Pair{Key: "bounced", Value: 1},
+		})
+
+		var (
+			deliveryQueueCount  int
+			expiredQueuesCount  int
+			queueParentingCount int
+			deliveriesCount     int
+			messageIdsCount     int
+		)
+
+		ro, release := db.ConnPool().Acquire()
+		defer release()
+
+		// NOTE: those assertions are bad, as they check implementation details,
+		// but accessing them via user-facing interface would be a huge pain in the neck.
+		// That means those tests are quite brittle and will break in case we change the database
+		// schema. But having them is useful nevertheless.
+		So(ro.QueryRow(`select count(*) from deliveries`).Scan(&deliveriesCount), ShouldBeNil)
+		So(deliveriesCount, ShouldEqual, 2)
+
+		So(ro.QueryRow(`select count(*) from delivery_queue`).Scan(&deliveryQueueCount), ShouldBeNil)
+		So(deliveryQueueCount, ShouldEqual, 2)
+
+		So(ro.QueryRow(`select count(*) from expired_queues`).Scan(&expiredQueuesCount), ShouldBeNil)
+		So(expiredQueuesCount, ShouldEqual, 0)
+
+		So(ro.QueryRow(`select count(*) from queue_parenting`).Scan(&queueParentingCount), ShouldBeNil)
+		So(queueParentingCount, ShouldEqual, 0)
+
+		So(ro.QueryRow(`select count(*) from messageids`).Scan(&messageIdsCount), ShouldBeNil)
+		So(messageIdsCount, ShouldEqual, 2)
+	})
+}
