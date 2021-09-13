@@ -6,12 +6,13 @@ package deliverydb
 
 import (
 	"database/sql"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
-func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbrunner.PreparedStmts) error {
+func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbconn.TxPreparedStmts) error {
 	var msgIdsCount int
 
 	stmt := tx.Stmt(stmts[countDeliveriesWithMessageId])
@@ -37,7 +38,7 @@ func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbrunner.PreparedSt
 	return nil
 }
 
-func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbrunner.PreparedStmts) error {
+func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPreparedStmts) error {
 	var (
 		queueId                 int64
 		deliveryQueueRelationId int64
@@ -104,7 +105,7 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbrunner.Prepa
 }
 
 func makeCleanAction(maxAge time.Duration) dbrunner.Action {
-	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		// NOTE: the time in the database is in Seconds
 		stmt := tx.Stmt(stmts[selectOldDeliveries])
 		defer stmt.Close()
