@@ -55,38 +55,38 @@ func TestDatabaseCreation(t *testing.T) {
 }
 
 func buildDefaultResult() tracking.Result {
-	result := tracking.Result{}
-	result[tracking.ConnectionBeginKey] = tracking.ResultEntryInt64(2)
-	result[tracking.ConnectionEndKey] = tracking.ResultEntryInt64(3)
-	result[tracking.ConnectionClientHostnameKey] = tracking.ResultEntryText("client.host")
-	result[tracking.ConnectionClientIPKey] = tracking.ResultEntryBlob(net.ParseIP("127.0.0.1"))
-	result[tracking.QueueBeginKey] = tracking.ResultEntryInt64(2)
-	result[tracking.QueueEndKey] = tracking.ResultEntryInt64(3)
-	result[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText("sender")
-	result[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText("sender.com")
-	result[tracking.QueueOriginalMessageSizeKey] = tracking.ResultEntryInt64(32)
-	result[tracking.QueueProcessedMessageSizeKey] = tracking.ResultEntryInt64(80)
-	result[tracking.QueueNRCPTKey] = tracking.ResultEntryInt64(5)
-	result[tracking.QueueMessageIDKey] = tracking.ResultEntryText("lala@caca.com")
-	result[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(3)
-	result[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText("recipient")
-	result[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("recipient-domain.com")
-	result[tracking.ResultOrigRecipientLocalPartKey] = tracking.ResultEntryText("orig_recipient")
-	result[tracking.ResultOrigRecipientDomainPartKey] = tracking.ResultEntryText("example.com")
-	result[tracking.ResultDelayKey] = tracking.ResultEntryFloat64(1.0)
-	result[tracking.ResultDelaySMTPDKey] = tracking.ResultEntryFloat64(1.0)
-	result[tracking.ResultDelayCleanupKey] = tracking.ResultEntryFloat64(2.0)
-	result[tracking.ResultDelayQmgrKey] = tracking.ResultEntryFloat64(3.0)
-	result[tracking.ResultDelaySMTPKey] = tracking.ResultEntryFloat64(4.0)
-	result[tracking.ResultDSNKey] = tracking.ResultEntryText("2.0.0")
-	result[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(parser.SentStatus))
-	result[tracking.ResultRelayNameKey] = tracking.ResultEntryText("relay1.name")
-	result[tracking.ResultRelayIPKey] = tracking.ResultEntryBlob(net.ParseIP("123.2.3.4"))
-	result[tracking.ResultRelayPortKey] = tracking.ResultEntryInt64(42)
-	result[tracking.ResultDeliveryServerKey] = tracking.ResultEntryText("server")
-	result[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("domain.name")
-	result[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound))
-	return result
+	return tracking.MappedResult{
+		tracking.ConnectionBeginKey:               tracking.ResultEntryInt64(2),
+		tracking.ConnectionEndKey:                 tracking.ResultEntryInt64(3),
+		tracking.ConnectionClientHostnameKey:      tracking.ResultEntryText("client.host"),
+		tracking.ConnectionClientIPKey:            tracking.ResultEntryBlob(net.ParseIP("127.0.0.1")),
+		tracking.QueueBeginKey:                    tracking.ResultEntryInt64(2),
+		tracking.QueueEndKey:                      tracking.ResultEntryInt64(3),
+		tracking.QueueSenderLocalPartKey:          tracking.ResultEntryText("sender"),
+		tracking.QueueSenderDomainPartKey:         tracking.ResultEntryText("sender.com"),
+		tracking.QueueOriginalMessageSizeKey:      tracking.ResultEntryInt64(32),
+		tracking.QueueProcessedMessageSizeKey:     tracking.ResultEntryInt64(80),
+		tracking.QueueNRCPTKey:                    tracking.ResultEntryInt64(5),
+		tracking.QueueMessageIDKey:                tracking.ResultEntryText("lala@caca.com"),
+		tracking.ResultDeliveryTimeKey:            tracking.ResultEntryInt64(3),
+		tracking.ResultRecipientLocalPartKey:      tracking.ResultEntryText("recipient"),
+		tracking.ResultRecipientDomainPartKey:     tracking.ResultEntryText("recipient-domain.com"),
+		tracking.ResultOrigRecipientLocalPartKey:  tracking.ResultEntryText("orig_recipient"),
+		tracking.ResultOrigRecipientDomainPartKey: tracking.ResultEntryText("example.com"),
+		tracking.ResultDelayKey:                   tracking.ResultEntryFloat64(1.0),
+		tracking.ResultDelaySMTPDKey:              tracking.ResultEntryFloat64(1.0),
+		tracking.ResultDelayCleanupKey:            tracking.ResultEntryFloat64(2.0),
+		tracking.ResultDelayQmgrKey:               tracking.ResultEntryFloat64(3.0),
+		tracking.ResultDelaySMTPKey:               tracking.ResultEntryFloat64(4.0),
+		tracking.ResultDSNKey:                     tracking.ResultEntryText("2.0.0"),
+		tracking.ResultStatusKey:                  tracking.ResultEntryInt64(int64(parser.SentStatus)),
+		tracking.ResultRelayNameKey:               tracking.ResultEntryText("relay1.name"),
+		tracking.ResultRelayIPKey:                 tracking.ResultEntryBlob(net.ParseIP("123.2.3.4")),
+		tracking.ResultRelayPortKey:               tracking.ResultEntryInt64(42),
+		tracking.ResultDeliveryServerKey:          tracking.ResultEntryText("server"),
+		tracking.ResultMessageDirectionKey:        tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+		tracking.QueueDeliveryNameKey:             tracking.ResultEntryText("AAAAAA"),
+	}.Result()
 }
 
 func parseTimeInterval(from, to string) timeutil.TimeInterval {
