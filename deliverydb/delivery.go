@@ -131,9 +131,14 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
+	cleanerInterval := time.Second * 10
+
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
+
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, cleanerInterval, makeCleanAction(maxAge)),
 		Closers:  closeutil.New(stmts),
 	}, nil
 }
