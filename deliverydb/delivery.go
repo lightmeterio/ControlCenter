@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -22,6 +23,7 @@ type dbAction = dbrunner.Action
 
 type DB struct {
 	dbrunner.Runner
+	closeutil.Closers
 
 	connPair *dbconn.PooledPair
 	stmts    dbrunner.PreparedStmts
@@ -134,6 +136,7 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		connPair: connPair,
 		stmts:    stmts,
 		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
+		Closers:  closeutil.New(stmts),
 	}, nil
 }
 

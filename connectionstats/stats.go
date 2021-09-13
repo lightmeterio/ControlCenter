@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -208,6 +209,7 @@ func (pub *publisher) Publish(r postfix.Record) {
 
 type Stats struct {
 	dbrunner.Runner
+	closeutil.Closers
 
 	conn  *dbconn.PooledPair
 	stmts dbrunner.PreparedStmts
@@ -221,9 +223,10 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 	}
 
 	return &Stats{
-		conn:   connPair,
-		stmts:  stmts,
-		Runner: dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
+		conn:    connPair,
+		stmts:   stmts,
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
+		Closers: closeutil.New(stmts),
 	}, nil
 }
 
