@@ -128,6 +128,30 @@ func TestReporters(t *testing.T) {
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("B2"),
 			})
 
+			// an expired message in the first interval
+			publishResult(pub, mappedResult{
+				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender"),
+				tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender.example.com"),
+				tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient"),
+				tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient.example.com"),
+				tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.ExpiredStatus)),
+				tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+				tracking.MessageExpiredTime:           tracking.ResultEntryInt64(baseTime.Add(2 * time.Minute).Add(2 * time.Second).Unix()),
+				tracking.QueueMessageIDKey:            tracking.ResultEntryText("msgid3"),
+				tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(35),
+				tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(42),
+				tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(0),
+				tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+				tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.0),
+				tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.0),
+				tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.0),
+				tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.0),
+				tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.0),
+				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
+				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("B2"),
+			})
+
 			// an inbound message in the second interval
 			publishResult(pub, mappedResult{
 				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender"),
@@ -236,6 +260,7 @@ func TestReporters(t *testing.T) {
 							"deferred_messages": float64(1),
 							"bounced_messages":  float64(0),
 							"received_messages": float64(0),
+							"expired_messages":  float64(1),
 						},
 					},
 				},
@@ -255,6 +280,7 @@ func TestReporters(t *testing.T) {
 							"deferred_messages": float64(0),
 							"bounced_messages":  float64(1),
 							"received_messages": float64(1),
+							"expired_messages":  float64(0),
 						},
 					},
 				},

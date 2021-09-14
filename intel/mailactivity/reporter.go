@@ -21,6 +21,7 @@ type report struct {
 	NumberOfDeferred int                   `json:"deferred_messages"`
 	NumberOfBounced  int                   `json:"bounced_messages"`
 	NumberOfReceived int                   `json:"received_messages"`
+	NumberOfExpired  int                   `json:"expired_messages"`
 }
 
 type Reporter struct {
@@ -41,7 +42,7 @@ func (r *Reporter) ExecutionInterval() time.Duration {
 func execQuery(conn *dbconn.RoPooledConn, interval timeutil.TimeInterval, condition string, args ...interface{}) (int, error) {
 	var value int
 
-	query := `select count(*) from deliveries where delivery_ts >= ? and delivery_ts <= ? and ` + condition
+	query := `select count(*) from deliveries where delivery_ts between ? and ? and ` + condition
 
 	args = append([]interface{}{interval.From.Unix(), interval.To.Unix()}, args...)
 
@@ -83,7 +84,23 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		return errorutil.Wrap(err)
 	}
 
-	if numberOfSent+numberOfDeferred+numberOfBounced+numberOfReceived == 0 {
+	var numberOfExpired int
+
+	const expiredQuery = `
+select
+	count(*)
+from
+	deliveries join delivery_queue on delivery_queue.delivery_id = deliveries.id
+		join queues on delivery_queue.queue_id = queues.id
+		join expired_queues on expired_queues.queue_id = queues.id
+where
+	expired_ts between ? and ?`
+
+	if err := conn.QueryRow(expiredQuery, interval.From.Unix(), interval.To.Unix()).Scan(&numberOfExpired); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if numberOfSent+numberOfDeferred+numberOfBounced+numberOfReceived+numberOfExpired == 0 {
 		return nil
 	}
 
@@ -93,6 +110,7 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		NumberOfDeferred: numberOfDeferred,
 		NumberOfBounced:  numberOfBounced,
 		NumberOfReceived: numberOfReceived,
+		NumberOfExpired:  numberOfExpired,
 	}
 
 	if err := collector.Collect(tx, clock, r.ID(), &report); err != nil {
