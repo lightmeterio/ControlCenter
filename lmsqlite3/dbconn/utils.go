@@ -5,6 +5,7 @@
 package dbconn
 
 import (
+	"context"
 	"database/sql"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -78,8 +79,17 @@ func (p *RoPool) ForEach(f func(*RoPooledConn) error) error {
 }
 
 func (p *RoPool) Acquire() (*RoPooledConn, func()) {
-	c := <-p.pool
-	return c, func() { p.pool <- c }
+	conn, release, _ := p.AcquireContext(context.Background())
+	return conn, release
+}
+
+func (p *RoPool) AcquireContext(ctx context.Context) (*RoPooledConn, func(), error) {
+	select {
+	case c := <-p.pool:
+		return c, func() { p.pool <- c }, nil
+	case <-ctx.Done():
+		return nil, func() {}, errorutil.Wrap(ctx.Err())
+	}
 }
 
 type PooledPair struct {

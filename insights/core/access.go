@@ -428,7 +428,10 @@ func (f *fetchedInsight) UserRatingOld() bool {
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
 func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock timeutil.Clock) ([]FetchedInsight, error) {
-	conn, release := f.pool.Acquire()
+	conn, release, err := f.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -448,7 +451,7 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock
 	rows, err := stmt.QueryContext(ctx, query.p(options)...)
 
 	if err != nil {
-		return []FetchedInsight{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
