@@ -5,17 +5,11 @@
 package tracking
 
 import (
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 )
 
-type trackerStmtKey uint
-
 const (
-	//nolint
-	firstTrackerStmtKey trackerStmtKey = iota
-
-	insertPidOnConnection
+	insertPidOnConnection uint = iota
 	insertConnectionOnConnection
 	insertConnectionDataFourRows
 	insertConnectionData
@@ -61,7 +55,7 @@ const (
 	lastTrackerStmtKey
 )
 
-var trackerStmtsText = map[trackerStmtKey]string{
+var trackerStmtsText = dbrunner.StmtsText{
 	insertPidOnConnection:        `insert into pids(pid, host, usage_counter) values(?, ?, 1)`,
 	insertConnectionOnConnection: `insert into connections(pid_id, usage_counter) values(?, 0)`,
 	insertConnectionDataFourRows: `insert into connection_data(connection_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
@@ -144,21 +138,4 @@ var trackerStmtsText = map[trackerStmtKey]string{
 	incrementPidUsageById:              `update pids set usage_counter = usage_counter + 1 where id = ?`,
 	decrementPidUsageById:              `update pids set usage_counter = usage_counter - 1 where id = ?`,
 	selectPidForPidAndHost:             `select id from pids where pid = ? and host = ?`,
-}
-
-// TODO: close such statements when the tracker is deleted!!!
-func prepareTrackerRwStmts(conn dbconn.RwConn) (trackerStmts, error) {
-	stmts := trackerStmts{}
-
-	for k, v := range trackerStmtsText {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
-			return trackerStmts{}, errorutil.Wrap(err)
-		}
-
-		stmts[k] = stmt
-	}
-
-	return stmts, nil
 }
