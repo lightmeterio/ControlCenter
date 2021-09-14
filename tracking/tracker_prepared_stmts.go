@@ -5,7 +5,7 @@
 package tracking
 
 import (
-	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 )
 
 const (
@@ -55,7 +55,7 @@ const (
 	lastTrackerStmtKey
 )
 
-var trackerStmtsText = dbrunner.StmtsText{
+var trackerStmtsText = dbconn.StmtsText{
 	insertPidOnConnection:        `insert into pids(pid, host, usage_counter) values(?, ?, 1)`,
 	insertConnectionOnConnection: `insert into connections(pid_id, usage_counter) values(?, 0)`,
 	insertConnectionDataFourRows: `insert into connection_data(connection_id, key, value) values(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,

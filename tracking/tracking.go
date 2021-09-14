@@ -9,7 +9,6 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -112,7 +111,7 @@ var actions = map[ActionType]actionRecord{
 	MessageExpiredActionType:    {impl: messageExpiredAction},
 }
 
-type trackerStmts = dbrunner.PreparedStmts
+type trackerStmts = dbconn.PreparedStmts
 
 type txActions struct {
 	size    uint
@@ -233,8 +232,8 @@ func buildResultsNotifier(
 const numberOfNotifiers = 1
 
 func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
-	trackerStmts := make(dbrunner.PreparedStmts, lastTrackerStmtKey)
-	if err := dbrunner.PrepareRwStmts(trackerStmtsText, conn.RwConn, trackerStmts); err != nil {
+	trackerStmts := make(dbconn.PreparedStmts, lastTrackerStmtKey)
+	if err := dbconn.PrepareRwStmts(trackerStmtsText, conn.RwConn, trackerStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
