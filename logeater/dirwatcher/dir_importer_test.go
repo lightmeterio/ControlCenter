@@ -5,125 +5,17 @@
 package dirwatcher
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
-	"strings"
 	"testing"
 	"time"
 )
-
-func readFromReader(reader io.Reader,
-	filename string,
-	onNewRecord func(parser.Header, parser.Payload)) {
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-
-		h, p, err := parser.Parse(line)
-
-		if parser.IsRecoverableError(err) {
-			onNewRecord(h, p)
-		}
-	}
-}
-
-type fakePublisher struct {
-	logs []postfix.Record
-}
-
-func (this *fakePublisher) Publish(r postfix.Record) {
-	this.logs = append(this.logs, r)
-}
-
-func compress(content []byte) []byte {
-	var buf bytes.Buffer
-
-	w := gzip.NewWriter(&buf)
-
-	_, err := w.Write(content)
-
-	if err != nil {
-		log.Fatal().Msg("compressing data")
-	}
-
-	w.Close()
-
-	return buf.Bytes()
-}
-
-type fakeFileReader struct {
-	io.Reader
-}
-
-func plainDataReaderFromBytes(data []byte) fakeFileReader {
-	buf := bytes.NewBuffer(data)
-	return fakeFileReader{Reader: strings.NewReader(string(buf.Bytes()))}
-}
-
-func gzipedDataReaderFromBytes(data []byte) fakeFileReader {
-	plainReader := plainDataReaderFromBytes(data)
-
-	reader, err := ensureReaderIsDecompressed(plainReader, "something.gz")
-
-	if err != nil {
-		panic("Failed on decompressing file!!!! FIX IT!")
-	}
-
-	return fakeFileReader{reader}
-}
-
-func plainDataReader(s string) fileReader {
-	return plainDataReaderFromBytes([]byte(s))
-}
-
-func gzipedDataReader(s string) fileReader {
-	return gzipedDataReaderFromBytes(compress([]byte(s)))
-}
-
-func (fakeFileReader) Close() error {
-	return nil
-}
-
-type fakeFileData interface {
-	hasFakeContent()
-}
-
-type fakeFileDataBytes struct {
-	content []byte
-}
-
-func (fakeFileDataBytes) hasFakeContent() {
-}
-
-func gzippedDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{compress([]byte(s))}
-}
-
-func plainDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{[]byte(s)}
-}
-
-type fakePlainCurrentFileData struct {
-	content []byte
-	offset  int64
-}
-
-func (fakePlainCurrentFileData) hasFakeContent() {
-}
-
-func plainCurrentDataFile(s, c string) fakePlainCurrentFileData {
-	return fakePlainCurrentFileData{[]byte(s + c), int64(len(s))}
-}
 
 type FakeDirectoryContent struct {
 	entries  fileEntryList
