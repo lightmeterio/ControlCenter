@@ -12,26 +12,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func rowIdForQueue(queue string, tx *sql.Tx, stmts dbconn.PreparedStmts) (int64, error) {
-	// maybe the queue already exists in the db
-	stmt := tx.Stmt(stmts[findQueueByName])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
+func rowIdForQueue(queue string, tx *sql.Tx, stmts dbconn.TxPreparedStmts) (int64, error) {
 	var queueId int64
 
-	err := stmt.QueryRow(queue).Scan(&queueId)
+	err := stmts.S[findQueueByName].QueryRow(queue).Scan(&queueId)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// queue not found. Insert and get the rowid
-		stmt := tx.Stmt(stmts[insertQueue])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		result, err := stmt.Exec(queue)
+		result, err := stmts.S[insertQueue].Exec(queue)
 		if err != nil {
 			return 0, errorutil.Wrap(err)
 		}
@@ -51,7 +37,7 @@ func rowIdForQueue(queue string, tx *sql.Tx, stmts dbconn.PreparedStmts) (int64,
 	return queueId, nil
 }
 
-func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
+func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 	queue := tr[tracking.QueueDeliveryNameKey].Text()
 
 	queueRowId, err := rowIdForQueue(queue, tx, stmts)
@@ -59,14 +45,7 @@ func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts 
 		return errorutil.Wrap(err)
 	}
 
-	// link delivery attempt to queue
-	stmt := tx.Stmt(stmts[insertQueueDeliveryAttempt])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	if _, err := stmt.Exec(queueRowId, deliveryRowId); err != nil {
+	if _, err := stmts.S[insertQueueDeliveryAttempt].Exec(queueRowId, deliveryRowId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -81,13 +60,7 @@ func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts 
 		return errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(stmts[insertQueueParenting])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	if _, err := stmt.Exec(parentQueueId, queueRowId, QueueParentingTypeReturnedToSender); err != nil {
+	if _, err := stmts.S[insertQueueParenting].Exec(parentQueueId, queueRowId, QueueParentingTypeReturnedToSender); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -101,19 +74,13 @@ const (
 	QueueParentingTypeReturnedToSender QueueParentingType = 1
 )
 
-func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
+func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 	queueId, err := rowIdForQueue(queue, tx, stmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(stmts[insertExpiredQueue])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	if _, err := stmt.Exec(queueId, expiredTs); err != nil {
+	if _, err := stmts.S[insertExpiredQueue].Exec(queueId, expiredTs); err != nil {
 		return errorutil.Wrap(err)
 	}
 

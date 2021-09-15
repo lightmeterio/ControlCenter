@@ -26,7 +26,6 @@ type DB struct {
 	closeutil.Closers
 
 	connPair *dbconn.PooledPair
-	stmts    dbconn.PreparedStmts
 }
 
 type stmtKey = uint
@@ -134,7 +133,6 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 
 	return &DB{
 		connPair: connPair,
-		stmts:    stmts,
 		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
 		Closers:  closeutil.New(stmts),
 	}, nil
@@ -147,13 +145,7 @@ type resultsPublisher struct {
 func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.Stmt, args ...interface{}) (int64, error) {
 	var id int64
 
-	stmt := tx.Stmt(selectStmt)
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err := stmt.QueryRow(args...).Scan(&id)
+	err := selectStmt.QueryRow(args...).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -163,13 +155,7 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 		return 0, errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(insertStmt)
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(args...)
+	result, err := insertStmt.Exec(args...)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -182,8 +168,8 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 	return id, nil
 }
 
-func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts, domainName string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectIdFromRemoteDomain], stmts[insertRemoteDomain], domainName)
+func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, domainName string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.S[selectIdFromRemoteDomain], stmts.S[insertRemoteDomain], domainName)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -192,7 +178,7 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts, domainN
 	return id, nil
 }
 
-func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
+func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
 	if domainName.IsNone() {
 		return 0, false, nil
 	}
@@ -211,8 +197,8 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts,
 	return id, true, nil
 }
 
-func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.PreparedStmts, hostname string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectDeliveryServerByHostname], stmts[insertDeliveryServer], hostname)
+func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.TxPreparedStmts, hostname string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.S[selectDeliveryServerByHostname], stmts.S[insertDeliveryServer], hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -220,8 +206,8 @@ func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.PreparedStmts, hostname 
 	return id, nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, stmts dbconn.PreparedStmts, messageId string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectMessageIdsByValue], stmts[insertMessageId], messageId)
+func getUniqueMessageId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, messageId string) (int64, error) {
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.S[selectMessageIdsByValue], stmts.S[insertMessageId], messageId)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -230,13 +216,13 @@ func getUniqueMessageId(tx *sql.Tx, stmts dbconn.PreparedStmts, messageId string
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.PreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName.IsNone() || relayIP.IsNone() {
 		return 0, false, nil
 	}
 
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectNextRelays], stmts[insertNextRelay], relayName.Text(), relayIP.Blob(), relayPort)
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.S[selectNextRelays], stmts.S[insertNextRelay], relayName.Text(), relayIP.Blob(), relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -244,7 +230,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.PreparedStmts, relayName, r
 	return id, true, nil
 }
 
-func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.PreparedStmts, tr tracking.Result) (sql.Result, error) {
+func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tracking.Result) (sql.Result, error) {
 	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -269,13 +255,7 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.PreparedStmts, tr trac
 
 	status := tr[tracking.ResultStatusKey].Int64()
 
-	stmt := tx.Stmt(stmts[insertDelivery])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(
+	result, err := stmts.S[insertDelivery].Exec(
 		status,
 		tr[tracking.ResultDeliveryTimeKey].Int64(),
 		dir,
@@ -313,8 +293,8 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 	return e.ValueOrNil()
 }
 
-func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.PreparedStmts) error {
-	return func(tx *sql.Tx, stmts dbconn.PreparedStmts) (err error) {
+func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Object("result", tr).Msg("Failed to store delivery message")
@@ -342,7 +322,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.PreparedStmts) error {
 	}
 }
 
-func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
+func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 	result, err := insertMandatoryResultFields(tx, stmts, tr)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -371,13 +351,7 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 	}
 
 	if relayIdFound {
-		stmt := tx.Stmt(stmts[updateDeliveryWithRelay])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(relayId, rowId)
+		_, err = stmts.S[updateDeliveryWithRelay].Exec(relayId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -389,13 +363,7 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 	}
 
 	if origRecipientDomainPartFound {
-		stmt := tx.Stmt(stmts[updateDeliveryWithOrigRecipient])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(origRecipientDomainPartId, rowId)
+		_, err = stmts.S[updateDeliveryWithOrigRecipient].Exec(origRecipientDomainPartId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
