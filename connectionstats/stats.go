@@ -175,6 +175,8 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 const (
 	insertDisconnectKey = iota
 	insertCommandStatKey
+	selectOldLogsKey
+	deleteCommandsByConnectionIdKey
 
 	lastStmtKey
 )
@@ -182,6 +184,20 @@ const (
 var stmtsText = map[int]string{
 	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
+	selectOldLogsKey: `with time_cut as (
+		select
+			(disconnection_ts - ?) as v
+		from
+			connections
+		order by
+			disconnection_ts desc limit 1
+	)
+	select
+		connections.id
+	from
+		connections join time_cut
+			on connections.disconnection_ts < time_cut.v`,
+	deleteCommandsByConnectionIdKey: `delete from commands where connection_id = ?`,
 }
 
 func (pub *publisher) Publish(r postfix.Record) {
@@ -215,16 +231,14 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
+
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, time.Hour*12, oldEntriesCleaner),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, time.Hour*12, makeCleanAction(maxAge)),
 		Closers: closeutil.New(stmts),
 	}, nil
-}
-
-func oldEntriesCleaner(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
-	// TODO: implement it!
-	return nil
 }
 
 func (s *Stats) Publisher() postfix.Publisher {
@@ -253,4 +267,36 @@ func (s *Stats) MostRecentLogTime() (time.Time, error) {
 	}
 
 	return time.Unix(ts, 0).In(time.UTC), nil
+}
+
+func makeCleanAction(maxAge time.Duration) dbrunner.Action {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		// NOTE: timestamp is in seconds
+		//nolint:sqlclosecheck
+		rows, err := stmts.Get(selectOldLogsKey).Query(maxAge / time.Second)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var id int64
+
+			if err := rows.Scan(&id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteCommandsByConnectionIdKey).Exec(id); err != nil {
+				return errorutil.Wrap(err)
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
 }
