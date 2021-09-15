@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type Action func(*sql.Tx, dbconn.PreparedStmts) error
+type Action func(*sql.Tx, dbconn.TxPreparedStmts) error
 
 type Runner struct {
 	runner.CancellableRunner
@@ -47,10 +47,14 @@ func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, st
 	}
 }
 
+// TODO: I could not find a way to simplify this function,
+// so I'll silence the linter complaining about complexity...
+//nolint:gocognit
 func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.PreparedStmts, dbActions <-chan Action, filename string) error {
 	var (
 		tx                  *sql.Tx = nil
 		countPerTransaction int64
+		preparedTxStmts     dbconn.TxPreparedStmts
 	)
 
 	startTransaction := func() error {
@@ -59,6 +63,8 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 			return errorutil.Wrap(err, filename)
 		}
 
+		preparedTxStmts = dbconn.TxStmts(tx, stmts)
+
 		return nil
 	}
 
@@ -66,6 +72,10 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 		// no transaction to commit
 		if tx == nil {
 			return nil
+		}
+
+		if err := preparedTxStmts.Close(); err != nil {
+			return errorutil.Wrap(err)
 		}
 
 		// NOTE: improve it to be used for benchmarking
@@ -88,7 +98,7 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 			}
 		}
 
-		if err := action(tx, stmts); err != nil {
+		if err := action(tx, preparedTxStmts); err != nil {
 			return errorutil.Wrap(err, filename)
 		}
 
