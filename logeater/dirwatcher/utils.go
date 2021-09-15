@@ -6,54 +6,43 @@ package dirwatcher
 
 import (
 	"bufio"
+	"compress/bzip2"
 	"compress/gzip"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"io"
 	"strings"
 )
-
-type gzippedFileReader struct {
-	gzipReader *gzip.Reader
-	fileReader fileReader
-}
-
-func (r *gzippedFileReader) Close() error {
-	if err := r.gzipReader.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return r.fileReader.Close()
-}
-
-func (r *gzippedFileReader) Read(p []byte) (int, error) {
-	return r.gzipReader.Read(p)
-}
-
-type bufferedReader struct {
-	b *bufio.Reader
-	r fileReader
-}
-
-func (b *bufferedReader) Close() error {
-	return b.r.Close()
-}
-
-func (b *bufferedReader) Read(p []byte) (int, error) {
-	return b.b.Read(p)
-}
 
 const bufferedReaderBufferSize = 1 * 1024 * 1024
 
 func ensureReaderIsDecompressed(plainReader fileReader, filename string) (fileReader, error) {
-	reader := &bufferedReader{bufio.NewReaderSize(plainReader, bufferedReaderBufferSize), plainReader}
+	type readCloser struct {
+		closeutil.Closers
+		io.Reader
+
+		reader fileReader
+	}
+
+	newBufferedReader := func(b *bufio.Reader, r fileReader) *readCloser {
+		return &readCloser{Reader: b, reader: r, Closers: closeutil.New(r)}
+	}
+
+	reader := newBufferedReader(bufio.NewReaderSize(plainReader, bufferedReaderBufferSize), plainReader)
 
 	if strings.HasSuffix(filename, ".gz") {
-		gzipReader, err := gzip.NewReader(reader)
+		compressedReader, err := gzip.NewReader(reader)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return &gzippedFileReader{fileReader: reader, gzipReader: gzipReader}, nil
+		return &readCloser{reader: reader, Reader: compressedReader, Closers: closeutil.New(reader, compressedReader)}, nil
+	}
+
+	if strings.HasSuffix(filename, ".bz2") {
+		compressedReader := bzip2.NewReader(reader)
+		return &readCloser{reader: reader, Reader: compressedReader, Closers: closeutil.New(reader)}, nil
 	}
 
 	return reader, nil

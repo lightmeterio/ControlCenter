@@ -127,17 +127,17 @@ func (f filenameRecognizerBuilder) build(pattern string) filenameRecognizer {
 var filenameRecognizers = []filenameRecognizerBuilder{
 	{
 		builder: func(pattern string) string {
-			// format mail.log-20201008.gz, where the suffix is a date, lexicographically sortable.
-			return `^(` + pattern + `)(-(\d{8})(\.gz)?)?$`
+			// format mail.log-20201008.(gz|bz2), where the suffix is a date, lexicographically sortable.
+			return `^(` + pattern + `)(-(\d{8})(\.(gz|bz2))?)?$`
 		},
 		order: filenameNormalOrder,
 	},
 
 	{
 		builder: func(pattern string) string {
-			// format mail.log.3.gz
+			// format mail.log.3.(gz|bz2)
 			// the higher the suffix value, the older the file is.
-			return `^(` + pattern + `)(\.(\d+)(\.gz)?)?$`
+			return `^(` + pattern + `)(\.(\d+)(\.(gz|bz2))?)?$`
 		},
 		order: filenameReverseOrder,
 	},
@@ -416,10 +416,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 	return findEarlierstTimeFromFiles(descriptors, format)
 }
 
-type fileReader interface {
-	io.Reader
-	io.Closer
-}
+type fileReader = io.ReadCloser
 
 type fileReadSeeker interface {
 	fileReader

@@ -22,7 +22,9 @@ func compressGzip(content []byte) []byte {
 		log.Fatal().Msg("compressing data")
 	}
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		log.Fatal().Msg("compressing data")
+	}
 
 	return buf.Bytes()
 }

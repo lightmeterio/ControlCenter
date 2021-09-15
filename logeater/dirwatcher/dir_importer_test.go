@@ -451,6 +451,38 @@ func TestBuildingfileQueues(t *testing.T) {
 				})
 		})
 
+		Convey("Matches bzip2 files", func() {
+			Convey("Default format", func() {
+				f := fileEntryList{
+					fileEntry{filename: "logs/mail.warn.3.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+					fileEntry{filename: "logs/mail.warn.2.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				}
+
+				So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.warn"}), time.Time{}), ShouldResemble,
+					fileQueues{
+						"mail.warn": fileEntryList{
+							fileEntry{filename: "logs/mail.warn.3.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+							fileEntry{filename: "logs/mail.warn.2.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+						},
+					})
+			})
+
+			Convey("Alternative format", func() {
+				f := fileEntryList{
+					fileEntry{filename: "logs/mail.warn-20201001.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+					fileEntry{filename: "logs/mail.warn-20201003.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				}
+
+				So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.warn"}), time.Time{}), ShouldResemble,
+					fileQueues{
+						"mail.warn": fileEntryList{
+							fileEntry{filename: "logs/mail.warn-20201001.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+							fileEntry{filename: "logs/mail.warn-20201003.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+						},
+					})
+			})
+		})
+
 		Convey("Plesk (digital ocean image, ubuntu 20.04) keeps a weird .processed file, which should be ignored", func() {
 			f := fileEntryList{
 				fileEntry{filename: "logs/mail.err", modificationTime: testutil.MustParseTime(`2020-03-23 07:39:09 +0200`)},
@@ -937,6 +969,43 @@ func TestImportDirectoryWithRFC3339TimeFormat(t *testing.T) {
 				},
 				contents: map[string]fakeFileData{
 					"mail.log.2.gz": gzippedDataFile(`2021-05-16T00:01:42.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:43.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`),
+					"mail.log": plainCurrentDataFile(`2021-05-16T00:01:45.278515+02:00 mail something: something else`, ``),
+				},
+			}
+
+			pub := fakePublisher{}
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			err := importer.ImportOnly()
+			So(err, ShouldBeNil)
+
+			So(len(pub.logs), ShouldEqual, 4)
+			So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:42 +0000`))
+			So(pub.logs[0].Header.Host, ShouldResemble, "mail")
+			So(pub.logs[1].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:43 +0000`))
+			So(pub.logs[2].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:44 +0000`))
+			So(pub.logs[3].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:45 +0000`))
+		})
+	})
+}
+
+func TestImportingBzip2CompressedFiles(t *testing.T) {
+	Convey("Bzip2 Compressed Files", t, func() {
+		timeFormat, err := parsertimeutil.Get("rfc3339")
+		So(err, ShouldBeNil)
+
+		patterns := DefaultLogPatterns
+
+		Convey("Simple case", func() {
+			dirContent := FakeDirectoryContent{
+				// NOTE: notice that the modification times have been lost
+				entries: fileEntryList{
+					fileEntry{filename: "mail.log.2.bz2", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"mail.log.2.bz2": bzip2edDataFile(`2021-05-16T00:01:42.278515+02:00 mail dovecot: Useless Payload
 2021-05-16T00:01:43.278515+02:00 mail dovecot: Useless Payload
 2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`),
 					"mail.log": plainCurrentDataFile(`2021-05-16T00:01:45.278515+02:00 mail something: something else`, ``),
