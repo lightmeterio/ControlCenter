@@ -138,12 +138,8 @@ type publisher struct {
 }
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
-	return func(tx *sql.Tx, stmts dbconn.PreparedStmts) error {
-		stmt := tx.Stmt(stmts[insertDisconnectKey])
-
-		defer stmt.Close()
-
-		r, err := stmt.Exec(record.Time.Unix(), payload.IP)
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		r, err := stmts.S[insertDisconnectKey].Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
 		}
@@ -152,10 +148,6 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		stmt = tx.Stmt(stmts[insertCommandStatKey])
-
-		defer stmt.Close()
 
 		for k, v := range payload.Stats {
 			// skip useless summary reported by postfix
@@ -169,7 +161,7 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 				continue
 			}
 
-			if _, err := stmt.Exec(connectionId, cmd, v.Success, v.Total); err != nil {
+			if _, err := stmts.S[insertCommandStatKey].Exec(connectionId, cmd, v.Success, v.Total); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}
@@ -211,8 +203,7 @@ type Stats struct {
 	dbrunner.Runner
 	closeutil.Closers
 
-	conn  *dbconn.PooledPair
-	stmts dbconn.PreparedStmts
+	conn *dbconn.PooledPair
 }
 
 func New(connPair *dbconn.PooledPair) (*Stats, error) {
@@ -224,7 +215,6 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 
 	return &Stats{
 		conn:    connPair,
-		stmts:   stmts,
 		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
 		Closers: closeutil.New(stmts),
 	}, nil
