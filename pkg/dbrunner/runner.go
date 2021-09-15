@@ -33,6 +33,7 @@ func newCleaner(cleanInterval time.Duration, cleaner Action, actions chan<- Acti
 					done <- nil
 					return
 				case <-ticker.C:
+					log.Info().Msgf("Executing database cleaning action")
 					actions <- cleaner
 				}
 			}
