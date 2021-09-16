@@ -82,6 +82,7 @@ func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queu
 
 	var usageCounter int
 
+	//nolint:sqlclosecheck
 	err = trackerStmts.Get(queueUsageCounter).QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
 		return false, errorutil.Wrap(err, loc)
@@ -95,6 +96,7 @@ func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queu
 	// In such scenario, I cannot be deleted yet
 	var countDependentQueues int64
 
+	//nolint:sqlclosecheck
 	err = trackerStmts.Get(countNewQueueFromParenting).QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
 		return false, errorutil.Wrap(err, loc)
@@ -113,7 +115,7 @@ func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queu
 }
 
 func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
-	//nolint:rowserrcheck
+	//nolint:rowserrcheck,sqlclosecheck
 	rows, err := trackerStmts.Get(selectQueueFromParentingNewQueue).Query(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -139,6 +141,7 @@ func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 			return errorutil.Wrap(err)
 		}
 
+		//nolint:sqlclosecheck
 		_, err = trackerStmts.Get(deleteQueueParentingById).Exec(id)
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -166,6 +169,7 @@ func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 func countQueuesOnConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) (int, error) {
 	var connectionCounter int
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(countConnectionUsageById).QueryRow(connectionId).Scan(&connectionCounter)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -177,6 +181,7 @@ func countQueuesOnConnection(trackerStmts dbconn.TxPreparedStmts, connectionId i
 func tryToDeleteConnectionForQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	var connectionId int64
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(connectionIdForQueue).QueryRow(queueId).Scan(&connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -212,11 +217,13 @@ func deleteConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) e
 		return errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(deleteConnectionDataByConnectionId).Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(deleteConnectionById).Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -228,6 +235,7 @@ func deleteConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) e
 func countPidUsage(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int, error) {
 	var count int
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(countPidUsageByPidId).QueryRow(pidId).Scan(&count)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -237,6 +245,7 @@ func countPidUsage(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int, error
 }
 
 func incrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
+	//nolint:sqlclosecheck
 	_, err := stmts.Get(incrementPidUsageById).Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -246,6 +255,7 @@ func incrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
 }
 
 func decrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
+	//nolint:sqlclosecheck
 	_, err := stmts.Get(decrementPidUsageById).Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -257,6 +267,7 @@ func decrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
 func tryToDeletePidForConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) error {
 	var pidId int64
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(pidIdForConnection).QueryRow(connectionId).Scan(&pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -276,6 +287,7 @@ func tryToDeletePidForConnection(trackerStmts dbconn.TxPreparedStmts, connection
 		return nil
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(deletePidById).Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -286,6 +298,7 @@ func tryToDeletePidForConnection(trackerStmts dbconn.TxPreparedStmts, connection
 
 func deleteQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	// delete the queue itself
+	//nolint:sqlclosecheck
 	queueResult, err := trackerStmts.Get(deleteQueueById).Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -297,6 +310,7 @@ func deleteQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	}
 
 	// delete all data
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(deleteQueueDataById).Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -306,6 +320,7 @@ func deleteQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 }
 
 func incrementQueueUsage(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+	//nolint:sqlclosecheck
 	_, err := trackerStmts.Get(incrementQueueUsageById).Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -317,6 +332,7 @@ func incrementQueueUsage(trackerStmts dbconn.TxPreparedStmts, queueId int64) err
 var ErrInvalidAffectedLines = errors.New(`Wrong number of affected lines`)
 
 func decrementQueueUsage(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+	//nolint:sqlclosecheck
 	r, err := trackerStmts.Get(decrementQueueUsageById).Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)

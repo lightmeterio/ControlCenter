@@ -185,8 +185,9 @@ func buildResultsNotifier(
 const numberOfNotifiers = 1
 
 func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
-	trackerStmts := make(dbconn.PreparedStmts, lastTrackerStmtKey)
-	if err := dbconn.PrepareRwStmts(trackerStmtsText, conn.RwConn, trackerStmts); err != nil {
+	trackerStmts := dbconn.BuildPreparedStmts(lastTrackerStmtKey)
+
+	if err := dbconn.PrepareRwStmts(trackerStmtsText, conn.RwConn, &trackerStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 

@@ -107,6 +107,7 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 }
 
 func insertConnectionWithPid(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int64, error) {
+	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertConnectionOnConnection).Exec(pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -123,6 +124,7 @@ func insertConnectionWithPid(trackerStmts dbconn.TxPreparedStmts, pidId int64) (
 func insertPid(trackerStmts dbconn.TxPreparedStmts, pid int, host string) (int64, error) {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
+	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertPidOnConnection).Exec(pid, host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -139,6 +141,7 @@ func insertPid(trackerStmts dbconn.TxPreparedStmts, pid int, host string) (int64
 func acquirePid(trackerStmts dbconn.TxPreparedStmts, pid int, host string) (int64, error) {
 	var pidId int64
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(selectPidForPidAndHost).QueryRow(pid, host).Scan(&pidId)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Create new pid
@@ -190,6 +193,7 @@ func connectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, 
 	//nolint:forcetypeassert
 	payload := r.Payload.(parser.SmtpdConnect)
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertConnectionDataFourRows).Exec(
 		connectionId, ConnectionBeginKey, r.Time.Unix(),
 		connectionId, ConnectionClientHostnameKey, payload.Host,
@@ -208,6 +212,7 @@ func connectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, 
 		return nil
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertConnectionData).Exec(connectionId, ConnectionClientIPKey, payload.IP)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -223,6 +228,7 @@ func findConnectionIdAndUsageCounter(trackerStmts dbconn.TxPreparedStmts, h pars
 	)
 
 	// find a connection entry for this
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(selectConnectionAndUsageCounterForPid).QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
 
 	if err != nil {
@@ -239,6 +245,7 @@ type kvData struct {
 
 func insertQueueDataValues(stmts dbconn.TxPreparedStmts, queueId int64, values ...kvData) error {
 	for _, v := range values {
+		//nolint:sqlclosecheck
 		if _, err := stmts.Get(insertQueueData).Exec(queueId, v.key, v.value); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -248,6 +255,7 @@ func insertQueueDataValues(stmts dbconn.TxPreparedStmts, queueId int64, values .
 }
 
 func createQueue(time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertQueueForConnection).Exec(connectionId, queue)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -301,6 +309,7 @@ func cloneAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, tr
 }
 
 func incrementConnectionUsage(stmts dbconn.TxPreparedStmts, connectionId int64) error {
+	//nolint:sqlclosecheck
 	_, err := stmts.Get(incrementConnectionUsageById).Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -310,6 +319,7 @@ func incrementConnectionUsage(stmts dbconn.TxPreparedStmts, connectionId int64) 
 }
 
 func decrementConnectionUsage(stmts dbconn.TxPreparedStmts, connectionId int64) error {
+	//nolint:sqlclosecheck
 	_, err := stmts.Get(decrementConnectionUsageById).Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -370,6 +380,7 @@ func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, actionDataPair action
 func findQueueIdFromQueueValue(h parser.Header, queue string, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
 	var queueId int64
 
+	//nolint:sqlclosecheck
 	err := trackerStmts.Get(selectQueueIdForQueue).QueryRow(
 		h.Host, queue).Scan(&queueId)
 
@@ -424,6 +435,7 @@ func disconnectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPai
 		return errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertConnectionData).Exec(connectionId, ConnectionEndKey, r.Time.Unix())
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -525,6 +537,7 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 	// this is an e-mail that postfix sends to itself before trying to deliver.
 	// As it's moved to another queue to be delivered, we queue the original and
 	// the newly created queue
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertQueueParenting).Exec(origQueueId, newQueueId, queueParentingRelayType)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -534,6 +547,7 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 }
 
 func markResultToBeNotified(trackerStmts dbconn.TxPreparedStmts, resultId int64) error {
+	//nolint:sqlclosecheck
 	_, err := trackerStmts.Get(insertNotificationQueue).Exec(resultId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -584,6 +598,7 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		return MessageDirectionOutbound
 	}()
 
+	//nolint:sqlclosecheck
 	_, err := trackerStmts.Get(insertResultData15Rows).Exec(
 		resultId, ResultRecipientLocalPartKey, p.RecipientLocalPart,
 		resultId, ResultRecipientDomainPartKey, p.RecipientDomainPart,
@@ -611,6 +626,7 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		return nil
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertResultData3Rows).Exec(
 		resultId, ResultRelayNameKey, p.RelayName,
 		resultId, ResultRelayIPKey, p.RelayIP,
@@ -639,6 +655,7 @@ func createResult(trackerStmts dbconn.TxPreparedStmts, r postfix.Record) (result
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertResult).Exec(queueId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
@@ -702,6 +719,7 @@ func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionData
 		return errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertQueueParenting).Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -792,6 +810,7 @@ func rejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 }
 
 func createMessageExpiredMessage(resultId int64, loc postfix.RecordLocation, time time.Time, trackerStmts dbconn.TxPreparedStmts) error {
+	//nolint:sqlclosecheck
 	if _, err := trackerStmts.Get(insertResultData4Rows).Exec(
 		resultId, ResultStatusKey, parser.ExpiredStatus,
 		resultId, ResultDeliveryFilenameKey, loc.Filename,
@@ -826,6 +845,7 @@ func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDat
 		return errorutil.Wrap(err)
 	}
 
+	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertResult).Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)

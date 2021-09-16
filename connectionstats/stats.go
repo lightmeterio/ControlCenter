@@ -139,6 +139,7 @@ type publisher struct {
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		//nolint:sqlclosecheck
 		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
@@ -161,6 +162,7 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 				continue
 			}
 
+			//nolint:sqlclosecheck
 			if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, cmd, v.Success, v.Total); err != nil {
 				return errorutil.Wrap(err)
 			}
@@ -177,7 +179,7 @@ const (
 	lastStmtKey
 )
 
-var stmtsText = map[uint]string{
+var stmtsText = map[int]string{
 	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
 }
@@ -207,9 +209,9 @@ type Stats struct {
 }
 
 func New(connPair *dbconn.PooledPair) (*Stats, error) {
-	stmts := make(dbconn.PreparedStmts, lastStmtKey)
+	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
-	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 

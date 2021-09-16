@@ -313,11 +313,13 @@ func deleteQueueAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInf
 }
 
 func deleteResultAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo) error {
+	//nolint:sqlclosecheck
 	_, err := trackerStmts.Get(deleteResultByIdKey).Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "a")
 	}
 
+	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(deleteResultDataByResultId).Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "b")

@@ -28,7 +28,7 @@ type DB struct {
 	connPair *dbconn.PooledPair
 }
 
-type stmtKey = uint
+type stmtKey = int
 
 const (
 	selectIdFromRemoteDomain stmtKey = iota
@@ -125,9 +125,9 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
-	stmts := make(dbconn.PreparedStmts, lastStmtKey)
+	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
-	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -169,6 +169,7 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 }
 
 func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, domainName string) (int64, error) {
+	//nolint:sqlclosecheck
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectIdFromRemoteDomain), stmts.Get(insertRemoteDomain), domainName)
 
 	if err != nil {
@@ -198,6 +199,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmt
 }
 
 func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.TxPreparedStmts, hostname string) (int64, error) {
+	//nolint:sqlclosecheck
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectDeliveryServerByHostname), stmts.Get(insertDeliveryServer), hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -207,6 +209,7 @@ func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.TxPreparedStmts, hostnam
 }
 
 func getUniqueMessageId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, messageId string) (int64, error) {
+	//nolint:sqlclosecheck
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectMessageIdsByValue), stmts.Get(insertMessageId), messageId)
 
 	if err != nil {
@@ -222,6 +225,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, relayName,
 		return 0, false, nil
 	}
 
+	//nolint:sqlclosecheck
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectNextRelays), stmts.Get(insertNextRelay), relayName.Text(), relayIP.Blob(), relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
@@ -255,6 +259,7 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tr
 
 	status := tr[tracking.ResultStatusKey].Int64()
 
+	//nolint:sqlclosecheck
 	result, err := stmts.Get(insertDelivery).Exec(
 		status,
 		tr[tracking.ResultDeliveryTimeKey].Int64(),
@@ -351,6 +356,7 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 	}
 
 	if relayIdFound {
+		//nolint:sqlclosecheck
 		_, err = stmts.Get(updateDeliveryWithRelay).Exec(relayId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
@@ -363,6 +369,7 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 	}
 
 	if origRecipientDomainPartFound {
+		//nolint:sqlclosecheck
 		_, err = stmts.Get(updateDeliveryWithOrigRecipient).Exec(origRecipientDomainPartId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
