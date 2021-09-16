@@ -59,8 +59,8 @@ func (e *DeletionError) Error() string {
 	return e.Err.Error()
 }
 
-func tryToDeleteQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
-	deleted, err := tryToDeleteQueueNotIgnoringErrors(tx, trackerStmts, queueId, loc)
+func tryToDeleteQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
+	deleted, err := tryToDeleteQueueNotIgnoringErrors(trackerStmts, queueId, loc)
 
 	// Treat deletion errors (some queries return "norows") differently for now...
 	if err != nil && (errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrInvalidAffectedLines)) {
@@ -74,17 +74,17 @@ func tryToDeleteQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId i
 	return deleted, nil
 }
 
-func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
-	err := decrementQueueUsage(tx, trackerStmts, queueId)
+func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queueId int64, loc postfix.RecordLocation) (bool, error) {
+	err := decrementQueueUsage(trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, loc)
 	}
 
 	var usageCounter int
 
 	err = trackerStmts.S[queueUsageCounter].QueryRow(queueId).Scan(&usageCounter)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, loc)
 	}
 
 	if usageCounter > 0 {
@@ -97,22 +97,22 @@ func tryToDeleteQueueNotIgnoringErrors(tx *sql.Tx, trackerStmts dbconn.TxPrepare
 
 	err = trackerStmts.S[countNewQueueFromParenting].QueryRow(queueId).Scan(&countDependentQueues)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, loc)
 	}
 
 	if countDependentQueues > 0 {
 		return false, nil
 	}
 
-	err = deleteQueueRec(tx, trackerStmts, queueId)
+	err = deleteQueueRec(trackerStmts, queueId)
 	if err != nil {
-		return false, errorutil.Wrap(err)
+		return false, errorutil.Wrap(err, loc)
 	}
 
 	return true, nil
 }
 
-func deleteQueueRec(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	//nolint:rowserrcheck
 	rows, err := trackerStmts.S[selectQueueFromParentingNewQueue].Query(queueId)
 	if err != nil {
@@ -134,7 +134,7 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int
 			return errorutil.Wrap(err)
 		}
 
-		err = deleteQueueRec(tx, trackerStmts, dependencyQueueId)
+		err = deleteQueueRec(trackerStmts, dependencyQueueId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -150,12 +150,12 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int
 		return errorutil.Wrap(err)
 	}
 
-	err = tryToDeleteConnectionForQueue(tx, trackerStmts, queueId)
+	err = tryToDeleteConnectionForQueue(trackerStmts, queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	err = deleteQueue(tx, trackerStmts, queueId)
+	err = deleteQueue(trackerStmts, queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -163,7 +163,7 @@ func deleteQueueRec(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int
 	return nil
 }
 
-func countQueuesOnConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, connectionId int64) (int, error) {
+func countQueuesOnConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) (int, error) {
 	var connectionCounter int
 
 	err := trackerStmts.S[countConnectionUsageById].QueryRow(connectionId).Scan(&connectionCounter)
@@ -174,7 +174,7 @@ func countQueuesOnConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, co
 	return connectionCounter, nil
 }
 
-func tryToDeleteConnectionForQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+func tryToDeleteConnectionForQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	var connectionId int64
 
 	err := trackerStmts.S[connectionIdForQueue].QueryRow(queueId).Scan(&connectionId)
@@ -182,12 +182,12 @@ func tryToDeleteConnectionForQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStm
 		return errorutil.Wrap(err)
 	}
 
-	err = decrementConnectionUsage(tx, trackerStmts, connectionId)
+	err = decrementConnectionUsage(trackerStmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	connectionCounter, err := countQueuesOnConnection(tx, trackerStmts, connectionId)
+	connectionCounter, err := countQueuesOnConnection(trackerStmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -198,7 +198,7 @@ func tryToDeleteConnectionForQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStm
 
 	// TODO: do not delete connection if it's still active (no disconnect command has been done for it)
 
-	err = deleteConnection(tx, trackerStmts, connectionId)
+	err = deleteConnection(trackerStmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -206,8 +206,8 @@ func tryToDeleteConnectionForQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStm
 	return nil
 }
 
-func deleteConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, connectionId int64) error {
-	err := tryToDeletePidForConnection(tx, trackerStmts, connectionId)
+func deleteConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) error {
+	err := tryToDeletePidForConnection(trackerStmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -225,7 +225,7 @@ func deleteConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, connectio
 	return nil
 }
 
-func countPidUsage(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, pidId int64) (int, error) {
+func countPidUsage(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int, error) {
 	var count int
 
 	err := trackerStmts.S[countPidUsageByPidId].QueryRow(pidId).Scan(&count)
@@ -236,7 +236,7 @@ func countPidUsage(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, pidId int64)
 	return count, nil
 }
 
-func incrementPidUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, pidId int64) error {
+func incrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
 	_, err := stmts.S[incrementPidUsageById].Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -245,7 +245,7 @@ func incrementPidUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, pidId int64) er
 	return nil
 }
 
-func decrementPidUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, pidId int64) error {
+func decrementPidUsage(stmts dbconn.TxPreparedStmts, pidId int64) error {
 	_, err := stmts.S[decrementPidUsageById].Exec(pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -254,7 +254,7 @@ func decrementPidUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, pidId int64) er
 	return nil
 }
 
-func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, connectionId int64) error {
+func tryToDeletePidForConnection(trackerStmts dbconn.TxPreparedStmts, connectionId int64) error {
 	var pidId int64
 
 	err := trackerStmts.S[pidIdForConnection].QueryRow(connectionId).Scan(&pidId)
@@ -262,12 +262,12 @@ func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts
 		return errorutil.Wrap(err)
 	}
 
-	err = decrementPidUsage(tx, trackerStmts, pidId)
+	err = decrementPidUsage(trackerStmts, pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	countConnections, err := countPidUsage(tx, trackerStmts, pidId)
+	countConnections, err := countPidUsage(trackerStmts, pidId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -284,7 +284,7 @@ func tryToDeletePidForConnection(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts
 	return nil
 }
 
-func deleteQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+func deleteQueue(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	// delete the queue itself
 	queueResult, err := trackerStmts.S[deleteQueueById].Exec(queueId)
 	if err != nil {
@@ -305,7 +305,7 @@ func deleteQueue(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64)
 	return nil
 }
 
-func incrementQueueUsage(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+func incrementQueueUsage(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	_, err := trackerStmts.S[incrementQueueUsageById].Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -316,7 +316,7 @@ func incrementQueueUsage(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueI
 
 var ErrInvalidAffectedLines = errors.New(`Wrong number of affected lines`)
 
-func decrementQueueUsage(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
+func decrementQueueUsage(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 	r, err := trackerStmts.S[decrementQueueUsageById].Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)

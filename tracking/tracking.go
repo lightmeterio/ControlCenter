@@ -286,7 +286,7 @@ func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx, trackerStmts dbcon
 	return tx, nil
 }
 
-func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
+func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
 	actionRecord, found := actions[actionTuple.actionType]
@@ -329,7 +329,7 @@ func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker, batchId int64, trackerS
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = dispatchAllResults(t.resultsToNotify, tx, batchId, *txStmts); err != nil {
+	if err = dispatchAllResults(t.resultsToNotify, batchId, *txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -487,7 +487,7 @@ loop:
 			//nolint:forcetypeassert
 			actionTuple := recv.Interface().(actionTuple)
 
-			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple, trackerStmts, &txStmts); err != nil {
+			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, actionTuple, trackerStmts, &txStmts); err != nil {
 				errorutil.MustSucceed(err)
 				return errorutil.Wrap(err)
 			}

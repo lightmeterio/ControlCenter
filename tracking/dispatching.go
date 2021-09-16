@@ -5,7 +5,6 @@
 package tracking
 
 import (
-	"database/sql"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -31,7 +30,7 @@ func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resu
 	}
 }
 
-func dispatchAllResults(resultsToNotify chan<- resultInfos, tx *sql.Tx, batchId int64, trackerStmts dbconn.TxPreparedStmts) error {
+func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, trackerStmts dbconn.TxPreparedStmts) error {
 	start := time.Now()
 
 	// NOTE: as usual, the rowserrcheck is not able to see rows.Err() is called below :-(

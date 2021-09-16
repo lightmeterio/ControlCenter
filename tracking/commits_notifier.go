@@ -287,11 +287,11 @@ func buildAndPublishResult(
 	pub.Publish(mergedResults)
 
 	actions.actions[actions.size] = func(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts) error {
-		if err := deleteResultAction(tx, trackerStmts, resultInfo); err != nil {
+		if err := deleteResultAction(trackerStmts, resultInfo); err != nil {
 			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
 
-		if err := deleteQueueAction(tx, trackerStmts, resultInfo, queueId); err != nil {
+		if err := deleteQueueAction(trackerStmts, resultInfo, queueId); err != nil {
 			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
 
@@ -303,8 +303,8 @@ func buildAndPublishResult(
 	return resultInfo, nil
 }
 
-func deleteQueueAction(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo, queueId int64) error {
-	_, err := tryToDeleteQueue(tx, trackerStmts, queueId, resultInfo.loc)
+func deleteQueueAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo, queueId int64) error {
+	_, err := tryToDeleteQueue(trackerStmts, queueId, resultInfo.loc)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc)
 	}
@@ -312,7 +312,7 @@ func deleteQueueAction(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, resultIn
 	return nil
 }
 
-func deleteResultAction(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo) error {
+func deleteResultAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo) error {
 	_, err := trackerStmts.S[deleteResultByIdKey].Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "a")
