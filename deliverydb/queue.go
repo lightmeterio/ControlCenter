@@ -15,9 +15,9 @@ import (
 func rowIdForQueue(queue string, tx *sql.Tx, stmts dbconn.TxPreparedStmts) (int64, error) {
 	var queueId int64
 
-	err := stmts.S[findQueueByName].QueryRow(queue).Scan(&queueId)
+	err := stmts.Get(findQueueByName).QueryRow(queue).Scan(&queueId)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		result, err := stmts.S[insertQueue].Exec(queue)
+		result, err := stmts.Get(insertQueue).Exec(queue)
 		if err != nil {
 			return 0, errorutil.Wrap(err)
 		}
@@ -45,7 +45,7 @@ func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts 
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := stmts.S[insertQueueDeliveryAttempt].Exec(queueRowId, deliveryRowId); err != nil {
+	if _, err := stmts.Get(insertQueueDeliveryAttempt).Exec(queueRowId, deliveryRowId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -60,7 +60,7 @@ func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts 
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := stmts.S[insertQueueParenting].Exec(parentQueueId, queueRowId, QueueParentingTypeReturnedToSender); err != nil {
+	if _, err := stmts.Get(insertQueueParenting).Exec(parentQueueId, queueRowId, QueueParentingTypeReturnedToSender); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -80,7 +80,7 @@ func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts dbconn.TxP
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := stmts.S[insertExpiredQueue].Exec(queueId, expiredTs); err != nil {
+	if _, err := stmts.Get(insertExpiredQueue).Exec(queueId, expiredTs); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -35,7 +35,7 @@ func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, track
 
 	// NOTE: as usual, the rowserrcheck is not able to see rows.Err() is called below :-(
 	//nolint:rowserrcheck
-	rows, err := trackerStmts.S[selectFromNotificationQueues].Query()
+	rows, err := trackerStmts.Get(selectFromNotificationQueues).Query()
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -71,7 +71,7 @@ func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, track
 		}
 
 		// Yes, deleting while iterating over the results... That's supported by SQLite
-		_, err = trackerStmts.S[deleteFromNotificationQueues].Exec(id)
+		_, err = trackerStmts.Get(deleteFromNotificationQueues).Exec(id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

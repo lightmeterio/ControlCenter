@@ -139,7 +139,7 @@ type publisher struct {
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
-		r, err := stmts.S[insertDisconnectKey].Exec(record.Time.Unix(), payload.IP)
+		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
 		}
@@ -161,7 +161,7 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 				continue
 			}
 
-			if _, err := stmts.S[insertCommandStatKey].Exec(connectionId, cmd, v.Success, v.Total); err != nil {
+			if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, cmd, v.Success, v.Total); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}

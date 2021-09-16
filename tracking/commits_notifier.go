@@ -313,12 +313,12 @@ func deleteQueueAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInf
 }
 
 func deleteResultAction(trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo) error {
-	_, err := trackerStmts.S[deleteResultByIdKey].Exec(resultInfo.id)
+	_, err := trackerStmts.Get(deleteResultByIdKey).Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "a")
 	}
 
-	_, err = trackerStmts.S[deleteResultDataByResultId].Exec(resultInfo.id)
+	_, err = trackerStmts.Get(deleteResultDataByResultId).Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "b")
 	}

@@ -16,18 +16,27 @@ type PreparedStmts []*sql.Stmt
 type TxPreparedStmts struct {
 	closeutil.Closers
 
-	S []*sql.Stmt
+	stmts []*sql.Stmt
+}
+
+func (s TxPreparedStmts) Get(index uint) *sql.Stmt {
+	return s.stmts[index]
+}
+
+func (s TxPreparedStmts) Set(index uint, stmt *sql.Stmt) {
+	s.stmts[index] = stmt
 }
 
 func TxStmts(tx *sql.Tx, stmts PreparedStmts) TxPreparedStmts {
 	r := TxPreparedStmts{
-		S:       make([]*sql.Stmt, len(stmts)),
+		stmts:   make([]*sql.Stmt, len(stmts)),
 		Closers: closeutil.New(),
 	}
 
+	// TODO: maybe lazy initialize stmts, as not all of them are always used?
 	for i, s := range stmts {
 		txStmt := tx.Stmt(s)
-		r.S[i] = txStmt
+		r.stmts[i] = txStmt
 		r.Closers.Add(txStmt)
 	}
 
