@@ -25,6 +25,7 @@ func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader
 		return auth.HandleLogin(a, w, r)
 	})))
 
+	// NOTE: This endpoint is actually authenticated, see auth.HandleGetUserSystemData
 	mux.Handle("/api/v0/userInfo", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return auth.HandleGetUserSystemData(a, settingsReader, w, r)
 	})))
