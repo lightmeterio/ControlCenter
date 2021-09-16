@@ -256,7 +256,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	intelAccessor, err := collector.NewAccessor(allDatabases["intel-collector"].RoConnPool)
+	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
