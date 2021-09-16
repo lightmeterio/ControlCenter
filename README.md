@@ -261,7 +261,7 @@ Here are all parameters you can set through environment variables, and their res
 ### Rotated files
 
 We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
-Currently only `gzip`ped and uncompressed files are supported.
+Currently only files compressed with gzip (`.gz`), bzip2 (`.bz2`) and uncompressed files are supported.
 
 The suffixes on the archived log files that are supported are:
 
