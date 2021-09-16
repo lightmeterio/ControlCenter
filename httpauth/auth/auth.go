@@ -5,7 +5,6 @@
 package auth
 
 import (
-	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
