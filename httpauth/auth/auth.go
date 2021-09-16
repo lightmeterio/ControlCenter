@@ -335,7 +335,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reade
 	}
 
 	// retrieve lmcc uuid
-	err = settingsReader.RetrieveJson(context.Background(), metadata.UuidMetaKey, &userSystemData.InstanceID)
+	err = settingsReader.RetrieveJson(r.Context(), metadata.UuidMetaKey, &userSystemData.InstanceID)
 
 	if err != nil {
 		// should never happen, uuid should always exist and be available
@@ -343,7 +343,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reade
 	}
 
 	// retrieve postfix version
-	err = settingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &userSystemData.PostfixVersion)
+	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingKey, &userSystemData.PostfixVersion)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version: %s", err)
@@ -354,7 +354,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reade
 	}
 
 	// retrieve mail kind
-	mailKind, err := settingsReader.Retrieve(context.Background(), "mail_kind")
+	mailKind, err := settingsReader.Retrieve(r.Context(), "mail_kind")
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving mail_kind: %s", err)
