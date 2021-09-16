@@ -213,7 +213,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	insightsEngine, err := insights.NewEngine(
 		insightsAccessor,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, deliveries.ConnPool()))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
