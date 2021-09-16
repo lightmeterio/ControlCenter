@@ -197,7 +197,6 @@ func buildAndPublishResult(
 	conn *dbconn.RoPooledConn,
 	resultId int64,
 	pub ResultPublisher,
-	trackerStmts trackerStmts,
 	actions *txActions,
 	notifierId int,
 ) (resultInfo, error) {
@@ -287,7 +286,7 @@ func buildAndPublishResult(
 
 	pub.Publish(mergedResults)
 
-	actions.actions[actions.size] = func(tx *sql.Tx) error {
+	actions.actions[actions.size] = func(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts) error {
 		if err := deleteResultAction(tx, trackerStmts, resultInfo); err != nil {
 			return errorutil.Wrap(err, resultInfo.loc, "notifier id:", notifierId)
 		}
@@ -304,7 +303,7 @@ func buildAndPublishResult(
 	return resultInfo, nil
 }
 
-func deleteQueueAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo resultInfo, queueId int64) error {
+func deleteQueueAction(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo, queueId int64) error {
 	_, err := tryToDeleteQueue(tx, trackerStmts, queueId, resultInfo.loc)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc)
@@ -313,25 +312,13 @@ func deleteQueueAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo resultI
 	return nil
 }
 
-func deleteResultAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo resultInfo) error {
-	stmt := tx.Stmt(trackerStmts[deleteResultByIdKey])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(resultInfo.id)
+func deleteResultAction(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, resultInfo resultInfo) error {
+	_, err := trackerStmts.S[deleteResultByIdKey].Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "a")
 	}
 
-	stmt = tx.Stmt(trackerStmts[deleteResultDataByResultId])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(resultInfo.id)
+	_, err = trackerStmts.S[deleteResultDataByResultId].Exec(resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err, resultInfo.loc, "b")
 	}
@@ -339,7 +326,7 @@ func deleteResultAction(tx *sql.Tx, trackerStmts trackerStmts, resultInfo result
 	return nil
 }
 
-func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, trackerStmts trackerStmts, actionsChan chan<- txActions) error {
+func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, actionsChan chan<- txActions) error {
 	for resultInfos := range n.resultsToNotify {
 		actions := txActions{}
 
@@ -350,7 +337,7 @@ func runResultsNotifier(conn *dbconn.RoPooledConn, n *resultsNotifier, trackerSt
 		for i := uint(0); i < resultInfos.size; i++ {
 			id := resultInfos.values[i]
 
-			resultInfo, err := buildAndPublishResult(conn, id, n.publisher, trackerStmts, &actions, n.id)
+			resultInfo, err := buildAndPublishResult(conn, id, n.publisher, &actions, n.id)
 
 			if err == nil {
 				continue

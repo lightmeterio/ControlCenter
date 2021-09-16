@@ -20,15 +20,6 @@ import (
 	"time"
 )
 
-type MessageDirection int
-
-const (
-	// NOTE: those values are stored in the database,
-	// so changing them must force a data migration to new values!
-	MessageDirectionOutbound MessageDirection = 0
-	MessageDirectionIncoming MessageDirection = 1
-)
-
 /**
  * The tracker keeps state of the postfix actions, and notifies once the destiny of an e-mail is met.
  */
@@ -37,24 +28,6 @@ const (
 // An action can use data obtained from the payload itself.
 
 type ActionType int
-
-const (
-	UnsupportedActionType ActionType = iota
-	UninterestingActionType
-	ConnectActionType
-	CloneActionType
-	CleanupProcessingActionType
-	MailQueuedActionType
-	DisconnectActionType
-	MailSentActionType
-	CommitActionType
-	MailBouncedActionType
-	BounceCreatedActionType
-	PickupActionType
-	MilterRejectActionType
-	RejectActionType
-	MessageExpiredActionType
-)
 
 type actionTuple struct {
 	actionType     ActionType
@@ -83,9 +56,9 @@ func (p *Publisher) Publish(r postfix.Record) {
 	}
 }
 
-type actionImpl func(*Tracker, *sql.Tx, postfix.Record, actionDataPair) error
+type actionImpl func(*sql.Tx, postfix.Record, actionDataPair, dbconn.TxPreparedStmts) error
 
-type actionData func(*Tracker, int64, *sql.Tx, parser.Payload) error
+type actionData func(*Tracker, int64, *sql.Tx, parser.Payload, dbconn.TxPreparedStmts) error
 
 type connectionActionData actionData
 
@@ -95,27 +68,9 @@ type actionRecord struct {
 	impl actionImpl
 }
 
-var actions = map[ActionType]actionRecord{
-	ConnectActionType:           {impl: connectAction},
-	CloneActionType:             {impl: cloneAction},
-	CleanupProcessingActionType: {impl: cleanupProcessingAction},
-	MailQueuedActionType:        {impl: mailQueuedAction},
-	DisconnectActionType:        {impl: disconnectAction},
-	MailSentActionType:          {impl: mailSentAction},
-	CommitActionType:            {impl: commitAction},
-	MailBouncedActionType:       {impl: mailBouncedAction},
-	BounceCreatedActionType:     {impl: bounceCreatedAction},
-	PickupActionType:            {impl: pickupAction},
-	MilterRejectActionType:      {impl: milterRejectAction},
-	RejectActionType:            {impl: rejectAction},
-	MessageExpiredActionType:    {impl: messageExpiredAction},
-}
-
-type trackerStmts = dbconn.PreparedStmts
-
 type txActions struct {
 	size    uint
-	actions [resultInfosCapacity]func(*sql.Tx) error
+	actions [resultInfosCapacity]func(*sql.Tx, dbconn.TxPreparedStmts) error
 }
 
 type resultsNotifiers []*resultsNotifier
@@ -124,7 +79,6 @@ type Tracker struct {
 	runner.CancellableRunner
 	closeutil.Closers
 
-	stmts            trackerStmts
 	dbconn           *dbconn.PooledPair
 	actions          chan actionTuple
 	txActions        <-chan txActions
@@ -194,7 +148,6 @@ func buildResultsNotifier(
 	pool *dbconn.RoPool,
 	resultsToNotify <-chan resultInfos,
 	pub ResultPublisher,
-	trackerStmts trackerStmts,
 	txActions chan txActions,
 ) *resultsNotifier {
 	resultsNotifier := &resultsNotifier{
@@ -211,7 +164,7 @@ func buildResultsNotifier(
 				log.Debug().Msgf("Tracking notifier %d has just started!", resultsNotifier.id)
 
 				// will leave when resultsToNotify is closed
-				if err := runResultsNotifier(roConn, resultsNotifier, trackerStmts, txActions); err != nil {
+				if err := runResultsNotifier(roConn, resultsNotifier, txActions); err != nil {
 					return errorutil.Wrap(err)
 				}
 
@@ -250,7 +203,6 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 	wg.Add(numberOfNotifiers)
 
 	tracker := &Tracker{
-		stmts:           trackerStmts,
 		dbconn:          conn,
 		actions:         trackerActions,
 		txActions:       txActions,
@@ -260,7 +212,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 
 	// it should be refactored ASAP!!!!
 	for i := 0; i < numberOfNotifiers; i++ {
-		resultsNotifier := buildResultsNotifier(i, &wg, conn.RoConnPool, resultsToNotify, pub, trackerStmts, txActions)
+		resultsNotifier := buildResultsNotifier(i, &wg, conn.RoConnPool, resultsToNotify, pub, txActions)
 		tracker.resultsNotifiers = append(tracker.resultsNotifiers, resultsNotifier)
 	}
 
@@ -288,7 +240,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 
 			// run tracker
 			go func() {
-				err := runTracker(tracker)
+				err := runTracker(tracker, trackerStmts)
 				errorutil.MustSucceed(err)
 				wg.Done()
 			}()
@@ -319,7 +271,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 	return tracker, nil
 }
 
-func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx) (*sql.Tx, error) {
+func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	if tx != nil {
 		return tx, nil
 	}
@@ -329,10 +281,12 @@ func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx) (*sql.Tx, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	*txStmts = dbconn.TxStmts(tx, trackerStmts)
+
 	return tx, nil
 }
 
-func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, actionTuple actionTuple) (*sql.Tx, error) {
+func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
 	actionRecord, found := actions[actionTuple.actionType]
@@ -344,11 +298,11 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	action := actionRecord.impl
 	actionDataPair := actionTuple.actionDataPair
 
-	if tx, err = startTransactionIfNeeded(conn, tx); err != nil {
+	if tx, err = startTransactionIfNeeded(conn, tx, trackerStmts, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = action(t, tx, actionTuple.record, actionDataPair); err != nil {
+	if err = action(tx, actionTuple.record, actionDataPair, *txStmts); err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
 			//nolint:errorlint,forcetypeassert
 			asDeletionError := err.(*DeletionError)
@@ -368,18 +322,18 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, t *Tracker, acti
 	return tx, nil
 }
 
-func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker, batchId int64) (*sql.Tx, error) {
+func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker, batchId int64, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
-	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
+	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx, trackerStmts, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = dispatchAllResults(t, t.resultsToNotify, tx, batchId); err != nil {
+	if err = dispatchAllResults(t.resultsToNotify, tx, batchId, *txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = commitTransactionIfNeeded(tx); err != nil {
+	if err = commitTransactionIfNeeded(tx, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -388,9 +342,13 @@ func dispatchQueuesInTransaction(tx *sql.Tx, t *Tracker, batchId int64) (*sql.Tx
 	return tx, nil
 }
 
-func commitTransactionIfNeeded(tx *sql.Tx) error {
+func commitTransactionIfNeeded(tx *sql.Tx, txStmts *dbconn.TxPreparedStmts) error {
 	if tx == nil {
 		return nil
+	}
+
+	if err := txStmts.Close(); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -400,34 +358,34 @@ func commitTransactionIfNeeded(tx *sql.Tx) error {
 	return nil
 }
 
-func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker, batchId int64) (*sql.Tx, error) {
+func ensureMessagesArePersistedAndDispatchResults(tx *sql.Tx, t *Tracker, batchId int64, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
-	if err = commitTransactionIfNeeded(tx); err != nil {
+	if err = commitTransactionIfNeeded(tx, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	tx = nil
 
-	if tx, err = dispatchQueuesInTransaction(tx, t, batchId); err != nil {
+	if tx, err = dispatchQueuesInTransaction(tx, t, batchId, trackerStmts, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return tx, nil
 }
 
-func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.Tx, bool, error) {
+func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, bool, error) {
 	var err error
 
 	if !ok {
-		if err = commitTransactionIfNeeded(tx); err != nil {
+		if err = commitTransactionIfNeeded(tx, txStmts); err != nil {
 			return nil, false, errorutil.Wrap(err)
 		}
 
 		return tx, false, nil
 	}
 
-	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx); err != nil {
+	if tx, err = startTransactionIfNeeded(t.dbconn.RwConn, tx, trackerStmts, txStmts); err != nil {
 		return nil, false, errorutil.Wrap(err)
 	}
 
@@ -436,7 +394,7 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 
 	for i := uint(0); i < txActions.size; i++ {
 		txAction := txActions.actions[i]
-		err = txAction(tx)
+		err = txAction(tx, *txStmts)
 
 		if err != nil {
 			if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
@@ -465,10 +423,11 @@ func handleTxAction(tx *sql.Tx, t *Tracker, ok bool, recv reflect.Value) (*sql.T
 	return tx, true, nil
 }
 
-func runTracker(t *Tracker) error {
+func runTracker(t *Tracker, trackerStmts dbconn.PreparedStmts) error {
 	var (
-		tx  *sql.Tx
-		err error
+		tx      *sql.Tx
+		err     error
+		txStmts dbconn.TxPreparedStmts
 	)
 
 	messagesTicker := time.NewTicker(500 * time.Millisecond)
@@ -494,7 +453,7 @@ loop:
 		case 0:
 			var shouldContinue bool
 
-			tx, shouldContinue, err = handleTxAction(tx, t, ok, recv)
+			tx, shouldContinue, err = handleTxAction(tx, t, ok, recv, trackerStmts, &txStmts)
 			if err != nil {
 				return errorutil.Wrap(err)
 			}
@@ -504,7 +463,7 @@ loop:
 			}
 		case 1:
 			// ticker timeout
-			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId); err != nil {
+			if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId, trackerStmts, &txStmts); err != nil {
 				return errorutil.Wrap(err)
 			}
 			batchId++
@@ -512,7 +471,7 @@ loop:
 			// new action from the logs
 			if !ok {
 				// cancel() has been called
-				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId); err != nil {
+				if tx, err = ensureMessagesArePersistedAndDispatchResults(tx, t, batchId, trackerStmts, &txStmts); err != nil {
 					return errorutil.Wrap(err)
 				}
 
@@ -528,7 +487,7 @@ loop:
 			//nolint:forcetypeassert
 			actionTuple := recv.Interface().(actionTuple)
 
-			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple); err != nil {
+			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, t, actionTuple, trackerStmts, &txStmts); err != nil {
 				errorutil.MustSucceed(err)
 				return errorutil.Wrap(err)
 			}

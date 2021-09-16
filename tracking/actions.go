@@ -8,12 +8,56 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"strings"
 	"time"
 )
+
+type MessageDirection int
+
+const (
+	// NOTE: those values are stored in the database,
+	// so changing them must force a data migration to new values!
+	MessageDirectionOutbound MessageDirection = 0
+	MessageDirectionIncoming MessageDirection = 1
+)
+
+const (
+	UnsupportedActionType ActionType = iota
+	UninterestingActionType
+	ConnectActionType
+	CloneActionType
+	CleanupProcessingActionType
+	MailQueuedActionType
+	DisconnectActionType
+	MailSentActionType
+	CommitActionType
+	MailBouncedActionType
+	BounceCreatedActionType
+	PickupActionType
+	MilterRejectActionType
+	RejectActionType
+	MessageExpiredActionType
+)
+
+var actions = map[ActionType]actionRecord{
+	ConnectActionType:           {impl: connectAction},
+	CloneActionType:             {impl: cloneAction},
+	CleanupProcessingActionType: {impl: cleanupProcessingAction},
+	MailQueuedActionType:        {impl: mailQueuedAction},
+	DisconnectActionType:        {impl: disconnectAction},
+	MailSentActionType:          {impl: mailSentAction},
+	CommitActionType:            {impl: commitAction},
+	MailBouncedActionType:       {impl: mailBouncedAction},
+	BounceCreatedActionType:     {impl: bounceCreatedAction},
+	PickupActionType:            {impl: pickupAction},
+	MilterRejectActionType:      {impl: milterRejectAction},
+	RejectActionType:            {impl: rejectAction},
+	MessageExpiredActionType:    {impl: messageExpiredAction},
+}
 
 var emptyActionDataPair = actionDataPair{connectionActionData: nil, resultActionData: nil}
 
@@ -62,14 +106,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 	return UnsupportedActionType, emptyActionDataPair
 }
 
-func insertConnectionWithPid(tracker *Tracker, tx *sql.Tx, pidId int64) (int64, error) {
-	stmt := tx.Stmt(tracker.stmts[insertConnectionOnConnection])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(pidId)
+func insertConnectionWithPid(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, pidId int64) (int64, error) {
+	result, err := trackerStmts.S[insertConnectionOnConnection].Exec(pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -82,16 +120,10 @@ func insertConnectionWithPid(tracker *Tracker, tx *sql.Tx, pidId int64) (int64, 
 	return connectionId, nil
 }
 
-func insertPid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, error) {
+func insertPid(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, pid int, host string) (int64, error) {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
-	stmt := tx.Stmt(tracker.stmts[insertPidOnConnection])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(pid, host)
+	result, err := trackerStmts.S[insertPidOnConnection].Exec(pid, host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -104,19 +136,13 @@ func insertPid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, error
 	return pidId, nil
 }
 
-func acquirePid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, error) {
-	stmt := tx.Stmt(tracker.stmts[selectPidForPidAndHost])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
+func acquirePid(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, pid int, host string) (int64, error) {
 	var pidId int64
 
-	err := stmt.QueryRow(pid, host).Scan(&pidId)
+	err := trackerStmts.S[selectPidForPidAndHost].QueryRow(pid, host).Scan(&pidId)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Create new pid
-		pidId, err := insertPid(tracker, tx, pid, host)
+		pidId, err := insertPid(trackerStmts, tx, pid, host)
 
 		if err != nil {
 			return 0, errorutil.Wrap(err)
@@ -129,7 +155,7 @@ func acquirePid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, erro
 		return 0, errorutil.Wrap(err)
 	}
 
-	err = incrementPidUsage(tx, tracker.stmts, pidId)
+	err = incrementPidUsage(tx, trackerStmts, pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -138,13 +164,13 @@ func acquirePid(tracker *Tracker, tx *sql.Tx, pid int, host string) (int64, erro
 	return pidId, nil
 }
 
-func createConnection(tracker *Tracker, tx *sql.Tx, r postfix.Record) (int64, error) {
-	pidId, err := acquirePid(tracker, tx, r.Header.PID, r.Header.Host)
+func createConnection(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	pidId, err := acquirePid(trackerStmts, tx, r.Header.PID, r.Header.Host)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 
-	connectionId, err := insertConnectionWithPid(tracker, tx, pidId)
+	connectionId, err := insertConnectionWithPid(trackerStmts, tx, pidId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -152,10 +178,10 @@ func createConnection(tracker *Tracker, tx *sql.Tx, r postfix.Record) (int64, er
 	return connectionId, nil
 }
 
-func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func connectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
-	connectionId, err := createConnection(t, tx, r)
+	connectionId, err := createConnection(tx, r, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -164,13 +190,7 @@ func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair acti
 	//nolint:forcetypeassert
 	payload := r.Payload.(parser.SmtpdConnect)
 
-	stmt := tx.Stmt(t.stmts[insertConnectionDataFourRows])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(
+	_, err = trackerStmts.S[insertConnectionDataFourRows].Exec(
 		connectionId, ConnectionBeginKey, r.Time.Unix(),
 		connectionId, ConnectionClientHostnameKey, payload.Host,
 		connectionId, ConnectionFilenameKey, r.Location.Filename,
@@ -188,13 +208,7 @@ func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair acti
 		return nil
 	}
 
-	stmt = tx.Stmt(t.stmts[insertConnectionData])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(connectionId, ConnectionClientIPKey, payload.IP)
+	_, err = trackerStmts.S[insertConnectionData].Exec(connectionId, ConnectionClientIPKey, payload.IP)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -202,20 +216,14 @@ func connectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair acti
 	return nil
 }
 
-func findConnectionIdAndUsageCounter(tx *sql.Tx, t *Tracker, h parser.Header) (int64, int, error) {
+func findConnectionIdAndUsageCounter(tx *sql.Tx, trackerStmts dbconn.TxPreparedStmts, h parser.Header) (int64, int, error) {
 	var (
 		connectionId int64
 		usageCounter int
 	)
 
-	stmt := tx.Stmt(t.stmts[selectConnectionAndUsageCounterForPid])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
 	// find a connection entry for this
-	err := stmt.QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
+	err := trackerStmts.S[selectConnectionAndUsageCounterForPid].QueryRow(h.Host, h.PID).Scan(&connectionId, &usageCounter)
 
 	if err != nil {
 		return 0, 0, errorutil.Wrap(err)
@@ -229,15 +237,9 @@ type kvData struct {
 	value interface{}
 }
 
-func insertQueueDataValues(tx *sql.Tx, stmts trackerStmts, queueId int64, values ...kvData) error {
-	stmt := tx.Stmt(stmts[insertQueueData])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
+func insertQueueDataValues(tx *sql.Tx, stmts dbconn.TxPreparedStmts, queueId int64, values ...kvData) error {
 	for _, v := range values {
-		if _, err := stmt.Exec(queueId, v.key, v.value); err != nil {
+		if _, err := stmts.S[insertQueueData].Exec(queueId, v.key, v.value); err != nil {
 			return errorutil.Wrap(err)
 		}
 	}
@@ -245,14 +247,8 @@ func insertQueueDataValues(tx *sql.Tx, stmts trackerStmts, queueId int64, values
 	return nil
 }
 
-func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int64, queue string, loc postfix.RecordLocation) (int64, error) {
-	stmt := tx.Stmt(tracker.stmts[insertQueueForConnection])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(connectionId, queue)
+func createQueue(tx *sql.Tx, time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	result, err := trackerStmts.S[insertQueueForConnection].Exec(connectionId, queue)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -262,7 +258,7 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 		return 0, errorutil.Wrap(err)
 	}
 
-	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+	err = insertQueueDataValues(tx, trackerStmts, queueId,
 		kvData{key: QueueBeginKey, value: time.Unix()},
 		kvData{key: QueueFilenameKey, value: loc.Filename},
 		kvData{key: QueueLineKey, value: loc.Line},
@@ -272,7 +268,7 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 		return 0, errorutil.Wrap(err)
 	}
 
-	err = incrementConnectionUsage(tx, tracker.stmts, connectionId)
+	err = incrementConnectionUsage(tx, trackerStmts, connectionId)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -282,11 +278,11 @@ func createQueue(tracker *Tracker, tx *sql.Tx, time time.Time, connectionId int6
 
 // assign a queue, just created.
 // find the connection with a given pid, and append the queue to the connection
-func cloneAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func cloneAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
-	connectionId, _, err := findConnectionIdAndUsageCounter(tx, tracker, r.Header)
+	connectionId, _, err := findConnectionIdAndUsageCounter(tx, trackerStmts, r.Header)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Connection for line %v not found", r.Location)
 		return nil
@@ -296,7 +292,7 @@ func cloneAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair 
 		return errorutil.Wrap(err)
 	}
 
-	_, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue, r.Location)
+	_, err = createQueue(tx, r.Time, connectionId, p.Queue, r.Location, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -304,14 +300,8 @@ func cloneAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair 
 	return nil
 }
 
-func incrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
-	stmt := tx.Stmt(stmts[incrementConnectionUsageById])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(connectionId)
+func incrementConnectionUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, connectionId int64) error {
+	_, err := stmts.S[incrementConnectionUsageById].Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -319,14 +309,8 @@ func incrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 	return nil
 }
 
-func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64) error {
-	stmt := tx.Stmt(stmts[decrementConnectionUsageById])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(connectionId)
+func decrementConnectionUsage(tx *sql.Tx, stmts dbconn.TxPreparedStmts, connectionId int64) error {
+	_, err := stmts.S[decrementConnectionUsageById].Exec(connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -335,12 +319,12 @@ func decrementConnectionUsage(tx *sql.Tx, stmts trackerStmts, connectionId int64
 }
 
 // associate a queue to a message-id
-func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMessageAccepted)
 
 	queueId, err := func() (int64, error) {
-		queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
+		queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return 0, errorutil.Wrap(err)
 		}
@@ -350,14 +334,14 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, act
 		}
 
 		// Create a dummy connection with no data, meaning it's been generated by the server itself, not via SMTP
-		connectionId, err := createConnection(tracker, tx, r)
+		connectionId, err := createConnection(tx, r, trackerStmts)
 		if err != nil {
 			return 0, errorutil.Wrap(err)
 		}
 
 		// Then a queue for it
 
-		queueId, err = createQueue(tracker, tx, r.Time, connectionId, p.Queue, r.Location)
+		queueId, err = createQueue(tx, r.Time, connectionId, p.Queue, r.Location, trackerStmts)
 		if err != nil {
 			return 0, errorutil.Wrap(err)
 		}
@@ -369,7 +353,7 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, act
 		return errorutil.Wrap(err)
 	}
 
-	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+	err = insertQueueDataValues(tx, trackerStmts, queueId,
 		kvData{key: QueueMessageIDKey, value: p.MessageId},
 		kvData{key: MessageIdFilenameKey, value: r.Location.Filename},
 		kvData{key: MessageIdLineKey, value: r.Location.Line},
@@ -383,16 +367,10 @@ func cleanupProcessingAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, act
 	return nil
 }
 
-func findQueueIdFromQueueValue(tx *sql.Tx, t *Tracker, h parser.Header, queue string) (int64, error) {
+func findQueueIdFromQueueValue(tx *sql.Tx, h parser.Header, queue string, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
 	var queueId int64
 
-	stmt := tx.Stmt(t.stmts[selectQueueIdForQueue])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err := stmt.QueryRow(
+	err := trackerStmts.S[selectQueueIdForQueue].QueryRow(
 		h.Host, queue).Scan(&queueId)
 
 	if err != nil {
@@ -402,12 +380,12 @@ func findQueueIdFromQueueValue(tx *sql.Tx, t *Tracker, h parser.Header, queue st
 	return queueId, nil
 }
 
-func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func mailQueuedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// I have the queue id and need to set the e-mail sender, size and nrcpt
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMailQueued)
 
-	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// started reading the logs when a queue is referenced, but not known (it was on a previous and unknown log)
 		// just ignore it.
@@ -418,7 +396,7 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionData
 		return errorutil.Wrap(err)
 	}
 
-	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+	err = insertQueueDataValues(tx, trackerStmts, queueId,
 		kvData{key: QueueSenderLocalPartKey, value: p.SenderLocalPart},
 		kvData{key: QueueSenderDomainPartKey, value: p.SenderDomainPart},
 		kvData{key: QueueOriginalMessageSizeKey, value: p.Size},
@@ -432,8 +410,8 @@ func mailQueuedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionData
 	return nil
 }
 
-func disconnectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
-	connectionId, usageCounter, err := findConnectionIdAndUsageCounter(tx, t, r.Header)
+func disconnectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+	connectionId, usageCounter, err := findConnectionIdAndUsageCounter(tx, trackerStmts, r.Header)
 
 	// it's possible for a "disconnect" not to have a "connect", if I started reading the log
 	// in between the two lines. In such cases, I just ignore the line.
@@ -446,15 +424,7 @@ func disconnectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair a
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(t.stmts[insertConnectionData])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(
-		connectionId, ConnectionEndKey, r.Time.Unix())
-
+	_, err = trackerStmts.S[insertConnectionData].Exec(connectionId, ConnectionEndKey, r.Time.Unix())
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -464,7 +434,7 @@ func disconnectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair a
 		return nil
 	}
 
-	err = deleteConnection(tx, t.stmts, connectionId)
+	err = deleteConnection(tx, trackerStmts, connectionId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -484,13 +454,13 @@ const (
 	queueParentingBounceCreationType = 1
 )
 
-func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r postfix.Record) error {
-	resultInfo, err := createResult(t, tx, r)
+func createMailDeliveredResult(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) error {
+	resultInfo, err := createResult(trackerStmts, tx, r)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	err = markResultToBeNotified(t, tx, resultInfo.id)
+	err = markResultToBeNotified(trackerStmts, tx, resultInfo.id)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -498,7 +468,7 @@ func createMailDeliveredResult(t *Tracker, tx *sql.Tx, r postfix.Record) error {
 	return nil
 }
 
-func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// Check if message has been forwarded to the an internal relay
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
@@ -508,7 +478,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 	// delivery to the next relay outside of the system
 	if !messageQueuedInternally {
 		// not internally queued
-		err := createMailDeliveredResult(t, tx, r)
+		err := createMailDeliveredResult(tx, r, trackerStmts)
 
 		if err != nil && errors.Is(err, sql.ErrNoRows) {
 			// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
@@ -526,7 +496,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 		return nil
 	}
 
-	newQueueId, err := findQueueIdFromQueueValue(tx, t, r.Header, e.Queue)
+	newQueueId, err := findQueueIdFromQueueValue(tx, r.Header, e.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v at %v", e.Queue, r.Location.Filename, r.Location.Line, r.Time)
 		return nil
@@ -536,7 +506,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 		return errorutil.Wrap(err)
 	}
 
-	origQueueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+	origQueueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 
 	// TODO: this block is copy&pasted many times! It should be refactored!
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -555,14 +525,7 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 	// this is an e-mail that postfix sends to itself before trying to deliver.
 	// As it's moved to another queue to be delivered, we queue the original and
 	// the newly created queue
-	stmt := tx.Stmt(t.stmts[insertQueueParenting])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(
-		origQueueId, newQueueId, queueParentingRelayType)
+	_, err = trackerStmts.S[insertQueueParenting].Exec(origQueueId, newQueueId, queueParentingRelayType)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -570,15 +533,8 @@ func mailSentAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair act
 	return nil
 }
 
-func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultId int64) error {
-	stmt := tx.Stmt(tracker.stmts[insertNotificationQueue])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(resultId)
-
+func markResultToBeNotified(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, resultId int64) error {
+	_, err := trackerStmts.S[insertNotificationQueue].Exec(resultId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -586,11 +542,11 @@ func markResultToBeNotified(tracker *Tracker, tx *sql.Tx, resultId int64) error 
 	return nil
 }
 
-func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrRemoved)
 
-	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v", p.Queue, r.Location.Filename, r.Location.Line)
@@ -601,7 +557,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 		return errorutil.Wrap(err)
 	}
 
-	err = insertQueueDataValues(tx, tracker.stmts, queueId,
+	err = insertQueueDataValues(tx, trackerStmts, queueId,
 		kvData{key: QueueEndKey, value: r.Time.Unix()},
 		kvData{key: QueueCommitFilenameKey, value: r.Location.Filename},
 		kvData{key: QueueCommitLineKey, value: r.Location.Line},
@@ -611,7 +567,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 		return errorutil.Wrap(err)
 	}
 
-	_, err = tryToDeleteQueue(tx, tracker.stmts, queueId, r.Location)
+	_, err = tryToDeleteQueue(tx, trackerStmts, queueId, r.Location)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -619,7 +575,7 @@ func commitAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 	return nil
 }
 
-func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
+func addResultData(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
 	direction := func() MessageDirection {
 		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") {
 			return MessageDirectionIncoming
@@ -628,13 +584,7 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.Rec
 		return MessageDirectionOutbound
 	}()
 
-	stmt := tx.Stmt(tracker.stmts[insertResultData15Rows])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err := stmt.Exec(
+	_, err := trackerStmts.S[insertResultData15Rows].Exec(
 		resultId, ResultRecipientLocalPartKey, p.RecipientLocalPart,
 		resultId, ResultRecipientDomainPartKey, p.RecipientDomainPart,
 		resultId, ResultOrigRecipientLocalPartKey, p.OrigRecipientLocalPart,
@@ -661,13 +611,7 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.Rec
 		return nil
 	}
 
-	stmt = tx.Stmt(tracker.stmts[insertResultData3Rows])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(
+	_, err = trackerStmts.S[insertResultData3Rows].Exec(
 		resultId, ResultRelayNameKey, p.RelayName,
 		resultId, ResultRelayIPKey, p.RelayIP,
 		resultId, ResultRelayPortKey, p.RelayPort,
@@ -680,28 +624,22 @@ func addResultData(tracker *Tracker, tx *sql.Tx, time time.Time, loc postfix.Rec
 	return nil
 }
 
-func createResult(tracker *Tracker, tx *sql.Tx, r postfix.Record) (resultInfo, error) {
+func createResult(trackerStmts dbconn.TxPreparedStmts, tx *sql.Tx, r postfix.Record) (resultInfo, error) {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
-	queueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
 	// Increment usage of queue, as there's one more result using it
-	err = incrementQueueUsage(tx, tracker.stmts, queueId)
+	err = incrementQueueUsage(tx, trackerStmts, queueId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(tracker.stmts[insertResult])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(queueId)
+	result, err := trackerStmts.S[insertResult].Exec(queueId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
@@ -711,7 +649,7 @@ func createResult(tracker *Tracker, tx *sql.Tx, r postfix.Record) (resultInfo, e
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	err = addResultData(tracker, tx, r.Time, r.Location, r.Header, p, resultId)
+	err = addResultData(trackerStmts, tx, r.Time, r.Location, r.Header, p, resultId)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
@@ -719,8 +657,8 @@ func createResult(tracker *Tracker, tx *sql.Tx, r postfix.Record) (resultInfo, e
 	return resultInfo{id: resultId, loc: r.Location}, nil
 }
 
-func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
-	err := createMailDeliveredResult(tracker, tx, r)
+func mailBouncedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+	err := createMailDeliveredResult(tx, r, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
@@ -736,11 +674,11 @@ func mailBouncedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDat
 	return nil
 }
 
-func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.BounceCreated)
 
-	bounceQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.ChildQueue)
+	bounceQueueId, err := findQueueIdFromQueueValue(tx, r.Header, p.ChildQueue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.ChildQueue, r.Location.Filename, r.Location.Line)
@@ -752,7 +690,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionD
 		return errorutil.Wrap(err)
 	}
 
-	origQueueId, err := findQueueIdFromQueueValue(tx, tracker, r.Header, p.Queue)
+	origQueueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.Queue, r.Location.Filename, r.Location.Line)
@@ -764,13 +702,7 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionD
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(tracker.stmts[insertQueueParenting])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	_, err = stmt.Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
+	_, err = trackerStmts.S[insertQueueParenting].Exec(origQueueId, bounceQueueId, queueParentingBounceCreationType)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -779,23 +711,23 @@ func bounceCreatedAction(tracker *Tracker, tx *sql.Tx, r postfix.Record, actionD
 }
 
 // Mail submitted locally on the machine via sendmail is being picked up
-func pickupAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func pickupAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.Pickup)
 
 	// create a dummy connection for it, as there was no connection to it
-	connectionId, err := createConnection(t, tx, r)
+	connectionId, err := createConnection(tx, r, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	// then the queue
-	queueId, err := createQueue(t, tx, r.Time, connectionId, p.Queue, r.Location)
+	queueId, err := createQueue(tx, r.Time, connectionId, p.Queue, r.Location, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	err = insertQueueDataValues(tx, t.stmts, queueId,
+	err = insertQueueDataValues(tx, trackerStmts, queueId,
 		kvData{key: PickupUidKey, value: p.Uid},
 		kvData{key: PickupSenderKey, value: p.Sender},
 	)
@@ -808,14 +740,14 @@ func pickupAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actio
 }
 
 // a milter rejects a message
-func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func milterRejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: notify this rejection to someone!!!
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMilterReject)
 
 	log.Warn().Msgf("Mail rejected by milter, queue: %s on %s:%v", p.Queue, r.Location.Filename, r.Location.Line)
 
-	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 
 	// sometimes the milter emits the same log line more than once,
 	// and in the second execution the queue is already deleted.
@@ -828,20 +760,20 @@ func milterRejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := tryToDeleteQueue(tx, t.stmts, queueId, r.Location); err != nil {
+	if _, err := tryToDeleteQueue(tx, trackerStmts, queueId, r.Location); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func rejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: Notify someone about the rejected message
 	// FIXME: this is almost copy&paste from milterRejectAction!!!
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdReject)
 
-	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Err(err).Msgf("Message probably already rejected with queue %s at %v", p.Queue, r.Location)
@@ -852,21 +784,15 @@ func rejectAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actio
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := tryToDeleteQueue(tx, t.stmts, queueId, r.Location); err != nil {
+	if _, err := tryToDeleteQueue(tx, trackerStmts, queueId, r.Location); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId int64, loc postfix.RecordLocation, time time.Time) error {
-	stmt := tx.Stmt(tracker.stmts[insertResultData4Rows])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	if _, err := stmt.Exec(
+func createMessageExpiredMessage(tx *sql.Tx, resultId int64, loc postfix.RecordLocation, time time.Time, trackerStmts dbconn.TxPreparedStmts) error {
+	if _, err := trackerStmts.S[insertResultData4Rows].Exec(
 		resultId, ResultStatusKey, parser.ExpiredStatus,
 		resultId, ResultDeliveryFilenameKey, loc.Filename,
 		resultId, ResultDeliveryFileLineKey, loc.Line,
@@ -878,11 +804,11 @@ func createMessageExpiredMessage(tracker *Tracker, tx *sql.Tx, resultId int64, l
 	return nil
 }
 
-func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair) error {
+func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMessageExpired)
 
-	queueId, err := findQueueIdFromQueueValue(tx, t, r.Header, p.Queue)
+	queueId, err := findQueueIdFromQueueValue(tx, r.Header, p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Err(err).Msgf("Could not find queue %s at %v", p.Queue, r.Location)
@@ -896,17 +822,11 @@ func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPa
 	// Create a new result with the expired notice
 
 	// Increment usage of queue, as there's one more result using it
-	if err := incrementQueueUsage(tx, t.stmts, queueId); err != nil {
+	if err := incrementQueueUsage(tx, trackerStmts, queueId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	stmt := tx.Stmt(t.stmts[insertResult])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(queueId)
+	result, err := trackerStmts.S[insertResult].Exec(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -916,11 +836,11 @@ func messageExpiredAction(t *Tracker, tx *sql.Tx, r postfix.Record, actionDataPa
 		return errorutil.Wrap(err)
 	}
 
-	if err := createMessageExpiredMessage(t, tx, resultId, r.Location, r.Time); err != nil {
+	if err := createMessageExpiredMessage(tx, resultId, r.Location, r.Time, trackerStmts); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if err := markResultToBeNotified(t, tx, resultId); err != nil {
+	if err := markResultToBeNotified(trackerStmts, tx, resultId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
