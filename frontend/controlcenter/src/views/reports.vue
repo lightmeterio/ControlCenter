@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           </h2>
 
           <p v-if="reports.length == 0">
-            No reports have been sent yet.
+            <translate>No reports have been sent yet.</translate>
           </p>
 
           <div
@@ -24,7 +24,9 @@ SPDX-License-Identifier: AGPL-3.0-only
             :key="reportIndex"
           >
             <div>
-              <translate>Report</translate> #{{ report.id }}
+              <div v-translate="{ report_id: report.id }">
+                Report #%{report_id}
+              </div>
               –
               <span :title="report.dispatch_time">{{
                 humanDuration(report.dispatch_time)
@@ -99,12 +101,14 @@ export default {
       if (seconds < 60) {
         let message = this.$gettext("%{s}s ago");
         return this.$gettextInterpolate(message, { s: seconds });
-      } else if (seconds < 60 * 60) {
+      }
+      if (seconds < 60 * 60) {
         let message = this.$gettext("%{m}m ago");
         return this.$gettextInterpolate(message, {
           m: Math.floor(seconds / 60)
         });
-      } else if (seconds < 60 * 60 * 24) {
+      }
+      if (seconds < 60 * 60 * 24) {
         let message = this.$gettext("%{h}h ago");
         return this.$gettextInterpolate(message, {
           h: Math.floor(seconds / 60 / 60)
@@ -117,16 +121,21 @@ export default {
     },
     explanation(report_kind) {
       let explanations = {
-        connection_stats:
-          "IP addresses and timestamps of incoming SMTP connections that try to authenticate on ports 587 or 465. This data is obtained from the Postfix logs. It is used to identify and help prevent brute force attacks via the SMTP protocol based on automated threat sharing between Lightmeter users.",
-        insights_count:
-          "General statistics about recently generated Lightmeter insights. This data is used to improve the frequency of insights generation, e.g. avoiding too many notifications.",
-        log_lines_count:
-          "General non-identifiable information about which kinds of logs Postfix generates, and whether they are currently supported by Lightmeter ControlCenter. This is used to identify and prioritise support for unsupported log events.",
-        mail_activity:
-          "Statistics about the number of sent, bounced, deferred, and received messages. This helps identify Lightmeter performance issues and benchmark network health.",
-        top_domains:
+        connection_stats: this.$gettext(
+          "IP addresses and timestamps of incoming SMTP connections that try to authenticate on ports 587 or 465. This data is obtained from the Postfix logs. It is used to identify and help prevent brute force attacks via the SMTP protocol based on automated threat sharing between Lightmeter users."
+        ),
+        insights_count: this.$gettext(
+          "General statistics about recently generated Lightmeter insights. This data is used to improve the frequency of insights generation, e.g. avoiding too many notifications."
+        ),
+        log_lines_count: this.$gettext(
+          "General non-identifiable information about which kinds of logs Postfix generates, and whether they are currently supported by Lightmeter ControlCenter. This is used to identify and prioritise support for unsupported log events."
+        ),
+        mail_activity: this.$gettext(
+          "Statistics about the number of sent, bounced, deferred, and received messages. This helps identify Lightmeter performance issues and benchmark network health."
+        ),
+        top_domains: this.$gettext(
           "Domains that Postfix is managing locally. This is used to verify that reports are authentic."
+        )
       };
 
       return explanations[report_kind] ? explanations[report_kind] : "...";
