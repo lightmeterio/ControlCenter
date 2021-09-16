@@ -1,3 +1,4 @@
+
 //line version.rl:1
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
@@ -7,6 +8,7 @@
 
 package rawparser
 
+
 //line version.rl:10
 
 //line version.gen.go:15
@@ -15,6 +17,7 @@ const version_first_final int = 34
 const version_error int = 0
 
 const version_en_main int = 1
+
 
 //line version.rl:11
 
@@ -26,111 +29,107 @@ func parseVersion(data []byte) (Version, bool) {
 
 	var r Version
 
+
 //line version.gen.go:34
 	{
-		cs = version_start
+	cs = version_start
 	}
 
 //line version.gen.go:39
 	{
-		if p == pe {
-			goto _test_eof
-		}
-		switch cs {
-		case 1:
-			goto st_case_1
-		case 0:
-			goto st_case_0
-		case 2:
-			goto st_case_2
-		case 3:
-			goto st_case_3
-		case 4:
-			goto st_case_4
-		case 5:
-			goto st_case_5
-		case 6:
-			goto st_case_6
-		case 7:
-			goto st_case_7
-		case 8:
-			goto st_case_8
-		case 9:
-			goto st_case_9
-		case 10:
-			goto st_case_10
-		case 11:
-			goto st_case_11
-		case 12:
-			goto st_case_12
-		case 13:
-			goto st_case_13
-		case 14:
-			goto st_case_14
-		case 15:
-			goto st_case_15
-		case 16:
-			goto st_case_16
-		case 17:
-			goto st_case_17
-		case 18:
-			goto st_case_18
-		case 19:
-			goto st_case_19
-		case 20:
-			goto st_case_20
-		case 21:
-			goto st_case_21
-		case 22:
-			goto st_case_22
-		case 23:
-			goto st_case_23
-		case 24:
-			goto st_case_24
-		case 25:
-			goto st_case_25
-		case 26:
-			goto st_case_26
-		case 27:
-			goto st_case_27
-		case 28:
-			goto st_case_28
-		case 29:
-			goto st_case_29
-		case 34:
-			goto st_case_34
-		case 30:
-			goto st_case_30
-		case 31:
-			goto st_case_31
-		case 32:
-			goto st_case_32
-		case 33:
-			goto st_case_33
-		}
-		goto st_out
+	if p == pe {
+		goto _test_eof
+	}
+	switch cs {
+	case 1:
+		goto st_case_1
+	case 0:
+		goto st_case_0
+	case 2:
+		goto st_case_2
+	case 3:
+		goto st_case_3
+	case 4:
+		goto st_case_4
+	case 5:
+		goto st_case_5
+	case 6:
+		goto st_case_6
+	case 7:
+		goto st_case_7
+	case 8:
+		goto st_case_8
+	case 9:
+		goto st_case_9
+	case 10:
+		goto st_case_10
+	case 11:
+		goto st_case_11
+	case 12:
+		goto st_case_12
+	case 13:
+		goto st_case_13
+	case 14:
+		goto st_case_14
+	case 15:
+		goto st_case_15
+	case 16:
+		goto st_case_16
+	case 17:
+		goto st_case_17
+	case 18:
+		goto st_case_18
+	case 19:
+		goto st_case_19
+	case 20:
+		goto st_case_20
+	case 21:
+		goto st_case_21
+	case 22:
+		goto st_case_22
+	case 23:
+		goto st_case_23
+	case 24:
+		goto st_case_24
+	case 25:
+		goto st_case_25
+	case 26:
+		goto st_case_26
+	case 27:
+		goto st_case_27
+	case 28:
+		goto st_case_28
+	case 29:
+		goto st_case_29
+	case 34:
+		goto st_case_34
+	case 30:
+		goto st_case_30
+	case 31:
+		goto st_case_31
+	case 32:
+		goto st_case_32
+	case 33:
+		goto st_case_33
+	}
+	goto st_out
 	st_case_1:
 		switch data[p] {
 		case 100:
-			goto tr0
+			goto st2
 		case 114:
 			goto st30
 		}
 		goto st0
-	st_case_0:
+st_case_0:
 	st0:
 		cs = 0
 		goto _out
-	tr0:
-//line common.rl:29
-		tokBeg = p
-		goto st2
 	st2:
 		if p++; p == pe {
 			goto _test_eof2
 		}
 	st_case_2:
-//line version.gen.go:138
 		if data[p] == 97 {
 			goto st3
 		}
@@ -363,16 +362,16 @@ func parseVersion(data []byte) (Version, bool) {
 			goto tr28
 		}
 		goto st0
-	tr28:
+tr28:
 //line common.rl:29
-		tokBeg = p
-		goto st28
+ tokBeg = p 
+	goto st28
 	st28:
 		if p++; p == pe {
 			goto _test_eof28
 		}
 	st_case_28:
-//line version.gen.go:380
+//line version.gen.go:375
 		switch data[p] {
 		case 44:
 			goto tr29
@@ -383,31 +382,31 @@ func parseVersion(data []byte) (Version, bool) {
 			goto st28
 		}
 		goto st0
-	tr29:
+tr29:
 //line version.rl:25
 
 		r = data[tokBeg:p]
-
-		goto st29
+	
+	goto st29
 	st29:
 		if p++; p == pe {
 			goto _test_eof29
 		}
 	st_case_29:
-//line version.gen.go:402
+//line version.gen.go:397
 		goto tr31
-	tr31:
+tr31:
 //line version.rl:29
 
 		return r, true
-
-		goto st34
+	
+	goto st34
 	st34:
 		if p++; p == pe {
 			goto _test_eof34
 		}
 	st_case_34:
-//line version.gen.go:415
+//line version.gen.go:410
 		goto tr31
 	st30:
 		if p++; p == pe {
@@ -446,115 +445,46 @@ func parseVersion(data []byte) (Version, bool) {
 		}
 		goto st0
 	st_out:
-	_test_eof2:
-		cs = 2
-		goto _test_eof
-	_test_eof3:
-		cs = 3
-		goto _test_eof
-	_test_eof4:
-		cs = 4
-		goto _test_eof
-	_test_eof5:
-		cs = 5
-		goto _test_eof
-	_test_eof6:
-		cs = 6
-		goto _test_eof
-	_test_eof7:
-		cs = 7
-		goto _test_eof
-	_test_eof8:
-		cs = 8
-		goto _test_eof
-	_test_eof9:
-		cs = 9
-		goto _test_eof
-	_test_eof10:
-		cs = 10
-		goto _test_eof
-	_test_eof11:
-		cs = 11
-		goto _test_eof
-	_test_eof12:
-		cs = 12
-		goto _test_eof
-	_test_eof13:
-		cs = 13
-		goto _test_eof
-	_test_eof14:
-		cs = 14
-		goto _test_eof
-	_test_eof15:
-		cs = 15
-		goto _test_eof
-	_test_eof16:
-		cs = 16
-		goto _test_eof
-	_test_eof17:
-		cs = 17
-		goto _test_eof
-	_test_eof18:
-		cs = 18
-		goto _test_eof
-	_test_eof19:
-		cs = 19
-		goto _test_eof
-	_test_eof20:
-		cs = 20
-		goto _test_eof
-	_test_eof21:
-		cs = 21
-		goto _test_eof
-	_test_eof22:
-		cs = 22
-		goto _test_eof
-	_test_eof23:
-		cs = 23
-		goto _test_eof
-	_test_eof24:
-		cs = 24
-		goto _test_eof
-	_test_eof25:
-		cs = 25
-		goto _test_eof
-	_test_eof26:
-		cs = 26
-		goto _test_eof
-	_test_eof27:
-		cs = 27
-		goto _test_eof
-	_test_eof28:
-		cs = 28
-		goto _test_eof
-	_test_eof29:
-		cs = 29
-		goto _test_eof
-	_test_eof34:
-		cs = 34
-		goto _test_eof
-	_test_eof30:
-		cs = 30
-		goto _test_eof
-	_test_eof31:
-		cs = 31
-		goto _test_eof
-	_test_eof32:
-		cs = 32
-		goto _test_eof
-	_test_eof33:
-		cs = 33
-		goto _test_eof
+	_test_eof2: cs = 2; goto _test_eof
+	_test_eof3: cs = 3; goto _test_eof
+	_test_eof4: cs = 4; goto _test_eof
+	_test_eof5: cs = 5; goto _test_eof
+	_test_eof6: cs = 6; goto _test_eof
+	_test_eof7: cs = 7; goto _test_eof
+	_test_eof8: cs = 8; goto _test_eof
+	_test_eof9: cs = 9; goto _test_eof
+	_test_eof10: cs = 10; goto _test_eof
+	_test_eof11: cs = 11; goto _test_eof
+	_test_eof12: cs = 12; goto _test_eof
+	_test_eof13: cs = 13; goto _test_eof
+	_test_eof14: cs = 14; goto _test_eof
+	_test_eof15: cs = 15; goto _test_eof
+	_test_eof16: cs = 16; goto _test_eof
+	_test_eof17: cs = 17; goto _test_eof
+	_test_eof18: cs = 18; goto _test_eof
+	_test_eof19: cs = 19; goto _test_eof
+	_test_eof20: cs = 20; goto _test_eof
+	_test_eof21: cs = 21; goto _test_eof
+	_test_eof22: cs = 22; goto _test_eof
+	_test_eof23: cs = 23; goto _test_eof
+	_test_eof24: cs = 24; goto _test_eof
+	_test_eof25: cs = 25; goto _test_eof
+	_test_eof26: cs = 26; goto _test_eof
+	_test_eof27: cs = 27; goto _test_eof
+	_test_eof28: cs = 28; goto _test_eof
+	_test_eof29: cs = 29; goto _test_eof
+	_test_eof34: cs = 34; goto _test_eof
+	_test_eof30: cs = 30; goto _test_eof
+	_test_eof31: cs = 31; goto _test_eof
+	_test_eof32: cs = 32; goto _test_eof
+	_test_eof33: cs = 33; goto _test_eof
 
-	_test_eof:
-		{
-		}
-	_out:
-		{
-		}
+	_test_eof: {}
+	_out: {}
 	}
 
 //line version.rl:35
+
 
 	return r, false
 }

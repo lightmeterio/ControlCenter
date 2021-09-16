@@ -185,7 +185,7 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
       if (
         err.response.data.error == "Please use a valid work email address" ||
         err.response.data.error ==
-          "This domain does not seem configured for email (no MX record found)"
+          "Invalid email address: the domain does not seem to be configured for email (no MX record found)"
       )
         trackEvent(
           "RegistrationInvalidEmail",
