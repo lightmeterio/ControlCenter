@@ -318,9 +318,7 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 				return errorutil.Wrap(err)
 			}
 
-			c.Stmts[key] = q
-
-			c.Closers.Add(q)
+			c.SetStmt(key, q)
 
 			return nil
 		})
@@ -437,16 +435,9 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock
 
 	key := queryKey{order: options.OrderBy, filter: options.FilterBy}
 
-	stmt, ok := conn.Stmts[key]
-	if !ok {
-		log.Panic().Msgf("Sql stmt for options %v not implemented!!!!", options)
-	}
-
+	//nolint:sqlclosecheck
+	stmt := conn.GetStmt(key)
 	query := f.queries[key]
-
-	if !ok {
-		log.Panic().Msgf("Sql arguments for options %v not implemented!!!!", options)
-	}
 
 	rows, err := stmt.QueryContext(ctx, query.p(options)...)
 

@@ -102,13 +102,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 			return errorutil.Wrap(err)
 		}
 
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(checkMessageDelivery.Close(), "Closing checkMessageDelivery")
-			}
-		}()
-
-		db.Stmts[checkMessageDeliveryKey] = checkMessageDelivery
+		db.SetStmt(checkMessageDeliveryKey, checkMessageDelivery)
 
 		oldestAvailableTime, err := db.Prepare(`
 			with first_delivery_queue(delivery_id) as
@@ -125,13 +119,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 			return errorutil.Wrap(err)
 		}
 
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(oldestAvailableTime.Close())
-			}
-		}()
-
-		db.Stmts[oldestAvailableTimeKey] = oldestAvailableTime
+		db.SetStmt(oldestAvailableTimeKey, oldestAvailableTime)
 
 		return nil
 	}
@@ -155,7 +143,8 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 
 	defer release()
 
-	return checkMessageDelivery(ctx, conn.Stmts[checkMessageDeliveryKey], mailFrom, mailTo, interval, page)
+	//nolint:sqlclosecheck
+	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, page)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
@@ -168,7 +157,8 @@ func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, erro
 
 	var ts int64
 
-	err = conn.Stmts[oldestAvailableTimeKey].QueryRowContext(ctx).Scan(&ts)
+	//nolint:sqlclosecheck
+	err = conn.GetStmt(oldestAvailableTimeKey).QueryRowContext(ctx).Scan(&ts)
 
 	// no available logs yet. That's fine
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

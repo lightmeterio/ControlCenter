@@ -7,6 +7,7 @@ package dbconn
 import (
 	"context"
 	"database/sql"
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -58,7 +59,22 @@ type RoPooledConn struct {
 	RoConn
 
 	LocalId int
-	Stmts   map[interface{}]*sql.Stmt
+	stmts   map[interface{}]*sql.Stmt
+}
+
+func (c *RoPooledConn) SetStmt(key interface{}, stmt *sql.Stmt) {
+	c.stmts[key] = stmt
+	c.Closers.Add(stmt)
+}
+
+// GetStmt gets an prepared statement by a key, where the calles does **NOT** own the returned value
+func (c *RoPooledConn) GetStmt(key interface{}) *sql.Stmt {
+	stmt, ok := c.stmts[key]
+	if !ok {
+		log.Panic().Msgf("Sql stmt with key %v not implemented!!!!", key)
+	}
+
+	return stmt
 }
 
 type RoPool struct {
@@ -128,7 +144,7 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		conn := &RoPooledConn{
 			RoConn:  Ro(reader),
 			LocalId: i,
-			Stmts:   map[interface{}]*sql.Stmt{},
+			stmts:   map[interface{}]*sql.Stmt{},
 			Closers: closeutil.New(newConnCloser(filename, ROMode, reader)),
 		}
 

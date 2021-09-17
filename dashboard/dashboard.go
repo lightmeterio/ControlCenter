@@ -149,10 +149,10 @@ from
 
 		db.Closers.Add(countByStatus, deliveryStatus, topBusiestDomains, topDomainsByStatus)
 
-		db.Stmts["countByStatus"] = countByStatus
-		db.Stmts["deliveryStatus"] = deliveryStatus
-		db.Stmts["topBusiestDomains"] = topBusiestDomains
-		db.Stmts["topDomainsByStatus"] = topDomainsByStatus
+		db.SetStmt("countByStatus", countByStatus)
+		db.SetStmt("deliveryStatus", deliveryStatus)
+		db.SetStmt("topBusiestDomains", topBusiestDomains)
+		db.SetStmt("topDomainsByStatus", topDomainsByStatus)
 
 		return nil
 	}
@@ -174,7 +174,8 @@ func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatu
 
 	defer release()
 
-	return countByStatus(ctx, conn.Stmts["countByStatus"], status, interval)
+	//nolint:sqlclosecheck
+	return countByStatus(ctx, conn.GetStmt("countByStatus"), status, interval)
 }
 
 func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
@@ -185,7 +186,8 @@ func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.T
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix())
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topBusiestDomains"), interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
@@ -196,7 +198,8 @@ func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.T
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.BouncedStatus,
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topDomainsByStatus"), parser.BouncedStatus,
 		interval.From.Unix(), interval.To.Unix())
 }
 
@@ -208,7 +211,8 @@ func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval timeutil.
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.DeferredStatus,
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topDomainsByStatus"), parser.DeferredStatus,
 		interval.From.Unix(), interval.To.Unix())
 }
 
@@ -220,7 +224,8 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 
 	defer release()
 
-	return deliveryStatus(ctx, conn.Stmts["deliveryStatus"], interval)
+	//nolint:sqlclosecheck
+	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
 }
 
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {

@@ -101,7 +101,8 @@ func findOrigQueueForQueueParenting(conn *dbconn.RoPooledConn, queueId int64) (i
 		parentingType queueParentingType
 	)
 
-	err := conn.Stmts[selectParentingQueueByNewQueue].QueryRow(queueId).Scan(&origQueue, &parentingType)
+	//nolint:sqlclosecheck
+	err := conn.GetStmt(selectParentingQueueByNewQueue).QueryRow(queueId).Scan(&origQueue, &parentingType)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, 0, errorutil.Wrap(err)
@@ -122,9 +123,7 @@ func prepareCommitterConnection(conn *dbconn.RoPooledConn) error {
 			return errorutil.Wrap(err)
 		}
 
-		conn.Stmts[k] = stmt
-
-		conn.Closers.Add(stmt)
+		conn.SetStmt(k, stmt)
 	}
 
 	return nil
@@ -155,7 +154,8 @@ func findConnectionAndDeliveryQueue(conn *dbconn.RoPooledConn, queueId int64, lo
 func collectConnectionKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueFromConnections], queueId); err != nil {
+	//nolint:sqlclosecheck
+	if err := collectKeyValueResult(&result, conn.GetStmt(selectKeyValueFromConnections), queueId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
@@ -165,7 +165,8 @@ func collectConnectionKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) 
 func collectQueuesKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueFromQueues], queueId); err != nil {
+	//nolint:sqlclosecheck
+	if err := collectKeyValueResult(&result, conn.GetStmt(selectKeyValueFromQueues), queueId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
@@ -175,7 +176,8 @@ func collectQueuesKeyValueResults(conn *dbconn.RoPooledConn, queueId int64) (Res
 func collectResultKeyValueResults(conn *dbconn.RoPooledConn, resultId int64) (Result, error) {
 	result := Result{}
 
-	if err := collectKeyValueResult(&result, conn.Stmts[selectKeyValueForResults], resultId); err != nil {
+	//nolint:sqlclosecheck
+	if err := collectKeyValueResult(&result, conn.GetStmt(selectKeyValueForResults), resultId); err != nil {
 		return Result{}, errorutil.Wrap(err)
 	}
 
@@ -185,7 +187,8 @@ func collectResultKeyValueResults(conn *dbconn.RoPooledConn, resultId int64) (Re
 func queueName(conn *dbconn.RoPooledConn, queueId int64) (string, error) {
 	var name string
 
-	if err := conn.Stmts[selectQueryNameById].QueryRow(queueId).Scan(&name); err != nil {
+	//nolint:sqlclosecheck
+	if err := conn.GetStmt(selectQueryNameById).QueryRow(queueId).Scan(&name); err != nil {
 		return "", errorutil.Wrap(err)
 	}
 
@@ -215,7 +218,8 @@ func buildAndPublishResult(
 		},
 	}
 
-	err = conn.Stmts[selectQueueIdFromResult].QueryRow(resultId).Scan(&queueId)
+	//nolint:sqlclosecheck
+	err = conn.GetStmt(selectQueueIdFromResult).QueryRow(resultId).Scan(&queueId)
 	if err != nil {
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}
@@ -228,7 +232,8 @@ func buildAndPublishResult(
 
 	var deliveryServer string
 
-	err = conn.Stmts[selectPidHostByQueue].QueryRow(deliveryQueueId).Scan(&deliveryServer)
+	//nolint:sqlclosecheck
+	err = conn.GetStmt(selectPidHostByQueue).QueryRow(deliveryQueueId).Scan(&deliveryServer)
 	if err != nil {
 		return resultInfo, errorutil.Wrap(err, resultInfo.loc)
 	}

@@ -35,7 +35,6 @@ const (
 
 func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	if err := pool.ForEach(func(conn *dbconn.RoPooledConn) error {
-		//nolint:sqlclosecheck
 		sql, err := conn.Prepare(`
 select
 	count(connections.id)
@@ -49,9 +48,8 @@ where
 			return errorutil.Wrap(err)
 		}
 
-		conn.Stmts[countQuery] = sql
+		conn.SetStmt(countQuery, sql)
 
-		//nolint:sqlclosecheck
 		sql, err = conn.Prepare(`
 select
 	ip, disconnection_ts as ts, success, total
@@ -67,7 +65,7 @@ order by
 			return errorutil.Wrap(err)
 		}
 
-		conn.Stmts[retrieveQuery] = sql
+		conn.SetStmt(retrieveQuery, sql)
 
 		return nil
 	}); err != nil {
@@ -87,11 +85,13 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 
 	var count int
 
-	if err := conn.Stmts[countQuery].QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand).Scan(&count); err != nil {
+	//nolint:sqlclosecheck
+	if err := conn.GetStmt(countQuery).QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand).Scan(&count); err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}
 
-	rows, err := conn.Stmts[retrieveQuery].QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
+	//nolint:sqlclosecheck
+	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}
