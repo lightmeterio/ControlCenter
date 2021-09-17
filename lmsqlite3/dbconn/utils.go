@@ -62,9 +62,20 @@ type RoPooledConn struct {
 	stmts   map[interface{}]*sql.Stmt
 }
 
-func (c *RoPooledConn) SetStmt(key interface{}, stmt *sql.Stmt) {
+func (c *RoPooledConn) PrepareStmt(query string, key interface{}) error {
+	if _, ok := c.stmts[key]; ok {
+		log.Panic().Msgf("A prepared statement for %v already exists!", key)
+	}
+
+	stmt, err := c.Prepare(query)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	c.stmts[key] = stmt
 	c.Closers.Add(stmt)
+
+	return nil
 }
 
 // GetStmt gets an prepared statement by a key, where the calles does **NOT** own the returned value

@@ -35,22 +35,18 @@ const (
 
 func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	if err := pool.ForEach(func(conn *dbconn.RoPooledConn) error {
-		sql, err := conn.Prepare(`
+		if err := conn.PrepareStmt(`
 select
 	count(connections.id)
 from
 	connections join commands
 		on commands.connection_id = connections.id
 where
-	connections.disconnection_ts between ? and ? and commands.cmd = ?`)
-
-		if err != nil {
+	connections.disconnection_ts between ? and ? and commands.cmd = ?`, countQuery); err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		conn.SetStmt(countQuery, sql)
-
-		sql, err = conn.Prepare(`
+		if err := conn.PrepareStmt(`
 select
 	ip, disconnection_ts as ts, success, total
 from
@@ -60,12 +56,9 @@ where
 	ts between ? and ? and commands.cmd = ?
 	-- and commands.success != commands.total -- returns only attempts that failed
 order by
-	ts`)
-		if err != nil {
+	ts`, retrieveQuery); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		conn.SetStmt(retrieveQuery, sql)
 
 		return nil
 	}); err != nil {

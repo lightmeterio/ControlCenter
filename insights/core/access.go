@@ -313,12 +313,9 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 	buildQuery := func(key queryKey, s string) error {
 		err := pool.ForEach(func(c *dbconn.RoPooledConn) error {
 			//nolint:sqlclosecheck
-			q, err := c.Prepare(s)
-			if err != nil {
+			if err := c.PrepareStmt(s, key); err != nil {
 				return errorutil.Wrap(err)
 			}
-
-			c.SetStmt(key, q)
 
 			return nil
 		})

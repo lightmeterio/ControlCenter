@@ -117,13 +117,9 @@ func findOrigQueueForQueueParenting(conn *dbconn.RoPooledConn, queueId int64) (i
 
 func prepareCommitterConnection(conn *dbconn.RoPooledConn) error {
 	for k, v := range notifierStmtsText {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
+		if err := conn.PrepareStmt(v, k); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		conn.SetStmt(k, stmt)
 	}
 
 	return nil
