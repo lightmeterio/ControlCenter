@@ -30,7 +30,7 @@ func (f FakeDirectoryContent) dirName() string {
 	return "/dummy"
 }
 
-func (f FakeDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func (f FakeDirectoryContent) readerForEntry(filename string) (io.ReadCloser, error) {
 	content, ok := f.contents[filename]
 
 	if !ok {
@@ -97,7 +97,7 @@ func (s *fakeFileReadSeeker) Close() error {
 	return nil
 }
 
-func (f FakeDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (f FakeDirectoryContent) readSeekerForEntry(filename string) (io.ReadSeekCloser, error) {
 	content, ok := f.contents[filename]
 
 	if !ok {

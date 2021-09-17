@@ -341,7 +341,7 @@ func guessInitialDateForFile(reader io.Reader, originalModificationTime time.Tim
 
 type fileDescriptor struct {
 	modificationTime time.Time
-	reader           fileReader
+	reader           io.ReadCloser
 }
 
 var ErrEmptyFileList = errors.New(`No valid log files found`)
@@ -416,13 +416,6 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 	return findEarlierstTimeFromFiles(descriptors, format)
 }
 
-type fileReader = io.ReadCloser
-
-type fileReadSeeker interface {
-	fileReader
-	io.Seeker
-}
-
 type fileWatcher interface {
 	run(onNewRecord func(parser.Header, parser.Payload))
 }
@@ -431,9 +424,9 @@ type DirectoryContent interface {
 	dirName() string
 	fileEntries() (fileEntryList, error)
 	modificationTimeForEntry(filename string) (time.Time, error)
-	readerForEntry(filename string) (fileReader, error)
+	readerForEntry(filename string) (io.ReadCloser, error)
 	watcherForEntry(filename string, offset int64) (fileWatcher, error)
-	readSeekerForEntry(filename string) (fileReadSeeker, error)
+	readSeekerForEntry(filename string) (io.ReadSeekCloser, error)
 }
 
 type DirectoryImporter struct {
@@ -507,7 +500,7 @@ var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail
 type timeConverterChan chan *parsertimeutil.TimeConverter
 
 type queueProcessor struct {
-	readers       []fileReader
+	readers       []io.ReadCloser
 	scanners      []*bufio.Scanner
 	entries       fileEntryList
 	record        postfix.Record
@@ -520,7 +513,7 @@ type queueProcessor struct {
 }
 
 type limitedFileReader struct {
-	reader fileReader
+	reader io.ReadCloser
 	io.LimitedReader
 }
 
@@ -528,7 +521,7 @@ func (l *limitedFileReader) Close() error {
 	return l.reader.Close()
 }
 
-func buildLimitedFileReader(reader fileReader, offset int64) fileReader {
+func buildLimitedFileReader(reader io.ReadCloser, offset int64) io.ReadCloser {
 	r := limitedFileReader{
 		reader:        reader,
 		LimitedReader: io.LimitedReader{R: reader, N: offset},
@@ -537,7 +530,7 @@ func buildLimitedFileReader(reader fileReader, offset int64) fileReader {
 	return &r
 }
 
-func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (fileReader, int64, error) {
+func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (io.ReadCloser, int64, error) {
 	readSeeker, err := content.readSeekerForEntry(entry.filename)
 
 	if err != nil {
@@ -567,7 +560,7 @@ func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (file
 	return reader, offset, nil
 }
 
-func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryContent, pattern string, entry fileEntry) (fileReader, *bufio.Scanner, error) {
+func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryContent, pattern string, entry fileEntry) (io.ReadCloser, *bufio.Scanner, error) {
 	if path.Base(entry.filename) == pattern {
 		// special case: current log file, that is being updated by postfix on a different process
 		// NOTE: Yes, this is a race condition.
@@ -598,7 +591,7 @@ func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryConte
 }
 
 func processorForQueue(offsetChan chan int64, converterChan timeConverterChan, content DirectoryContent, pattern string, entries fileEntryList) (queueProcessor, error) {
-	readers := []fileReader{}
+	readers := []io.ReadCloser{}
 	scanners := []*bufio.Scanner{}
 
 	for _, entry := range entries {

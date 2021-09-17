@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"github.com/rs/zerolog/log"
+	"io"
 )
 
 // nolint:unused,deadcode
@@ -43,7 +44,7 @@ func gzipedDataReaderFromBytes(data []byte) fakeFileReader {
 }
 
 // nolint:unused,deadcode
-func gzipedDataReader(s string) fileReader {
+func gzipedDataReader(s string) io.ReadCloser {
 	return gzipedDataReaderFromBytes(compressGzip([]byte(s)))
 }
 

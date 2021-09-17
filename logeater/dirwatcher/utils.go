@@ -16,19 +16,16 @@ import (
 
 const bufferedReaderBufferSize = 1 * 1024 * 1024
 
-func ensureReaderIsDecompressed(plainReader fileReader, filename string) (fileReader, error) {
+func ensureReaderIsDecompressed(plainReader io.ReadCloser, filename string) (io.ReadCloser, error) {
 	type readCloser struct {
 		closeutil.Closers
 		io.Reader
 
-		reader fileReader
+		reader io.ReadCloser
 	}
 
-	newBufferedReader := func(b *bufio.Reader, r fileReader) *readCloser {
-		return &readCloser{Reader: b, reader: r, Closers: closeutil.New(r)}
-	}
-
-	reader := newBufferedReader(bufio.NewReaderSize(plainReader, bufferedReaderBufferSize), plainReader)
+	bufferedReader := bufio.NewReaderSize(plainReader, bufferedReaderBufferSize)
+	reader := &readCloser{Reader: bufferedReader, reader: plainReader, Closers: closeutil.New(plainReader)}
 
 	if strings.HasSuffix(filename, ".gz") {
 		compressedReader, err := gzip.NewReader(reader)

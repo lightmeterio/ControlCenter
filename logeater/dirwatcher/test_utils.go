@@ -52,7 +52,7 @@ func plainDataReaderFromBytes(data []byte) fakeFileReader {
 }
 
 // nolint:unused,deadcode
-func plainDataReader(s string) fileReader {
+func plainDataReader(s string) io.ReadCloser {
 	return plainDataReaderFromBytes([]byte(s))
 }
 
