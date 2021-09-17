@@ -95,29 +95,20 @@ func Store(ctx context.Context, tx *sql.Tx, items []Item) error {
 }
 
 func Retrieve(ctx context.Context, tx *sql.Tx, key interface{}, value interface{}) error {
-	// TODO: unify this code with the one from retrieve()!!!
-	err := tx.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
-
-	if err == nil {
-		return nil
-	}
-
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrNoSuchKey
-	}
-
-	return errorutil.Wrap(err)
-}
-
-func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
-	conn, release, err := reader.pool.AcquireContext(ctx)
-	if err != nil {
+	if err := retrieve(ctx, tx, key, value); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer release()
+	return nil
+}
 
-	err = conn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
+type queryiable interface {
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+}
+
+func retrieve(ctx context.Context, q queryiable, key interface{}, value interface{}) error {
+	err := q.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
+
 	if err == nil {
 		return nil
 	}
@@ -130,9 +121,16 @@ func retrieve(ctx context.Context, reader *Reader, key interface{}, value interf
 }
 
 func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{}, error) {
+	conn, release, err := reader.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	defer release()
+
 	var v interface{}
 
-	if err := retrieve(ctx, reader, key, &v); err != nil {
+	if err := retrieve(ctx, conn, key, &v); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -179,8 +177,15 @@ func (reader *Reader) RetrieveJson(ctx context.Context, key interface{}, values 
 		panic("values isn't a pointer")
 	}
 
+	conn, release, err := reader.pool.AcquireContext(ctx)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	defer release()
+
 	var v string
-	if err := retrieve(ctx, reader, key, &v); err != nil {
+	if err := retrieve(ctx, conn, key, &v); err != nil {
 		return errorutil.Wrap(err)
 	}
 
