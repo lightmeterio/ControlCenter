@@ -187,7 +187,7 @@ func TestEntriesInsertion(t *testing.T) {
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
 
-			dashboard, err := dashboard.New(db.ConnPool())
+			dashboard, err := dashboard.New(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
 			return db, done, cancel, pub, dashboard
