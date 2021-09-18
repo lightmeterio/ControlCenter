@@ -275,6 +275,8 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
+			connStats,
+			deliveries,
 			tracker,
 			insightsEngine,
 			intelCollector,

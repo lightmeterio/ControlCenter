@@ -135,7 +135,7 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 		closers.Add(r)
 	}
 
-	stmts := dbrunner.PreparedStmts{}
+	stmts := dbconn.PreparedStmts{}
 
 	return &Collector{
 		reporters: reporters,
@@ -158,7 +158,7 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 
 						return
 					case <-timer.C:
-						dbRunner.Actions <- func(tx *sql.Tx, _ dbrunner.PreparedStmts) error {
+						dbRunner.Actions <- func(tx *sql.Tx, _ dbconn.PreparedStmts) error {
 							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
 								return errorutil.Wrap(err)
 							}

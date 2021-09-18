@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -137,7 +138,7 @@ type publisher struct {
 }
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
-	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.PreparedStmts) error {
 		stmt := tx.Stmt(stmts[insertDisconnectKey])
 
 		defer stmt.Close()
@@ -208,22 +209,24 @@ func (pub *publisher) Publish(r postfix.Record) {
 
 type Stats struct {
 	dbrunner.Runner
+	closeutil.Closers
 
 	conn  *dbconn.PooledPair
-	stmts dbrunner.PreparedStmts
+	stmts dbconn.PreparedStmts
 }
 
 func New(connPair *dbconn.PooledPair) (*Stats, error) {
-	stmts := make(dbrunner.PreparedStmts, lastStmtKey)
+	stmts := make(dbconn.PreparedStmts, lastStmtKey)
 
-	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &Stats{
-		conn:   connPair,
-		stmts:  stmts,
-		Runner: dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
+		conn:    connPair,
+		stmts:   stmts,
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
+		Closers: closeutil.New(stmts),
 	}, nil
 }
 

@@ -13,6 +13,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 	"sync"
@@ -110,21 +111,7 @@ var actions = map[ActionType]actionRecord{
 	MessageExpiredActionType:    {impl: messageExpiredAction},
 }
 
-type trackerStmts [lastTrackerStmtKey]*sql.Stmt
-
-func (t trackerStmts) Close() error {
-	for _, stmt := range t {
-		if stmt == nil {
-			continue
-		}
-
-		if err := stmt.Close(); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	return nil
-}
+type trackerStmts = dbconn.PreparedStmts
 
 type txActions struct {
 	size    uint
@@ -135,6 +122,7 @@ type resultsNotifiers []*resultsNotifier
 
 type Tracker struct {
 	runner.CancellableRunner
+	closeutil.Closers
 
 	stmts            trackerStmts
 	dbconn           *dbconn.PooledPair
@@ -200,14 +188,6 @@ func (t *Tracker) Publisher() *Publisher {
 	return &Publisher{actions: t.actions}
 }
 
-func (t *Tracker) Close() error {
-	if err := t.stmts.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
 func buildResultsNotifier(
 	id int,
 	wg *sync.WaitGroup,
@@ -252,13 +232,12 @@ func buildResultsNotifier(
 const numberOfNotifiers = 1
 
 func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
-	trackerStmts, err := prepareTrackerRwStmts(conn.RwConn)
-	if err != nil {
+	trackerStmts := make(dbconn.PreparedStmts, lastTrackerStmtKey)
+	if err := dbconn.PrepareRwStmts(trackerStmtsText, conn.RwConn, trackerStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	err = conn.RoConnPool.ForEach(prepareCommitterConnection)
-	if err != nil {
+	if err := conn.RoConnPool.ForEach(prepareCommitterConnection); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -276,6 +255,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 		actions:         trackerActions,
 		txActions:       txActions,
 		resultsToNotify: resultsToNotify,
+		Closers:         closeutil.New(trackerStmts),
 	}
 
 	// it should be refactored ASAP!!!!
