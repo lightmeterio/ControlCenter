@@ -15,6 +15,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -65,7 +66,7 @@ func TestReporter(t *testing.T) {
 		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{})
 		So(err, ShouldBeNil)
 
-		done, cancel := delivery.Run()
+		done, cancel := runner.Run(delivery)
 
 		pub := delivery.ResultsPublisher()
 

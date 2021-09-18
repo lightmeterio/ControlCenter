@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -36,9 +37,9 @@ func TestMessengerSettings(t *testing.T) {
 		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(m)
-		writer := runner.Writer()
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		writer := writeRunner.Writer()
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() { cancel(); done() }()
 
@@ -69,9 +70,9 @@ func TestInitialSetup(t *testing.T) {
 		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(m)
-		writer := runner.Writer()
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		writer := writeRunner.Writer()
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() { cancel(); done() }()
 

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
@@ -56,11 +57,11 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 	handler, err := metadata.NewHandler(settingdDB)
 	So(err, ShouldBeNil)
 
-	runner := metadata.NewSerialWriteRunner(handler)
+	writeRunner := metadata.NewSerialWriteRunner(handler)
 
-	done, cancel := runner.Run()
+	done, cancel := runner.Run(writeRunner)
 
-	settingsWriter := runner.Writer()
+	settingsWriter := writeRunner.Writer()
 	settingsReader := handler.Reader
 
 	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader)

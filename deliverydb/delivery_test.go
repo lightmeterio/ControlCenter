@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -40,7 +41,7 @@ func TestDatabaseCreation(t *testing.T) {
 			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
 
-			done, cancel := db.Run()
+			done, cancel := runner.Run(db)
 
 			pub := db.ResultsPublisher()
 
@@ -138,7 +139,7 @@ func TestEntriesInsertion(t *testing.T) {
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
 			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
-			done, cancel := db.Run()
+			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
 
 			dashboard, err := dashboard.New(db.ConnPool())

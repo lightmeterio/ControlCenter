@@ -19,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -144,7 +145,7 @@ func TestReporter(t *testing.T) {
 			Category:    core.IntelCategory,
 		})
 
-		doneInsights, cancelInsights := e.Run()
+		doneInsights, cancelInsights := runner.Run(e)
 
 		time.Sleep(100 * time.Millisecond)
 

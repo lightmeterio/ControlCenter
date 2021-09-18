@@ -11,6 +11,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -414,7 +415,7 @@ func TestCollector(t *testing.T) {
 		collector, err := New(conn, Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}, reporters, dispatcher)
 		So(err, ShouldBeNil)
 
-		done, cancel := collector.Run()
+		done, cancel := runner.Run(collector)
 
 		time.Sleep(2100 * time.Millisecond)
 

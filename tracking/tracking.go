@@ -316,7 +316,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 			// start each notifier
 			go func() {
 				for _, resultsNotifier := range tracker.resultsNotifiers {
-					notifierDone, _ := resultsNotifier.Run()
+					notifierDone, _ := runner.Run(resultsNotifier)
 					notifiersDones <- notifierDone
 				}
 			}()

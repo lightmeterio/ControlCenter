@@ -12,6 +12,7 @@ import (
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"net/http"
@@ -44,15 +45,15 @@ func TestHTTPAuth(t *testing.T) {
 		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(m)
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		done, cancel := runner.Run(writeRunner)
 		defer func() {
 			cancel()
 			done()
 		}()
 
 		uuid := uuid.NewV4().String()
-		writer := runner.Writer()
+		writer := writeRunner.Writer()
 		writer.StoreJsonSync(context.Background(), metadata.UuidMetaKey, uuid)
 
 		failedAttempts := 0

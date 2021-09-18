@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
@@ -76,7 +77,7 @@ func main() {
 
 	pub := db.ResultsPublisher()
 
-	done, cancel := db.Run()
+	done, cancel := runner.Run(db)
 
 	scanner := bufio.NewScanner(f)
 

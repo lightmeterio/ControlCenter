@@ -9,6 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -36,15 +37,15 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		handler, err := metadata.NewHandler(settingdDB)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(handler)
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(handler)
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() {
 			cancel()
 			So(done(), ShouldBeNil)
 		}()
 
-		settingsWriter := runner.Writer()
+		settingsWriter := writeRunner.Writer()
 		settingsReader := handler.Reader
 
 		p := NewPublisher(settingsWriter)

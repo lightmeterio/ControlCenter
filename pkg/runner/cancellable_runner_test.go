@@ -35,7 +35,7 @@ func TestCancellableRunner(t *testing.T) {
 			}
 
 			runner := NewCancellableRunner(execute)
-			done, cancel := runner.Run()
+			done, cancel := Run(runner)
 			cancel()
 			err := done()
 
