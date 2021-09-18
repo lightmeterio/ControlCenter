@@ -148,7 +148,10 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
 func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (*MessagesPage, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -156,13 +159,16 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
 	var ts int64
 
-	err := conn.Stmts[oldestAvailableTimeKey].QueryRowContext(ctx).Scan(&ts)
+	err = conn.Stmts[oldestAvailableTimeKey].QueryRowContext(ctx).Scan(&ts)
 
 	// no available logs yet. That's fine
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

@@ -150,11 +150,14 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
 	d := UserData{}
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return false, UserData{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.
+	err = conn.
 		QueryRowContext(ctx, "select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
 		Scan(&d.Id, &d.Email, &d.Name)
 
@@ -172,7 +175,10 @@ func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, 
 func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 	var count int
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -191,11 +197,14 @@ var (
 func (r *Auth) GetUserDataByID(ctx context.Context, id int) (*UserData, error) {
 	var userData UserData
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
+	err = conn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalidUserId
@@ -277,11 +286,14 @@ func nameForEmail(tx *sql.Tx, email string) (string, error) {
 func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
 	var userData UserData
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
+	err = conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoUser

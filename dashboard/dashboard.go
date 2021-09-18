@@ -167,7 +167,10 @@ from
 }
 
 func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -175,7 +178,10 @@ func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatu
 }
 
 func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -183,7 +189,10 @@ func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.T
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -192,7 +201,10 @@ func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.T
 }
 
 func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -201,7 +213,10 @@ func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval timeutil.
 }
 
 func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
