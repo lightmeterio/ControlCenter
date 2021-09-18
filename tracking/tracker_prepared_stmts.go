@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	insertPidOnConnection uint = iota
+	insertPidOnConnection = iota
 	insertConnectionOnConnection
 	insertConnectionDataFourRows
 	insertConnectionData
