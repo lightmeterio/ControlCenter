@@ -15,11 +15,9 @@ import (
 func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbconn.TxPreparedStmts) error {
 	var msgIdsCount int
 
-	stmt := tx.Stmt(stmts[countDeliveriesWithMessageId])
-	defer stmt.Close()
-
 	// is it the only delivery with this message-id?
-	if err := stmt.QueryRow(messageId).Scan(&msgIdsCount); err != nil {
+	//nolint:sqlclosecheck
+	if err := stmts.Get(countDeliveriesWithMessageId).QueryRow(messageId).Scan(&msgIdsCount); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -28,10 +26,8 @@ func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbconn.TxPreparedSt
 		return nil
 	}
 
-	stmt = tx.Stmt(stmts[deleteMessageIdById])
-	defer stmt.Close()
-
-	if _, err := stmt.Exec(messageId); err != nil {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteMessageIdById).Exec(messageId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -44,28 +40,21 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 		deliveryQueueRelationId int64
 	)
 
-	stmt := tx.Stmt(stmts[selectQueueIdForDeliveryId])
-	defer stmt.Close()
-
-	if err := stmt.QueryRow(deliveryId).Scan(&deliveryQueueRelationId, &queueId); err != nil {
+	//nolint:sqlclosecheck
+	if err := stmts.Get(selectQueueIdForDeliveryId).QueryRow(deliveryId).Scan(&deliveryQueueRelationId, &queueId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	var queueCount int
 
-	// is it the only delivery in a given queue?
-	stmt = tx.Stmt(stmts[countDeliveriesWithQueue])
-	defer stmt.Close()
-
-	if err := stmt.QueryRow(queueId).Scan(&queueCount); err != nil {
+	//nolint:sqlclosecheck
+	if err := stmts.Get(countDeliveriesWithQueue).QueryRow(queueId).Scan(&queueCount); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(stmts[deleteDeliveryQueueById])
-	defer stmt.Close()
-
 	// Remove the delivery X queue relationship
-	if _, err := stmt.Exec(deliveryQueueRelationId); err != nil {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteDeliveryQueueById).Exec(deliveryQueueRelationId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -76,28 +65,22 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 
 	// from here on, should delete the queue.
 
-	stmt = tx.Stmt(stmts[deleteExpiredQueuesByQueueId])
-	defer stmt.Close()
-
 	// delete the expired info entry, if it exists
-	if _, err := stmt.Exec(queueId); err != nil {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteExpiredQueuesByQueueId).Exec(queueId); err != nil {
 		return errorutil.Wrap(err)
 	}
-
-	stmt = tx.Stmt(stmts[deleteQueueParentingByQueueId])
-	defer stmt.Close()
 
 	// NOTE: this is a risky move, as some "dangling" relationships might be create as result for some time,
 	// although they are very unlikely and will always eventually be removed on the next "cleanup" call
-	if _, err := stmt.Exec(queueId, queueId); err != nil {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteQueueParentingByQueueId).Exec(queueId, queueId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(stmts[deleteQueueById])
-	defer stmt.Close()
-
 	// Finally, remove the queue
-	if _, err := stmt.Exec(queueId); err != nil {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteQueueById).Exec(queueId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -107,10 +90,8 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 func makeCleanAction(maxAge time.Duration) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		// NOTE: the time in the database is in Seconds
-		stmt := tx.Stmt(stmts[selectOldDeliveries])
-		defer stmt.Close()
-
-		rows, err := stmt.Query(maxAge / time.Second)
+		//nolint:sqlclosecheck
+		rows, err := stmts.Get(selectOldDeliveries).Query(maxAge / time.Second)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -139,10 +120,8 @@ func makeCleanAction(maxAge time.Duration) dbrunner.Action {
 			// maybe delete sender and recipient and orig_recipient domain parts,
 			// although they are very unlikely to grow over time
 
-			stmt := tx.Stmt(stmts[deleteOldDeliveries])
-			defer stmt.Close()
-
-			if _, err := stmt.Exec(deliveryId); err != nil {
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteOldDeliveries).Exec(deliveryId); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}

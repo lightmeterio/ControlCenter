@@ -127,7 +127,7 @@ func New(intelDb *dbconn.PooledPair, options Options, reporters Reporters, dispa
 	return NewWithCustomClock(intelDb, options, reporters, dispatcher, &timeutil.RealClock{})
 }
 
-func oldEntriesCleaner(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+func oldEntriesCleaner(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 	// TODO: implement it!
 	return nil
 }
