@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 )
 
+//nolint:unused,deadcode
 func recoverFromError(*error, tracking.Result) {
 	// Do not recover from panic on dev build
 }
