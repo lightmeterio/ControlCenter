@@ -7,6 +7,7 @@ package metadata
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -25,13 +26,13 @@ func TestRunner(t *testing.T) {
 
 		reader := handler.Reader
 
-		runner := NewSerialWriteRunner(handler)
+		writeRunner := NewSerialWriteRunner(handler)
 
-		done, cancel := runner.Run()
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() { cancel(); done() }()
 
-		writer := runner.Writer()
+		writer := writeRunner.Writer()
 
 		Convey("Insert multiple values", func() {
 			err := writer.Store([]Item{

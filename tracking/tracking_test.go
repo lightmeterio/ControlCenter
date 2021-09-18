@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
@@ -68,7 +69,7 @@ func TestMostRecentLogTime(t *testing.T) {
 	Convey("Obtain most recent time", t, func() {
 		_, t, clear := buildPublisherAndTempTracker(t)
 		defer clear()
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		Convey("Nothing read", func() {
 			cancel()
@@ -94,7 +95,7 @@ func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
 	Convey("Some strange and for now unsupported log lines, that need to be supported in the future!", t, func() {
 		pub, t, clear := buildPublisherAndTempTracker(t)
 		defer clear()
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		Convey("Unsupported lines, with weird clone syntax", func() {
 			readFromTestFile("../test_files/postfix_logs/individual_files/8_weird_log_file.log", t.Publisher())
@@ -143,7 +144,7 @@ func TestReadingFromArbitraryLines(t *testing.T) {
 			_, t, clear := buildPublisherAndTempTracker(t)
 			defer clear()
 
-			done, cancel := t.Run()
+			done, cancel := runner.Run(t)
 
 			content := b[offset:]
 			r := bytes.NewReader(content)
@@ -161,7 +162,7 @@ func TestTrackingFromFiles(t *testing.T) {
 		_ = pub
 		defer clear()
 
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		queryConn, release := t.dbconn.RoConnPool.Acquire()
 

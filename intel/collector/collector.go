@@ -8,6 +8,7 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -134,10 +135,15 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 		closers.Add(r)
 	}
 
+	stmts := dbrunner.PreparedStmts{}
+
 	return &Collector{
 		reporters: reporters,
 		Closers:   closers,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts)
+			dbRunnerDone, dbRunnerCancel := runner.Run(dbRunner)
+
 			go func() {
 				timer := time.NewTicker(options.CycleInterval)
 
@@ -146,21 +152,18 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 					case <-cancel:
 						log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
 
-						done <- nil
-
 						timer.Stop()
+						dbRunnerCancel()
+						done <- dbRunnerDone()
 
 						return
 					case <-timer.C:
-						if err := pair.RwConn.Tx(func(tx *sql.Tx) error {
+						dbRunner.Actions <- func(tx *sql.Tx, _ dbrunner.PreparedStmts) error {
 							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
 								return errorutil.Wrap(err)
 							}
 
 							return nil
-						}); err != nil {
-							done <- err
-							return
 						}
 					}
 				}

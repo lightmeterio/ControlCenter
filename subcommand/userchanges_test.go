@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -69,15 +70,15 @@ func TestChangeUserInfo(t *testing.T) {
 		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := metadata.NewSerialWriteRunner(m)
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		done, cancel := runner.Run(writeRunner)
 		defer func() {
 			cancel()
 			done()
 		}()
 
 		uuid := uuid.NewV4().String()
-		writer := runner.Writer()
+		writer := writeRunner.Writer()
 		writer.StoreJsonSync(dummyContext, metadata.UuidMetaKey, uuid)
 
 		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)

@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
@@ -403,7 +404,7 @@ func TestEngine(t *testing.T) {
 
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 
@@ -444,7 +445,7 @@ func TestEngine(t *testing.T) {
 
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 
@@ -477,7 +478,7 @@ func TestEngine(t *testing.T) {
 			// Skip import
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 

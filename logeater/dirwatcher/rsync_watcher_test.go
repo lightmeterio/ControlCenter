@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"os"
@@ -83,7 +84,7 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("No updates", func() {
 				w := newRunner("mail.log", 44)
 
-				done, cancel := w.Run()
+				done, cancel := runner.Run(w)
 
 				cancel()
 				done()
@@ -112,7 +113,7 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("No updates", func() {
 				w := newRunner("mail.log", 0)
 
-				done, cancel := w.Run()
+				done, cancel := runner.Run(w)
 
 				cancel()
 				done()
@@ -135,7 +136,7 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("New line is appended and synchronized", func() {
 				w := newRunner("mail.log", 0)
 
-				doneRunning, cancel := w.Run()
+				doneRunning, cancel := runner.Run(w)
 
 				done := func() {
 					So(doneRunning(), ShouldBeNil)

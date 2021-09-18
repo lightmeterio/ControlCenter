@@ -9,6 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -36,7 +37,7 @@ func TestSmtpConnectionStats(t *testing.T) {
 		}
 
 		pub := stats.Publisher()
-		done, cancel := stats.Run()
+		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
@@ -154,7 +155,7 @@ func TestSmtpConnectionAccessor(t *testing.T) {
 			So(attempts.Attempts, ShouldResemble, []AttemptDesc{})
 		}
 
-		done, cancel := stats.Run()
+		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jan 10 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[4.3.2.1] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6

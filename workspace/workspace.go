@@ -246,6 +246,16 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
+	rblCheckerCancellableRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		// TODO: Convert this one here to a proper CancellableRunner that can be cancelled...
+		rblChecker.StartListening()
+
+		go func() {
+			<-cancel
+			done <- nil
+		}()
+	})
+
 	return &Workspace{
 		deliveries:              deliveries,
 		tracker:                 tracker,
@@ -271,29 +281,9 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
-		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-			// Convert this one here to CancellableRunner!
-			rblChecker.StartListening()
-
-			doneAll, cancelAll := runner.Run(
-				insightsEngine, settingsRunner, rblDetector,
-				logsRunner, importAnnouncer, intelCollector, connStats,
-			)
-
-			go func() {
-				<-cancel
-				cancelAll()
-			}()
-
-			go func() {
-				if err := doneAll(); err != nil {
-					done <- errorutil.Wrap(err)
-					return
-				}
-
-				done <- nil
-			}()
-		}),
+		CancellableRunner: runner.NewCombinedCancellableRunners(
+			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
+			intelCollector, connStats, rblCheckerCancellableRunner),
 	}, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -82,7 +83,7 @@ func TestWorkspaceExecution(t *testing.T) {
 			So(err, ShouldBeNil)
 			announcer.Skip(importAnnouncer)
 
-			done, cancel := ws.Run()
+			done, cancel := runner.Run(ws)
 
 			cancel()
 
@@ -112,7 +113,7 @@ func TestMostRecentLogTime(t *testing.T) {
 			So(err, ShouldBeNil)
 			announcer.Skip(importAnnouncer)
 
-			done, cancel := ws.Run()
+			done, cancel := runner.Run(ws)
 
 			pub := ws.NewPublisher()
 
