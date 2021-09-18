@@ -7,7 +7,6 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
-	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -348,16 +347,7 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 
 func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error().Object("result", tr).Msg("Failed to store delivery message")
-
-				// panic(r)
-
-				// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
-				err = nil
-			}
-		}()
+		defer recoverFromError(&err, tr)
 
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {
