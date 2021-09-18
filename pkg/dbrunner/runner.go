@@ -14,29 +14,15 @@ import (
 	"time"
 )
 
-type PreparedStmts []*sql.Stmt
-
-func (stmts PreparedStmts) Close() error {
-	for _, stmt := range stmts {
-		if err := stmt.Close(); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	return nil
-}
-
-type Action func(*sql.Tx, PreparedStmts) error
-
-type StmtsText map[uint]string
+type Action func(*sql.Tx, dbconn.PreparedStmts) error
 
 type Runner struct {
 	runner.CancellableRunner
-	stmts   PreparedStmts
+	stmts   dbconn.PreparedStmts
 	Actions chan Action
 }
 
-func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, stmts PreparedStmts) Runner {
+func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, stmts dbconn.PreparedStmts) Runner {
 	actions := make(chan Action, actionSize)
 
 	return Runner{
@@ -61,21 +47,7 @@ func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, st
 	}
 }
 
-func PrepareRwStmts(stmtsText StmtsText, conn dbconn.RwConn, stmts PreparedStmts) error {
-	for k, v := range stmtsText {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		stmts[k] = stmt
-	}
-
-	return nil
-}
-
-func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts PreparedStmts, dbActions <-chan Action, filename string) error {
+func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.PreparedStmts, dbActions <-chan Action, filename string) error {
 	var (
 		tx                  *sql.Tx = nil
 		countPerTransaction int64

@@ -7,12 +7,12 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func rowIdForQueue(queue string, tx *sql.Tx, stmts dbrunner.PreparedStmts) (int64, error) {
+func rowIdForQueue(queue string, tx *sql.Tx, stmts dbconn.PreparedStmts) (int64, error) {
 	// maybe the queue already exists in the db
 	stmt := tx.Stmt(stmts[findQueueByName])
 
@@ -51,7 +51,7 @@ func rowIdForQueue(queue string, tx *sql.Tx, stmts dbrunner.PreparedStmts) (int6
 	return queueId, nil
 }
 
-func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+func handleQueueInfo(deliveryRowId int64, tr tracking.Result, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
 	queue := tr[tracking.QueueDeliveryNameKey].Text()
 
 	queueRowId, err := rowIdForQueue(queue, tx, stmts)
@@ -101,7 +101,7 @@ const (
 	QueueParentingTypeReturnedToSender QueueParentingType = 1
 )
 
-func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+func setQueueExpired(queue string, expiredTs int64, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
 	queueId, err := rowIdForQueue(queue, tx, stmts)
 	if err != nil {
 		return errorutil.Wrap(err)

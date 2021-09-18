@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -22,9 +23,10 @@ type dbAction = dbrunner.Action
 
 type DB struct {
 	dbrunner.Runner
+	closeutil.Closers
 
 	connPair *dbconn.PooledPair
-	stmts    dbrunner.PreparedStmts
+	stmts    dbconn.PreparedStmts
 }
 
 type stmtKey = uint
@@ -124,9 +126,9 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
-	stmts := make(dbrunner.PreparedStmts, lastStmtKey)
+	stmts := make(dbconn.PreparedStmts, lastStmtKey)
 
-	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
@@ -134,6 +136,7 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		connPair: connPair,
 		stmts:    stmts,
 		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
+		Closers:  closeutil.New(stmts),
 	}, nil
 }
 
@@ -179,7 +182,7 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 	return id, nil
 }
 
-func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmts, domainName string) (int64, error) {
+func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts, domainName string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectIdFromRemoteDomain], stmts[insertRemoteDomain], domainName)
 
 	if err != nil {
@@ -189,7 +192,7 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmts, domai
 	return id, nil
 }
 
-func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
+func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.PreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
 	if domainName.IsNone() {
 		return 0, false, nil
 	}
@@ -208,7 +211,7 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbrunner.PreparedStmt
 	return id, true, nil
 }
 
-func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbrunner.PreparedStmts, hostname string) (int64, error) {
+func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.PreparedStmts, hostname string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectDeliveryServerByHostname], stmts[insertDeliveryServer], hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -217,7 +220,7 @@ func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbrunner.PreparedStmts, hostnam
 	return id, nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, stmts dbrunner.PreparedStmts, messageId string) (int64, error) {
+func getUniqueMessageId(tx *sql.Tx, stmts dbconn.PreparedStmts, messageId string) (int64, error) {
 	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectMessageIdsByValue], stmts[insertMessageId], messageId)
 
 	if err != nil {
@@ -227,7 +230,7 @@ func getUniqueMessageId(tx *sql.Tx, stmts dbrunner.PreparedStmts, messageId stri
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, stmts dbrunner.PreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.PreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName.IsNone() || relayIP.IsNone() {
 		return 0, false, nil
@@ -241,7 +244,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts dbrunner.PreparedStmts, relayName,
 	return id, true, nil
 }
 
-func insertMandatoryResultFields(tx *sql.Tx, stmts dbrunner.PreparedStmts, tr tracking.Result) (sql.Result, error) {
+func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.PreparedStmts, tr tracking.Result) (sql.Result, error) {
 	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -310,8 +313,8 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 	return e.ValueOrNil()
 }
 
-func buildAction(tr tracking.Result) func(*sql.Tx, dbrunner.PreparedStmts) error {
-	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) (err error) {
+func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.PreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.PreparedStmts) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Object("result", tr).Msg("Failed to store delivery message")
@@ -339,7 +342,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, dbrunner.PreparedStmts) error
 	}
 }
 
-func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
+func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbconn.PreparedStmts) error {
 	result, err := insertMandatoryResultFields(tx, stmts, tr)
 	if err != nil {
 		return errorutil.Wrap(err)
