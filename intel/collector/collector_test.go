@@ -460,7 +460,7 @@ func TestRemoveOldDatabaseEntries(t *testing.T) {
 			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)
 
-			// We sleep 2h and then r1 AND the report dispatching are executed
+			// We sleep 1h and then r1 AND the report dispatching are executed
 			clock.Sleep(1 * time.Hour)
 			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)
