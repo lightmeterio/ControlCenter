@@ -158,7 +158,7 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 
 						return
 					case <-timer.C:
-						dbRunner.Actions <- func(tx *sql.Tx, _ dbconn.PreparedStmts) error {
+						dbRunner.Actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
 							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
 								return errorutil.Wrap(err)
 							}

@@ -138,12 +138,9 @@ type publisher struct {
 }
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
-	return func(tx *sql.Tx, stmts dbconn.PreparedStmts) error {
-		stmt := tx.Stmt(stmts[insertDisconnectKey])
-
-		defer stmt.Close()
-
-		r, err := stmt.Exec(record.Time.Unix(), payload.IP)
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		//nolint:sqlclosecheck
+		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
 		}
@@ -152,10 +149,6 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		stmt = tx.Stmt(stmts[insertCommandStatKey])
-
-		defer stmt.Close()
 
 		for k, v := range payload.Stats {
 			// skip useless summary reported by postfix
@@ -169,7 +162,8 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 				continue
 			}
 
-			if _, err := stmt.Exec(connectionId, cmd, v.Success, v.Total); err != nil {
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, cmd, v.Success, v.Total); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}
@@ -185,7 +179,7 @@ const (
 	lastStmtKey
 )
 
-var stmtsText = map[uint]string{
+var stmtsText = map[int]string{
 	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
 }
@@ -211,20 +205,18 @@ type Stats struct {
 	dbrunner.Runner
 	closeutil.Closers
 
-	conn  *dbconn.PooledPair
-	stmts dbconn.PreparedStmts
+	conn *dbconn.PooledPair
 }
 
 func New(connPair *dbconn.PooledPair) (*Stats, error) {
-	stmts := make(dbconn.PreparedStmts, lastStmtKey)
+	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
-	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, stmts); err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &Stats{
 		conn:    connPair,
-		stmts:   stmts,
 		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
 		Closers: closeutil.New(stmts),
 	}, nil
