@@ -110,12 +110,14 @@ func Retrieve(ctx context.Context, tx *sql.Tx, key interface{}, value interface{
 }
 
 func retrieve(ctx context.Context, reader *Reader, key interface{}, value interface{}) error {
-	conn, release := reader.pool.Acquire()
+	conn, release, err := reader.pool.AcquireContext(ctx)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
-
+	err = conn.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
 	if err == nil {
 		return nil
 	}

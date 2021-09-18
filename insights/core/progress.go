@@ -48,7 +48,10 @@ func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 		return Progress{Active: false, Value: &value}, nil
 	}
 
-	conn, release := f.pool.Acquire()
+	conn, release, err := f.pool.AcquireContext(ctx)
+	if err != nil {
+		return Progress{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 

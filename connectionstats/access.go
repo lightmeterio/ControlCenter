@@ -78,7 +78,10 @@ order by
 }
 
 func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (AccessResult, error) {
-	conn, release := a.pool.Acquire()
+	conn, release, err := a.pool.AcquireContext(ctx)
+	if err != nil {
+		return AccessResult{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
