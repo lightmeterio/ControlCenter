@@ -177,6 +177,7 @@ const (
 	insertCommandStatKey
 	selectOldLogsKey
 	deleteCommandsByConnectionIdKey
+	deleteConnectionsByIdKey
 
 	lastStmtKey
 )
@@ -198,6 +199,7 @@ var stmtsText = map[int]string{
 		connections join time_cut
 			on connections.disconnection_ts < time_cut.v`,
 	deleteCommandsByConnectionIdKey: `delete from commands where connection_id = ?`,
+	deleteConnectionsByIdKey:        `delete from connections where id = ?`,
 }
 
 func (pub *publisher) Publish(r postfix.Record) {
@@ -289,6 +291,11 @@ func makeCleanAction(maxAge time.Duration) dbrunner.Action {
 
 			//nolint:sqlclosecheck
 			if _, err := stmts.Get(deleteCommandsByConnectionIdKey).Exec(id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteConnectionsByIdKey).Exec(id); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}

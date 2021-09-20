@@ -25,7 +25,7 @@ func init() {
 
 func TestSmtpConnectionStats(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		stats, _, pub, closeConn := buildContext(t)
+		stats, _, pub, _, closeConn := buildContext(t)
 		defer closeConn()
 
 		{
@@ -126,7 +126,7 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 
 func TestSmtpConnectionAccessor(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		stats, accessor, pub, closeConn := buildContext(t)
+		stats, accessor, pub, _, closeConn := buildContext(t)
 		defer closeConn()
 
 		{
@@ -174,7 +174,7 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 	})
 }
 
-func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, func()) {
+func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, *dbconn.RoPool, func()) {
 	db, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
 
 	stats, err := New(db)
@@ -185,14 +185,14 @@ func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, func()) {
 	accessor, err := NewAccessor(stats.ConnPool())
 	So(err, ShouldBeNil)
 
-	return stats, accessor, pub, func() {
+	return stats, accessor, pub, accessor.pool, func() {
 		closeConn()
 	}
 }
 
 func TestRemoveOldLogs(t *testing.T) {
 	Convey("Remove Old Logs", t, func() {
-		stats, accessor, pub, closeConn := buildContext(t)
+		stats, accessor, pub, pool, closeConn := buildContext(t)
 		defer closeConn()
 
 		done, cancel := runner.Run(stats)
@@ -227,5 +227,19 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 				{Time: timeutil.MustParseTime(`2020-12-30 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "ok"},
 			})
 		}
+
+		conn, release := pool.Acquire()
+		defer release()
+
+		var (
+			connectionsCount int
+			commandsCount    int
+		)
+
+		So(conn.QueryRow(`select count(*) from connections`).Scan(&connectionsCount), ShouldBeNil)
+		So(conn.QueryRow(`select count(*) from commands`).Scan(&commandsCount), ShouldBeNil)
+
+		So(commandsCount, ShouldEqual, 14)
+		So(connectionsCount, ShouldEqual, 3)
 	})
 }
