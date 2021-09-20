@@ -449,7 +449,6 @@ Rate limiting is applied on the number of searches, with a current maximum of 20
 ### High risk
 
 - The Web UI loads without SSL (unencrypted) by default, so credentials are at risk if transmitted over public networks (planned fix: [#480](https://gitlab.com/lightmeter/controlcenter/-/issues/480))
-- The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
 - Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
 
 ### Low risk
