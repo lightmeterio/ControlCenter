@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -41,7 +42,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		buildWs := func() (*deliverydb.DB, func() error, func(), tracking.ResultPublisher) {
 			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
 			So(err, ShouldBeNil)
-			done, cancel := db.Run()
+			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
 
 			So(err, ShouldBeNil)
