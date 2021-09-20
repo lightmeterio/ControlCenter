@@ -687,10 +687,11 @@ func TestReopenDatabase(t *testing.T) {
 			So(migrator.Run(conn.RwConn.DB, databaseName), ShouldBeNil)
 			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
+			pub := db.ResultsPublisher()
 			dashboard, err := dashboard.New(db.ConnPool())
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
-			return db, done, cancel, db.ResultsPublisher(), dashboard, func() { So(conn.Close(), ShouldBeNil) }
+			return db, done, cancel, pub, dashboard, func() { So(conn.Close(), ShouldBeNil) }
 		}
 
 		Convey("Insert, reopen, insert", func() {
