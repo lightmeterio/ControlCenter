@@ -78,6 +78,7 @@ func main() {
 		VersionBuilder:       intel.DefaultVersionBuilder,
 		InstanceID:           "8946c49f-22ee-4577-bcbc-121ac8c715c9",
 		Auth:                 auth,
+		SchedFileReader:      intel.DefaultSchedFileReader,
 	}
 
 	err = dispatcher.Dispatch(collector.Report{
