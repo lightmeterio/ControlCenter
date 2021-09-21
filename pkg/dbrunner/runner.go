@@ -22,15 +22,38 @@ type Runner struct {
 	Actions chan Action
 }
 
-func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, stmts dbconn.PreparedStmts) Runner {
+func newCleaner(cleanInterval time.Duration, cleaner Action, actions chan<- Action) runner.CancellableRunner {
+	return runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		go func() {
+			ticker := time.NewTicker(cleanInterval)
+
+			for {
+				select {
+				case <-cancel:
+					done <- nil
+					return
+				case <-ticker.C:
+					log.Info().Msgf("Executing database cleaning action")
+					actions <- cleaner
+				}
+			}
+		}()
+	})
+}
+
+func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, stmts dbconn.PreparedStmts, cleanInterval time.Duration, cleaner Action) Runner {
 	actions := make(chan Action, actionSize)
 
 	return Runner{
 		stmts:   stmts,
 		Actions: actions,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			cleanerDone, cleanerCancel := runner.Run(newCleaner(cleanInterval, cleaner, actions))
+
 			go func() {
 				<-cancel
+				cleanerCancel()
+				_ = cleanerDone()
 				close(actions)
 			}()
 

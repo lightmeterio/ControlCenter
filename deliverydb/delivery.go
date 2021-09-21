@@ -7,7 +7,6 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
-	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -47,6 +46,17 @@ const (
 	findQueueByName
 	insertQueueParenting
 	insertExpiredQueue
+
+	selectOldDeliveries
+	deleteOldDeliveries
+	selectQueueIdForDeliveryId
+	countDeliveriesWithQueue
+	deleteDeliveryQueueById
+	deleteExpiredQueuesByQueueId
+	deleteQueueParentingByQueueId
+	deleteQueueById
+	countDeliveriesWithMessageId
+	deleteMessageIdById
 
 	lastStmtKey
 )
@@ -92,6 +102,38 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	findQueueByName:                 `select id from queues where name = ?`,
 	insertQueueParenting:            `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
 	insertExpiredQueue:              `insert into expired_queues(queue_id, expired_ts) values(?, ?)`,
+	selectOldDeliveries: `with time_cut as (
+		select
+			(delivery_ts - ?) as v
+		from
+			deliveries
+		order by
+			delivery_ts desc limit 1
+	)
+	select
+		deliveries.id, deliveries.message_id
+	from
+		deliveries join time_cut
+			on deliveries.delivery_ts < time_cut.v`,
+	deleteOldDeliveries: `delete from deliveries where id = ?`,
+	selectQueueIdForDeliveryId: `select
+	delivery_queue.id, delivery_queue.queue_id
+from
+	delivery_queue
+where
+	delivery_queue.delivery_id = ?	`,
+	countDeliveriesWithQueue: `select
+	count(*)
+from
+	deliveries join delivery_queue on delivery_queue.delivery_id = deliveries.id
+where
+	delivery_queue.queue_id = ?`,
+	deleteDeliveryQueueById:       `delete from delivery_queue where id = ?`,
+	deleteExpiredQueuesByQueueId:  `delete from expired_queues where queue_id = ?`,
+	deleteQueueParentingByQueueId: `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
+	deleteQueueById:               `delete from queues where id = ?`,
+	countDeliveriesWithMessageId:  `select count(*) from deliveries join messageids on deliveries.message_id = messageids.id where messageids.id = ?`,
+	deleteMessageIdById:           `delete from messageids where id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -131,9 +173,14 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
+	cleanerInterval := time.Second * 10
+
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
+
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts),
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, cleanerInterval, makeCleanAction(maxAge)),
 		Closers:  closeutil.New(stmts),
 	}, nil
 }
@@ -300,16 +347,7 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 
 func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error().Object("result", tr).Msg("Failed to store delivery message")
-
-				// panic(r)
-
-				// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
-				err = nil
-			}
-		}()
+		defer recoverFromError(&err, tr)
 
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {

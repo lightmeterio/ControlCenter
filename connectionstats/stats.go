@@ -217,9 +217,14 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, time.Hour*12, oldEntriesCleaner),
 		Closers: closeutil.New(stmts),
 	}, nil
+}
+
+func oldEntriesCleaner(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+	// TODO: implement it!
+	return nil
 }
 
 func (s *Stats) Publisher() postfix.Publisher {
