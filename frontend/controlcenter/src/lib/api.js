@@ -370,3 +370,11 @@ export function postUserRating(type, rating) {
     })
     .catch(builderErrorHandler("insight_user_rating"));
 }
+
+/**** Network Intelligence reports ****/
+
+export function getLatestReports() {
+  let get = axios.get(BASE_URL + "api/v0/reports");
+  get.catch(errorHandler);
+  return get;
+}

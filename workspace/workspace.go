@@ -68,6 +68,7 @@ type Workspace struct {
 
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
+	intelAccessor           *collector.Accessor
 }
 
 type databases struct {
@@ -255,6 +256,12 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
+	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	logsRunner := newLogsRunner(tracker, deliveries)
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
@@ -284,6 +291,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		settingsRunner:          settingsRunner,
 		importAnnouncer:         importAnnouncer,
 		intelCollector:          intelCollector,
+		intelAccessor:           intelAccessor,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
@@ -324,6 +332,10 @@ func (ws *Workspace) Dashboard() dashboard.Dashboard {
 
 func (ws *Workspace) ConnectionStatsAccessor() *connectionstats.Accessor {
 	return ws.connectionStatsAccessor
+}
+
+func (ws *Workspace) IntelAccessor() *collector.Accessor {
+	return ws.intelAccessor
 }
 
 func (ws *Workspace) Detective() detective.Detective {
