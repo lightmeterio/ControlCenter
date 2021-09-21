@@ -243,11 +243,6 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 	}, nil
 }
 
-func oldEntriesCleaner(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
-	// TODO: implement it!
-	return nil
-}
-
 func (s *Stats) Publisher() postfix.Publisher {
 	return &publisher{actions: s.Actions}
 }
