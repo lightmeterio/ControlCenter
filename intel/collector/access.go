@@ -31,19 +31,15 @@ const (
 func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	if err := pool.ForEach(func(conn *dbconn.RoPooledConn) error {
 		//nolint:sqlclosecheck
-		sql, err := conn.Prepare(`
+		if err := conn.PrepareStmt(`
 			select id, time, dispatched_time, identifier, value
 			from queued_reports
 			where dispatched_time != 0
 			order by dispatched_time desc
 			limit 20
-		`)
-
-		if err != nil {
+		`, lastReportsQuery); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		conn.Stmts[lastReportsQuery] = sql
 
 		return nil
 	}); err != nil {
@@ -54,10 +50,15 @@ func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 }
 
 func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]DispatchedReport, error) {
-	conn, release := intelAccessor.pool.Acquire()
+	conn, release, err := intelAccessor.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	defer release()
 
-	r, err := conn.Stmts[lastReportsQuery].QueryContext(ctx)
+	//nolint:sqlclosecheck
+	r, err := conn.GetStmt(lastReportsQuery).QueryContext(ctx)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
