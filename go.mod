@@ -9,6 +9,7 @@ require (
 	github.com/chai2010/gettext-go v1.0.3-0.20200705094307-42825e1d282c
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
+	github.com/dsnet/compress v0.0.1
 	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
 	github.com/emersion/go-smtp v0.14.0
 	github.com/fsnotify/fsnotify v1.4.9
