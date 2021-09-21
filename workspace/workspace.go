@@ -97,7 +97,19 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 	return connPair, nil
 }
 
-func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
+type Options struct {
+	IsUsingRsyncedLogs bool
+}
+
+var DefaultOptions = &Options{
+	IsUsingRsyncedLogs: false,
+}
+
+func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
+	if options == nil {
+		options = DefaultOptions
+	}
+
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
@@ -233,6 +245,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
 		ReportDestinationURL: IntelReportDestinationURL,
+		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
