@@ -7,10 +7,9 @@ package mailinactivity
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/dashboard"
-	mock_dashboard "gitlab.com/lightmeter/controlcenter/dashboard/mock"
+	"gitlab.com/lightmeter/controlcenter/deliverydb"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
@@ -18,6 +17,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -34,9 +36,21 @@ func init() {
 
 func TestMailInactivityDetectorInsight(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		ctrl := gomock.NewController(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "logs")
+		defer closeConn()
 
-		d := mock_dashboard.NewMockDashboard(ctrl)
+		buildWs := func() (*deliverydb.DB, func() error, func(), tracking.ResultPublisher) {
+			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+			So(err, ShouldBeNil)
+			done, cancel := runner.Run(db)
+			pub := db.ResultsPublisher()
+
+			So(err, ShouldBeNil)
+
+			return db, done, cancel, pub
+		}
+
+		deliveryDB, done, cancel, pub := buildWs()
 
 		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
@@ -46,7 +60,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		lookupRange := time.Hour * 24
 
 		detector := NewDetector(accessor, core.Options{
-			"dashboard":      d,
+			"logsConnPool":   deliveryDB.ConnPool(),
 			"mailinactivity": Options{LookupRange: lookupRange, MinTimeGenerationInterval: time.Hour * 8},
 		})
 
@@ -58,28 +72,10 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		}
 
 		Convey("Don't generate an insight when application starts with no log data", func() {
+			cancel()
+			So(done(), ShouldBeNil)
+
 			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
-
-			// there was no data available two days prior, not enough data to generate an insight
-			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange * -1),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-			}).Return(dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 0},
-				dashboard.Pair{Key: "deferred", Value: 0},
-				dashboard.Pair{Key: "sent", Value: 0},
-			}, nil)
-
-			// no activity in the past day, no insight is to be generated, as it's caused by not data being available
-			// during such time
-			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
-			}).Return(dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 0},
-				dashboard.Pair{Key: "deferred", Value: 0},
-				dashboard.Pair{Key: "sent", Value: 0},
-			}, nil)
 
 			// do not generate insight
 			cycle(clock)
@@ -88,50 +84,62 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Server stays inactive for one day", func() {
-			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 
-			// some activity, no insights should be generated
-			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange),
-			}).Return(dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 1},
-				dashboard.Pair{Key: "deferred", Value: 2},
-				dashboard.Pair{Key: "sent", Value: 3},
-			}, nil)
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(lookupRange)}
 
-			// 8 hours later, check and realized there's been no activity for the past 24h
-			{
-				// the required "previous range"
-				d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8).Add(lookupRange * -1),
-					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8).Add(lookupRange * -1),
-				}).Return(dashboard.Pairs{
-					dashboard.Pair{Key: "bounced", Value: 1},
-					dashboard.Pair{Key: "deferred", Value: 1},
-					dashboard.Pair{Key: "sent", Value: 1},
-				}, nil)
+			// There is some inbound activity in the first 8 hours
+			result1 := tracking.Result{}
+			result1[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText("sender")
+			result1[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText("sender.example.com")
+			result1[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText("recipient")
+			result1[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("recipient.example.com")
+			result1[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(parser.SentStatus))
+			result1[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming))
+			result1[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(baseTime.Add(1 * time.Hour).Unix())
+			result1[tracking.QueueMessageIDKey] = tracking.ResultEntryText("msgid1")
+			result1[tracking.QueueOriginalMessageSizeKey] = tracking.ResultEntryInt64(35)
+			result1[tracking.QueueProcessedMessageSizeKey] = tracking.ResultEntryInt64(42)
+			result1[tracking.QueueNRCPTKey] = tracking.ResultEntryInt64(0)
+			result1[tracking.ResultDeliveryServerKey] = tracking.ResultEntryText("mail")
+			result1[tracking.ResultDelayKey] = tracking.ResultEntryFloat64(0.0)
+			result1[tracking.ResultDelaySMTPDKey] = tracking.ResultEntryFloat64(0.0)
+			result1[tracking.ResultDelayCleanupKey] = tracking.ResultEntryFloat64(0.0)
+			result1[tracking.ResultDelayQmgrKey] = tracking.ResultEntryFloat64(0.0)
+			result1[tracking.ResultDelaySMTPKey] = tracking.ResultEntryFloat64(0.0)
+			result1[tracking.ResultDSNKey] = tracking.ResultEntryText("2.0.0")
+			result1[tracking.QueueBeginKey] = tracking.ResultEntryInt64(0)
+			result1[tracking.QueueDeliveryNameKey] = tracking.ResultEntryText("A1")
+			pub.Publish(result1)
 
-				// actual check
-				d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
-					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
-				}).Return(dashboard.Pairs{
-					dashboard.Pair{Key: "bounced", Value: 0},
-					dashboard.Pair{Key: "deferred", Value: 0},
-					dashboard.Pair{Key: "sent", Value: 0},
-				}, nil)
-			}
+			// No activity in the next 8 hours...
 
-			// 8 hours later, there's activity again
-			d.EXPECT().DeliveryStatus(gomock.Any(), timeutil.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 16),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 16),
-			}).Return(dashboard.Pairs{
-				dashboard.Pair{Key: "bounced", Value: 0},
-				dashboard.Pair{Key: "deferred", Value: 0},
-				dashboard.Pair{Key: "sent", Value: 2},
-			}, nil)
+			// Then there is some outbound activity in the final 8 hours
+			result2 := tracking.Result{}
+			result2[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText("sender")
+			result2[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText("sender.example.com")
+			result2[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText("recipient")
+			result2[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("recipient.example.com")
+			result2[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(parser.SentStatus))
+			result2[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound))
+			result2[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(baseTime.Add(lookupRange).Add(10 * time.Hour).Unix())
+			result2[tracking.QueueMessageIDKey] = tracking.ResultEntryText("msgid2")
+			result2[tracking.QueueOriginalMessageSizeKey] = tracking.ResultEntryInt64(35)
+			result2[tracking.QueueProcessedMessageSizeKey] = tracking.ResultEntryInt64(42)
+			result2[tracking.QueueNRCPTKey] = tracking.ResultEntryInt64(0)
+			result2[tracking.ResultDeliveryServerKey] = tracking.ResultEntryText("mail")
+			result2[tracking.ResultDelayKey] = tracking.ResultEntryFloat64(0.0)
+			result2[tracking.ResultDelaySMTPDKey] = tracking.ResultEntryFloat64(0.0)
+			result2[tracking.ResultDelayCleanupKey] = tracking.ResultEntryFloat64(0.0)
+			result2[tracking.ResultDelayQmgrKey] = tracking.ResultEntryFloat64(0.0)
+			result2[tracking.ResultDelaySMTPKey] = tracking.ResultEntryFloat64(0.0)
+			result2[tracking.ResultDSNKey] = tracking.ResultEntryText("2.0.0")
+			result2[tracking.QueueBeginKey] = tracking.ResultEntryInt64(0)
+			result2[tracking.QueueDeliveryNameKey] = tracking.ResultEntryText("A2")
+			pub.Publish(result2)
+
+			cancel()
+			So(done(), ShouldBeNil)
 
 			// do not generate insight
 			cycle(clock)
@@ -167,8 +175,6 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
 				}})
 		})
-
-		ctrl.Finish()
 	})
 }
 
@@ -185,7 +191,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(m, ShouldResemble, notificationCore.Message{
 			Title:       "Mail Inactivity",
-			Description: "No emails were sent between 2000-01-01 00:00:00 +0000 UTC and 2000-01-01 10:00:00 +0000 UTC",
+			Description: "No emails were sent or received between 2000-01-01 00:00:00 +0000 UTC and 2000-01-01 10:00:00 +0000 UTC",
 			Metadata:    map[string]string{},
 		})
 	})

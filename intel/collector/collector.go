@@ -127,6 +127,11 @@ func New(intelDb *dbconn.PooledPair, options Options, reporters Reporters, dispa
 	return NewWithCustomClock(intelDb, options, reporters, dispatcher, &timeutil.RealClock{})
 }
 
+func oldEntriesCleaner(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+	// TODO: implement it!
+	return nil
+}
+
 // NOTE: New takes ownwership of the reporters, calling Close() when it ends
 func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
 	closers := closeutil.New()

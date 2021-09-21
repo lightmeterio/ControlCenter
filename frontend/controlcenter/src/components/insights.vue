@@ -492,7 +492,7 @@ export default {
     mail_inactivity_description(i) {
       let c = i.content;
       let translation = this.$gettext(
-        "No emails were sent between %{intFrom} and %{intTo}"
+        "No emails were sent or received between %{intFrom} and %{intTo}"
       );
 
       return this.$gettextInterpolate(translation, {
