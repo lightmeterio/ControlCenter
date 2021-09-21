@@ -5,21 +5,21 @@
 package auth
 
 import (
-	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gorilla/sessions"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -225,7 +225,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request, session *sessions.Sess
 		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
-	log.Println("User", sessionData.Email, "logs out")
+	log.Info().Msgf("User %s logs out", sessionData.Email)
 
 	session.Values["auth"] = nil
 
@@ -308,8 +308,10 @@ func GetSessionData(auth *Authenticator, r *http.Request) (*SessionData, error) 
 }
 
 type UserSystemData struct {
-	UserData   *auth.UserData `json:"user"`
-	InstanceID string         `json:"instance_id"`
+	UserData       *auth.UserData `json:"user"`
+	InstanceID     string         `json:"instance_id"`
+	PostfixVersion string         `json:"postfix_version"`
+	MailKind       string         `json:"mail_kind"`
 }
 
 func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reader, w http.ResponseWriter, r *http.Request) error {
@@ -332,11 +334,40 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reade
 	}
 
 	// retrieve lmcc uuid
-	err = settingsReader.RetrieveJson(context.Background(), metadata.UuidMetaKey, &userSystemData.InstanceID)
+	err = settingsReader.RetrieveJson(r.Context(), metadata.UuidMetaKey, &userSystemData.InstanceID)
 
 	if err != nil {
 		// should never happen, uuid should always exist and be available
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	// retrieve postfix version
+	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingKey, &userSystemData.PostfixVersion)
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving postfix version: %s", err)
+	}
+
+	if err != nil {
+		userSystemData.PostfixVersion = ""
+	}
+
+	// retrieve mail kind
+	mailKind, err := settingsReader.Retrieve(r.Context(), "mail_kind")
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Warn().Msgf("Unexpected error retrieving mail_kind: %s", err)
+	}
+
+	if err == nil {
+		var ok bool
+		userSystemData.MailKind, ok = mailKind.(string)
+
+		if !ok {
+			log.Warn().Msgf("mail_kind couldn't be cast to string")
+
+			userSystemData.MailKind = ""
+		}
 	}
 
 	b, err := json.Marshal(userSystemData)

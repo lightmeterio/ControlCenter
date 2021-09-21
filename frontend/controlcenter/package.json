@@ -19,6 +19,7 @@
     "vue": "^2.6.12",
     "vue-ellipse-progress": "^1.3.0",
     "vue-gettext": "^2.1.10",
+    "vue-json-pretty": "^1.8.1",
     "vue-linkify": "^1.0.1",
     "vue-matomo": "^3.14.0-0",
     "vue-router": "^3.2.0",

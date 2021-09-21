@@ -5,6 +5,7 @@
 package collector
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -203,6 +204,9 @@ func TestDispatcher(t *testing.T) {
 		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
+		accessor, err := NewAccessor(db.RoConnPool)
+		So(err, ShouldBeNil)
+
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 		r2 := &fakeReporter{interval: time.Second * 5, id: "fake_2", count: 35}
 
@@ -210,7 +214,7 @@ func TestDispatcher(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+		err = db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -244,6 +248,11 @@ func TestDispatcher(t *testing.T) {
 		})
 
 		So(err, ShouldBeNil)
+
+		// Reports are not dispatched yet
+		dispatchedReports, err := accessor.GetDispatchedReports(context.Background())
+		So(err, ShouldBeNil)
+		So(len(dispatchedReports), ShouldEqual, 0)
 
 		dispatcher := &fakeDispatcher{}
 
@@ -312,6 +321,58 @@ func TestDispatcher(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(results), ShouldEqual, 0)
 		}
+
+		// Now there are dispatched reports
+		dispatchedReports, err = accessor.GetDispatchedReports(context.Background())
+		So(err, ShouldBeNil)
+		So(dispatchedReports, ShouldResemble, []DispatchedReport{
+			{
+				ID:           5,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_2",
+				Value: map[string]interface{}{
+					"info_1": float64(36),
+					"info_2": "Saturn"},
+			},
+			{
+				ID:           4,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(44),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 3,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:07 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(43),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 2,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:05 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_2",
+				Value: map[string]interface{}{
+					"info_1": float64(35),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 1,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:03 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(42),
+					"info_2": "Saturn",
+				},
+			},
+		})
 
 		err = db.RwConn.Tx(func(tx *sql.Tx) error {
 			// r1 and r2 execute on second 12
