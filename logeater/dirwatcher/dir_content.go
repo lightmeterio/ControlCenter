@@ -63,7 +63,7 @@ func (f *localDirectoryContent) fileEntries() (fileEntryList, error) {
 	return f.entries, nil
 }
 
-func localReaderForEntry(filename string) (fileReader, error) {
+func localReaderForEntry(filename string) (io.ReadCloser, error) {
 	reader, err := os.Open(filename)
 
 	if err != nil {
@@ -73,15 +73,15 @@ func localReaderForEntry(filename string) (fileReader, error) {
 	return ensureReaderIsDecompressed(reader, filename)
 }
 
-func (f *localDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func (f *localDirectoryContent) readerForEntry(filename string) (io.ReadCloser, error) {
 	return localReaderForEntry(filename)
 }
 
-func localReadSeekerForEntry(filename string) (fileReadSeeker, error) {
+func localReadSeekerForEntry(filename string) (io.ReadSeekCloser, error) {
 	return os.Open(filename)
 }
 
-func (f *localDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (f *localDirectoryContent) readSeekerForEntry(filename string) (io.ReadSeekCloser, error) {
 	return localReadSeekerForEntry(filename)
 }
 
