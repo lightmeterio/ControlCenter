@@ -427,6 +427,71 @@ func TestCollector(t *testing.T) {
 	})
 }
 
+func TestRemoveOldDatabaseEntries(t *testing.T) {
+	Convey("Remove old entries", t, func() {
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
+		defer clear()
+
+		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
+
+		reporters := Reporters{r1}
+
+		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
+
+		dispatcher := &fakeDispatcher{}
+
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+			// nothing executes
+			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// nothing executes
+			clock.Sleep(2 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// r1 executes on second 3
+			clock.Sleep(1 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// a report is dispatched on second 4
+			clock.Sleep(1 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// We sleep 1h and then r1 AND the report dispatching are executed
+			clock.Sleep(1 * time.Hour)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// We then clean anything older than 1h, removing the first report
+			cleaner := makeCleanAction(1 * time.Hour)
+			err = cleaner(tx, dbconn.TxPreparedStmts{})
+			So(err, ShouldBeNil)
+
+			return nil
+		})
+
+		So(err, ShouldBeNil)
+
+		conn, release := db.RoConnPool.Acquire()
+		defer release()
+
+		// we keep only one report, the newest one
+		var countQueued int
+		err = conn.QueryRow(`select count(*) from queued_reports`).Scan(&countQueued)
+		So(err, ShouldBeNil)
+		So(countQueued, ShouldEqual, 1)
+
+		var countDispatchedTimes int
+		err = conn.QueryRow(`select count(*) from dispatch_times`).Scan(&countDispatchedTimes)
+		So(err, ShouldBeNil)
+		So(countDispatchedTimes, ShouldEqual, 1)
+
+	})
+}
+
 type fakeDispatcher struct {
 	reports []Report
 }
