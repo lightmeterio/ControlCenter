@@ -200,6 +200,7 @@ se.vruntime                                  :            24.180579`
 				SettingsReader:       m.Reader,
 				Auth:                 auth,
 				SchedFileReader:      fakeSchedReaderFromContent(schedFileContentForNonDocker, false, false),
+				IsUsingRsyncedLogs:   true,
 			}).Dispatch(collector.Report{
 				Interval: timeutil.TimeInterval{From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`), To: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`)},
 				Content: []collector.ReportEntry{
@@ -211,12 +212,13 @@ se.vruntime                                  :            24.180579`
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"is_docker_container": false,
-					"instance_id":         "my-best-uuid",
-					"postfix_public_ip":   "127.0.0.2",
-					"public_url":          "https://example.com",
-					"user_email":          email,
-					"mail_kind":           string(settings.MailKindMarketing),
+					"is_docker_container":   false,
+					"instance_id":           "my-best-uuid",
+					"postfix_public_ip":     "127.0.0.2",
+					"public_url":            "https://example.com",
+					"user_email":            email,
+					"mail_kind":             string(settings.MailKindMarketing),
+					"is_using_rsynced_logs": true,
 				},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
@@ -253,7 +255,7 @@ se.vruntime                                  :            24.180579`
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "is_docker_container": true},
+				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "is_docker_container": true, "is_using_rsynced_logs": false},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
@@ -293,7 +295,7 @@ se.vruntime                                  :            24.180579`
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "postfix_version": "3.4.14", "is_docker_container": false},
+				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "postfix_version": "3.4.14", "is_docker_container": false, "is_using_rsynced_logs": false},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{

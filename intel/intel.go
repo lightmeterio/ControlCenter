@@ -77,13 +77,14 @@ func DefaultSchedFileReader() (io.ReadCloser, error) {
 }
 
 type Metadata struct {
-	InstanceID        string  `json:"instance_id"`
-	LocalIP           *string `json:"postfix_public_ip,omitempty"`
-	PublicURL         *string `json:"public_url,omitempty"`
-	UserEmail         *string `json:"user_email,omitempty"`
-	PostfixVersion    *string `json:"postfix_version,omitempty"`
-	MailKind          *string `json:"mail_kind,omitempty"`
-	IsDockerContainer bool    `json:"is_docker_container"`
+	InstanceID         string  `json:"instance_id"`
+	LocalIP            *string `json:"postfix_public_ip,omitempty"`
+	PublicURL          *string `json:"public_url,omitempty"`
+	UserEmail          *string `json:"user_email,omitempty"`
+	PostfixVersion     *string `json:"postfix_version,omitempty"`
+	MailKind           *string `json:"mail_kind,omitempty"`
+	IsDockerContainer  bool    `json:"is_docker_container"`
+	IsUsingRsyncedLogs bool    `json:"is_using_rsynced_logs"`
 }
 
 type Version struct {
@@ -105,6 +106,7 @@ type Dispatcher struct {
 	SettingsReader       *metadata.Reader
 	Auth                 auth.Registrar
 	SchedFileReader      SchedFileReader
+	IsUsingRsyncedLogs   bool
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
@@ -134,6 +136,8 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 		}
 
 		metadata.IsDockerContainer = insideContainer
+
+		metadata.IsUsingRsyncedLogs = d.IsUsingRsyncedLogs
 
 		return metadata, nil
 	}()
@@ -275,6 +279,9 @@ type Options struct {
 	ReportInterval time.Duration
 
 	ReportDestinationURL string
+
+	// whether the postfix logs are being received via rsync
+	IsUsingRsyncedLogs bool
 }
 
 func DefaultVersionBuilder() Version {
@@ -306,6 +313,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDb *deliverydb.DB, fetcher core.Fet
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,
 		SchedFileReader:      DefaultSchedFileReader,
+		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
 	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)

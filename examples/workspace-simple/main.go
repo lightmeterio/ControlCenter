@@ -74,7 +74,7 @@ func main() {
 	// ensure workspace exists
 	errorutil.MustSucceed(os.MkdirAll(workspaceDir, os.ModePerm))
 
-	ws, err := workspace.NewWorkspace(workspaceDir)
+	ws, err := workspace.NewWorkspace(workspaceDir, nil)
 	errorutil.MustSucceed(err)
 
 	importAnnouncer, err := ws.ImportAnnouncer()

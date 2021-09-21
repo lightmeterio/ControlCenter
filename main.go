@@ -125,7 +125,7 @@ func main() {
 }
 
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
-	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory)
+	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, &workspace.Options{IsUsingRsyncedLogs: conf.RsyncedDir})
 	if err != nil {
 		return nil, logsource.Reader{}, errorutil.Wrap(err)
 	}
