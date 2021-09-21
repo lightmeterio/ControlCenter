@@ -142,7 +142,7 @@ where this procedure will become easier, safer and more flexible.
 
 ### Install from binaries
 
-We provide pre-build architecture dependent binaries at [Bintray](https://bintray.com/lightmeter/controlcenter/controlcenter) that
+We provide pre-build architecture dependent binaries on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/releases) that
 should run on any modern Linux distribution. Just download them, set them as executable and executed as described in [Usage](##Usage).
 
 Your operating system should provide certificate authority certificates (ca-certificates package in many distributions) by default,
