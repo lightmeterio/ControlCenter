@@ -40,7 +40,7 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
-	ws, err := NewWorkspace(dir)
+	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
 	builder, err := transform.Get("default", year)

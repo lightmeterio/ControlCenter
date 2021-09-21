@@ -25,7 +25,7 @@ func TestWorkspaceCreation(t *testing.T) {
 	Convey("Creation fails on several scenarios", t, func() {
 		Convey("No Permission on workspace", func() {
 			// FIXME: this is relying on linux properties, as /proc is a read-only directory
-			_, err := NewWorkspace("/proc/lalala")
+			_, err := NewWorkspace("/proc/lalala", nil)
 			So(err, ShouldNotBeNil)
 		})
 	})
@@ -35,7 +35,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws, err := NewWorkspace(dir)
+			ws, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 
 			defer ws.Close()
@@ -46,7 +46,7 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws, err := NewWorkspace(dir)
+			ws, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 			So(ws.HasLogs(), ShouldBeFalse)
 			So(ws.Close(), ShouldBeNil)
@@ -56,11 +56,11 @@ func TestWorkspaceCreation(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws1, err := NewWorkspace(dir)
+			ws1, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 			ws1.Close()
 
-			ws2, err := NewWorkspace(dir)
+			ws2, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 			ws2.Close()
 		})
@@ -73,7 +73,7 @@ func TestWorkspaceExecution(t *testing.T) {
 			dir, clearDir := testutil.TempDir(t)
 			defer clearDir()
 
-			ws, err := NewWorkspace(dir)
+			ws, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 
 			defer ws.Close()
@@ -103,7 +103,7 @@ func TestMostRecentLogTime(t *testing.T) {
 		defer clearDir()
 
 		Convey("Basic case", func() {
-			ws, err := NewWorkspace(dir)
+			ws, err := NewWorkspace(dir, nil)
 			So(err, ShouldBeNil)
 
 			defer ws.Close()
