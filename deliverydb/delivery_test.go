@@ -10,6 +10,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
@@ -17,6 +19,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
+	"path"
 	"testing"
 	"time"
 )
@@ -131,6 +134,48 @@ func deliveryStatus(dashboard dashboard.Dashboard, interval timeutil.TimeInterva
 	return pairs
 }
 
+func buildTime(year int, month time.Month, day, hour, minute, second int) time.Time {
+	return time.Date(year, month, day, hour, minute, second, 0, time.UTC)
+}
+
+func fakeMessageWithRecipient(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string, dir tracking.MessageDirection) tracking.Result {
+	r := buildDefaultResult()
+	r[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText(recipientLocalPart)
+	r[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText(recipientDomainPart)
+	r[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(t.Unix())
+	r[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(status))
+	r[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(dir))
+	return r
+}
+
+func fakeOutboundMessageWithRecipient(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
+	return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionOutbound)
+}
+
+func fakeIncomingMessageWithRecipient(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
+	return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionIncoming)
+}
+
+func fakeIncomingMessageWithSenderAndRecipient(status parser.SmtpStatus, t time.Time, senderLocalPart, senderDomainPart, recipientLocalPart, recipientDomainPart string) tracking.Result {
+	r := buildDefaultResult()
+	r[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText(recipientLocalPart)
+	r[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText(senderLocalPart)
+	r[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText(senderDomainPart)
+	r[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText(recipientDomainPart)
+	r[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(t.Unix())
+	r[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(status))
+	r[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming))
+	return r
+}
+
+func smtpStatusRecord(status parser.SmtpStatus, t time.Time) tracking.Result {
+	return fakeOutboundMessageWithRecipient(status, t, "recipient", "test.com")
+}
+
+func smtpStatusIncomingRecord(status parser.SmtpStatus, t time.Time) tracking.Result {
+	return fakeIncomingMessageWithRecipient(status, t, "recipient", "test.com")
+}
+
 func TestEntriesInsertion(t *testing.T) {
 	Convey("LogInsertion", t, func() {
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, databaseName)
@@ -146,44 +191,6 @@ func TestEntriesInsertion(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			return db, done, cancel, pub, dashboard
-		}
-
-		fakeMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string, dir tracking.MessageDirection) tracking.Result {
-			r := buildDefaultResult()
-			r[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText(recipientLocalPart)
-			r[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText(recipientDomainPart)
-			r[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(t.Unix())
-			r[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(status))
-			r[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(dir))
-			return r
-		}
-
-		fakeOutboundMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
-			return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionOutbound)
-		}
-
-		fakeIncomingMessageWithRecipient := func(status parser.SmtpStatus, t time.Time, recipientLocalPart, recipientDomainPart string) tracking.Result {
-			return fakeMessageWithRecipient(status, t, recipientLocalPart, recipientDomainPart, tracking.MessageDirectionIncoming)
-		}
-
-		fakeIncomingMessageWithSenderAndRecipient := func(status parser.SmtpStatus, t time.Time, senderLocalPart, senderDomainPart, recipientLocalPart, recipientDomainPart string) tracking.Result {
-			r := buildDefaultResult()
-			r[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText(recipientLocalPart)
-			r[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText(senderLocalPart)
-			r[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText(senderDomainPart)
-			r[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText(recipientDomainPart)
-			r[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(t.Unix())
-			r[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(status))
-			r[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming))
-			return r
-		}
-
-		smtpStatusRecord := func(status parser.SmtpStatus, t time.Time) tracking.Result {
-			return fakeOutboundMessageWithRecipient(status, t, "recipient", "test.com")
-		}
-
-		smtpStatusIncomingRecord := func(status parser.SmtpStatus, t time.Time) tracking.Result {
-			return fakeIncomingMessageWithRecipient(status, t, "recipient", "test.com")
 		}
 
 		Convey("Inserting entries", func() {
@@ -272,45 +279,6 @@ func TestEntriesInsertion(t *testing.T) {
 				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 1)
 			})
 
-			Convey("Insert, reopen, insert", func() {
-				func() {
-					_, done, cancel, pub, _ := buildWs()
-
-					// this one is before the time interval
-					pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-11-02 13:10:10 +0000`)))
-
-					pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
-					cancel()
-					So(done(), ShouldBeNil)
-				}()
-
-				// reopen workspace and add another log
-				db, done, cancel, pub, dashboard := buildWs()
-
-				pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
-				pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
-
-				pub.Publish(smtpStatusRecord(parser.BouncedStatus, testutil.MustParseTime(`2000-03-10 13:10:10 +0000`)))
-
-				// this one is after the time interval
-				pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`2000-05-02 13:10:10 +0000`)))
-
-				cancel()
-				So(done(), ShouldBeNil)
-
-				interval := parseTimeInterval("1999-12-02", "2000-03-11")
-
-				So(db.HasLogs(), ShouldBeTrue)
-
-				So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 1)
-				So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 1)
-				So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 2)
-			})
-
-			t := func(year int, month time.Month, day, hour, minute, second int) time.Time {
-				return time.Date(year, month, day, hour, minute, second, 0, time.UTC)
-			}
-
 			Convey("Many different smtp status", func() {
 				_, done, cancel, pub, d := buildWs()
 
@@ -322,28 +290,28 @@ func TestEntriesInsertion(t *testing.T) {
 					b := parser.BouncedStatus
 
 					// Something before the interval
-					pub.Publish(fakeOutboundMessageWithRecipient(s, t(1999, time.December, 1, 13, 0, 0), "recip", "domain"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, buildTime(1999, time.December, 1, 13, 0, 0), "recip", "domain"))
 
 					// Inside the interval
-					pub.Publish(fakeOutboundMessageWithRecipient(s, t(1999, time.December, 2, 14, 1, 2), "r1", "ALALALA.COM"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 2, 14, 1, 4), "r3", "alalala.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(1999, time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(1999, time.December, 5, 15, 1, 0), "r2", "email3.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(1999, time.December, 6, 16, 1, 4), "r3", "ALALALA.COM"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2000, time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2000, time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
-					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2000, time.January, 4, 16, 1, 0), "r2", "example1.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2000, time.January, 4, 16, 2, 1), "r2", "example1.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, buildTime(1999, time.December, 2, 14, 1, 2), "r1", "ALALALA.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(1999, time.December, 2, 14, 1, 3), "r2", "abcdf.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(1999, time.December, 2, 14, 1, 4), "r3", "alalala.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(1999, time.December, 3, 14, 1, 4), "r3", "EMAIL2.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(1999, time.December, 5, 15, 1, 0), "r2", "email3.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(1999, time.December, 6, 16, 1, 4), "r3", "ALALALA.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2000, time.January, 3, 15, 1, 0), "r2", "abcdf.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(2000, time.January, 4, 15, 1, 0), "r2", "EMAIL1.COM"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, buildTime(2000, time.January, 4, 16, 1, 0), "r2", "example1.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, buildTime(2000, time.January, 4, 16, 2, 1), "r2", "example1.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
 
 					// Incoming messages do not count
-					pub.Publish(fakeIncomingMessageWithRecipient(b, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
-					pub.Publish(fakeIncomingMessageWithRecipient(s, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
-					pub.Publish(fakeIncomingMessageWithRecipient(d, t(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeIncomingMessageWithRecipient(b, buildTime(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeIncomingMessageWithRecipient(s, buildTime(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
+					pub.Publish(fakeIncomingMessageWithRecipient(d, buildTime(2000, time.March, 11, 16, 2, 1), "r100", "email2.com"))
 
 					// Something after the interval
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2000, time.March, 12, 13, 0, 0), "recip", "domain"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(2000, time.March, 12, 13, 0, 0), "recip", "domain"))
 				}
 
 				cancel()
@@ -393,16 +361,16 @@ func TestEntriesInsertion(t *testing.T) {
 					d := parser.DeferredStatus
 					b := parser.BouncedStatus
 
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 1, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 2, 1, 0, 0), "p1", "another.de"))
-					pub.Publish(fakeOutboundMessageWithRecipient(d, t(2020, time.January, 2, 2, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(2020, time.January, 1, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(2020, time.January, 2, 1, 0, 0), "p1", "another.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(d, buildTime(2020, time.January, 2, 2, 0, 0), "p1", "domaintobegrouped.com"))
 
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 3, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 4, 1, 0, 0), "p1", "domaintobegrouped.com"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 5, 1, 0, 0), "p1", "domaintobegrouped.de"))
-					pub.Publish(fakeOutboundMessageWithRecipient(b, t(2020, time.January, 6, 1, 0, 0), "p1", "another.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2020, time.January, 3, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2020, time.January, 4, 1, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2020, time.January, 5, 1, 0, 0), "p1", "domaintobegrouped.de"))
+					pub.Publish(fakeOutboundMessageWithRecipient(b, buildTime(2020, time.January, 6, 1, 0, 0), "p1", "another.de"))
 
-					pub.Publish(fakeOutboundMessageWithRecipient(s, t(2020, time.January, 6, 1, 0, 0), "p1", "domaintobegrouped.com"))
+					pub.Publish(fakeOutboundMessageWithRecipient(s, buildTime(2020, time.January, 6, 1, 0, 0), "p1", "domaintobegrouped.com"))
 				}
 
 				cancel()
@@ -703,5 +671,64 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		So(ro.QueryRow(`select count(*) from messageids`).Scan(&messageIdsCount), ShouldBeNil)
 		So(messageIdsCount, ShouldEqual, 2)
+	})
+}
+
+func TestReopenDatabase(t *testing.T) {
+	// This is a different test as we need to reuse the same database directory over two runs,
+	// ensuring that all the connections are closed between the runs!
+	Convey("Test Reopening the database", t, func() {
+		dir, removeDir := testutil.TempDir(t)
+		defer removeDir()
+
+		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard, func()) {
+			conn, err := dbconn.Open(path.Join(dir, "logs.db"), 5)
+			So(err, ShouldBeNil)
+			So(migrator.Run(conn.RwConn.DB, databaseName), ShouldBeNil)
+			db, err := New(conn, &fakeMapping)
+			So(err, ShouldBeNil)
+			pub := db.ResultsPublisher()
+			dashboard, err := dashboard.New(db.ConnPool())
+			So(err, ShouldBeNil)
+			done, cancel := runner.Run(db)
+			return db, done, cancel, pub, dashboard, func() { So(conn.Close(), ShouldBeNil) }
+		}
+
+		Convey("Insert, reopen, insert", func() {
+			func() {
+				_, done, cancel, pub, _, closeConn := buildWs()
+				defer closeConn()
+
+				// this one is before the time interval
+				pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-11-02 13:10:10 +0000`)))
+
+				pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-02 13:10:10 +0000`)))
+				cancel()
+				So(done(), ShouldBeNil)
+			}()
+
+			// reopen workspace and add another log
+			db, done, cancel, pub, dashboard, closeConn := buildWs()
+			defer closeConn()
+
+			pub.Publish(smtpStatusRecord(parser.SentStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
+			pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`1999-12-04 13:10:10 +0000`)))
+
+			pub.Publish(smtpStatusRecord(parser.BouncedStatus, testutil.MustParseTime(`2000-03-10 13:10:10 +0000`)))
+
+			// this one is after the time interval
+			pub.Publish(smtpStatusRecord(parser.DeferredStatus, testutil.MustParseTime(`2000-05-02 13:10:10 +0000`)))
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			interval := parseTimeInterval("1999-12-02", "2000-03-11")
+
+			So(db.HasLogs(), ShouldBeTrue)
+
+			So(countByStatus(dashboard, parser.BouncedStatus, interval), ShouldEqual, 1)
+			So(countByStatus(dashboard, parser.DeferredStatus, interval), ShouldEqual, 1)
+			So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 2)
+		})
 	})
 }

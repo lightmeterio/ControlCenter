@@ -133,13 +133,9 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 
 	errorutil.MustSucceed(pool.ForEach(func(conn *dbconn.RoPooledConn) error {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(`select count(*) from deliveries where delivery_ts between ? and ?`)
-		if err != nil {
+		if err := conn.PrepareStmt(`select count(*) from deliveries where delivery_ts between ? and ?`, countDeliveriesInIntervalQueryKey); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		conn.Stmts[countDeliveriesInIntervalQueryKey] = stmt
 
 		return nil
 	}))
@@ -188,7 +184,8 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 
 	countActivityInInterval := func(interval timeutil.TimeInterval) (int, error) {
 		var count int
-		if err := conn.Stmts[countDeliveriesInIntervalQueryKey].QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix()).Scan(&count); err != nil {
+		//nolint:sqlclosecheck
+		if err := conn.GetStmt(countDeliveriesInIntervalQueryKey).QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix()).Scan(&count); err != nil {
 			return 0, errorutil.Wrap(err)
 		}
 
