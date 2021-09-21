@@ -119,9 +119,9 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	selectQueueIdForDeliveryId: `select
 	delivery_queue.id, delivery_queue.queue_id
 from
-	delivery_queue join deliveries on delivery_queue.delivery_id = deliveries.id
+	delivery_queue
 where
-	deliveries.id = ?	`,
+	delivery_queue.delivery_id = ?	`,
 	countDeliveriesWithQueue: `select
 	count(*)
 from
