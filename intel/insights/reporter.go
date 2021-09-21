@@ -47,18 +47,28 @@ func (r *Reporter) Step(tx *sql.Tx, clock timeutil.Clock) error {
 
 	fetchedInsights, err := r.fetcher.FetchInsights(context.Background(), core.FetchOptions{
 		Interval: interval,
+		FilterBy: core.FilterByCategory,
+		Category: core.LocalCategory,
 	}, clock)
 
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	total := 0
+
 	for _, insight := range fetchedInsights {
 		insightType := insight.ContentType()
 		if _, ok := report.Insights[insightType]; !ok {
 			report.Insights[insightType] = 0
 		}
+
 		report.Insights[insightType]++
+		total++
+	}
+
+	if total == 0 {
+		return nil
 	}
 
 	if err := collector.Collect(tx, clock, r.ID(), &report); err != nil {

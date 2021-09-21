@@ -5,13 +5,14 @@
 package collector
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -105,11 +106,8 @@ func getAllQueuedResults(db *dbconn.PooledPair) ([]testCollectResult, error) {
 
 func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
-		db, clear := testutil.TempDBConnection(t)
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(db.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 		r2 := &fakeReporter{interval: time.Second * 5, id: "fake_2", count: 35}
@@ -118,7 +116,7 @@ func TestReporters(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -157,7 +155,7 @@ func TestReporters(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(results, ShouldResemble, []testCollectResult{
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:03 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -165,7 +163,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:05 +0000`),
 				id:   "fake_2",
 				value: map[string]interface{}{
@@ -173,7 +171,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:07 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -181,7 +179,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
 				id:   "fake_1",
 				value: map[string]interface{}{
@@ -189,7 +187,7 @@ func TestReporters(t *testing.T) {
 					"info_2": "Saturn",
 				},
 			},
-			testCollectResult{
+			{
 				time: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
 				id:   "fake_2",
 				value: map[string]interface{}{
@@ -203,10 +201,10 @@ func TestReporters(t *testing.T) {
 
 func TestDispatcher(t *testing.T) {
 	Convey("Test Dispatcher", t, func() {
-		db, clear := testutil.TempDBConnection(t)
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
-		err := migrator.Run(db.RwConn.DB, "intel")
+		accessor, err := NewAccessor(db.RoConnPool)
 		So(err, ShouldBeNil)
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
@@ -250,6 +248,11 @@ func TestDispatcher(t *testing.T) {
 		})
 
 		So(err, ShouldBeNil)
+
+		// Reports are not dispatched yet
+		dispatchedReports, err := accessor.GetDispatchedReports(context.Background())
+		So(err, ShouldBeNil)
+		So(len(dispatchedReports), ShouldEqual, 0)
 
 		dispatcher := &fakeDispatcher{}
 
@@ -319,6 +322,58 @@ func TestDispatcher(t *testing.T) {
 			So(len(results), ShouldEqual, 0)
 		}
 
+		// Now there are dispatched reports
+		dispatchedReports, err = accessor.GetDispatchedReports(context.Background())
+		So(err, ShouldBeNil)
+		So(dispatchedReports, ShouldResemble, []DispatchedReport{
+			{
+				ID:           5,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_2",
+				Value: map[string]interface{}{
+					"info_1": float64(36),
+					"info_2": "Saturn"},
+			},
+			{
+				ID:           4,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:10 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(44),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 3,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:07 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(43),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 2,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:05 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_2",
+				Value: map[string]interface{}{
+					"info_1": float64(35),
+					"info_2": "Saturn",
+				},
+			},
+			{ID: 1,
+				CreationTime: testutil.MustParseTime(`2000-01-01 10:00:03 +0000`),
+				DispatchTime: testutil.MustParseTime(`2000-01-01 10:00:20 +0000`),
+				Kind:         "fake_1",
+				Value: map[string]interface{}{
+					"info_1": float64(42),
+					"info_2": "Saturn",
+				},
+			},
+		})
+
 		err = db.RwConn.Tx(func(tx *sql.Tx) error {
 			// r1 and r2 execute on second 12
 			clock.Sleep(2 * time.Second)
@@ -369,11 +424,8 @@ func TestDispatcher(t *testing.T) {
 
 func TestCollectorSteps(t *testing.T) {
 	Convey("Test Collector Steps", t, func() {
-		db, clear := testutil.TempDBConnection(t)
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(db.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
 
@@ -383,7 +435,7 @@ func TestCollectorSteps(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
 			// nothing executes
 			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)
@@ -417,14 +469,14 @@ func TestCollector(t *testing.T) {
 		reporters := Reporters{&fakeReporter{interval: 1 * time.Second, id: "fake_1", count: 42}}
 		dispatcher := &fakeDispatcher{}
 
-		dir, clear := testutil.TempDir(t)
-		defer clear()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "intel-collector")
+		defer closeConn()
 
 		// NOTE: the report times have only precision of seconds only (as they are stored in the database as a int64 timestamp)
-		collector, err := New(dir, Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}, reporters, dispatcher)
+		collector, err := New(conn, Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}, reporters, dispatcher)
 		So(err, ShouldBeNil)
 
-		done, cancel := collector.Run()
+		done, cancel := runner.Run(collector)
 
 		time.Sleep(2100 * time.Millisecond)
 
@@ -433,6 +485,71 @@ func TestCollector(t *testing.T) {
 
 		So(len(dispatcher.reports), ShouldEqual, 1)
 		So(len(dispatcher.reports[0].Content), ShouldEqual, 1)
+	})
+}
+
+func TestRemoveOldDatabaseEntries(t *testing.T) {
+	Convey("Remove old entries", t, func() {
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
+		defer clear()
+
+		r1 := &fakeReporter{interval: time.Second * 3, id: "fake_1", count: 42}
+
+		reporters := Reporters{r1}
+
+		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
+
+		dispatcher := &fakeDispatcher{}
+
+		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+			// nothing executes
+			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// nothing executes
+			clock.Sleep(2 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// r1 executes on second 3
+			clock.Sleep(1 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// a report is dispatched on second 4
+			clock.Sleep(1 * time.Second)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// We sleep 1h and then r1 AND the report dispatching are executed
+			clock.Sleep(1 * time.Hour)
+			err = Step(tx, clock, reporters, dispatcher, time.Second*4)
+			So(err, ShouldBeNil)
+
+			// We then clean anything older than 1h, removing the first report
+			cleaner := makeCleanAction(1 * time.Hour)
+			err = cleaner(tx, dbconn.TxPreparedStmts{})
+			So(err, ShouldBeNil)
+
+			return nil
+		})
+
+		So(err, ShouldBeNil)
+
+		conn, release := db.RoConnPool.Acquire()
+		defer release()
+
+		// we keep only one report, the newest one
+		var countQueued int
+		err = conn.QueryRow(`select count(*) from queued_reports`).Scan(&countQueued)
+		So(err, ShouldBeNil)
+		So(countQueued, ShouldEqual, 1)
+
+		var countDispatchedTimes int
+		err = conn.QueryRow(`select count(*) from dispatch_times`).Scan(&countDispatchedTimes)
+		So(err, ShouldBeNil)
+		So(countDispatchedTimes, ShouldEqual, 1)
+
 	})
 }
 

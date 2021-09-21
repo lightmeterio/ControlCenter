@@ -14,8 +14,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -49,16 +49,10 @@ func publishResults(pub tracking.ResultPublisher, results ...mappedResult) {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Reporter", t, func() {
-		dir, clear := testutil.TempDir(t)
-		defer clear()
-
 		baseTime := testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
@@ -66,12 +60,13 @@ func TestReporter(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		delivery, err := deliverydb.New(dir, &domainmapping.Mapper{})
+		logsDb, clear := testutil.TempDBConnectionMigrated(t, "logs")
+		defer clear()
+
+		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{})
 		So(err, ShouldBeNil)
 
-		defer delivery.Close()
-
-		done, cancel := delivery.Run()
+		done, cancel := runner.Run(delivery)
 
 		pub := delivery.ResultsPublisher()
 
@@ -220,6 +215,13 @@ func TestReporter(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			// finally, collect it
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
+			// after two hours, nothing has happened, therefore no new report is sent
+			clock.Sleep(2 * time.Hour)
+			err = reporters.Step(tx, clock)
+			So(err, ShouldBeNil)
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 

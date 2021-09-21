@@ -6,7 +6,7 @@ package postfixversion
 
 import (
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
@@ -14,7 +14,7 @@ import (
 const SettingKey = "postfix_version"
 
 type Publisher struct {
-	settingsWriter *meta.AsyncWriter
+	settingsWriter *metadata.AsyncWriter
 }
 
 func (p Publisher) Publish(r postfix.Record) {
@@ -29,6 +29,6 @@ func (p Publisher) Publish(r postfix.Record) {
 	}
 }
 
-func NewPublisher(settingsWriter *meta.AsyncWriter) Publisher {
+func NewPublisher(settingsWriter *metadata.AsyncWriter) Publisher {
 	return Publisher{settingsWriter}
 }

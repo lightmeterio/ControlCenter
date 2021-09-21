@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("connectionstats", "1_create_postfix_connection_tables.go", upCreateTables, downCreateTables)
+	migrator.AddMigration("connections", "1_create_postfix_connection_tables.go", upCreateTables, downCreateTables)
 }
 
 func upCreateTables(tx *sql.Tx) error {

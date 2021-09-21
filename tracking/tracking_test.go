@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
@@ -54,13 +55,13 @@ func readFromTestContent(content string, pub postfix.Publisher) {
 func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker, func()) {
 	pub := &fakeResultPublisher{}
 
-	dir, clearDir := testutil.TempDir(t)
-	tracker, err := New(dir, pub)
+	conn, closeConn := testutil.TempDBConnectionMigrated(t, "logtracker")
+	tracker, err := New(conn, pub)
 	So(err, ShouldBeNil)
 
 	return pub, tracker, func() {
 		So(tracker.Close(), ShouldBeNil)
-		clearDir()
+		closeConn()
 	}
 }
 
@@ -68,7 +69,7 @@ func TestMostRecentLogTime(t *testing.T) {
 	Convey("Obtain most recent time", t, func() {
 		_, t, clear := buildPublisherAndTempTracker(t)
 		defer clear()
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		Convey("Nothing read", func() {
 			cancel()
@@ -94,7 +95,7 @@ func TestTrackingFromUnsupportedLogFiles(t *testing.T) {
 	Convey("Some strange and for now unsupported log lines, that need to be supported in the future!", t, func() {
 		pub, t, clear := buildPublisherAndTempTracker(t)
 		defer clear()
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		Convey("Unsupported lines, with weird clone syntax", func() {
 			readFromTestFile("../test_files/postfix_logs/individual_files/8_weird_log_file.log", t.Publisher())
@@ -143,7 +144,7 @@ func TestReadingFromArbitraryLines(t *testing.T) {
 			_, t, clear := buildPublisherAndTempTracker(t)
 			defer clear()
 
-			done, cancel := t.Run()
+			done, cancel := runner.Run(t)
 
 			content := b[offset:]
 			r := bytes.NewReader(content)
@@ -161,7 +162,7 @@ func TestTrackingFromFiles(t *testing.T) {
 		_ = pub
 		defer clear()
 
-		done, cancel := t.Run()
+		done, cancel := runner.Run(t)
 
 		queryConn, release := t.dbconn.RoConnPool.Acquire()
 
@@ -636,12 +637,13 @@ func TestTrackingFromFiles(t *testing.T) {
 func TestResultEncoding(t *testing.T) {
 	Convey("Results encoding", t, func() {
 		Convey("JSON", func() {
-			original := Result{}
-			original[ConnectionBeginKey] = ResultEntryFloat64(3.14)
-			original[ConnectionEndKey] = ResultEntryInt64(42)
-			original[ConnectionClientHostnameKey] = ResultEntryText("hello world")
-			original[ConnectionClientIPKey] = ResultEntryBlob([]byte{0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01})
-			original[QueueBeginKey] = ResultEntryBlob([]byte{192, 168, 1, 124})
+			original := MappedResult{
+				ConnectionBeginKey:          ResultEntryFloat64(3.14),
+				ConnectionEndKey:            ResultEntryInt64(42),
+				ConnectionClientHostnameKey: ResultEntryText("hello world"),
+				ConnectionClientIPKey:       ResultEntryBlob([]byte{0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01}),
+				QueueBeginKey:               ResultEntryBlob([]byte{192, 168, 1, 124}),
+			}.Result()
 
 			encoded, err := json.Marshal(original)
 			So(err, ShouldBeNil)

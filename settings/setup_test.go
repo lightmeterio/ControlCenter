@@ -9,9 +9,10 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -26,35 +27,19 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-type fakeNewsletterSubscriber struct {
-	shouldFailToSubscribe bool
-	hasSubscribed         bool
-}
-
-func (s *fakeNewsletterSubscriber) Subscribe(context context.Context, email string) error {
-	if s.shouldFailToSubscribe {
-		return errors.New(`Fail to Subscribe!!!`)
-	}
-
-	s.hasSubscribed = true
-	return nil
-}
-
 func TestMessengerSettings(t *testing.T) {
 	Convey("messenger settings", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		defer func() { errorutil.MustSucceed(m.Close()) }()
-
-		runner := meta.NewRunner(m)
-		writer := runner.Writer()
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		writer := writeRunner.Writer()
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() { cancel(); done() }()
 
@@ -79,20 +64,19 @@ func TestInitialSetup(t *testing.T) {
 	Convey("Test Initial Setup", t, func() {
 		context, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
 
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
-		defer func() { errorutil.MustSucceed(m.Close()) }()
 
-		runner := meta.NewRunner(m)
-		writer := runner.Writer()
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		writer := writeRunner.Writer()
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() { cancel(); done() }()
 
-		newsletterSubscriber := &fakeNewsletterSubscriber{}
+		newsletterSubscriber := &newsletter.FakeNewsletterSubscriber{}
 
 		s := NewInitialSetupSettings(newsletterSubscriber)
 
@@ -104,7 +88,7 @@ func TestInitialSetup(t *testing.T) {
 		})
 
 		Convey("Fails to Subscribe", func() {
-			newsletterSubscriber.shouldFailToSubscribe = true
+			newsletterSubscriber.ShouldFailToSubscribe = true
 
 			So(errors.Is(s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
@@ -121,7 +105,7 @@ func TestInitialSetup(t *testing.T) {
 			)
 
 			So(err, ShouldBeNil)
-			So(newsletterSubscriber.hasSubscribed, ShouldBeTrue)
+			So(newsletterSubscriber.HasSubscribed, ShouldBeTrue)
 
 			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)
@@ -140,7 +124,7 @@ func TestInitialSetup(t *testing.T) {
 			)
 
 			So(err, ShouldBeNil)
-			So(newsletterSubscriber.hasSubscribed, ShouldBeFalse)
+			So(newsletterSubscriber.HasSubscribed, ShouldBeFalse)
 
 			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
 			So(err, ShouldBeNil)

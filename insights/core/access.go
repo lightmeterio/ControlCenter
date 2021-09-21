@@ -55,12 +55,12 @@ func (c Category) TplString() string {
 
 const (
 	NoCategory          Category = 0
-	LocalCategory       Category = 1
-	NewsCategory        Category = 2
-	ComparativeCategory Category = 3
-	IntelCategory       Category = 4
-	ArchivedCategory    Category = 5
-	ActiveCategory      Category = 6
+	LocalCategory       Category = 1 // insights generated from logs - high bounce/deferred, mail activity, rbl checks...
+	NewsCategory        Category = 2 // insights showing lightmeter.io RSS items
+	ComparativeCategory Category = 3 // not used yet
+	IntelCategory       Category = 4 // sent by Network Intelligence central server
+	ArchivedCategory    Category = 5 // meta-category, not stored in database
+	ActiveCategory      Category = 6 // same, opposite to archived
 )
 
 func (c Category) MarshalJSON() ([]byte, error) {
@@ -313,14 +313,9 @@ func NewFetcher(pool *dbconn.RoPool) (Fetcher, error) {
 	buildQuery := func(key queryKey, s string) error {
 		err := pool.ForEach(func(c *dbconn.RoPooledConn) error {
 			//nolint:sqlclosecheck
-			q, err := c.Prepare(s)
-			if err != nil {
+			if err := c.PrepareStmt(s, key); err != nil {
 				return errorutil.Wrap(err)
 			}
-
-			c.Stmts[key] = q
-
-			c.Closers.Add(q)
 
 			return nil
 		})
@@ -428,27 +423,23 @@ func (f *fetchedInsight) UserRatingOld() bool {
 // rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
 //nolint:rowserrcheck
 func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock timeutil.Clock) ([]FetchedInsight, error) {
-	conn, release := f.pool.Acquire()
+	conn, release, err := f.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
 	key := queryKey{order: options.OrderBy, filter: options.FilterBy}
 
-	stmt, ok := conn.Stmts[key]
-	if !ok {
-		log.Panic().Msgf("Sql stmt for options %v not implemented!!!!", options)
-	}
-
+	//nolint:sqlclosecheck
+	stmt := conn.GetStmt(key)
 	query := f.queries[key]
-
-	if !ok {
-		log.Panic().Msgf("Sql arguments for options %v not implemented!!!!", options)
-	}
 
 	rows, err := stmt.QueryContext(ctx, query.p(options)...)
 
 	if err != nil {
-		return []FetchedInsight{}, errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {

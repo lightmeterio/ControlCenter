@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build dev || !release
 // +build dev !release
 
 package messagerblinsight

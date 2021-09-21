@@ -12,7 +12,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -32,17 +31,14 @@ func TestReporter(t *testing.T) {
 
 		reporter := NewReporter(pub)
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err := migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
 		dispatcher := &fakeDispatcher{}
 
-		err = intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err := intelDb.RwConn.Tx(func(tx *sql.Tx) error {
 			// fill publsher with some values
 			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020)
 
@@ -54,6 +50,14 @@ func TestReporter(t *testing.T) {
 			// reads from a different file, and the values from the previous file must have been erased prior to it
 			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/2_multiple_recipients_some_bounces.log", pub, 2020)
 
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
+			// no new lines read, therefore no reports are sent
+			clock.Sleep(10 * time.Minute)
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
 

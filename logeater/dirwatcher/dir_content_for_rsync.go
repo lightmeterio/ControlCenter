@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"io"
 	"path"
 	"sync"
 	"time"
@@ -79,7 +80,7 @@ func (d *rsyncdDirectoryContent) modificationTimeForEntry(filename string) (time
 	return t, nil
 }
 
-func (d *rsyncdDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func (d *rsyncdDirectoryContent) readerForEntry(filename string) (io.ReadCloser, error) {
 	return localReaderForEntry(filename)
 }
 
@@ -87,7 +88,7 @@ func (d *rsyncdDirectoryContent) watcherForEntry(filename string, offset int64) 
 	return &rsyncedFileWatcher{filename, offset, d.format}, nil
 }
 
-func (d *rsyncdDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (d *rsyncdDirectoryContent) readSeekerForEntry(filename string) (io.ReadSeekCloser, error) {
 	return localReadSeekerForEntry(filename)
 }
 

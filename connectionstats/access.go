@@ -35,24 +35,18 @@ const (
 
 func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	if err := pool.ForEach(func(conn *dbconn.RoPooledConn) error {
-		//nolint:sqlclosecheck
-		sql, err := conn.Prepare(`
+		if err := conn.PrepareStmt(`
 select
 	count(connections.id)
 from
 	connections join commands
 		on commands.connection_id = connections.id
 where
-	connections.disconnection_ts between ? and ? and commands.cmd = ?`)
-
-		if err != nil {
+	connections.disconnection_ts between ? and ? and commands.cmd = ?`, countQuery); err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		conn.Stmts[countQuery] = sql
-
-		//nolint:sqlclosecheck
-		sql, err = conn.Prepare(`
+		if err := conn.PrepareStmt(`
 select
 	ip, disconnection_ts as ts, success, total
 from
@@ -62,12 +56,9 @@ where
 	ts between ? and ? and commands.cmd = ?
 	-- and commands.success != commands.total -- returns only attempts that failed
 order by
-	ts`)
-		if err != nil {
+	ts`, retrieveQuery); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		conn.Stmts[retrieveQuery] = sql
 
 		return nil
 	}); err != nil {
@@ -78,17 +69,22 @@ order by
 }
 
 func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (AccessResult, error) {
-	conn, release := a.pool.Acquire()
+	conn, release, err := a.pool.AcquireContext(ctx)
+	if err != nil {
+		return AccessResult{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
 	var count int
 
-	if err := conn.Stmts[countQuery].QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand).Scan(&count); err != nil {
+	//nolint:sqlclosecheck
+	if err := conn.GetStmt(countQuery).QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand).Scan(&count); err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}
 
-	rows, err := conn.Stmts[retrieveQuery].QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
+	//nolint:sqlclosecheck
+	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}

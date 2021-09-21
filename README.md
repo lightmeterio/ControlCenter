@@ -142,7 +142,7 @@ where this procedure will become easier, safer and more flexible.
 
 ### Install from binaries
 
-We provide pre-build architecture dependent binaries at [Bintray](https://bintray.com/lightmeter/controlcenter/controlcenter) that
+We provide pre-build architecture dependent binaries on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/releases) that
 should run on any modern Linux distribution. Just download them, set them as executable and executed as described in [Usage](##Usage).
 
 Your operating system should provide certificate authority certificates (ca-certificates package in many distributions) by default,
@@ -261,7 +261,7 @@ Here are all parameters you can set through environment variables, and their res
 ### Rotated files
 
 We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
-Currently only `gzip`ped and uncompressed files are supported.
+Currently only files compressed with gzip (`.gz`), bzip2 (`.bz2`) and uncompressed files are supported.
 
 The suffixes on the archived log files that are supported are:
 
@@ -449,7 +449,6 @@ Rate limiting is applied on the number of searches, with a current maximum of 20
 ### High risk
 
 - The Web UI loads without SSL (unencrypted) by default, so credentials are at risk if transmitted over public networks (planned fix: [#480](https://gitlab.com/lightmeter/controlcenter/-/issues/480))
-- The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
 - Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
 
 ### Low risk

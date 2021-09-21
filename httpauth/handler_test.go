@@ -5,9 +5,16 @@
 package httpauth_test
 
 import (
+	"context"
 	"encoding/json"
+	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -19,10 +26,43 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
+
 type fakeRegistrar = httpauthsub.FakeRegistrar
 
-func TestHTTPAuthV2(t *testing.T) {
+func buildCookieClient() *http.Client {
+	jar, err := cookiejar.New(&cookiejar.Options{})
+	So(err, ShouldBeNil)
+	return &http.Client{Jar: jar}
+}
+
+func TestHTTPAuth(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
+		defer closeConn()
+
+		m, err := metadata.NewHandler(conn)
+		So(err, ShouldBeNil)
+
+		// store an instance ID to retrieve in /userInfo
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		done, cancel := runner.Run(writeRunner)
+
+		defer func() {
+			cancel()
+			done()
+		}()
+
+		uuid := uuid.NewV4().String()
+		writer := writeRunner.Writer()
+		writer.StoreJsonSync(context.Background(), metadata.UuidMetaKey, uuid)
+
+		// store a postfix version and a mail kind to retrieve in /userInfo
+		writer.StoreJsonSync(context.Background(), postfixversion.SettingKey, "3.4.14")
+		m.Writer.Store(context.Background(), []metadata.Item{{"mail_kind", "marketing"}})
+
 		failedAttempts := 0
 
 		registrar := &fakeRegistrar{
@@ -35,18 +75,11 @@ func TestHTTPAuthV2(t *testing.T) {
 
 		mux := http.NewServeMux()
 
-		auth := httpauthsub.NewAuthenticatorWithOptions(registrar)
-		httpauth.HttpAuthenticator(mux, auth, nil)
+		a := httpauthsub.NewAuthenticatorWithOptions(registrar)
+		httpauth.HttpAuthenticator(mux, a, m.Reader)
 
 		s := httptest.NewServer(mux)
-
 		defer s.Close()
-
-		buildCookieClient := func() *http.Client {
-			jar, err := cookiejar.New(&cookiejar.Options{})
-			So(err, ShouldBeNil)
-			return &http.Client{Jar: jar}
-		}
 
 		Convey("Unauthenticated and unregistred user", func() {
 			c := buildCookieClient()
@@ -202,6 +235,16 @@ func TestHTTPAuthV2(t *testing.T) {
 					r, err = c.Get(s.URL + "/api/v0/userInfo")
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					b, err := ioutil.ReadAll(r.Body)
+					So(err, ShouldBeNil)
+
+					v := httpauthsub.UserSystemData{}
+					json.Unmarshal(b, &v)
+
+					So(v.InstanceID, ShouldEqual, uuid)
+					So(v.PostfixVersion, ShouldEqual, "3.4.14")
+					So(v.MailKind, ShouldEqual, "marketing")
 				})
 
 				Convey("get fake user data after registration", func() {

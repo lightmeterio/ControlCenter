@@ -5,6 +5,7 @@
 package intel
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -20,24 +21,70 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
-const SettingKey = "uuid"
+type SchedFileReader func() (io.ReadCloser, error)
+
+var ErrFailedReadingSchedFile = errors.New(`Failed reading /proc/1/sched file`)
+
+func isSchedFileContentInsideContainer(r SchedFileReader) (insideContainer bool, err error) {
+	f, err := r()
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	defer func() {
+		if cErr := f.Close(); cErr != nil && err == nil {
+			err = cErr
+		}
+	}()
+
+	scanner := bufio.NewScanner(f)
+
+	if !scanner.Scan() {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	line := scanner.Text()
+
+	index := strings.Index(line, " ")
+	if index == -1 {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	processName := line[0:index]
+
+	return processName == "lightmeter", nil
+}
+
+func DefaultSchedFileReader() (io.ReadCloser, error) {
+	return os.Open("/proc/1/sched")
+}
 
 type Metadata struct {
-	InstanceID     string  `json:"instance_id"`
-	LocalIP        *string `json:"postfix_public_ip,omitempty"`
-	PublicURL      *string `json:"public_url,omitempty"`
-	UserEmail      *string `json:"user_email,omitempty"`
-	PostfixVersion *string `json:"postfix_version,omitempty"`
+	InstanceID         string  `json:"instance_id"`
+	LocalIP            *string `json:"postfix_public_ip,omitempty"`
+	PublicURL          *string `json:"public_url,omitempty"`
+	UserEmail          *string `json:"user_email,omitempty"`
+	PostfixVersion     *string `json:"postfix_version,omitempty"`
+	MailKind           *string `json:"mail_kind,omitempty"`
+	IsDockerContainer  bool    `json:"is_docker_container"`
+	IsUsingRsyncedLogs bool    `json:"is_using_rsynced_logs"`
 }
 
 type Version struct {
@@ -56,8 +103,10 @@ type Dispatcher struct {
 	InstanceID           string
 	VersionBuilder       func() Version
 	ReportDestinationURL string
-	SettingsReader       *meta.Reader
+	SettingsReader       *metadata.Reader
 	Auth                 auth.Registrar
+	SchedFileReader      SchedFileReader
+	IsUsingRsyncedLogs   bool
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
@@ -72,14 +121,23 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 		userData, err := d.Auth.GetFirstUser(context.Background())
 		if err != nil && !errors.Is(err, auth.ErrNoUser) { // if no user is registered, simply don't send any email
-			return Metadata{}, errorutil.Wrap(err)
+			return metadata, errorutil.Wrap(err)
 		}
 
 		if err == nil {
 			metadata.UserEmail = &userData.Email
 		}
 
-		metadata.PublicURL, metadata.LocalIP = d.getGlobalSettings()
+		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
+
+		insideContainer, err := isSchedFileContentInsideContainer(d.SchedFileReader)
+		if err != nil {
+			return metadata, errorutil.Wrap(err)
+		}
+
+		metadata.IsDockerContainer = insideContainer
+
+		metadata.IsUsingRsyncedLogs = d.IsUsingRsyncedLogs
 
 		return metadata, nil
 	}()
@@ -141,14 +199,15 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	return nil
 }
 
-func (d *Dispatcher) getGlobalSettings() (*string, *string) {
+func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving global settings")
 	}
 
 	if err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	addr := func(s string) *string {
@@ -171,14 +230,35 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 		return nil
 	}()
 
-	return publicURL, localIP
+	mailKind := func() *string {
+		mailKind, err := d.SettingsReader.Retrieve(context.Background(), "mail_kind")
+
+		if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+			log.Warn().Msgf("Unexpected error retrieving mail_kind")
+		}
+
+		if err != nil {
+			return nil
+		}
+
+		s, ok := mailKind.(string)
+
+		if !ok {
+			log.Warn().Msgf("mail_kind couldn't be cast to string")
+			return nil
+		}
+
+		return &s
+	}()
+
+	return publicURL, localIP, mailKind
 }
 
 func (d *Dispatcher) getPostfixVersion() *string {
 	var version string
 	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version")
 	}
 
@@ -199,22 +279,25 @@ type Options struct {
 	ReportInterval time.Duration
 
 	ReportDestinationURL string
+
+	// whether the postfix logs are being received via rsync
+	IsUsingRsyncedLogs bool
 }
 
 func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
-	settingsReader *meta.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
+func New(intelDb *dbconn.PooledPair, deliveryDb *deliverydb.DB, fetcher core.Fetcher,
+	settingsReader *metadata.Reader, auth *auth.Auth, connStats *connectionstats.Stats,
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
-		mailactivity.NewReporter(db.ConnPool()),
+		mailactivity.NewReporter(deliveryDb.ConnPool()),
 		insights.NewReporter(fetcher),
 		logslinecount.NewReporter(logslinePublisher),
-		topdomains.NewReporter(db.ConnPool()),
+		topdomains.NewReporter(deliveryDb.ConnPool()),
 		intelConnectionStats.NewReporter(connStats.ConnPool()),
 	}
 
@@ -229,9 +312,11 @@ func New(workspaceDir string, db *deliverydb.DB, fetcher core.Fetcher,
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,
+		SchedFileReader:      DefaultSchedFileReader,
+		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	c, err := collector.New(workspaceDir, collectorOptions, reporters, dispatcher)
+	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)
 	if err != nil {
 		return nil, nil, errorutil.Wrap(err)
 	}

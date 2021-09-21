@@ -4,14 +4,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build !codeanalysis
 // +build !codeanalysis
 
 package rawparser
 
 
-//line cleanup.rl:10
+//line cleanup.rl:11
 
-//line cleanup.gen.go:15
+//line cleanup.gen.go:16
 const cleanupMessageAccepted_start int = 1
 const cleanupMessageAccepted_first_final int = 37
 const cleanupMessageAccepted_error int = 0
@@ -19,7 +20,7 @@ const cleanupMessageAccepted_error int = 0
 const cleanupMessageAccepted_en_main int = 1
 
 
-//line cleanup.rl:11
+//line cleanup.rl:12
 
 func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -30,12 +31,12 @@ func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
 	r := CleanupMessageAccepted{}
 
 
-//line cleanup.gen.go:34
+//line cleanup.gen.go:35
 	{
 	cs = cleanupMessageAccepted_start
 	}
 
-//line cleanup.gen.go:39
+//line cleanup.gen.go:40
 	{
 	if p == pe {
 		goto _test_eof
@@ -161,7 +162,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line cleanup.gen.go:165
+//line cleanup.gen.go:166
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -424,7 +425,7 @@ tr0:
 		}
 		goto st0
 tr14:
-//line cleanup.rl:23
+//line cleanup.rl:24
 
 		r.Queue = data[tokBeg:p]
 	
@@ -434,7 +435,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line cleanup.gen.go:438
+//line cleanup.gen.go:439
 		if data[p] == 32 {
 			goto st14
 		}
@@ -559,7 +560,7 @@ tr38:
 			goto _test_eof38
 		}
 	st_case_38:
-//line cleanup.gen.go:563
+//line cleanup.gen.go:564
 		switch data[p] {
 		case 60:
 			goto st0
@@ -585,13 +586,13 @@ tr36:
 			goto _test_eof39
 		}
 	st_case_39:
-//line cleanup.gen.go:589
+//line cleanup.gen.go:590
 		if data[p] == 62 {
 			goto tr42
 		}
 		goto st39
 tr42:
-//line cleanup.rl:27
+//line cleanup.rl:28
 
     r.MessageId = data[tokBeg:p]
   
@@ -601,7 +602,7 @@ tr42:
 			goto _test_eof40
 		}
 	st_case_40:
-//line cleanup.gen.go:605
+//line cleanup.gen.go:606
 		if data[p] == 62 {
 			goto st0
 		}
@@ -810,7 +811,7 @@ tr2:
 			goto _test_eof36
 		}
 	st_case_36:
-//line cleanup.gen.go:814
+//line cleanup.gen.go:815
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -871,58 +872,58 @@ tr2:
 	if p == eof {
 		switch cs {
 		case 40, 42:
-//line cleanup.rl:41
+//line cleanup.rl:42
 
 		return r, true
 	
 		case 38:
-//line cleanup.rl:31
+//line cleanup.rl:32
 
     r.MessageId = data[tokBeg:p]
   
-//line cleanup.rl:41
+//line cleanup.rl:42
 
 		return r, true
 	
 		case 37, 41:
-//line cleanup.rl:37
+//line cleanup.rl:38
 
     r.Corrupted = true
   
-//line cleanup.rl:41
+//line cleanup.rl:42
 
 		return r, true
 	
 		case 39:
-//line cleanup.rl:27
+//line cleanup.rl:28
 
     r.MessageId = data[tokBeg:p]
   
-//line cleanup.rl:37
+//line cleanup.rl:38
 
     r.Corrupted = true
   
-//line cleanup.rl:41
+//line cleanup.rl:42
 
 		return r, true
 	
-//line cleanup.gen.go:910
+//line cleanup.gen.go:911
 		}
 	}
 
 	_out: {}
 	}
 
-//line cleanup.rl:47
+//line cleanup.rl:48
 
 
 	return r, false
 }
 
 
-//line cleanup.rl:53
+//line cleanup.rl:54
 
-//line cleanup.gen.go:926
+//line cleanup.gen.go:927
 const cleanupMilterReject_start int = 1
 const cleanupMilterReject_first_final int = 41
 const cleanupMilterReject_error int = 0
@@ -930,7 +931,7 @@ const cleanupMilterReject_error int = 0
 const cleanupMilterReject_en_main int = 1
 
 
-//line cleanup.rl:54
+//line cleanup.rl:55
 
 func parseCleanupMilterReject(data []byte) (CleanupMilterReject, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -941,12 +942,12 @@ func parseCleanupMilterReject(data []byte) (CleanupMilterReject, bool) {
 	r := CleanupMilterReject{}
 
 
-//line cleanup.gen.go:945
+//line cleanup.gen.go:946
 	{
 	cs = cleanupMilterReject_start
 	}
 
-//line cleanup.gen.go:950
+//line cleanup.gen.go:951
 	{
 	if p == pe {
 		goto _test_eof
@@ -1070,7 +1071,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line cleanup.gen.go:1074
+//line cleanup.gen.go:1075
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1333,7 +1334,7 @@ tr0:
 		}
 		goto st0
 tr14:
-//line cleanup.rl:66
+//line cleanup.rl:67
 
 		r.Queue = data[tokBeg:p]
 	
@@ -1343,7 +1344,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line cleanup.gen.go:1347
+//line cleanup.gen.go:1348
 		if data[p] == 32 {
 			goto st14
 		}
@@ -1492,14 +1493,14 @@ tr14:
 tr40:
 //line common.rl:29
  tokBeg = p 
-//line cleanup.rl:72
+//line cleanup.rl:73
 
 		r.ExtraMessage = data[tokBeg:eof]
     return r, true
   
 	goto st41
 tr41:
-//line cleanup.rl:72
+//line cleanup.rl:73
 
 		r.ExtraMessage = data[tokBeg:eof]
     return r, true
@@ -1510,7 +1511,7 @@ tr41:
 			goto _test_eof41
 		}
 	st_case_41:
-//line cleanup.gen.go:1514
+//line cleanup.gen.go:1515
 		goto tr41
 	st30:
 		if p++; p == pe {
@@ -1701,7 +1702,7 @@ tr2:
 			goto _test_eof40
 		}
 	st_case_40:
-//line cleanup.gen.go:1705
+//line cleanup.gen.go:1706
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -1761,7 +1762,7 @@ tr2:
 	_out: {}
 	}
 
-//line cleanup.rl:79
+//line cleanup.rl:80
 
 
 	return r, false

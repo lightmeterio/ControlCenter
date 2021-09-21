@@ -24,6 +24,14 @@ github.com/cpuguy83/go-md2man/v2/md2man
 ## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
+# github.com/dsnet/compress v0.0.1
+## explicit
+github.com/dsnet/compress
+github.com/dsnet/compress/bzip2
+github.com/dsnet/compress/bzip2/internal/sais
+github.com/dsnet/compress/internal
+github.com/dsnet/compress/internal/errors
+github.com/dsnet/compress/internal/prefix
 # github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
 ## explicit
 github.com/emersion/go-sasl

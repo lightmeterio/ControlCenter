@@ -18,12 +18,25 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/socketsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
+
+func changeUserInfo(conf config.Config) {
+	if !(len(conf.ChangeUserInfoNewEmail) > 0 || len(conf.ChangeUserInfoNewName) > 0 || len(conf.PasswordToReset) > 0) {
+		errorutil.Dief(conf.Verbose, nil, "No new user info to be changed")
+	}
+
+	subcommand.PerformUserInfoChange(conf.Verbose,
+		conf.WorkspaceDirectory, conf.EmailToChange,
+		conf.ChangeUserInfoNewEmail, conf.ChangeUserInfoNewName,
+		conf.PasswordToReset,
+	)
+}
 
 func main() {
 	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
@@ -55,8 +68,8 @@ func main() {
 		return
 	}
 
-	if len(conf.EmailToPasswdReset) > 0 {
-		subcommand.PerformPasswordReset(conf.Verbose, conf.WorkspaceDirectory, conf.EmailToPasswdReset, conf.PasswordToReset)
+	if len(conf.EmailToChange) > 0 {
+		changeUserInfo(conf)
 		return
 	}
 
@@ -65,7 +78,7 @@ func main() {
 		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", conf.WorkspaceDirectory)
 	}
 
-	done, cancel := ws.Run()
+	done, cancel := runner.Run(ws)
 
 	// only import logs and exit when they end. Does not start web server.
 	// It's useful for benchmarking importing logs.
@@ -112,7 +125,7 @@ func main() {
 }
 
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
-	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory)
+	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, &workspace.Options{IsUsingRsyncedLogs: conf.RsyncedDir})
 	if err != nil {
 		return nil, logsource.Reader{}, errorutil.Wrap(err)
 	}

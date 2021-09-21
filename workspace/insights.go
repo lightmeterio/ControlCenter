@@ -14,6 +14,7 @@ import (
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	"time"
@@ -30,8 +31,10 @@ func insightsOptions(
 	rblChecker localrbl.Checker,
 	rblDetector messagerbl.Stepper,
 	detectiveEscalator escalator.Stepper,
+	deliverydbConnPool *dbconn.RoPool,
 ) insightscore.Options {
 	return insightscore.Options{
+		"logsConnPool":   deliverydbConnPool,
 		"dashboard":      dashboard,
 		"highrate":       highrateinsight.Options{BaseBounceRateThreshold: 0.3},
 		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},

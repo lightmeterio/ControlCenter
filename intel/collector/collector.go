@@ -7,8 +7,8 @@ package collector
 import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"path"
 	"time"
 )
 
@@ -48,10 +47,10 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		lastExecTime, err := func() (time.Time, error) {
 			var lastExecTs int64
 
-			err := meta.Retrieve(context.Background(), tx, r.ID(), &lastExecTs)
+			err := metadata.Retrieve(context.Background(), tx, r.ID(), &lastExecTs)
 
 			// first execution. Not an error
-			if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+			if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 				return time.Time{}, nil
 			}
 
@@ -71,7 +70,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 		now := clock.Now()
 
 		storeLastExec := func() error {
-			if err := meta.Store(context.Background(), tx, []meta.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
+			if err := metadata.Store(context.Background(), tx, []metadata.Item{{Key: r.ID(), Value: now.Unix()}}); err != nil {
 				return errorutil.Wrap(err, "id:", r.ID())
 			}
 
@@ -124,31 +123,30 @@ type Options struct {
 	ReportInterval time.Duration
 }
 
-func New(workspace string, options Options, reporters Reporters, dispatcher Dispatcher) (*Collector, error) {
-	return NewWithCustomClock(workspace, options, reporters, dispatcher, &timeutil.RealClock{})
+func New(intelDb *dbconn.PooledPair, options Options, reporters Reporters, dispatcher Dispatcher) (*Collector, error) {
+	return NewWithCustomClock(intelDb, options, reporters, dispatcher, &timeutil.RealClock{})
 }
 
 // NOTE: New takes ownwership of the reporters, calling Close() when it ends
-func NewWithCustomClock(workspace string, options Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
-	pair, err := dbconn.Open(path.Join(workspace, "intel-collector.db"), 4)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	if err := migrator.Run(pair.RwConn.DB, "intel"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	closers := closeutil.New(pair)
+func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
+	closers := closeutil.New()
 
 	for _, r := range reporters {
 		closers.Add(r)
 	}
 
+	stmts := dbconn.PreparedStmts{}
+
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
+
 	return &Collector{
 		reporters: reporters,
 		Closers:   closers,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+			dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts, time.Hour*12, makeCleanAction(maxAge))
+			dbRunnerDone, dbRunnerCancel := runner.Run(dbRunner)
+
 			go func() {
 				timer := time.NewTicker(options.CycleInterval)
 
@@ -157,25 +155,45 @@ func NewWithCustomClock(workspace string, options Options, reporters Reporters, 
 					case <-cancel:
 						log.Info().Msgf("Intel collector asked to stop at %v!", clock.Now())
 
-						done <- nil
-
 						timer.Stop()
+						dbRunnerCancel()
+						done <- dbRunnerDone()
 
 						return
 					case <-timer.C:
-						if err := pair.RwConn.Tx(func(tx *sql.Tx) error {
+						dbRunner.Actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
 							if err := Step(tx, clock, reporters, dispatcher, options.ReportInterval); err != nil {
 								return errorutil.Wrap(err)
 							}
 
 							return nil
-						}); err != nil {
-							done <- err
-							return
 						}
 					}
 				}
 			}()
 		}),
 	}, nil
+}
+
+func makeCleanAction(maxAge time.Duration) dbrunner.Action {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		var mostRecentDispatchTime int64
+		if err := tx.QueryRow(`select time from queued_reports order by id desc limit 1`).Scan(&mostRecentDispatchTime); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		mostRecentTime := time.Unix(mostRecentDispatchTime, 0)
+		oldestTimeToKeep := mostRecentTime.Add(-maxAge)
+		oldestTimeToKeepInTimestamp := oldestTimeToKeep.Unix()
+
+		if _, err := tx.Exec(`delete from queued_reports where time < ?`, oldestTimeToKeepInTimestamp); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if _, err := tx.Exec(`delete from dispatch_times where time < ?`, oldestTimeToKeepInTimestamp); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
 }

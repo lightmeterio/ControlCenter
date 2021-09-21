@@ -10,7 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -19,7 +19,7 @@ import (
 const HistoricalImportKey = "historical_import_running"
 
 func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
+	if err := metadata.Store(ctx, tx, []metadata.Item{{Key: HistoricalImportKey, Value: false}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -27,7 +27,7 @@ func DisableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
 }
 
 func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
-	if err := meta.Store(ctx, tx, []meta.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
+	if err := metadata.Store(ctx, tx, []metadata.Item{{Key: HistoricalImportKey, Value: true}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -37,9 +37,9 @@ func EnableHistoricalImportFlag(ctx context.Context, tx *sql.Tx) error {
 func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 	var running bool
 
-	err := meta.Retrieve(ctx, tx, HistoricalImportKey, &running)
+	err := metadata.Retrieve(ctx, tx, HistoricalImportKey, &running)
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return false, nil
 	}
 
@@ -51,9 +51,9 @@ func IsHistoricalImportRunning(ctx context.Context, tx *sql.Tx) (bool, error) {
 }
 
 func IsHistoricalImportRunningFromPool(ctx context.Context, pool *dbconn.RoPool) (bool, error) {
-	v, err := meta.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
+	v, err := metadata.NewReader(pool).Retrieve(ctx, HistoricalImportKey)
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return false, nil
 	}
 
@@ -129,8 +129,8 @@ func RetrieveLastDetectorExecution(tx *sql.Tx, kind string) (time.Time, error) {
 }
 
 var (
-	ErrorWrongRatingValue = errors.New("Wrong rating value")
-	ErrorAlreadyRated     = errors.New("User rating was submitted in the last two weeks")
+	ErrWrongRatingValue = errors.New("Wrong rating value")
+	ErrAlreadyRated     = errors.New("User rating was submitted in the last two weeks")
 )
 
 func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeutil.Clock) (int, error) {
@@ -143,7 +143,7 @@ func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeuti
 
 	// Check that rating is 0, 1 or 2
 	if rating > 2 {
-		return 0, ErrorWrongRatingValue
+		return 0, ErrWrongRatingValue
 	}
 
 	// Check that insight type wasn't rated in the last 2 weeks
@@ -168,7 +168,7 @@ func CanRateInsight(pool *dbconn.RoPool, kind string, rating uint, clock timeuti
 	}
 
 	if !insightUserRatingIsOld(time.Unix(ts, 0), clock) {
-		return 0, ErrorAlreadyRated
+		return 0, ErrAlreadyRated
 	}
 
 	return insightType, nil

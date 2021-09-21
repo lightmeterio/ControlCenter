@@ -9,9 +9,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -57,7 +57,7 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("No emails were sent between %v and %v")
+	return translator.I18n("No emails were sent or received between %v and %v")
 }
 
 func (d description) Args() []interface{} {
@@ -109,10 +109,10 @@ func (g *generator) generate(interval timeutil.TimeInterval) {
 }
 
 type detector struct {
-	dashboard dashboard.Dashboard
-	options   Options
-	creator   core.Creator
-	generator *generator
+	logsConnPool *dbconn.RoPool
+	options      Options
+	creator      core.Creator
+	generator    *generator
 }
 
 func (detector) IsHistoricalDetector() {
@@ -123,12 +123,22 @@ func (*detector) Close() error {
 	return nil
 }
 
+const countDeliveriesInIntervalQueryKey = "countDeliveriesInInterval"
+
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
-	d, ok := options["dashboard"].(dashboard.Dashboard)
+	pool, ok := options["logsConnPool"].(*dbconn.RoPool)
 
 	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid dashboard"))
+		errorutil.MustSucceed(errors.New("Invalid Connection Pool"))
 	}
+
+	errorutil.MustSucceed(pool.ForEach(func(conn *dbconn.RoPooledConn) error {
+		if err := conn.PrepareStmt(`select count(*) from deliveries where delivery_ts between ? and ?`, countDeliveriesInIntervalQueryKey); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}))
 
 	detectorOptions, ok := options["mailinactivity"].(Options)
 
@@ -137,10 +147,10 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 
 	return &detector{
-		dashboard: d,
-		options:   detectorOptions,
-		creator:   creator,
-		generator: &generator{creator: creator, interval: nil},
+		logsConnPool: pool,
+		options:      detectorOptions,
+		creator:      creator,
+		generator:    &generator{creator: creator, interval: nil},
 	}
 }
 
@@ -168,24 +178,21 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 		return nil
 	}
 
-	activityTotalForPair := func(pairs dashboard.Pairs, err error) (int, error) {
-		if err != nil {
+	// TODO: use AcquireContext() once it's merged
+	conn, release := d.logsConnPool.Acquire()
+	defer release()
+
+	countActivityInInterval := func(interval timeutil.TimeInterval) (int, error) {
+		var count int
+		//nolint:sqlclosecheck
+		if err := conn.GetStmt(countDeliveriesInIntervalQueryKey).QueryRowContext(ctx, interval.From.Unix(), interval.To.Unix()).Scan(&count); err != nil {
 			return 0, errorutil.Wrap(err)
 		}
 
-		total := 0
-
-		for _, pair := range pairs {
-			//nolint:forcetypeassert
-			v := pair.Value.(int)
-			total += v
-		}
-
-		return total, nil
+		return count, nil
 	}
 
-	totalCurrentInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, interval))
-
+	totalCurrentInterval, err := countActivityInInterval(interval)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -196,10 +203,10 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 
 	if lastExecTime.IsZero() {
 		// pottentially first insight generation
-		totalPreviousInterval, err := activityTotalForPair(d.dashboard.DeliveryStatus(ctx, timeutil.TimeInterval{
+		totalPreviousInterval, err := countActivityInInterval(timeutil.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),
-		}))
+		})
 
 		if err != nil {
 			return errorutil.Wrap(err)

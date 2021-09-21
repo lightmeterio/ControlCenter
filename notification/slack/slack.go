@@ -9,7 +9,7 @@ import (
 	"errors"
 	"github.com/slack-go/slack"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
@@ -50,7 +50,7 @@ type disabledFromSettingsPolicy struct {
 
 func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	s, err := p.settingsFetcher()
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return true, nil
 	}
 
@@ -61,7 +61,7 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	return !s.Enabled, nil
 }
 
-func New(policy core.Policy, reader *meta.Reader) *Notifier {
+func New(policy core.Policy, reader *metadata.Reader) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
@@ -126,7 +126,7 @@ func (m *Notifier) SendTestNotification() error {
 func tryToNotifyMessage(m *Notifier, message core.Message) error {
 	client, settings, err := clientAndSettingsForMessenger(m)
 
-	if err != nil && errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return nil
 	}
 
@@ -203,7 +203,7 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 	return nil
 }
 
-func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -211,7 +211,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
 	settings := &Settings{}
 
 	err := reader.RetrieveJson(ctx, SettingKey, settings)

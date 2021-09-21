@@ -16,10 +16,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -90,19 +90,16 @@ func mustEncodeTimeJson(v time.Time) string {
 
 func TestReporter(t *testing.T) {
 	Convey("Test Insights Count Reporter", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
+		defer closeConn()
 
-		accessor, err := insights.NewAccessor(dir)
+		accessor, err := insights.NewAccessor(conn)
 		So(err, ShouldBeNil)
 
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
-		intelDb, clear := testutil.TempDBConnection(t)
+		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
-
-		err = migrator.Run(intelDb.RwConn.DB, "intel")
-		So(err, ShouldBeNil)
 
 		e, err := insights.NewCustomEngine(
 			accessor,
@@ -141,7 +138,14 @@ func TestReporter(t *testing.T) {
 			Category:    core.LocalCategory,
 		})
 
-		doneInsights, cancelInsights := e.Run()
+		// generate a report with non-"local" category, which shouldn't be counted
+		e.GenerateInsight(dummyContext, core.InsightProperties{
+			Time:        baseTimePlus15m.Add(12 * time.Minute),
+			ContentType: "fake_type_3",
+			Category:    core.IntelCategory,
+		})
+
+		doneInsights, cancelInsights := runner.Run(e)
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -168,6 +172,14 @@ func TestReporter(t *testing.T) {
 			err = collector.TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 
+			clock.Sleep(fifteenMin)
+			err = reporter.Step(tx, clock)
+			So(err, ShouldBeNil)
+
+			err = collector.TryToDispatchReports(tx, clock, dispatcher)
+			So(err, ShouldBeNil)
+
+			// spend some time, with no insights being created. Those should not be reported
 			clock.Sleep(fifteenMin)
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)

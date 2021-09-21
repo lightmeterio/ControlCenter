@@ -115,6 +115,7 @@ func (e *Error) Chain() ErrorChain {
 	return BuildChain(e, e.Err)
 }
 
+// nolint: errname
 type ErrorChain []error
 
 func errInChain(err error) string {

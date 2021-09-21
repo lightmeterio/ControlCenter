@@ -144,7 +144,7 @@ func TestEscalation(t *testing.T) {
 			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval)
 			So(err, ShouldBeNil)
 			So(requester.requests, ShouldResemble, []Request{
-				Request{
+				{
 					Sender:    "sender@example.com",
 					Recipient: "recipient@example.com",
 					Interval:  interval,
@@ -265,7 +265,7 @@ func TestEscalation(t *testing.T) {
 			}
 
 			So(requests, ShouldResemble, []Request{
-				Request{
+				{
 					Sender:    "sender@example.com",
 					Recipient: "recipient@example.com",
 					Interval:  interval,

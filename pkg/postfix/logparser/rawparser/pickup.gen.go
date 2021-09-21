@@ -4,14 +4,15 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build !codeanalysis
 // +build !codeanalysis
 
 package rawparser
 
 
-//line pickup.rl:10
+//line pickup.rl:11
 
-//line pickup.gen.go:15
+//line pickup.gen.go:16
 const pickup_start int = 1
 const pickup_first_final int = 39
 const pickup_error int = 0
@@ -19,7 +20,7 @@ const pickup_error int = 0
 const pickup_en_main int = 1
 
 
-//line pickup.rl:11
+//line pickup.rl:12
 
 func parsePickup(data []byte) (Pickup, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
@@ -30,12 +31,12 @@ func parsePickup(data []byte) (Pickup, bool) {
 	r := Pickup{}
 
 
-//line pickup.gen.go:34
+//line pickup.gen.go:35
 	{
 	cs = pickup_start
 	}
 
-//line pickup.gen.go:39
+//line pickup.gen.go:40
 	{
 	if p == pe {
 		goto _test_eof
@@ -155,7 +156,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line pickup.gen.go:159
+//line pickup.gen.go:160
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -418,7 +419,7 @@ tr0:
 		}
 		goto st0
 tr14:
-//line pickup.rl:23
+//line pickup.rl:24
 
 		r.Queue = data[tokBeg:p]
 	
@@ -428,7 +429,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line pickup.gen.go:432
+//line pickup.gen.go:433
 		if data[p] == 32 {
 			goto st14
 		}
@@ -487,7 +488,7 @@ tr29:
 			goto _test_eof19
 		}
 	st_case_19:
-//line pickup.gen.go:491
+//line pickup.gen.go:492
 		if data[p] == 32 {
 			goto tr30
 		}
@@ -496,7 +497,7 @@ tr29:
 		}
 		goto st0
 tr30:
-//line pickup.rl:27
+//line pickup.rl:28
 
 		r.Uid = data[tokBeg:p]
 	
@@ -506,7 +507,7 @@ tr30:
 			goto _test_eof20
 		}
 	st_case_20:
-//line pickup.gen.go:510
+//line pickup.gen.go:511
 		if data[p] == 102 {
 			goto st21
 		}
@@ -574,7 +575,7 @@ tr38:
 			goto _test_eof27
 		}
 	st_case_27:
-//line pickup.gen.go:578
+//line pickup.gen.go:579
 		if data[p] == 62 {
 			goto tr41
 		}
@@ -582,21 +583,21 @@ tr38:
 tr39:
 //line common.rl:29
  tokBeg = p 
-//line pickup.rl:31
+//line pickup.rl:32
 
 		r.Sender = normalizeMailLocalPart(data[tokBeg:p])
 	
-//line pickup.rl:35
+//line pickup.rl:36
 
 		return r, true
 	
 	goto st39
 tr41:
-//line pickup.rl:31
+//line pickup.rl:32
 
 		r.Sender = normalizeMailLocalPart(data[tokBeg:p])
 	
-//line pickup.rl:35
+//line pickup.rl:36
 
 		return r, true
 	
@@ -606,7 +607,7 @@ tr41:
 			goto _test_eof39
 		}
 	st_case_39:
-//line pickup.gen.go:610
+//line pickup.gen.go:611
 		goto st0
 	st28:
 		if p++; p == pe {
@@ -797,7 +798,7 @@ tr2:
 			goto _test_eof38
 		}
 	st_case_38:
-//line pickup.gen.go:801
+//line pickup.gen.go:802
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -855,7 +856,7 @@ tr2:
 	_out: {}
 	}
 
-//line pickup.rl:41
+//line pickup.rl:42
 
 
 	return r, false

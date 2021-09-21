@@ -8,7 +8,8 @@ import (
 	"context"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -21,7 +22,7 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-func getVersion(settingsReader *meta.Reader) (*string, error) {
+func getVersion(settingsReader *metadata.Reader) (*string, error) {
 	var version *string
 	err := settingsReader.RetrieveJson(context.Background(), SettingKey, &version)
 	unwrappedErr := errorutil.TryToUnwrap(err)
@@ -30,21 +31,21 @@ func getVersion(settingsReader *meta.Reader) (*string, error) {
 
 func TestPostfixVersionPublisher(t *testing.T) {
 	Convey("TestPostfixVersion", t, func() {
-		settingdDB, removeDB := testutil.TempDBConnection(t)
+		settingdDB, removeDB := testutil.TempDBConnectionMigrated(t, "master")
 		defer removeDB()
 
-		handler, err := meta.NewHandler(settingdDB, "master")
+		handler, err := metadata.NewHandler(settingdDB)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(handler)
-		done, cancel := runner.Run()
+		writeRunner := metadata.NewSerialWriteRunner(handler)
+		done, cancel := runner.Run(writeRunner)
 
 		defer func() {
 			cancel()
 			So(done(), ShouldBeNil)
 		}()
 
-		settingsWriter := runner.Writer()
+		settingsWriter := writeRunner.Writer()
 		settingsReader := handler.Reader
 
 		p := NewPublisher(settingsWriter)
@@ -54,7 +55,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 
 		Convey("Version unset", func() {
 			version, err := getVersion(settingsReader)
-			So(err, ShouldEqual, meta.ErrNoSuchKey)
+			So(err, ShouldEqual, metadata.ErrNoSuchKey)
 			So(version, ShouldBeNil)
 		})
 

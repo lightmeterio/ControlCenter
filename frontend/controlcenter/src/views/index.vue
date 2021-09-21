@@ -210,12 +210,13 @@ import {
   getUserInfo
 } from "../lib/api.js";
 
-import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
 import shared_texts from "../mixin/shared_texts.js";
 import auth from "../mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
+import DateRangePicker from "vue2-daterange-picker";
+import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
 
 export default {
   name: "insight",
@@ -324,7 +325,7 @@ export default {
     let vue = this;
 
     getUserInfo().then(function(response) {
-      vue.username = response.data.Name;
+      vue.username = response.data.user.name;
     });
   },
   destroyed() {

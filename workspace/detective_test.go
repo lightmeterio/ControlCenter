@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
@@ -39,7 +40,7 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
-	ws, err := NewWorkspace(dir)
+	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
 	builder, err := transform.Get("default", year)
@@ -53,7 +54,7 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	logSource, err := filelogsource.New(reader, builder, importAnnouncer)
 	So(err, ShouldBeNil)
 
-	done, cancel := ws.Run()
+	done, cancel := runner.Run(ws)
 
 	logReader := logsource.NewReader(logSource, ws.NewPublisher())
 
@@ -96,16 +97,19 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
+				messagesLowerCase, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
+				So(err, ShouldBeNil)
+
+				messagesMixedCase, err := d.CheckMessageDelivery(context.Background(), "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
-				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
+				So(messagesLowerCase, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
 						detective.Message{
 							Queue: "400643011B47",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									expectedTime.In(time.UTC),
 									expectedTime.In(time.UTC),
@@ -117,6 +121,9 @@ func TestDetective(t *testing.T) {
 						},
 					},
 				})
+
+				// Gitlab issue #526
+				So(messagesMixedCase, ShouldResemble, messagesLowerCase)
 			})
 
 			noDeliveries := detective.Messages{}
@@ -162,7 +169,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "23EBE3D5C0",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									5,
 									time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
@@ -170,7 +177,7 @@ func TestDetective(t *testing.T) {
 									"4.1.1",
 									&expectedExpiredTime,
 								},
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
@@ -206,7 +213,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "95154657C",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
@@ -219,7 +226,7 @@ func TestDetective(t *testing.T) {
 						detective.Message{
 							Queue: "D390B657C",
 							Entries: []detective.MessageDelivery{
-								detective.MessageDelivery{
+								{
 									1,
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),

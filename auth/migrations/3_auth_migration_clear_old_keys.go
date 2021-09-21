@@ -10,7 +10,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	// The meta table is defined in the meta package
-	_ "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 )
 
 func init() {

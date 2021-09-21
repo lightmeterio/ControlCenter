@@ -4,6 +4,7 @@
 
 const BASE_URL = process.env.VUE_APP_CONTROLCENTER_BACKEND_BASE_URL;
 import { trackEvent, trackEventArray, updateMatomoEmail } from "@/lib/util";
+import posthog from "posthog-js";
 
 import axios from "axios";
 import { newAlertError, newAlertSuccess } from "@/lib/util.js";
@@ -129,6 +130,7 @@ export function logout(redirect) {
   axios
     .post(BASE_URL + "logout", null)
     .then(function() {
+      posthog.reset();
       redirect();
     })
     .catch(builderErrorHandler("logout"));
@@ -185,7 +187,7 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
       if (
         err.response.data.error == "Please use a valid work email address" ||
         err.response.data.error ==
-          "This domain does not seem configured for email (no MX record found)"
+          "Invalid email address: the domain does not seem to be configured for email (no MX record found)"
       )
         trackEvent(
           "RegistrationInvalidEmail",
@@ -367,4 +369,12 @@ export function postUserRating(type, rating) {
       trackEvent("InsightUserRating" + ratingText, type);
     })
     .catch(builderErrorHandler("insight_user_rating"));
+}
+
+/**** Network Intelligence reports ****/
+
+export function getLatestReports() {
+  let get = axios.get(BASE_URL + "api/v0/reports");
+  get.catch(errorHandler);
+  return get;
 }

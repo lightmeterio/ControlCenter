@@ -9,8 +9,8 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"path"
 	"testing"
 )
 
@@ -24,16 +24,15 @@ var (
 
 func TestSessionKey(t *testing.T) {
 	Convey("Test Session Key", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "auth")
+		defer closeConn()
 
 		var generatedKey, recoveredKey [][]byte
 
 		// NOTE: for now we are generating only one key, but
 		// generating multiple ones is desirable
 		{
-			auth, _ := NewAuth(path.Join(dir), Options{})
-			defer func() { So(auth.Close(), ShouldBeNil) }()
+			auth, _ := NewAuth(conn, Options{})
 			generatedKey = auth.SessionKeys()
 			So(generatedKey, ShouldNotBeNil)
 			So(len(generatedKey), ShouldEqual, 1)
@@ -41,8 +40,7 @@ func TestSessionKey(t *testing.T) {
 		}
 
 		{
-			auth, _ := NewAuth(path.Join(dir), Options{})
-			defer func() { So(auth.Close(), ShouldBeNil) }()
+			auth, _ := NewAuth(conn, Options{})
 			recoveredKey = auth.SessionKeys()
 		}
 
@@ -54,13 +52,12 @@ func TestAuth(t *testing.T) {
 	strongPassword := `ghjzfpailduifiapdq9um6ysuubvtjywAqbnadq+aUerxrqhfp`
 
 	Convey("Test Auth", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "auth")
+		defer closeConn()
 
-		auth, err := NewAuth(path.Join(dir), Options{})
+		auth, err := NewAuth(conn, Options{})
 		So(err, ShouldBeNil)
 		So(auth, ShouldNotBeNil)
-		defer func() { So(auth.Close(), ShouldBeNil) }()
 
 		Convey("No user is initially registered", func() {
 			ok, err := auth.HasAnyUser(dummyContext)
@@ -121,11 +118,8 @@ func TestAuth(t *testing.T) {
 		})
 
 		Convey("Register Multiple Users", func() {
-			auth, err := NewAuth(path.Join(dir), Options{AllowMultipleUsers: true})
-
+			auth, err := NewAuth(conn, Options{AllowMultipleUsers: true})
 			So(err, ShouldBeNil)
-
-			defer func() { So(auth.Close(), ShouldBeNil) }()
 
 			user1Passwd := `ymzlxzmojdnQ3revu/s2jnqbFydoqw`
 			user2Passwd := `yp9nr1yog|cWzjDftgspdgkntkbjig`
@@ -232,50 +226,103 @@ func TestAuth(t *testing.T) {
 	})
 }
 
+const originalTestPassword = `(1Yow@byU]>`
+
+func tempWorkspaceWithUserSetup(t *testing.T) (*dbconn.PooledPair, func()) {
+	conn, closeConn := testutil.TempDBConnectionMigrated(t, "auth")
+
+	auth, err := NewAuth(conn, Options{})
+	So(err, ShouldBeNil)
+
+	_, err = auth.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
+	So(err, ShouldBeNil)
+
+	return conn, closeConn
+}
+
 func TestResetPassword(t *testing.T) {
 	Convey("Reset Password", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := tempWorkspaceWithUserSetup(t)
+		defer closeConn()
 
-		{
-			auth, err := NewAuth(path.Join(dir), Options{})
-			So(err, ShouldBeNil)
-			defer func() { So(auth.Close(), ShouldBeNil) }()
-			_, err = auth.Register(dummyContext, "email@example.com", `Nora`, `(1Yow@byU]>`)
-			So(err, ShouldBeNil)
-		}
+		auth, err := NewAuth(conn, Options{})
+		So(err, ShouldBeNil)
 
-		Convey("Fail to reset password", func() {
-			auth, err := NewAuth(path.Join(dir), Options{})
-			So(err, ShouldBeNil)
-			defer func() { So(auth.Close(), ShouldBeNil) }()
-
+		Convey("Fails", func() {
 			Convey("Invalid user", func() {
-				So(errors.Is(auth.ChangePassword(dummyContext, "invalid.user@example.com", `kjhjk^^776767&&&$123456`), ErrEmailAddressNotFound), ShouldBeTrue)
+				So(errors.Is(auth.ChangeUserInfo(dummyContext, "invalid.user@example.com", ``, ``, `kjhjk^^776767&&&$123456`), ErrEmailAddressNotFound), ShouldBeTrue)
 			})
 
 			Convey("Too weak", func() {
-				So(errors.Is(auth.ChangePassword(dummyContext, "email@example.com", `123456`), ErrWeakPassword), ShouldBeTrue)
+				So(errors.Is(auth.ChangeUserInfo(dummyContext, "email@example.com", ``, ``, `123456`), ErrWeakPassword), ShouldBeTrue)
 			})
 
 			Convey("Equals email", func() {
-				So(errors.Is(auth.ChangePassword(dummyContext, "email@example.com", `email@example.com`), ErrWeakPassword), ShouldBeTrue)
+				So(errors.Is(auth.ChangeUserInfo(dummyContext, "email@example.com", ``, ``, `email@example.com`), ErrWeakPassword), ShouldBeTrue)
 			})
 
 			Convey("Equals Name", func() {
-				So(errors.Is(auth.ChangePassword(dummyContext, "email@example.com", `Nora`), ErrWeakPassword), ShouldBeTrue)
+				So(errors.Is(auth.ChangeUserInfo(dummyContext, "email@example.com", ``, ``, `Nora`), ErrWeakPassword), ShouldBeTrue)
 			})
+		})
 
-			Convey("Succeeds", func() {
-				So(auth.ChangePassword(dummyContext, "email@example.com", `**^NeuEp4ssd:?&`), ShouldBeNil)
+		Convey("Succeeds", func() {
+			So(auth.ChangeUserInfo(dummyContext, "email@example.com", ``, ``, `**^NeuEp4ssd:?&`), ShouldBeNil)
 
-				ok, u, err := auth.Authenticate(dummyContext, "email@example.com", `**^NeuEp4ssd:?&`)
+			ok, u, err := auth.Authenticate(dummyContext, "email@example.com", `**^NeuEp4ssd:?&`)
 
-				So(err, ShouldBeNil)
-				So(ok, ShouldBeTrue)
-				So(u.Id, ShouldEqual, 1)
-				So(u.Email, ShouldEqual, "email@example.com")
-			})
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(u.Id, ShouldEqual, 1)
+			So(u.Email, ShouldEqual, "email@example.com")
+		})
+	})
+}
+
+func TestChangeUserInfo(t *testing.T) {
+	Convey("Change User Info", t, func() {
+		conn, closeConn := tempWorkspaceWithUserSetup(t)
+		defer closeConn()
+
+		auth, err := NewAuth(conn, Options{})
+		So(err, ShouldBeNil)
+
+		Convey("Invalid user", func() {
+			So(errors.Is(auth.ChangeUserInfo(dummyContext, "invalid.user@example.com", "new.email@example.com", "New Name", ``), ErrEmailAddressNotFound), ShouldBeTrue)
+		})
+
+		Convey("Invalid new e-mail", func() {
+			So(errors.Is(auth.ChangeUserInfo(dummyContext, "email@example.com", "this-is-not-an-email-address...", "New Name", ``), ErrInvalidEmail), ShouldBeTrue)
+		})
+
+		Convey("Succeeds changing e-mail and name", func() {
+			So(auth.ChangeUserInfo(dummyContext, "email@example.com", "new.email@example.com", "New Name", ``), ShouldBeNil)
+			ok, u, err := auth.Authenticate(dummyContext, "new.email@example.com", originalTestPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(u.Id, ShouldEqual, 1)
+			So(u.Email, ShouldEqual, "new.email@example.com")
+			So(u.Name, ShouldEqual, "New Name")
+		})
+
+		Convey("Succeeds changing e-mail only, leaving name intact", func() {
+			So(auth.ChangeUserInfo(dummyContext, "email@example.com", "new.email@example.com", "", ``), ShouldBeNil)
+			ok, u, err := auth.Authenticate(dummyContext, "new.email@example.com", originalTestPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(u.Id, ShouldEqual, 1)
+			So(u.Email, ShouldEqual, "new.email@example.com")
+			So(u.Name, ShouldEqual, "Nora")
+		})
+
+		Convey("Succeeds changing name only, leaving e-mail intact", func() {
+			So(auth.ChangeUserInfo(dummyContext, "email@example.com", "", "Alice", ``), ShouldBeNil)
+			ok, u, err := auth.Authenticate(dummyContext, "email@example.com", originalTestPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(u.Id, ShouldEqual, 1)
+			So(u.Email, ShouldEqual, "email@example.com")
+			So(u.Name, ShouldEqual, "Alice")
 		})
 	})
 }

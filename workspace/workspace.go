@@ -21,10 +21,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
@@ -38,7 +39,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
-	"sort"
 	"time"
 )
 
@@ -63,61 +63,120 @@ type Workspace struct {
 
 	NotificationCenter *notification.Center
 
-	settingsMetaHandler *meta.Handler
-	settingsRunner      *meta.Runner
+	settingsMetaHandler *metadata.Handler
+	settingsRunner      *metadata.SerialWriteRunner
 
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
+	intelAccessor           *collector.Accessor
 }
 
-func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
+type databases struct {
+	closeutil.Closers
+
+	Auth           *dbconn.PooledPair
+	Connections    *dbconn.PooledPair
+	Insights       *dbconn.PooledPair
+	IntelCollector *dbconn.PooledPair
+	Logs           *dbconn.PooledPair
+	LogTracker     *dbconn.PooledPair
+	Master         *dbconn.PooledPair
+}
+
+func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
+	dbFilename := path.Join(directory, databaseName+".db")
+	connPair, err := dbconn.Open(dbFilename, 10)
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := migrator.Run(connPair.RwConn.DB, databaseName); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return connPair, nil
+}
+
+type Options struct {
+	IsUsingRsyncedLogs bool
+}
+
+var DefaultOptions = &Options{
+	IsUsingRsyncedLogs: false,
+}
+
+func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
+	if options == nil {
+		options = DefaultOptions
+	}
+
 	if err := os.MkdirAll(workspaceDirectory, os.ModePerm); err != nil {
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	deliveries, err := deliverydb.New(workspaceDirectory, &domainmapping.DefaultMapping)
+	allDatabases := databases{Closers: closeutil.New()}
+
+	for _, s := range []struct {
+		name string
+		db   **dbconn.PooledPair
+	}{
+		{"auth", &allDatabases.Auth},
+		{"connections", &allDatabases.Connections},
+		{"insights", &allDatabases.Insights},
+		{"intel-collector", &allDatabases.IntelCollector},
+		{"logs", &allDatabases.Logs},
+		{"logtracker", &allDatabases.LogTracker},
+		{"master", &allDatabases.Master},
+	} {
+		db, err := newDb(workspaceDirectory, s.name)
+
+		if err != nil {
+			return nil, errorutil.Wrap(err, "Error opening databases in directory ", workspaceDirectory)
+		}
+
+		*s.db = db
+
+		allDatabases.Closers.Add(db)
+	}
+
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(workspaceDirectory, deliveries.ResultsPublisher())
+	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := auth.NewAuth(workspaceDirectory, auth.Options{})
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	metadataConnPair, err := dbconn.Open(path.Join(workspaceDirectory, "master.db"), 5)
+	auth, err := auth.NewAuth(allDatabases.Auth, auth.Options{})
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := meta.NewHandler(metadataConnPair, "master")
+	m, err := metadata.NewHandler(allDatabases.Master)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	settingsRunner := meta.NewRunner(m)
+	settingsRunner := metadata.NewSerialWriteRunner(m)
 
 	// determine instance ID from the database, or create one
 
 	var instanceID string
-	err = m.Reader.RetrieveJson(context.Background(), intel.SettingKey, &instanceID)
+	err = m.Reader.RetrieveJson(context.Background(), metadata.UuidMetaKey, &instanceID)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if errors.Is(err, meta.ErrNoSuchKey) {
+	if errors.Is(err, metadata.ErrNoSuchKey) {
 		instanceID = uuid.NewV4().String()
-		err := m.Writer.StoreJson(context.Background(), intel.SettingKey, instanceID)
+		err := m.Writer.StoreJson(context.Background(), metadata.UuidMetaKey, instanceID)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
@@ -159,7 +218,7 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 
 	rblDetector := messagerbl.New(globalsettings.New(m.Reader))
 
-	insightsAccessor, err := insights.NewAccessor(workspaceDirectory)
+	insightsAccessor, err := insights.NewAccessor(allDatabases.Insights)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -167,12 +226,12 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	insightsEngine, err := insights.NewEngine(
 		insightsAccessor,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, deliveries.ConnPool()))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	connStats, err := connectionstats.New(workspaceDirectory)
+	connStats, err := connectionstats.New(allDatabases.Connections)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -187,11 +246,18 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
 		ReportDestinationURL: IntelReportDestinationURL,
+		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
-		workspaceDirectory, deliveries, insightsEngine.Fetcher(),
+		allDatabases.IntelCollector, deliveries, insightsEngine.Fetcher(),
 		m.Reader, auth, connStats, intelOptions)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
+
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -199,6 +265,16 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 	logsRunner := newLogsRunner(tracker, deliveries)
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
+
+	rblCheckerCancellableRunner := runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		// TODO: Convert this one here to a proper CancellableRunner that can be cancelled...
+		rblChecker.StartListening()
+
+		go func() {
+			<-cancel
+			done <- nil
+		}()
+	})
 
 	return &Workspace{
 		deliveries:              deliveries,
@@ -215,47 +291,26 @@ func NewWorkspace(workspaceDirectory string) (*Workspace, error) {
 		settingsRunner:          settingsRunner,
 		importAnnouncer:         importAnnouncer,
 		intelCollector:          intelCollector,
+		intelAccessor:           intelAccessor,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		Closers: closeutil.New(
-			auth,
-			tracker,
-			deliveries,
-			insightsEngine,
-			m,
-			insightsAccessor,
-			intelCollector,
 			connStats,
+			deliveries,
+			tracker,
+			insightsEngine,
+			intelCollector,
+			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
-		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-			// Convert this one here to CancellableRunner!
-			rblChecker.StartListening()
-
-			doneAll, cancelAll := runner.Run(
-				insightsEngine, settingsRunner, rblDetector,
-				logsRunner, importAnnouncer, intelCollector, connStats,
-			)
-
-			go func() {
-				<-cancel
-				cancelAll()
-			}()
-
-			go func() {
-				if err := doneAll(); err != nil {
-					done <- errorutil.Wrap(err)
-					return
-				}
-
-				done <- nil
-			}()
-		}),
+		CancellableRunner: runner.NewCombinedCancellableRunners(
+			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
+			intelCollector, connStats, rblCheckerCancellableRunner),
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*meta.AsyncWriter, *meta.Reader) {
+func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, *metadata.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 
@@ -277,6 +332,10 @@ func (ws *Workspace) Dashboard() dashboard.Dashboard {
 
 func (ws *Workspace) ConnectionStatsAccessor() *connectionstats.Accessor {
 	return ws.connectionStatsAccessor
+}
+
+func (ws *Workspace) IntelAccessor() *collector.Accessor {
+	return ws.intelAccessor
 }
 
 func (ws *Workspace) Detective() detective.Detective {
@@ -306,20 +365,6 @@ func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
 }
 
-type mostRecentTimes [3]time.Time
-
-func (t mostRecentTimes) Len() int {
-	return len(t)
-}
-
-func (t mostRecentTimes) Less(i, j int) bool {
-	return t[i].Before(t[j])
-}
-
-func (t mostRecentTimes) Swap(i, j int) {
-	t[i], t[j] = t[j], t[i]
-}
-
 func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 	mostRecentDeliverTime, err := ws.deliveries.MostRecentLogTime()
 	if err != nil {
@@ -336,11 +381,17 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	times := mostRecentTimes{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
+	times := []time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
 
-	sort.Sort(times)
+	mostRecent := time.Time{}
 
-	return times[len(times)-1], nil
+	for _, t := range times {
+		if t.After(mostRecent) {
+			mostRecent = t
+		}
+	}
+
+	return mostRecent, nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {

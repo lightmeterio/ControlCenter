@@ -6,7 +6,7 @@ package detective
 
 import (
 	"context"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
@@ -16,7 +16,7 @@ type Settings struct {
 
 const SettingKey = "detective"
 
-func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -24,7 +24,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
 	var settings Settings
 
 	err := reader.RetrieveJson(ctx, SettingKey, &settings)

@@ -9,6 +9,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -23,11 +25,8 @@ func init() {
 
 func TestSmtpConnectionStats(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		ws, clearWs := testutil.TempDir(t)
-		defer clearWs()
-
-		stats, err := New(ws)
-		So(err, ShouldBeNil)
+		stats, _, pub, _, closeConn := buildContext(t)
+		defer closeConn()
 
 		{
 			mostRecentTime, err := stats.MostRecentLogTime()
@@ -35,8 +34,7 @@ func TestSmtpConnectionStats(t *testing.T) {
 			So(mostRecentTime, ShouldResemble, time.Time{})
 		}
 
-		pub := stats.Publisher()
-		done, cancel := stats.Run()
+		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
@@ -128,18 +126,8 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 
 func TestSmtpConnectionAccessor(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		ws, clearWs := testutil.TempDir(t)
-		defer clearWs()
-
-		stats, err := New(ws)
-		So(err, ShouldBeNil)
-
-		pub := stats.Publisher()
-
-		var pool *dbconn.RoPool = stats.ConnPool()
-
-		accessor, err := NewAccessor(pool)
-		So(err, ShouldBeNil)
+		stats, accessor, pub, _, closeConn := buildContext(t)
+		defer closeConn()
 
 		{
 			// Before any logs, nothing should be returned
@@ -154,7 +142,7 @@ func TestSmtpConnectionAccessor(t *testing.T) {
 			So(attempts.Attempts, ShouldResemble, []AttemptDesc{})
 		}
 
-		done, cancel := stats.Run()
+		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
 Jan 10 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[4.3.2.1] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6
@@ -183,5 +171,75 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok"},
 			})
 		}
+	})
+}
+
+func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, *dbconn.RoPool, func()) {
+	db, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
+
+	stats, err := New(db)
+	So(err, ShouldBeNil)
+
+	pub := stats.Publisher()
+
+	accessor, err := NewAccessor(stats.ConnPool())
+	So(err, ShouldBeNil)
+
+	return stats, accessor, pub, accessor.pool, func() {
+		closeConn()
+	}
+}
+
+func TestRemoveOldLogs(t *testing.T) {
+	Convey("Remove Old Logs", t, func() {
+		stats, accessor, pub, pool, closeConn := buildContext(t)
+		defer closeConn()
+
+		done, cancel := runner.Run(stats)
+
+		postfixutil.ReadFromTestReader(strings.NewReader(`
+Jan 10 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[4.3.2.1] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6
+Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
+Sep  3 10:40:57 mail postfix/smtpd[8377]: disconnect from lalala.com[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 commands=1/2
+Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+		`), pub, 2020)
+
+		// removes anything older than 5months
+		stats.Actions <- makeCleanAction(time.Hour * 24 * 30 * 5)
+
+		cancel()
+		So(done(), ShouldBeNil)
+
+		{
+			// we should get only the three last entries
+			attempts, err := accessor.FetchAuthAttempts(context.Background(), timeutil.TimeInterval{
+				From: timeutil.MustParseTime(`2020-01-01 00:00:00 +0000`),
+				To:   timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`),
+			})
+
+			So(err, ShouldBeNil)
+
+			So(attempts.IPs, ShouldResemble, []string{"1.2.3.4", "1002:1712:4e2b:d061:5dff:19f:c85f:a48f", "22.33.44.55"})
+			So(attempts.Attempts, ShouldResemble, []AttemptDesc{
+				{Time: timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`).Unix(), IPIndex: 1, Status: "failed"},
+				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok"},
+				{Time: timeutil.MustParseTime(`2020-12-30 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "ok"},
+			})
+		}
+
+		conn, release := pool.Acquire()
+		defer release()
+
+		var (
+			connectionsCount int
+			commandsCount    int
+		)
+
+		So(conn.QueryRow(`select count(*) from connections`).Scan(&connectionsCount), ShouldBeNil)
+		So(conn.QueryRow(`select count(*) from commands`).Scan(&commandsCount), ShouldBeNil)
+
+		So(commandsCount, ShouldEqual, 14)
+		So(connectionsCount, ShouldEqual, 3)
 	})
 }

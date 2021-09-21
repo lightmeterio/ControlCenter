@@ -7,7 +7,7 @@ package globalsettings
 import (
 	"context"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 )
@@ -27,10 +27,10 @@ type IPAddressGetter interface {
 }
 
 type MetaReaderGetter struct {
-	meta *meta.Reader
+	meta *metadata.Reader
 }
 
-func New(m *meta.Reader) *MetaReaderGetter {
+func New(m *metadata.Reader) *MetaReaderGetter {
 	return &MetaReaderGetter{meta: m}
 }
 
@@ -38,7 +38,7 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 	settings, err := GetSettings(ctx, r.meta)
 
 	if err != nil {
-		if !errors.Is(err, meta.ErrNoSuchKey) {
+		if !errors.Is(err, metadata.ErrNoSuchKey) {
 			errorutil.LogErrorf(errorutil.Wrap(err), "obtaining IP address from global settings")
 		}
 
@@ -48,7 +48,7 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 	return settings.LocalIP
 }
 
-func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Settings) error {
+func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -56,7 +56,7 @@ func SetSettings(ctx context.Context, writer *meta.AsyncWriter, settings Setting
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *meta.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
 	var settings Settings
 
 	err := reader.RetrieveJson(ctx, SettingKey, &settings)

@@ -10,13 +10,11 @@ import (
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/connectionstats/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"time"
 )
 
@@ -140,12 +138,9 @@ type publisher struct {
 }
 
 func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
-	return func(tx *sql.Tx, stmts dbrunner.PreparedStmts) error {
-		stmt := tx.Stmt(stmts[insertDisconnectKey])
-
-		defer stmt.Close()
-
-		r, err := stmt.Exec(record.Time.Unix(), payload.IP)
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		//nolint:sqlclosecheck
+		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
 		}
@@ -154,10 +149,6 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		stmt = tx.Stmt(stmts[insertCommandStatKey])
-
-		defer stmt.Close()
 
 		for k, v := range payload.Stats {
 			// skip useless summary reported by postfix
@@ -171,7 +162,8 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 				continue
 			}
 
-			if _, err := stmt.Exec(connectionId, cmd, v.Success, v.Total); err != nil {
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, cmd, v.Success, v.Total); err != nil {
 				return errorutil.Wrap(err)
 			}
 		}
@@ -183,15 +175,31 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 const (
 	insertDisconnectKey = iota
 	insertCommandStatKey
+	selectOldLogsKey
+	deleteCommandsByConnectionIdKey
+	deleteConnectionsByIdKey
 
 	lastStmtKey
 )
 
-type preparedStmts [lastStmtKey]*sql.Stmt
-
-var stmtsText = map[uint]string{
+var stmtsText = map[int]string{
 	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
+	selectOldLogsKey: `with time_cut as (
+		select
+			(disconnection_ts - ?) as v
+		from
+			connections
+		order by
+			disconnection_ts desc limit 1
+	)
+	select
+		connections.id
+	from
+		connections join time_cut
+			on connections.disconnection_ts < time_cut.v`,
+	deleteCommandsByConnectionIdKey: `delete from commands where connection_id = ?`,
+	deleteConnectionsByIdKey:        `delete from connections where id = ?`,
 }
 
 func (pub *publisher) Publish(r postfix.Record) {
@@ -215,42 +223,23 @@ type Stats struct {
 	dbrunner.Runner
 	closeutil.Closers
 
-	conn  *dbconn.PooledPair
-	stmts preparedStmts
+	conn *dbconn.PooledPair
 }
 
-const filename = "connections.db"
+func New(connPair *dbconn.PooledPair) (*Stats, error) {
+	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
-func New(workspace string) (*Stats, error) {
-	dbFilename := path.Join(workspace, filename)
-
-	connPair, err := dbconn.Open(dbFilename, 10)
-
-	if err != nil {
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
-		}
-	}()
-
-	if err := migrator.Run(connPair.RwConn.DB, "connectionstats"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	stmts := preparedStmts{}
-
-	if err := dbrunner.PrepareRwStmts(stmtsText, connPair.RwConn, stmts[:]); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
 
 	return &Stats{
 		conn:    connPair,
-		stmts:   stmts,
-		Closers: closeutil.New(connPair),
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts[:]),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, time.Hour*12, makeCleanAction(maxAge)),
+		Closers: closeutil.New(stmts),
 	}, nil
 }
 
@@ -280,4 +269,41 @@ func (s *Stats) MostRecentLogTime() (time.Time, error) {
 	}
 
 	return time.Unix(ts, 0).In(time.UTC), nil
+}
+
+func makeCleanAction(maxAge time.Duration) dbrunner.Action {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		// NOTE: timestamp is in seconds
+		//nolint:sqlclosecheck
+		rows, err := stmts.Get(selectOldLogsKey).Query(maxAge / time.Second)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var id int64
+
+			if err := rows.Scan(&id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteCommandsByConnectionIdKey).Exec(id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteConnectionsByIdKey).Exec(id); err != nil {
+				return errorutil.Wrap(err)
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
 }

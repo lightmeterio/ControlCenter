@@ -6,7 +6,6 @@
 package testutil
 
 import (
-	// required by the data migrator
 	"context"
 	"database/sql"
 	//nolint:golint
@@ -14,7 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -46,11 +44,7 @@ func (c *FakeAccessor) GenerateInsight(ctx context.Context, tx *sql.Tx, properti
 // NewFakeAccessor returns an acessor that implements core.Fetcher and core.Creator
 // using a temporary database that should be delete using clear()
 func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
-	connPair, removeDir := testutil.TempDBConnection(t, "insights")
-
-	if err := migrator.Run(connPair.RwConn.DB, "insights"); err != nil {
-		t.Fatal(err)
-	}
+	connPair, removeDir := testutil.TempDBConnectionMigrated(t, "insights")
 
 	creator, err := core.NewCreator(connPair.RwConn)
 	if err != nil {

@@ -12,17 +12,15 @@ import (
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/auth/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
-	"path"
 )
 
 type UserData struct {
-	Id    int
-	Name  string
-	Email string
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type Registrar interface {
@@ -31,6 +29,7 @@ type Registrar interface {
 	HasAnyUser(ctx context.Context) (bool, error)
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
 	GetFirstUser(ctx context.Context) (*UserData, error)
+	ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error
 }
 
 type RegistrarWithSessionKeys interface {
@@ -45,7 +44,7 @@ type Options struct {
 type Auth struct {
 	options  Options
 	connPair *dbconn.PooledPair
-	meta     *meta.Handler
+	meta     *metadata.Handler
 }
 
 var (
@@ -151,11 +150,14 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
 	d := UserData{}
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return false, UserData{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.
+	err = conn.
 		QueryRowContext(ctx, "select rowid, email, name from users where email = ? and lm_bcrypt_compare(password, ?)", email, password).
 		Scan(&d.Id, &d.Email, &d.Name)
 
@@ -173,7 +175,10 @@ func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, 
 func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
 	var count int
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
 
 	defer release()
 
@@ -192,11 +197,14 @@ var (
 func (r *Auth) GetUserDataByID(ctx context.Context, id int) (*UserData, error) {
 	var userData UserData
 
-	conn, release := r.connPair.RoConnPool.Acquire()
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	err := conn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
+	err = conn.QueryRowContext(ctx, "select rowid, name, email from users where rowid = ?", id).Scan(&userData.Id, &userData.Name, &userData.Email)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalidUserId
@@ -230,7 +238,7 @@ func (r *Auth) SessionKeys() [][]byte {
 
 	err := r.meta.Reader.RetrieveJson(ctx, "session_key", &keys)
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		errorutil.MustSucceed(err, "Obtaining session keys from database")
 	}
 
@@ -249,38 +257,14 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func NewAuth(dirname string, options Options) (*Auth, error) {
-	connPair, err := dbconn.Open(path.Join(dirname, "auth.db"), 5)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing DB connection on error")
-		}
-	}()
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := meta.NewHandler(connPair, "auth")
+func NewAuth(connPair *dbconn.PooledPair, options Options) (*Auth, error) {
+	m, err := metadata.NewHandler(connPair)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &Auth{options: options, connPair: connPair, meta: m}, nil
-}
-
-func (r *Auth) Close() error {
-	return r.meta.Close()
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {
@@ -299,21 +283,30 @@ func nameForEmail(tx *sql.Tx, email string) (string, error) {
 	return name, nil
 }
 
-func updatePassword(tx *sql.Tx, email, password string) error {
-	_, err := tx.Exec(`update users set password = lm_bcrypt_sum(?) where email = ?`, password, email)
+func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
+	var userData UserData
 
+	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
 	if err != nil {
-		return errorutil.Wrap(err, "executing password reset query")
+		return nil, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	err = conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoUser
 	}
 
 	if err != nil {
-		return errorutil.Wrap(err)
+		return nil, errorutil.Wrap(err)
 	}
 
-	return nil
+	return &userData, nil
 }
 
-func (r *Auth) ChangePassword(ctx context.Context, email, password string) error {
+func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
 	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
@@ -326,45 +319,59 @@ func (r *Auth) ChangePassword(ctx context.Context, email, password string) error
 		}
 	}()
 
-	name, err := nameForEmail(tx, email)
+	queryMustChangeOneRecord := func(query string, args ...interface{}) error {
+		result, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
 
-	if err != nil {
-		return errorutil.Wrap(err)
+		rowsAfftected, err := result.RowsAffected()
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if rowsAfftected != 1 {
+			return ErrEmailAddressNotFound
+		}
+
+		return nil
 	}
 
-	if err := validatePassword(email, name, password); err != nil {
-		return errorutil.Wrap(err)
+	if len(newName) > 0 {
+		if err = queryMustChangeOneRecord(`update users set name = ? where email = ?`, newName, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
 	}
 
-	if err := updatePassword(tx, email, password); err != nil {
-		return errorutil.Wrap(err)
+	if len(newPassword) > 0 {
+		name, err := nameForEmail(tx, oldEmail)
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := validatePassword(oldEmail, name, newPassword); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err = queryMustChangeOneRecord(`update users set password = lm_bcrypt_sum(?) where email = ?`, newPassword, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
 	}
 
-	err = tx.Commit()
+	if len(newEmail) > 0 {
+		if err = validateEmail(newEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
 
-	if err != nil {
+		if err = queryMustChangeOneRecord(`update users set email = ? where email = ?`, newEmail, oldEmail); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
-}
-
-func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
-	var userData UserData
-
-	conn, release := r.connPair.RoConnPool.Acquire()
-
-	defer release()
-
-	err := conn.QueryRowContext(ctx, "select rowid, name, email from users order by rowid asc limit 1").Scan(&userData.Id, &userData.Name, &userData.Email)
-
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoUser
-	}
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &userData, nil
 }
