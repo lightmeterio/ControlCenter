@@ -5,6 +5,7 @@
 package intel
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -28,16 +29,61 @@ import (
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
+type SchedFileReader func() (io.ReadCloser, error)
+
+var ErrFailedReadingSchedFile = errors.New(`Failed reading /proc/1/sched file`)
+
+func isSchedFileContentInsideContainer(r SchedFileReader) (insideContainer bool, err error) {
+	f, err := r()
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	defer func() {
+		if cErr := f.Close(); cErr != nil && err == nil {
+			err = cErr
+		}
+	}()
+
+	scanner := bufio.NewScanner(f)
+
+	if !scanner.Scan() {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	line := scanner.Text()
+
+	index := strings.Index(line, " ")
+	if index == -1 {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return false, errorutil.Wrap(ErrFailedReadingSchedFile)
+	}
+
+	processName := line[0:index]
+
+	return processName == "lightmeter", nil
+}
+
+func DefaultSchedFileReader() (io.ReadCloser, error) {
+	return os.Open("/proc/1/sched")
+}
+
 type Metadata struct {
-	InstanceID     string  `json:"instance_id"`
-	LocalIP        *string `json:"postfix_public_ip,omitempty"`
-	PublicURL      *string `json:"public_url,omitempty"`
-	UserEmail      *string `json:"user_email,omitempty"`
-	PostfixVersion *string `json:"postfix_version,omitempty"`
-	MailKind       *string `json:"mail_kind,omitempty"`
+	InstanceID        string  `json:"instance_id"`
+	LocalIP           *string `json:"postfix_public_ip,omitempty"`
+	PublicURL         *string `json:"public_url,omitempty"`
+	UserEmail         *string `json:"user_email,omitempty"`
+	PostfixVersion    *string `json:"postfix_version,omitempty"`
+	MailKind          *string `json:"mail_kind,omitempty"`
+	IsDockerContainer bool    `json:"is_docker_container"`
 }
 
 type Version struct {
@@ -58,6 +104,7 @@ type Dispatcher struct {
 	ReportDestinationURL string
 	SettingsReader       *metadata.Reader
 	Auth                 auth.Registrar
+	SchedFileReader      SchedFileReader
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
@@ -80,6 +127,13 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 		}
 
 		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
+
+		insideContainer, err := isSchedFileContentInsideContainer(d.SchedFileReader)
+		if err != nil {
+			return metadata, errorutil.Wrap(err)
+		}
+
+		metadata.IsDockerContainer = insideContainer
 
 		return metadata, nil
 	}()
@@ -251,6 +305,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDb *deliverydb.DB, fetcher core.Fet
 		SettingsReader:       settingsReader,
 		ReportDestinationURL: options.ReportDestinationURL,
 		Auth:                 auth,
+		SchedFileReader:      DefaultSchedFileReader,
 	}
 
 	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)
