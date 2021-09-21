@@ -49,8 +49,8 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				join
 					delivery_queue dq on dq.delivery_id = d.id
 				where
-					sender_local_part    = ? and sender_domain.domain    = ?
-					and recipient_local_part = ? and recipient_domain.domain = ?
+					sender_local_part    = ? collate nocase and sender_domain.domain    = ? collate nocase
+					and recipient_local_part = ? collate nocase and recipient_domain.domain = ? collate nocase
 					and delivery_ts between ? and ?
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned) as (

@@ -97,11 +97,14 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
+				messagesLowerCase, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
+				So(err, ShouldBeNil)
+
+				messagesMixedCase, err := d.CheckMessageDelivery(context.Background(), "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
-				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
+				So(messagesLowerCase, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
 						detective.Message{
 							Queue: "400643011B47",
@@ -118,6 +121,9 @@ func TestDetective(t *testing.T) {
 						},
 					},
 				})
+
+				// Gitlab issue #526
+				So(messagesMixedCase, ShouldResemble, messagesLowerCase)
 			})
 
 			noDeliveries := detective.Messages{}
