@@ -105,9 +105,7 @@ var DefaultRBLs = []string{
 	"sa-accredit.habeas.com",                // Habeas SafeList (for SpamAssassin)
 	"hul.habeas.com",                        // Habeas User List
 	"sohul.habeas.com",                      // Habeas User List (including Non-Verified-Optin)
-	"hostkarma.junkemailfilter.com",         // stkarma
 	"black.junkemailfilter.com",             // Hostkarma blacklist
-	"nobl.junkemailfilter.com",              // Hostkarma no blacklist
 	"dnsbl.cobion.com",                      // IBM DNS Blacklist
 	"spamrbl.imp.ch",                        // ImproWare IP based spamlist
 	"wormrbl.imp.ch",                        // ImproWare IP based wormlist
