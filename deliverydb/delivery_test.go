@@ -451,6 +451,35 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 		}.Result())
 
+		pub.Publish(tracking.MappedResult{
+			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
+			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("sender2.example.com"),
+			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender2"),
+			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient3.example.com"),
+			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient3"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_1"), // NOTE: same messageid as the first message
+			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
+			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),
+			tracking.QueueProcessedMessageSizeKey: tracking.ResultEntryInt64(100),
+			tracking.QueueNRCPTKey:                tracking.ResultEntryInt64(1),
+			tracking.ResultDeliveryServerKey:      tracking.ResultEntryText("mail"),
+			tracking.ResultDelayKey:               tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPDKey:          tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayCleanupKey:        tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelayQmgrKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultDelaySMTPKey:           tracking.ResultEntryFloat64(0.1),
+			tracking.ResultRelayNameKey:           tracking.ResultEntryText("relay2.example.com"),
+			tracking.ResultRelayIPKey:             tracking.ResultEntryBlob([]byte{192, 168, 0, 1}),
+			tracking.ResultRelayPortKey:           tracking.ResultEntryInt64(25),
+			tracking.ConnectionClientHostnameKey:  tracking.ResultEntryText("some.host.com"),
+			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
+			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
+			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+		}.Result())
+
 		// a bounced message, followed by a return message
 		pub.Publish(tracking.MappedResult{
 			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.BouncedStatus)),
@@ -460,7 +489,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("sender2"),
 			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("recipient2.example.com"),
 			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("recipient2"),
-			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_2"),
+			tracking.QueueMessageIDKey:            tracking.ResultEntryText("message_id_2"), // NOTE: same messageid as the first message
 			tracking.ConnectionBeginKey:           tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
 			tracking.QueueBeginKey:                tracking.ResultEntryInt64(baseTime.Add(time.Minute * 30).Unix()),
 			tracking.QueueOriginalMessageSizeKey:  tracking.ResultEntryInt64(42),

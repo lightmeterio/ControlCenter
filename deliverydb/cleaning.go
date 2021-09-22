@@ -6,6 +6,7 @@ package deliverydb
 
 import (
 	"database/sql"
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -41,7 +42,15 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 	)
 
 	//nolint:sqlclosecheck
-	if err := stmts.Get(selectQueueIdForDeliveryId).QueryRow(deliveryId).Scan(&deliveryQueueRelationId, &queueId); err != nil {
+	err := stmts.Get(selectQueueIdForDeliveryId).QueryRow(deliveryId).Scan(&deliveryQueueRelationId, &queueId)
+
+	// NOTE: for entries before we implemented storing the queue info in the database (a07e3ce76e43bfbb6b5a2a5ef5508b93234bed61),
+	// this query will return an empty result, so we just skip them.
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
