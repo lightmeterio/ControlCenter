@@ -102,7 +102,7 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 		}
 
 		// NOTE: improve it to be used for benchmarking
-		log.Info().Msgf("Inserted %d rows in a transaction on database %s", countPerTransaction, filename)
+		log.Debug().Msgf("Database %s executed %d statements in a transaction", filename, countPerTransaction)
 
 		if err := tx.Commit(); err != nil {
 			return errorutil.Wrap(err, filename)
