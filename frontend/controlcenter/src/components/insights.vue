@@ -672,13 +672,7 @@ export default {
     },
     onInsightInfo(event, helpLink, contentType) {
       event.preventDefault();
-
-      this.trackEventArray("InsightsInfoButton", [
-        "click",
-        helpLink,
-        contentType
-      ]);
-
+      this.trackEvent("InsightsInfoButton", contentType);
       window.open(helpLink);
     },
     hideRBLListModal() {
