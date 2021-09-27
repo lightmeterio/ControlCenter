@@ -167,13 +167,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
                 <span
                   v-if="insight.help_link"
-                  v-on:click="
-                    onInsightInfo(
-                      $event,
-                      insight.help_link,
-                      insight.content_type
-                    )
-                  "
+                  v-on:click="onInsightInfo($event, insight.help_link)"
                   v-b-tooltip.hover
                   :title="Info"
                 >
@@ -670,15 +664,9 @@ export default {
         host: insight.content.host
       });
     },
-    onInsightInfo(event, helpLink, contentType) {
+    onInsightInfo(event, helpLink) {
       event.preventDefault();
-
-      this.trackEventArray("InsightsInfoButton", [
-        "click",
-        helpLink,
-        contentType
-      ]);
-
+      this.trackEvent("InsightsInfoButton", helpLink);
       window.open(helpLink);
     },
     hideRBLListModal() {
