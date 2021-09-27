@@ -399,6 +399,7 @@ import {
   submitGeneralForm,
   submitNotificationsSettingsForm
 } from "@/lib/api.js";
+import { trackEvent } from "@/lib/util";
 import auth from "../mixin/auth.js";
 import shared_texts from "../mixin/shared_texts.js";
 import Vue from "vue";
@@ -440,6 +441,7 @@ export default {
           end_users_enabled: false
         }
       },
+      prev_settings: {},
       languages: [],
       endUsersURL:
         window.location.origin + window.location.pathname + "#/searchmessage"
@@ -591,51 +593,72 @@ export default {
     }
   },
   methods: {
-    RefreshSettings() {
+    RefreshSettings(fillVueSettings, checkSettingsChanges) {
       let vue = this;
 
       getSettings().then(function(response) {
-        vue.settings = response.data;
-        if (vue.settings.notifications.language === "") {
-          vue.settings.notifications.language = "en";
+        let new_settings = response.data;
+
+        if (checkSettingsChanges) {
+          if (
+            new_settings.email_notifications.enabled !=
+            vue.prev_settings.email_notifications.enabled
+          ) {
+            trackEvent(
+              "SaveNotificationSettingsEmail",
+              new_settings.email_notifications.enabled ? "enabled" : "disabled"
+            );
+          }
+          if (
+            new_settings.slack_notifications.enabled !=
+            vue.prev_settings.slack_notifications.enabled
+          ) {
+            trackEvent(
+              "SaveNotificationSettingsSlack",
+              new_settings.slack_notifications.enabled ? "enabled" : "disabled"
+            );
+          }
+        }
+
+        if (new_settings.notifications.language === "") {
+          new_settings.notifications.language = "en";
+        }
+
+        vue.prev_settings = JSON.parse(JSON.stringify(new_settings));
+
+        if (fillVueSettings) {
+          vue.settings = new_settings;
         }
       });
     },
     OnClearEmailNotificationsSettings(event) {
       event.preventDefault();
-      let vue = this;
 
       if (
-        !confirm(Vue.prototype.$gettext("Reset email notification settings?"))
-      )
-        return;
-
-      clearSettings("notification", "email").then(function() {
-        vue.RefreshSettings();
-      });
+        confirm(Vue.prototype.$gettext("Reset email notification settings?"))
+      ) {
+        clearSettings("notification", "email").then(
+          this.UpdateAndNotifySettings
+        );
+      }
     },
     OnClearSlackNotificationsSettings(event) {
       event.preventDefault();
-      let vue = this;
 
       if (
-        !confirm(Vue.prototype.$gettext("Reset slack notification settings?"))
-      )
-        return;
-
-      clearSettings("notification", "slack").then(function() {
-        vue.RefreshSettings();
-      });
+        confirm(Vue.prototype.$gettext("Reset slack notification settings?"))
+      ) {
+        clearSettings("notification", "slack").then(
+          this.UpdateAndNotifySettings
+        );
+      }
     },
     OnClearGeneralSettings(event) {
       event.preventDefault();
-      let vue = this;
 
-      if (!confirm(Vue.prototype.$gettext("Reset general settings?"))) return;
-
-      clearSettings("general").then(function() {
-        vue.RefreshSettings();
-      });
+      if (confirm(Vue.prototype.$gettext("Reset general settings?"))) {
+        clearSettings("general").then(this.UpdateAndNotifySettings);
+      }
     },
     onGeneralSettingsSubmit(event) {
       event.preventDefault();
@@ -685,12 +708,18 @@ export default {
         }
       }[subsection];
 
-      let trackingInfo = {
-        SlackEnabled: this.settings.slack_notifications.enabled,
-        EmailEnabled: this.settings.email_notifications.enabled
-      };
-
-      submitNotificationsSettingsForm(data, trackingInfo);
+      submitNotificationsSettingsForm(data).then(
+        this.NotifySettingsWithoutUpdating
+      );
+    },
+    InitializeSettings() {
+      this.RefreshSettings(true, false);
+    },
+    UpdateAndNotifySettings() {
+      this.RefreshSettings(true, true);
+    },
+    NotifySettingsWithoutUpdating() {
+      this.RefreshSettings(false, true);
     },
     onDetectiveSettingsSubmit(event) {
       event.preventDefault();
@@ -707,13 +736,15 @@ export default {
   },
   mounted() {
     let vue = this;
+
     getMetaLanguage().then(function(response) {
       vue.languages = [];
       for (let language of response.data["languages"]) {
         vue.languages.push({ text: language.key, value: language.value });
       }
     });
-    vue.RefreshSettings();
+
+    this.InitializeSettings();
   }
 };
 </script>
