@@ -75,7 +75,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           <p>
             <span class="link">
-              <router-link to="/reports"
+              <router-link to="/signals"
                 ><translate>View sent signals</translate></router-link
               >
             </span>

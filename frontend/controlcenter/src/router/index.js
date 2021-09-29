@@ -10,7 +10,7 @@ import settingspage from "../views/settingspage.vue";
 import index from "../views/index.vue";
 import admindetective from "../views/admindetective.vue";
 import enduserdetective from "../views/enduserdetective.vue";
-import reports from "../views/reports.vue";
+import signals from "../views/signals.vue";
 import {
   getIsNotLoginOrNotRegistered,
   getIsNotLoginAndNotEndUsersEnabled
@@ -50,9 +50,9 @@ const routes = [
     component: enduserdetective
   },
   {
-    path: "/reports",
-    name: "reports",
-    component: reports
+    path: "/signals",
+    name: "signals",
+    component: signals
   },
   {
     path: "/insight-card/:id",
@@ -79,7 +79,7 @@ router.beforeEach((to, from, next) => {
     searchmessage: Vue.prototype.$gettext(
       "Search for messages - %{mainPageTitle}"
     ),
-    reports: Vue.prototype.$gettext("Reports - %{mainPageTitle}")
+    signals: Vue.prototype.$gettext("Signals - %{mainPageTitle}")
   };
 
   let mainTitle = "Lightmeter";

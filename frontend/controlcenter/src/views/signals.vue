@@ -5,17 +5,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <div id="reports-page" class="d-flex flex-column min-vh-100">
+  <div id="signals-page" class="d-flex flex-column min-vh-100">
     <mainheader></mainheader>
     <div class="container main-content">
       <div class="row">
         <div class="col-md-12">
           <h2>
-            <translate>Latest 20 reports shared with the network</translate>
+            <translate>Latest 20 signals shared with the network</translate>
           </h2>
 
           <div class="metadata">
-            <p>The following metadata is sent along with reports</p>
+            <p>The following metadata is sent along with signals</p>
             <div class="metadata-table">
               <div>
                 <span>
@@ -51,48 +51,48 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
           </div>
 
-          <h2><translate>Reports</translate></h2>
+          <h2><translate>Signals</translate></h2>
 
-          <p v-if="reports.length == 0">
-            <translate>No reports have been sent yet.</translate>
+          <p v-if="signals.length == 0">
+            <translate>No signals have been sent yet.</translate>
           </p>
 
           <div
-            class="report"
-            v-for="(report, reportIndex) in reports"
-            :key="reportIndex"
+            class="signal"
+            v-for="(signal, signalIndex) in signals"
+            :key="signalIndex"
           >
             <div>
-              <span v-translate="{ report_id: report.id }">
-                Report #%{report_id}
+              <span v-translate="{ signal_id: signal.id }">
+                Signal #%{signal_id}
               </span>
               –
-              <span :title="report.dispatch_time">{{
-                humanDuration(report.dispatch_time)
+              <span :title="signal.dispatch_time">{{
+                humanDuration(signal.dispatch_time)
               }}</span>
               –
               <button
                 class="btn btn-sm"
                 v-b-modal.modal-explanation
                 v-on:click="
-                  reportKindExplanationTitle = report.kind;
-                  reportKindExplanation = explanation(report.kind);
+                  signalKindExplanationTitle = signal.kind;
+                  signalKindExplanation = explanation(signal.kind);
                 "
               >
-                <span>{{ report.kind }}</span>
+                <span>{{ signal.kind }}</span>
               </button>
             </div>
-            <vue-json-pretty :data="report.value"> </vue-json-pretty>
+            <vue-json-pretty :data="signal.value"> </vue-json-pretty>
           </div>
 
           <b-modal
             ref="modal-explanation"
             id="modal-explanation"
             hide-footer
-            :title="reportKindExplanationTitle"
+            :title="signalKindExplanationTitle"
             cancel-only
           >
-            {{ reportKindExplanation }}
+            {{ signalKindExplanation }}
           </b-modal>
         </div>
       </div>
@@ -106,7 +106,7 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import {
-  getLatestReports,
+  getLatestSignals,
   getUserInfo,
   getApplicationInfo,
   getSettings
@@ -119,18 +119,18 @@ import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 
 export default {
-  name: "reports",
+  name: "signals",
   components: {
     VueJsonPretty
   },
   mixins: [tracking, auth],
   data() {
     return {
-      reports: [],
-      reportKindExplanation: "…",
-      reportKindExplanationTitle: "…",
+      signals: [],
+      signalKindExplanation: "…",
+      signalKindExplanationTitle: "…",
 
-      // metadata sent with reports
+      // metadata sent with signals
       instanceID: "…",
       localIP: "…",
       postfixURL: "…",
@@ -147,11 +147,11 @@ export default {
   },
   computed: {},
   methods: {
-    loadReports() {
+    loadSignals() {
       let vue = this;
 
-      getLatestReports().then(function(response) {
-        vue.reports = response.data;
+      getLatestSignals().then(function(response) {
+        vue.signals = response.data;
       });
     },
     humanDuration(sinceTime) {
@@ -177,7 +177,7 @@ export default {
         d: Math.floor(seconds / 60 / 60 / 24)
       });
     },
-    explanation(report_kind) {
+    explanation(signal_kind) {
       let explanations = {
         connection_stats_with_auth: this.$gettext(
           "IP addresses and timestamps of incoming SMTP connections that try to authenticate on ports 587 or 465. This data is obtained from the Postfix logs. It is used to identify and help prevent brute force attacks via the SMTP protocol based on automated threat sharing between Lightmeter users."
@@ -192,11 +192,11 @@ export default {
           "Statistics about the number of sent, bounced, deferred, and received messages. This helps identify Lightmeter performance issues and benchmark network health."
         ),
         top_domains: this.$gettext(
-          "Domains that Postfix is managing locally. This is used to verify that reports are authentic."
+          "Domains that Postfix is managing locally. This is used to verify that signals are authentic."
         )
       };
 
-      return explanations[report_kind] ? explanations[report_kind] : "…";
+      return explanations[signal_kind] ? explanations[signal_kind] : "…";
     }
   },
   mounted() {
@@ -216,7 +216,7 @@ export default {
       vue.postfixURL = response.data.general.public_url;
     });
 
-    this.loadReports();
+    this.loadSignals();
   },
   destroyed() {}
 };
@@ -234,12 +234,12 @@ export default {
     }
   }
 }
-.report {
+.signal {
   margin: auto;
   margin-top: 1rem;
   padding-top: 1rem;
 
-  & + .report {
+  & + .signal {
     border-top: 1px dotted #bdc3c7;
   }
 

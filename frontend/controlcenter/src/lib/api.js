@@ -367,9 +367,9 @@ export function postUserRating(type, rating) {
     .catch(builderErrorHandler("insight_user_rating"));
 }
 
-/**** Network Intelligence reports ****/
+/**** Network Intelligence signals ****/
 
-export function getLatestReports() {
+export function getLatestSignals() {
   let get = axios.get(BASE_URL + "api/v0/reports");
   get.catch(errorHandler);
   return get;
