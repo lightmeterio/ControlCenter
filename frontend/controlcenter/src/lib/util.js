@@ -35,11 +35,6 @@ export function trackEvent(eventName, value) {
   window._paq.push(["trackEvent", eventName, value]);
 }
 
-export function trackEventArray(eventName, value) {
-  posthog.capture(eventName, { property: value });
-  window._paq.push(["trackEvent", eventName].concat(value));
-}
-
 export function trackClick(eventName, value) {
   posthog.capture(eventName, { property: value });
   window._paq.push(["trackEvent", eventName, value]);
