@@ -61,19 +61,28 @@ SPDX-License-Identifier: AGPL-3.0-only
           :title="About"
           cancel-only
         >
-          Lightmeter Control Center
+          Lightmeter ControlCenter
           <br />
           <span id="release-info" v-if="applicationData">
             <strong><translate>Version</translate>:</strong>
             {{ applicationData.version }}
             <br />
             <strong><translate>Commit</translate>:</strong>
-            {{ applicationData.commit }} <br />
-            <strong><translate>Tag/branch</translate></strong
-            >: {{ applicationData.tag_or_branch }}
+            {{ applicationData.commit }}
           </span>
-
           <br />
+          <br />
+
+          <p>
+            <span class="link">
+              <router-link to="/reports"
+                ><translate>View sent signals</translate></router-link
+              >
+            </span>
+            (<translate>telemetry data</translate>).
+          </p>
+
+          <strong><translate>Get involved</translate></strong>
           <br />
           <ul>
             <li>
@@ -98,6 +107,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               >
             </li>
             <li>
+              <a href="https://discuss.lightmeter.io/" target="_blank">Forum</a>
+            </li>
+            <li>
               <a href="https://twitter.com/lightmeterio" target="_blank"
                 >Twitter</a
               >
@@ -107,7 +119,22 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >Mastodon</a
               >
             </li>
+            <li>
+              <a href="https://t.me/lightmeterio" target="_blank">Telegram</a>
+            </li>
           </ul>
+
+          <p>
+            <translate>Open Source software, AGPLv3 Licensed</translate>
+            (<a
+              href="https://www.gnu.org/licenses/agpl-3.0.en.html"
+              target="_blank"
+            >
+              <!-- prettier-ignore -->
+              <translate>full text</translate></a
+            >)
+          </p>
+
           <div class="custom-modal-footer modal-footer">
             <b-button
               class="btn-cancel"
