@@ -127,6 +127,13 @@ export default {
           picture: "img/walkthrough/step4.svg"
         },
         {
+          title: this.$gettext("Message tracing for everyone"),
+          description: this.$gettext(
+            `Enable "Message Detective" for end-users to conveniently check the delivery of their own email.`
+          ),
+          picture: "img/walkthrough/step-detective.svg"
+        },
+        {
           title: this.$gettext("Over To You"),
           description: this.$gettext(
             "Check out the settings, add IPs to monitor, and enjoy your stay (restart this Walkthrough any time)"
