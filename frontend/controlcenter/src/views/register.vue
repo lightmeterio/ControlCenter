@@ -11,9 +11,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Welcome</translate>
       </h2>
       <p class="align-left" render-html="true" v-translate>
-        Please create an admin account. This creates a lightmeter.io account too.
-        %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if
-        you've done it before.
+        Please create an admin account. This creates a lightmeter.io account
+        too. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this
+        step if you've done it before.
       </p>
 
       <div class="field-group">
@@ -147,7 +147,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <translate>Register</translate>
           </b-button>
         </b-form>
-        <div class="card info" v-if="tracking()">
+        <div class="card info">
           <div class="card-body">
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
@@ -309,19 +309,6 @@ export default {
       };
 
       submitRegisterForm(registrationData, settingsData, redirect);
-    },
-    tracking() {
-      if (window.doNotTrack || navigator.doNotTrack || navigator.msDoNotTrack) {
-        if (
-          window.doNotTrack == 1 ||
-          navigator.doNotTrack == "yes" ||
-          navigator.doNotTrack == 1 ||
-          navigator.msDoNotTrack == 1
-        ) {
-          return false;
-        }
-      }
-      return true;
     },
     onTogglePasswordShow(event) {
       event.preventDefault();
