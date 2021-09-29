@@ -35,12 +35,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           <b-button class="link" @click="runWalkthrough()"
             ><translate>Walkthrough</translate></b-button
           >
-          <span
-            class="link"
-            v-on:click="trackClick('Reports', 'clickHeaderButton')"
-          >
-            <router-link to="/reports">Network Intelligence</router-link>
-          </span>
         </div>
 
         <div class="col-md-2 mb-md-0 mb-2 align-right">
