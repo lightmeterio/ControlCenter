@@ -178,8 +178,11 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 		return nil
 	}
 
-	// TODO: use AcquireContext() once it's merged
-	conn, release := d.logsConnPool.Acquire()
+	conn, release, err := d.logsConnPool.AcquireContext(ctx)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	defer release()
 
 	countActivityInInterval := func(interval timeutil.TimeInterval) (int, error) {
