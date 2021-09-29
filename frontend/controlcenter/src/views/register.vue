@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Welcome</translate>
       </h2>
       <p class="align-left" render-html="true" v-translate>
-        Please create a new administrator account - this is necessary to login.
+        Please create an admin account. This creates a lightmeter.io account too.
         %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this step if
         you've done it before.
       </p>
@@ -152,13 +152,13 @@ SPDX-License-Identifier: AGPL-3.0-only
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
               <!-- prettier-ignore -->
-              <translate class="text-blue">Telemetry enabled</translate>
+              <translate class="text-blue">Terms of service</translate>
             </h5>
             <!-- prettier-ignore -->
             <p class="card-text"
                v-translate
                render-html="true">
-               Feature usage data is shared with a private Open Source analytics system to improve your experience and may be %{openPrivacyLink}disabled%{closePrivacyLink} at any time
+               %{openPeerNetworkLink}Peer networking%{closePeerNetworkLink} features require exchanging %{openPrivacyLink}data%{closePrivacyLink} with lightmeter.io servers. By registering you agree to the %{openTosLink}Terms of Service%{closeTosLink}. Feature usage data is %{openPrivacyLink}collected%{closePrivacyLink} to improve your experience.
             </p>
           </div>
         </div>
@@ -232,6 +232,18 @@ export default {
       return `<a target="_blank" href="https://lightmeter.io/privacy-policy/">`;
     },
     closePrivacyLink() {
+      return `</a>`;
+    },
+    openTosLink() {
+      return `<a target="_blank" href="https://lightmeter.io/terms/">`;
+    },
+    closeTosLink() {
+      return `</a>`;
+    },
+    openPeerNetworkLink() {
+      return `<a target="_blank" href="https://lightmeter.io/network-faq/">`;
+    },
+    closePeerNetworkLink() {
       return `</a>`;
     },
     openHelpLink() {
