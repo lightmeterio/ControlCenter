@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Welcome</translate>
       </h2>
       <p class="align-left" render-html="true" v-translate>
-        Please create an admin account. This creates a lightmeter.io account
+        Please create an admin account. This creates a user ID on lightmeter.io
         too. %{openHelpLink}Get help%{closeHelpLink} to avoid repeating this
         step if you've done it before.
       </p>
