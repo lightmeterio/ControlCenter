@@ -187,7 +187,7 @@ func TestEntriesInsertion(t *testing.T) {
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
 
-			dashboard, err := dashboard.New(db.ConnPool())
+			dashboard, err := dashboard.New(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
 			return db, done, cancel, pub, dashboard
@@ -409,7 +409,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
 
-			dashboard, err := dashboard.New(db.ConnPool())
+			dashboard, err := dashboard.New(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
 			return db, done, cancel, pub, dashboard
@@ -679,7 +679,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			messageIdsCount     int
 		)
 
-		ro, release := db.ConnPool().Acquire()
+		ro, release := conn.RoConnPool.Acquire()
 		defer release()
 
 		// NOTE: those assertions are bad, as they check implementation details,
@@ -717,7 +717,7 @@ func TestReopenDatabase(t *testing.T) {
 			db, err := New(conn, &fakeMapping)
 			So(err, ShouldBeNil)
 			pub := db.ResultsPublisher()
-			dashboard, err := dashboard.New(db.ConnPool())
+			dashboard, err := dashboard.New(conn.RoConnPool)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			return db, done, cancel, pub, dashboard, func() { So(conn.Close(), ShouldBeNil) }

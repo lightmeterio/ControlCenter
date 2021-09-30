@@ -197,19 +197,16 @@ func TestReporters(t *testing.T) {
 			So(done(), ShouldBeNil)
 		}
 
-		delivery, err := deliverydb.New(db, &domainmapping.Mapper{})
-		So(err, ShouldBeNil)
-
 		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
-		reporter := NewReporter(delivery.ConnPool())
+		reporter := NewReporter(db.RoConnPool)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
 		dispatcher := &fakeDispatcher{}
 
-		err = intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err := intelDb.RwConn.Tx(func(tx *sql.Tx) error {
 			clock.Sleep(10 * time.Minute)
 			err := reporter.Step(tx, clock)
 			So(err, ShouldBeNil)

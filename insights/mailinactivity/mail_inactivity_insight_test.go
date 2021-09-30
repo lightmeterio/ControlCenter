@@ -50,7 +50,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			return db, done, cancel, pub
 		}
 
-		deliveryDB, done, cancel, pub := buildWs()
+		_, done, cancel, pub := buildWs()
 
 		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
@@ -60,7 +60,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		lookupRange := time.Hour * 24
 
 		detector := NewDetector(accessor, core.Options{
-			"logsConnPool":   deliveryDB.ConnPool(),
+			"logsConnPool":   conn.RoConnPool,
 			"mailinactivity": Options{LookupRange: lookupRange, MinTimeGenerationInterval: time.Hour * 8},
 		})
 

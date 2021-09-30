@@ -183,13 +183,13 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		}
 	}
 
-	dashboard, err := dashboard.New(deliveries.ConnPool())
+	dashboard, err := dashboard.New(allDatabases.Logs.RoConnPool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	messageDetective, err := detective.New(deliveries.ConnPool())
+	messageDetective, err := detective.New(allDatabases.Logs.RoConnPool)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -226,7 +226,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	insightsEngine, err := insights.NewEngine(
 		insightsAccessor,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, deliveries.ConnPool()))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -236,7 +236,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	connectionStatsAccessor, err := connectionstats.NewAccessor(connStats.ConnPool())
+	connectionStatsAccessor, err := connectionstats.NewAccessor(allDatabases.Connections.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -250,8 +250,8 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	intelCollector, logsLineCountPublisher, err := intel.New(
-		allDatabases.IntelCollector, deliveries, insightsEngine.Fetcher(),
-		m.Reader, auth, connStats, intelOptions)
+		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsEngine.Fetcher(),
+		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
