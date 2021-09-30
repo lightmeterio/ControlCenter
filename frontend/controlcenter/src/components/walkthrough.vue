@@ -120,18 +120,18 @@ export default {
           picture: "img/walkthrough/step3.svg"
         },
         {
-          title: this.$gettext("You Are The Network"),
-          description: this.$gettext(
-            "Email is made up of peers like you – Lightmeter exists to support your independence"
-          ),
-          picture: "img/walkthrough/step4.svg"
-        },
-        {
           title: this.$gettext("Message tracing for everyone"),
           description: this.$gettext(
             `Enable "Message Detective" for end-users to conveniently check the delivery of their own email.`
           ),
           picture: "img/walkthrough/step-detective.svg"
+        },
+        {
+          title: this.$gettext("You Are The Network"),
+          description: this.$gettext(
+            "Email is made up of peers like you – Lightmeter exists to support your independence"
+          ),
+          picture: "img/walkthrough/step4.svg"
         },
         {
           title: this.$gettext("Over To You"),
