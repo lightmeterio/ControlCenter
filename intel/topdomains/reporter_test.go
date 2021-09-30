@@ -191,7 +191,7 @@ func TestReporter(t *testing.T) {
 		cancel()
 		So(done(), ShouldBeNil)
 
-		reporter := NewReporter(delivery.ConnPool())
+		reporter := NewReporter(logsDb.RoConnPool)
 
 		defer func() {
 			So(reporter.Close(), ShouldBeNil)

@@ -54,7 +54,7 @@ Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78]
 		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
-		reporter := NewReporter(stats.ConnPool())
+		reporter := NewReporter(conn.RoConnPool)
 
 		clock := &timeutil.FakeClock{Time: baseTime}
 
