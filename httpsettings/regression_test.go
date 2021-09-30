@@ -42,7 +42,7 @@ func TestRegressions(t *testing.T) {
 
 		setup.HttpSetup(mux, auth)
 
-		httpauth.HttpAuthenticator(mux, auth, nil)
+		httpauth.HttpAuthenticator(mux, auth, nil, true)
 
 		s := httptest.NewServer(mux)
 

@@ -5,42 +5,32 @@
 package httpmiddleware
 
 import (
+	"errors"
+	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
+	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
+	"gitlab.com/lightmeter/controlcenter/util/httputil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
-
-// following regexp helps remove the :port part of RemoteAddrs
-// (a simple split on ':' is not enough since the IP can be ipv6 and contain this character)
-var remoteAddrSplit = regexp.MustCompile(`:\d+$`)
-
-// Data structures for keeping count of accesses by IP and URL
-type ipAddr string
-type endpoint string
 
 type queryCount struct {
 	startTs time.Time
 	count   int64
 }
 
-type queryCountByEndpoint map[endpoint]*queryCount
-type queryCounter map[ipAddr]*queryCountByEndpoint
-
-var qCounter = queryCounter{}
-var muLockQueryCounter sync.Mutex
-
 // Data structures to define rate-limiting behaviour
-type restrictAction func() int
+type RestrictAction func() int
 
-func blockQuery() int {
+func BlockQuery() int {
 	return http.StatusTooManyRequests
 }
 
 type rateLimit struct {
 	numberOfTries int64 // after this number of accesses, the corresponding action will be taken
-	action        restrictAction
+	action        RestrictAction
 }
 
 type rateLimitsByEndPoint struct {
@@ -48,119 +38,116 @@ type rateLimitsByEndPoint struct {
 	limits    []rateLimit
 }
 
-type rateLimits map[endpoint]rateLimitsByEndPoint
-
-var commonRateLimits = rateLimits{
-	endpoint("/login"): rateLimitsByEndPoint{
-		timeFrame: time.Minute * time.Duration(5),
-		limits: []rateLimit{
-			{
-				numberOfTries: 20,
-				action:        blockQuery,
-			},
-		},
-	},
-	endpoint("/api/v0/checkMessageDeliveryStatus"): rateLimitsByEndPoint{
-		timeFrame: time.Minute * time.Duration(10),
-		limits: []rateLimit{
-			{
-				numberOfTries: 20,
-				action:        blockQuery,
-			},
-		},
-	},
+func RequestWithRateLimit(timeFrame time.Duration, numberOfTries int64, action RestrictAction) Middleware {
+	return requestWithRateLimitAndWithCustomClock(&timeutil.RealClock{}, timeFrame, numberOfTries, action)
 }
 
-func GetMaxNumberOfTriesForEndpoint(url string) int64 {
-	return commonRateLimits[endpoint(url)].limits[0].numberOfTries
-}
-
-func addQuery(r *http.Request) int {
-	urlParts := strings.Split(r.URL.String(), "?")
-	url := endpoint(urlParts[0])
-
-	endPointRateLimits := applicableRateLimits(url)
-	if endPointRateLimits == nil {
-		return http.StatusOK
+func requestRemoteAddr(remoteAddr string) string {
+	index := strings.LastIndex(remoteAddr, ":")
+	if index == -1 {
+		return remoteAddr
 	}
 
-	userIP := remoteAddrSplit.Split(r.RemoteAddr, -1)
+	return remoteAddr[:index]
+}
 
-	remoteAddr := ipAddr(userIP[0])
-
+func remoteAddr(requestRemoteAddr string, header http.Header) string {
 	// Get original IP if behind a proxy - apache, traefik, probably nginx - should mostly be the case
-	originAddr, ok := r.Header["X-Forwarded-For"]
+	originAddr, ok := header["X-Forwarded-For"]
 
-	if ok && (remoteAddr == "127.0.0.1" || remoteAddr == "[::1]") {
-		remoteAddr = ipAddr(originAddr[0])
+	if ok && (requestRemoteAddr == "127.0.0.1" || requestRemoteAddr == "[::1]") {
+		return originAddr[0]
 	}
 
-	muLockQueryCounter.Lock()
-	defer muLockQueryCounter.Unlock()
+	return requestRemoteAddr
+}
 
-	ipQueryCount, ok := qCounter[remoteAddr]
-
-	if !ok {
-		qCounter[remoteAddr] = &queryCountByEndpoint{url: &queryCount{time.Now(), 0}}
-		ipQueryCount = qCounter[remoteAddr]
-	}
-
-	endpointCount, endpointCounterValid := (*ipQueryCount)[url]
-
-	// we had started counting queries for this ip+url, check when, and if timeframe is over
-	if endpointCounterValid {
-		elapsedTime := time.Since(endpointCount.startTs)
-
-		if elapsedTime > endPointRateLimits.timeFrame {
-			// Timeframe is over, start a new counter
-			endpointCounterValid = false
+func requestWithRateLimitAndWithCustomClock(clock timeutil.Clock, timeFrame time.Duration, numberOfTries int64, action RestrictAction) Middleware {
+	var (
+		rateLimits = rateLimitsByEndPoint{
+			timeFrame: timeFrame,
+			limits: []rateLimit{
+				{
+					numberOfTries: numberOfTries,
+					action:        action,
+				},
+			},
 		}
-	}
 
-	if !endpointCounterValid {
-		(*ipQueryCount)[url] = &queryCount{time.Now(), 0}
-		endpointCount = (*ipQueryCount)[url]
-	}
+		counters = map[string]*queryCount{}
+		mutex    sync.Mutex
+	)
 
-	endpointCount.count++
+	return func(h CustomHTTPHandler) CustomHTTPHandler {
+		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
+			remoteAddr := remoteAddr(requestRemoteAddr(r.RemoteAddr), r.Header)
 
-	httpStatus := applyRateLimits(url, endpointCount)
+			// NOTE: we wrap this code in a function not to block the mutex for very long
+			err := func() error {
+				mutex.Lock()
+				defer mutex.Unlock()
 
-	// cleanup: delete other ip/endpoints counters whose timeframe has elapsed
-	for ip, ipQueryCount := range qCounter {
-		for url, endpointCount := range *ipQueryCount {
-			elapsedTime := time.Since(endpointCount.startTs)
+				now := clock.Now()
 
-			if elapsedTime > applicableRateLimits(url).timeFrame {
-				delete(*ipQueryCount, url)
+				counterForIP, ok := counters[remoteAddr]
+
+				if !ok {
+					counterForIP = &queryCount{startTs: now, count: 0}
+					counters[remoteAddr] = counterForIP
+				}
+
+				elapsedTime := now.Sub(counterForIP.startTs)
+
+				if elapsedTime > rateLimits.timeFrame {
+					// Timeframe is over, start a new counter
+					counterForIP = &queryCount{startTs: now, count: 0}
+					counters[remoteAddr] = counterForIP
+				}
+
+				counterForIP.count++
+
+				httpStatus := applyRateLimitsendPointRateLimits(&rateLimits, counterForIP)
+
+				// cleanup: delete every other ip/endpoints counters whose timeframe has elapsed
+				for ip, counter := range counters {
+					// skip counter currently handled
+					if counter == counterForIP {
+						continue
+					}
+
+					elapsedTime := now.Sub(counter.startTs)
+
+					if elapsedTime > rateLimits.timeFrame {
+						delete(counters, ip)
+					}
+				}
+
+				if httpStatus == http.StatusOK {
+					return nil
+				}
+
+				err := httperror.NewHTTPStatusCodeError(httpStatus, errors.New("Query blocked by rate limiter"))
+				ctxlogger.LogErrorf(r.Context(), err, "Query blocked by rate limiter")
+
+				response := struct {
+					Error string `json:"error"`
+				}{
+					Error: "Blocked for exceeding rate-limit, please try again later",
+				}
+
+				return httputil.WriteJson(w, response, httpStatus)
+			}()
+
+			if err != nil {
+				return err
 			}
-		}
 
-		if len(*ipQueryCount) == 0 {
-			delete(qCounter, ip)
-		}
+			return h.ServeHTTP(w, r)
+		})
 	}
-
-	return httpStatus
 }
 
-func applicableRateLimits(url endpoint) *rateLimitsByEndPoint {
-	endPointRateLimits, exists := commonRateLimits[url]
-
-	if !exists {
-		return nil
-	}
-
-	return &endPointRateLimits
-}
-
-func applyRateLimits(url endpoint, endpointCount *queryCount) int {
-	endPointRateLimits := applicableRateLimits(url)
-
-	if endPointRateLimits == nil {
-		return http.StatusOK
-	}
-
+func applyRateLimitsendPointRateLimits(endPointRateLimits *rateLimitsByEndPoint, endpointCount *queryCount) int {
 	for _, limit := range endPointRateLimits.limits {
 		if endpointCount.count > limit.numberOfTries {
 			if httpStatus := limit.action(); httpStatus != http.StatusOK {

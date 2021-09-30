@@ -129,7 +129,12 @@ func (h oldestAvailableTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 }
 
 func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *metadata.Reader) {
-	publicIfEnabled := httpmiddleware.New(httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout), requireDetectiveAuth(auth, settingsReader))
+	publicIfEnabled := httpmiddleware.New(
+		httpmiddleware.RequestWithRateLimit(10*time.Minute, 20, httpmiddleware.BlockQuery),
+		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout),
+		requireDetectiveAuth(auth, settingsReader),
+	)
+
 	mux.Handle("/api/v0/checkMessageDeliveryStatus", publicIfEnabled.WithEndpoint(checkMessageDeliveryHandler{detective}))
 	mux.Handle("/api/v0/escalateMessage", publicIfEnabled.WithEndpoint(detectiveEscalatorHandler{requester: escalator, detective: detective}))
 	mux.Handle("/api/v0/oldestAvailableTimeForMessageDetective", publicIfEnabled.WithEndpoint(oldestAvailableTimeHandler{detective: detective}))

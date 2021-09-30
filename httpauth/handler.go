@@ -9,21 +9,31 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"net/http"
+	"time"
 )
 
 func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *metadata.Reader) {
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
+	unauthenticatedAndRateLimited := httpmiddleware.WithDefaultStackWithoutAuth(
+		httpmiddleware.RequestWithRateLimit(5*time.Minute, 20, httpmiddleware.BlockQuery),
+	)
 
 	mux.Handle("/auth/check", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return auth.IsNotLoginOrNotRegistered(a, w, r)
 	})))
+
 	mux.Handle("/auth/detective", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return auth.IsNotLoginAndNotEndUsersEnabled(a, w, r, settingsReader)
 	})))
 
-	mux.Handle("/login", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-		return auth.HandleLogin(a, w, r)
-	})))
+	mux.Handle("/login", unauthenticatedAndRateLimited.WithEndpoint(
+		httpmiddleware.CustomHTTPHandler(
+			func(w http.ResponseWriter, r *http.Request) error {
+				return auth.HandleLogin(a, w, r)
+			},
+		),
+	),
+	)
 
 	// NOTE: This endpoint is actually authenticated, see auth.HandleGetUserSystemData
 	mux.Handle("/api/v0/userInfo", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
