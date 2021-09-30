@@ -250,6 +250,10 @@ export default {
   margin-top: 1rem;
   color: black;
   font-size: 16px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 400px;
+  text-align: center;
 }
 
 .walkthrough .walkthrough-title {
