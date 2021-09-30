@@ -232,17 +232,19 @@ For detailed information, check [Usage](cli_usage.md).
 - Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
 - As Postfix logs don't contain a year as part of the date of each line, when using `-stdin`, the year for processed logs is assumed to be the current one. To override this and specify a year manually, use the `-log_starting_year` flag like `-log_starting_year 2018`
 - Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
-(even if compressed with gzip) and waiting new log files that happen after such import.
+(even if compressed with gzip or bzip2) and waiting new log files that happen after such import.
 To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
 - You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
 
 Currently the following patterns for log files are "watched":
-  - mail.log
-  - mail.warn
-  - mail.err
-  - maillog
-  - zimbra.log
+- mail.log
+- mail.warn
+- mail.err
+- maillog
+- zimbra.log
+
+You can override this by passing the patterns on the command-line as in `-log_file_patterns mail.log:mail.warn:maillog` or via the environment variable `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.warn:maillog`.
 
 ### Environment variables
 
@@ -257,6 +259,7 @@ Here are all parameters you can set through environment variables, and their res
 - `LIGHTMETER_LOGS_USE_RSYNC=true` (`-logs_use_rsync`)
 - `LIGHTMETER_LOGS_STARTING_YEAR=2019` (`-log_starting_year`)
 - `LIGHTMETER_LOG_FORMAT=prepend-rfc3339` (`-log_format`)
+- `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.err:mail.warn:zimbra.log:maillog` (`-log_file_patterns`)
 
 ### Rotated files
 
@@ -302,7 +305,7 @@ This means you should have a file `mail.log`, which means you should check your 
 
 ### Reading from Logstash
 
-**NOTE**: this is a very experimental support, not well tested or supported. It can eat your logs!
+**NOTE**: this is a very experimental feature, not well tested or supported. It can eat your logs!
 
 Control Center can read logs via a network or unix domain sockets, and this can be used to receive logs from Logstash.
 
@@ -458,8 +461,8 @@ Rate limiting is applied on the number of searches, with a current maximum of 20
 ### Low risk
 
 - Some Insights are triggered too frequently (depending on use case) and can fill the homepage with repetitious details (planned fix: [#231](https://gitlab.com/lightmeter/controlcenter/-/issues/231), [#157](157))
-
 - Clicking on homepage chart sections can result in the reporting of misleading stats (planned fix: [#63](https://gitlab.com/lightmeter/controlcenter/-/issues/63))
+- Old data is deleted automatically from the database when it's older than three months. Such value is currently hardcoded, and we should make it configurable by the users (planned fix: [#565](https://gitlab.com/lightmeter/controlcenter/-/issues/565)).
 
 ## Development
 
