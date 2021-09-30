@@ -478,7 +478,7 @@ export default {
       );
 
       return this.$gettextInterpolate(translation, {
-        bounceValue: c.value * 100,
+        bounceValue: (c.value * 100.0).toFixed(2),
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
         intTo: formatInsightDescriptionDateTime(c.interval.to)
       });

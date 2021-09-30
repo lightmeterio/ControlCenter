@@ -227,7 +227,7 @@ export default {
       username: "",
       updateDashboardAndInsightsIntervalID: null,
       dashboardInterval: this.buildDefaultInterval(),
-      insightsFilter: "nofilter",
+      insightsFilter: "category-active",
       insightsSort: "creationDesc",
       insights: [],
 

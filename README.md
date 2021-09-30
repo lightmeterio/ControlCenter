@@ -268,6 +268,10 @@ The suffixes on the archived log files that are supported are:
 - mail.log.2.gz and similar, where the suffix number gets higher as files get older.
 - mail.log-20030102.gz where the suffix number is a date, where the lower the value, the older the file is.
 
+It's important to notice that, in case a directory contains archived files with different naming conventions,
+only the ones using the latter naming convention (the ones suffixed with a date) will be used by Control Center.
+All other archived files will be ignored.
+
 Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
 
 ## Syslog compatibility
