@@ -9,7 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -36,8 +36,8 @@ func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 	}
 
 	// If we skipt the import, there should be no progress info available
-	skipImport, err := meta.NewReader(f.pool).Retrieve(ctx, "skip_import")
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	skipImport, err := metadata.NewReader(f.pool).Retrieve(ctx, "skip_import")
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return Progress{}, errorutil.Wrap(err)
 	}
 
@@ -48,7 +48,10 @@ func (f *progressFetcher) Progress(ctx context.Context) (Progress, error) {
 		return Progress{Active: false, Value: &value}, nil
 	}
 
-	conn, release := f.pool.Acquire()
+	conn, release, err := f.pool.AcquireContext(ctx)
+	if err != nil {
+		return Progress{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 

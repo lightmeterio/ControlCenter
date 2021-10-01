@@ -22,9 +22,15 @@ type SmtpdConnect struct {
 	IP   []byte
 }
 
+type SmtpdDisconnectStat struct {
+	Success int
+	Total   int
+}
+
 type SmtpdDisconnect struct {
-	Host []byte
-	IP   []byte
+	Host  []byte
+	IP    []byte
+	Stats map[string]SmtpdDisconnectStat
 }
 
 type SmtpdMailAccepted struct {

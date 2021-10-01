@@ -110,10 +110,12 @@ import {
   escalateMessage,
   oldestAvailableTimeForMessageDetective
 } from "@/lib/api.js";
-import DateRangePicker from "@/3rd/components/DateRangePicker.vue";
+
 import tracking from "@/mixin/global_shared.js";
 import auth from "@/mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
+import DateRangePicker from "vue2-daterange-picker";
+import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
 
 function isEmail(email) {
   // NOTE: regexp also used in util/emailutil/email.go
@@ -250,7 +252,8 @@ export default {
 /* don't squeeze the inputs or datepicker too much, so they'll flex-wrap on smaller screens */
 input,
 .vue-daterange-picker {
-  min-width: 200px;
+  min-width: 200px !important;
+  display: block !important;
 }
 
 .pages {

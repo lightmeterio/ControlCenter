@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -65,7 +66,7 @@ func TestMain(t *testing.T) {
 			ws, reader, err := buildWorkspaceAndLogReader(config)
 			So(err, ShouldBeNil)
 			defer ws.Close()
-			done, cancel := ws.Run()
+			done, cancel := runner.Run(ws)
 			reader.Run()
 			cancel()
 			So(done(), ShouldBeNil)
@@ -82,7 +83,7 @@ func TestMain(t *testing.T) {
 			ws, reader, err := buildWorkspaceAndLogReader(config)
 			So(err, ShouldBeNil)
 			defer ws.Close()
-			done, cancel := ws.Run()
+			done, cancel := runner.Run(ws)
 
 			// Won't reimport the logs
 			reader.Run()

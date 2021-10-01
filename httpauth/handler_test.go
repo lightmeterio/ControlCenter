@@ -11,7 +11,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	httpauthsub "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"net/http"
@@ -38,22 +40,28 @@ func buildCookieClient() *http.Client {
 
 func TestHTTPAuth(t *testing.T) {
 	Convey("HTTP Authentication", t, func() {
-		conn, closeConn := testutil.TempDBConnection(t)
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 		defer closeConn()
 
-		m, err := meta.NewHandler(conn, "master")
+		m, err := metadata.NewHandler(conn)
 		So(err, ShouldBeNil)
 
-		runner := meta.NewRunner(m)
-		done, cancel := runner.Run()
+		// store an instance ID to retrieve in /userInfo
+		writeRunner := metadata.NewSerialWriteRunner(m)
+		done, cancel := runner.Run(writeRunner)
+
 		defer func() {
 			cancel()
 			done()
 		}()
 
 		uuid := uuid.NewV4().String()
-		writer := runner.Writer()
-		writer.StoreJsonSync(context.Background(), meta.UuidMetaKey, uuid)
+		writer := writeRunner.Writer()
+		writer.StoreJsonSync(context.Background(), metadata.UuidMetaKey, uuid)
+
+		// store a postfix version and a mail kind to retrieve in /userInfo
+		writer.StoreJsonSync(context.Background(), postfixversion.SettingKey, "3.4.14")
+		m.Writer.Store(context.Background(), []metadata.Item{{"mail_kind", "marketing"}})
 
 		failedAttempts := 0
 
@@ -235,6 +243,8 @@ func TestHTTPAuth(t *testing.T) {
 					json.Unmarshal(b, &v)
 
 					So(v.InstanceID, ShouldEqual, uuid)
+					So(v.PostfixVersion, ShouldEqual, "3.4.14")
+					So(v.MailKind, ShouldEqual, "marketing")
 				})
 
 				Convey("get fake user data after registration", func() {

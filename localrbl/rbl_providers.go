@@ -6,7 +6,6 @@ package localrbl
 
 // List obtained from http://multirbl.valli.org/list/"
 var DefaultRBLs = []string{
-	"0spamtrust.fusionzero.com",             // 0spam DNSWL
 	"bl.0spam.org",                          // 0spam General DNSBL Listings
 	"0spam.fusionzero.com",                  // 0spam General DNSBL Listings (mirror)
 	"nbl.0spam.org",                         // 0spam Network DNSBL Listings
@@ -55,9 +54,7 @@ var DefaultRBLs = []string{
 	"dul.dnsbl.borderware.com",              // borderware.com DUL
 	"black.dnsbl.brukalai.lt",               // Brukalai.lt DNSBL black
 	"light.dnsbl.brukalai.lt",               // Brukalai.lt DNSBL light
-	"white.dnsbl.brukalai.lt",               // Brukalai.lt DNSBL white
 	"blacklist.sci.kun.nl",                  // C&CZ's own black list
-	"whitelist.sci.kun.nl",                  // C&CZ's own white list
 	"dul.blackhole.cantv.net",               // cantv.net dul
 	"hog.blackhole.cantv.net",               // cantv.net hog
 	"rhsbl.blackhole.cantv.net",             // cantv.net rhsbl
@@ -65,9 +62,7 @@ var DefaultRBLs = []string{
 	"spam.blackhole.cantv.net",              // cantv.net spam
 	"cbl.abuseat.org",                       // CBL
 	"rbl.choon.net",                         // choon.net IPv4 DNSBL
-	"rwl.choon.net",                         // choon.net IPv4 DNSWL
 	"ipv6.rbl.choon.net",                    // choon.net IPv6 DNSBL
-	"ipv6.rwl.choon.net",                    // choon.net IPv6 DNSWL
 	"dnsbl.cyberlogic.net",                  // Cyberlogic DNSBL
 	"bogons.cymru.com",                      // Cymru Bogon List
 	"v4.fullbogons.cymru.com",               // Cymru Fullbogon IPv4 List
@@ -87,8 +82,6 @@ var DefaultRBLs = []string{
 	"dnsbl.net.ua",                          // dnsbl.net.ua
 	"dnsbl.rv-soft.info",                    // dnsbl.rv-soft.info
 	"dnsblchile.org",                        // dnsblchile.org
-	"dwl.dnswl.org",                         // DNSWL.org Domain Whitelist
-	"list.dnswl.org",                        // SWL.org IP Whitelist
 	"vote.drbl.caravan.ru",                  // DRBL caravan.ru (vote node)
 	"work.drbl.caravan.ru",                  // DRBL caravan.ru (work node)
 	"vote.drbl.gremlin.ru",                  // DRBL gremlin.ru (vote node)
@@ -112,21 +105,17 @@ var DefaultRBLs = []string{
 	"sa-accredit.habeas.com",                // Habeas SafeList (for SpamAssassin)
 	"hul.habeas.com",                        // Habeas User List
 	"sohul.habeas.com",                      // Habeas User List (including Non-Verified-Optin)
-	"hostkarma.junkemailfilter.com",         // stkarma
 	"black.junkemailfilter.com",             // Hostkarma blacklist
-	"nobl.junkemailfilter.com",              // Hostkarma no blacklist
 	"dnsbl.cobion.com",                      // IBM DNS Blacklist
 	"spamrbl.imp.ch",                        // ImproWare IP based spamlist
 	"wormrbl.imp.ch",                        // ImproWare IP based wormlist
 	"dnsbl.inps.de",                         // inps.de-DNSBL
-	"dnswl.inps.de",                         // inps.de-DNSWL
 	"rbl.interserver.net",                   // InterServer BL
 	"rbl.iprange.net",                       // IPrange.net RBL
 	"iadb.isipp.com",                        // ISIPP Accreditation Database
 	"iadb2.isipp.com",                       // ISIPP Accreditation Database (IADB2)
 	"iddb.isipp.com",                        // ISIPP Accreditation Database (IDDB)
 	"wadb.isipp.com",                        // ISIPP Accreditation Database (WADB)
-	"whitelist.rbl.ispa.at",                 // ISPA (Internet Service Provider Austria) Whitelist
 	"mail-abuse.blacklist.jippg.org",        // JIPPG's RBL Project (mail-abuse Listings)
 	"dnsbl.justspam.org",                    // JustSpam.org
 	"dnsbl.kempt.net",                       // Kempt.net DNS Black List
@@ -164,7 +153,6 @@ var DefaultRBLs = []string{
 	"bl.nordspam.com",                       // NordSpam IP Blacklist
 	"bl.nosolicitado.org",                   // NoSolicitado.org BL
 	"bl.worst.nosolicitado.org",             // NoSolicitado.org Worst BL
-	"wl.nszones.com",                        // nsZones.com DNSWL
 	"dyn.nszones.com",                       // nsZones.com Dyn
 	"sbl.nszones.com",                       // nsZones.com SBL
 	"bl.nszones.com",                        // nsZones.com SBL+Dyn
@@ -174,7 +162,6 @@ var DefaultRBLs = []string{
 	"blacklist.sequoia.ops.asp.att.net",     // ops.asp.att.net blacklist sequoia
 	"spam.pedantic.org",                     // Pedantic.org spam
 	"pofon.foobar.hu",                       // pofon.foobar.hu IP Blacklist
-	"ispmx.pofon.foobar.hu",                 // pofon.foobar.hu ISP mail relay whitelist
 	"uribl.pofon.foobar.hu",                 // pofon.foobar.hu URI Blacklist
 	"bl.rbl.polspam.pl",                     // Polspam BL
 	"bl-h1.rbl.polspam.pl",                  // Polspam BL-H1
@@ -184,8 +171,6 @@ var DefaultRBLs = []string{
 	"bl6.rbl.polspam.pl",                    // Polspam BL6
 	"cnkr.rbl.polspam.pl",                   // Polspam CNKR
 	"dyn.rbl.polspam.pl",                    // Polspam Dyn
-	"ip4.white.polspam.pl",                  // Polspam IPv4 Whitelist
-	"ip6.white.polspam.pl",                  // Polspam IPv6 Whitelist
 	"lblip4.rbl.polspam.pl",                 // Polspam LBLIP4
 	"lblip6.rbl.polspam.pl",                 // Polspam LBLIP6
 	"rblip4.rbl.polspam.pl",                 // Polspam RBLIP4
@@ -194,13 +179,10 @@ var DefaultRBLs = []string{
 	"rhsbl-h.rbl.polspam.pl",                // Polspam RHSBL-H
 	"safe.dnsbl.prs.proofpoint.com",         // Proofpoint Dynamic Reputation
 	"psbl.surriel.com",                      // PSBL (Passive Spam Block List)
-	"whitelist.surriel.com",                 // PSBL whitelist
 	"rbl.schulte.org",                       // rbl.schulte.org
 	"rbl.zenon.net",                         // rbl.zenon.net
 	"rbl.realtimeblacklist.com",             // realtimeBLACKLIST.COM
 	"access.redhawk.org",                    // Redhawk.org
-	"eswlrev.dnsbl.rediris.es",              // RedIRIS ListaBlanca ESWL
-	"mtawlrev.dnsbl.rediris.es",             // RedIRIS ListaBlanca MTAWL
 	"abuse.rfc-clueless.org",                // RFC-Clueless (RFC²) abuse RBL
 	"bogusmx.rfc-clueless.org",              // RFC-Clueless (RFC²) BogusMX RBL
 	"dsn.rfc-clueless.org",                  // RFC-Clueless (RFC²) DSN RBL
@@ -266,11 +248,9 @@ var DefaultRBLs = []string{
 	"bl.spamcop.net",                        // SpamCop Blocking List
 	"sbl.spamdown.org",                      // Spamdown RBL
 	"dbl.spamhaus.org",                      // Spamhaus DBL Domain Block List
-	"_vouch.dwl.spamhaus.org",               // Spamhaus DWL Domain Whitelist
 	"pbl.spamhaus.org",                      // amhaus PBL Policy Block List
 	"sbl.spamhaus.org",                      // amhaus SBL Spamhaus Block List
 	"sbl-xbl.spamhaus.org",                  // Spamhaus SBL-XBL Combined Block List
-	"swl.spamhaus.org",                      // Spamhaus SWL IP Whitelist
 	"xbl.spamhaus.org",                      // amhaus XBL Exploits Block List
 	"zen.spamhaus.org",                      // amhaus ZEN Combined Block List
 	"feb.spamlab.com",                       // SpamLab FEB
@@ -282,7 +262,6 @@ var DefaultRBLs = []string{
 	"spam.spamrats.com",                     // SpamRATS! Spam
 	"spamsources.fabel.dk",                  // spamsources.fabel.dk
 	"score.spfbl.net",                       // SPFBL.net Score Service
-	"dnswl.spfbl.net",                       // SPFBL.net Whitelist
 	"dul.pacifier.net",                      // StopSpam.org dul
 	"bl.suomispam.net",                      // Suomispam Blacklist
 	"dbl.suomispam.net",                     // Suomispam Domain Blacklist
@@ -299,7 +278,6 @@ var DefaultRBLs = []string{
 	"r.mail-abuse.com",                      // Trend Micro DUL
 	"q.mail-abuse.com",                      // Trend Micro QIL
 	"rbl2.triumf.ca",                        // TRIUMF.ca DNSBL
-	"wbl.triumf.ca",                         // TRIUMF.ca DNSWL
 	"truncate.gbudb.net",                    // truncate.gbudb.net
 	"dnsbl-0.uceprotect.net",                // UCEPROTECT Level 0
 	"dnsbl-1.uceprotect.net",                // UCEPROTECT Level 1
@@ -308,7 +286,6 @@ var DefaultRBLs = []string{
 	"ubl.unsubscore.com",                    // Unsubscribe Blacklist UBL
 	"free.v4bl.org",                         // V4BL-FREE/DDNSBL-FREE
 	"ip.v4bl.org",                           // V4BL/DDNSBL
-	"ips.whitelisted.org",                   // Whitelisted.org
 	"blacklist.woody.ch",                    // Woody's SMTP Blacklist IPv4
 	"ipv6.blacklist.woody.ch",               // Woody's SMTP Blacklist IPv6
 	"uri.blacklist.woody.ch",                // Woody's SMTP Blacklist URIBL

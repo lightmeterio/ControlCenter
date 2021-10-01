@@ -5,140 +5,32 @@
 package dirwatcher
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
-	"strings"
 	"testing"
 	"time"
 )
-
-func readFromReader(reader io.Reader,
-	filename string,
-	onNewRecord func(parser.Header, parser.Payload)) {
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-
-		h, p, err := parser.Parse(line)
-
-		if parser.IsRecoverableError(err) {
-			onNewRecord(h, p)
-		}
-	}
-}
-
-type fakePublisher struct {
-	logs []postfix.Record
-}
-
-func (this *fakePublisher) Publish(r postfix.Record) {
-	this.logs = append(this.logs, r)
-}
-
-func compress(content []byte) []byte {
-	var buf bytes.Buffer
-
-	w := gzip.NewWriter(&buf)
-
-	_, err := w.Write(content)
-
-	if err != nil {
-		log.Fatal().Msg("compressing data")
-	}
-
-	w.Close()
-
-	return buf.Bytes()
-}
-
-type fakeFileReader struct {
-	io.Reader
-}
-
-func plainDataReaderFromBytes(data []byte) fakeFileReader {
-	buf := bytes.NewBuffer(data)
-	return fakeFileReader{Reader: strings.NewReader(string(buf.Bytes()))}
-}
-
-func gzipedDataReaderFromBytes(data []byte) fakeFileReader {
-	plainReader := plainDataReaderFromBytes(data)
-
-	reader, err := ensureReaderIsDecompressed(plainReader, "something.gz")
-
-	if err != nil {
-		panic("Failed on decompressing file!!!! FIX IT!")
-	}
-
-	return fakeFileReader{reader}
-}
-
-func plainDataReader(s string) fileReader {
-	return plainDataReaderFromBytes([]byte(s))
-}
-
-func gzipedDataReader(s string) fileReader {
-	return gzipedDataReaderFromBytes(compress([]byte(s)))
-}
-
-func (fakeFileReader) Close() error {
-	return nil
-}
-
-type fakeFileData interface {
-	hasFakeContent()
-}
-
-type fakeFileDataBytes struct {
-	content []byte
-}
-
-func (fakeFileDataBytes) hasFakeContent() {
-}
-
-func gzippedDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{compress([]byte(s))}
-}
-
-func plainDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{[]byte(s)}
-}
-
-type fakePlainCurrentFileData struct {
-	content []byte
-	offset  int64
-}
-
-func (fakePlainCurrentFileData) hasFakeContent() {
-}
-
-func plainCurrentDataFile(s, c string) fakePlainCurrentFileData {
-	return fakePlainCurrentFileData{[]byte(s + c), int64(len(s))}
-}
 
 type FakeDirectoryContent struct {
 	entries  fileEntryList
 	contents map[string]fakeFileData
 }
 
-func (f FakeDirectoryContent) fileEntries() fileEntryList {
-	return f.entries
+func (f FakeDirectoryContent) fileEntries() (fileEntryList, error) {
+	return f.entries, nil
 }
 
 func (f FakeDirectoryContent) dirName() string {
 	return "/dummy"
 }
 
-func (f FakeDirectoryContent) readerForEntry(filename string) (fileReader, error) {
+func (f FakeDirectoryContent) readerForEntry(filename string) (io.ReadCloser, error) {
 	content, ok := f.contents[filename]
 
 	if !ok {
@@ -205,7 +97,7 @@ func (s *fakeFileReadSeeker) Close() error {
 	return nil
 }
 
-func (f FakeDirectoryContent) readSeekerForEntry(filename string) (fileReadSeeker, error) {
+func (f FakeDirectoryContent) readSeekerForEntry(filename string) (io.ReadSeekCloser, error) {
 	content, ok := f.contents[filename]
 
 	if !ok {
@@ -249,7 +141,9 @@ func (f FakeDirectoryContent) watcherForEntry(filename string, offset int64) (fi
 }
 
 func (f FakeDirectoryContent) modificationTimeForEntry(filename string) (time.Time, error) {
-	for _, e := range f.fileEntries() {
+	entries, _ := f.fileEntries()
+
+	for _, e := range entries {
 		if filename == e.filename {
 			return e.modificationTime, nil
 		}
@@ -555,6 +449,38 @@ func TestBuildingfileQueues(t *testing.T) {
 						fileEntry{filename: "logs/mail.warn", modificationTime: testutil.MustParseTime(`2020-04-03 18:42:48 +0200`)},
 					},
 				})
+		})
+
+		Convey("Matches bzip2 files", func() {
+			Convey("Default format", func() {
+				f := fileEntryList{
+					fileEntry{filename: "logs/mail.warn.3.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+					fileEntry{filename: "logs/mail.warn.2.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				}
+
+				So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.warn"}), time.Time{}), ShouldResemble,
+					fileQueues{
+						"mail.warn": fileEntryList{
+							fileEntry{filename: "logs/mail.warn.3.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+							fileEntry{filename: "logs/mail.warn.2.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+						},
+					})
+			})
+
+			Convey("Alternative format", func() {
+				f := fileEntryList{
+					fileEntry{filename: "logs/mail.warn-20201001.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+					fileEntry{filename: "logs/mail.warn-20201003.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+				}
+
+				So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.warn"}), time.Time{}), ShouldResemble,
+					fileQueues{
+						"mail.warn": fileEntryList{
+							fileEntry{filename: "logs/mail.warn-20201001.bz2", modificationTime: testutil.MustParseTime(`2020-01-01 08:51:33 +0200`)},
+							fileEntry{filename: "logs/mail.warn-20201003.bz2", modificationTime: testutil.MustParseTime(`2020-01-03 07:42:56 +0200`)},
+						},
+					})
+			})
 		})
 
 		Convey("Plesk (digital ocean image, ubuntu 20.04) keeps a weird .processed file, which should be ignored", func() {
@@ -1043,6 +969,43 @@ func TestImportDirectoryWithRFC3339TimeFormat(t *testing.T) {
 				},
 				contents: map[string]fakeFileData{
 					"mail.log.2.gz": gzippedDataFile(`2021-05-16T00:01:42.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:43.278515+02:00 mail dovecot: Useless Payload
+2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`),
+					"mail.log": plainCurrentDataFile(`2021-05-16T00:01:45.278515+02:00 mail something: something else`, ``),
+				},
+			}
+
+			pub := fakePublisher{}
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			err := importer.ImportOnly()
+			So(err, ShouldBeNil)
+
+			So(len(pub.logs), ShouldEqual, 4)
+			So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:42 +0000`))
+			So(pub.logs[0].Header.Host, ShouldResemble, "mail")
+			So(pub.logs[1].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:43 +0000`))
+			So(pub.logs[2].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:44 +0000`))
+			So(pub.logs[3].Time, ShouldResemble, testutil.MustParseTime(`2021-05-16 00:01:45 +0000`))
+		})
+	})
+}
+
+func TestImportingBzip2CompressedFiles(t *testing.T) {
+	Convey("Bzip2 Compressed Files", t, func() {
+		timeFormat, err := parsertimeutil.Get("rfc3339")
+		So(err, ShouldBeNil)
+
+		patterns := DefaultLogPatterns
+
+		Convey("Simple case", func() {
+			dirContent := FakeDirectoryContent{
+				// NOTE: notice that the modification times have been lost
+				entries: fileEntryList{
+					fileEntry{filename: "mail.log.2.bz2", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"mail.log.2.bz2": bzip2edDataFile(`2021-05-16T00:01:42.278515+02:00 mail dovecot: Useless Payload
 2021-05-16T00:01:43.278515+02:00 mail dovecot: Useless Payload
 2021-05-16T00:01:44.278515+02:00 mail postfix/postscreen[17274]: Useless Payload`),
 					"mail.log": plainCurrentDataFile(`2021-05-16T00:01:45.278515+02:00 mail something: something else`, ``),

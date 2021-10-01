@@ -232,17 +232,19 @@ For detailed information, check [Usage](cli_usage.md).
 - Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
 - As Postfix logs don't contain a year as part of the date of each line, when using `-stdin`, the year for processed logs is assumed to be the current one. To override this and specify a year manually, use the `-log_starting_year` flag like `-log_starting_year 2018`
 - Lightmeter can also "watch" a directory with postfix logs managed by logrotate, importing existing files
-(even if compressed with gzip) and waiting new log files that happen after such import.
+(even if compressed with gzip or bzip2) and waiting new log files that happen after such import.
 To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
 - You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
 
 Currently the following patterns for log files are "watched":
-  - mail.log
-  - mail.warn
-  - mail.err
-  - maillog
-  - zimbra.log
+- mail.log
+- mail.warn
+- mail.err
+- maillog
+- zimbra.log
+
+You can override this by passing the patterns on the command-line as in `-log_file_patterns mail.log:mail.warn:maillog` or via the environment variable `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.warn:maillog`.
 
 ### Environment variables
 
@@ -257,16 +259,21 @@ Here are all parameters you can set through environment variables, and their res
 - `LIGHTMETER_LOGS_USE_RSYNC=true` (`-logs_use_rsync`)
 - `LIGHTMETER_LOGS_STARTING_YEAR=2019` (`-log_starting_year`)
 - `LIGHTMETER_LOG_FORMAT=prepend-rfc3339` (`-log_format`)
+- `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.err:mail.warn:zimbra.log:maillog` (`-log_file_patterns`)
 
 ### Rotated files
 
 We are able to recognize files archived by `logrotate` and import them in the first time the application runs.
-Currently only `gzip`ped and uncompressed files are supported.
+Currently only files compressed with gzip (`.gz`), bzip2 (`.bz2`) and uncompressed files are supported.
 
 The suffixes on the archived log files that are supported are:
 
 - mail.log.2.gz and similar, where the suffix number gets higher as files get older.
 - mail.log-20030102.gz where the suffix number is a date, where the lower the value, the older the file is.
+
+It's important to notice that, in case a directory contains archived files with different naming conventions,
+only the ones using the latter naming convention (the ones suffixed with a date) will be used by Control Center.
+All other archived files will be ignored.
 
 Please create an issue on [Gitlab](https://gitlab.com/lightmeter/controlcenter/-/issues/) if you use a different log naming convention.
 
@@ -298,7 +305,7 @@ This means you should have a file `mail.log`, which means you should check your 
 
 ### Reading from Logstash
 
-**NOTE**: this is a very experimental support, not well tested or supported. It can eat your logs!
+**NOTE**: this is a very experimental feature, not well tested or supported. It can eat your logs!
 
 Control Center can read logs via a network or unix domain sockets, and this can be used to receive logs from Logstash.
 
@@ -434,14 +441,14 @@ A message can have one of the following states:
 
 You can enable the message detective for any unauthenticated users in the Settings Page. 
 
-An authenticated user that you have provided the link to can check the fate of a message independently using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
+Any user (whom you have provided the link to) can check the fate of a message independently, using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
 
 In addition, the user will also have the option to Escalate any Bounced and Expired results to the mail server admin.
 Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further. 
 If you have notifications enabled, this will also trigger a notification. 
 
-If you enable the message detective for your end-users, make sure to share the public page URL with them.  
-Rate limiting is applied on the number of searches, with a current maximum of 20 searches. 
+If you enable the message detective for your end-users, make sure to share the public page URL with them.
+Rate limiting is applied on the number of searches, with a current maximum of 20 searches every 10 minutes.
 
 
 ## Known issues
@@ -449,14 +456,13 @@ Rate limiting is applied on the number of searches, with a current maximum of 20
 ### High risk
 
 - The Web UI loads without SSL (unencrypted) by default, so credentials are at risk if transmitted over public networks (planned fix: [#480](https://gitlab.com/lightmeter/controlcenter/-/issues/480))
-- The SQLite databases will grow linearly in size forever as no disk-reclaiming policy exists (planned fix: [#77](https://gitlab.com/lightmeter/controlcenter/-/issues/77))
 - Memory consumption for very high volume mailservers is unknown (planned fix: [#238](https://gitlab.com/lightmeter/controlcenter/-/issues/238))
 
 ### Low risk
 
 - Some Insights are triggered too frequently (depending on use case) and can fill the homepage with repetitious details (planned fix: [#231](https://gitlab.com/lightmeter/controlcenter/-/issues/231), [#157](157))
-
 - Clicking on homepage chart sections can result in the reporting of misleading stats (planned fix: [#63](https://gitlab.com/lightmeter/controlcenter/-/issues/63))
+- Old data is deleted automatically from the database when it's older than three months. Such value is currently hardcoded, and we should make it configurable by the users (planned fix: [#565](https://gitlab.com/lightmeter/controlcenter/-/issues/565)).
 
 ## Development
 

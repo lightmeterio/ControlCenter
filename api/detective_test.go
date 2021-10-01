@@ -90,7 +90,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 				Messages: detective.Messages{
 					detective.Message{
 						Queue: "AAAAA",
-						Entries: []detective.MessageDelivery{detective.MessageDelivery{
+						Entries: []detective.MessageDelivery{{
 							1,
 							testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),
 							testutil.MustParseTime(`2009-02-14 00:31:30 +0000`),

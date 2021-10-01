@@ -77,7 +77,7 @@ func ReadWriter() io.ReadWriteCloser {
 }
 
 // Watcher is able to observe changes in files updated by rsync and potentially managed by logrotate
-type Watcher = runner.CancelableRunner
+type Watcher = runner.CancellableRunner
 
 func New(filename string, offset int64, w io.WriteCloser) (Watcher, error) {
 	filename = path.Clean(filename)
@@ -94,7 +94,7 @@ func New(filename string, offset int64, w io.WriteCloser) (Watcher, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	return runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+	return runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 		go func() {
 			<-cancel
 			watcher.Close()

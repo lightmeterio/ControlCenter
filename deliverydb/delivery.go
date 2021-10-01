@@ -7,36 +7,27 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
-	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"time"
 )
 
-type dbAction func(*sql.Tx, preparedStmts) error
+type dbAction = dbrunner.Action
 
 type DB struct {
-	runner.CancelableRunner
+	dbrunner.Runner
 	closeutil.Closers
 
-	connPair  *dbconn.PooledPair
-	dbActions chan dbAction
-	stmts     preparedStmts
+	connPair *dbconn.PooledPair
 }
 
-const (
-	filename = "logs.db"
-)
-
-type stmtKey uint
+type stmtKey = int
 
 const (
 	selectIdFromRemoteDomain stmtKey = iota
@@ -56,10 +47,19 @@ const (
 	insertQueueParenting
 	insertExpiredQueue
 
+	selectOldDeliveries
+	deleteOldDeliveries
+	selectQueueIdForDeliveryId
+	countDeliveriesWithQueue
+	deleteDeliveryQueueById
+	deleteExpiredQueuesByQueueId
+	deleteQueueParentingByQueueId
+	deleteQueueById
+	countDeliveriesWithMessageId
+	deleteMessageIdById
+
 	lastStmtKey
 )
-
-type preparedStmts [lastStmtKey]*sql.Stmt
 
 var stmtsText = map[stmtKey]string{
 	selectIdFromRemoteDomain:       `select id from remote_domains where domain = ?`,
@@ -102,23 +102,38 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	findQueueByName:                 `select id from queues where name = ?`,
 	insertQueueParenting:            `insert into queue_parenting(parent_queue_id, child_queue_id, type) values(?, ?, ?)`,
 	insertExpiredQueue:              `insert into expired_queues(queue_id, expired_ts) values(?, ?)`,
-}
-
-// TODO: close such statements when the tracker is deleted!!!
-func prepareRwStmts(conn dbconn.RwConn) (preparedStmts, error) {
-	stmts := preparedStmts{}
-
-	for k, v := range stmtsText {
-		//nolint:sqlclosecheck
-		stmt, err := conn.Prepare(v)
-		if err != nil {
-			return preparedStmts{}, errorutil.Wrap(err)
-		}
-
-		stmts[k] = stmt
-	}
-
-	return stmts, nil
+	selectOldDeliveries: `with time_cut as (
+		select
+			(delivery_ts - ?) as v
+		from
+			deliveries
+		order by
+			delivery_ts desc limit 1
+	)
+	select
+		deliveries.id, deliveries.message_id
+	from
+		deliveries join time_cut
+			on deliveries.delivery_ts < time_cut.v`,
+	deleteOldDeliveries: `delete from deliveries where id = ?`,
+	selectQueueIdForDeliveryId: `select
+	delivery_queue.id, delivery_queue.queue_id
+from
+	delivery_queue
+where
+	delivery_queue.delivery_id = ?	`,
+	countDeliveriesWithQueue: `select
+	count(*)
+from
+	deliveries join delivery_queue on delivery_queue.delivery_id = deliveries.id
+where
+	delivery_queue.queue_id = ?`,
+	deleteDeliveryQueueById:       `delete from delivery_queue where id = ?`,
+	deleteExpiredQueuesByQueueId:  `delete from expired_queues where queue_id = ?`,
+	deleteQueueParentingByQueueId: `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
+	deleteQueueById:               `delete from queues where id = ?`,
+	countDeliveriesWithMessageId:  `select count(*) from deliveries join messageids on deliveries.message_id = messageids.id where messageids.id = ?`,
+	deleteMessageIdById:           `delete from messageids where id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -147,65 +162,25 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(workspace string, mapping *domainmapping.Mapper) (*DB, error) {
-	dbFilename := path.Join(workspace, filename)
-
-	connPair, err := dbconn.Open(dbFilename, 10)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(connPair.Close(), "Closing connection on error")
-		}
-	}()
-
-	if err := migrator.Run(connPair.RwConn.DB, "deliverydb"); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err != nil {
+	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
+
+	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	stmts, err := prepareRwStmts(connPair.RwConn)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
+	// ~3 months. TODO: make it configurable
+	const maxAge = (time.Hour * 24 * 30 * 3)
 
-	dbActions := make(chan dbAction, 1024*1000)
-
-	db := DB{
-		connPair:  connPair,
-		dbActions: dbActions,
-		Closers:   closeutil.New(connPair),
-		stmts:     stmts,
-	}
-
-	db.CancelableRunner = runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		go func() {
-			<-cancel
-			close(dbActions)
-		}()
-
-		go func() {
-			done <- func() error {
-				if err := fillDatabase(connPair.RwConn, stmts, dbActions); err != nil {
-					return errorutil.Wrap(err)
-				}
-
-				return nil
-			}()
-		}()
-	})
-
-	return &db, nil
+	return &DB{
+		connPair: connPair,
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, time.Hour*12, makeCleanAction(maxAge)),
+		Closers:  closeutil.New(stmts),
+	}, nil
 }
 
 type resultsPublisher struct {
@@ -215,13 +190,7 @@ type resultsPublisher struct {
 func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.Stmt, args ...interface{}) (int64, error) {
 	var id int64
 
-	stmt := tx.Stmt(selectStmt)
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	err := stmt.QueryRow(args...).Scan(&id)
+	err := selectStmt.QueryRow(args...).Scan(&id)
 
 	if err == nil {
 		return id, nil
@@ -231,13 +200,7 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 		return 0, errorutil.Wrap(err)
 	}
 
-	stmt = tx.Stmt(insertStmt)
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(args...)
+	result, err := insertStmt.Exec(args...)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -250,8 +213,9 @@ func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.S
 	return id, nil
 }
 
-func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectIdFromRemoteDomain], stmts[insertRemoteDomain], domainName)
+func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, domainName string) (int64, error) {
+	//nolint:sqlclosecheck
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectIdFromRemoteDomain), stmts.Get(insertRemoteDomain), domainName)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -260,7 +224,7 @@ func getUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName str
 	return id, nil
 }
 
-func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
+func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, domainName tracking.ResultEntry) (id int64, ok bool, err error) {
 	if domainName.IsNone() {
 		return 0, false, nil
 	}
@@ -279,8 +243,9 @@ func getOptionalUniqueRemoteDomainNameId(tx *sql.Tx, stmts preparedStmts, domain
 	return id, true, nil
 }
 
-func getUniqueDeliveryServerID(tx *sql.Tx, stmts preparedStmts, hostname string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectDeliveryServerByHostname], stmts[insertDeliveryServer], hostname)
+func getUniqueDeliveryServerID(tx *sql.Tx, stmts dbconn.TxPreparedStmts, hostname string) (int64, error) {
+	//nolint:sqlclosecheck
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectDeliveryServerByHostname), stmts.Get(insertDeliveryServer), hostname)
 	if err != nil {
 		return 0, errorutil.Wrap(err)
 	}
@@ -288,8 +253,9 @@ func getUniqueDeliveryServerID(tx *sql.Tx, stmts preparedStmts, hostname string)
 	return id, nil
 }
 
-func getUniqueMessageId(tx *sql.Tx, stmts preparedStmts, messageId string) (int64, error) {
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectMessageIdsByValue], stmts[insertMessageId], messageId)
+func getUniqueMessageId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, messageId string) (int64, error) {
+	//nolint:sqlclosecheck
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectMessageIdsByValue), stmts.Get(insertMessageId), messageId)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err)
@@ -298,13 +264,14 @@ func getUniqueMessageId(tx *sql.Tx, stmts preparedStmts, messageId string) (int6
 	return id, nil
 }
 
-func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
+func getOptionalNextRelayId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, relayName, relayIP tracking.ResultEntry, relayPort int64) (int64, bool, error) {
 	// index order: name, ip, port
 	if relayName.IsNone() || relayIP.IsNone() {
 		return 0, false, nil
 	}
 
-	id, err := getUniquePropertyFromAnotherTable(tx, stmts[selectNextRelays], stmts[insertNextRelay], relayName.Text(), relayIP.Blob(), relayPort)
+	//nolint:sqlclosecheck
+	id, err := getUniquePropertyFromAnotherTable(tx, stmts.Get(selectNextRelays), stmts.Get(insertNextRelay), relayName.Text(), relayIP.Blob(), relayPort)
 	if err != nil {
 		return 0, false, errorutil.Wrap(err)
 	}
@@ -312,7 +279,7 @@ func getOptionalNextRelayId(tx *sql.Tx, stmts preparedStmts, relayName, relayIP 
 	return id, true, nil
 }
 
-func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Result) (sql.Result, error) {
+func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tracking.Result) (sql.Result, error) {
 	deliveryServerId, err := getUniqueDeliveryServerID(tx, stmts, tr[tracking.ResultDeliveryServerKey].Text())
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -337,13 +304,8 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts preparedStmts, tr tracking.Re
 
 	status := tr[tracking.ResultStatusKey].Int64()
 
-	stmt := tx.Stmt(stmts[insertDelivery])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
-	result, err := stmt.Exec(
+	//nolint:sqlclosecheck
+	result, err := stmts.Get(insertDelivery).Exec(
 		status,
 		tr[tracking.ResultDeliveryTimeKey].Int64(),
 		dir,
@@ -381,18 +343,9 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 	return e.ValueOrNil()
 }
 
-func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
-	return func(tx *sql.Tx, stmts preparedStmts) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error().Object("result", tr).Msg("Failed to store delivery message")
-
-				// panic(r)
-
-				// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
-				err = nil
-			}
-		}()
+func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
+		defer recoverFromError(&err, tr)
 
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {
@@ -410,7 +363,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, preparedStmts) error {
 	}
 }
 
-func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts preparedStmts) error {
+func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 	result, err := insertMandatoryResultFields(tx, stmts, tr)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -439,13 +392,8 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts prepa
 	}
 
 	if relayIdFound {
-		stmt := tx.Stmt(stmts[updateDeliveryWithRelay])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(relayId, rowId)
+		//nolint:sqlclosecheck
+		_, err = stmts.Get(updateDeliveryWithRelay).Exec(relayId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -457,13 +405,8 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts prepa
 	}
 
 	if origRecipientDomainPartFound {
-		stmt := tx.Stmt(stmts[updateDeliveryWithOrigRecipient])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(origRecipientDomainPartId, rowId)
+		//nolint:sqlclosecheck
+		_, err = stmts.Get(updateDeliveryWithOrigRecipient).Exec(origRecipientDomainPartId, rowId)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -477,7 +420,7 @@ func (p *resultsPublisher) Publish(r tracking.Result) {
 }
 
 func (db *DB) ResultsPublisher() tracking.ResultPublisher {
-	return &resultsPublisher{dbActions: db.dbActions}
+	return &resultsPublisher{dbActions: db.Actions}
 }
 
 func (db *DB) HasLogs() bool {
@@ -510,87 +453,4 @@ func (db *DB) MostRecentLogTime() (time.Time, error) {
 	}
 
 	return time.Unix(ts, 0).In(time.UTC), nil
-}
-
-func (db *DB) ConnPool() *dbconn.RoPool {
-	return db.connPair.RoConnPool
-}
-
-func fillDatabase(conn dbconn.RwConn, stmts preparedStmts, dbActions <-chan dbAction) error {
-	var (
-		tx                  *sql.Tx = nil
-		countPerTransaction int64
-	)
-
-	startTransaction := func() error {
-		var err error
-		if tx, err = conn.Begin(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	closeTransaction := func() error {
-		// no transaction to commit
-		if tx == nil {
-			return nil
-		}
-
-		// NOTE: improve it to be used for benchmarking
-		log.Info().Msgf("Inserted %d rows in a transaction", countPerTransaction)
-
-		if err := tx.Commit(); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		countPerTransaction = 0
-		tx = nil
-
-		return nil
-	}
-
-	tryToDoAction := func(action dbAction) error {
-		if tx == nil {
-			if err := startTransaction(); err != nil {
-				return errorutil.Wrap(err)
-			}
-		}
-
-		if err := action(tx, stmts); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		countPerTransaction++
-
-		return nil
-	}
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := closeTransaction(); err != nil {
-				return errorutil.Wrap(err)
-			}
-		case action, ok := <-dbActions:
-			{
-				if !ok {
-					log.Info().Msg("Committing because there's nothing left")
-
-					// cancel() has been called!!!
-					if err := closeTransaction(); err != nil {
-						return errorutil.Wrap(err)
-					}
-
-					return nil
-				}
-
-				if err := tryToDoAction(action); err != nil {
-					return errorutil.Wrap(err)
-				}
-			}
-		}
-	}
 }

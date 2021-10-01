@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
@@ -73,10 +74,11 @@ func main() {
 	// ensure workspace exists
 	errorutil.MustSucceed(os.MkdirAll(workspaceDir, os.ModePerm))
 
-	ws, err := workspace.NewWorkspace(workspaceDir)
+	ws, err := workspace.NewWorkspace(workspaceDir, nil)
 	errorutil.MustSucceed(err)
 
-	importAnnouncer := ws.ImportAnnouncer()
+	importAnnouncer, err := ws.ImportAnnouncer()
+	errorutil.MustSucceed(err)
 
 	logSource, err := func() (logsource.Source, error) {
 		mostRecentTime, err := ws.MostRecentLogTime()
@@ -98,12 +100,12 @@ func main() {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return filelogsource.New(f, builder, ws.ImportAnnouncer())
+		return filelogsource.New(f, builder, importAnnouncer)
 	}()
 
 	errorutil.MustSucceed(err)
 
-	done, cancel := ws.Run()
+	done, cancel := runner.Run(ws)
 
 	pub := ws.NewPublisher()
 

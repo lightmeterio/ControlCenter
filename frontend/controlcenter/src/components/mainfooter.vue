@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <footer class="mt-auto">
     <div class="container">
       <div class="row justify-content-between">
-        <div class="col-md-6 mt-md-0 mt-3 align-left">
+        <div class="col-md-10 mt-md-0 mt-3 align-left">
           <a
             href="https://lightmeter.io/about/"
             title="About Lightmeter"
@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
 
         <div class="col-md-2 mb-md-0 mb-2 align-right">
-          <langauge-switcher></langauge-switcher>
+          <language-switcher></language-switcher>
         </div>
       </div>
     </div>

@@ -7,13 +7,14 @@ package migrations
 import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
-	metaMigrations "gitlab.com/lightmeter/controlcenter/meta/migrations"
+	metaMigrations "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 func init() {
-	migrator.AddMigration("insights", "3_meta.go", metaMigrations.UpMetaTable, metaMigrations.DownMetaTable)
+	migrator.AddMigration("insights", "3_metadata.go", metaMigrations.UpMetaTable, metaMigrations.DownMetaTable)
 	migrator.AddMigration("insights", "4_historical_import.go", upStatus, downStatus)
+	migrator.AddMigration("insights", "6_index_meta_table.go", metaMigrations.IndexMetaTable, metaMigrations.DropIndexMetaTable)
 }
 
 func upStatus(tx *sql.Tx) error {

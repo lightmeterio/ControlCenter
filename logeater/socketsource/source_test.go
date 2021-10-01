@@ -122,12 +122,12 @@ Aug 24 05:03:04 mail apple: Useless Payload
 
 			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))
 			So(fakeAnnouncer.Progress(), ShouldResemble, []announcer.Progress{
-				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-20 02:03:04 +0000`), Progress: 0},
-				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-21 03:03:04 +0000`), Progress: 24},
-				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-22 03:03:04 +0000`), Progress: 47},
-				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-23 04:03:04 +0000`), Progress: 71},
-				announcer.Progress{Finished: false, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 95},
-				announcer.Progress{Finished: true, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 100},
+				{Finished: false, Time: testutil.MustParseTime(`2000-08-20 02:03:04 +0000`), Progress: 0},
+				{Finished: false, Time: testutil.MustParseTime(`2000-08-21 03:03:04 +0000`), Progress: 24},
+				{Finished: false, Time: testutil.MustParseTime(`2000-08-22 03:03:04 +0000`), Progress: 47},
+				{Finished: false, Time: testutil.MustParseTime(`2000-08-23 04:03:04 +0000`), Progress: 71},
+				{Finished: false, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 95},
+				{Finished: true, Time: testutil.MustParseTime(`2000-08-24 05:03:04 +0000`), Progress: 100},
 			})
 		})
 	})

@@ -8,7 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
@@ -47,7 +47,7 @@ func validMailKind(k SetupMailKind) bool {
 		k == MailKindTransactional
 }
 
-func (c *InitialSetupSettings) Set(ctx context.Context, writer *meta.AsyncWriter, initialOptions InitialOptions) error {
+func (c *InitialSetupSettings) Set(ctx context.Context, writer *metadata.AsyncWriter, initialOptions InitialOptions) error {
 	if !validMailKind(initialOptions.MailKind) {
 		return ErrInvalidMailKindOption
 	}
@@ -59,7 +59,7 @@ func (c *InitialSetupSettings) Set(ctx context.Context, writer *meta.AsyncWriter
 		}
 	}
 
-	result := writer.Store([]meta.Item{
+	result := writer.Store([]metadata.Item{
 		{Key: "mail_kind", Value: initialOptions.MailKind},
 		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
 	})

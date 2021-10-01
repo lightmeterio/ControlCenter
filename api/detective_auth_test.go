@@ -13,7 +13,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
@@ -34,7 +35,7 @@ func buildCookieClient() *http.Client {
 	return &http.Client{Jar: jar}
 }
 
-func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective, *meta.AsyncWriter, func()) {
+func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective, *metadata.AsyncWriter, func()) {
 	ctrl := gomock.NewController(t)
 
 	dir, clearDir := testutil.TempDir(t)
@@ -51,16 +52,16 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 	auth := auth.NewAuthenticator(registrar, dir)
 	mux := http.NewServeMux()
 
-	settingdDB, removeDB := testutil.TempDBConnection(t)
+	settingdDB, removeDB := testutil.TempDBConnectionMigrated(t, "master")
 
-	handler, err := meta.NewHandler(settingdDB, "master")
+	handler, err := metadata.NewHandler(settingdDB)
 	So(err, ShouldBeNil)
 
-	runner := meta.NewRunner(handler)
+	writeRunner := metadata.NewSerialWriteRunner(handler)
 
-	done, cancel := runner.Run()
+	done, cancel := runner.Run(writeRunner)
 
-	settingsWriter := runner.Writer()
+	settingsWriter := writeRunner.Writer()
 	settingsReader := handler.Reader
 
 	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader)
