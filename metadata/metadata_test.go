@@ -139,7 +139,6 @@ func TestOverridingValues(t *testing.T) {
 
 		reader := handler.Reader
 		writer := handler.Writer
-		_ = writer
 
 		Convey("Json value not found", func() {
 			var value []int
@@ -153,6 +152,32 @@ func TestOverridingValues(t *testing.T) {
 			s, ok := value.(string)
 			So(ok, ShouldBeTrue)
 			So(s, ShouldEqual, "some_default_string")
+		})
+
+		Convey("Handle custom struct", func() {
+			type myType struct {
+				Name string `json:"this_value_here_is_ignored"`
+				Age  int    `json:"really_not_used_by_the_the_merging_library"`
+			}
+
+			handler, err := NewDefaultedHandler(conn, map[string]interface{}{
+				"key": map[string]interface{}{
+					"name": "Some Name",
+				},
+			})
+
+			So(err, ShouldBeNil)
+
+			reader := handler.Reader
+			writer := handler.Writer
+
+			err = writer.StoreJson(dummyContext, "key", myType{Age: 42})
+			So(err, ShouldBeNil)
+
+			var value myType
+			err = reader.RetrieveJson(dummyContext, "key", &value)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, myType{Name: "Some Name", Age: 42})
 		})
 
 		Convey("Use value from defaults only", func() {

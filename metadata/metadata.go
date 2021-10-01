@@ -240,7 +240,7 @@ func (r *defaultedReader) RetrieveJson(ctx context.Context, key Key, value Value
 		return nil
 	}
 
-	if err := mergo.Merge(value, defaultValue); err != nil {
+	if err := mergo.Map(value, defaultValue); err != nil {
 		return errorutil.Wrap(err)
 	}
 
