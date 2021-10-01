@@ -206,7 +206,7 @@ func (r *defaultedReader) Retrieve(ctx context.Context, key Key) (Value, error) 
 
 	keyAsString, ok := key.(string)
 	if !ok {
-		return nil, errorutil.Wrap(ErrNoSuchKey)
+		return v, nil
 	}
 
 	defaultValue, ok := r.defaultValues[keyAsString]
@@ -226,7 +226,7 @@ func (r *defaultedReader) RetrieveJson(ctx context.Context, key Key, value Value
 
 	keyAsString, ok := key.(string)
 	if !ok {
-		return errorutil.Wrap(ErrNoSuchKey)
+		return nil
 	}
 
 	defaultValue, hasDefaults := r.defaultValues[keyAsString]
