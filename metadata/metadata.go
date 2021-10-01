@@ -187,7 +187,7 @@ func (reader *simpleReader) RetrieveJson(ctx context.Context, key Key, value Val
 	return nil
 }
 
-type DefaultValues map[interface{}]interface{}
+type DefaultValues map[string]interface{}
 
 type defaultedReader struct {
 	simpleReader  *simpleReader
@@ -204,7 +204,12 @@ func (r *defaultedReader) Retrieve(ctx context.Context, key Key) (Value, error) 
 		return v, nil
 	}
 
-	defaultValue, ok := r.defaultValues[key]
+	keyAsString, ok := key.(string)
+	if !ok {
+		return nil, errorutil.Wrap(ErrNoSuchKey)
+	}
+
+	defaultValue, ok := r.defaultValues[keyAsString]
 	if !ok {
 		return nil, errorutil.Wrap(ErrNoSuchKey)
 	}
@@ -219,7 +224,12 @@ func (r *defaultedReader) RetrieveJson(ctx context.Context, key Key, value Value
 		return errorutil.Wrap(err)
 	}
 
-	defaultValue, hasDefaults := r.defaultValues[key]
+	keyAsString, ok := key.(string)
+	if !ok {
+		return errorutil.Wrap(ErrNoSuchKey)
+	}
+
+	defaultValue, hasDefaults := r.defaultValues[keyAsString]
 
 	if !hasDefaults {
 		if err != nil && errors.Is(err, ErrNoSuchKey) {
