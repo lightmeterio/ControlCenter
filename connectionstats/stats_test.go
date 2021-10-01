@@ -25,7 +25,7 @@ func init() {
 
 func TestSmtpConnectionStats(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
-		stats, _, pub, _, closeConn := buildContext(t)
+		stats, _, pub, pool, closeConn := buildContext(t)
 		defer closeConn()
 
 		{
@@ -55,8 +55,6 @@ Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 			So(err, ShouldBeNil)
 			So(mostRecentTime, ShouldResemble, timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`))
 		}
-
-		var pool *dbconn.RoPool = stats.ConnPool()
 
 		conn, release := pool.Acquire()
 		defer release()
@@ -182,7 +180,7 @@ func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, *dbconn.R
 
 	pub := stats.Publisher()
 
-	accessor, err := NewAccessor(stats.ConnPool())
+	accessor, err := NewAccessor(db.RoConnPool)
 	So(err, ShouldBeNil)
 
 	return stats, accessor, pub, accessor.pool, func() {

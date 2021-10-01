@@ -454,7 +454,3 @@ func (db *DB) MostRecentLogTime() (time.Time, error) {
 
 	return time.Unix(ts, 0).In(time.UTC), nil
 }
-
-func (db *DB) ConnPool() *dbconn.RoPool {
-	return db.connPair.RoConnPool
-}

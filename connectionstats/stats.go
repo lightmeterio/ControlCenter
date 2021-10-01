@@ -247,10 +247,6 @@ func (s *Stats) Publisher() postfix.Publisher {
 	return &publisher{actions: s.Actions}
 }
 
-func (s *Stats) ConnPool() *dbconn.RoPool {
-	return s.conn.RoConnPool
-}
-
 func (s *Stats) MostRecentLogTime() (time.Time, error) {
 	conn, release := s.conn.RoConnPool.Acquire()
 

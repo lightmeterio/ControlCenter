@@ -13,10 +13,6 @@ import (
 // ConvertToCloser is exported to some tests
 // nolint:golint
 func ConvertToCloser(close func() error) *closer {
-	if close == nil {
-		panic("close is nil")
-	}
-
 	return &closer{CloseFunc: close}
 }
 
@@ -40,7 +36,7 @@ func New(c ...io.Closer) Closers {
 
 type Closers interface {
 	io.Closer
-	Add(cs ...io.Closer)
+	Add(io.Closer, ...io.Closer)
 }
 
 type closers []io.Closer
@@ -52,31 +48,23 @@ func maybeUpdateError(err error, typ io.Closer) error {
 		return err
 	}
 
-	if err == nil {
-		return errorutil.Wrap(nestedErr)
+	if err != nil {
+		return errorutil.BuildChain(nestedErr, err)
 	}
 
-	return errorutil.BuildChain(nestedErr, err)
+	return errorutil.Wrap(nestedErr)
 }
 
 func (c *closers) Close() error {
 	var err error
 
 	for _, typ := range *c {
-		if typ == nil {
-			panic("closer is nil")
-		}
-
 		err = maybeUpdateError(err, typ)
 	}
 
 	return err
 }
 
-func (c *closers) Add(cs ...io.Closer) {
-	if len(cs) == 0 {
-		panic("close funcs are missing")
-	}
-
-	*c = append(*c, cs...)
+func (c *closers) Add(head io.Closer, tail ...io.Closer) {
+	*c = append(*c, append([]io.Closer{head}, tail...)...)
 }
