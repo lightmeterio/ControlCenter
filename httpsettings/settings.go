@@ -32,7 +32,7 @@ import (
 
 type Settings struct {
 	writer *metadata.AsyncWriter
-	reader *metadata.Reader
+	reader metadata.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   *notification.Center
@@ -40,7 +40,7 @@ type Settings struct {
 }
 
 func NewSettings(writer *metadata.AsyncWriter,
-	reader *metadata.Reader,
+	reader metadata.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter *notification.Center,
 ) *Settings {

@@ -259,7 +259,7 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 }
 
 // FIXME: this function is copied from notification/slack!!!
-func New(policy core.Policy, reader *metadata.Reader) *Notifier {
+func New(policy core.Policy, reader metadata.Reader) *Notifier {
 	fetcher := func() (*Settings, *globalsettings.Settings, error) {
 		settings, err := GetSettings(context.Background(), reader)
 		if err != nil {
@@ -499,7 +499,7 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	settings := &Settings{}
 
 	err := reader.RetrieveJson(ctx, SettingKey, settings)

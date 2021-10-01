@@ -101,7 +101,7 @@ type Dispatcher struct {
 	InstanceID           string
 	VersionBuilder       func() Version
 	ReportDestinationURL string
-	SettingsReader       *metadata.Reader
+	SettingsReader       metadata.Reader
 	Auth                 auth.Registrar
 	SchedFileReader      SchedFileReader
 	IsUsingRsyncedLogs   bool
@@ -287,7 +287,7 @@ func DefaultVersionBuilder() Version {
 }
 
 func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core.Fetcher,
-	settingsReader *metadata.Reader, auth *auth.Auth, connStatsPool *dbconn.RoPool,
+	settingsReader metadata.Reader, auth *auth.Auth, connStatsPool *dbconn.RoPool,
 	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 

@@ -70,7 +70,7 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, *metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
+func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
 	conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 
 	m, err := metadata.NewHandler(conn)

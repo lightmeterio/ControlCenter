@@ -118,3 +118,96 @@ func TestJsonValues(t *testing.T) {
 		})
 	})
 }
+
+func TestOverridingValues(t *testing.T) {
+	Convey("Test Overriding Values", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
+		defer closeConn()
+
+		defaultValues := DefaultValues{
+			"key1": map[string]string{
+				"subkey1": "alice",
+				"subkey3": "bob",
+				"subkey4": "clarice",
+			},
+
+			"key4": "some_default_string",
+		}
+
+		handler, err := NewDefaultedHandler(conn, defaultValues)
+		So(err, ShouldBeNil)
+
+		reader := handler.Reader
+		writer := handler.Writer
+		_ = writer
+
+		Convey("Json value not found", func() {
+			var value []int
+			err := reader.RetrieveJson(dummyContext, "key42", &value)
+			So(errors.Is(err, ErrNoSuchKey), ShouldBeTrue)
+		})
+
+		Convey("Obtain simple value from defaults", func() {
+			value, err := reader.Retrieve(dummyContext, "key4")
+			So(err, ShouldBeNil)
+			s, ok := value.(string)
+			So(ok, ShouldBeTrue)
+			So(s, ShouldEqual, "some_default_string")
+		})
+
+		Convey("Use value from defaults only", func() {
+			var value map[string]string
+			err := reader.RetrieveJson(dummyContext, "key1", &value)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, map[string]string{
+				"subkey1": "alice",
+				"subkey3": "bob",
+				"subkey4": "clarice",
+			})
+		})
+
+		Convey("Use value from database only", func() {
+			err := writer.StoreJson(dummyContext, "key2", map[string]int{
+				"age": 24,
+			})
+
+			var value map[string]int
+			err = reader.RetrieveJson(dummyContext, "key2", &value)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, map[string]int{
+				"age": 24,
+			})
+		})
+
+		Convey("Override non Json value", func() {
+			err := writer.Store(dummyContext, []Item{{Key: "key4", Value: "some_overriden_string"}})
+			So(err, ShouldBeNil)
+
+			value, err := reader.Retrieve(dummyContext, "key4")
+			So(err, ShouldBeNil)
+			s, ok := value.(string)
+			So(ok, ShouldBeTrue)
+			So(s, ShouldEqual, "some_overriden_string")
+		})
+
+		Convey("Change some of the values, adding others", func() {
+			err := writer.StoreJson(dummyContext, "key1", map[string]string{
+				"subkey1": "clara", // overriden
+				"subkey2": "maria", // new value
+				"subkey4": "",      // empty values are to be overriden
+			})
+
+			So(err, ShouldBeNil)
+
+			var readValue map[string]string
+			err = reader.RetrieveJson(dummyContext, "key1", &readValue)
+			So(err, ShouldBeNil)
+			So(readValue, ShouldResemble, map[string]string{
+				"subkey1": "clara",
+				"subkey2": "maria",
+				"subkey3": "bob",
+				"subkey4": "clarice",
+			})
+		})
+	})
+}

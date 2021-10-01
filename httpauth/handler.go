@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *metadata.Reader, isBehindReverseProxy bool) {
+func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader metadata.Reader, isBehindReverseProxy bool) {
 	// For endpoints constantly called by the UI (every 5sec once the user is logged in)
 	unauthenticatedAndRateLimitedForFrequentCalls := httpmiddleware.WithDefaultStackWithoutAuth(
 		httpmiddleware.RequestWithRateLimit(1*time.Minute, 21, isBehindReverseProxy, httpmiddleware.BlockQuery),

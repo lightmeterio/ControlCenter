@@ -22,7 +22,7 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-func getVersion(settingsReader *metadata.Reader) (*string, error) {
+func getVersion(settingsReader metadata.Reader) (*string, error) {
 	var version *string
 	err := settingsReader.RetrieveJson(context.Background(), SettingKey, &version)
 	unwrappedErr := errorutil.TryToUnwrap(err)

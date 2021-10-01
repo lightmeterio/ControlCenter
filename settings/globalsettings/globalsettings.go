@@ -27,10 +27,10 @@ type IPAddressGetter interface {
 }
 
 type MetaReaderGetter struct {
-	meta *metadata.Reader
+	meta metadata.Reader
 }
 
-func New(m *metadata.Reader) *MetaReaderGetter {
+func New(m metadata.Reader) *MetaReaderGetter {
 	return &MetaReaderGetter{meta: m}
 }
 
@@ -56,7 +56,7 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	var settings Settings
 
 	err := reader.RetrieveJson(ctx, SettingKey, &settings)

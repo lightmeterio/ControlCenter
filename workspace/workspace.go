@@ -323,7 +323,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, *metadata.Reader) {
+func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, metadata.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 
