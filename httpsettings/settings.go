@@ -230,9 +230,8 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	var localIP net.IP
 	if localIPRaw != "" {
-		localIP = net.ParseIP(localIPRaw)
+		localIP := net.ParseIP(localIPRaw)
 		if localIP == nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 		}
@@ -259,7 +258,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 
-	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage, PublicURL: publicURL}
+	s := globalsettings.Settings{LocalIP: globalsettings.NewIP(localIPRaw), APPLanguage: appLanguage, PublicURL: publicURL}
 
 	if err := mergo.Merge(&s, currentSettings); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err, "Error handling settings"))
@@ -349,15 +348,13 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 
 	postfixPublicIp := r.Form.Get("postfix_public_ip")
 	if postfixPublicIp != "" {
-		var localIP net.IP
 		if postfixPublicIp != "" {
-			localIP = net.ParseIP(postfixPublicIp)
-			if localIP == nil {
+			if ip := net.ParseIP(postfixPublicIp); ip == nil {
 				return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 			}
 		}
 
-		s = globalsettings.Settings{APPLanguage: appLanguage, LocalIP: localIP}
+		s = globalsettings.Settings{APPLanguage: appLanguage, LocalIP: globalsettings.NewIP(postfixPublicIp)}
 	}
 
 	result := h.writer.StoreJson(globalsettings.SettingKey, &s)

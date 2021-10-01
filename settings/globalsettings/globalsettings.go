@@ -5,7 +5,9 @@
 package globalsettings
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -16,8 +18,50 @@ const (
 	SettingKey = "global"
 )
 
+type IP struct {
+	Value string
+}
+
+func NewIP(value string) IP {
+	return IP{Value: value}
+}
+
+func (i *IP) Valid() bool {
+	return i.IP() != nil
+}
+
+func (i *IP) IP() net.IP {
+	return net.ParseIP(i.Value)
+}
+
+func (i IP) MarshalJSON() ([]byte, error) {
+	buffer := bytes.Buffer{}
+	err := json.NewEncoder(&buffer).Encode(i.IP())
+
+	return buffer.Bytes(), err
+}
+
+func ipValueOrEmpty(ip net.IP) string {
+	if ip != nil {
+		return ip.String()
+	}
+
+	return ""
+}
+
+func (i *IP) UnmarshalJSON(b []byte) error {
+	var ip net.IP
+	if err := json.NewDecoder(bytes.NewBuffer(b)).Decode(&ip); err != nil {
+		return err
+	}
+
+	i.Value = ipValueOrEmpty(ip)
+
+	return nil
+}
+
 type Settings struct {
-	LocalIP     net.IP `json:"postfix_public_ip"`
+	LocalIP     IP     `json:"postfix_public_ip"`
 	APPLanguage string `json:"app_language"`
 	PublicURL   string `json:"public_url"`
 }
@@ -45,7 +89,7 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 		return nil
 	}
 
-	return settings.LocalIP
+	return settings.LocalIP.IP()
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {

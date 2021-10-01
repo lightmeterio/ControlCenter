@@ -180,6 +180,34 @@ func TestOverridingValues(t *testing.T) {
 			So(value, ShouldResemble, myType{Name: "Some Name", Age: 42})
 		})
 
+		Convey("Empty values do not override defaults", func() {
+			type myType struct {
+				Name    string `json:"field35"`
+				Surname string `json:"field42"`
+			}
+
+			handler, err := NewDefaultedHandler(conn, map[string]interface{}{
+				"key": map[string]interface{}{
+					"name":    "Some Name",
+					"surname": "Some Surname",
+				},
+			})
+
+			So(err, ShouldBeNil)
+
+			reader := handler.Reader
+			writer := handler.Writer
+
+			// the empty string should not override the default one!
+			err = writer.StoreJson(dummyContext, "key", myType{Name: "", Surname: "Another Surname"})
+			So(err, ShouldBeNil)
+
+			var value myType
+			err = reader.RetrieveJson(dummyContext, "key", &value)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, myType{Name: "Some Name", Surname: "Another Surname"})
+		})
+
 		Convey("Use value from defaults only", func() {
 			var value map[string]string
 			err := reader.RetrieveJson(dummyContext, "key1", &value)

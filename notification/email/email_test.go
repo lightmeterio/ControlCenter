@@ -6,7 +6,6 @@ package email
 
 import (
 	"io/ioutil"
-	"net"
 	"strings"
 	"testing"
 	"time"
@@ -79,7 +78,7 @@ func TestSendEmail(t *testing.T) {
 		}()
 
 		globalSettings := globalsettings.Settings{
-			LocalIP:     net.ParseIP("127.0.0.1"),
+			LocalIP:     globalsettings.NewIP(`127.0.0.1`),
 			PublicURL:   "https://example.com/lightmeter/",
 			APPLanguage: "en",
 		}

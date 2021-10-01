@@ -28,7 +28,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"path"
 )
@@ -63,7 +62,7 @@ func main() {
 	errorutil.MustSucceed(err)
 
 	err = m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
-		LocalIP:     net.ParseIP(*postfixIP),
+		LocalIP:     globalsettings.NewIP(*postfixIP),
 		APPLanguage: "en",
 		PublicURL:   *publicURL,
 	})

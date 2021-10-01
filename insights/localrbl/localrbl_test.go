@@ -399,7 +399,7 @@ func TestLocalRBL(t *testing.T) {
 
 					{
 						settings := globalsettings.Settings{
-							LocalIP: net.ParseIP("11.22.33.44"),
+							LocalIP: globalsettings.NewIP("11.22.33.44"),
 						}
 
 						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)

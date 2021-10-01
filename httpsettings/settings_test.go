@@ -25,7 +25,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"golang.org/x/text/message/catalog"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -231,7 +230,7 @@ func TestAppSettings(t *testing.T) {
 		Convey("Do not clean IP settings when updating the language", func() {
 			// First set an IP address manually
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
-				LocalIP:     net.ParseIP("127.0.0.1"),
+				LocalIP:     globalsettings.NewIP(`127.0.0.1`),
 				APPLanguage: "en",
 			}).Wait()
 
@@ -249,7 +248,7 @@ func TestAppSettings(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(settings.APPLanguage, ShouldEqual, "de")
-			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(settings.LocalIP.Value, ShouldEqual, "127.0.0.1")
 		})
 	})
 
@@ -265,7 +264,7 @@ func TestAppSettings(t *testing.T) {
 
 		Convey("Do not reset language when we clear general settings", func() {
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
-				LocalIP:     net.ParseIP("127.0.0.1"),
+				LocalIP:     globalsettings.NewIP(`127.0.0.1`),
 				PublicURL:   "http://localhost:8080",
 				APPLanguage: "de",
 			}).Wait()
@@ -275,7 +274,7 @@ func TestAppSettings(t *testing.T) {
 			err := reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(settings.LocalIP.Value, ShouldEqual, `127.0.0.1`)
 			So(settings.PublicURL, ShouldEqual, "http://localhost:8080")
 			So(settings.APPLanguage, ShouldEqual, "de")
 
@@ -290,7 +289,7 @@ func TestAppSettings(t *testing.T) {
 			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.LocalIP, ShouldBeNil)
+			So(settings.LocalIP.IP(), ShouldBeNil)
 			So(settings.PublicURL, ShouldEqual, "")
 			So(settings.APPLanguage, ShouldEqual, "de")
 		})
