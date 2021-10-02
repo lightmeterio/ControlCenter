@@ -52,7 +52,7 @@ type Workspace struct {
 	tracker                 *tracking.Tracker
 	connStats               *connectionstats.Stats
 	insightsEngine          *insights.Engine
-	auth                    *auth.Auth
+	auth                    auth.RegistrarWithSessionKeys
 	rblDetector             *messagerbl.Detector
 	rblChecker              localrbl.Checker
 	intelCollector          *collector.Collector
@@ -106,11 +106,13 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 type Options struct {
 	IsUsingRsyncedLogs bool
 	DefaultSettings    metadata.DefaultValues
+	AuthOptions        *PlainAuthOptions
 }
 
 var DefaultOptions = &Options{
 	IsUsingRsyncedLogs: false,
 	DefaultSettings:    metadata.DefaultValues{},
+	AuthOptions:        nil,
 }
 
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
@@ -163,7 +165,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := auth.NewAuth(allDatabases.Auth, auth.Options{})
+	auth, err := buildAuth(allDatabases.Auth, auth.Options{}, options.AuthOptions)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -376,7 +378,7 @@ func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
 	return announcer.Skipper(ws.importAnnouncer), nil
 }
 
-func (ws *Workspace) Auth() *auth.Auth {
+func (ws *Workspace) Auth() auth.RegistrarWithSessionKeys {
 	return ws.auth
 }
 

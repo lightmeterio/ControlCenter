@@ -25,7 +25,7 @@ type UserData struct {
 
 type Registrar interface {
 	Register(ctx context.Context, email, name, password string) (int64, error)
-	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
+	Authenticate(ctx context.Context, email, password string) (bool, *UserData, error)
 	HasAnyUser(ctx context.Context) (bool, error)
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
 	GetFirstUser(ctx context.Context) (*UserData, error)
@@ -147,12 +147,12 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 	return id, nil
 }
 
-func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
+func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, *UserData, error) {
 	d := UserData{}
 
 	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
 	if err != nil {
-		return false, UserData{}, errorutil.Wrap(err)
+		return false, nil, errorutil.Wrap(err)
 	}
 
 	defer release()
@@ -162,14 +162,14 @@ func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, 
 		Scan(&d.Id, &d.Email, &d.Name)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, UserData{}, nil
+		return false, nil, nil
 	}
 
 	if err != nil {
-		return false, UserData{}, errorutil.Wrap(err)
+		return false, nil, errorutil.Wrap(err)
 	}
 
-	return true, d, nil
+	return true, &d, nil
 }
 
 func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
@@ -257,7 +257,7 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func NewAuth(connPair *dbconn.PooledPair, options Options) (*Auth, error) {
+func NewAuth(connPair *dbconn.PooledPair, options Options) (RegistrarWithSessionKeys, error) {
 	m, err := metadata.NewHandler(connPair)
 
 	if err != nil {

@@ -120,10 +120,26 @@ func main() {
 	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
+func buildAuthOptions(conf config.Config) *workspace.PlainAuthOptions {
+	if len(conf.RegisteredUserEmail) == 0 || len(conf.RegisteredUserName) == 0 || len(conf.RegisteredUserPassword) == 0 {
+		return nil
+	}
+
+	log.Info().Msgf("Using user information from environment/command-line. This is VERY experimental: %v -> %v",
+		conf.RegisteredUserEmail, conf.RegisteredUserName)
+
+	return &workspace.PlainAuthOptions{
+		Email:    conf.RegisteredUserEmail,
+		Name:     conf.RegisteredUserName,
+		Password: conf.RegisteredUserPassword,
+	}
+}
+
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
 	options := &workspace.Options{
 		IsUsingRsyncedLogs: conf.RsyncedDir,
 		DefaultSettings:    conf.DefaultSettings,
+		AuthOptions:        buildAuthOptions(conf),
 	}
 
 	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, options)
