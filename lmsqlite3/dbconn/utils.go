@@ -21,7 +21,7 @@ type RwConn struct {
 	*sql.DB
 }
 
-// Execute some coded in a transaction
+// Execute some code in a transaction
 func (conn *RwConn) Tx(f func(*sql.Tx) error) error {
 	tx, err := conn.Begin()
 
@@ -30,13 +30,11 @@ func (conn *RwConn) Tx(f func(*sql.Tx) error) error {
 	}
 
 	if err := f(tx); err != nil {
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				return errorutil.Wrap(err)
-			}
-
+		if err := tx.Rollback(); err != nil {
 			return errorutil.Wrap(err)
 		}
+
+		return errorutil.Wrap(err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -44,14 +42,6 @@ func (conn *RwConn) Tx(f func(*sql.Tx) error) error {
 	}
 
 	return nil
-}
-
-func Ro(db *sql.DB) RoConn {
-	return RoConn{db}
-}
-
-func Rw(db *sql.DB) RwConn {
-	return RwConn{db}
 }
 
 type RoPooledConn struct {
@@ -153,7 +143,7 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		}
 
 		conn := &RoPooledConn{
-			RoConn:  Ro(reader),
+			RoConn:  RoConn{reader},
 			LocalId: i,
 			stmts:   map[interface{}]*sql.Stmt{},
 			Closers: closeutil.New(newConnCloser(filename, ROMode, reader)),
@@ -165,5 +155,5 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		pool.pool <- conn
 	}
 
-	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
+	return &PooledPair{RwConn: RwConn{writer}, RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
 }
