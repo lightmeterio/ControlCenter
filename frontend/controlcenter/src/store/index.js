@@ -13,7 +13,8 @@ export default new Vuex.Store({
   state: {
     language: "",
     isImportProgressFinished: false,
-    walkthroughNeedsToRun: false
+    walkthroughNeedsToRun: false,
+    alerts: []
   },
   mutations: {
     setLanguage(state, language) {
@@ -29,6 +30,18 @@ export default new Vuex.Store({
       if (!value)
         // only ever set the walkthrough completeness to true, never reset it to false
         requestWalkthroughCompletedStatus(true);
+    },
+    newAlert(state, alert) {
+      let vue = this;
+      let id = Date.now();
+      alert.id = id;
+      state.alerts.push(alert);
+      setTimeout(function() {
+        vue.commit("removeAlert", id);
+      }, 5000);
+    },
+    removeAlert(state, id) {
+      state.alerts = state.alerts.filter(a => a.id != id);
     }
   },
   actions: {
@@ -41,6 +54,12 @@ export default new Vuex.Store({
     },
     setWalkthroughNeedsToRunAction({ commit }, value) {
       commit("setWalkthroughState", value);
+    },
+    newAlertError({ commit }, message) {
+      commit("newAlert", { severity: "danger", message: message });
+    },
+    newAlertSuccess({ commit }, message) {
+      commit("newAlert", { severity: "success", message: message });
     }
   },
   modules: {}

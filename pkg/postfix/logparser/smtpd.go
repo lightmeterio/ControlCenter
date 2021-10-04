@@ -40,11 +40,12 @@ func convertSmtpdConnect(r rawparser.RawPayload) (Payload, error) {
 }
 
 type SmtpdDisconnect struct {
-	Host string
-	IP   net.IP
-	// TODO: disconnect can have lots of optional extra data
-	// that could be represented as a map[string]string
+	Host  string
+	IP    net.IP
+	Stats map[string]SmtpdDisconnectStat
 }
+
+type SmtpdDisconnectStat = rawparser.SmtpdDisconnectStat
 
 func (SmtpdDisconnect) isPayload() {
 	// required by Payload interface
@@ -59,8 +60,9 @@ func convertSmtpdDisconnect(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return SmtpdDisconnect{
-		Host: string(p.Host),
-		IP:   ip,
+		Host:  string(p.Host),
+		IP:    ip,
+		Stats: p.Stats,
 	}, nil
 }
 

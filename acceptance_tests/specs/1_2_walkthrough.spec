@@ -11,4 +11,5 @@ so as an workaround we wait for a while before clicking... :-(
 * Click on "Continue"
 * Click on "Continue"
 * Click on "Continue"
+* Click on "Continue"
 * Click on "Finish"

@@ -6,7 +6,11 @@
 
 machine common;
 
-queueId = xdigit+;
+# this does not really match the definition at http://www.postfix.org/postconf.5.html#enable_long_queue_ids,
+# but is close enough to work for us.
+longQueueId = [0-9a-zA-Z]{12,};
+shortQueueId = [0-9A-F]{6,};
+queueId = shortQueueId | longQueueId;
 
 anythingExceptComma = [^,]+;
 

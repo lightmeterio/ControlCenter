@@ -24,6 +24,21 @@ type Subscriber interface {
 	Subscribe(context context.Context, email string) error
 }
 
+type FakeNewsletterSubscriber struct {
+	ShouldFailToSubscribe bool
+	HasSubscribed         bool
+}
+
+func (s *FakeNewsletterSubscriber) Subscribe(context context.Context, email string) error {
+	if s.ShouldFailToSubscribe {
+		return ErrSubscribingToNewsletter
+	}
+
+	s.HasSubscribed = true
+
+	return nil
+}
+
 type HTTPSubscriber struct {
 	URL        string
 	HTTPClient *http.Client

@@ -20,7 +20,7 @@ var (
 
 	// ATTENTION: the following two error messages are matched in frontend/controlcenter/src/lib/api.js
 	ErrDisposableEmail = errors.New("Please use a valid work email address")
-	ErrNoMX            = errors.New("This domain does not seem configured for email (no MX record found)")
+	ErrNoMX            = errors.New("Invalid email address: the domain does not seem to be configured for email (no MX record found)")
 	// END
 )
 

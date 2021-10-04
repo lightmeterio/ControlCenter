@@ -38,46 +38,30 @@ const directionQueryFragment = ` and (direction = 0 || (direction = 1 and sender
 
 func New(pool *dbconn.RoPool) (Dashboard, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
-		countByStatus, err := db.Prepare(`
+		if err := db.PrepareStmt(`
 	select
 		count(*)
 	from
 		deliveries
 	where
-		status = ? and delivery_ts between ? and ?` + directionQueryFragment)
-
-		if err != nil {
+		status = ? and delivery_ts between ? and ?`+directionQueryFragment, "countByStatus"); err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(countByStatus.Close(), "Closing countByStatus")
-			}
-		}()
-
-		deliveryStatus, err := db.Prepare(`
+		if err := db.PrepareStmt(`
 	select
 		status, count(status) as c
 	from
 		deliveries
 	where
-		delivery_ts between ? and ?` + directionQueryFragment + `
+		delivery_ts between ? and ?`+directionQueryFragment+`
 	group by
 		status
 	order by
 		status
-	`)
-
-		if err != nil {
+	`, "deliveryStatus"); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(deliveryStatus.Close(), "Closing deliveryStatus")
-			}
-		}()
 
 		domainMappingByRecipientDomainPartStmtPart := `
 with resolve_domain_mapping_view(domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
@@ -99,60 +83,37 @@ from
 )
 `
 
-		topDomainsByStatus, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
+		if err := db.PrepareStmt(domainMappingByRecipientDomainPartStmtPart+`
 				select
                 domain, count(domain) as c
         from
                 resolve_domain_mapping_view
         where
-                status = ? and delivery_ts between ? and ?` + directionQueryFragment + `
+                status = ? and delivery_ts between ? and ?`+directionQueryFragment+`
         group by
                 domain collate nocase
         order by
                 c desc, domain collate nocase asc
         limit 20
-	`)
-
-		if err != nil {
+	`, "topDomainsByStatus"); err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(topDomainsByStatus.Close(), "Closing topDomainsByStatus")
-			}
-		}()
-
-		topBusiestDomains, err := db.Prepare(domainMappingByRecipientDomainPartStmtPart + `
+		if err := db.PrepareStmt(domainMappingByRecipientDomainPartStmtPart+`
 				select
                 domain, count(domain) as c
         from
                 resolve_domain_mapping_view
         where
-                delivery_ts between ? and ? ` + directionQueryFragment + `
+                delivery_ts between ? and ? `+directionQueryFragment+`
         group by
                 domain collate nocase
         order by
                 c desc, domain collate nocase asc
         limit 20
-	`)
-
-		if err != nil {
+	`, "topBusiestDomains"); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(topBusiestDomains.Close(), "Closing topBusiestDomains")
-			}
-		}()
-
-		db.Closers.Add(countByStatus, deliveryStatus, topBusiestDomains, topDomainsByStatus)
-
-		db.Stmts["countByStatus"] = countByStatus
-		db.Stmts["deliveryStatus"] = deliveryStatus
-		db.Stmts["topBusiestDomains"] = topBusiestDomains
-		db.Stmts["topDomainsByStatus"] = topDomainsByStatus
 
 		return nil
 	}
@@ -167,45 +128,65 @@ from
 }
 
 func (d sqlDashboard) CountByStatus(ctx context.Context, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return countByStatus(ctx, conn.Stmts["countByStatus"], status, interval)
+	//nolint:sqlclosecheck
+	return countByStatus(ctx, conn.GetStmt("countByStatus"), status, interval)
 }
 
 func (d sqlDashboard) TopBusiestDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topBusiestDomains"], interval.From.Unix(), interval.To.Unix())
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topBusiestDomains"), interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) TopBouncedDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.BouncedStatus,
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topDomainsByStatus"), parser.BouncedStatus,
 		interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) TopDeferredDomains(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return listDomainAndCount(ctx, conn.Stmts["topDomainsByStatus"], parser.DeferredStatus,
+	//nolint:sqlclosecheck
+	return listDomainAndCount(ctx, conn.GetStmt("topDomainsByStatus"), parser.DeferredStatus,
 		interval.From.Unix(), interval.To.Unix())
 }
 
 func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.TimeInterval) (Pairs, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return Pairs{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return deliveryStatus(ctx, conn.Stmts["deliveryStatus"], interval)
+	//nolint:sqlclosecheck
+	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
 }
 
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {

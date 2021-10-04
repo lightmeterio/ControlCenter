@@ -20,7 +20,7 @@ type rsyncedFileWatcher struct {
 	format   parsertimeutil.TimeFormat
 }
 
-type rsyncedFileWatcherRunner = runner.CancelableRunner
+type rsyncedFileWatcherRunner = runner.CancellableRunner
 
 func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(parser.Header, parser.Payload)) rsyncedFileWatcherRunner {
 	rw := rsyncwatcher.ReadWriter()
@@ -28,8 +28,8 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 	w, err := rsyncwatcher.New(watcher.filename, watcher.offset, rw)
 	errorutil.MustSucceed(err)
 
-	return runner.NewCancelableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-		wDone, wCancel := w.Run()
+	return runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
+		wDone, wCancel := runner.Run(w)
 
 		go func() {
 			<-cancel
@@ -62,7 +62,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 }
 
 func (watcher *rsyncedFileWatcher) run(onRecord func(parser.Header, parser.Payload)) {
-	done, _ := newRsyncedFileWatcherRunner(watcher, onRecord).Run()
+	done, _ := runner.Run(newRsyncedFileWatcherRunner(watcher, onRecord))
 
 	// never cancel, wait forever, no error handling
 	errorutil.MustSucceed(done())

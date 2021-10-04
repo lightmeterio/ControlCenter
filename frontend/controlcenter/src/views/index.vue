@@ -210,12 +210,13 @@ import {
   getUserInfo
 } from "../lib/api.js";
 
-import DateRangePicker from "../3rd/components/DateRangePicker.vue";
 import tracking from "../mixin/global_shared.js";
 import shared_texts from "../mixin/shared_texts.js";
 import auth from "../mixin/auth.js";
 import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
+import DateRangePicker from "vue2-daterange-picker";
+import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
 
 export default {
   name: "insight",
@@ -226,7 +227,7 @@ export default {
       username: "",
       updateDashboardAndInsightsIntervalID: null,
       dashboardInterval: this.buildDefaultInterval(),
-      insightsFilter: "nofilter",
+      insightsFilter: "category-active",
       insightsSort: "creationDesc",
       insights: [],
 
@@ -425,10 +426,6 @@ export default {
 
 #insights-page #insights {
   min-height: 30vh;
-}
-
-#insights-page .modebar {
-  display: none;
 }
 
 #insights-page .vue-daterange-picker .calendars {

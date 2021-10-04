@@ -167,13 +167,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
                 <span
                   v-if="insight.help_link"
-                  v-on:click="
-                    onInsightInfo(
-                      $event,
-                      insight.help_link,
-                      insight.content_type
-                    )
-                  "
+                  v-on:click="onInsightInfo($event, insight.help_link)"
                   v-b-tooltip.hover
                   :title="Info"
                 >
@@ -292,7 +286,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <span>{{ insight.modTime }}</span>
                 <div
                   v-if="showUserRating(insight)"
-                  :ref="'userRating' + insight.id"
                   class="user-rating d-flex flex-wrap align-items-center"
                 >
                   <span>
@@ -338,6 +331,7 @@ import { getApplicationInfo, postUserRating } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 import linkify from "vue-linkify";
 import Vue from "vue";
+import { mapActions } from "vuex";
 
 Vue.directive("linkified", linkify);
 
@@ -418,8 +412,11 @@ export default {
         if (i.content_type == insight.content_type) return i.id == insight.id;
     },
     sendUserRating(insight, rating) {
+      let vue = this;
       insight.user_rating_old = false; // hide rating div before next insights refresh
-      postUserRating(insight.content_type, rating);
+      postUserRating(insight.content_type, rating).then(function() {
+        vue.newAlertSuccess(vue.$gettext("Thank you for your feedback"));
+      });
     },
     countDetectiveIssues(insight) {
       return Object.keys(insight.content.messages).length;
@@ -481,7 +478,7 @@ export default {
       );
 
       return this.$gettextInterpolate(translation, {
-        bounceValue: c.value * 100,
+        bounceValue: (c.value * 100.0).toFixed(2),
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
         intTo: formatInsightDescriptionDateTime(c.interval.to)
       });
@@ -489,7 +486,7 @@ export default {
     mail_inactivity_description(i) {
       let c = i.content;
       let translation = this.$gettext(
-        "No emails were sent between %{intFrom} and %{intTo}"
+        "No emails were sent or received between %{intFrom} and %{intTo}"
       );
 
       return this.$gettextInterpolate(translation, {
@@ -667,15 +664,9 @@ export default {
         host: insight.content.host
       });
     },
-    onInsightInfo(event, helpLink, contentType) {
+    onInsightInfo(event, helpLink) {
       event.preventDefault();
-
-      this.trackEventArray("InsightsInfoButton", [
-        "click",
-        helpLink,
-        contentType
-      ]);
-
+      this.trackEvent("InsightsInfoButton", helpLink);
       window.open(helpLink);
     },
     hideRBLListModal() {
@@ -714,7 +705,8 @@ export default {
       };
 
       this.$router.push({ name: "detective", params: params });
-    }
+    },
+    ...mapActions(["newAlertSuccess"])
   }
 };
 

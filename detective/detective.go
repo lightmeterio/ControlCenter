@@ -36,7 +36,7 @@ const (
 
 func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
-		checkMessageDelivery, err := db.Prepare(`
+		if err := db.PrepareStmt(`
 			with
 			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, returned) as (
 				select d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, false
@@ -49,8 +49,8 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				join
 					delivery_queue dq on dq.delivery_id = d.id
 				where
-					sender_local_part    = ? and sender_domain.domain    = ?
-					and recipient_local_part = ? and recipient_domain.domain = ?
+					sender_local_part    = ? collate nocase and sender_domain.domain    = ? collate nocase
+					and recipient_local_part = ? collate nocase and recipient_domain.domain = ? collate nocase
 					and delivery_ts between ? and ?
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned) as (
@@ -96,21 +96,11 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 			order by delivery_ts, returned
 			limit ?
 			offset ?
-			`)
-
-		if err != nil {
+			`, checkMessageDeliveryKey); err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(checkMessageDelivery.Close(), "Closing checkMessageDelivery")
-			}
-		}()
-
-		db.Stmts[checkMessageDeliveryKey] = checkMessageDelivery
-
-		oldestAvailableTime, err := db.Prepare(`
+		if err := db.PrepareStmt(`
 			with first_delivery_queue(delivery_id) as
 			(
 				select delivery_id from delivery_queue order by id asc limit 1
@@ -119,19 +109,9 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				deliveries.delivery_ts
 			from
 				deliveries join first_delivery_queue on first_delivery_queue.delivery_id = deliveries.id
-		`)
-
-		if err != nil {
+		`, oldestAvailableTimeKey); err != nil {
 			return errorutil.Wrap(err)
 		}
-
-		defer func() {
-			if err != nil {
-				errorutil.MustSucceed(oldestAvailableTime.Close())
-			}
-		}()
-
-		db.Stmts[oldestAvailableTimeKey] = oldestAvailableTime
 
 		return nil
 	}
@@ -148,21 +128,29 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
 func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (*MessagesPage, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
 	defer release()
 
-	return checkMessageDelivery(ctx, conn.Stmts[checkMessageDeliveryKey], mailFrom, mailTo, interval, page)
+	//nolint:sqlclosecheck
+	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, page)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
-	conn, release := d.pool.Acquire()
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
 
 	defer release()
 
 	var ts int64
 
-	err := conn.Stmts[oldestAvailableTimeKey].QueryRowContext(ctx).Scan(&ts)
+	//nolint:sqlclosecheck
+	err = conn.GetStmt(oldestAvailableTimeKey).QueryRowContext(ctx).Scan(&ts)
 
 	// no available logs yet. That's fine
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

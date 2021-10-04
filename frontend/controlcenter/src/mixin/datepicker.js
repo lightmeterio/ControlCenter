@@ -15,7 +15,7 @@ export default {
       singleDatePicker: false,
       dateRange: this.buildDefaultInterval(),
       ranges: this.defaultDatePickerRange(),
-      opens: "right"
+      opens: "center"
     };
   },
   methods: {

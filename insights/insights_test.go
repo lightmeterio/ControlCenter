@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
@@ -159,10 +160,10 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
-		dir, clearDir := testutil.TempDir(t)
-		defer clearDir()
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
+		defer closeConn()
 
-		c, err := NewAccessor(dir)
+		c, err := NewAccessor(conn)
 		So(err, ShouldBeNil)
 
 		notifier := &fakeNotifier{}
@@ -227,7 +228,7 @@ func TestEngine(t *testing.T) {
 
 			// wrong rating value
 			err = e.RateInsight("fake_insight_type", 1000, fakeClock)
-			So(err, ShouldEqual, core.ErrorWrongRatingValue)
+			So(err, ShouldEqual, core.ErrWrongRatingValue)
 			nopStep()
 
 			// correct rating
@@ -244,7 +245,7 @@ func TestEngine(t *testing.T) {
 
 			// not allowed to re-rate immediately
 			err = e.RateInsight("fake_insight_type", 0, fakeClock)
-			So(err, ShouldEqual, core.ErrorAlreadyRated)
+			So(err, ShouldEqual, core.ErrAlreadyRated)
 			nopStep()
 
 			// stop main loop
@@ -403,7 +404,7 @@ func TestEngine(t *testing.T) {
 
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 
@@ -444,7 +445,7 @@ func TestEngine(t *testing.T) {
 
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 
@@ -477,7 +478,7 @@ func TestEngine(t *testing.T) {
 			// Skip import
 			announcer.Skip(e.ImportAnnouncer())
 
-			done, cancel := e.Run()
+			done, cancel := runner.Run(e)
 
 			time.Sleep(100 * time.Millisecond)
 

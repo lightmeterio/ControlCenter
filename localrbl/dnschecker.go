@@ -9,7 +9,7 @@ import (
 	"errors"
 	"github.com/mrichman/godnsbl"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -29,10 +29,10 @@ type dnsChecker struct {
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
-	meta               *meta.Reader
+	meta               *metadata.Reader
 }
 
-func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
+func newDnsChecker(meta *metadata.Reader, options Options) *dnsChecker {
 	if options.NumberOfWorkers < 1 {
 		log.Panic().Msgf("DnsChecker should have a number of workers greater than 1 and not %d!", options.NumberOfWorkers)
 	}
@@ -50,7 +50,7 @@ func newDnsChecker(meta *meta.Reader, options Options) *dnsChecker {
 	}
 }
 
-func NewChecker(meta *meta.Reader, options Options) Checker {
+func NewChecker(meta *metadata.Reader, options Options) Checker {
 	return newDnsChecker(meta, options)
 }
 
