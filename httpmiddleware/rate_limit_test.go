@@ -32,27 +32,33 @@ func reqForAddress(url string, addr addrPair) *http.Request {
 
 func TestRateLimits(t *testing.T) {
 	Convey("Test Rate Limits", t, func() {
+		endpoint := func(w http.ResponseWriter, r *http.Request) error {
+			// I am a teapot
+			w.WriteHeader(http.StatusTeapot)
+			return nil
+		}
+
 		clock := timeutil.FakeClock{
 			Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 		}
 
-		const maxTries = 3
+		buildRequester := func(timeFrame time.Duration, numberOfTries int64, isBehindProxy bool) func(addr addrPair) *httptest.ResponseRecorder {
+			handler := New(requestWithRateLimitAndWithCustomClock(&clock, timeFrame, numberOfTries, isBehindProxy, BlockQuery)).
+				WithEndpoint(CustomHTTPHandler(endpoint))
 
-		handler := New(requestWithRateLimitAndWithCustomClock(&clock, 5*time.Minute, maxTries, BlockQuery)).WithEndpoint(
-			CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-				// I am a teapot
-				w.WriteHeader(http.StatusTeapot)
-				return nil
-			}),
-		)
-
-		rec := func(addr addrPair) *httptest.ResponseRecorder {
-			rec := httptest.NewRecorder()
-			handler.ServeHTTP(rec, reqForAddress("http://example.com", addr))
-			return rec
+			return func(addr addrPair) *httptest.ResponseRecorder {
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, reqForAddress("http://example.com", addr))
+				return rec
+			}
 		}
 
 		Convey("Blocked after 3 queries and then unblock after 5min", func() {
+			const maxTries = 3
+			timeFrame := 5 * time.Minute
+			usingProxy := true
+			rec := buildRequester(timeFrame, maxTries, usingProxy)
+
 			ip1 := addrPair{"[::1]:5000", "1.2.3.4"}
 			ip2 := addrPair{"[::1]:4000", "33.44.55.66"}
 			ip3 := addrPair{"5.5.5.5:4000", ""}
@@ -91,6 +97,26 @@ func TestRateLimits(t *testing.T) {
 			clock.Sleep(5 * time.Minute)
 			So(rec(ip1).Code, ShouldEqual, http.StatusTeapot)
 			So(rec(ip2).Code, ShouldEqual, http.StatusTeapot)
+		})
+
+		Convey("Ignore IP from headers when not using a reverse proxy", func() {
+			const maxTries = 3
+			timeFrame := 5 * time.Minute
+			usingProxy := false
+			rec := buildRequester(timeFrame, maxTries, usingProxy)
+
+			// the first three attempts for ip1 work well
+			for i := 0; i < 3; i++ {
+				So(rec(addrPair{"1.2.3.4:5000", "1.2.3.4"}).Code, ShouldEqual, http.StatusTeapot)
+				clock.Sleep(30 * time.Second)
+			}
+
+			// the same IP can have any ip forward headers, which will be ignored. The RemoteAddr will be used instead
+			So(rec(addrPair{"1.2.3.4:5000", "4.3.2.1"}).Code, ShouldEqual, http.StatusTooManyRequests)
+
+			clock.Sleep(5 * time.Minute)
+
+			So(rec(addrPair{"1.2.3.4:5000", "4.4.4.4"}).Code, ShouldEqual, http.StatusTeapot)
 		})
 	})
 }

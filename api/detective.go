@@ -128,9 +128,9 @@ func (h oldestAvailableTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	return httputil.WriteJson(w, OldestAvailableTimeResponse{Time: &time}, http.StatusOK)
 }
 
-func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *metadata.Reader) {
+func HttpDetective(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, detective detective.Detective, escalator escalator.Requester, settingsReader *metadata.Reader, isBehindReverseProxy bool) {
 	publicIfEnabled := httpmiddleware.New(
-		httpmiddleware.RequestWithRateLimit(10*time.Minute, 20, httpmiddleware.BlockQuery),
+		httpmiddleware.RequestWithRateLimit(10*time.Minute, 20, isBehindReverseProxy, httpmiddleware.BlockQuery),
 		httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout),
 		requireDetectiveAuth(auth, settingsReader),
 	)

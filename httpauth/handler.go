@@ -12,10 +12,10 @@ import (
 	"time"
 )
 
-func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *metadata.Reader) {
+func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader *metadata.Reader, isBehindReverseProxy bool) {
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 	unauthenticatedAndRateLimited := httpmiddleware.WithDefaultStackWithoutAuth(
-		httpmiddleware.RequestWithRateLimit(5*time.Minute, 20, httpmiddleware.BlockQuery),
+		httpmiddleware.RequestWithRateLimit(5*time.Minute, 20, isBehindReverseProxy, httpmiddleware.BlockQuery),
 	)
 
 	mux.Handle("/auth/check", unauthenticated.WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {

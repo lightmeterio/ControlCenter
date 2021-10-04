@@ -6,6 +6,7 @@ package httpmiddleware
 
 import (
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/pkg/ctxlogger"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
@@ -38,8 +39,8 @@ type rateLimitsByEndPoint struct {
 	limits    []rateLimit
 }
 
-func RequestWithRateLimit(timeFrame time.Duration, numberOfTries int64, action RestrictAction) Middleware {
-	return requestWithRateLimitAndWithCustomClock(&timeutil.RealClock{}, timeFrame, numberOfTries, action)
+func RequestWithRateLimit(timeFrame time.Duration, numberOfTries int64, isBehindAReverseProxy bool, action RestrictAction) Middleware {
+	return requestWithRateLimitAndWithCustomClock(&timeutil.RealClock{}, timeFrame, numberOfTries, isBehindAReverseProxy, action)
 }
 
 func requestRemoteAddr(remoteAddr string) string {
@@ -51,18 +52,22 @@ func requestRemoteAddr(remoteAddr string) string {
 	return remoteAddr[:index]
 }
 
-func remoteAddr(requestRemoteAddr string, header http.Header) string {
-	// Get original IP if behind a proxy - apache, traefik, probably nginx - should mostly be the case
-	originAddr, ok := header["X-Forwarded-For"]
+func remoteAddr(requestRemoteAddr string, header http.Header, isBehindAReverseProxy bool) string {
+	if !isBehindAReverseProxy {
+		return requestRemoteAddr
+	}
 
-	if ok && (requestRemoteAddr == "127.0.0.1" || requestRemoteAddr == "[::1]") {
+	// Get original IP if behind a proxy - apache, traefik, probably nginx - should mostly be the case
+	if originAddr, ok := header["X-Forwarded-For"]; ok {
 		return originAddr[0]
 	}
+
+	log.Error().Msgf("Could not obtain the client IP address from the headers. Here they are: %#v", header)
 
 	return requestRemoteAddr
 }
 
-func requestWithRateLimitAndWithCustomClock(clock timeutil.Clock, timeFrame time.Duration, numberOfTries int64, action RestrictAction) Middleware {
+func requestWithRateLimitAndWithCustomClock(clock timeutil.Clock, timeFrame time.Duration, numberOfTries int64, isBehindAReverseProxy bool, action RestrictAction) Middleware {
 	var (
 		rateLimits = rateLimitsByEndPoint{
 			timeFrame: timeFrame,
@@ -80,7 +85,7 @@ func requestWithRateLimitAndWithCustomClock(clock timeutil.Clock, timeFrame time
 
 	return func(h CustomHTTPHandler) CustomHTTPHandler {
 		return CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
-			remoteAddr := remoteAddr(requestRemoteAddr(r.RemoteAddr), r.Header)
+			remoteAddr := remoteAddr(requestRemoteAddr(r.RemoteAddr), r.Header, isBehindAReverseProxy)
 
 			// NOTE: we wrap this code in a function not to block the mutex for very long
 			err := func() error {
