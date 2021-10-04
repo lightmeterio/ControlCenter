@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 1.8.1
+Lightmeter ControlCenter 1.8.2
 
  Example call: 
 
@@ -8,7 +8,7 @@ Lightmeter ControlCenter 1.8.1
  Flag set: 
 
   -email_reset string
-    	Reset password for user (implies -password and depends on -workspace)
+    	Change user info (email, name or password; depends on -workspace)
   -importonly
     	Only import existing logs, exiting immediately, without running the full application.
   -listen string
@@ -29,6 +29,10 @@ Lightmeter ControlCenter 1.8.1
     	Only migrates down
   -migrate_down_to_version int
     	Specify the new migration version (default -1)
+  -new_email string
+    	Update user email (depends on -email_reset)
+  -new_user_name string
+    	Update user name (depends on -email_reset)
   -password string
     	Password to reset (requires -email_reset)
   -stdin

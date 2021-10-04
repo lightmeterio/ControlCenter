@@ -63,8 +63,8 @@ msgid "news"
 msgstr "news"
 
 #: insights/mailinactivity/mail_inactivity_insight.go:60
-msgid "No emails were sent between %v and %v"
-msgstr "No emails were sent between %v and %v"
+msgid "No emails were sent or received between %v and %v"
+msgstr "No emails were sent or received between %v and %v"
 
 #: insights/detectiveescalation/escalation.go:81
 msgid "Sender: %v, recipient: %v"
