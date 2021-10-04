@@ -125,14 +125,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           </ul>
 
           <p>
-            <translate>Open Source software, AGPLv3 Licensed</translate>
-            (<a
+            <translate>Open Source software</translate>,
+            <a
               href="https://www.gnu.org/licenses/agpl-3.0.en.html"
               target="_blank"
             >
-              <!-- prettier-ignore -->
-              <translate>full text</translate></a
-            >)
+              <translate>AGPLv3 Licensed</translate>
+            </a>
           </p>
 
           <div class="custom-modal-footer modal-footer">
