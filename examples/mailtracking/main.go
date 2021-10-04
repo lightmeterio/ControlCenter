@@ -9,16 +9,20 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"log"
 	"os"
+	"path"
 	"runtime"
 	"runtime/pprof"
 	"time"
@@ -97,7 +101,18 @@ func main() {
 
 	pub := publisher{}
 
-	t, err := tracking.New(workspace, &pub)
+	dbFilename := path.Join(workspace, "logtracker.db")
+	conn, err := dbconn.Open(dbFilename, 10)
+	errorutil.MustSucceed(err)
+
+	defer func() {
+		errorutil.MustSucceed(conn.Close())
+	}()
+
+	err = migrator.Run(conn.RwConn.DB, "logtracker")
+	errorutil.MustSucceed(err)
+
+	t, err := tracking.New(conn, &pub)
 
 	defer func() {
 		errorutil.MustSucceed(t.Close())
@@ -109,7 +124,7 @@ func main() {
 
 	logReader := logsource.NewReader(logSource, publisher)
 
-	done, cancel := t.Run()
+	done, cancel := runner.Run(t)
 
 	err = logReader.Run()
 

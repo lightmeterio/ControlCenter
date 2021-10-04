@@ -42,5 +42,10 @@ func TestNotificationPolicies(t *testing.T) {
 			So(r, ShouldBeFalse)
 		})
 
+		Convey("Insights marked as 'MustBeNotified' are not rejected (ref #401)", func() {
+			r, err := policies.Reject(notificationCore.Notification{Content: core.InsightProperties{Rating: core.OkRating, MustBeNotified: true}})
+			So(err, ShouldBeNil)
+			So(r, ShouldBeFalse)
+		})
 	})
 }

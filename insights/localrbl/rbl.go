@@ -259,11 +259,12 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 
 func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, content Content) error {
 	properties := core.InsightProperties{
-		Time:        c.Now(),
-		Category:    core.LocalCategory,
-		Rating:      core.BadRating,
-		ContentType: ContentType,
-		Content:     content,
+		Time:           c.Now(),
+		Category:       core.LocalCategory,
+		Rating:         core.OkRating,
+		ContentType:    ContentType,
+		Content:        content,
+		MustBeNotified: true,
 	}
 
 	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {

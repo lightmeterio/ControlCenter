@@ -10,7 +10,7 @@ import (
 	"github.com/imdario/mergo"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
-	"gitlab.com/lightmeter/controlcenter/meta"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
@@ -31,16 +31,16 @@ import (
 )
 
 type Settings struct {
-	writer *meta.AsyncWriter
-	reader *meta.Reader
+	writer *metadata.AsyncWriter
+	reader *metadata.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   *notification.Center
 	handlers             map[string]func(http.ResponseWriter, *http.Request) error
 }
 
-func NewSettings(writer *meta.AsyncWriter,
-	reader *meta.Reader,
+func NewSettings(writer *metadata.AsyncWriter,
+	reader *metadata.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter *notification.Center,
 ) *Settings {
@@ -133,32 +133,32 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	ctx := r.Context()
 
 	slackSettings, err := slack.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	emailSettings, err := email.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	notificationSettings, err := notification.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	globalSettings, err := globalsettings.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	walkthroughSettings, err := walkthrough.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	detectiveSettings, err := detective.GetSettings(ctx, h.reader)
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
@@ -208,7 +208,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 			return *s, nil
 		}()
 
-		if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+		if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 		}
 
@@ -255,7 +255,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return *s, nil
 	}()
 
-	if err != nil && !errors.Is(err, meta.ErrNoSuchKey) {
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 

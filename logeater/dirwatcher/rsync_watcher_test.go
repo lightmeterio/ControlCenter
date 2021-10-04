@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,31 @@ import (
 	"testing"
 	"time"
 )
+
+func rsyncCommand(src, dst string) {
+	cmd := exec.Command("rsync", "-rav", src+"/", dst+"/")
+	if err := cmd.Start(); err != nil {
+		panic(err)
+	}
+
+	// give some time to the file rsync watcher to notice the changes. Yes, this is an ugly workaround,
+	// to prevent the unit tests to sporadically fail in the gitlab runners, which are quite flaky.
+	time.Sleep(time.Millisecond * 500)
+
+	if err := cmd.Wait(); err != nil {
+		panic(err)
+	}
+}
+
+func writeFileContentWithModificationTime(filePath string, content string, modTime time.Time) {
+	if err := ioutil.WriteFile(filePath, []byte(content), os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	if err := os.Chtimes(filePath, modTime, modTime); err != nil {
+		panic(err)
+	}
+}
 
 func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 	Convey("Keep track of logs contained in a directory updated periodically by rsync", t, func() {
@@ -42,19 +68,11 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 		}
 
 		syncDir := func() {
-			cmd := exec.Command("rsync", "-rav", originDir+"/", dstDir+"/")
-			So(cmd.Start(), ShouldBeNil)
-
-			// give some time to the file rsync watcher to notice the changes. Yes, this is an ugly workaround,
-			// to prevent the unit tests to sporadically fail in the gitlab runners, which are quite flaky.
-			time.Sleep(time.Millisecond * 500)
-
-			So(cmd.Wait(), ShouldBeNil)
+			rsyncCommand(originDir, dstDir)
 		}
 
 		writeFileContent := func(filename string, content string) {
-			filePath := path.Join(originDir, filename)
-			So(ioutil.WriteFile(filePath, []byte(content), os.ModePerm), ShouldBeNil)
+			writeFileContentWithModificationTime(path.Join(originDir, filename), content, time.Now())
 		}
 
 		Convey("Using some offset", func() {
@@ -66,13 +84,13 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("No updates", func() {
 				w := newRunner("mail.log", 44)
 
-				done, cancel := w.Run()
+				done, cancel := runner.Run(w)
 
 				cancel()
 				done()
 
 				So(logs, ShouldResemble, []parsedLog{
-					parsedLog{
+					{
 						h: parser.Header{
 							Time:      parser.Time{Month: time.July, Day: 20, Hour: 1, Minute: 2, Second: 3},
 							Host:      "mail",
@@ -95,13 +113,13 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("No updates", func() {
 				w := newRunner("mail.log", 0)
 
-				done, cancel := w.Run()
+				done, cancel := runner.Run(w)
 
 				cancel()
 				done()
 
 				So(logs, ShouldResemble, []parsedLog{
-					parsedLog{
+					{
 						h: parser.Header{
 							Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 							Host:      "mail",
@@ -118,7 +136,7 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 			Convey("New line is appended and synchronized", func() {
 				w := newRunner("mail.log", 0)
 
-				doneRunning, cancel := w.Run()
+				doneRunning, cancel := runner.Run(w)
 
 				done := func() {
 					So(doneRunning(), ShouldBeNil)
@@ -133,7 +151,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 					done()
 
 					So(logs, ShouldResemble, []parsedLog{
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 								Host:      "mail",
@@ -144,7 +162,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -167,7 +185,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 					done()
 
 					So(logs, ShouldResemble, []parsedLog{
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 								Host:      "mail",
@@ -178,7 +196,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -200,7 +218,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 					done()
 
 					So(logs, ShouldResemble, []parsedLog{
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 								Host:      "mail",
@@ -211,7 +229,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -233,7 +251,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 					done()
 
 					So(logs, ShouldResemble, []parsedLog{
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 								Host:      "mail",
@@ -244,7 +262,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -255,7 +273,7 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 21, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -281,7 +299,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 					done()
 
 					So(logs, ShouldResemble, []parsedLog{
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.July, Day: 19, Hour: 1, Minute: 2, Second: 3},
 								Host:      "mail",
@@ -292,7 +310,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 20, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -303,7 +321,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 21, Hour: 2, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -314,7 +332,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 21, Hour: 3, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -325,7 +343,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 22, Hour: 3, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -336,7 +354,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 22, Hour: 4, Minute: 3, Second: 4},
 								Host:      "mail",
@@ -347,7 +365,7 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 							},
 							p: nil,
 						},
-						parsedLog{
+						{
 							h: parser.Header{
 								Time:      parser.Time{Month: time.August, Day: 22, Hour: 5, Minute: 3, Second: 4},
 								Host:      "mail",

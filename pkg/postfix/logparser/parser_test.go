@@ -572,6 +572,23 @@ func TestSmtpdDisconnect(t *testing.T) {
 			So(cast, ShouldBeTrue)
 			So(p.IP, ShouldEqual, net.ParseIP(`1002:1712:4e2b:d061:5dff:19f:c85f:a48f`))
 		})
+
+		Convey("Several params", func() {
+			_, payload, err := Parse([]byte(`Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19`))
+			So(err, ShouldBeNil)
+			p, cast := payload.(SmtpdDisconnect)
+			So(cast, ShouldBeTrue)
+			So(p.Stats, ShouldResemble, map[string]SmtpdDisconnectStat{
+				"ehlo":     {Success: 1, Total: 1},
+				"auth":     {Success: 8, Total: 14},
+				"mail":     {Success: 1, Total: 1},
+				"rcpt":     {Success: 0, Total: 1},
+				"data":     {Success: 0, Total: 1},
+				"rset":     {Success: 1, Total: 1},
+				"commands": {Success: 3, Total: 19},
+			})
+		})
+
 	})
 }
 
@@ -600,6 +617,16 @@ func TestSmtpdMailAccepted(t *testing.T) {
 			So(cast, ShouldBeTrue)
 			So(p.IP, ShouldEqual, net.ParseIP(`::1`))
 		})
+	})
+}
+
+func TestLongQueueId(t *testing.T) {
+	Convey("Long queue id (gitlab issue #504)", t, func() {
+		_, payload, err := Parse([]byte(`Jan 25 06:32:43 mx postfix/smtpd[26382]: 3Pt2mN2VXxznjll: client=h-a4984b7e1cf68ab295d77c5df3[224.93.112.97]`))
+		So(err, ShouldBeNil)
+		p, cast := payload.(SmtpdMailAccepted)
+		So(cast, ShouldBeTrue)
+		So(p.Queue, ShouldEqual, "3Pt2mN2VXxznjll")
 	})
 }
 
@@ -639,5 +666,33 @@ func TestRFC3339Time(t *testing.T) {
 		So(h.Time.Hour, ShouldEqual, 0)
 		So(h.Time.Minute, ShouldEqual, 1)
 		So(h.Time.Second, ShouldEqual, 42)
+	})
+}
+
+func TestVirtualParsing(t *testing.T) {
+	Convey("Virtual delivery uses the same syntax as smtp delivery", t, func() {
+		header, parsed, err := Parse([]byte(`Jul 25 06:17:23 mail postfix/virtual[2438]: 9BD26E0D25: to=<reci@pient.com>, orig_to=<orig@recipient.com>, relay=virtual, delay=1.3, delays=1.2/0.02/0/0.04, dsn=2.0.0, status=sent (delivered to maildir)`))
+		So(parsed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+
+		So(header.Time.Day, ShouldEqual, 25)
+		So(header.Time.Month, ShouldEqual, time.July)
+		So(header.Time.Hour, ShouldEqual, 6)
+		So(header.Time.Minute, ShouldEqual, 17)
+		So(header.Time.Second, ShouldEqual, 23)
+		So(header.Host, ShouldEqual, "mail")
+		So(header.Process, ShouldEqual, "postfix")
+		So(header.Daemon, ShouldEqual, "virtual")
+
+		So(p.Queue, ShouldEqual, "9BD26E0D25")
+		So(p.RecipientLocalPart, ShouldEqual, "reci")
+		So(p.RecipientDomainPart, ShouldEqual, "pient.com")
+		So(p.OrigRecipientLocalPart, ShouldEqual, "orig")
+		So(p.OrigRecipientDomainPart, ShouldEqual, "recipient.com")
+		So(p.RelayName, ShouldEqual, "virtual")
+		So(p.Status, ShouldEqual, SentStatus)
+		So(p.ExtraMessage, ShouldEqual, `(delivered to maildir)`)
 	})
 }

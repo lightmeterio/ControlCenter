@@ -39,7 +39,7 @@ reuse-lint:
 
 lint:
   extends: .on-non-tag
-  image: golangci/golangci-lint:v1.39-alpine
+  image: golangci/golangci-lint:v1.42-alpine
   stage: test
   allow_failure: true
   needs: []

@@ -5,7 +5,9 @@
 package dbconn
 
 import (
+	"context"
 	"database/sql"
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -57,7 +59,33 @@ type RoPooledConn struct {
 	RoConn
 
 	LocalId int
-	Stmts   map[interface{}]*sql.Stmt
+	stmts   map[interface{}]*sql.Stmt
+}
+
+func (c *RoPooledConn) PrepareStmt(query string, key interface{}) error {
+	if _, ok := c.stmts[key]; ok {
+		log.Panic().Msgf("A prepared statement for %v already exists!", key)
+	}
+
+	stmt, err := c.Prepare(query)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	c.stmts[key] = stmt
+	c.Closers.Add(stmt)
+
+	return nil
+}
+
+// GetStmt gets an prepared statement by a key, where the calles does **NOT** own the returned value
+func (c *RoPooledConn) GetStmt(key interface{}) *sql.Stmt {
+	stmt, ok := c.stmts[key]
+	if !ok {
+		log.Panic().Msgf("Sql stmt with key %v not implemented!!!!", key)
+	}
+
+	return stmt
 }
 
 type RoPool struct {
@@ -78,8 +106,17 @@ func (p *RoPool) ForEach(f func(*RoPooledConn) error) error {
 }
 
 func (p *RoPool) Acquire() (*RoPooledConn, func()) {
-	c := <-p.pool
-	return c, func() { p.pool <- c }
+	conn, release, _ := p.AcquireContext(context.Background())
+	return conn, release
+}
+
+func (p *RoPool) AcquireContext(ctx context.Context) (*RoPooledConn, func(), error) {
+	select {
+	case c := <-p.pool:
+		return c, func() { p.pool <- c }, nil
+	case <-ctx.Done():
+		return nil, func() {}, errorutil.Wrap(ctx.Err())
+	}
 }
 
 type PooledPair struct {
@@ -87,6 +124,7 @@ type PooledPair struct {
 
 	RwConn     RwConn
 	RoConnPool *RoPool
+	Filename   string
 }
 
 func Open(filename string, poolSize int) (*PooledPair, error) {
@@ -117,8 +155,8 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		conn := &RoPooledConn{
 			RoConn:  Ro(reader),
 			LocalId: i,
-			Stmts:   map[interface{}]*sql.Stmt{},
-			Closers: closeutil.New(),
+			stmts:   map[interface{}]*sql.Stmt{},
+			Closers: closeutil.New(newConnCloser(filename, ROMode, reader)),
 		}
 
 		pool.conns = append(pool.conns, conn)
@@ -127,5 +165,5 @@ func Open(filename string, poolSize int) (*PooledPair, error) {
 		pool.pool <- conn
 	}
 
-	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(writer, pool)}, nil
+	return &PooledPair{RwConn: Rw(writer), RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
 }

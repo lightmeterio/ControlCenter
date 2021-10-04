@@ -11,9 +11,13 @@ import (
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
+	"path"
 	"runtime"
 	"runtime/pprof"
 )
@@ -57,17 +61,23 @@ func main() {
 	// ensure workspace exists
 	errorutil.MustSucceed(os.MkdirAll(workspace, os.ModePerm))
 
-	db, err := deliverydb.New(workspace, &domainmapping.DefaultMapping)
-
+	dbFilename := path.Join(workspace, "logs.db")
+	conn, err := dbconn.Open(dbFilename, 10)
 	errorutil.MustSucceed(err)
 
 	defer func() {
-		errorutil.MustSucceed(db.Close())
+		errorutil.MustSucceed(conn.Close())
 	}()
+
+	err = migrator.Run(conn.RwConn.DB, "logs")
+	errorutil.MustSucceed(err)
+
+	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+	errorutil.MustSucceed(err)
 
 	pub := db.ResultsPublisher()
 
-	done, cancel := db.Run()
+	done, cancel := runner.Run(db)
 
 	scanner := bufio.NewScanner(f)
 

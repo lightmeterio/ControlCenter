@@ -5,12 +5,14 @@
 package tracking
 
 import (
-	"database/sql"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
+// NOTE: this is an arbitrary value, found during manual testing,
+// and was the one with the best performance
 const resultInfosCapacity = 4
 
 type resultInfos struct {
@@ -28,18 +30,12 @@ func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resu
 	}
 }
 
-func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx *sql.Tx, batchId int64) error {
+func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, trackerStmts dbconn.TxPreparedStmts) error {
 	start := time.Now()
 
-	stmt := tx.Stmt(tracker.stmts[selectFromNotificationQueues])
-
-	defer func() {
-		errorutil.MustSucceed(stmt.Close())
-	}()
-
 	// NOTE: as usual, the rowserrcheck is not able to see rows.Err() is called below :-(
-	//nolint:rowserrcheck
-	rows, err := stmt.Query()
+	//nolint:rowserrcheck,sqlclosecheck
+	rows, err := trackerStmts.Get(selectFromNotificationQueues).Query()
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -75,13 +71,8 @@ func dispatchAllResults(tracker *Tracker, resultsToNotify chan<- resultInfos, tx
 		}
 
 		// Yes, deleting while iterating over the results... That's supported by SQLite
-		stmt := tx.Stmt(tracker.stmts[deleteFromNotificationQueues])
-
-		defer func() {
-			errorutil.MustSucceed(stmt.Close())
-		}()
-
-		_, err = stmt.Exec(id)
+		//nolint:sqlclosecheck
+		_, err = trackerStmts.Get(deleteFromNotificationQueues).Exec(id)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}

@@ -47,7 +47,7 @@ func (t *logstashJsonTransformer) Transform(line []byte) (postfix.Record, error)
 
 	r, err := ParseLine([]byte(payload.Message), func(parser.Header) time.Time {
 		return payload.Time
-	}, loc)
+	}, loc, defaultTimeFormat)
 	if err != nil {
 		return postfix.Record{}, errorutil.Wrap(err)
 	}
