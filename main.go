@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/config"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
@@ -120,18 +121,21 @@ func main() {
 	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
-func buildAuthOptions(conf config.Config) *workspace.PlainAuthOptions {
+func buildAuthOptions(conf config.Config) auth.Options {
 	if len(conf.RegisteredUserEmail) == 0 || len(conf.RegisteredUserName) == 0 || len(conf.RegisteredUserPassword) == 0 {
-		return nil
+		return auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil}
 	}
 
 	log.Info().Msgf("Using user information from environment/command-line. This is VERY experimental: %v -> %v",
 		conf.RegisteredUserEmail, conf.RegisteredUserName)
 
-	return &workspace.PlainAuthOptions{
-		Email:    conf.RegisteredUserEmail,
-		Name:     conf.RegisteredUserName,
-		Password: conf.RegisteredUserPassword,
+	return auth.Options{
+		AllowMultipleUsers: false,
+		PlainAuthOptions: &auth.PlainAuthOptions{
+			Email:    conf.RegisteredUserEmail,
+			Name:     conf.RegisteredUserName,
+			Password: conf.RegisteredUserPassword,
+		},
 	}
 }
 

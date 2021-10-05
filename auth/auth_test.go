@@ -326,3 +326,46 @@ func TestChangeUserInfo(t *testing.T) {
 		})
 	})
 }
+
+func TestPreRegistredUser(t *testing.T) {
+	Convey("Test PreRegistredUser", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "auth")
+		defer closeConn()
+
+		// use pre-defined user auth in the first execution
+		{
+			strongPassword := `ghjzfpailduifiapdq9um6ysuubvtjywAqbnadq+aUerxrqhfp`
+			auth, err := NewAuth(conn, Options{PlainAuthOptions: &PlainAuthOptions{Email: "user@example.com", Name: "Alice Bob", Password: strongPassword}})
+			So(err, ShouldBeNil)
+			So(auth, ShouldNotBeNil)
+			ok, userData, err := auth.Authenticate(dummyContext, "user@example.com", strongPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(userData, ShouldResemble, &UserData{Id: 1, Name: "Alice Bob", Email: "user@example.com"})
+		}
+
+		// if I change the user info. he new info is used
+		{
+			strongPassword := `hjgJHGjhgjhg&^%7575&567576%&4567^HGFhgfHFCJHf`
+			auth, err := NewAuth(conn, Options{PlainAuthOptions: &PlainAuthOptions{Email: "another@example.de", Name: "Anna Carl", Password: strongPassword}})
+			So(err, ShouldBeNil)
+			So(auth, ShouldNotBeNil)
+			ok, userData, err := auth.Authenticate(dummyContext, "another@example.de", strongPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(userData, ShouldResemble, &UserData{Id: 1, Name: "Anna Carl", Email: "another@example.de"})
+		}
+
+		// The user info is actually persisted, so not passing it will use the one previously set
+		{
+			strongPassword := `hjgJHGjhgjhg&^%7575&567576%&4567^HGFhgfHFCJHf`
+			auth, err := NewAuth(conn, Options{})
+			So(err, ShouldBeNil)
+			So(auth, ShouldNotBeNil)
+			ok, userData, err := auth.Authenticate(dummyContext, "another@example.de", strongPassword)
+			So(err, ShouldBeNil)
+			So(ok, ShouldBeTrue)
+			So(userData, ShouldResemble, &UserData{Id: 1, Name: "Anna Carl", Email: "another@example.de"})
+		}
+	})
+}

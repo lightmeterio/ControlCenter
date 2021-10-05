@@ -37,8 +37,15 @@ type RegistrarWithSessionKeys interface {
 	SessionKeys() [][]byte
 }
 
+type PlainAuthOptions struct {
+	Email    string
+	Name     string
+	Password string
+}
+
 type Options struct {
 	AllowMultipleUsers bool
+	PlainAuthOptions   *PlainAuthOptions
 }
 
 type Auth struct {
@@ -264,7 +271,40 @@ func NewAuth(connPair *dbconn.PooledPair, options Options) (RegistrarWithSession
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &Auth{options: options, connPair: connPair, meta: m}, nil
+	a := &Auth{options: options, connPair: connPair, meta: m}
+
+	if options.PlainAuthOptions == nil {
+		return a, nil
+	}
+
+	authOptions := options.PlainAuthOptions
+
+	hasAnyUsers, err := a.HasAnyUser(context.Background())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if hasAnyUsers {
+		// if an user is already registred, resets its info to the one passed as option
+		oldInfo, err := a.GetFirstUser(context.Background())
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		if err := a.ChangeUserInfo(context.Background(), oldInfo.Email, authOptions.Email, authOptions.Name, authOptions.Password); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return a, nil
+	}
+
+	if _, err := a.Register(context.Background(),
+		authOptions.Email, authOptions.Name,
+		authOptions.Password); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return a, nil
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {

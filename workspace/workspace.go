@@ -106,13 +106,13 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 type Options struct {
 	IsUsingRsyncedLogs bool
 	DefaultSettings    metadata.DefaultValues
-	AuthOptions        *PlainAuthOptions
+	AuthOptions        auth.Options
 }
 
 var DefaultOptions = &Options{
 	IsUsingRsyncedLogs: false,
 	DefaultSettings:    metadata.DefaultValues{},
-	AuthOptions:        nil,
+	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
 }
 
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
@@ -165,8 +165,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := buildAuth(allDatabases.Auth, auth.Options{}, options.AuthOptions)
-
+	auth, err := auth.NewAuth(allDatabases.Auth, options.AuthOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
