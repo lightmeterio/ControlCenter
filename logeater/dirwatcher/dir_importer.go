@@ -205,7 +205,7 @@ func readFirstLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (pa
 	}
 
 	// read first line
-	h1, _, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
+	h1, _, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Bytes(), format)
 
 	return h1.Time, true, func() error {
 		if err == nil {
@@ -232,7 +232,7 @@ func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (par
 	}
 
 	// reached the last line
-	h2, _, err := parser.ParseWithCustomTimeFormat([]byte(lastLine), format)
+	h2, _, err := parser.ParseHeaderWithCustomTimeFormat([]byte(lastLine), format)
 
 	return h2.Time, true, func() error {
 		if err == nil {
@@ -417,7 +417,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 }
 
 type fileWatcher interface {
-	run(onNewRecord func(parser.Header, parser.Payload))
+	run(onNewRecord func(parser.Header, []byte))
 }
 
 type DirectoryContent interface {
@@ -499,11 +499,18 @@ var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail
 
 type timeConverterChan chan *parsertimeutil.TimeConverter
 
+type parsedHeaderRecord struct {
+	time        time.Time
+	header      parser.Header
+	location    postfix.RecordLocation
+	payloadLine []byte
+}
+
 type queueProcessor struct {
 	readers       []io.ReadCloser
 	scanners      []*bufio.Scanner
 	entries       fileEntryList
-	record        postfix.Record
+	record        parsedHeaderRecord
 	currentIndex  int
 	converter     *parsertimeutil.TimeConverter
 	converterChan timeConverterChan
@@ -688,7 +695,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		func(year int, from parser.Time, to parser.Time) {
 			log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v:%v",
 				year, from, to,
-				p.record.Location.Filename, p.record.Location.Line)
+				p.record.location.Filename, p.record.location.Line)
 		})
 
 	// workaround, make converter escape to the heap
@@ -732,7 +739,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 			log.Info().Msgf("Finished importing log file: %v", p.filename)
 
 			// use last time computed
-			progressNotifier.Step(p.record.Time)
+			progressNotifier.Step(p.record.time)
 
 			p.currentIndex++
 			p.line = 0
@@ -751,7 +758,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		// Successfully read
-		header, payload, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
+		header, payload, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Bytes(), format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -770,11 +777,11 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 
 		convertedTime := format.ConvertWithConverter(p.converter, header.Time)
 
-		p.record = postfix.Record{
-			Header:   header,
-			Payload:  payload,
-			Time:     convertedTime,
-			Location: loc,
+		p.record = parsedHeaderRecord{
+			header:      header,
+			time:        convertedTime,
+			location:    loc,
+			payloadLine: payload,
 		}
 
 		return true, nil
@@ -830,7 +837,7 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	chosenIndex := -1
 
 	for i, p := range queueProcessors {
-		if chosenIndex == -1 || queueProcessors[chosenIndex].record.Time.After(p.record.Time) {
+		if chosenIndex == -1 || queueProcessors[chosenIndex].record.time.After(p.record.time) {
 			chosenIndex = i
 		}
 	}
@@ -907,28 +914,34 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if !t.Time.After(initialTime) {
+		if !t.time.After(initialTime) {
 			continue
 		}
 
 		if currentLogTime.IsZero() {
-			importAnnouncer.AnnounceStart(t.Time)
+			importAnnouncer.AnnounceStart(t.time)
 		}
 
-		currentLogTime = t.Time
+		currentLogTime = t.time
 
-		pub.Publish(t)
+		payload, err := parser.ParsePayload(t.header, t.payloadLine)
+		if !parser.IsRecoverableError(err) {
+			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
+		}
+
+		pub.Publish(postfix.Record{
+			Time:     t.time,
+			Header:   t.header,
+			Location: t.location,
+			Payload:  payloadOrNil(payload, err),
+		})
 	}
 }
 
-type newLogsPublisher struct {
+type partiallyParsedLogsPublisher struct {
 	// a temporary buffer for the new lines that arrive before the archived logs are imported
 	// so we publish them in chronological order
-	records chan postfix.Record
-}
-
-func (pub newLogsPublisher) Publish(r postfix.Record) {
-	pub.records <- r
+	records chan parsedHeaderRecord
 }
 
 type sortableRecord struct {
@@ -986,8 +999,8 @@ func (t *sortableRecordHeap) Pop() interface{} {
 }
 
 type parsedRecord struct {
-	header  parser.Header
-	payload parser.Payload
+	header      parser.Header
+	payloadLine []byte
 
 	// When the same queue adds multiple items to the heap that happen in the same second
 	// we want to preserve their original order
@@ -1014,12 +1027,12 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	watcher.run(func(h parser.Header, p parser.Payload) {
+	watcher.run(func(h parser.Header, p []byte) {
 		record := parsedRecord{
-			header:     h,
-			payload:    p,
-			queueIndex: queueIndex,
-			sequence:   sequence,
+			header:      h,
+			payloadLine: p,
+			queueIndex:  queueIndex,
+			sequence:    sequence,
 		}
 
 		outChan <- record
@@ -1110,7 +1123,7 @@ const (
 	maxNumberOfCachedElementsInTheHeap = 2048
 )
 
-func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogsPublisher) <-chan struct{} {
+func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub partiallyParsedLogsPublisher) <-chan struct{} {
 	done := make(chan struct{})
 
 	h := make(sortableRecordHeap, 0, maxNumberOfCachedElementsInTheHeap)
@@ -1121,8 +1134,13 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 		for h.Len() > 0 {
 			//nolint:forcetypeassert
 			s := heap.Pop(&h).(sortableRecord)
-			r := postfix.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
-			pub.Publish(r)
+
+			pub.records <- parsedHeaderRecord{
+				header:      s.record.header,
+				payloadLine: s.record.payloadLine,
+				time:        s.time,
+				location:    s.record.loc,
+			}
 		}
 	}
 
@@ -1173,7 +1191,7 @@ func watchCurrentFilesForNewLogs(
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
 	queues fileQueues,
-	pub newLogsPublisher,
+	pub partiallyParsedLogsPublisher,
 	patterns LogPatterns,
 ) (waitForDone func(), cancelCall func(), returnError error) {
 	nonEmptyQueues := filterNonEmptyQueues(queues)
@@ -1253,7 +1271,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		return errorutil.Wrap(err)
 	}
 
-	newLogsPublisher := newLogsPublisher{records: make(chan postfix.Record)}
+	partiallyParsedLogsPublisher := partiallyParsedLogsPublisher{records: make(chan parsedHeaderRecord)}
 
 	converterChans := timeConverterChansFromQueues(queues)
 
@@ -1261,7 +1279,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	done, cancel, err := func() (func(), func(), error) {
 		if watch {
-			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher, importer.patterns)
+			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, partiallyParsedLogsPublisher, importer.patterns)
 		}
 
 		return func() {}, func() {}, nil
@@ -1288,12 +1306,30 @@ func (importer *DirectoryImporter) run(watch bool) error {
 	}
 
 	// Start really publishing the buffered records here, indefinitely
-	for r := range newLogsPublisher.records {
-		importer.pub.Publish(r)
+	for r := range partiallyParsedLogsPublisher.records {
+		p, err := parser.ParsePayload(r.header, r.payloadLine)
+		if !parser.IsRecoverableError(err) {
+			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
+		}
+
+		importer.pub.Publish(postfix.Record{
+			Time:     r.time,
+			Header:   r.header,
+			Location: r.location,
+			Payload:  payloadOrNil(p, err),
+		})
 	}
 
 	// It should never get here in production, only used by the tests
 	interruptWatching()
+
+	return nil
+}
+
+func payloadOrNil(p parser.Payload, err error) parser.Payload {
+	if err == nil {
+		return p
+	}
 
 	return nil
 }

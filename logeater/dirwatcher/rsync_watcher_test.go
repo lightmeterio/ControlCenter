@@ -56,14 +56,13 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 
 		type parsedLog struct {
 			h parser.Header
-			p parser.Payload
 		}
 
 		logs := []parsedLog{}
 
 		newRunner := func(filename string, offset int64) rsyncedFileWatcherRunner {
-			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset, format: timeFormat}, func(h parser.Header, p parser.Payload) {
-				logs = append(logs, parsedLog{h: h, p: p})
+			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset, format: timeFormat}, func(h parser.Header, p []byte) {
+				logs = append(logs, parsedLog{h: h})
 			})
 		}
 
@@ -99,7 +98,6 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 							PID:       0,
 							ProcessIP: nil,
 						},
-						p: nil,
 					},
 				})
 			})
@@ -128,7 +126,6 @@ Jul 20 01:02:03 mail lalala: Useless Payload`)
 							PID:       0,
 							ProcessIP: nil,
 						},
-						p: nil,
 					},
 				})
 			})
@@ -160,7 +157,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -171,7 +167,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 					})
 				})
@@ -194,7 +189,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -205,7 +199,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 					})
 				})
@@ -227,7 +220,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -238,7 +230,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 					})
 				})
@@ -260,7 +251,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -271,7 +261,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -282,7 +271,6 @@ Aug 20 02:03:04 mail cacaca: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 					})
 				})
@@ -308,7 +296,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -319,7 +306,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -330,7 +316,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -341,7 +326,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -352,7 +336,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -363,7 +346,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 						{
 							h: parser.Header{
@@ -374,7 +356,6 @@ Aug 22 05:03:04 mail apple: Useless Payload`)
 								PID:       0,
 								ProcessIP: nil,
 							},
-							p: nil,
 						},
 					})
 				})

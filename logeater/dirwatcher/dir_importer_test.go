@@ -13,6 +13,7 @@ import (
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
+	"net"
 	"testing"
 	"time"
 )
@@ -118,7 +119,7 @@ type fakeFileWatcher struct {
 	reader   io.Reader
 }
 
-func (f fakeFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) {
+func (f fakeFileWatcher) run(onNewRecord func(parser.Header, []byte)) {
 	readFromReader(f.reader, f.filename, onNewRecord)
 }
 
@@ -622,7 +623,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-03-31 00:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
-					"mail.log.2.gz": gzippedDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
+					"mail.log.2.gz": gzippedDataFile(`Jan 22 06:28:55 mail postfix/smtpd[26341]: disconnect from example.com[1.1.1.1] commands=0/0
 Jan 23 13:46:15 mail dovecot: Useless Payload
 Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 					"mail.log": plainCurrentDataFile(``, ``),
@@ -633,9 +634,18 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
+
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 22, Hour: 6, Minute: 28, Second: 55})
+			p, ok := pub.logs[0].Payload.(parser.SmtpdDisconnect)
+			So(ok, ShouldBeTrue)
+			So(p.Host, ShouldEqual, "example.com")
+			So(p.IP, ShouldEqual, net.ParseIP(`1.1.1.1`))
+
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 23, Hour: 13, Minute: 46, Second: 15})
+			So(pub.logs[1].Payload, ShouldBeNil)
+
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 31, Hour: 8, Minute: 47, Second: 9})
+			So(pub.logs[2].Payload, ShouldBeNil)
 
 			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 
