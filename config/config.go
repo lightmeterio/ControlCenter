@@ -135,7 +135,7 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
 	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
-	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_passwd", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWD", "", lookupenv), "Experimental: static user password")
+	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
 
 	fs.Usage = func() {
 		version.PrintVersion()
