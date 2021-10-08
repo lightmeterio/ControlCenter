@@ -199,13 +199,10 @@ func fileSize(f *os.File) (int64, error) {
 	return s.Size(), nil
 }
 
-func handleMove(origFile *os.File, filename string, w io.Writer) (*os.File, error) {
-	defer func() {
-		// TODO: handle this error properly!
-		errorutil.MustSucceed(origFile.Close())
-	}()
+func handleMove(origFile *os.File, filename string, w io.Writer) (newFile *os.File, err error) {
+	defer errorutil.DeferredClose(origFile, &err)
 
-	newFile, err := os.Open(filename)
+	newFile, err = os.Open(filename)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

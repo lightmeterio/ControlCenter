@@ -369,7 +369,7 @@ func findEarlierstTimeFromFiles(files []fileDescriptor, format parsertimeutil.Ti
 	return t, nil
 }
 
-func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format parsertimeutil.TimeFormat) (time.Time, error) {
+func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format parsertimeutil.TimeFormat) (initialTime time.Time, err error) {
 	queues, err := buildQueuesForDirImporter(content, patterns, time.Time{})
 
 	if err != nil {
@@ -380,9 +380,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 
 	closers := closeutil.New()
 
-	defer func() {
-		errorutil.MustSucceed(closers.Close())
-	}()
+	defer errorutil.DeferredClose(closers, &err)
 
 	for _, queue := range queues {
 		if len(queue) == 0 {
@@ -538,34 +536,29 @@ func buildLimitedFileReader(reader io.ReadCloser, offset int64) io.ReadCloser {
 	return &r
 }
 
-func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (io.ReadCloser, int64, error) {
+func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (reader io.ReadCloser, offset int64, err error) {
 	readSeeker, err := content.readSeekerForEntry(entry.filename)
-
 	if err != nil {
 		return nil, 0, errorutil.Wrap(err)
 	}
 
-	offset, err := readSeeker.Seek(0, io.SeekEnd)
-
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(readSeeker.Close(), "Closing on seeking file to end")
+			errorutil.DeferredClose(readSeeker, &err)
 		}
 	}()
 
+	offset, err = readSeeker.Seek(0, io.SeekEnd)
 	if err != nil {
 		return nil, 0, errorutil.Wrap(err)
 	}
 
 	_, err = readSeeker.Seek(0, io.SeekStart)
-
 	if err != nil {
 		return nil, 0, errorutil.Wrap(err)
 	}
 
-	reader := buildLimitedFileReader(readSeeker, offset)
-
-	return reader, offset, nil
+	return buildLimitedFileReader(readSeeker, offset), offset, nil
 }
 
 func buildReaderAndScannerForEntry(offsetChan chan int64, content DirectoryContent, pattern string, entry fileEntry) (io.ReadCloser, *bufio.Scanner, error) {
@@ -660,7 +653,7 @@ func buildQueueProcessors(
 	return p, nil
 }
 
-func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header, format parsertimeutil.TimeFormat) (*parsertimeutil.TimeConverter, error) {
+func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header, format parsertimeutil.TimeFormat) (converter *parsertimeutil.TimeConverter, err error) {
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
@@ -673,9 +666,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(reader.Close(), "Closing first file in queue")
-	}()
+	defer errorutil.DeferredClose(reader, &err)
 
 	initialTime, err := guessInitialDateForFile(reader, modificationTime, format)
 
@@ -683,7 +674,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		return nil, errorutil.Wrap(err)
 	}
 
-	converter := parsertimeutil.NewTimeConverter(
+	c := parsertimeutil.NewTimeConverter(
 		time.Date(initialTime.Year(),
 			header.Time.Month,
 			int(header.Time.Day),
@@ -700,7 +691,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		})
 
 	// workaround, make converter escape to the heap
-	return &converter, nil
+	return &c, nil
 }
 
 func setFileLocationOnQueueProcessorIfNeeded(p *queueProcessor) {

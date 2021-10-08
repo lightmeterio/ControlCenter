@@ -8,6 +8,7 @@ package errorutil
 import (
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"io"
 	"os"
 	"runtime"
 )
@@ -66,4 +67,32 @@ func ExpandError(err error) interface{} {
 	}
 
 	return err
+}
+
+func DeferredError(f func() error, err *error) {
+	if err == nil {
+		log.Fatal().Msg("err must be not nil!")
+	}
+
+	cErr := f()
+
+	if cErr == nil {
+		return
+	}
+
+	if *err == nil {
+		*err = Wrap(cErr)
+		return
+	}
+
+	// TODO: there's an error already set and we found another one.
+	// they might or not be related, so it'd be nice being able to have a
+	// "combined" error merging both into a single one instead of panicking!
+	log.Error().Errs("errors", []error{*err, cErr})
+}
+
+// DeferredClose is supposed to be used to close a io.Closer when a function exits,
+// setting its error return into err, if any.
+func DeferredClose(closer io.Closer, err *error) {
+	DeferredError(closer.Close, err)
 }

@@ -30,7 +30,7 @@ func tryToDispatchAndReset(resultInfos *resultInfos, resultsToNotify chan<- resu
 	}
 }
 
-func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, trackerStmts dbconn.TxPreparedStmts) error {
+func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, trackerStmts dbconn.TxPreparedStmts) (err error) {
 	start := time.Now()
 
 	// NOTE: as usual, the rowserrcheck is not able to see rows.Err() is called below :-(
@@ -41,9 +41,7 @@ func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, track
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(rows.Close())
-	}()
+	defer errorutil.DeferredClose(rows, &err)
 
 	var (
 		resultId int64

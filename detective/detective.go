@@ -214,7 +214,7 @@ type MessageDelivery struct {
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
 //nolint:rowserrcheck
-func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (*MessagesPage, error) {
+func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (messagesPage *MessagesPage, err error) {
 	senderLocal, senderDomain, err := emailutil.Split(mailFrom)
 
 	if err != nil {
@@ -233,6 +233,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		log.Debug().Msgf("Time to execute checkMessageDelivery: %v", time.Since(queryStart))
 	}()
 
+	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx,
 		senderLocal, senderDomain,
 		recipientLocal, recipientDomain,
@@ -244,7 +245,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(rows.Close()) }()
+	defer errorutil.DeferredClose(rows, &err)
 
 	var (
 		total    int
@@ -303,17 +304,15 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		messages[index].Entries = append(messages[index].Entries, delivery)
 	}
 
-	messagesPage := MessagesPage{
+	if err := rows.Err(); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &MessagesPage{
 		PageNumber:   page,
 		FirstPage:    1,
 		LastPage:     total/resultsPerPage + 1,
 		TotalResults: total - grouped,
 		Messages:     messages,
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &messagesPage, nil
+	}, nil
 }

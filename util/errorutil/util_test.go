@@ -28,3 +28,43 @@ func TestErrorAssertion(t *testing.T) {
 		So(mustSucceed(nil, "1", "2"), ShouldPanic)
 	})
 }
+
+func TestDeferredError(t *testing.T) {
+	Convey("Test DeferredError", t, func() {
+		Convey("There is an error already, so we ignore the new one", func() {
+			origErr := errors.New(`Original one`)
+			origErrBefore := origErr
+			newErr := errors.New(`New Err`)
+
+			func() {
+				defer DeferredError(func() error { return newErr }, &origErr)
+			}()
+
+			So(origErr, ShouldEqual, origErrBefore)
+		})
+
+		Convey("Update old error if it's nil", func() {
+			var origErr error = nil
+			newErr := errors.New(`New Err`)
+
+			func() {
+				defer DeferredError(func() error { return newErr }, &origErr)
+			}()
+
+			So(origErr, ShouldNotBeNil)
+			So(errors.Is(origErr, newErr), ShouldBeTrue)
+		})
+
+		Convey("Keep the old log if the new one is nil", func() {
+			origErr := errors.New(`Original one`)
+			origErrBefore := origErr
+			var newErr error = nil
+
+			func() {
+				defer DeferredError(func() error { return newErr }, &origErr)
+			}()
+
+			So(origErr, ShouldEqual, origErrBefore)
+		})
+	})
+}

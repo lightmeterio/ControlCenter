@@ -75,7 +75,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 
 			So(err, ShouldBeNil)
 
-			So(insights, ShouldResemble, []core.FetchedInsight{})
+			So(insights, ShouldBeNil)
 		})
 
 		Convey("Bounce rate is higher than threshhold", func() {

@@ -68,7 +68,7 @@ func encodeBody(reader io.Reader) (string, error) {
 	return base64Writer.String(), nil
 }
 
-func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error {
+func (s *HTTPSubscriber) Subscribe(context context.Context, email string) (err error) {
 	data := url.Values{}
 
 	data.Set("email", email)
@@ -86,13 +86,13 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) error 
 
 	req.Header.Set("Content-Type", `application/x-www-form-urlencoded; charset=UTF-8`)
 
+	//nolint:bodyclose
 	res, err := s.HTTPClient.Do(req)
-
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(res.Body.Close()) }()
+	defer errorutil.DeferredClose(res.Body, &err)
 
 	body, err := encodeBody(res.Body)
 
