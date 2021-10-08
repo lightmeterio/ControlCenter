@@ -63,11 +63,6 @@ func main() {
 
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 
-	if conf.MigrateDownToOnly {
-		subcommand.PerformMigrateDownTo(conf.Verbose, conf.WorkspaceDirectory, conf.MigrateDownToDatabaseName, int64(conf.MigrateDownToVersion))
-		return
-	}
-
 	if len(conf.EmailToChange) > 0 {
 		changeUserInfo(conf)
 		return
