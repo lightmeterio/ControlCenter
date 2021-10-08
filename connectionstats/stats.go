@@ -197,7 +197,8 @@ var stmtsText = map[int]string{
 		connections.id
 	from
 		connections join time_cut
-			on connections.disconnection_ts < time_cut.v`,
+			on connections.disconnection_ts < time_cut.v
+	limit ?`,
 	deleteCommandsByConnectionIdKey: `delete from commands where connection_id = ?`,
 	deleteConnectionsByIdKey:        `delete from connections where id = ?`,
 }
@@ -234,11 +235,15 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 	}
 
 	// ~3 months. TODO: make it configurable
-	const maxAge = (time.Hour * 24 * 30 * 3)
+	const (
+		maxAge            = (time.Hour * 24 * 30 * 3)
+		cleaningFrequency = time.Minute * 2
+		cleaningBatchSize = 1000
+	)
 
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, time.Hour*12, makeCleanAction(maxAge)),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
 		Closers: closeutil.New(stmts),
 	}, nil
 }
@@ -267,11 +272,11 @@ func (s *Stats) MostRecentLogTime() (time.Time, error) {
 	return time.Unix(ts, 0).In(time.UTC), nil
 }
 
-func makeCleanAction(maxAge time.Duration) dbrunner.Action {
+func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		// NOTE: timestamp is in seconds
 		//nolint:sqlclosecheck
-		rows, err := stmts.Get(selectOldLogsKey).Query(maxAge / time.Second)
+		rows, err := stmts.Get(selectOldLogsKey).Query(maxAge/time.Second, batchSize)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
