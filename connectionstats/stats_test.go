@@ -196,6 +196,7 @@ func TestRemoveOldLogs(t *testing.T) {
 		done, cancel := runner.Run(stats)
 
 		postfixutil.ReadFromTestReader(strings.NewReader(`
+Jan 09 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[66.66.66.66] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6
 Jan 10 17:41:40 mail postfix/smtpd[1234]: disconnect from unknown[4.3.2.1] ehlo=1 auth=1 mail=1 rcpt=1 data=1 rset=1 commands=6
 Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] ehlo=1 auth=8/14 mail=1 rcpt=0/1 data=0/1 rset=1 commands=3/19
 Sep  3 10:40:57 mail postfix/smtpd[8377]: disconnect from lalala.com[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 commands=1/2
@@ -203,8 +204,11 @@ Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 		`), pub, 2020)
 
-		// removes anything older than 5months
-		stats.Actions <- makeCleanAction(time.Hour * 24 * 30 * 5)
+		// removes 2 entry older than 5months
+		stats.Actions <- makeCleanAction(time.Hour*24*30*5, 2)
+
+		// remove the remaining ones
+		stats.Actions <- makeCleanAction(time.Hour*24*30*5, 10)
 
 		cancel()
 		So(done(), ShouldBeNil)

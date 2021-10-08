@@ -111,10 +111,11 @@ values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			delivery_ts desc limit 1
 	)
 	select
-		deliveries.id, deliveries.message_id
+		deliveries.id, deliveries.message_id, deliveries.delivery_ts
 	from
 		deliveries join time_cut
-			on deliveries.delivery_ts < time_cut.v`,
+			on deliveries.delivery_ts < time_cut.v
+	limit ?`,
 	deleteOldDeliveries: `delete from deliveries where id = ?`,
 	selectQueueIdForDeliveryId: `select
 	delivery_queue.id, delivery_queue.queue_id
@@ -132,7 +133,7 @@ where
 	deleteExpiredQueuesByQueueId:  `delete from expired_queues where queue_id = ?`,
 	deleteQueueParentingByQueueId: `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
 	deleteQueueById:               `delete from queues where id = ?`,
-	countDeliveriesWithMessageId:  `select count(*) from deliveries join messageids on deliveries.message_id = messageids.id where messageids.id = ?`,
+	countDeliveriesWithMessageId:  `select count(*) from deliveries where message_id = ? and delivery_ts < ?`,
 	deleteMessageIdById:           `delete from messageids where id = ?`,
 }
 
@@ -173,12 +174,16 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 		return nil, errorutil.Wrap(err)
 	}
 
-	// ~3 months. TODO: make it configurable
-	const maxAge = (time.Hour * 24 * 30 * 3)
+	const (
+		// ~3 months. TODO: make it configurable
+		maxAge            = (time.Hour * 24 * 30 * 3)
+		cleaningBatchSize = 10000
+		cleaningFrequency = time.Second * 30
+	)
 
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, time.Hour*12, makeCleanAction(maxAge)),
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
 		Closers:  closeutil.New(stmts),
 	}, nil
 }
