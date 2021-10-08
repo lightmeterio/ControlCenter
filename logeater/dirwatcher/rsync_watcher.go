@@ -44,7 +44,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 				h, p, err := parser.ParseWithCustomTimeFormat(line, watcher.format)
 
 				if !parser.IsRecoverableError(err) {
-					log.Error().Msgf("parsing line on file: %v", watcher.filename)
+					log.Error().Msgf("parsing line on file: %v, line content was: '%s'", watcher.filename, line)
 					continue
 				}
 
