@@ -660,8 +660,11 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 		}.Result())
 
-		// delete all messages older than 6min, which include all except the last two ones
-		db.Actions <- makeCleanAction(time.Minute * 6)
+		// delete two messages older than 6min, but not all yet
+		db.Actions <- makeCleanAction(time.Minute*6, 2)
+
+		// finally delete the remaining 3 messages older than 6min
+		db.Actions <- makeCleanAction(time.Minute*6, 3)
 
 		cancel()
 		So(done(), ShouldBeNil)
