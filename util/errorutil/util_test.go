@@ -7,6 +7,7 @@ package errorutil
 
 import (
 	"errors"
+	"io"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -70,5 +71,43 @@ func TestDeferredError(t *testing.T) {
 
 			So(origErr, ShouldEqual, origErrBefore)
 		})
+
+		Convey("Simulate real world typical error handling", func() {
+			// this function fails on reading a value, as well as on closing the resource
+			err := typicalExampleOfErrorHandling()
+
+			So(errors.Is(err, fakeCloseError), ShouldBeTrue)
+			So(errors.Is(err, fakeReadError), ShouldBeTrue)
+		})
 	})
+}
+
+var fakeCloseError = errors.New(`Could not close resource`)
+var fakeReadError = errors.New(`Could not read. Or something.`)
+
+type fakeReadCloser struct{}
+
+// Implements io.ReadCloser
+func (*fakeReadCloser) Read([]byte) (int, error) {
+	return 0, fakeReadError
+}
+
+func (*fakeReadCloser) Close() error {
+	return fakeCloseError
+}
+
+// this function looks like the typical error real world handling flow
+func typicalExampleOfErrorHandling() (err error) {
+	f := &fakeReadCloser{}
+
+	defer DeferredClose(f, &err)
+
+	// remember this is a different err variable, in its own scope
+	if _, err := io.ReadAll(f); err != nil {
+		return Wrap(err)
+	}
+
+	// Here we would typically use what we've just read
+
+	return nil
 }
