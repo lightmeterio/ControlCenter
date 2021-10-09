@@ -92,7 +92,7 @@ func (s *HTTPSubscriber) Subscribe(context context.Context, email string) (err e
 		return errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(res.Body, &err)
+	defer errorutil.UpdateErrorFromCloser(res.Body, &err)
 
 	body, err := encodeBody(res.Body)
 

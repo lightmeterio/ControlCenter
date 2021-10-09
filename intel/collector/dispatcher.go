@@ -60,7 +60,7 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 		return errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(r, &err)
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	initialTime, err := lastReportTime(tx)
 	if err != nil {

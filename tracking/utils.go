@@ -25,7 +25,7 @@ func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) 
 		return errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	for rows.Next() {
 		err = rows.Scan(&id, &key, &value)
@@ -119,7 +119,7 @@ func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) (err err
 		return errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var (
 		dependencyQueueId int64

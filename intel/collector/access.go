@@ -79,7 +79,7 @@ func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) (report
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(r, &err)
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	for r.Next() {
 		var (

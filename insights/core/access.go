@@ -442,7 +442,7 @@ func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var (
 		id               int

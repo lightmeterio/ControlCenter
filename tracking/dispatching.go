@@ -41,7 +41,7 @@ func dispatchAllResults(resultsToNotify chan<- resultInfos, batchId int64, track
 		return errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var (
 		resultId int64

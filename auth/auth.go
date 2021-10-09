@@ -121,7 +121,7 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 
 	defer func() {
 		if err != nil {
-			errorutil.DeferredError(tx.Rollback, &err)
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 
@@ -355,7 +355,7 @@ func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, 
 
 	defer func() {
 		if err != nil {
-			errorutil.DeferredError(tx.Rollback, &err)
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 

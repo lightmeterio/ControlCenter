@@ -380,7 +380,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 
 	closers := closeutil.New()
 
-	defer errorutil.DeferredClose(closers, &err)
+	defer errorutil.UpdateErrorFromCloser(closers, &err)
 
 	for _, queue := range queues {
 		if len(queue) == 0 {
@@ -544,7 +544,7 @@ func buildReaderForCurrentEntry(content DirectoryContent, entry fileEntry) (read
 
 	defer func() {
 		if err != nil {
-			errorutil.DeferredClose(readSeeker, &err)
+			errorutil.UpdateErrorFromCloser(readSeeker, &err)
 		}
 	}()
 
@@ -666,7 +666,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(reader, &err)
+	defer errorutil.UpdateErrorFromCloser(reader, &err)
 
 	initialTime, err := guessInitialDateForFile(reader, modificationTime, format)
 

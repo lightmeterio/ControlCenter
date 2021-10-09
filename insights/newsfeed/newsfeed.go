@@ -318,7 +318,7 @@ func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string, time
 		return false, errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	for rows.Next() {
 		var rawContent string

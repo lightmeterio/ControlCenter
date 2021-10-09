@@ -245,7 +245,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer errorutil.DeferredClose(rows, &err)
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var (
 		total    int

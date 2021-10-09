@@ -70,7 +70,7 @@ func ExpandError(err error) interface{} {
 	return err
 }
 
-func DeferredError(f func() error, err *error) {
+func UpdateErrorFromCall(f func() error, err *error) {
 	if err == nil {
 		log.Fatal().Msg("err must be not nil!")
 	}
@@ -89,8 +89,8 @@ func DeferredError(f func() error, err *error) {
 	*err = multierror.Append(*err, Wrap(cErr))
 }
 
-// DeferredClose is supposed to be used to close a io.Closer when a function exits,
-// setting its error return into err, if any.
-func DeferredClose(closer io.Closer, err *error) {
-	DeferredError(closer.Close, err)
+// UpdateErrorFromCloser is supposed to be used to close a io.Closer when a function exits,
+// merging its error return into err, if any.
+func UpdateErrorFromCloser(closer io.Closer, err *error) {
+	UpdateErrorFromCall(closer.Close, err)
 }

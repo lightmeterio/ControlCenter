@@ -38,7 +38,7 @@ func TestDeferredError(t *testing.T) {
 			newErr := errors.New(`New Err`)
 
 			func() {
-				defer DeferredError(func() error { return newErr }, &origErr)
+				defer UpdateErrorFromCall(func() error { return newErr }, &origErr)
 			}()
 
 			// we have the original error
@@ -53,7 +53,7 @@ func TestDeferredError(t *testing.T) {
 			newErr := errors.New(`New Err`)
 
 			func() {
-				defer DeferredError(func() error { return newErr }, &origErr)
+				defer UpdateErrorFromCall(func() error { return newErr }, &origErr)
 			}()
 
 			So(origErr, ShouldNotBeNil)
@@ -66,7 +66,7 @@ func TestDeferredError(t *testing.T) {
 			var newErr error = nil
 
 			func() {
-				defer DeferredError(func() error { return newErr }, &origErr)
+				defer UpdateErrorFromCall(func() error { return newErr }, &origErr)
 			}()
 
 			So(origErr, ShouldEqual, origErrBefore)
@@ -100,7 +100,7 @@ func (*fakeReadCloser) Close() error {
 func typicalExampleOfErrorHandling() (err error) {
 	f := &fakeReadCloser{}
 
-	defer DeferredClose(f, &err)
+	defer UpdateErrorFromCloser(f, &err)
 
 	// remember this is a different err variable, in its own scope
 	if _, err := io.ReadAll(f); err != nil {

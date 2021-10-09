@@ -125,7 +125,7 @@ func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 
 	defer func() {
 		if err != nil {
-			errorutil.DeferredClose(writer, &err)
+			errorutil.UpdateErrorFromCloser(writer, &err)
 		}
 	}()
 
