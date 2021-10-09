@@ -31,7 +31,7 @@ func TestErrorAssertion(t *testing.T) {
 
 func TestDeferredError(t *testing.T) {
 	Convey("Test DeferredError", t, func() {
-		Convey("There is an error already, so we ignore the new one", func() {
+		Convey("There is an error already, and we combine it with the new one", func() {
 			origErr := errors.New(`Original one`)
 			origErrBefore := origErr
 			newErr := errors.New(`New Err`)
@@ -40,7 +40,11 @@ func TestDeferredError(t *testing.T) {
 				defer DeferredError(func() error { return newErr }, &origErr)
 			}()
 
-			So(origErr, ShouldEqual, origErrBefore)
+			// we have the original error
+			So(errors.Is(origErr, origErrBefore), ShouldBeTrue)
+
+			// and the new one too
+			So(errors.Is(origErr, newErr), ShouldBeTrue)
 		})
 
 		Convey("Update old error if it's nil", func() {

@@ -7,6 +7,7 @@ package errorutil
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -85,10 +86,7 @@ func DeferredError(f func() error, err *error) {
 		return
 	}
 
-	// TODO: there's an error already set and we found another one.
-	// they might or not be related, so it'd be nice being able to have a
-	// "combined" error merging both into a single one instead of panicking!
-	log.Error().Errs("errors", []error{*err, cErr})
+	*err = multierror.Append(*err, Wrap(cErr))
 }
 
 // DeferredClose is supposed to be used to close a io.Closer when a function exits,
