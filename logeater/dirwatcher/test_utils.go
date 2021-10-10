@@ -16,7 +16,7 @@ import (
 // nolint:unused,deadcode
 func readFromReader(reader io.Reader,
 	filename string,
-	onNewRecord func(parser.Header, []byte)) {
+	onNewRecord func(parser.Header, []byte, []byte)) {
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
@@ -25,7 +25,7 @@ func readFromReader(reader io.Reader,
 		h, p, err := parser.ParseHeader(line)
 
 		if parser.IsRecoverableError(err) {
-			onNewRecord(h, p)
+			onNewRecord(h, line, p)
 		}
 	}
 }

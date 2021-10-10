@@ -417,7 +417,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 }
 
 type fileWatcher interface {
-	run(onNewRecord func(parser.Header, []byte))
+	run(onNewRecord func(h parser.Header, line, payloadLine []byte))
 }
 
 type DirectoryContent interface {
@@ -504,6 +504,7 @@ type parsedHeaderRecord struct {
 	header      parser.Header
 	location    postfix.RecordLocation
 	payloadLine []byte
+	line        []byte
 }
 
 type queueProcessor struct {
@@ -758,7 +759,8 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		// Successfully read
-		header, payload, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Bytes(), format)
+		line := scanner.Bytes()
+		header, payload, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -782,6 +784,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 			time:        convertedTime,
 			location:    loc,
 			payloadLine: payload,
+			line:        line,
 		}
 
 		return true, nil
@@ -934,6 +937,7 @@ func importExistingLogs(
 			Header:   t.header,
 			Location: t.location,
 			Payload:  payloadOrNil(payload, err),
+			Line:     string(t.line),
 		})
 	}
 }
@@ -1001,6 +1005,7 @@ func (t *sortableRecordHeap) Pop() interface{} {
 type parsedRecord struct {
 	header      parser.Header
 	payloadLine []byte
+	line        []byte
 
 	// When the same queue adds multiple items to the heap that happen in the same second
 	// we want to preserve their original order
@@ -1027,10 +1032,11 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	watcher.run(func(h parser.Header, p []byte) {
+	watcher.run(func(h parser.Header, line, payloadLine []byte) {
 		record := parsedRecord{
 			header:      h,
-			payloadLine: p,
+			payloadLine: payloadLine,
+			line:        line,
 			queueIndex:  queueIndex,
 			sequence:    sequence,
 		}
@@ -1140,6 +1146,7 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub partial
 				payloadLine: s.record.payloadLine,
 				time:        s.time,
 				location:    s.record.loc,
+				line:        s.record.line,
 			}
 		}
 	}
@@ -1317,6 +1324,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 			Header:   r.header,
 			Location: r.location,
 			Payload:  payloadOrNil(p, err),
+			Line:     string(r.line),
 		})
 	}
 

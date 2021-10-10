@@ -19,6 +19,7 @@ type Record struct {
 	Header   parser.Header
 	Location RecordLocation
 	Payload  parser.Payload
+	Line     string
 }
 
 type Publisher interface {
