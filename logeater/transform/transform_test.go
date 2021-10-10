@@ -33,6 +33,7 @@ func TestTransformers(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.Header.Host, ShouldEqual, "mail")
 			So(r.Time, ShouldResemble, time.Date(time.Now().Year(), time.August, 21, 3, 3, 4, 0, time.UTC))
+			So(r.Line, ShouldEqual, `Aug 21 03:03:04 mail dog: Useless Payload`)
 		})
 
 		Convey("Default, just return the line, unable to get a time from it", func() {
@@ -92,6 +93,7 @@ func TestRFC3339PrependFormat(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(r.Time, ShouldResemble, testutil.MustParseTime(`2021-03-06 06:09:00 +0000`))
 			So(r.Header.Host, ShouldEqual, "host")
+			So(r.Line, ShouldEqual, `Mar  6 07:08:59 host postfix/qmgr[28829]: A1E1E1880093: removed`)
 		})
 
 		Convey("Succeeds, docker logs default format", func() {
@@ -125,6 +127,7 @@ func TestLogstashJSON(t *testing.T) {
 			So(r.Time, ShouldResemble, expectedTime)
 			So(r.Header.Host, ShouldEqual, "mail")
 			So(r.Location.Filename, ShouldEqual, "/var/log/mail.log")
+			So(r.Line, ShouldEqual, `Mar 20 07:54:52 mail postfix/smtp[6807]: 586711880093: to=<XXXXXXXX>, relay=XXXXX[XXXXX]:25, delay=4.1, delays=0.15/0.01/1.4/2.5, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 6ECB0A8019A)`)
 		})
 	})
 }

@@ -118,6 +118,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				},
 				Location: postfix.RecordLocation{Line: 1, Filename: "unknown"},
 				Payload:  nil,
+				Line:     `Aug 20 02:03:04 mail banana: Useless Payload`,
 			})
 
 			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))

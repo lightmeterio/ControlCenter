@@ -70,6 +70,7 @@ func ParseLine(line []byte, timeBuilder func(parser.Header) time.Time, loc postf
 		Header:   h,
 		Payload:  p,
 		Location: loc,
+		Line:     string(line),
 	}, nil
 }
 
