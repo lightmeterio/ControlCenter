@@ -37,23 +37,23 @@ func registerHandler(payloadType rawparser.PayloadType, handler func(rawparser.R
 	handlers[payloadType] = handler
 }
 
-func ParseHeaderWithCustomTimeFormat(line []byte, format rawparser.TimeFormat) (h Header, payloadLine []byte, err error) {
-	rawHeader, p, err := rawparser.ParseHeaderWithCustomTimeFormat(line, format)
+func ParseHeaderWithCustomTimeFormat(line []byte, format rawparser.TimeFormat) (h Header, payloadOffset int, err error) {
+	rawHeader, payloadOffset, err := rawparser.ParseHeaderWithCustomTimeFormat(line, format)
 	if err != nil {
 		// TODO: unify parser and rawparser packages in a single one, for the sake of simplicity
 		//nolint:wrapcheck
-		return Header{}, nil, err
+		return Header{}, payloadOffset, err
 	}
 
 	header, err := parseHeader(rawHeader, format)
 	if err != nil {
-		return Header{}, nil, err
+		return Header{}, payloadOffset, err
 	}
 
-	return header, p, nil
+	return header, payloadOffset, nil
 }
 
-func ParseHeader(line []byte) (h Header, payloadLine []byte, err error) {
+func ParseHeader(line []byte) (h Header, payloadOffset int, err error) {
 	return ParseHeaderWithCustomTimeFormat(line, timeutil.DefaultTimeFormat{})
 }
 
@@ -77,12 +77,12 @@ func ParsePayload(h Header, payloadLine []byte) (Payload, error) {
 }
 
 func ParseWithCustomTimeFormat(line []byte, format rawparser.TimeFormat) (Header, Payload, error) {
-	h, payloadLine, err := ParseHeaderWithCustomTimeFormat(line, format)
+	h, payloadOffset, err := ParseHeaderWithCustomTimeFormat(line, format)
 	if err != nil {
 		return Header{}, nil, err
 	}
 
-	payload, err := ParsePayload(h, payloadLine)
+	payload, err := ParsePayload(h, line[payloadOffset:])
 	if err != nil {
 		return h, nil, err
 	}

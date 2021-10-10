@@ -41,10 +41,10 @@ type RawHeader struct {
 
 type TimeFormat = timeutil.TimeFormat
 
-func tryToGetHeaderAndPayloadContent(logLine []byte, format TimeFormat) (RawHeader, []byte, error) {
+func tryToGetHeaderAndPayloadContent(logLine []byte, format TimeFormat) (RawHeader, int, error) {
 	t, remainingHeader, l, err := format.ExtractRaw(logLine)
 	if err != nil {
-		return RawHeader{}, nil, err
+		return RawHeader{}, 0, err
 	}
 
 	h := RawHeader{Time: t}
@@ -52,12 +52,12 @@ func tryToGetHeaderAndPayloadContent(logLine []byte, format TimeFormat) (RawHead
 	n, succeed := parseHeaderPostfixPart(&h, remainingHeader)
 
 	if !succeed {
-		return RawHeader{}, nil, ErrInvalidHeaderLine
+		return RawHeader{}, 0, ErrInvalidHeaderLine
 	}
 
-	payloadLine := logLine[l+n+1:]
+	payloadOffset := l + n + 1
 
-	return h, payloadLine, nil
+	return h, payloadOffset, nil
 }
 
 type payloadHandlerKey struct {
@@ -73,7 +73,7 @@ func registerHandler(process, daemon string, handler func([]byte) (RawPayload, e
 	payloadHandlers[payloadHandlerKey{process: process, daemon: daemon}] = handler
 }
 
-func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHeader, []byte, error) {
+func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHeader, int, error) {
 	// Remove leading 0x0
 	start := bytes.IndexFunc(logLine, func(r rune) bool {
 		return r != 0
@@ -83,19 +83,19 @@ func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHead
 		logLine = logLine[start:]
 	}
 
-	header, payloadLine, err := tryToGetHeaderAndPayloadContent(logLine, format)
+	header, payloadOffset, err := tryToGetHeaderAndPayloadContent(logLine, format)
 	if errors.Is(err, ErrInvalidHeaderLine) {
-		return RawHeader{}, nil, err
+		return RawHeader{}, payloadOffset, err
 	}
 
 	if errors.Is(err, timeutil.ErrInvalidTimeFormat) {
-		return RawHeader{}, nil, ErrInvalidHeaderLine
+		return RawHeader{}, payloadOffset, ErrInvalidHeaderLine
 	}
 
-	return header, payloadLine, nil
+	return header, payloadOffset, nil
 }
 
-func ParseHeader(logLine []byte) (RawHeader, []byte, error) {
+func ParseHeader(logLine []byte) (RawHeader, int, error) {
 	return ParseHeaderWithCustomTimeFormat(logLine, timeutil.DefaultTimeFormat{})
 }
 
