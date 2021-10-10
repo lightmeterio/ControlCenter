@@ -119,7 +119,7 @@ type fakeFileWatcher struct {
 	reader   io.Reader
 }
 
-func (f fakeFileWatcher) run(onNewRecord func(parser.Header, []byte, []byte)) {
+func (f fakeFileWatcher) run(onNewRecord func(parser.Header, []byte, int)) {
 	readFromReader(f.reader, f.filename, onNewRecord)
 }
 

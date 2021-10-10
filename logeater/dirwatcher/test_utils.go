@@ -16,7 +16,7 @@ import (
 // nolint:unused,deadcode
 func readFromReader(reader io.Reader,
 	filename string,
-	onNewRecord func(parser.Header, []byte, []byte)) {
+	onNewRecord func(parser.Header, []byte, int)) {
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {

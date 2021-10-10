@@ -417,7 +417,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 }
 
 type fileWatcher interface {
-	run(onNewRecord func(h parser.Header, line, payloadLine []byte))
+	run(onNewRecord func(h parser.Header, line []byte, payloadOffset int))
 }
 
 type DirectoryContent interface {
@@ -500,11 +500,11 @@ var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail
 type timeConverterChan chan *parsertimeutil.TimeConverter
 
 type parsedHeaderRecord struct {
-	time        time.Time
-	header      parser.Header
-	location    postfix.RecordLocation
-	payloadLine []byte
-	line        []byte
+	time          time.Time
+	header        parser.Header
+	location      postfix.RecordLocation
+	payloadOffset int
+	line          []byte
 }
 
 type queueProcessor struct {
@@ -760,7 +760,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 
 		// Successfully read
 		line := scanner.Bytes()
-		header, payload, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
+		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -780,11 +780,11 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		convertedTime := format.ConvertWithConverter(p.converter, header.Time)
 
 		p.record = parsedHeaderRecord{
-			header:      header,
-			time:        convertedTime,
-			location:    loc,
-			payloadLine: payload,
-			line:        line,
+			header:        header,
+			time:          convertedTime,
+			location:      loc,
+			payloadOffset: payloadOffset,
+			line:          line,
 		}
 
 		return true, nil
@@ -927,7 +927,7 @@ func importExistingLogs(
 
 		currentLogTime = t.time
 
-		payload, err := parser.ParsePayload(t.header, t.payloadLine)
+		payload, err := parser.ParsePayload(t.header, t.line[t.payloadOffset:])
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
 		}
@@ -1003,9 +1003,9 @@ func (t *sortableRecordHeap) Pop() interface{} {
 }
 
 type parsedRecord struct {
-	header      parser.Header
-	payloadLine []byte
-	line        []byte
+	header        parser.Header
+	payloadOffset int
+	line          []byte
 
 	// When the same queue adds multiple items to the heap that happen in the same second
 	// we want to preserve their original order
@@ -1032,13 +1032,13 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	watcher.run(func(h parser.Header, line, payloadLine []byte) {
+	watcher.run(func(h parser.Header, line []byte, payloadOffset int) {
 		record := parsedRecord{
-			header:      h,
-			payloadLine: payloadLine,
-			line:        line,
-			queueIndex:  queueIndex,
-			sequence:    sequence,
+			header:        h,
+			payloadOffset: payloadOffset,
+			line:          line,
+			queueIndex:    queueIndex,
+			sequence:      sequence,
 		}
 
 		outChan <- record
@@ -1142,11 +1142,11 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub partial
 			s := heap.Pop(&h).(sortableRecord)
 
 			pub.records <- parsedHeaderRecord{
-				header:      s.record.header,
-				payloadLine: s.record.payloadLine,
-				time:        s.time,
-				location:    s.record.loc,
-				line:        s.record.line,
+				header:        s.record.header,
+				payloadOffset: s.record.payloadOffset,
+				time:          s.time,
+				location:      s.record.loc,
+				line:          s.record.line,
 			}
 		}
 	}
@@ -1314,7 +1314,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	// Start really publishing the buffered records here, indefinitely
 	for r := range partiallyParsedLogsPublisher.records {
-		p, err := parser.ParsePayload(r.header, r.payloadLine)
+		p, err := parser.ParsePayload(r.header, r.line[r.payloadOffset:])
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
 		}

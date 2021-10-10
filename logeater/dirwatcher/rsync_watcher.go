@@ -22,7 +22,7 @@ type rsyncedFileWatcher struct {
 
 type rsyncedFileWatcherRunner = runner.CancellableRunner
 
-func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(parser.Header, []byte, []byte)) rsyncedFileWatcherRunner {
+func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(parser.Header, []byte, int)) rsyncedFileWatcherRunner {
 	rw := rsyncwatcher.ReadWriter()
 
 	w, err := rsyncwatcher.New(watcher.filename, watcher.offset, rw)
@@ -41,14 +41,14 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 
 			for scanner.Scan() {
 				line := scanner.Bytes()
-				h, p, err := parser.ParseHeaderWithCustomTimeFormat(line, watcher.format)
+				h, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, watcher.format)
 
 				if !parser.IsRecoverableError(err) {
 					log.Error().Msgf("parsing line on file: %v", watcher.filename)
 					continue
 				}
 
-				onRecord(h, line, p)
+				onRecord(h, line, payloadOffset)
 			}
 
 			if err := scanner.Err(); err != nil {
@@ -61,7 +61,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 	})
 }
 
-func (watcher *rsyncedFileWatcher) run(onRecord func(parser.Header, []byte, []byte)) {
+func (watcher *rsyncedFileWatcher) run(onRecord func(parser.Header, []byte, int)) {
 	done, _ := runner.Run(newRsyncedFileWatcherRunner(watcher, onRecord))
 
 	// never cancel, wait forever, no error handling
