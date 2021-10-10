@@ -504,7 +504,7 @@ type parsedHeaderRecord struct {
 	header        parser.Header
 	location      postfix.RecordLocation
 	payloadOffset int
-	line          []byte
+	line          string
 }
 
 type queueProcessor struct {
@@ -759,8 +759,8 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		// Successfully read
-		line := scanner.Bytes()
-		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
+		line := scanner.Text()
+		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat([]byte(line), format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -927,7 +927,7 @@ func importExistingLogs(
 
 		currentLogTime = t.time
 
-		payload, err := parser.ParsePayload(t.header, t.line[t.payloadOffset:])
+		payload, err := parser.ParsePayload(t.header, []byte(t.line[t.payloadOffset:]))
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
 		}
@@ -937,7 +937,7 @@ func importExistingLogs(
 			Header:   t.header,
 			Location: t.location,
 			Payload:  payloadOrNil(payload, err),
-			Line:     string(t.line),
+			Line:     t.line,
 		})
 	}
 }
@@ -1005,7 +1005,7 @@ func (t *sortableRecordHeap) Pop() interface{} {
 type parsedRecord struct {
 	header        parser.Header
 	payloadOffset int
-	line          []byte
+	line          string
 
 	// When the same queue adds multiple items to the heap that happen in the same second
 	// we want to preserve their original order
@@ -1036,7 +1036,7 @@ func startWatchingOnQueue(
 		record := parsedRecord{
 			header:        h,
 			payloadOffset: payloadOffset,
-			line:          line,
+			line:          string(line),
 			queueIndex:    queueIndex,
 			sequence:      sequence,
 		}
@@ -1314,7 +1314,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	// Start really publishing the buffered records here, indefinitely
 	for r := range partiallyParsedLogsPublisher.records {
-		p, err := parser.ParsePayload(r.header, r.line[r.payloadOffset:])
+		p, err := parser.ParsePayload(r.header, []byte(r.line[r.payloadOffset:]))
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
 		}
@@ -1324,7 +1324,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 			Header:   r.header,
 			Location: r.location,
 			Payload:  payloadOrNil(p, err),
-			Line:     string(r.line),
+			Line:     r.line,
 		})
 	}
 
