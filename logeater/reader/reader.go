@@ -45,6 +45,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 		initialTime         time.Time
 		endAlreadyAnnounced = false
 		currentRecord       postfix.Record
+		hasher              = postfix.NewHasher()
 	)
 
 	progress := func(t time.Time) uint {
@@ -102,6 +103,8 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 			log.Err(err).Msgf("Error reading from reader: %v", err)
 			return
 		}
+
+		currentRecord.Sum = postfix.ComputeChecksum(hasher, currentRecord)
 
 		setupAnnouncerIfNeeded(currentRecord)
 

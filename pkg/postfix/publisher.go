@@ -20,6 +20,7 @@ type Record struct {
 	Location RecordLocation
 	Payload  parser.Payload
 	Line     string
+	Sum      Sum
 }
 
 type Publisher interface {

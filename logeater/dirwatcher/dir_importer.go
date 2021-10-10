@@ -892,6 +892,8 @@ func importExistingLogs(
 
 	updatedProcessors := make([]*queueProcessor, 0, len(queueProcessors))
 
+	hasher := postfix.NewHasher()
+
 	for {
 		updatedProcessors = updatedProcessors[0:0]
 
@@ -932,13 +934,17 @@ func importExistingLogs(
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
 		}
 
-		pub.Publish(postfix.Record{
+		record := postfix.Record{
 			Time:     t.time,
 			Header:   t.header,
 			Location: t.location,
 			Payload:  payloadOrNil(payload, err),
 			Line:     t.line,
-		})
+		}
+
+		record.Sum = postfix.ComputeChecksum(hasher, record)
+
+		pub.Publish(record)
 	}
 }
 
@@ -1312,6 +1318,8 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		return nil
 	}
 
+	hasher := postfix.NewHasher()
+
 	// Start really publishing the buffered records here, indefinitely
 	for r := range partiallyParsedLogsPublisher.records {
 		p, err := parser.ParsePayload(r.header, []byte(r.line[r.payloadOffset:]))
@@ -1319,13 +1327,17 @@ func (importer *DirectoryImporter) run(watch bool) error {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
 		}
 
-		importer.pub.Publish(postfix.Record{
+		record := postfix.Record{
 			Time:     r.time,
 			Header:   r.header,
 			Location: r.location,
 			Payload:  payloadOrNil(p, err),
 			Line:     r.line,
-		})
+		}
+
+		record.Sum = postfix.ComputeChecksum(hasher, record)
+
+		importer.pub.Publish(record)
 	}
 
 	// It should never get here in production, only used by the tests

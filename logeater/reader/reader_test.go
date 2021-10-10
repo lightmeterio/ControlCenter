@@ -122,6 +122,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 1, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 20 02:03:04 mail banana: Useless Payload`,
+				Sum:      postfix.Sum(2199560499),
 			})
 
 			So(pub.logs[4], ShouldResemble, postfix.Record{
@@ -137,6 +138,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 5, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 24 05:03:04 mail apple: Useless Payload`,
+				Sum:      postfix.Sum(4097485001),
 			})
 
 			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))
@@ -192,6 +194,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 1, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 20 02:03:04 mail banana: Useless Payload`,
+				Sum:      postfix.Sum(2199560499),
 			})
 
 			So(pub.logs[4], ShouldResemble, postfix.Record{
@@ -207,6 +210,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 5, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 24 05:03:04 mail apple: Useless Payload`,
+				Sum:      postfix.Sum(4097485001),
 			})
 
 			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))
@@ -248,6 +252,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 1, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 20 02:03:04 mail banana: Useless Payload`,
+				Sum:      postfix.Sum(2199560499),
 			})
 
 			So(pub.logs[4], ShouldResemble, postfix.Record{
@@ -263,6 +268,7 @@ Aug 24 05:03:04 mail apple: Useless Payload
 				Location: postfix.RecordLocation{Line: 5, Filename: "unknown"},
 				Payload:  nil,
 				Line:     `Aug 24 05:03:04 mail apple: Useless Payload`,
+				Sum:      postfix.Sum(4097485001),
 			})
 
 			So(fakeAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2000-08-20 02:03:04 +0000`))
