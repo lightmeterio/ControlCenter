@@ -243,7 +243,7 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
 		Closers: closeutil.New(stmts),
 	}, nil
 }
