@@ -33,6 +33,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
+	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -47,6 +48,7 @@ type Workspace struct {
 	closeutil.Closers
 
 	deliveries              *deliverydb.DB
+	rawLogs                 *rawlogsdb.DB
 	tracker                 *tracking.Tracker
 	connStats               *connectionstats.Stats
 	insightsEngine          *insights.Engine
@@ -81,6 +83,7 @@ type databases struct {
 	Logs           *dbconn.PooledPair
 	LogTracker     *dbconn.PooledPair
 	Master         *dbconn.PooledPair
+	RawLogs        *dbconn.PooledPair
 }
 
 func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
@@ -128,6 +131,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		{"logs", &allDatabases.Logs},
 		{"logtracker", &allDatabases.LogTracker},
 		{"master", &allDatabases.Master},
+		{"rawlogs", &allDatabases.RawLogs},
 	} {
 		db, err := newDb(workspaceDirectory, s.name)
 
@@ -141,12 +145,16 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -278,6 +286,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 
 	return &Workspace{
 		deliveries:              deliveries,
+		rawLogs:                 rawLogsDb,
 		tracker:                 tracker,
 		insightsEngine:          insightsEngine,
 		connStats:               connStats,
@@ -298,6 +307,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		Closers: closeutil.New(
 			connStats,
 			deliveries,
+			rawLogsDb,
 			tracker,
 			insightsEngine,
 			intelCollector,
@@ -306,7 +316,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		NotificationCenter: notificationCenter,
 		CancellableRunner: runner.NewCombinedCancellableRunners(
 			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
-			intelCollector, connStats, rblCheckerCancellableRunner),
+			intelCollector, connStats, rblCheckerCancellableRunner, rawLogsDb),
 	}, nil
 }
 
@@ -401,6 +411,7 @@ func (ws *Workspace) NewPublisher() postfix.Publisher {
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
+		ws.rawLogs.Publisher(),
 	}
 }
 
