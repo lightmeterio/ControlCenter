@@ -25,11 +25,12 @@ import (
 )
 
 type HttpServer struct {
-	Workspace          *workspace.Workspace
-	WorkspaceDirectory string
-	Timezone           *time.Location
-	Address            string
-	FrontendDev        bool
+	Workspace            *workspace.Workspace
+	WorkspaceDirectory   string
+	Timezone             *time.Location
+	Address              string
+	FrontendDev          bool
+	IsBehindReverseProxy bool
 }
 
 func (s *HttpServer) Start() error {
@@ -77,13 +78,13 @@ func (s *HttpServer) Start() error {
 	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher(), s.Workspace.InsightsEngine())
 	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
-	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester(), reader)
+	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester(), reader, s.IsBehindReverseProxy)
 	api.HttpConnectionsDashboard(auth, mux, s.Timezone, s.Workspace.ConnectionStatsAccessor())
 	api.HttpReports(auth, mux, s.Timezone, s.Workspace.IntelAccessor())
 
 	setup.HttpSetup(mux, auth)
 
-	httpauth.HttpAuthenticator(mux, auth, reader)
+	httpauth.HttpAuthenticator(mux, auth, reader, s.IsBehindReverseProxy)
 
 	server := http.Server{Handler: wrap(mux)}
 
