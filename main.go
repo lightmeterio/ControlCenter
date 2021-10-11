@@ -115,10 +115,11 @@ func main() {
 	}()
 
 	httpServer := server.HttpServer{
-		Workspace:          ws,
-		WorkspaceDirectory: conf.WorkspaceDirectory,
-		Timezone:           conf.Timezone,
-		Address:            conf.Address,
+		Workspace:            ws,
+		WorkspaceDirectory:   conf.WorkspaceDirectory,
+		Timezone:             conf.Timezone,
+		Address:              conf.Address,
+		IsBehindReverseProxy: !conf.IKnowWhatIAmDoingNotUsingAReverseProxy,
 	}
 
 	errorutil.MustSucceed(httpServer.Start(), "server died")

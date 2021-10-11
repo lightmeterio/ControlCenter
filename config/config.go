@@ -39,6 +39,10 @@ type Config struct {
 	PasswordToReset        string
 	ChangeUserInfoNewEmail string
 	ChangeUserInfoNewName  string
+
+	// set it when control center is **NOT** behind a reverse proxy,
+	// being accessed directly, on plain HTTP (as on 2.0)
+	IKnowWhatIAmDoingNotUsingAReverseProxy bool
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -117,6 +121,15 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", lookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
 		`An optional colon separated list of the base filenames for the Postfix log files. Example: "mail.log:mail.err:mail.log" or "maillog"`)
+
+	proxyConf, err := lookupEnvOrBool("LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY", false, lookupenv)
+	if err != nil {
+		return conf, err
+	}
+
+	fs.BoolVar(&conf.IKnowWhatIAmDoingNotUsingAReverseProxy, "i_know_what_am_doing_not_using_a_reverse_proxy",
+		proxyConf, "Used when you are accessing the application without a reverse proxy (e.g. apache2, nginx or traefik), "+
+			"which is unsupported by us at the moment and might lead to security issues")
 
 	fs.Usage = func() {
 		version.PrintVersion()
