@@ -23,16 +23,17 @@ type DB struct {
 
 const (
 	insertLogLineKey = iota
-	deleteOldLogEntriesKey
-
+	selectMostRecentLogTimeKey
+	selectOldestLogEntriesKey
+	deleteLogEntryKey
 	lastStmtKey
 )
 
 var stmtsText = dbconn.StmtsText{
-	insertLogLineKey: `insert into logs(time, checksum, content) values(?, ?, ?)`,
-
-	// TODO: implement it!!! It gets two arguments: duration in seconds and a batch size
-	deleteOldLogEntriesKey: `delete from logs where 1 = 2 and ? = ?`,
+	insertLogLineKey:           `insert into logs(time, checksum, content) values(?, ?, ?)`,
+	selectMostRecentLogTimeKey: `select time from logs order by time desc limit 1`,
+	selectOldestLogEntriesKey:  `select id from logs where time < ? order by time, id asc limit ?`,
+	deleteLogEntryKey:          `delete from logs where id = ?`,
 }
 
 func New(conn dbconn.RwConn) (*DB, error) {
@@ -76,14 +77,49 @@ func (pub *publisher) Publish(r postfix.Record) {
 
 func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		var mostRecentLogTime int64
+
+		// FIXME: this process is way too complicated and should be simplified.
+		// To sum up, what it does is: delete maximum of batchSize of the oldest log entries
+		// which are older than the time of the most recent log entry subtracted maxAge.
+		// I could not come up with an efficient query for it, so had to break it into "small pieces",
+		// doing some of the computation in Go instead of SQL.
+		// I imagine that such query would look like the pseudo-sql:
+		// delete at most <batchSize> from logs where time < ((select max(time) from logs) - <maxAge>)
+
 		//nolint:sqlclosecheck
-		result, err := stmts.Get(deleteOldLogEntriesKey).Exec(maxAge/time.Second, batchSize)
+		if err := stmts.Get(selectMostRecentLogTimeKey).QueryRow().Scan(&mostRecentLogTime); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		oldestTimeToKeep := time.Unix(mostRecentLogTime, 0).Add(-maxAge).Unix()
+
+		//nolint:sqlclosecheck
+		rows, err := stmts.Get(selectOldestLogEntriesKey).Query(oldestTimeToKeep, batchSize)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
-		n, err := result.RowsAffected()
-		if err != nil {
+		defer rows.Close()
+
+		n := 0
+
+		for rows.Next() {
+			var id int64
+
+			if err := rows.Scan(&id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			//nolint:sqlclosecheck
+			if _, err := stmts.Get(deleteLogEntryKey).Exec(id); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			n++
+		}
+
+		if err := rows.Err(); err != nil {
 			return errorutil.Wrap(err)
 		}
 

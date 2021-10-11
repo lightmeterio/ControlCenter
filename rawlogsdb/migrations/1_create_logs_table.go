@@ -21,10 +21,14 @@ func upCreateLogsTable(tx *sql.Tx) error {
 		id integer primary key,
 		time integer not null,
 		checksum integer not null,
-		content
+		content text not null
 	);
 		
+	-- this index is needed for searching for individual rows (by other subsystems)
 	create index logs_sum_index on logs(time, checksum);
+	
+	-- this index is needed for the paginated search
+	create index logs_query_index on logs(time, id, checksum);
 `
 
 	_, err := tx.Exec(sql)
