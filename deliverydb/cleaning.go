@@ -7,18 +7,30 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
-func tryToDeleteMessageId(tx *sql.Tx, messageId int64, stmts dbconn.TxPreparedStmts) error {
+func tryToDeleteMessageId(tx *sql.Tx, messageId int64, deliveryTime int64, stmts dbconn.TxPreparedStmts) error {
 	var msgIdsCount int
+
+	// In order not to scan the whole messageids table for messages with the same id,
+	// we scan only a small window of +- 2 days, as results are very unlikely outside of
+	// a short window.
+	// TODO: For the vast majority of cases, there is only one message-id for each message
+	// meaning that we should make message-id a field of the deliveries table instead of an external
+	// table, to avoid this check here...
+	// For the few messages with same message-ids, the duplication is still worth it.
+	toleranceTimeForSameMessageIdInSeconds := (time.Hour * 24 * 2) / time.Second
+
+	maxTime := deliveryTime + int64(toleranceTimeForSameMessageIdInSeconds)
 
 	// is it the only delivery with this message-id?
 	//nolint:sqlclosecheck
-	if err := stmts.Get(countDeliveriesWithMessageId).QueryRow(messageId).Scan(&msgIdsCount); err != nil {
+	if err := stmts.Get(countDeliveriesWithMessageId).QueryRow(messageId, maxTime).Scan(&msgIdsCount); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -96,28 +108,35 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 	return nil
 }
 
-func makeCleanAction(maxAge time.Duration) dbrunner.Action {
+func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		// NOTE: the time in the database is in Seconds
 		//nolint:sqlclosecheck
-		rows, err := stmts.Get(selectOldDeliveries).Query(maxAge / time.Second)
+		rows, err := stmts.Get(selectOldDeliveries).Query(maxAge/time.Second, batchSize)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
 		defer rows.Close()
 
+		timeBeforeAction := time.Now()
+
+		numberOfDeletedRecords := 0
+
 		for rows.Next() {
+			numberOfDeletedRecords++
+
 			var (
-				deliveryId int64
-				messageId  int64
+				deliveryId   int64
+				messageId    int64
+				deliveryTime int64
 			)
 
-			if err := rows.Scan(&deliveryId, &messageId); err != nil {
+			if err := rows.Scan(&deliveryId, &messageId, &deliveryTime); err != nil {
 				return errorutil.Wrap(err)
 			}
 
-			if err := tryToDeleteMessageId(tx, messageId, stmts); err != nil {
+			if err := tryToDeleteMessageId(tx, messageId, deliveryTime, stmts); err != nil {
 				return errorutil.Wrap(err)
 			}
 
@@ -127,7 +146,7 @@ func makeCleanAction(maxAge time.Duration) dbrunner.Action {
 
 			// TODO:
 			// maybe delete sender and recipient and orig_recipient domain parts,
-			// although they are very unlikely to grow over time
+			// although they are very unlikely to grow too much over time
 
 			//nolint:sqlclosecheck
 			if _, err := stmts.Get(deleteOldDeliveries).Exec(deliveryId); err != nil {
@@ -137,6 +156,10 @@ func makeCleanAction(maxAge time.Duration) dbrunner.Action {
 
 		if err := rows.Err(); err != nil {
 			return errorutil.Wrap(err)
+		}
+
+		if numberOfDeletedRecords > 0 {
+			log.Info().Msgf("Deleted %v records in %v", numberOfDeletedRecords, time.Since(timeBeforeAction))
 		}
 
 		return nil
