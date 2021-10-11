@@ -81,7 +81,7 @@ func TestChangeUserInfo(t *testing.T) {
 		writer := writeRunner.Writer()
 		writer.StoreJsonSync(dummyContext, metadata.UuidMetaKey, uuid)
 
-		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)
+		httpauth.HttpAuthenticator(mux, authenticator, m.Reader, true)
 
 		s := httptest.NewServer(mux)
 		defer s.Close()

@@ -64,9 +64,9 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 	settingsWriter := writeRunner.Writer()
 	settingsReader := handler.Reader
 
-	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader)
+	HttpDetective(auth, mux, time.UTC, detective, &fakeEscalateRequester{}, settingsReader, true)
 
-	httpauth.HttpAuthenticator(mux, auth, settingsReader)
+	httpauth.HttpAuthenticator(mux, auth, settingsReader, true)
 
 	s := httptest.NewServer(mux)
 
