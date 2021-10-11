@@ -71,6 +71,8 @@ type Workspace struct {
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
 	intelAccessor           *collector.Accessor
+
+	databases databases
 }
 
 type databases struct {
@@ -304,6 +306,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
+		databases:               allDatabases,
 		Closers: closeutil.New(
 			connStats,
 			deliveries,
@@ -417,4 +420,8 @@ func (ws *Workspace) NewPublisher() postfix.Publisher {
 
 func (ws *Workspace) HasLogs() bool {
 	return ws.deliveries.HasLogs()
+}
+
+func (ws *Workspace) RawLogsAccessor() rawlogsdb.Accessor {
+	return rawlogsdb.NewAccessor(ws.databases.RawLogs.RoConnPool)
 }

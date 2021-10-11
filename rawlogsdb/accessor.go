@@ -21,6 +21,22 @@ type Content struct {
 	Content []ContentRow `json:"content"`
 }
 
+type Accessor interface {
+	FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error)
+}
+
+type accessor struct {
+	pool *dbconn.RoPool
+}
+
+func NewAccessor(pool *dbconn.RoPool) Accessor {
+	return &accessor{pool: pool}
+}
+
+func (a *accessor) FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error) {
+	return FetchLogsInInterval(ctx, a.pool, interval, pageSize, cursor)
+}
+
 func FetchLogsInInterval(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error) {
 	conn, release, err := pool.AcquireContext(ctx)
 	if err != nil {
