@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"io"
 )
 
 type ContentRow struct {
@@ -23,6 +24,7 @@ type Content struct {
 
 type Accessor interface {
 	FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error)
+	FetchLogsInIntervalToWriter(context.Context, timeutil.TimeInterval, io.Writer) error
 }
 
 type accessor struct {
@@ -35,6 +37,14 @@ func NewAccessor(pool *dbconn.RoPool) Accessor {
 
 func (a *accessor) FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error) {
 	return FetchLogsInInterval(ctx, a.pool, interval, pageSize, cursor)
+}
+
+func (a *accessor) FetchLogsInIntervalToWriter(ctx context.Context, interval timeutil.TimeInterval, w io.Writer) error {
+	return FetchLogsInIntervalToWriter(ctx, interval, w)
+}
+
+func FetchLogsInIntervalToWriter(ctx context.Context, internal timeutil.TimeInterval, w io.Writer) error {
+	return nil
 }
 
 func FetchLogsInInterval(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error) {
