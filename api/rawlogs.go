@@ -5,6 +5,7 @@
 package api
 
 import (
+	"compress/gzip"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
@@ -16,9 +17,13 @@ import (
 	"time"
 )
 
+//nolint:structcheck,unused
 type fetchLogsHandler struct {
+	//nolint:structcheck,unused
 	accessor rawlogsdb.Accessor
 }
+
+type fetchPagedLogLinesHandler fetchLogsHandler
 
 // @Summary Fetch Log Lines In Time Interval
 // @Param from query string true "Initial date in the format 1999-12-23"
@@ -29,7 +34,7 @@ type fetchLogsHandler struct {
 // @Success 200 {object} rawlogsdb.Content "desc"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchLogLinesInTimeInterval [get]
-func (h fetchLogsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+func (h fetchPagedLogLinesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	pageSize, cursor, err := func() (int, int64, error) {
@@ -68,8 +73,33 @@ func (h fetchLogsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) erro
 	return httputil.WriteJson(w, rows, http.StatusOK)
 }
 
+type fetchRawLogLinesToWriterHandler fetchLogsHandler
+
+// @Summary Download compressed raw log content from interval
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Success 200 {object} string "desc"
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/fetchRawLogsInTimeInterval [get]
+func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	interval := httpmiddleware.GetIntervalFromContext(r)
+
+	compressor := gzip.NewWriter(w)
+
+	defer compressor.Close()
+
+	w.Header()["Content-Type"] = []string{"application/gzip"}
+
+	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, compressor); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func HttpRawLogs(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, accessor rawlogsdb.Accessor) {
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 
-	mux.Handle("/api/v0/fetchLogLinesInTimeInterval", authenticated.WithEndpoint(fetchLogsHandler{accessor}))
+	mux.Handle("/api/v0/fetchLogLinesInTimeInterval", authenticated.WithEndpoint(fetchPagedLogLinesHandler{accessor}))
+	mux.Handle("/api/v0/fetchRawLogsInTimeInterval", authenticated.WithEndpoint(fetchRawLogLinesToWriterHandler{accessor}))
 }
