@@ -53,8 +53,7 @@ from
 	connections join commands
 		on commands.connection_id = connections.id
 where
-	ts between ? and ? and commands.cmd = ?
-	-- and commands.success != commands.total -- returns only attempts that failed
+	ts between ? and ? and commands.cmd in (?, ?)
 order by
 	ts`, retrieveQuery); err != nil {
 			return errorutil.Wrap(err)
@@ -84,7 +83,7 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 	}
 
 	//nolint:sqlclosecheck
-	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
+	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand, DovecotAuthCommand)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}

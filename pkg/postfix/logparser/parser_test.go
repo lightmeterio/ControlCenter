@@ -705,3 +705,41 @@ func TestVirtualParsing(t *testing.T) {
 		So(p.ExtraMessage, ShouldEqual, `(delivered to maildir)`)
 	})
 }
+
+func TestDovecotLogParsing(t *testing.T) {
+	Convey("Dovecot authentication failure", t, func() {
+		Convey("sql passwd mismatch", func() {
+			header, parsed, err := Parse(`Jun 11 13:57:17 main dovecot: auth: sql(admin@example.ru,192.168.144.226,<6rXunFtu493AqJDi>): Password mismatch`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			So(header.Time.Day, ShouldEqual, 11)
+			So(header.Time.Month, ShouldEqual, time.June)
+			So(header.Host, ShouldEqual, "main")
+			So(header.Process, ShouldEqual, "dovecot")
+			So(header.Daemon, ShouldEqual, "")
+
+			p, cast := parsed.(DovecotAuthFailed)
+			So(cast, ShouldBeTrue)
+
+			So(p.DB, ShouldEqual, "sql")
+			So(p.Username, ShouldEqual, "admin@example.ru")
+			So(p.IP, ShouldResemble, net.ParseIP("192.168.144.226"))
+			So(p.Reason, ShouldEqual, DovecotAuthFailedReasonPasswordMismatch)
+		})
+
+		Convey("passwd file unknown user", func() {
+			_, parsed, err := Parse(`Oct 11 09:30:51 mail dovecot: auth: passwd-file(alice,1.2.3.4): unknown user (SHA1 of given password: 011c94)`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(DovecotAuthFailed)
+			So(cast, ShouldBeTrue)
+
+			So(p.DB, ShouldEqual, "passwd-file")
+			So(p.Username, ShouldEqual, "alice")
+			So(p.IP, ShouldResemble, net.ParseIP("1.2.3.4"))
+			So(p.Reason, ShouldEqual, DovecotAuthFailedReasonUnknownUser)
+		})
+	})
+}
