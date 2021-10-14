@@ -5,6 +5,7 @@
 package rawlogsdb
 
 import (
+	"bytes"
 	"context"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -40,10 +41,48 @@ func (a *accessor) FetchLogsInInterval(ctx context.Context, interval timeutil.Ti
 }
 
 func (a *accessor) FetchLogsInIntervalToWriter(ctx context.Context, interval timeutil.TimeInterval, w io.Writer) error {
-	return FetchLogsInIntervalToWriter(ctx, interval, w)
+	return FetchLogsInIntervalToWriter(ctx, a.pool, interval, w)
 }
 
-func FetchLogsInIntervalToWriter(ctx context.Context, internal timeutil.TimeInterval, w io.Writer) error {
+func FetchLogsInIntervalToWriter(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, w io.Writer) error {
+	conn, release, err := pool.AcquireContext(ctx)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	query := `select content from logs where time between ? and ? order by time, id asc`
+
+	rows, err := conn.QueryContext(ctx, query, interval.From.Unix(), interval.To.Unix())
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	defer rows.Close()
+
+	// really, a 4KB buffer should suffice, as it's much bigger than a line size on syslog (2097 bytes)
+	const bufferLen = 4096
+	line := make([]byte, 0, bufferLen)
+
+	for rows.Next() {
+		if err := rows.Scan(&line); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		// 10 is \n
+		line = append(line, byte(10))
+
+		if _, err := io.Copy(w, bytes.NewReader(line)); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	return nil
 }
 
