@@ -32,6 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               aria-describedby="nameHelp"
               :placeholder="NameInputPlaceholder"
               maxlength="255"
+              autofocus
             ></b-form-input>
             <b-form-input
               name="email"
