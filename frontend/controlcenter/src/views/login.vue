@@ -23,6 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               aria-describedby="emailHelp"
               :placeholder="EmailInputPlaceholder"
               maxlength="255"
+              autofocus
             ></b-form-input>
             <b-input-group id="show_hide_password">
               <b-form-input
