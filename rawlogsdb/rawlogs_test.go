@@ -53,6 +53,10 @@ func TestFetchingLogLines(t *testing.T) {
 			To:   timeutil.MustParseTime(`2020-02-04 09:29:29 +0000`),
 		}
 
+		count, err := CountLogLinesInInterval(context.Background(), pool, interval)
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 40)
+
 		// first page
 		{
 			r, err := FetchLogsInInterval(context.Background(), pool, interval, 10, 0)

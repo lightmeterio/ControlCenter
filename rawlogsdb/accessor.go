@@ -26,6 +26,7 @@ type Content struct {
 type Accessor interface {
 	FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error)
 	FetchLogsInIntervalToWriter(context.Context, timeutil.TimeInterval, io.Writer) error
+	CountLogLinesInInterval(context.Context, timeutil.TimeInterval) (int64, error)
 }
 
 type accessor struct {
@@ -42,6 +43,10 @@ func (a *accessor) FetchLogsInInterval(ctx context.Context, interval timeutil.Ti
 
 func (a *accessor) FetchLogsInIntervalToWriter(ctx context.Context, interval timeutil.TimeInterval, w io.Writer) error {
 	return FetchLogsInIntervalToWriter(ctx, a.pool, interval, w)
+}
+
+func (a *accessor) CountLogLinesInInterval(ctx context.Context, interval timeutil.TimeInterval) (int64, error) {
+	return CountLogLinesInInterval(ctx, a.pool, interval)
 }
 
 func FetchLogsInIntervalToWriter(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, w io.Writer) error {
@@ -84,6 +89,25 @@ func FetchLogsInIntervalToWriter(ctx context.Context, pool *dbconn.RoPool, inter
 	}
 
 	return nil
+}
+
+func CountLogLinesInInterval(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval) (int64, error) {
+	conn, release, err := pool.AcquireContext(ctx)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	var count int64
+
+	query := `select count(*) from logs where time between ? and ?`
+
+	if err := conn.QueryRowContext(ctx, query, interval.From.Unix(), interval.To.Unix()).Scan(&count); err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return count, nil
 }
 
 func FetchLogsInInterval(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error) {
