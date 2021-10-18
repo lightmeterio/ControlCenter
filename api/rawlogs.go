@@ -97,9 +97,33 @@ func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	return nil
 }
 
+type countRawLogLinesHandler fetchLogsHandler
+
+type logLinesCounterResult struct {
+	Count int64 `json:"count"`
+}
+
+// @Summary Count number of raw log lines in interval
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Success 200 {object} logLinesCounterResult "desc"
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/countRawLogLinesInTimeInterval [get]
+func (h countRawLogLinesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	interval := httpmiddleware.GetIntervalFromContext(r)
+
+	count, err := h.accessor.CountLogLinesInInterval(r.Context(), interval)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return httputil.WriteJson(w, logLinesCounterResult{Count: count}, http.StatusOK)
+}
+
 func HttpRawLogs(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, accessor rawlogsdb.Accessor) {
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 
 	mux.Handle("/api/v0/fetchLogLinesInTimeInterval", authenticated.WithEndpoint(fetchPagedLogLinesHandler{accessor}))
 	mux.Handle("/api/v0/fetchRawLogsInTimeInterval", authenticated.WithEndpoint(fetchRawLogLinesToWriterHandler{accessor}))
+	mux.Handle("/api/v0/countRawLogLinesInTimeInterval", authenticated.WithEndpoint(countRawLogLinesHandler{accessor}))
 }
