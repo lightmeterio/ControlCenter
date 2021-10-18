@@ -10,7 +10,7 @@ package rawparser
 %% machine headerPostfixPart;
 %% write data;
 
-func parseHeaderPostfixPart(h *RawHeader, data []byte) (int, bool) {
+func parseHeaderPostfixPart(h *RawHeader, data string) (int, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

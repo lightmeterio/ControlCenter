@@ -47,9 +47,9 @@ func parseHeader(h rawparser.RawHeader, format rawparser.TimeFormat) (Header, er
 
 	return Header{
 		Time:      time,
-		Host:      string(h.Host),
-		Process:   string(h.Process),
-		Daemon:    string(h.Daemon),
+		Host:      h.Host,
+		Process:   h.Process,
+		Daemon:    h.Daemon,
 		PID:       pid,
 		ProcessIP: processIP,
 	}, nil

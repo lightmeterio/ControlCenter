@@ -22,7 +22,7 @@ const pickup_en_main int = 1
 
 //line pickup.rl:12
 
-func parsePickup(data []byte) (Pickup, bool) {
+func parsePickup(data string) (Pickup, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

@@ -95,7 +95,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 		})
 	}
 
-	handleNewLogLine := func(line []byte) {
+	handleNewLogLine := func(line string) {
 		var err error
 
 		currentRecord, err = t.Transform(line)
@@ -132,7 +132,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 		return expectedImportEndTime
 	}
 
-	linesChan := make(chan []byte)
+	linesChan := make(chan string)
 	continueScanning := make(chan struct{})
 	doneScanning := make(chan struct{})
 
@@ -140,7 +140,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 
 	go func() {
 		for scanner.Scan() {
-			linesChan <- scanner.Bytes()
+			linesChan <- scanner.Text()
 
 			<-continueScanning
 		}

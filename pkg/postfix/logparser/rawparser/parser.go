@@ -16,32 +16,32 @@
 package rawparser
 
 import (
-	"bytes"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
+	"strings"
 )
 
 //nolint:deadcode,unused
 // this function is used by the Ragel generated code (.rl files)
 // and the linters are not able to see that.
-func normalizeMailLocalPart(s []byte) []byte {
+func normalizeMailLocalPart(s string) string {
 	// email local part can contain quotes, in case it contains spaces, like in: from=<"some email"@example.com>.
 	// this function removes the trailing quotes
-	return bytes.Trim(s, `"`)
+	return strings.Trim(s, `"`)
 }
 
 type RawHeader struct {
 	Time      timeutil.RawTime
-	Host      []byte
-	Process   []byte
-	Daemon    []byte
-	ProcessIP []byte
-	ProcessID []byte
+	Host      string
+	Process   string
+	Daemon    string
+	ProcessIP string
+	ProcessID string
 }
 
 type TimeFormat = timeutil.TimeFormat
 
-func tryToGetHeaderAndPayloadContent(logLine []byte, format TimeFormat) (RawHeader, int, error) {
+func tryToGetHeaderAndPayloadContent(logLine string, format TimeFormat) (RawHeader, int, error) {
 	t, remainingHeader, l, err := format.ExtractRaw(logLine)
 	if err != nil {
 		return RawHeader{}, 0, err
@@ -66,16 +66,16 @@ type payloadHandlerKey struct {
 }
 
 var (
-	payloadHandlers = map[payloadHandlerKey]func([]byte) (RawPayload, error){}
+	payloadHandlers = map[payloadHandlerKey]func(string) (RawPayload, error){}
 )
 
-func registerHandler(process, daemon string, handler func([]byte) (RawPayload, error)) {
+func registerHandler(process, daemon string, handler func(string) (RawPayload, error)) {
 	payloadHandlers[payloadHandlerKey{process: process, daemon: daemon}] = handler
 }
 
-func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHeader, int, error) {
+func ParseHeaderWithCustomTimeFormat(logLine string, format TimeFormat) (RawHeader, int, error) {
 	// Remove leading 0x0
-	start := bytes.IndexFunc(logLine, func(r rune) bool {
+	start := strings.IndexFunc(logLine, func(r rune) bool {
 		return r != 0
 	})
 
@@ -95,11 +95,11 @@ func ParseHeaderWithCustomTimeFormat(logLine []byte, format TimeFormat) (RawHead
 	return header, payloadOffset, nil
 }
 
-func ParseHeader(logLine []byte) (RawHeader, int, error) {
+func ParseHeader(logLine string) (RawHeader, int, error) {
 	return ParseHeaderWithCustomTimeFormat(logLine, timeutil.DefaultTimeFormat{})
 }
 
-func ParsePayload(payloadLine []byte, daemon, process string) (RawPayload, error) {
+func ParsePayload(payloadLine string, daemon, process string) (RawPayload, error) {
 	handler, found := payloadHandlers[payloadHandlerKey{daemon: daemon, process: process}]
 	if !found {
 		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine

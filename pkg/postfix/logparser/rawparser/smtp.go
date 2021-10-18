@@ -13,19 +13,19 @@ func init() {
 }
 
 type RawSmtpSentStatus struct {
-	Queue                   []byte
-	RecipientLocalPart      []byte
-	RecipientDomainPart     []byte
-	OrigRecipientLocalPart  []byte
-	OrigRecipientDomainPart []byte
-	RelayName               []byte
-	RelayIpOrPath           []byte
-	RelayPort               []byte
-	Delay                   []byte
-	Delays                  [5][]byte
-	Dsn                     []byte
-	Status                  []byte
-	ExtraMessage            []byte
+	Queue                   string
+	RecipientLocalPart      string
+	RecipientDomainPart     string
+	OrigRecipientLocalPart  string
+	OrigRecipientDomainPart string
+	RelayName               string
+	RelayIpOrPath           string
+	RelayPort               string
+	Delay                   string
+	Delays                  [5]string
+	Dsn                     string
+	Status                  string
+	ExtraMessage            string
 
 	// parsed extra message
 	ExtraMessagePayloadType              PayloadType
@@ -33,14 +33,14 @@ type RawSmtpSentStatus struct {
 }
 
 type SmtpSentStatusExtraMessageSentQueued struct {
-	SmtpCode []byte
-	Dsn      []byte
-	IP       []byte
-	Port     []byte
-	Queue    []byte
+	SmtpCode string
+	Dsn      string
+	IP       string
+	Port     string
+	Queue    string
 }
 
-func parseSmtpPayload(payloadLine []byte) (RawPayload, error) {
+func parseSmtpPayload(payloadLine string) (RawPayload, error) {
 	r, parsed := parseSmtpSentStatus(payloadLine)
 
 	if !parsed {

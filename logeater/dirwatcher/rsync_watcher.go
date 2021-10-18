@@ -22,7 +22,7 @@ type rsyncedFileWatcher struct {
 
 type rsyncedFileWatcherRunner = runner.CancellableRunner
 
-func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(parser.Header, []byte, int)) rsyncedFileWatcherRunner {
+func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(parser.Header, string, int)) rsyncedFileWatcherRunner {
 	rw := rsyncwatcher.ReadWriter()
 
 	w, err := rsyncwatcher.New(watcher.filename, watcher.offset, rw)
@@ -40,7 +40,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 			scanner := bufio.NewScanner(rw)
 
 			for scanner.Scan() {
-				line := scanner.Bytes()
+				line := scanner.Text()
 				h, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, watcher.format)
 
 				if !parser.IsRecoverableError(err) {
@@ -61,7 +61,7 @@ func newRsyncedFileWatcherRunner(watcher *rsyncedFileWatcher, onRecord func(pars
 	})
 }
 
-func (watcher *rsyncedFileWatcher) run(onRecord func(parser.Header, []byte, int)) {
+func (watcher *rsyncedFileWatcher) run(onRecord func(parser.Header, string, int)) {
 	done, _ := runner.Run(newRsyncedFileWatcherRunner(watcher, onRecord))
 
 	// never cancel, wait forever, no error handling

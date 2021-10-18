@@ -205,7 +205,7 @@ func readFirstLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (pa
 	}
 
 	// read first line
-	h1, _, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Bytes(), format)
+	h1, _, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Text(), format)
 
 	return h1.Time, true, func() error {
 		if err == nil {
@@ -224,7 +224,7 @@ func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (par
 	for scanner.Scan() {
 		linesRead++
 
-		lastLine = string(scanner.Bytes())
+		lastLine = scanner.Text()
 	}
 
 	if linesRead == 0 {
@@ -232,7 +232,7 @@ func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (par
 	}
 
 	// reached the last line
-	h2, _, err := parser.ParseHeaderWithCustomTimeFormat([]byte(lastLine), format)
+	h2, _, err := parser.ParseHeaderWithCustomTimeFormat(lastLine, format)
 
 	return h2.Time, true, func() error {
 		if err == nil {
@@ -417,7 +417,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 }
 
 type fileWatcher interface {
-	run(onNewRecord func(h parser.Header, line []byte, payloadOffset int))
+	run(onNewRecord func(h parser.Header, line string, payloadOffset int))
 }
 
 type DirectoryContent interface {
@@ -760,7 +760,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 
 		// Successfully read
 		line := scanner.Text()
-		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat([]byte(line), format)
+		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -929,7 +929,7 @@ func importExistingLogs(
 
 		currentLogTime = t.time
 
-		payload, err := parser.ParsePayload(t.header, []byte(t.line[t.payloadOffset:]))
+		payload, err := parser.ParsePayload(t.header, t.line[t.payloadOffset:])
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
 		}
@@ -1038,11 +1038,11 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	watcher.run(func(h parser.Header, line []byte, payloadOffset int) {
+	watcher.run(func(h parser.Header, line string, payloadOffset int) {
 		record := parsedRecord{
 			header:        h,
 			payloadOffset: payloadOffset,
-			line:          string(line),
+			line:          line,
 			queueIndex:    queueIndex,
 			sequence:      sequence,
 		}
@@ -1322,7 +1322,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	// Start really publishing the buffered records here, indefinitely
 	for r := range partiallyParsedLogsPublisher.records {
-		p, err := parser.ParsePayload(r.header, []byte(r.line[r.payloadOffset:]))
+		p, err := parser.ParsePayload(r.header, r.line[r.payloadOffset:])
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
 		}

@@ -61,7 +61,7 @@ func TestWatchingDirectoryManagedByRsync(t *testing.T) {
 		logs := []parsedLog{}
 
 		newRunner := func(filename string, offset int64) rsyncedFileWatcherRunner {
-			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset, format: timeFormat}, func(h parser.Header, _ []byte, _ int) {
+			return newRsyncedFileWatcherRunner(&rsyncedFileWatcher{filename: path.Join(dstDir, filename), offset: offset, format: timeFormat}, func(h parser.Header, _ string, _ int) {
 				logs = append(logs, parsedLog{h: h})
 			})
 		}

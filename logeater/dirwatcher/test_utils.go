@@ -16,11 +16,11 @@ import (
 // nolint:unused,deadcode
 func readFromReader(reader io.Reader,
 	filename string,
-	onNewRecord func(parser.Header, []byte, int)) {
+	onNewRecord func(parser.Header, string, int)) {
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
-		line := scanner.Bytes()
+		line := scanner.Text()
 
 		h, p, err := parser.ParseHeader(line)
 

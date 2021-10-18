@@ -9,12 +9,12 @@ func init() {
 }
 
 type Pickup struct {
-	Queue  []byte
-	Uid    []byte
-	Sender []byte
+	Queue  string
+	Uid    string
+	Sender string
 }
 
-func parsePickupPayload(payloadLine []byte) (RawPayload, error) {
+func parsePickupPayload(payloadLine string) (RawPayload, error) {
 	if s, parsed := parsePickup(payloadLine); parsed {
 		return RawPayload{
 			PayloadType: PayloadTypePickup,
