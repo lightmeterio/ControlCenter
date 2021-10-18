@@ -179,6 +179,11 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <translate>Oldest</translate>
                 </option>
               </select>
+              <b-button
+                @click="downloadRawLogsInInterval"
+                :disabled="rawLogsDownloadsDisable"
+                >Download Logs</b-button
+              >
             </div>
           </form>
         </div>
@@ -205,6 +210,8 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import {
+  linkToRawLogsInInterval,
+  countLogLinesInInterval,
   fetchInsights,
   getIsNotLoginOrNotRegistered,
   getUserInfo
@@ -232,7 +239,9 @@ export default {
       insights: [],
 
       // log import progress
-      generatingInsights: this.$gettext("Generating insights")
+      generatingInsights: this.$gettext("Generating insights"),
+
+      rawLogsDownloadsDisable: true
     };
   },
   computed: {
@@ -262,6 +271,7 @@ export default {
       let vue = this;
       vue.updateDashboardAndInsights();
       vue.formatDatePickerValue(obj);
+      vue.updateRawLogsDownloadButton();
     },
     handleProgressFinished() {
       this.setInsightsImportProgressFinished();
@@ -287,9 +297,23 @@ export default {
 
       this.updateSelectedInterval(obj);
     },
+    updateRawLogsDownloadButton: function() {
+      let vue = this;
+      let interval = vue.buildDateInterval();
+
+      countLogLinesInInterval(interval.startDate, interval.endDate).then(
+        function(response) {
+          vue.rawLogsDownloadsDisable = response.data.count == 0;
+        }
+      );
+    },
+    downloadRawLogsInInterval() {
+      let interval = this.buildDateInterval();
+      let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      window.open(link);
+    },
     updateInsights: function() {
       let vue = this;
-
       let interval = vue.buildDateInterval();
 
       fetchInsights(
