@@ -43,10 +43,23 @@ func TestFetchingLogLines(t *testing.T) {
 
 		done, cancel := runner.Run(rawLogs)
 
+		{
+			// No logs are available, time is unavailable
+			mostRecentLogTime, err := MostRecentLogTime(context.Background(), pool)
+			So(err, ShouldBeNil)
+			So(mostRecentLogTime.IsZero(), ShouldBeTrue)
+		}
+
 		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
 
 		cancel()
 		So(done(), ShouldBeNil)
+
+		{
+			mostRecentLogTime, err := MostRecentLogTime(context.Background(), pool)
+			So(err, ShouldBeNil)
+			So(mostRecentLogTime, ShouldResemble, timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`))
+		}
 
 		interval := timeutil.TimeInterval{
 			From: timeutil.MustParseTime(`2020-02-04 09:29:27 +0000`),

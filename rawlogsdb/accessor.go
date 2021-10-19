@@ -7,10 +7,13 @@ package rawlogsdb
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
+	"time"
 )
 
 type ContentRow struct {
@@ -149,4 +152,27 @@ func FetchLogsInInterval(ctx context.Context, pool *dbconn.RoPool, interval time
 		Cursor:  nextCursor,
 		Content: rowsContent,
 	}, nil
+}
+
+func MostRecentLogTime(ctx context.Context, pool *dbconn.RoPool) (time.Time, error) {
+	conn, release, err := pool.AcquireContext(ctx)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	var ts int64
+
+	err = conn.QueryRow(`select time from logs order by id desc limit 1`).Scan(&ts)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	return time.Unix(ts, 0).In(time.UTC), nil
 }

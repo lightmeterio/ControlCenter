@@ -394,7 +394,12 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		return time.Time{}, errorutil.Wrap(err)
 	}
 
-	times := []time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
+	mostRecentRawLogsTime, err := rawlogsdb.MostRecentLogTime(context.Background(), ws.databases.RawLogs.RoConnPool)
+	if err != nil {
+		return time.Time{}, errorutil.Wrap(err)
+	}
+
+	times := [4]time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime, mostRecentRawLogsTime}
 
 	mostRecent := time.Time{}
 
