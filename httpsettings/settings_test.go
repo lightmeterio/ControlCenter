@@ -231,7 +231,7 @@ func TestAppSettings(t *testing.T) {
 			// First set an IP address manually
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
 				LocalIP:     globalsettings.NewIP(`127.0.0.1`),
-				APPLanguage: "en",
+				AppLanguage: "en",
 			}).Wait()
 
 			// Set the app language via http, not posting the ip address
@@ -247,7 +247,7 @@ func TestAppSettings(t *testing.T) {
 			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.AppLanguage, ShouldEqual, "de")
 			So(settings.LocalIP.Value, ShouldEqual, "127.0.0.1")
 		})
 	})
@@ -266,7 +266,7 @@ func TestAppSettings(t *testing.T) {
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
 				LocalIP:     globalsettings.NewIP(`127.0.0.1`),
 				PublicURL:   "http://localhost:8080",
-				APPLanguage: "de",
+				AppLanguage: "de",
 			}).Wait()
 
 			// Check that the settings are set
@@ -276,7 +276,7 @@ func TestAppSettings(t *testing.T) {
 
 			So(settings.LocalIP.Value, ShouldEqual, `127.0.0.1`)
 			So(settings.PublicURL, ShouldEqual, "http://localhost:8080")
-			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.AppLanguage, ShouldEqual, "de")
 
 			// Clear general settings
 			r, err := c.PostForm(s.URL+"?setting=general", url.Values{"action": {"clear"}})
@@ -291,7 +291,7 @@ func TestAppSettings(t *testing.T) {
 
 			So(settings.LocalIP.IP(), ShouldBeNil)
 			So(settings.PublicURL, ShouldEqual, "")
-			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.AppLanguage, ShouldEqual, "de")
 		})
 	})
 }

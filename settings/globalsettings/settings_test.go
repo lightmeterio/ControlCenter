@@ -33,7 +33,7 @@ func TestInitialSetup(t *testing.T) {
 
 			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
 				LocalIP:     NewIP(`22.33.44.55`),
-				APPLanguage: "en",
+				AppLanguage: "en",
 				PublicURL:   "http://example.com",
 			})
 
@@ -45,7 +45,7 @@ func TestInitialSetup(t *testing.T) {
 
 			So(s, ShouldResemble, Settings{
 				LocalIP:     NewIP(`22.33.44.55`),
-				APPLanguage: "en",
+				AppLanguage: "en",
 				PublicURL:   "http://example.com",
 			})
 		})
@@ -78,7 +78,7 @@ func TestInitialSetup(t *testing.T) {
 
 				So(s, ShouldResemble, Settings{
 					LocalIP:     NewIP(`22.33.44.55`),
-					APPLanguage: "en",
+					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				})
 			})
@@ -86,7 +86,7 @@ func TestInitialSetup(t *testing.T) {
 			Convey("save to old format", func() {
 				value := Settings{
 					LocalIP:     NewIP(`22.33.44.55`),
-					APPLanguage: "en",
+					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				}
 
@@ -131,7 +131,7 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 
 			So(settings, ShouldResemble, Settings{
 				LocalIP:     NewIP("22.33.44.55"),
-				APPLanguage: "de",
+				AppLanguage: "de",
 				PublicURL:   "http://example.com/lightmeter",
 			})
 		})
@@ -139,7 +139,7 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 		Convey("Empty values do not override defaults", func() {
 			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
 				LocalIP:     NewIP(""),
-				APPLanguage: "",
+				AppLanguage: "",
 				PublicURL:   "https://another.url.example.com",
 			})
 
@@ -151,7 +151,7 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 
 			So(settings, ShouldResemble, Settings{
 				LocalIP:     NewIP("22.33.44.55"),
-				APPLanguage: "de",
+				AppLanguage: "de",
 				PublicURL:   "https://another.url.example.com",
 			})
 		})

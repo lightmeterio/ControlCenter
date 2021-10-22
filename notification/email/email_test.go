@@ -80,7 +80,7 @@ func TestSendEmail(t *testing.T) {
 		globalSettings := globalsettings.Settings{
 			LocalIP:     globalsettings.NewIP(`127.0.0.1`),
 			PublicURL:   "https://example.com/lightmeter/",
-			APPLanguage: "en",
+			AppLanguage: "en",
 		}
 
 		Convey("Fails", func() {

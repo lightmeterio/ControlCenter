@@ -62,7 +62,7 @@ func (i *IP) UnmarshalJSON(b []byte) error {
 
 type Settings struct {
 	LocalIP     IP     `json:"postfix_public_ip"`
-	APPLanguage string `json:"app_language"`
+	AppLanguage string `json:"app_language"`
 	PublicURL   string `json:"public_url"`
 }
 
