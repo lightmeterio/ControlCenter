@@ -38,6 +38,12 @@ SPDX-License-Identifier: AGPL-3.0-only
         >
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
+        <b-tab
+          v-on:click="trackEvent('change-domains-tab', 'fetchSmtpAuthAttempts')"
+          :title="SmtpConnectionsOverTime"
+        >
+          <div class="dashboard-gadget" id="fetchSmtpAuthAttempts"></div>
+        </b-tab>
       </b-tabs>
     </div>
   </div>
@@ -68,6 +74,9 @@ export default {
     },
     DeferredDomainsTitle: function() {
       return this.$gettext("Deferred Domains");
+    },
+    SmtpConnectionsOverTime: function() {
+      return this.$gettext("SMTP Logins");
     }
   },
   beforeDestroy() {
@@ -212,18 +221,112 @@ export default {
         };
       };
 
+      let updateScatterChart = function(graphName) {
+        let xValues = [];
+        let yValues = [];
+        let colors = [];
+
+        let okColor = "#86C528";
+        let failedColor = "#EA3939";
+        let suspiciousColor = "#0000ff";
+
+        let statusAsColor = function(s) {
+          switch (s) {
+            case "ok":
+              return okColor;
+            case "failed":
+              return failedColor;
+            case "suspicious":
+              return suspiciousColor;
+          }
+        };
+
+        let chartData = [
+          {
+            x: xValues,
+            y: yValues,
+            type: "scattergl",
+            mode: "markers",
+            marker: {
+              size: 5,
+              color: colors
+            }
+          }
+        ];
+
+        let layout = {
+          height: 220,
+          xaxis: {
+            automargin: true
+          },
+          yaxis: {
+            automargin: true
+          },
+          margin: {
+            t: 0,
+            l: 30,
+            r: 0,
+            b: 50
+          }
+        };
+
+        Plotly.newPlot(graphName, chartData, layout, { responsive: true }).then(
+          function() {
+            resizers.push(function(dimension) {
+              layout.width = dimension.contentRect.width;
+              Plotly.redraw(graphName);
+            });
+          }
+        );
+
+        return function(start, end) {
+          fetchGraphDataAsJsonWithTimeInterval(start, end, graphName).then(
+            function(response) {
+              let attempts = response.data.attempts;
+              let len = attempts.length;
+              let oldLen = xValues.length;
+              let minLen = oldLen < len ? oldLen : len;
+
+              xValues.length = len;
+              yValues.length = len;
+              colors.length = len;
+
+              // fill existing buffers
+              for (let i = 0; i < minLen; i++) {
+                xValues[i].setTime(attempts[i]["time"] * 1000);
+                yValues[i] = response.data.ips[attempts[i]["index"]];
+                colors[i] = statusAsColor(attempts[i]["status"]);
+              }
+
+              // fill the remaining parts of the new buffers, if any
+              for (let i = minLen; i < len; i++) {
+                xValues[i] = new Date(attempts[i]["time"] * 1000);
+                yValues[i] = response.data.ips[attempts[i]["index"]];
+                colors[i] = statusAsColor(attempts[i]["status"]);
+              }
+
+              Plotly.redraw(graphName);
+            }
+          );
+        };
+      };
+
       const updateDeliveryStatus = updateDonutChart("deliveryStatus");
       const updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains");
       const updateTopDeferredDomainsChart = updateBarChart(
         "topDeferredDomains"
       );
       const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
+      const updateSmtpConnectionsChart = updateScatterChart(
+        "fetchSmtpAuthAttempts"
+      );
 
       vue.updateDashboard = function(start, end) {
         updateDeliveryStatus(start, end);
         updateTopBusiestDomainsChart(start, end);
         updateTopDeferredDomainsChart(start, end);
         updateTopBouncedDomainsChart(start, end);
+        updateSmtpConnectionsChart(start, end);
       };
 
       // Plotly has a bug that makes it unable to resize hidden graphs:
