@@ -18,22 +18,19 @@ import (
 
 // nolint: maligned
 type Config struct {
-	ShouldWatchFromStdin      bool
-	WorkspaceDirectory        string
-	ImportOnly                bool
-	RsyncedDir                bool
-	MigrateDownToOnly         bool
-	MigrateDownToVersion      int
-	MigrateDownToDatabaseName string
-	ShowVersion               bool
-	DirToWatch                string
-	LogPatterns               []string
-	Address                   string
-	Verbose                   bool
-	Timezone                  *time.Location
-	LogYear                   int
-	Socket                    string
-	LogFormat                 string
+	ShouldWatchFromStdin bool
+	WorkspaceDirectory   string
+	ImportOnly           bool
+	RsyncedDir           bool
+	ShowVersion          bool
+	DirToWatch           string
+	LogPatterns          []string
+	Address              string
+	Verbose              bool
+	Timezone             *time.Location
+	LogYear              int
+	Socket               string
+	LogFormat            string
 
 	EmailToChange          string
 	PasswordToReset        string
@@ -71,12 +68,6 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}
 
 	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync", b, "Log directory is updated by rsync")
-
-	fs.BoolVar(&conf.MigrateDownToOnly, "migrate_down_to_only", false,
-		"Only migrates down")
-	fs.StringVar(&conf.MigrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
-
-	fs.IntVar(&conf.MigrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
 
 	logYear, err := lookupEnvOrInt("LIGHTMETER_LOGS_STARTING_YEAR", 0, lookupenv)
 	if err != nil {
