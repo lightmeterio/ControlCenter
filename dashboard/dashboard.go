@@ -64,11 +64,8 @@ func New(pool *dbconn.RoPool) (Dashboard, error) {
 		}
 
 		domainMappingByRecipientDomainPartStmtPart := `
-with resolve_domain_mapping_view(domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
-as
-(
 with
-	aux_domain_mapping(orig_domain, domain_mapped_to, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
+aux_domain_mapping(orig_domain, domain_mapped_to, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
 as (
 select
 	remote_domains.domain, temp_domain_mapping.mapped, deliveries.status,
@@ -76,8 +73,11 @@ select
 from
 	deliveries join remote_domains on deliveries.recipient_domain_part_id = remote_domains.rowid
 	left join temp_domain_mapping on remote_domains.domain = temp_domain_mapping.orig
-) select
-	ifnull(domain_mapped_to, orig_domain) as domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts
+),
+resolve_domain_mapping_view(domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts)
+as (
+ select
+	coalesce(domain_mapped_to, orig_domain) as domain, status, direction, sender_domain_part_id, recipient_domain_part_id, delivery_ts
 from
 	aux_domain_mapping
 )
