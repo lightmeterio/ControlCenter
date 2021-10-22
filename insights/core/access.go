@@ -220,7 +220,6 @@ type FetchOptions struct {
 	OrderBy    FetchOrder
 	MaxEntries int
 	Category   Category
-	Clock      interface{}
 }
 
 type Fetcher interface {
