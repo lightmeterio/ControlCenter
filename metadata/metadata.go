@@ -54,27 +54,9 @@ type Item struct {
 }
 
 func (writer *Writer) Store(ctx context.Context, items []Item) error {
-	tx, err := writer.db.BeginTx(ctx, nil)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
-		}
-	}()
-
-	err = Store(ctx, tx, items)
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
+	if err := writer.db.Tx(func(tx *sql.Tx) error {
+		return Store(ctx, tx, items)
+	}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
