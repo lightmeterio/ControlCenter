@@ -8,8 +8,9 @@ package rawparser
 
 func init() {
 	// from the standard postfix setup
-	registerHandler("postfix", "submission/smtpd", parseSmtpdPayload) // for remote connection
-	registerHandler("postfix", "smtpd", parseSmtpdPayload)            // for local connection
+	registerHandler("postfix", "submission/smtpd", parseSmtpdPayload) // for STARTTLS submission connection (port 587)
+	registerHandler("postfix", "smtps/smtpd", parseSmtpdPayload)      // for TLS submission connection (port 465)
+	registerHandler("postfix", "smtpd", parseSmtpdPayload)            // for MTA connection (port 25)
 
 	// detected in some zimbra setups
 	registerHandler("postfix", "amavisd/smtpd", parseSmtpdPayload)

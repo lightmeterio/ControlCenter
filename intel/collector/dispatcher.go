@@ -99,7 +99,7 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 	}
 
 	if len(report.Content) == 0 {
-		log.Warn().Msgf("Nothing to be reported!")
+		log.Debug().Msgf("Nothing to be reported!")
 		return nil
 	}
 
