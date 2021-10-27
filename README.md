@@ -200,7 +200,7 @@ Running headless mode requires building ControlCenter for this purpose:
 
 ```
 make devheadless # Build ControlCenter
-./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build)
+./lightmeter -stdin -log-level DEBUG --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build)
 ```
 
 ### Authentication
@@ -253,7 +253,7 @@ For cloud installations of Lightmeter, it may be necessary to set parameters via
 Here are all parameters you can set through environment variables, and their respective command-line equivalents:
 - `LIGHTMETER_WORKSPACE=/path/to/workspace` (`-workspace`)
 - `LIGHTMETER_WATCH_DIR=/var/log` (`-watch_dir`)
-- `LIGHTMETER_VERBOSE=true` (`-verbose`)
+- `LIGHTMETER_LOG_LEVEL=DEBUG` (`-log-level DEBUG`)
 - `LIGHTMETER_LISTEN=localhost:9999` (`-listen`)
 - `LIGHTMETER_LOGS_SOCKET=unix;/path/to/socket.sock` (`-logs_socket`)
 - `LIGHTMETER_LOGS_USE_RSYNC=true` (`-logs_use_rsync`)

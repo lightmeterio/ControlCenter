@@ -37,8 +37,8 @@ Lightmeter ControlCenter 1.9.0
     	Password to reset (requires -email_reset)
   -stdin
     	Read log lines from stdin
-  -verbose
-    	Be Verbose
+  -log-level
+    	Set log level (INFO, DEBUG, WARNING or ERROR)
   -version
     	Show Version Information
   -watch_dir string

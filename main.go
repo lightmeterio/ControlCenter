@@ -48,8 +48,14 @@ func main() {
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	if conf.Verbose {
+	if conf.LogLevel == "ERROR" {
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	} else if conf.LogLevel == "WARNING" {
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	} else if conf.LogLevel == "DEBUG" {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
 	if conf.ShowVersion {
