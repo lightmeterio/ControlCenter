@@ -7,6 +7,7 @@ package rawparser
 func init() {
 	registerHandler("postfix", "sender-cleanup/cleanup", parseCleanup)
 	registerHandler("postfix", "cleanup", parseCleanup)
+	registerHandler("postfix", "submission/cleanup", parseCleanup)
 }
 
 type CleanupMessageAccepted struct {
