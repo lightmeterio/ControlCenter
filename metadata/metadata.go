@@ -240,11 +240,42 @@ func (r *defaultedReader) RetrieveJson(ctx context.Context, key Key, value Value
 		return nil
 	}
 
-	if err := mergo.Map(value, defaultValue); err != nil {
+	if err := mergo.Map(value, defaultValue, mergo.WithTransformers(&customTypeTransformer{})); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
+}
+
+type customTypeTransformer struct {
+}
+
+func (customTypeTransformer) Transformer(t reflect.Type) func(dst, src reflect.Value) error {
+	if _, ok := reflect.PtrTo(t).MethodByName("MergoFromString"); !ok {
+		return nil
+	}
+
+	return func(dst, src reflect.Value) error {
+		type mergoFromString interface {
+			MergoFromString(string) error
+		}
+
+		asInterface, ok := dst.Addr().Interface().(mergoFromString)
+		if !ok {
+			return errors.New(`MergeFromString should be func(string) error`)
+		}
+
+		srcValue, ok := src.Interface().(string)
+		if !ok {
+			return errors.New(`Source type must be string`)
+		}
+
+		if err := asInterface.MergoFromString(srcValue); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
 }
 
 func NewDefaultedHandler(conn *dbconn.PooledPair, defaultValues DefaultValues) (*Handler, error) {

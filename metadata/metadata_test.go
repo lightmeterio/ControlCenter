@@ -120,6 +120,26 @@ func TestJsonValues(t *testing.T) {
 	})
 }
 
+type testCategory int
+
+const (
+	category1 testCategory = 0
+	category2 testCategory = 1
+)
+
+func (t *testCategory) MergoFromString(s string) error {
+	switch s {
+	case "cat1":
+		*t = category1
+		return nil
+	case "cat2":
+		*t = category2
+		return nil
+	}
+
+	return errors.New(`Invalid test category`)
+}
+
 func TestOverridingValues(t *testing.T) {
 	Convey("Test Overriding Values", t, func() {
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
@@ -157,13 +177,15 @@ func TestOverridingValues(t *testing.T) {
 
 		Convey("Handle custom struct", func() {
 			type myType struct {
-				Name string `json:"this_value_here_is_ignored"`
-				Age  int    `json:"really_not_used_by_the_the_merging_library"`
+				Category testCategory `json:"category"`
+				Name     string       `json:"this_value_here_is_ignored"`
+				Age      int          `json:"really_not_used_by_the_the_merging_library"`
 			}
 
 			handler, err := NewDefaultedHandler(conn, map[string]interface{}{
 				"key": map[string]interface{}{
-					"name": "Some Name",
+					"name":     "Some Name",
+					"category": "cat2",
 				},
 			})
 
@@ -178,7 +200,7 @@ func TestOverridingValues(t *testing.T) {
 			var value myType
 			err = reader.RetrieveJson(dummyContext, "key", &value)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, myType{Name: "Some Name", Age: 42})
+			So(value, ShouldResemble, myType{Name: "Some Name", Age: 42, Category: category2})
 		})
 
 		Convey("Empty values do not override defaults", func() {
