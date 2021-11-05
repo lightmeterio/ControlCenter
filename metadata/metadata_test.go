@@ -9,6 +9,7 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
 )
@@ -182,8 +183,8 @@ func TestOverridingValues(t *testing.T) {
 
 		Convey("Empty values do not override defaults", func() {
 			type myType struct {
-				Name    string `json:"field35"`
-				Surname string `json:"field42"`
+				Name    string               `json:"field35"`
+				Surname stringutil.Sensitive `json:"field42,omitempty"`
 			}
 
 			handler, err := NewDefaultedHandler(conn, map[string]interface{}{
@@ -199,13 +200,13 @@ func TestOverridingValues(t *testing.T) {
 			writer := handler.Writer
 
 			// the empty string should not override the default one!
-			err = writer.StoreJson(dummyContext, "key", myType{Name: "", Surname: "Another Surname"})
+			err = writer.StoreJson(dummyContext, "key", myType{Name: ""})
 			So(err, ShouldBeNil)
 
 			var value myType
 			err = reader.RetrieveJson(dummyContext, "key", &value)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, myType{Name: "Some Name", Surname: "Another Surname"})
+			So(value, ShouldResemble, myType{Name: "Some Name", Surname: stringutil.MakeSensitive("Some Surname")})
 		})
 
 		Convey("Use value from defaults only", func() {
