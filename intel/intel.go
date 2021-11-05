@@ -221,8 +221,8 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	}()
 
 	localIP := func() *string {
-		if settings.LocalIP.Valid() {
-			return addr(settings.LocalIP.Value)
+		if settings.LocalIP.IP != nil {
+			return addr(settings.LocalIP.String())
 		}
 
 		return nil

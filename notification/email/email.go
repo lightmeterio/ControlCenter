@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -82,6 +83,17 @@ func ParseSecurityType(s string) (SecurityType, error) {
 	}
 }
 
+func (t *SecurityType) MergoFromString(s string) error {
+	v, err := ParseSecurityType(s)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*t = v
+
+	return nil
+}
+
 const (
 	SecurityTypeNone     SecurityType = 0
 	SecurityTypeSTARTTLS SecurityType = 1
@@ -118,10 +130,34 @@ func ParseAuthMethod(s string) (AuthMethod, error) {
 	}
 }
 
+func (m *AuthMethod) MergoFromString(s string) error {
+	v, err := ParseAuthMethod(s)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*m = v
+
+	return nil
+}
+
 const (
 	AuthMethodNone     AuthMethod = 0
 	AuthMethodPassword AuthMethod = 1
 )
+
+type ServerPort int
+
+func (p *ServerPort) MergoFromString(s string) error {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	*p = ServerPort(v)
+
+	return nil
+}
 
 type Settings struct {
 	Enabled bool `json:"enabled"`
@@ -131,8 +167,8 @@ type Settings struct {
 	Sender     string `json:"sender"`
 	Recipients string `json:"recipients"`
 
-	ServerName string `json:"server_name"`
-	ServerPort int    `json:"server_port"`
+	ServerName string     `json:"server_name"`
+	ServerPort ServerPort `json:"server_port"`
 
 	SecurityType SecurityType `json:"security_type"`
 	AuthMethod   AuthMethod   `json:"auth_method"`

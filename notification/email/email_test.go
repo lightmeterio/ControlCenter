@@ -5,13 +5,17 @@
 package email
 
 import (
+	"context"
 	"io/ioutil"
+	"net"
 	"strings"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
@@ -21,6 +25,10 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message/catalog"
 )
+
+func init() {
+	lmsqlite3.Initialize(lmsqlite3.Options{})
+}
 
 type fakeContentComponent string
 
@@ -78,7 +86,7 @@ func TestSendEmail(t *testing.T) {
 		}()
 
 		globalSettings := globalsettings.Settings{
-			LocalIP:     globalsettings.NewIP(`127.0.0.1`),
+			LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.1`)},
 			PublicURL:   "https://example.com/lightmeter/",
 			AppLanguage: "en",
 		}
@@ -169,6 +177,51 @@ Version: 1.0.0
 
 				So(strings.ReplaceAll(string(content), "\r\n", "\n"), ShouldEqual, expectedContent)
 			})
+		})
+	})
+}
+
+func TestSettings(t *testing.T) {
+	Convey("Test Settings", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
+		defer closeConn()
+
+		m, err := metadata.NewDefaultedHandler(conn, metadata.DefaultValues{
+			"messenger_email": map[string]interface{}{
+				"sender":        "sender@email.com",
+				"serverName":    "mail.example.com",
+				"serverPort":    "587",
+				"securityType":  "STARTTLS",
+				"authMethod":    "password",
+				"username":      "user@example.com",
+				"password":      "super_passwd",
+				"skipCertCheck": false,
+			},
+		})
+
+		So(err, ShouldBeNil)
+
+		err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
+			Enabled:    true,
+			Recipients: "recipient@example.com",
+		})
+
+		So(err, ShouldBeNil)
+
+		s, err := GetSettings(context.Background(), m.Reader)
+		So(err, ShouldBeNil)
+
+		So(s, ShouldResemble, &Settings{
+			Enabled:       true,
+			SkipCertCheck: false,
+			Recipients:    "recipient@example.com",
+			Sender:        "sender@email.com",
+			ServerName:    "mail.example.com",
+			ServerPort:    587,
+			SecurityType:  SecurityTypeSTARTTLS,
+			AuthMethod:    AuthMethodPassword,
+			Username:      stringutil.MakeSensitive("user@example.com"),
+			Password:      stringutil.MakeSensitive("super_passwd"),
 		})
 	})
 }

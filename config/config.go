@@ -143,6 +143,7 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}
 
 	d := json.NewDecoder(strings.NewReader(unparsedDefaultSettings))
+	d.UseNumber()
 
 	if err := d.Decode(&conf.DefaultSettings); err != nil {
 		return Config{}, errorutil.Wrap(err)

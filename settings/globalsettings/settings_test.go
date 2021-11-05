@@ -32,21 +32,67 @@ func TestInitialSetup(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
-				LocalIP:     NewIP(`22.33.44.55`),
+				LocalIP:     IP{net.ParseIP(`22.33.44.55`)},
 				AppLanguage: "en",
 				PublicURL:   "http://example.com",
 			})
 
 			So(err, ShouldBeNil)
 
-			var s Settings
-			err = m.Reader.RetrieveJson(context.Background(), SettingKey, &s)
+			s, err := GetSettings(context.Background(), m.Reader)
 			So(err, ShouldBeNil)
 
-			So(s, ShouldResemble, Settings{
-				LocalIP:     NewIP(`22.33.44.55`),
+			So(s, ShouldResemble, &Settings{
+				LocalIP:     IP{net.ParseIP(`22.33.44.55`)},
 				AppLanguage: "en",
 				PublicURL:   "http://example.com",
+			})
+		})
+	})
+}
+
+func TestSettingsFromDefaultValues(t *testing.T) {
+	Convey("Retrieve from default values", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
+		defer closeConn()
+
+		m, err := metadata.NewDefaultedHandler(conn, metadata.DefaultValues{
+			"global": map[string]interface{}{
+				"localIP":     "22.33.44.55",
+				"appLanguage": "de",
+				"publicURL":   "http://example.com/lightmeter",
+			},
+		})
+
+		So(err, ShouldBeNil)
+
+		Convey("Retrieve", func() {
+			settings, err := GetSettings(context.Background(), m.Reader)
+			So(err, ShouldBeNil)
+
+			So(settings, ShouldResemble, &Settings{
+				LocalIP:     IP{net.ParseIP("22.33.44.55")},
+				AppLanguage: "de",
+				PublicURL:   "http://example.com/lightmeter",
+			})
+		})
+
+		Convey("Empty values do not override defaults", func() {
+			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
+				LocalIP:     IP{nil},
+				AppLanguage: "",
+				PublicURL:   "https://another.url.example.com",
+			})
+
+			So(err, ShouldBeNil)
+
+			settings, err := GetSettings(context.Background(), m.Reader)
+			So(err, ShouldBeNil)
+
+			So(settings, ShouldResemble, &Settings{
+				LocalIP:     IP{net.ParseIP("22.33.44.55")},
+				AppLanguage: "de",
+				PublicURL:   "https://another.url.example.com",
 			})
 		})
 
@@ -57,14 +103,14 @@ func TestInitialSetup(t *testing.T) {
 			// notice we were using net.IP in the settings itself before
 			type oldFormat struct {
 				LocalIP     net.IP `json:"postfix_public_ip"`
-				APPLanguage string `json:"app_language"`
+				AppLanguage string `json:"app_language"`
 				PublicURL   string `json:"public_url"`
 			}
 
 			Convey("read from old format", func() {
 				valueInOldFormat := oldFormat{
 					LocalIP:     net.ParseIP(`22.33.44.55`),
-					APPLanguage: "en",
+					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				}
 
@@ -72,12 +118,11 @@ func TestInitialSetup(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				// we then retrieve the settings in the new format
-				var s Settings
-				err = m.Reader.RetrieveJson(context.Background(), SettingKey, &s)
+				s, err := GetSettings(context.Background(), m.Reader)
 				So(err, ShouldBeNil)
 
-				So(s, ShouldResemble, Settings{
-					LocalIP:     NewIP(`22.33.44.55`),
+				So(s, ShouldResemble, &Settings{
+					LocalIP:     IP{net.ParseIP(`22.33.44.55`)},
 					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				})
@@ -85,7 +130,7 @@ func TestInitialSetup(t *testing.T) {
 
 			Convey("save to old format", func() {
 				value := Settings{
-					LocalIP:     NewIP(`22.33.44.55`),
+					LocalIP:     IP{net.ParseIP(`22.33.44.55`)},
 					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				}
@@ -99,60 +144,9 @@ func TestInitialSetup(t *testing.T) {
 
 				So(s, ShouldResemble, oldFormat{
 					LocalIP:     net.ParseIP(`22.33.44.55`),
-					APPLanguage: "en",
+					AppLanguage: "en",
 					PublicURL:   "http://example.com",
 				})
-			})
-		})
-	})
-}
-
-func TestSettingsFromDefaultValues(t *testing.T) {
-	Convey("Retrieve from default values", t, func() {
-		conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
-		defer closeConn()
-
-		m, err := metadata.NewDefaultedHandler(conn, metadata.DefaultValues{
-			"global": map[string]interface{}{
-				"localIP": map[string]interface{}{
-					"value": "22.33.44.55",
-				},
-				"aPPLanguage": "de",
-				"publicURL":   "http://example.com/lightmeter",
-			},
-		})
-
-		So(err, ShouldBeNil)
-
-		Convey("Retrieve", func() {
-			var settings Settings
-			err = m.Reader.RetrieveJson(context.Background(), SettingKey, &settings)
-			So(err, ShouldBeNil)
-
-			So(settings, ShouldResemble, Settings{
-				LocalIP:     NewIP("22.33.44.55"),
-				AppLanguage: "de",
-				PublicURL:   "http://example.com/lightmeter",
-			})
-		})
-
-		Convey("Empty values do not override defaults", func() {
-			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
-				LocalIP:     NewIP(""),
-				AppLanguage: "",
-				PublicURL:   "https://another.url.example.com",
-			})
-
-			So(err, ShouldBeNil)
-
-			var settings Settings
-			err = m.Reader.RetrieveJson(context.Background(), SettingKey, &settings)
-			So(err, ShouldBeNil)
-
-			So(settings, ShouldResemble, Settings{
-				LocalIP:     NewIP("22.33.44.55"),
-				AppLanguage: "de",
-				PublicURL:   "https://another.url.example.com",
 			})
 		})
 	})

@@ -5,6 +5,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"gitlab.com/lightmeter/controlcenter/metadata"
@@ -143,14 +144,14 @@ func TestDefaultSettings(t *testing.T) {
 	Convey("Obtain from command line", t, func() {
 		c, err := ParseWithErrorHandling([]string{"-default_settings", `{"key1": {"subkey1": 42, "subkey2": "hi"}}`}, noEnv.fakeLookupenv, flag.ContinueOnError)
 		So(err, ShouldBeNil)
-		So(c.DefaultSettings, ShouldResemble, metadata.DefaultValues{"key1": map[string]interface{}{"subkey1": float64(42), "subkey2": "hi"}})
+		So(c.DefaultSettings, ShouldResemble, metadata.DefaultValues{"key1": map[string]interface{}{"subkey1": json.Number("42"), "subkey2": "hi"}})
 	})
 
 	Convey("Obtain from environment", t, func() {
 		env := fakeEnv{"LIGHTMETER_DEFAULT_SETTINGS": `{"key1": {"subkey1": 42, "subkey2": "hi"}}`}
 		c, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
 		So(err, ShouldBeNil)
-		So(c.DefaultSettings, ShouldResemble, metadata.DefaultValues{"key1": map[string]interface{}{"subkey1": float64(42), "subkey2": "hi"}})
+		So(c.DefaultSettings, ShouldResemble, metadata.DefaultValues{"key1": map[string]interface{}{"subkey1": json.Number("42"), "subkey2": "hi"}})
 	})
 
 	Convey("Fail to parse default settings", t, func() {

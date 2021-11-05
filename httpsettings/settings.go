@@ -258,7 +258,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 
-	s := globalsettings.Settings{LocalIP: globalsettings.NewIP(localIPRaw), AppLanguage: appLanguage, PublicURL: publicURL}
+	s := globalsettings.Settings{LocalIP: globalsettings.IP{IP: net.ParseIP(localIPRaw)}, AppLanguage: appLanguage, PublicURL: publicURL}
 
 	if err := mergo.Merge(&s, currentSettings); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err, "Error handling settings"))
@@ -354,7 +354,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 			}
 		}
 
-		s = globalsettings.Settings{AppLanguage: appLanguage, LocalIP: globalsettings.NewIP(postfixPublicIp)}
+		s = globalsettings.Settings{AppLanguage: appLanguage, LocalIP: globalsettings.IP{IP: net.ParseIP(postfixPublicIp)}}
 	}
 
 	result := h.writer.StoreJson(globalsettings.SettingKey, &s)
@@ -432,7 +432,7 @@ func buildEmailSettingsFromForm(form url.Values) (email.Settings, bool, error) {
 		Sender:        sender,
 		Recipients:    recipients,
 		ServerName:    serverName,
-		ServerPort:    int(port),
+		ServerPort:    email.ServerPort(port),
 		SecurityType:  security,
 		AuthMethod:    auth,
 		Username:      stringutil.MakeSensitive(username),

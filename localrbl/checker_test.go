@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -53,7 +54,7 @@ func TestDnsRBL(t *testing.T) {
 		Convey("An IP address is defined", func() {
 			{
 				settings := globalsettings.Settings{
-					LocalIP: globalsettings.NewIP("11.22.33.44"),
+					LocalIP: globalsettings.IP{net.ParseIP("11.22.33.44")},
 				}
 
 				meta.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)
