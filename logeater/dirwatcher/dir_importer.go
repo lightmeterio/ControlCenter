@@ -940,9 +940,8 @@ func importExistingLogs(
 			Location: t.location,
 			Payload:  payloadOrNil(payload, err),
 			Line:     t.line,
+			Sum:      postfix.ComputeChecksum(hasher, t.line),
 		}
-
-		record.Sum = postfix.ComputeChecksum(hasher, record)
 
 		pub.Publish(record)
 	}
@@ -1333,9 +1332,8 @@ func (importer *DirectoryImporter) run(watch bool) error {
 			Location: r.location,
 			Payload:  payloadOrNil(p, err),
 			Line:     r.line,
+			Sum:      postfix.ComputeChecksum(hasher, r.line),
 		}
-
-		record.Sum = postfix.ComputeChecksum(hasher, record)
 
 		importer.pub.Publish(record)
 	}

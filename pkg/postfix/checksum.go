@@ -26,9 +26,9 @@ func NewHasher() *Hasher {
 	return &Hasher{h: fnv.New32a()}
 }
 
-func ComputeChecksum(h *Hasher, r Record) Sum {
+func ComputeChecksum(h *Hasher, line string) Sum {
 	h.h.Reset()
-	_, _ = h.h.Write([]byte(r.Line))
+	_, _ = h.h.Write([]byte(line))
 	hashValue := int64(h.h.Sum32())
 
 	return Sum(hashValue)

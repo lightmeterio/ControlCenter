@@ -508,7 +508,7 @@ func TestCleanupProcessing(t *testing.T) {
 		})
 
 		Convey("Submission cleanup (gitlab issue #558)", func() {
-			_, payload, err := Parse([]byte(`Sep 28 11:21:18 mail2 postfix/submission/cleanup[30571]: DD3B7144: message-id=<h-e3dc9fb6dfc97a822113dc127f54fcc2f322@h-00eed68f.com>`))
+			_, payload, err := Parse(`Sep 28 11:21:18 mail2 postfix/submission/cleanup[30571]: DD3B7144: message-id=<h-e3dc9fb6dfc97a822113dc127f54fcc2f322@h-00eed68f.com>`)
 			So(err, ShouldBeNil)
 			p, cast := payload.(CleanupMessageAccepted)
 			So(cast, ShouldBeTrue)

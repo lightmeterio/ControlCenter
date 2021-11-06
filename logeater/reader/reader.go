@@ -104,7 +104,7 @@ func ReadFromReader(reader io.Reader, pub postfix.Publisher, builder transform.B
 			return
 		}
 
-		currentRecord.Sum = postfix.ComputeChecksum(hasher, currentRecord)
+		currentRecord.Sum = postfix.ComputeChecksum(hasher, line)
 
 		setupAnnouncerIfNeeded(currentRecord)
 
