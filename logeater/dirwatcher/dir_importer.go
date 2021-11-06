@@ -430,23 +430,23 @@ type DirectoryContent interface {
 }
 
 type DirectoryImporter struct {
-	content     DirectoryContent
-	pub         postfix.Publisher
-	announcer   announcer.ImportAnnouncer
-	initialTime time.Time
-	patterns    LogPatterns
-	format      parsertimeutil.TimeFormat
+	content   DirectoryContent
+	pub       postfix.Publisher
+	announcer announcer.ImportAnnouncer
+	sum       postfix.SumPair
+	patterns  LogPatterns
+	format    parsertimeutil.TimeFormat
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
 	pub postfix.Publisher,
 	announcer announcer.ImportAnnouncer,
-	initialTime time.Time,
+	sum postfix.SumPair,
 	format parsertimeutil.TimeFormat,
 	patterns LogPatterns,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, announcer, initialTime, patterns, format}
+	return DirectoryImporter{content, pub, announcer, sum, patterns, format}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
@@ -872,7 +872,7 @@ func importExistingLogs(
 	content DirectoryContent,
 	queues fileQueues,
 	pub postfix.Publisher,
-	initialTime time.Time,
+	sum postfix.SumPair,
 	importAnnouncer announcer.ImportAnnouncer,
 	patterns LogPatterns,
 	format parsertimeutil.TimeFormat,
@@ -919,7 +919,7 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if !t.time.After(initialTime) {
+		if !t.time.After(sum.Time) {
 			continue
 		}
 
@@ -1277,7 +1277,7 @@ func (importer *DirectoryImporter) ImportOnly() error {
 }
 
 func (importer *DirectoryImporter) run(watch bool) error {
-	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.initialTime)
+	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.sum.Time)
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -1306,7 +1306,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer, importer.patterns, importer.format)
+	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.sum, importer.announcer, importer.patterns, importer.format)
 
 	if err != nil {
 		interruptWatching()

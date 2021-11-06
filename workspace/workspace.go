@@ -360,13 +360,13 @@ func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
 }
 
 func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
-	mostRecentTime, err := ws.MostRecentLogTime()
+	sum, err := ws.MostRecentLogTimeAndSum()
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	// first execution. Must import historical insights
-	if mostRecentTime.IsZero() {
+	if sum.Time.IsZero() {
 		return ws.importAnnouncer, nil
 	}
 
@@ -378,28 +378,36 @@ func (ws *Workspace) Auth() *auth.Auth {
 	return ws.auth
 }
 
-func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
+func (ws *Workspace) MostRecentLogTimeAndSum() (postfix.SumPair, error) {
 	mostRecentDeliverTime, err := ws.deliveries.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
 	mostRecentTrackerTime, err := ws.tracker.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
 	mostRecentConnStatsTime, err := ws.connStats.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
-	mostRecentRawLogsTime, err := rawlogsdb.MostRecentLogTime(context.Background(), ws.databases.RawLogs.RoConnPool)
+	rawLogsSum, err := rawlogsdb.MostRecentLogTimeAndSum(context.Background(), ws.databases.RawLogs.RoConnPool)
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
-	times := [4]time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime, mostRecentRawLogsTime}
+	// if raw logs has any logs, just use it
+	if rawLogsSum.Sum != nil {
+		return rawLogsSum, nil
+	}
+
+	// In case we have no raw logs unavailable yet (the first execution after rawlogsdb is introduced),
+	// try the old way to compute the most recent time from the other databases
+
+	times := [3]time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
 
 	mostRecent := time.Time{}
 
@@ -409,7 +417,7 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		}
 	}
 
-	return mostRecent, nil
+	return postfix.SumPair{Time: mostRecent, Sum: nil}, nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {

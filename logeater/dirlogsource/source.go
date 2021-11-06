@@ -11,21 +11,20 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 type Source struct {
-	initialTime time.Time
-	dir         dirwatcher.DirectoryContent
-	announcer   announcer.ImportAnnouncer
-	patterns    dirwatcher.LogPatterns
-	format      parsertimeutil.TimeFormat
+	sum       postfix.SumPair
+	dir       dirwatcher.DirectoryContent
+	announcer announcer.ImportAnnouncer
+	patterns  dirwatcher.LogPatterns
+	format    parsertimeutil.TimeFormat
 
 	// should continue waiting for new results (tail -f)?
 	follow bool
 }
 
-func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns) (*Source, error) {
+func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns) (*Source, error) {
 	timeFormat, err := parsertimeutil.Get(logFormat)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -49,26 +48,26 @@ func New(dirname string, initialTime time.Time, announcer announcer.ImportAnnoun
 	}
 
 	func() {
-		if initialTime.IsZero() {
+		if sum.Time.IsZero() {
 			log.Info().Msg("Start importing Postfix logs directory into a new workspace")
 			return
 		}
 
-		log.Info().Msgf("Importing Postfix logs directory from time %v", initialTime)
+		log.Info().Msgf("Importing Postfix logs directory from time %v", sum.Time)
 	}()
 
 	return &Source{
-		initialTime: initialTime,
-		dir:         dir,
-		follow:      follow,
-		announcer:   announcer,
-		patterns:    patterns,
-		format:      format,
+		sum:       sum,
+		dir:       dir,
+		follow:    follow,
+		announcer: announcer,
+		patterns:  patterns,
+		format:    format,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.initialTime, s.format, s.patterns)
+	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.sum, s.format, s.patterns)
 
 	f := func() func() error {
 		if s.follow {

@@ -45,9 +45,10 @@ func TestFetchingLogLines(t *testing.T) {
 
 		{
 			// No logs are available, time is unavailable
-			mostRecentLogTime, err := MostRecentLogTime(context.Background(), pool)
+			sum, err := MostRecentLogTimeAndSum(context.Background(), pool)
 			So(err, ShouldBeNil)
-			So(mostRecentLogTime.IsZero(), ShouldBeTrue)
+			So(sum.Time.IsZero(), ShouldBeTrue)
+			So(sum.Sum, ShouldBeNil)
 		}
 
 		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
@@ -56,9 +57,11 @@ func TestFetchingLogLines(t *testing.T) {
 		So(done(), ShouldBeNil)
 
 		{
-			mostRecentLogTime, err := MostRecentLogTime(context.Background(), pool)
+			sum, err := MostRecentLogTimeAndSum(context.Background(), pool)
 			So(err, ShouldBeNil)
-			So(mostRecentLogTime, ShouldResemble, timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`))
+			So(sum.Time, ShouldResemble, timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`))
+			So(sum.Sum, ShouldNotBeNil)
+			So(*sum.Sum, ShouldResemble, postfix.ComputeChecksum(postfix.NewHasher(), `Feb  4 09:29:33 mail postfix/qmgr[964]: 027BD2C77B20: removed`))
 		}
 
 		interval := timeutil.TimeInterval{

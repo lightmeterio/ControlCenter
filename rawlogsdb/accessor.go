@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
@@ -154,25 +155,28 @@ func FetchLogsInInterval(ctx context.Context, pool *dbconn.RoPool, interval time
 	}, nil
 }
 
-func MostRecentLogTime(ctx context.Context, pool *dbconn.RoPool) (time.Time, error) {
+func MostRecentLogTimeAndSum(ctx context.Context, pool *dbconn.RoPool) (postfix.SumPair, error) {
 	conn, release, err := pool.AcquireContext(ctx)
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
 	defer release()
 
-	var ts int64
+	var (
+		ts  int64
+		sum int64
+	)
 
-	err = conn.QueryRow(`select time from logs order by id desc limit 1`).Scan(&ts)
+	err = conn.QueryRow(`select time, checksum from logs order by id desc limit 1`).Scan(&ts, &sum)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return time.Time{}, nil
+		return postfix.SumPair{}, nil
 	}
 
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
-	return time.Unix(ts, 0).In(time.UTC), nil
+	return postfix.SumPair{Time: time.Unix(ts, 0).In(time.UTC), Sum: (*postfix.Sum)(&sum)}, nil
 }

@@ -23,6 +23,11 @@ type Record struct {
 	Sum      Sum
 }
 
+type SumPair struct {
+	Time time.Time
+	Sum  *Sum
+}
+
 type Publisher interface {
 	Publish(Record)
 }

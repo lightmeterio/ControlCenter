@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -130,10 +131,11 @@ Jun  3 10:41:10 mail postfix/smtpd[11978]: disconnect from unknown[4.3.2.1] ehlo
 
 			So(done(), ShouldBeNil)
 
-			mostRecentTime, err := ws.MostRecentLogTime()
+			sum, err := ws.MostRecentLogTimeAndSum()
 			So(err, ShouldBeNil)
-			So(mostRecentTime, ShouldResemble, timeutil.MustParseTime(`2020-06-03 10:41:10 +0000`))
-
+			So(sum.Time, ShouldResemble, timeutil.MustParseTime(`2020-06-03 10:41:10 +0000`))
+			So(sum.Sum, ShouldNotBeNil)
+			So(*sum.Sum, ShouldEqual, postfix.ComputeChecksum(postfix.NewHasher(), `Jun  3 10:41:10 mail postfix/smtpd[11978]: disconnect from unknown[4.3.2.1] ehlo=1 auth=0/3 commands=1/3`))
 			So(ws.HasLogs(), ShouldBeTrue)
 		})
 	})

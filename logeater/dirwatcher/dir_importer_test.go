@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
@@ -607,7 +608,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -630,7 +631,7 @@ Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -683,7 +684,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 
@@ -741,7 +742,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`2020-06-18 06:28:54 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -769,7 +770,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -802,7 +803,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -882,7 +883,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -913,7 +914,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -943,7 +944,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
@@ -989,7 +990,7 @@ func TestImportDirectoryWithRFC3339TimeFormat(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 
@@ -1026,7 +1027,7 @@ func TestImportingBzip2CompressedFiles(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 
