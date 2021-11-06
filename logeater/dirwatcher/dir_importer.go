@@ -884,15 +884,14 @@ func importExistingLogs(
 		return errorutil.Wrap(err)
 	}
 
-	progressNotifier := announcer.NewNotifier(importAnnouncer, countNumberOfFilesInQueues(queues))
-
-	currentLogTime := time.Time{}
-
-	toBeUpdated := -1
-
-	updatedProcessors := make([]*queueProcessor, 0, len(queueProcessors))
-
-	hasher := postfix.NewHasher()
+	var (
+		progressNotifier          = announcer.NewNotifier(importAnnouncer, countNumberOfFilesInQueues(queues))
+		currentLogTime            time.Time
+		toBeUpdated               = -1
+		updatedProcessors         = make([]*queueProcessor, 0, len(queueProcessors))
+		hasher                    = postfix.NewHasher()
+		checkSumHasAlreadyMatched = false
+	)
 
 	for {
 		updatedProcessors = updatedProcessors[0:0]
@@ -919,8 +918,31 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if !t.time.After(sum.Time) {
+		// ignore any old logs
+		if t.time.Before(sum.Time) {
 			continue
+		}
+
+		if t.time.Equal(sum.Time) {
+			// this case happens when we are reading from an existing workspace which contains logs,
+			// but not yet the `rawlogs` database used by the logs viewer
+			// Ref #9
+			if sum.Sum == nil {
+				continue
+			}
+
+			if !checkSumHasAlreadyMatched {
+				// computing the sum is expensive, but at least we do only for the times in the same second
+				// which is not such high performance penalty
+				currentSum := postfix.ComputeChecksum(hasher, t.line)
+
+				if currentSum == *sum.Sum {
+					checkSumHasAlreadyMatched = true
+				}
+
+				// same second, but before the actual line that matches the checksum
+				continue
+			}
 		}
 
 		if currentLogTime.IsZero() {
