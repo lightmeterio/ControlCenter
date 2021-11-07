@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -78,19 +79,39 @@ type fetchRawLogLinesToWriterHandler fetchLogsHandler
 // @Summary Download compressed raw log content from interval
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
+// @Param format query string gzip "Format of the result. Supported values: gzip, plain"
 // @Success 200 {object} string "desc"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchRawLogsInTimeInterval [get]
 func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
-	compressor := gzip.NewWriter(w)
+	writer, releaseWriter := func() (io.Writer, func() error) {
+		format := r.Form.Get("format")
 
-	defer compressor.Close()
+		switch format {
+		case "plain":
+			w.Header()["Content-Type"] = []string{"text/plain"}
 
-	w.Header()["Content-Type"] = []string{"application/gzip"}
+			return w, func() error { return nil }
+		case "gzip":
+			fallthrough
+		default:
+			w.Header()["Content-Type"] = []string{"application/gzip"}
+			compressor := gzip.NewWriter(w)
 
-	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, compressor); err != nil {
+			return compressor, compressor.Close
+		}
+	}()
+
+	defer func() {
+		// FIXME: the return of this function should be checked, and it'll be easier once the following MR is merged:
+		// https://gitlab.com/lightmeter/controlcenter/-/merge_requests/852
+		//nolint:errcheck
+		releaseWriter()
+	}()
+
+	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, writer); err != nil {
 		return errorutil.Wrap(err)
 	}
 
