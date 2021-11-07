@@ -7,6 +7,7 @@ package api
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"github.com/gorilla/sessions"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
@@ -27,7 +28,13 @@ type fakeRawLogsFetcher struct {
 }
 
 func (f *fakeRawLogsFetcher) FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (rawlogsdb.Content, error) {
-	return rawlogsdb.Content{}, nil
+	return rawlogsdb.Content{
+		Cursor: 42,
+		Content: []rawlogsdb.ContentRow{
+			{Timestamp: 35, Content: `log line 1`},
+			{Timestamp: 36, Content: `log line 2`},
+		},
+	}, nil
 }
 
 func (f *fakeRawLogsFetcher) FetchLogsInIntervalToWriter(ctx context.Context, interval timeutil.TimeInterval, w io.Writer) error {
@@ -36,7 +43,7 @@ func (f *fakeRawLogsFetcher) FetchLogsInIntervalToWriter(ctx context.Context, in
 }
 
 func (f *fakeRawLogsFetcher) CountLogLinesInInterval(context.Context, timeutil.TimeInterval) (int64, error) {
-	return 0, nil
+	return 42, nil
 }
 
 func TestFetchingRawLogs(t *testing.T) {
@@ -80,31 +87,66 @@ func TestFetchingRawLogs(t *testing.T) {
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 			So(err, ShouldBeNil)
 
-			Convey("Fetch plain logs", func() {
-				r, err := httpClient.Get(s.URL + "/api/v0/fetchRawLogsInTimeInterval?from=2000-01-01&to=4000-01-01&format=plain")
+			Convey("Counting logs", func() {
+				r, err := httpClient.Get(s.URL + "/api/v0/countRawLogLinesInTimeInterval?from=2000-01-01&to=4000-01-01")
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
-				So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
+				So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
 
-				content, err := io.ReadAll(r.Body)
+				count := logLinesCounterResult{}
+				err = json.NewDecoder(r.Body).Decode(&count)
 				So(err, ShouldBeNil)
 
-				So(content, ShouldResemble, []byte("log line 1\nlog line 2\n"))
+				So(count.Count, ShouldEqual, 42)
 			})
 
-			Convey("Fetch gzipped logs", func() {
-				r, err := httpClient.Get(s.URL + "/api/v0/fetchRawLogsInTimeInterval?from=2000-01-01&to=4000-01-01")
+			Convey("Fetching paginated log lines", func() {
+				r, err := httpClient.Get(s.URL + "/api/v0/fetchLogLinesInTimeInterval?from=2000-01-01&to=4000-01-01&cursor=0&pageSize=10")
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
-				So(r.Header.Get("Content-Type"), ShouldEqual, "application/gzip")
+				So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
 
-				decompressor, err := gzip.NewReader(r.Body)
+				content := rawlogsdb.Content{}
+
+				err = json.NewDecoder(r.Body).Decode(&content)
 				So(err, ShouldBeNil)
 
-				content, err := io.ReadAll(decompressor)
-				So(err, ShouldBeNil)
+				So(content, ShouldResemble, rawlogsdb.Content{
+					Cursor: 42,
+					Content: []rawlogsdb.ContentRow{
+						{Timestamp: 35, Content: `log line 1`},
+						{Timestamp: 36, Content: `log line 2`},
+					},
+				})
+			})
 
-				So(content, ShouldResemble, []byte("log line 1\nlog line 2\n"))
+			Convey("Fetching raw logs", func() {
+				Convey("Fetch plain logs", func() {
+					r, err := httpClient.Get(s.URL + "/api/v0/fetchRawLogsInTimeInterval?from=2000-01-01&to=4000-01-01&format=plain")
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+					So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
+
+					content, err := io.ReadAll(r.Body)
+					So(err, ShouldBeNil)
+
+					So(content, ShouldResemble, []byte("log line 1\nlog line 2\n"))
+				})
+
+				Convey("Fetch gzipped logs", func() {
+					r, err := httpClient.Get(s.URL + "/api/v0/fetchRawLogsInTimeInterval?from=2000-01-01&to=4000-01-01")
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+					So(r.Header.Get("Content-Type"), ShouldEqual, "application/gzip")
+
+					decompressor, err := gzip.NewReader(r.Body)
+					So(err, ShouldBeNil)
+
+					content, err := io.ReadAll(decompressor)
+					So(err, ShouldBeNil)
+
+					So(content, ShouldResemble, []byte("log line 1\nlog line 2\n"))
+				})
 			})
 		})
 	})
