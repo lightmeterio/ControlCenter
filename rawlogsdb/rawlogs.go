@@ -6,6 +6,7 @@ package rawlogsdb
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
@@ -88,7 +89,14 @@ func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 		// delete at most <batchSize> from logs where time < ((select max(time) from logs) - <maxAge>)
 
 		//nolint:sqlclosecheck
-		if err := stmts.Get(selectMostRecentLogTimeKey).QueryRow().Scan(&mostRecentLogTime); err != nil {
+		err := stmts.Get(selectMostRecentLogTimeKey).QueryRow().Scan(&mostRecentLogTime)
+
+		// do nothing if there are no lines to be cleaned
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		if err != nil {
 			return errorutil.Wrap(err)
 		}
 

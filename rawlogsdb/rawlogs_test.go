@@ -114,38 +114,56 @@ func TestDeleteLogs(t *testing.T) {
 
 		done, cancel := runner.Run(rawLogs)
 
-		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
+		Convey("Cleaning should not remove any lines if no lines are available", func() {
+			// nothing is removed
+			rawLogs.Actions <- makeCleanAction(5*time.Second, 40)
+			cancel()
+			So(done(), ShouldBeNil)
 
-		// remove the first items
-		rawLogs.Actions <- makeCleanAction(5*time.Second, 40)
-		rawLogs.Actions <- makeCleanAction(5*time.Second, 20)
-		rawLogs.Actions <- makeCleanAction(5*time.Second, 10)
+			interval := timeutil.TimeInterval{
+				From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   timeutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+			}
 
-		cancel()
-		So(done(), ShouldBeNil)
+			r, err := FetchLogsInInterval(context.Background(), pool, interval, 1000, 0)
+			So(err, ShouldBeNil)
+			So(len(r.Content), ShouldEqual, 0)
+		})
 
-		interval := timeutil.TimeInterval{
-			From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-			To:   timeutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
-		}
+		Convey("With existing logs", func() {
+			postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
 
-		r, err := FetchLogsInInterval(context.Background(), pool, interval, 1000, 0)
-		So(err, ShouldBeNil)
-		So(len(r.Content), ShouldEqual, 3)
-		So(r.Cursor, ShouldEqual, 66)
-		So(r.Content, ShouldResemble, []ContentRow{
-			{
-				Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:29 +0000`).Unix(),
-				Content:   `Feb  4 09:29:29 mail postfix/smtp[6655]: Anonymous TLS connection established to balzers.recipient.example.com[217.173.226.42]:25: TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits)`,
-			},
-			{
-				Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`).Unix(),
-				Content:   `Feb  4 09:29:33 mail postfix/smtp[6655]: 027BD2C77B20: to=<recipient1@recipient.example.com>, relay=balzers.recipient.example.com[217.173.226.42]:25, delay=6.9, delays=0.01/0.02/2.9/4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as ADCC76373)`,
-			},
-			{
-				Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`).Unix(),
-				Content:   `Feb  4 09:29:33 mail postfix/qmgr[964]: 027BD2C77B20: removed`,
-			},
+			// remove the first items
+			rawLogs.Actions <- makeCleanAction(5*time.Second, 40)
+			rawLogs.Actions <- makeCleanAction(5*time.Second, 20)
+			rawLogs.Actions <- makeCleanAction(5*time.Second, 10)
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			interval := timeutil.TimeInterval{
+				From: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
+				To:   timeutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
+			}
+
+			r, err := FetchLogsInInterval(context.Background(), pool, interval, 1000, 0)
+			So(err, ShouldBeNil)
+			So(len(r.Content), ShouldEqual, 3)
+			So(r.Cursor, ShouldEqual, 66)
+			So(r.Content, ShouldResemble, []ContentRow{
+				{
+					Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:29 +0000`).Unix(),
+					Content:   `Feb  4 09:29:29 mail postfix/smtp[6655]: Anonymous TLS connection established to balzers.recipient.example.com[217.173.226.42]:25: TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits)`,
+				},
+				{
+					Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`).Unix(),
+					Content:   `Feb  4 09:29:33 mail postfix/smtp[6655]: 027BD2C77B20: to=<recipient1@recipient.example.com>, relay=balzers.recipient.example.com[217.173.226.42]:25, delay=6.9, delays=0.01/0.02/2.9/4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as ADCC76373)`,
+				},
+				{
+					Timestamp: timeutil.MustParseTime(`2020-02-04 09:29:33 +0000`).Unix(),
+					Content:   `Feb  4 09:29:33 mail postfix/qmgr[964]: 027BD2C77B20: removed`,
+				},
+			})
 		})
 	})
 }
