@@ -893,6 +893,12 @@ func importExistingLogs(
 		checkSumHasAlreadyMatched = false
 	)
 
+	announceStartIfNeeded := func(t time.Time) {
+		if currentLogTime.IsZero() {
+			progressNotifier.Start(t)
+		}
+	}
+
 	for {
 		updatedProcessors = updatedProcessors[0:0]
 
@@ -902,6 +908,9 @@ func importExistingLogs(
 		}
 
 		if len(updatedProcessors) == 0 {
+			// in case no new logs were added, we still need to announce the beginning
+			announceStartIfNeeded(time.Time{})
+
 			elapsedTime := time.Since(initialImportTime)
 
 			progressNotifier.End(currentLogTime)
@@ -945,9 +954,7 @@ func importExistingLogs(
 			}
 		}
 
-		if currentLogTime.IsZero() {
-			importAnnouncer.AnnounceStart(t.time)
-		}
+		announceStartIfNeeded(t.time)
 
 		currentLogTime = t.time
 
