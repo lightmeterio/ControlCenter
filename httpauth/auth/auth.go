@@ -263,7 +263,7 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 }
 
 // Check that end-users' detective is enabled, or user is authenticated
-func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader *metadata.Reader) error {
+func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader metadata.Reader) error {
 	settings := detectivesettings.Settings{}
 	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
 
@@ -314,7 +314,7 @@ type UserSystemData struct {
 	MailKind       string         `json:"mail_kind"`
 }
 
-func HandleGetUserSystemData(auth *Authenticator, settingsReader *metadata.Reader, w http.ResponseWriter, r *http.Request) error {
+func HandleGetUserSystemData(auth *Authenticator, settingsReader metadata.Reader, w http.ResponseWriter, r *http.Request) error {
 	sessionData, err := GetSessionData(auth, r)
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("unauthorized: is not authenticated"))

@@ -5,6 +5,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -40,6 +42,8 @@ type Config struct {
 	// set it when control center is **NOT** behind a reverse proxy,
 	// being accessed directly, on plain HTTP (as on 2.0)
 	IKnowWhatIAmDoingNotUsingAReverseProxy bool
+
+	DefaultSettings metadata.DefaultValues
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -47,7 +51,7 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 }
 
 func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string, bool), errorHandling flag.ErrorHandling) (Config, error) {
-	var conf Config
+	conf := Config{DefaultSettings: metadata.DefaultValues{}}
 	conf.Timezone = time.UTC
 
 	// new flagset to be able to call ParseFlags any number of times
@@ -108,6 +112,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
 
+	var unparsedDefaultSettings string
+
+	fs.StringVar(&unparsedDefaultSettings, "default_settings", lookupEnvOrString("LIGHTMETER_DEFAULT_SETTINGS", `{}`, lookupenv), "JSON string for default settings")
+
 	var unparsedLogPatterns string
 
 	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", lookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
@@ -131,6 +139,13 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}
 
 	if err := fs.Parse(cmdlineArgs); err != nil {
+		return Config{}, errorutil.Wrap(err)
+	}
+
+	d := json.NewDecoder(strings.NewReader(unparsedDefaultSettings))
+	d.UseNumber()
+
+	if err := d.Decode(&conf.DefaultSettings); err != nil {
 		return Config{}, errorutil.Wrap(err)
 	}
 

@@ -40,7 +40,7 @@ It is ready for production use. [It is used in several projects by Docker, Googl
 
 ### Important note
 
-Please keep in mind that a problematic PR broke [0.3.9](//github.com/imdario/mergo/releases/tag/0.3.9). I reverted it in [0.3.10](//github.com/imdario/mergo/releases/tag/0.3.10), and I consider it stable but not bug-free. Also, this version adds suppot for go modules.
+Please keep in mind that a problematic PR broke [0.3.9](//github.com/imdario/mergo/releases/tag/0.3.9). I reverted it in [0.3.10](//github.com/imdario/mergo/releases/tag/0.3.10), and I consider it stable but not bug-free. Also, this version adds support for go modules.
 
 Keep in mind that in [0.3.2](//github.com/imdario/mergo/releases/tag/0.3.2), Mergo changed `Merge()`and `Map()` signatures to support [transformers](#transformers). I added an optional/variadic argument so that it won't break the existing code.
 
@@ -97,7 +97,9 @@ If Mergo is useful to you, consider buying me a coffee, a beer, or making a mont
 - [mantasmatelis/whooplist-server](https://github.com/mantasmatelis/whooplist-server)
 - [jnuthong/item_search](https://github.com/jnuthong/item_search)
 - [bukalapak/snowboard](https://github.com/bukalapak/snowboard)
-- [janoszen/containerssh](https://github.com/janoszen/containerssh)
+- [containerssh/containerssh](https://github.com/containerssh/containerssh)
+- [goreleaser/goreleaser](https://github.com/goreleaser/goreleaser)
+- [tjpnz/structbot](https://github.com/tjpnz/structbot)
 
 ## Install
 
@@ -218,7 +220,6 @@ func main() {
 }
 ```
 
-
 ## Contact me
 
 If I can help you, you have an idea or you are using Mergo in your projects, don't hesitate to drop me a line (or a pull request): [@im_dario](https://twitter.com/im_dario)
@@ -226,18 +227,6 @@ If I can help you, you have an idea or you are using Mergo in your projects, don
 ## About
 
 Written by [Dario Castañé](http://dario.im).
-
-## Top Contributors
-
-[![0](https://sourcerer.io/fame/imdario/imdario/mergo/images/0)](https://sourcerer.io/fame/imdario/imdario/mergo/links/0)
-[![1](https://sourcerer.io/fame/imdario/imdario/mergo/images/1)](https://sourcerer.io/fame/imdario/imdario/mergo/links/1)
-[![2](https://sourcerer.io/fame/imdario/imdario/mergo/images/2)](https://sourcerer.io/fame/imdario/imdario/mergo/links/2)
-[![3](https://sourcerer.io/fame/imdario/imdario/mergo/images/3)](https://sourcerer.io/fame/imdario/imdario/mergo/links/3)
-[![4](https://sourcerer.io/fame/imdario/imdario/mergo/images/4)](https://sourcerer.io/fame/imdario/imdario/mergo/links/4)
-[![5](https://sourcerer.io/fame/imdario/imdario/mergo/images/5)](https://sourcerer.io/fame/imdario/imdario/mergo/links/5)
-[![6](https://sourcerer.io/fame/imdario/imdario/mergo/images/6)](https://sourcerer.io/fame/imdario/imdario/mergo/links/6)
-[![7](https://sourcerer.io/fame/imdario/imdario/mergo/images/7)](https://sourcerer.io/fame/imdario/imdario/mergo/links/7)
-
 
 ## License
 
