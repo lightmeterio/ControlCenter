@@ -182,7 +182,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <b-button
                 @click="downloadRawLogsInInterval"
                 :disabled="rawLogsDownloadsDisable"
-                >Download Logs</b-button
+                ><translate>Download Logs</translate></b-button
               >
             </div>
           </form>

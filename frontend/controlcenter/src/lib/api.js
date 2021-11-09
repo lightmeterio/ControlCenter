@@ -379,7 +379,12 @@ export function getLatestSignals() {
 
 export function countLogLinesInInterval(selectedDateFrom, selectedDateTo) {
   const timeIntervalUrlParams = function() {
-    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
+    return (
+      "from=" +
+      encodeURIComponent(selectedDateFrom) +
+      "&to=" +
+      encodeURIComponent(selectedDateTo)
+    );
   };
 
   return axios
