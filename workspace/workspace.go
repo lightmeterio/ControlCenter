@@ -105,10 +105,12 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 
 type Options struct {
 	IsUsingRsyncedLogs bool
+	DefaultSettings    metadata.DefaultValues
 }
 
 var DefaultOptions = &Options{
 	IsUsingRsyncedLogs: false,
+	DefaultSettings:    metadata.DefaultValues{},
 }
 
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
@@ -167,7 +169,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := metadata.NewHandler(allDatabases.Master)
+	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -323,7 +325,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, *metadata.Reader) {
+func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, metadata.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 

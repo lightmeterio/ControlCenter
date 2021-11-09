@@ -13,6 +13,7 @@ run:
 linters:
   enable-all: true
   disable:
+    - gomoddirectives # TODO: remove this as soon as as https://github.com/imdario/mergo/pull/198 and https://github.com/imdario/mergo/pull/197 are merged
     - promlinter
     - nolintlint
     - thelper
