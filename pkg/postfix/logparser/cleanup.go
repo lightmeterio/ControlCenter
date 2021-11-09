@@ -27,8 +27,8 @@ func convertCleanupMessageAccepted(r rawparser.RawPayload) (Payload, error) {
 	p := r.CleanupMesageAccepted
 
 	return CleanupMessageAccepted{
-		Queue:     string(p.Queue),
-		MessageId: string(p.MessageId),
+		Queue:     p.Queue,
+		MessageId: p.MessageId,
 		Corrupted: p.Corrupted,
 	}, nil
 }
@@ -46,7 +46,7 @@ func convertCleanupMilterReject(r rawparser.RawPayload) (Payload, error) {
 	p := r.CleanupMilterReject
 
 	return CleanupMilterReject{
-		Queue:        string(p.Queue),
-		ExtraMessage: string(p.ExtraMessage),
+		Queue:        p.Queue,
+		ExtraMessage: p.ExtraMessage,
 	}, nil
 }

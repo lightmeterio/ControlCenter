@@ -25,7 +25,7 @@ func convertBounceCreated(r rawparser.RawPayload) (Payload, error) {
 	p := r.BounceCreated
 
 	return BounceCreated{
-		Queue:      string(p.Queue),
-		ChildQueue: string(p.ChildQueue),
+		Queue:      p.Queue,
+		ChildQueue: p.ChildQueue,
 	}, nil
 }

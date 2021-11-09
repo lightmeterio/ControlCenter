@@ -183,7 +183,7 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
 		Closers:  closeutil.New(stmts),
 	}, nil
 }

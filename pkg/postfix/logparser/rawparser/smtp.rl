@@ -8,13 +8,13 @@
 package rawparser
 
 import (
-	"bytes"
+	"strings"
 )
 
 %% machine smtpSentStatusPayload;
 %% write data;
 
-func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
+func parseSmtpSentStatus(data string) (RawSmtpSentStatus, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -64,7 +64,7 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 	delays = anythingExceptComma >setTokBeg %{
 		{
 			delays := data[tokBeg:p]
-			split := bytes.Split(delays, []byte("/"))
+			split := strings.Split(delays, string("/"))
 
 			if len(split) != 4 {
 				// delays has format 0.0/0.0/0.0/0.0
@@ -107,7 +107,7 @@ func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
 %% machine smtpSentStatusExtraMessageSentQueuedPayload;
 %% write data;
 
-func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtraMessageSentQueued, bool) {
+func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtraMessageSentQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

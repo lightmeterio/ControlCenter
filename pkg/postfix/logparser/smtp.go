@@ -82,8 +82,8 @@ func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
 
 var ErrInvalidStatus = errors.New(`Invalid Status`)
 
-func ParseStatus(s []byte) (SmtpStatus, error) {
-	switch string(s) {
+func ParseStatus(s string) (SmtpStatus, error) {
+	switch s {
 	case "deferred":
 		return DeferredStatus, nil
 	case "sent":
@@ -112,7 +112,7 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			return nil, ""
 		}
 
-		return nil, string(p.RelayIpOrPath)
+		return nil, p.RelayIpOrPath
 	}()
 
 	relayPort, err := func() (int, error) {
@@ -162,7 +162,7 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			return ""
 		}
 
-		r := string(p.RelayName)
+		r := p.RelayName
 
 		if r == "none" {
 			return ""
@@ -182,11 +182,11 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return SmtpSentStatus{
-		Queue:                   string(p.Queue),
-		RecipientLocalPart:      string(p.RecipientLocalPart),
-		RecipientDomainPart:     string(p.RecipientDomainPart),
-		OrigRecipientLocalPart:  string(p.OrigRecipientLocalPart),
-		OrigRecipientDomainPart: string(p.OrigRecipientDomainPart),
+		Queue:                   p.Queue,
+		RecipientLocalPart:      p.RecipientLocalPart,
+		RecipientDomainPart:     p.RecipientDomainPart,
+		OrigRecipientLocalPart:  p.OrigRecipientLocalPart,
+		OrigRecipientDomainPart: p.OrigRecipientDomainPart,
 		RelayName:               relayName,
 		RelayPath:               relayPath,
 		RelayIP:                 relayIp,
@@ -198,9 +198,9 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 			Qmgr:    qmgrDelay,
 			Smtp:    smtpDelay,
 		},
-		Dsn:                 string(p.Dsn),
+		Dsn:                 p.Dsn,
 		Status:              status,
-		ExtraMessage:        string(p.ExtraMessage),
+		ExtraMessage:        p.ExtraMessage,
 		ExtraMessagePayload: parsedExtraMessage,
 	}, nil
 }
@@ -212,7 +212,7 @@ func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, er
 
 	p := s.ExtraMessageSmtpSentStatusSentQueued
 
-	optionalAtoi := func(v []byte) (int, error) {
+	optionalAtoi := func(v string) (int, error) {
 		if len(v) == 0 {
 			return 0, nil
 		}
@@ -236,10 +236,10 @@ func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, er
 	}
 
 	return SmtpSentStatusExtraMessageSentQueued{
-		Dsn:      string(p.Dsn),
+		Dsn:      p.Dsn,
 		IP:       ip,
 		Port:     port,
-		Queue:    string(p.Queue),
+		Queue:    p.Queue,
 		SmtpCode: smtpCode,
 	}, nil
 }

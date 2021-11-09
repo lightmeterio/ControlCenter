@@ -10,7 +10,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"path"
 	"time"
 )
 
@@ -41,7 +40,7 @@ func newCleaner(cleanInterval time.Duration, cleaner Action, actions chan<- Acti
 	})
 }
 
-func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, stmts dbconn.PreparedStmts, cleanInterval time.Duration, cleaner Action) Runner {
+func New(timeout time.Duration, actionSize uint, conn dbconn.RwConn, stmts dbconn.PreparedStmts, cleanInterval time.Duration, cleaner Action) Runner {
 	actions := make(chan Action, actionSize)
 
 	return Runner{
@@ -59,7 +58,7 @@ func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, st
 
 			go func() {
 				done <- func() error {
-					if err := fillDatabase(timeout, connPair.RwConn, stmts, actions, path.Base(connPair.Filename)); err != nil {
+					if err := fillDatabase(timeout, conn, stmts, actions); err != nil {
 						return errorutil.Wrap(err)
 					}
 
@@ -73,7 +72,7 @@ func New(timeout time.Duration, actionSize uint, connPair *dbconn.PooledPair, st
 // TODO: I could not find a way to simplify this function,
 // so I'll silence the linter complaining about complexity...
 //nolint:gocognit
-func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.PreparedStmts, dbActions <-chan Action, filename string) error {
+func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.PreparedStmts, dbActions <-chan Action) error {
 	var (
 		tx                  *sql.Tx = nil
 		countPerTransaction int64
@@ -83,7 +82,7 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 	startTransaction := func() error {
 		var err error
 		if tx, err = conn.Begin(); err != nil {
-			return errorutil.Wrap(err, filename)
+			return errorutil.Wrap(err)
 		}
 
 		preparedTxStmts = dbconn.TxStmts(tx, stmts)
@@ -102,10 +101,10 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 		}
 
 		// NOTE: improve it to be used for benchmarking
-		log.Debug().Msgf("Database %s executed %d statements in a transaction", filename, countPerTransaction)
+		log.Debug().Msgf("Executed %d statements in a transaction", countPerTransaction)
 
 		if err := tx.Commit(); err != nil {
-			return errorutil.Wrap(err, filename)
+			return errorutil.Wrap(err)
 		}
 
 		countPerTransaction = 0
@@ -117,12 +116,12 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 	tryToDoAction := func(action Action) error {
 		if tx == nil {
 			if err := startTransaction(); err != nil {
-				return errorutil.Wrap(err, filename)
+				return errorutil.Wrap(err)
 			}
 		}
 
 		if err := action(tx, preparedTxStmts); err != nil {
-			return errorutil.Wrap(err, filename)
+			return errorutil.Wrap(err)
 		}
 
 		countPerTransaction++
@@ -136,7 +135,7 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 		select {
 		case <-ticker.C:
 			if err := closeTransaction(); err != nil {
-				return errorutil.Wrap(err, filename)
+				return errorutil.Wrap(err)
 			}
 		case action, ok := <-dbActions:
 			{
@@ -145,14 +144,14 @@ func fillDatabase(timeout time.Duration, conn dbconn.RwConn, stmts dbconn.Prepar
 
 					// cancel() has been called!!!
 					if err := closeTransaction(); err != nil {
-						return errorutil.Wrap(err, filename)
+						return errorutil.Wrap(err)
 					}
 
 					return nil
 				}
 
 				if err := tryToDoAction(action); err != nil {
-					return errorutil.Wrap(err, filename)
+					return errorutil.Wrap(err)
 				}
 			}
 		}

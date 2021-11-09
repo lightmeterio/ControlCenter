@@ -151,12 +151,12 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 	}(conf.LogPatterns)
 
 	if len(conf.DirToWatch) > 0 {
-		mostRecentTime, err := ws.MostRecentLogTime()
+		sum, err := ws.MostRecentLogTimeAndSum()
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		s, err := dirlogsource.New(conf.DirToWatch, mostRecentTime, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
+		s, err := dirlogsource.New(conf.DirToWatch, sum, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

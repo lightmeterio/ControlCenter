@@ -91,16 +91,17 @@ type localFileWatcher struct {
 	format   parsertimeutil.TimeFormat
 }
 
-func (w *localFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) {
+func (w *localFileWatcher) run(onNewRecord func(parser.Header, string, int)) {
 	for line := range w.t.Lines {
-		h, p, err := parser.ParseWithCustomTimeFormat([]byte(line.Text), w.format)
+		lineContent := line.Text
+		h, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(lineContent, w.format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Error().Msgf("parsing line on file: %v", w.filename)
 			continue
 		}
 
-		onNewRecord(h, p)
+		onNewRecord(h, lineContent, payloadOffset)
 	}
 }
 

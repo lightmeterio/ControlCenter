@@ -17,7 +17,7 @@ import (
 
 // A Transformer parses a Pogtfix log line which might be embedded into other formats
 type Transformer interface {
-	Transform([]byte) (postfix.Record, error)
+	Transform(string) (postfix.Record, error)
 }
 
 type getter struct {
@@ -56,7 +56,7 @@ type defaultTransformer struct {
 	lineNo    uint64
 }
 
-func ParseLine(line []byte, timeBuilder func(parser.Header) time.Time, loc postfix.RecordLocation, format parsertimeutil.TimeFormat) (postfix.Record, error) {
+func ParseLine(line string, timeBuilder func(parser.Header) time.Time, loc postfix.RecordLocation, format parsertimeutil.TimeFormat) (postfix.Record, error) {
 	h, p, err := parser.ParseWithCustomTimeFormat(line, format)
 
 	if !parser.IsRecoverableError(err) {
@@ -70,6 +70,7 @@ func ParseLine(line []byte, timeBuilder func(parser.Header) time.Time, loc postf
 		Header:   h,
 		Payload:  p,
 		Location: loc,
+		Line:     line,
 	}, nil
 }
 
@@ -79,7 +80,7 @@ func ForwardArgs(args ...interface{}) ([]interface{}, error) {
 
 var defaultTimeFormat = parsertimeutil.DefaultTimeFormat{}
 
-func (t *defaultTransformer) Transform(line []byte) (postfix.Record, error) {
+func (t *defaultTransformer) Transform(line string) (postfix.Record, error) {
 	lineNo := t.lineNo
 	t.lineNo++
 

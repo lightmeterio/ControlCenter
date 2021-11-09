@@ -205,7 +205,7 @@ func readFirstLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (pa
 	}
 
 	// read first line
-	h1, _, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
+	h1, _, err := parser.ParseHeaderWithCustomTimeFormat(scanner.Text(), format)
 
 	return h1.Time, true, func() error {
 		if err == nil {
@@ -224,7 +224,7 @@ func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (par
 	for scanner.Scan() {
 		linesRead++
 
-		lastLine = string(scanner.Bytes())
+		lastLine = scanner.Text()
 	}
 
 	if linesRead == 0 {
@@ -232,7 +232,7 @@ func readLastLine(scanner *bufio.Scanner, format parsertimeutil.TimeFormat) (par
 	}
 
 	// reached the last line
-	h2, _, err := parser.ParseWithCustomTimeFormat([]byte(lastLine), format)
+	h2, _, err := parser.ParseHeaderWithCustomTimeFormat(lastLine, format)
 
 	return h2.Time, true, func() error {
 		if err == nil {
@@ -417,7 +417,7 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 }
 
 type fileWatcher interface {
-	run(onNewRecord func(parser.Header, parser.Payload))
+	run(onNewRecord func(h parser.Header, line string, payloadOffset int))
 }
 
 type DirectoryContent interface {
@@ -430,23 +430,23 @@ type DirectoryContent interface {
 }
 
 type DirectoryImporter struct {
-	content     DirectoryContent
-	pub         postfix.Publisher
-	announcer   announcer.ImportAnnouncer
-	initialTime time.Time
-	patterns    LogPatterns
-	format      parsertimeutil.TimeFormat
+	content   DirectoryContent
+	pub       postfix.Publisher
+	announcer announcer.ImportAnnouncer
+	sum       postfix.SumPair
+	patterns  LogPatterns
+	format    parsertimeutil.TimeFormat
 }
 
 func NewDirectoryImporter(
 	content DirectoryContent,
 	pub postfix.Publisher,
 	announcer announcer.ImportAnnouncer,
-	initialTime time.Time,
+	sum postfix.SumPair,
 	format parsertimeutil.TimeFormat,
 	patterns LogPatterns,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, announcer, initialTime, patterns, format}
+	return DirectoryImporter{content, pub, announcer, sum, patterns, format}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
@@ -499,11 +499,19 @@ var DefaultLogPatterns = BuildLogPatterns([]string{"mail.log", "mail.err", "mail
 
 type timeConverterChan chan *parsertimeutil.TimeConverter
 
+type parsedHeaderRecord struct {
+	time          time.Time
+	header        parser.Header
+	location      postfix.RecordLocation
+	payloadOffset int
+	line          string
+}
+
 type queueProcessor struct {
 	readers       []io.ReadCloser
 	scanners      []*bufio.Scanner
 	entries       fileEntryList
-	record        postfix.Record
+	record        parsedHeaderRecord
 	currentIndex  int
 	converter     *parsertimeutil.TimeConverter
 	converterChan timeConverterChan
@@ -688,7 +696,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 		func(year int, from parser.Time, to parser.Time) {
 			log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v:%v",
 				year, from, to,
-				p.record.Location.Filename, p.record.Location.Line)
+				p.record.location.Filename, p.record.location.Line)
 		})
 
 	// workaround, make converter escape to the heap
@@ -732,7 +740,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 			log.Info().Msgf("Finished importing log file: %v", p.filename)
 
 			// use last time computed
-			progressNotifier.Step(p.record.Time)
+			progressNotifier.Step(p.record.time)
 
 			p.currentIndex++
 			p.line = 0
@@ -751,7 +759,8 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		// Successfully read
-		header, payload, err := parser.ParseWithCustomTimeFormat(scanner.Bytes(), format)
+		line := scanner.Text()
+		header, payloadOffset, err := parser.ParseHeaderWithCustomTimeFormat(line, format)
 
 		if !parser.IsRecoverableError(err) {
 			log.Warn().Msgf("Could not parse log line in %v", loc)
@@ -770,11 +779,12 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 
 		convertedTime := format.ConvertWithConverter(p.converter, header.Time)
 
-		p.record = postfix.Record{
-			Header:   header,
-			Payload:  payload,
-			Time:     convertedTime,
-			Location: loc,
+		p.record = parsedHeaderRecord{
+			header:        header,
+			time:          convertedTime,
+			location:      loc,
+			payloadOffset: payloadOffset,
+			line:          line,
 		}
 
 		return true, nil
@@ -830,7 +840,7 @@ func chooseIndexForOldestElement(queueProcessors []*queueProcessor) int {
 	chosenIndex := -1
 
 	for i, p := range queueProcessors {
-		if chosenIndex == -1 || queueProcessors[chosenIndex].record.Time.After(p.record.Time) {
+		if chosenIndex == -1 || queueProcessors[chosenIndex].record.time.After(p.record.time) {
 			chosenIndex = i
 		}
 	}
@@ -862,7 +872,7 @@ func importExistingLogs(
 	content DirectoryContent,
 	queues fileQueues,
 	pub postfix.Publisher,
-	initialTime time.Time,
+	sum postfix.SumPair,
 	importAnnouncer announcer.ImportAnnouncer,
 	patterns LogPatterns,
 	format parsertimeutil.TimeFormat,
@@ -874,13 +884,20 @@ func importExistingLogs(
 		return errorutil.Wrap(err)
 	}
 
-	progressNotifier := announcer.NewNotifier(importAnnouncer, countNumberOfFilesInQueues(queues))
+	var (
+		progressNotifier          = announcer.NewNotifier(importAnnouncer, countNumberOfFilesInQueues(queues))
+		currentLogTime            time.Time
+		toBeUpdated               = -1
+		updatedProcessors         = make([]*queueProcessor, 0, len(queueProcessors))
+		hasher                    = postfix.NewHasher()
+		checkSumHasAlreadyMatched = false
+	)
 
-	currentLogTime := time.Time{}
-
-	toBeUpdated := -1
-
-	updatedProcessors := make([]*queueProcessor, 0, len(queueProcessors))
+	announceStartIfNeeded := func(t time.Time) {
+		if currentLogTime.IsZero() {
+			progressNotifier.Start(t)
+		}
+	}
 
 	for {
 		updatedProcessors = updatedProcessors[0:0]
@@ -891,6 +908,9 @@ func importExistingLogs(
 		}
 
 		if len(updatedProcessors) == 0 {
+			// in case no new logs were added, we still need to announce the beginning
+			announceStartIfNeeded(time.Time{})
+
 			elapsedTime := time.Since(initialImportTime)
 
 			progressNotifier.End(currentLogTime)
@@ -907,28 +927,59 @@ func importExistingLogs(
 
 		t := queueProcessors[toBeUpdated].record
 
-		if !t.Time.After(initialTime) {
+		// ignore any old logs
+		if t.time.Before(sum.Time) {
 			continue
 		}
 
-		if currentLogTime.IsZero() {
-			importAnnouncer.AnnounceStart(t.Time)
+		if t.time.Equal(sum.Time) {
+			// this case happens when we are reading from an existing workspace which contains logs,
+			// but not yet the `rawlogs` database used by the logs viewer
+			// Ref #9
+			if sum.Sum == nil {
+				continue
+			}
+
+			if !checkSumHasAlreadyMatched {
+				// computing the sum is expensive, but at least we do only for the times in the same second
+				// which is not such high performance penalty
+				currentSum := postfix.ComputeChecksum(hasher, t.line)
+
+				if currentSum == *sum.Sum {
+					checkSumHasAlreadyMatched = true
+				}
+
+				// same second, but before the actual line that matches the checksum
+				continue
+			}
 		}
 
-		currentLogTime = t.Time
+		announceStartIfNeeded(t.time)
 
-		pub.Publish(t)
+		currentLogTime = t.time
+
+		payload, err := parser.ParsePayload(t.header, t.line[t.payloadOffset:])
+		if !parser.IsRecoverableError(err) {
+			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", t.location, err)
+		}
+
+		record := postfix.Record{
+			Time:     t.time,
+			Header:   t.header,
+			Location: t.location,
+			Payload:  payloadOrNil(payload, err),
+			Line:     t.line,
+			Sum:      postfix.ComputeChecksum(hasher, t.line),
+		}
+
+		pub.Publish(record)
 	}
 }
 
-type newLogsPublisher struct {
+type partiallyParsedLogsPublisher struct {
 	// a temporary buffer for the new lines that arrive before the archived logs are imported
 	// so we publish them in chronological order
-	records chan postfix.Record
-}
-
-func (pub newLogsPublisher) Publish(r postfix.Record) {
-	pub.records <- r
+	records chan parsedHeaderRecord
 }
 
 type sortableRecord struct {
@@ -986,8 +1037,9 @@ func (t *sortableRecordHeap) Pop() interface{} {
 }
 
 type parsedRecord struct {
-	header  parser.Header
-	payload parser.Payload
+	header        parser.Header
+	payloadOffset int
+	line          string
 
 	// When the same queue adds multiple items to the heap that happen in the same second
 	// we want to preserve their original order
@@ -1014,12 +1066,13 @@ func startWatchingOnQueue(
 
 	sequence := uint64(0)
 
-	watcher.run(func(h parser.Header, p parser.Payload) {
+	watcher.run(func(h parser.Header, line string, payloadOffset int) {
 		record := parsedRecord{
-			header:     h,
-			payload:    p,
-			queueIndex: queueIndex,
-			sequence:   sequence,
+			header:        h,
+			payloadOffset: payloadOffset,
+			line:          line,
+			queueIndex:    queueIndex,
+			sequence:      sequence,
 		}
 
 		outChan <- record
@@ -1110,7 +1163,7 @@ const (
 	maxNumberOfCachedElementsInTheHeap = 2048
 )
 
-func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogsPublisher) <-chan struct{} {
+func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub partiallyParsedLogsPublisher) <-chan struct{} {
 	done := make(chan struct{})
 
 	h := make(sortableRecordHeap, 0, maxNumberOfCachedElementsInTheHeap)
@@ -1121,8 +1174,14 @@ func publishNewLogsSorted(sortableRecordsChan <-chan sortableRecord, pub newLogs
 		for h.Len() > 0 {
 			//nolint:forcetypeassert
 			s := heap.Pop(&h).(sortableRecord)
-			r := postfix.Record{Header: s.record.header, Payload: s.record.payload, Time: s.time, Location: s.record.loc}
-			pub.Publish(r)
+
+			pub.records <- parsedHeaderRecord{
+				header:        s.record.header,
+				payloadOffset: s.record.payloadOffset,
+				time:          s.time,
+				location:      s.record.loc,
+				line:          s.record.line,
+			}
 		}
 	}
 
@@ -1173,7 +1232,7 @@ func watchCurrentFilesForNewLogs(
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
 	queues fileQueues,
-	pub newLogsPublisher,
+	pub partiallyParsedLogsPublisher,
 	patterns LogPatterns,
 ) (waitForDone func(), cancelCall func(), returnError error) {
 	nonEmptyQueues := filterNonEmptyQueues(queues)
@@ -1247,13 +1306,13 @@ func (importer *DirectoryImporter) ImportOnly() error {
 }
 
 func (importer *DirectoryImporter) run(watch bool) error {
-	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.initialTime)
+	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.sum.Time)
 
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	newLogsPublisher := newLogsPublisher{records: make(chan postfix.Record)}
+	partiallyParsedLogsPublisher := partiallyParsedLogsPublisher{records: make(chan parsedHeaderRecord)}
 
 	converterChans := timeConverterChansFromQueues(queues)
 
@@ -1261,7 +1320,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 
 	done, cancel, err := func() (func(), func(), error) {
 		if watch {
-			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, newLogsPublisher, importer.patterns)
+			return watchCurrentFilesForNewLogs(offsetChans, converterChans, importer.content, queues, partiallyParsedLogsPublisher, importer.patterns)
 		}
 
 		return func() {}, func() {}, nil
@@ -1276,7 +1335,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.initialTime, importer.announcer, importer.patterns, importer.format)
+	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.sum, importer.announcer, importer.patterns, importer.format)
 
 	if err != nil {
 		interruptWatching()
@@ -1287,13 +1346,37 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		return nil
 	}
 
+	hasher := postfix.NewHasher()
+
 	// Start really publishing the buffered records here, indefinitely
-	for r := range newLogsPublisher.records {
-		importer.pub.Publish(r)
+	for r := range partiallyParsedLogsPublisher.records {
+		p, err := parser.ParsePayload(r.header, r.line[r.payloadOffset:])
+		if !parser.IsRecoverableError(err) {
+			log.Warn().Msgf("Failed to parse log payload at %v with error: %v", r.location, err)
+		}
+
+		record := postfix.Record{
+			Time:     r.time,
+			Header:   r.header,
+			Location: r.location,
+			Payload:  payloadOrNil(p, err),
+			Line:     r.line,
+			Sum:      postfix.ComputeChecksum(hasher, r.line),
+		}
+
+		importer.pub.Publish(record)
 	}
 
 	// It should never get here in production, only used by the tests
 	interruptWatching()
+
+	return nil
+}
+
+func payloadOrNil(p parser.Payload, err error) parser.Payload {
+	if err == nil {
+		return p
+	}
 
 	return nil
 }

@@ -22,7 +22,7 @@ const cleanupMessageAccepted_en_main int = 1
 
 //line cleanup.rl:12
 
-func parseCleanupMessageAccepted(data []byte) (CleanupMessageAccepted, bool) {
+func parseCleanupMessageAccepted(data string) (CleanupMessageAccepted, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -933,7 +933,7 @@ const cleanupMilterReject_en_main int = 1
 
 //line cleanup.rl:55
 
-func parseCleanupMilterReject(data []byte) (CleanupMilterReject, bool) {
+func parseCleanupMilterReject(data string) (CleanupMilterReject, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
