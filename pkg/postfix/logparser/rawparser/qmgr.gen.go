@@ -22,7 +22,7 @@ const qmgrReturnedToSender_en_main int = 1
 
 //line qmgr.rl:12
 
-func parseQmgrMessageExpired(data []byte) (QmgrMessageExpired, bool) {
+func parseQmgrMessageExpired(data string) (QmgrMessageExpired, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -1131,7 +1131,7 @@ const qmgrMailQueued_en_main int = 1
 
 //line qmgr.rl:52
 
-func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
+func parseQmgrMailQueued(data string) (QmgrMailQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -2345,7 +2345,7 @@ const qmgrRemoved_en_main int = 1
 
 //line qmgr.rl:98
 
-func parseQmgrRemoved(data []byte) (QmgrRemoved, bool) {
+func parseQmgrRemoved(data string) (QmgrRemoved, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

@@ -144,7 +144,7 @@ func NewWithCustomClock(pair *dbconn.PooledPair, options Options, reporters Repo
 		reporters: reporters,
 		Closers:   closers,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
-			dbRunner := dbrunner.New(options.CycleInterval, 10, pair, stmts, time.Hour*12, makeCleanAction(maxAge))
+			dbRunner := dbrunner.New(options.CycleInterval, 10, pair.RwConn, stmts, time.Hour*12, makeCleanAction(maxAge))
 			dbRunnerDone, dbRunnerCancel := runner.Run(dbRunner)
 
 			go func() {

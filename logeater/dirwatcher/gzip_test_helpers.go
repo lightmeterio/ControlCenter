@@ -12,12 +12,12 @@ import (
 )
 
 // nolint:unused,deadcode
-func compressGzip(content []byte) []byte {
+func compressGzip(content string) []byte {
 	var buf bytes.Buffer
 
 	w := gzip.NewWriter(&buf)
 
-	_, err := w.Write(content)
+	_, err := w.Write([]byte(content))
 
 	if err != nil {
 		log.Fatal().Msg("compressing data")
@@ -45,10 +45,10 @@ func gzipedDataReaderFromBytes(data []byte) fakeFileReader {
 
 // nolint:unused,deadcode
 func gzipedDataReader(s string) io.ReadCloser {
-	return gzipedDataReaderFromBytes(compressGzip([]byte(s)))
+	return gzipedDataReaderFromBytes(compressGzip(s))
 }
 
 // nolint:unused,deadcode
 func gzippedDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{compressGzip([]byte(s))}
+	return fakeFileDataBytes{compressGzip(s)}
 }

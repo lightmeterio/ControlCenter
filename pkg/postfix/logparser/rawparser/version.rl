@@ -10,7 +10,7 @@ package rawparser
 %% machine version;
 %% write data;
 
-func parseVersion(data []byte) (Version, bool) {
+func parseVersion(data string) (Version, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -24,7 +24,7 @@ func parseVersion(data []byte) (Version, bool) {
 	postfixDaemonStatus = 'reload' | 'daemon started';
 	
 	version = (digit|dot)+ >setTokBeg %{
-		r = data[tokBeg:p]
+		r = Version(data[tokBeg:p])
 	};
 
 	main := postfixDaemonStatus ' -- version ' version ',' any+ @{

@@ -36,7 +36,7 @@ func TestRBL(t *testing.T) {
 		converter := parsertimeutil.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), func(int, parser.Time, parser.Time) {})
 
 		record := func(s string) postfix.Record {
-			h, p, err := parser.Parse([]byte(s))
+			h, p, err := parser.Parse(s)
 			So(err, ShouldBeNil)
 
 			return postfix.Record{

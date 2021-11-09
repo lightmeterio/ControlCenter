@@ -55,7 +55,7 @@ func (d *fakeChecker) IPAddress(context.Context) net.IP {
 }
 
 func parseLogLine(line string) (parser.Header, parser.Payload) {
-	h, p, err := parser.Parse([]byte(line))
+	h, p, err := parser.Parse(line)
 	So(err, ShouldBeNil)
 	return h, p
 }
