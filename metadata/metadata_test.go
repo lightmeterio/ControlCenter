@@ -205,8 +205,8 @@ func TestOverridingValues(t *testing.T) {
 
 		Convey("Empty values do not override defaults", func() {
 			type myType struct {
-				Name    string               `json:"field35"`
-				Surname stringutil.Sensitive `json:"field42,omitempty"`
+				Name    string               `json:"normal_name"`
+				Surname stringutil.Sensitive `json:"secret_surname,omitempty"`
 			}
 
 			handler, err := NewDefaultedHandler(conn, map[string]interface{}{
@@ -270,7 +270,7 @@ func TestOverridingValues(t *testing.T) {
 			err := writer.StoreJson(dummyContext, "key1", map[string]string{
 				"subkey1": "clara", // overriden
 				"subkey2": "maria", // new value
-				"subkey4": "",      // empty values are to be overriden
+				"subkey4": "",      // empty values do not override defaults
 			})
 
 			So(err, ShouldBeNil)
