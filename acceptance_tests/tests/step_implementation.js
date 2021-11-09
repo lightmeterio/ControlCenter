@@ -38,10 +38,18 @@ const headless = process.env.headless_chrome.toLowerCase() === 'true';
 
 var lightmeterProcess = null
 
-var tmpDir = tmp.dirSync()
+var workspaceDir = tmp.dirSync()
 
 beforeSuite(async () => {
-    lightmeterProcess = child_process.execFile('../lightmeter', ['-workspace', tmpDir.name, '-stdin', '-listen', ':8080'])
+    let callback = function(error, stdout, stderr) {
+      if (error) {
+        console.warn(stdout)
+        console.error(stderr)
+        throw error
+      }
+    }
+
+    lightmeterProcess = child_process.execFile('../lightmeter', ['-workspace', workspaceDir.name, '-stdin', '-listen', ':8080'], callback)
 
     return new Promise((r) => setTimeout(r, 2000)).then(async () => {
         await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
