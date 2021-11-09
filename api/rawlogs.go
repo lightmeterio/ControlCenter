@@ -83,7 +83,7 @@ type fetchRawLogLinesToWriterHandler fetchLogsHandler
 // @Success 200 {object} string "desc"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchRawLogsInTimeInterval [get]
-func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) (err error) {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	writer, releaseWriter := func() (io.Writer, func() error) {
@@ -104,12 +104,7 @@ func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		}
 	}()
 
-	defer func() {
-		// FIXME: the return of this function should be checked, and it'll be easier once the following MR is merged:
-		// https://gitlab.com/lightmeter/controlcenter/-/merge_requests/852
-		//nolint:errcheck
-		releaseWriter()
-	}()
+	defer errorutil.UpdateErrorFromCall(releaseWriter, &err)
 
 	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, writer); err != nil {
 		return errorutil.Wrap(err)
