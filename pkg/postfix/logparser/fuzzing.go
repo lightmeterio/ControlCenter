@@ -5,7 +5,7 @@
 package parser
 
 func Fuzz(data []byte) int {
-	_, _, err := Parse(data)
+	_, _, err := Parse(string(data))
 
 	if !IsRecoverableError(err) {
 		return 0

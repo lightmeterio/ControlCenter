@@ -193,7 +193,7 @@ func (s *Status) UnmarshalJSON(d []byte) error {
 		return errorutil.Wrap(err)
 	}
 
-	status, err := parser.ParseStatus([]byte(v))
+	status, err := parser.ParseStatus(v)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

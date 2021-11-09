@@ -97,6 +97,6 @@ func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester 
 
 func New() Escalator {
 	return &escalator{
-		requests: make(chan Request),
+		requests: make(chan Request, 1024),
 	}
 }

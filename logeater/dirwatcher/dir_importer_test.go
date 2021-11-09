@@ -9,10 +9,12 @@ import (
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"io"
+	"net"
 	"testing"
 	"time"
 )
@@ -118,7 +120,7 @@ type fakeFileWatcher struct {
 	reader   io.Reader
 }
 
-func (f fakeFileWatcher) run(onNewRecord func(parser.Header, parser.Payload)) {
+func (f fakeFileWatcher) run(onNewRecord func(parser.Header, string, int)) {
 	readFromReader(f.reader, f.filename, onNewRecord)
 }
 
@@ -606,7 +608,7 @@ func TestImportDirectoryOnly(t *testing.T) {
 		Convey("Empty directory yields no logs", func() {
 			dirContent := FakeDirectoryContent{entries: fileEntryList{}}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldNotBeNil)
 			So(len(pub.logs), ShouldEqual, 0)
@@ -622,20 +624,32 @@ func TestImportDirectoryOnly(t *testing.T) {
 					fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2020-03-31 00:00:00 +0000`)},
 				},
 				contents: map[string]fakeFileData{
-					"mail.log.2.gz": gzippedDataFile(`Jan 22 06:28:55 mail dovecot: Useless Payload
+					"mail.log.2.gz": gzippedDataFile(`Jan 22 06:28:55 mail postfix/smtpd[26341]: disconnect from example.com[1.1.1.1] commands=0/0
 Jan 23 13:46:15 mail dovecot: Useless Payload
 Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`),
 					"mail.log": plainCurrentDataFile(``, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
+
 			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 22, Hour: 6, Minute: 28, Second: 55})
+			p, ok := pub.logs[0].Payload.(parser.SmtpdDisconnect)
+			So(ok, ShouldBeTrue)
+			So(p.Host, ShouldEqual, "example.com")
+			So(p.IP, ShouldEqual, net.ParseIP(`1.1.1.1`))
+			So(pub.logs[0].Line, ShouldEqual, `Jan 22 06:28:55 mail postfix/smtpd[26341]: disconnect from example.com[1.1.1.1] commands=0/0`)
+
 			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 23, Hour: 13, Minute: 46, Second: 15})
+			So(pub.logs[1].Payload, ShouldBeNil)
+			So(pub.logs[1].Line, ShouldEqual, `Jan 23 13:46:15 mail dovecot: Useless Payload`)
+
 			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.January, Day: 31, Hour: 8, Minute: 47, Second: 9})
+			So(pub.logs[2].Payload, ShouldBeNil)
+			So(pub.logs[2].Line, ShouldEqual, `Jan 31 08:47:09 mail postfix/postscreen[17274]: Useless Payload`)
 
 			So(importAnnouncer.Start, ShouldResemble, testutil.MustParseTime(`2020-01-22 06:28:55 +0000`))
 
@@ -670,7 +684,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 
@@ -728,7 +742,7 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`2020-06-18 06:28:54 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`2020-06-18 06:28:54 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 5)
@@ -740,6 +754,59 @@ Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
 
 			So(pub.logs[3].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
 			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
+		})
+
+		Convey("Get only logs after a point in time in the middle of a file, differenciating logs in the same second, by the checksum", func() {
+			dirContent := FakeDirectoryContent{
+				entries: fileEntryList{
+					fileEntry{filename: "log/mail.log.4.gz", modificationTime: testutil.MustParseTime(`2020-03-13 04:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.5.gz", modificationTime: testutil.MustParseTime(`2020-02-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.1", modificationTime: testutil.MustParseTime(`2020-07-14 06:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log.2.gz", modificationTime: testutil.MustParseTime(`2020-06-18 07:01:53 +0000`)},
+					fileEntry{filename: "log/mail.log", modificationTime: testutil.MustParseTime(`2020-08-19 12:00:00 +0000`)},
+				},
+				contents: map[string]fakeFileData{
+					"log/mail.log.5.gz": gzippedDataFile(`Feb  1 12:00:00 mail dovecot: Useless Payload
+Feb 14 06:01:53 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log.4.gz": gzippedDataFile(`Feb 14 06:01:54 mail dovecot: Useless Payload
+Feb 23 13:46:15 mail dovecot: Useless Payload
+Mar 13 04:00:09 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log.2.gz": gzippedDataFile(`Mar 14 06:28:55 mail dovecot: Useless Payload
+Jun 18 06:28:55 mail someotherstuff: useless
+Jun 18 06:28:55 mail morestuffhere: the second line
+Jun 18 06:28:55 mail andheretoo: we start reading from here
+Jun 18 06:28:55 mail test: this is included too
+`),
+					"log/mail.log.1": plainDataFile(`Jun 18 08:29:33 mail dovecot: Useless Payload
+Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
+					"log/mail.log": plainCurrentDataFile(`Jul 18 00:00:00 mail dovecot: Useless Payload
+Aug 10 00:00:40 mail postfix/postscreen[17274]: Useless Payload`, ``),
+				},
+			}
+			pub := fakePublisher{}
+
+			sumOfLastKnownLine := postfix.ComputeChecksum(postfix.NewHasher(), `Jun 18 06:28:55 mail morestuffhere: the second line`)
+
+			initialSum := postfix.SumPair{
+				Time: testutil.MustParseTime(`2020-06-18 06:28:55 +0000`),
+				Sum:  &sumOfLastKnownLine,
+			}
+
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, initialSum, timeFormat, patterns)
+			err := importer.Run()
+			So(err, ShouldBeNil)
+			So(len(pub.logs), ShouldEqual, 6)
+
+			So(pub.logs[0].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 6, Minute: 28, Second: 55})
+			So(pub.logs[0].Line, ShouldEqual, `Jun 18 06:28:55 mail andheretoo: we start reading from here`)
+
+			So(pub.logs[1].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 6, Minute: 28, Second: 55})
+
+			So(pub.logs[2].Header.Time, ShouldResemble, parser.Time{Month: time.June, Day: 18, Hour: 8, Minute: 29, Second: 33})
+			So(pub.logs[3].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 14, Hour: 7, Minute: 1, Second: 53})
+
+			So(pub.logs[4].Header.Time, ShouldResemble, parser.Time{Month: time.July, Day: 18, Hour: 0, Minute: 0, Second: 0})
+			So(pub.logs[5].Header.Time, ShouldResemble, parser.Time{Month: time.August, Day: 10, Hour: 0, Minute: 0, Second: 40})
 		})
 
 		Convey("Import only, not watching new log entries", func() {
@@ -756,7 +823,7 @@ Jul 14 07:01:53 mail postfix/postscreen[17274]: Useless Payload`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -789,7 +856,7 @@ Dec 31 23:59:55 mail dovecot: imap-login:`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 8)
@@ -869,7 +936,7 @@ Mar  8 00:38:13 mail postfix/submission/smtpd[1392]: warning: hostname`),
 				},
 			}
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, importAnnouncer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 30)
@@ -900,7 +967,7 @@ func TestImportDirectoryAndWatchNewLines(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 3)
@@ -930,7 +997,7 @@ Aug 12 00:00:00 mail dovecot: Useless Payload`),
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 6)
@@ -976,7 +1043,7 @@ func TestImportDirectoryWithRFC3339TimeFormat(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 
@@ -1013,7 +1080,7 @@ func TestImportingBzip2CompressedFiles(t *testing.T) {
 			}
 
 			pub := fakePublisher{}
-			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, patterns)
+			importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, patterns)
 			err := importer.ImportOnly()
 			So(err, ShouldBeNil)
 

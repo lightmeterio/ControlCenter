@@ -29,10 +29,10 @@ type dnsChecker struct {
 	checkerStartChan   chan time.Time
 	checkerResultsChan chan Results
 	options            Options
-	meta               *metadata.Reader
+	meta               metadata.Reader
 }
 
-func newDnsChecker(meta *metadata.Reader, options Options) *dnsChecker {
+func newDnsChecker(meta metadata.Reader, options Options) *dnsChecker {
 	if options.NumberOfWorkers < 1 {
 		log.Panic().Msgf("DnsChecker should have a number of workers greater than 1 and not %d!", options.NumberOfWorkers)
 	}
@@ -50,7 +50,7 @@ func newDnsChecker(meta *metadata.Reader, options Options) *dnsChecker {
 	}
 }
 
-func NewChecker(meta *metadata.Reader, options Options) Checker {
+func NewChecker(meta metadata.Reader, options Options) Checker {
 	return newDnsChecker(meta, options)
 }
 

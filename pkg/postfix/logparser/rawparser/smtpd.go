@@ -19,8 +19,8 @@ func init() {
 }
 
 type SmtpdConnect struct {
-	Host []byte
-	IP   []byte
+	Host string
+	IP   string
 }
 
 type SmtpdDisconnectStat struct {
@@ -29,18 +29,18 @@ type SmtpdDisconnectStat struct {
 }
 
 type SmtpdDisconnect struct {
-	Host  []byte
-	IP    []byte
+	Host  string
+	IP    string
 	Stats map[string]SmtpdDisconnectStat
 }
 
 type SmtpdMailAccepted struct {
-	Host  []byte
-	IP    []byte
-	Queue []byte
+	Host  string
+	IP    string
+	Queue string
 }
 
-func parseSmtpdPayload(payloadLine []byte) (RawPayload, error) {
+func parseSmtpdPayload(payloadLine string) (RawPayload, error) {
 	if s, parsed := parseSmtpdConnect(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:  PayloadTypeSmtpdConnect,
@@ -73,6 +73,6 @@ func parseSmtpdPayload(payloadLine []byte) (RawPayload, error) {
 }
 
 type SmtpdReject struct {
-	Queue        []byte
-	ExtraMessage []byte
+	Queue        string
+	ExtraMessage string
 }

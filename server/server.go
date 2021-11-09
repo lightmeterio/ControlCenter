@@ -71,16 +71,13 @@ func (s *HttpServer) Start() error {
 
 	exposeProfiler(mux)
 
-	dashboard := s.Workspace.Dashboard()
-
-	detective := s.Workspace.Detective()
-
-	api.HttpDashboard(auth, mux, s.Timezone, dashboard)
+	api.HttpDashboard(auth, mux, s.Timezone, s.Workspace.Dashboard())
 	api.HttpInsights(auth, mux, s.Timezone, s.Workspace.InsightsFetcher(), s.Workspace.InsightsEngine())
 	api.HttpInsightsProgress(auth, mux, s.Workspace.InsightsProgressFetcher())
-	api.HttpDetective(auth, mux, s.Timezone, detective, s.Workspace.DetectiveEscalationRequester(), reader, s.IsBehindReverseProxy)
+	api.HttpDetective(auth, mux, s.Timezone, s.Workspace.Detective(), s.Workspace.DetectiveEscalationRequester(), reader, s.IsBehindReverseProxy)
 	api.HttpConnectionsDashboard(auth, mux, s.Timezone, s.Workspace.ConnectionStatsAccessor())
 	api.HttpReports(auth, mux, s.Timezone, s.Workspace.IntelAccessor())
+	api.HttpRawLogs(auth, mux, s.Timezone, s.Workspace.RawLogsAccessor())
 
 	setup.HttpSetup(mux, auth)
 

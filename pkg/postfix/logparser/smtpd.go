@@ -34,7 +34,7 @@ func convertSmtpdConnect(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return SmtpdConnect{
-		Host: string(p.Host),
+		Host: p.Host,
 		IP:   ip,
 	}, nil
 }
@@ -60,7 +60,7 @@ func convertSmtpdDisconnect(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return SmtpdDisconnect{
-		Host:  string(p.Host),
+		Host:  p.Host,
 		IP:    ip,
 		Stats: p.Stats,
 	}, nil
@@ -85,9 +85,9 @@ func convertSmtpdMailAccepted(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return SmtpdMailAccepted{
-		Host:  string(p.Host),
+		Host:  p.Host,
 		IP:    ip,
-		Queue: string(p.Queue),
+		Queue: p.Queue,
 	}, nil
 }
 
@@ -104,7 +104,7 @@ func convertSmtpdReject(r rawparser.RawPayload) (Payload, error) {
 	p := r.SmtpdReject
 
 	return SmtpdReject{
-		Queue:        string(p.Queue),
-		ExtraMessage: string(p.ExtraMessage),
+		Queue:        p.Queue,
+		ExtraMessage: p.ExtraMessage,
 	}, nil
 }

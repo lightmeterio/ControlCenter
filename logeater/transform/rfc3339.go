@@ -18,7 +18,7 @@ type rfc3339Transformer struct {
 	lineNo uint64
 }
 
-func (t *rfc3339Transformer) Transform(line []byte) (postfix.Record, error) {
+func (t *rfc3339Transformer) Transform(line string) (postfix.Record, error) {
 	lineNo := t.lineNo
 	t.lineNo++
 

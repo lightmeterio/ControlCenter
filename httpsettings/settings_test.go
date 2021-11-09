@@ -70,7 +70,7 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, *metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
+func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
 	conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
 
 	m, err := metadata.NewHandler(conn)
@@ -231,8 +231,8 @@ func TestAppSettings(t *testing.T) {
 		Convey("Do not clean IP settings when updating the language", func() {
 			// First set an IP address manually
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
-				LocalIP:     net.ParseIP("127.0.0.1"),
-				APPLanguage: "en",
+				LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.1`)},
+				AppLanguage: "en",
 			}).Wait()
 
 			// Set the app language via http, not posting the ip address
@@ -248,8 +248,8 @@ func TestAppSettings(t *testing.T) {
 			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.APPLanguage, ShouldEqual, "de")
-			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(settings.AppLanguage, ShouldEqual, "de")
+			So(settings.LocalIP.String(), ShouldEqual, "127.0.0.1")
 		})
 	})
 
@@ -265,9 +265,9 @@ func TestAppSettings(t *testing.T) {
 
 		Convey("Do not reset language when we clear general settings", func() {
 			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
-				LocalIP:     net.ParseIP("127.0.0.1"),
+				LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.1`)},
 				PublicURL:   "http://localhost:8080",
-				APPLanguage: "de",
+				AppLanguage: "de",
 			}).Wait()
 
 			// Check that the settings are set
@@ -275,9 +275,9 @@ func TestAppSettings(t *testing.T) {
 			err := reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.LocalIP, ShouldEqual, net.ParseIP("127.0.0.1"))
+			So(settings.LocalIP.String(), ShouldEqual, `127.0.0.1`)
 			So(settings.PublicURL, ShouldEqual, "http://localhost:8080")
-			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.AppLanguage, ShouldEqual, "de")
 
 			// Clear general settings
 			r, err := c.PostForm(s.URL+"?setting=general", url.Values{"action": {"clear"}})
@@ -290,9 +290,9 @@ func TestAppSettings(t *testing.T) {
 			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
 			So(err, ShouldBeNil)
 
-			So(settings.LocalIP, ShouldBeNil)
+			So(settings.LocalIP.IP, ShouldBeNil)
 			So(settings.PublicURL, ShouldEqual, "")
-			So(settings.APPLanguage, ShouldEqual, "de")
+			So(settings.AppLanguage, ShouldEqual, "de")
 		})
 	})
 }

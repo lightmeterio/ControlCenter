@@ -9,7 +9,7 @@ package rawparser
 
 import "strconv"
 
-func mustConvertToInt(s []byte) int {
+func mustConvertToInt(s string) int {
 	v, err := strconv.Atoi(string(s))
   if err != nil {
     // NOTE: only use it when you know the input is really a number!
@@ -22,7 +22,7 @@ func mustConvertToInt(s []byte) int {
 %% machine smtpdConnect;
 %% write data;
 
-func parseSmtpdConnect(data []byte) (SmtpdConnect, bool) {
+func parseSmtpdConnect(data string) (SmtpdConnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -63,7 +63,7 @@ func smtpdDisconnectStatFromValues(composed bool, firstValue, secondValue int) S
   return SmtpdDisconnectStat{Success: firstValue, Total: firstValue}
 }
 
-func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
+func parseSmtpdDisconnect(data string) (SmtpdDisconnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -128,7 +128,7 @@ func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
 %% write data;
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
-func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
+func parseSmtpdMailAccepted(data string) (SmtpdMailAccepted, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -167,7 +167,7 @@ func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
 %% write data;
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
-func parseSmtpdReject(data []byte) (SmtpdReject, bool) {
+func parseSmtpdReject(data string) (SmtpdReject, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

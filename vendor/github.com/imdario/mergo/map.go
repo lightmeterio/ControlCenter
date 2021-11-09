@@ -95,9 +95,33 @@ func deepMap(dst, src reflect.Value, visited map[uintptr]*visit, depth int, conf
 				}
 			}
 
+			// Handle case there the destination field is a pointer,
+			// commonly used to implement "optional" values.
+			if dstElement.Kind() == reflect.Ptr && srcElement.Kind() != reflect.Ptr {
+				if dstElement.IsNil() {
+					v := reflect.New(dstElement.Type().Elem())
+					dstElement.Set(v)
+				}
+
+				dstElement = dstElement.Elem()
+				dstKind = dstElement.Kind()
+			}
+
 			if !srcElement.IsValid() {
 				continue
 			}
+
+			var usedTransformer bool
+
+			usedTransformer, err = maybeUseTransformer(dstElement, srcElement, config)
+			if err != nil {
+				return err
+			}
+
+			if usedTransformer {
+				continue
+			}
+
 			if srcKind == dstKind {
 				if err = deepMerge(dstElement, srcElement, visited, depth+1, config); err != nil {
 					return

@@ -79,7 +79,7 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/imdario/mergo v0.3.11
+# github.com/imdario/mergo v0.3.11 => github.com/leandrosansilva/mergo v0.3.13-0.20211105201457-f87294663ad5
 ## explicit
 github.com/imdario/mergo
 # github.com/josharian/intern v1.0.0
@@ -261,3 +261,4 @@ gopkg.in/fsnotify.v1
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
+# github.com/imdario/mergo => github.com/leandrosansilva/mergo v0.3.13-0.20211105201457-f87294663ad5

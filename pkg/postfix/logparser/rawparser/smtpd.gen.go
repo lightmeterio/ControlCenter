@@ -11,7 +11,7 @@ package rawparser
 
 import "strconv"
 
-func mustConvertToInt(s []byte) int {
+func mustConvertToInt(s string) int {
 	v, err := strconv.Atoi(string(s))
   if err != nil {
     // NOTE: only use it when you know the input is really a number!
@@ -34,7 +34,7 @@ const smtpdConnect_en_main int = 1
 
 //line smtpd.rl:24
 
-func parseSmtpdConnect(data []byte) (SmtpdConnect, bool) {
+func parseSmtpdConnect(data string) (SmtpdConnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -331,7 +331,7 @@ func smtpdDisconnectStatFromValues(composed bool, firstValue, secondValue int) S
   return SmtpdDisconnectStat{Success: firstValue, Total: firstValue}
 }
 
-func parseSmtpdDisconnect(data []byte) (SmtpdDisconnect, bool) {
+func parseSmtpdDisconnect(data string) (SmtpdDisconnect, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -853,7 +853,7 @@ const smtpdMailAccepted_en_main int = 1
 //line smtpd.rl:129
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
-func parseSmtpdMailAccepted(data []byte) (SmtpdMailAccepted, bool) {
+func parseSmtpdMailAccepted(data string) (SmtpdMailAccepted, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -1656,7 +1656,7 @@ const smtpdReject_en_main int = 1
 //line smtpd.rl:168
 
 // TODO: accept additional metadata (sasl_method and sasl_username)
-func parseSmtpdReject(data []byte) (SmtpdReject, bool) {
+func parseSmtpdReject(data string) (SmtpdReject, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

@@ -10,7 +10,7 @@ package rawparser
 %% machine bounceCreated;
 %% write data;
 
-func parseBounceCreated(data []byte) (BounceCreated, bool) {
+func parseBounceCreated(data string) (BounceCreated, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

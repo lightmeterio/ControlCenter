@@ -32,8 +32,8 @@ func convertPickup(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return Pickup{
-		Queue:  string(p.Queue),
+		Queue:  p.Queue,
 		Uid:    uid,
-		Sender: string(p.Sender),
+		Sender: p.Sender,
 	}, nil
 }
