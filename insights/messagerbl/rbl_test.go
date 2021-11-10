@@ -106,11 +106,7 @@ func TestMessageRBLInsight(t *testing.T) {
 			},
 		})
 
-		executeCyclesUntil := func(end time.Time, stepDuration time.Duration) {
-			insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, end, stepDuration)
-		}
-
-		executeCyclesUntil(testutil.MustParseTime(`2000-01-01 00:30:00 +0000`), time.Second*2)
+		insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, testutil.MustParseTime(`2000-01-01 00:30:00 +0000`), time.Second*2)
 
 		So(accessor.Insights, ShouldResemble, []int64{1, 2, 3})
 
@@ -207,11 +203,7 @@ func TestRegression(t *testing.T) {
 			},
 		})
 
-		executeCyclesUntil := func(end time.Time, stepDuration time.Duration) {
-			insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, end, stepDuration)
-		}
-
-		executeCyclesUntil(testutil.MustParseTime(`2021-04-30 00:30:00 +0000`), time.Minute*1)
+		insighttestsutil.ExecuteCyclesUntil(detector, accessor, clock, testutil.MustParseTime(`2021-04-30 00:30:00 +0000`), time.Minute*1)
 
 		So(accessor.Insights, ShouldResemble, []int64{1})
 
