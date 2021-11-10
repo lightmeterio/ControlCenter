@@ -479,13 +479,13 @@ export default {
       return this.$gettext("Username");
     },
     EmailServerUsernameInputPlaceholder: function() {
-      return this.$gettext("⬤⬤⬤⬤⬤⬤");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     EmailServerPassword: function() {
       return this.$gettext("Password");
     },
     EmailServerPasswordInputPlaceholder: function() {
-      return this.$gettext("⬤⬤⬤⬤⬤⬤");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     EmailServerSender: function() {
       return this.$gettext("Sender");
@@ -544,7 +544,7 @@ export default {
       return this.$gettext("Slack channel");
     },
     SlackChannelInputPlaceholder: function() {
-      return this.$gettext("Please enter Slack channel name");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     SlackNotificationsEnabled: function() {
       return this.$gettext("Slack Notifications");
