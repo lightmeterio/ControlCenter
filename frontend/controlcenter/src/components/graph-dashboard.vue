@@ -39,10 +39,10 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
         <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'fetchSmtpAuthAttempts')"
-          :title="SmtpConnectionsOverTime"
+          v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
+          :title="ConnectionsOverTime"
         >
-          <div class="dashboard-gadget" id="fetchSmtpAuthAttempts"></div>
+          <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
         </b-tab>
       </b-tabs>
     </div>
@@ -75,8 +75,8 @@ export default {
     DeferredDomainsTitle: function() {
       return this.$gettext("Deferred Domains");
     },
-    SmtpConnectionsOverTime: function() {
-      return this.$gettext("SMTP Logins");
+    ConnectionsOverTime: function() {
+      return this.$gettext("Auth Attempts");
     }
   },
   beforeDestroy() {
@@ -225,10 +225,12 @@ export default {
         let xValues = [];
         let yValues = [];
         let colors = [];
+        let sizes = [];
 
         let okColor = "#86C528";
         let failedColor = "#EA3939";
         let suspiciousColor = "#0000ff";
+        let blockedColor = "#961994";
 
         let statusAsColor = function(s) {
           switch (s) {
@@ -238,7 +240,17 @@ export default {
               return failedColor;
             case "suspicious":
               return suspiciousColor;
+            case "blocked":
+              return blockedColor;
           }
+        };
+
+        let statusSize = function(s) {
+          if (s == "blocked") {
+            return 12;
+          }
+
+          return 6;
         };
 
         let chartData = [
@@ -248,7 +260,7 @@ export default {
             type: "scattergl",
             mode: "markers",
             marker: {
-              size: 5,
+              size: sizes,
               color: colors
             }
           }
@@ -290,12 +302,14 @@ export default {
               xValues.length = len;
               yValues.length = len;
               colors.length = len;
+              sizes.length = len;
 
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
                 xValues[i].setTime(attempts[i]["time"] * 1000);
                 yValues[i] = response.data.ips[attempts[i]["index"]];
                 colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
               }
 
               // fill the remaining parts of the new buffers, if any
@@ -303,6 +317,7 @@ export default {
                 xValues[i] = new Date(attempts[i]["time"] * 1000);
                 yValues[i] = response.data.ips[attempts[i]["index"]];
                 colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
               }
 
               Plotly.redraw(graphName);
@@ -318,7 +333,7 @@ export default {
       );
       const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
       const updateSmtpConnectionsChart = updateScatterChart(
-        "fetchSmtpAuthAttempts"
+        "fetchAuthAttempts"
       );
 
       vue.updateDashboard = function(start, end) {

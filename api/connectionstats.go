@@ -14,18 +14,18 @@ import (
 	"time"
 )
 
-type smtpAuthAttemptsHandler struct {
+type authAttemptsHandler struct {
 	accessor *connectionstats.Accessor
 }
 
-// @Summary Information Fetch SMTP authentication attempts
+// @Summary Information Fetch authentication attempts
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
 // @Produce json
 // @Success 200 {object} connectionstats.Stats "desc"
 // @Failure 422 {string} string "desc"
-// @Router /api/v0/fetchSmtpAuthAttempts [get]
-func (handler smtpAuthAttemptsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+// @Router /api/v0/fetchAuthAttempts [get]
+func (handler authAttemptsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	result, err := handler.accessor.FetchAuthAttempts(r.Context(), interval)
@@ -38,5 +38,5 @@ func (handler smtpAuthAttemptsHandler) ServeHTTP(w http.ResponseWriter, r *http.
 
 func HttpConnectionsDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, accessor *connectionstats.Accessor) {
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
-	mux.Handle("/api/v0/fetchSmtpAuthAttempts", authenticated.WithEndpoint(smtpAuthAttemptsHandler{accessor: accessor}))
+	mux.Handle("/api/v0/fetchAuthAttempts", authenticated.WithEndpoint(authAttemptsHandler{accessor: accessor}))
 }
