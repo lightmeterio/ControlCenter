@@ -15,16 +15,19 @@ func init() {
 }
 
 type DovecotAuthFailed struct {
-	DB       string
-	Username string
-	IP       net.IP
-	Reason   DovecotAuthFailedReason
+	DB                string
+	Username          string
+	IP                net.IP
+	Reason            DovecotAuthFailedReason
+	ReasonExplanation string
 }
 
 type DovecotAuthFailedReason int
 
 var dovecotAuthFailedReasonAsStrings = map[DovecotAuthFailedReason]string{
-	DovecotAuthFailedReasonPasswordMismatch: "Password Mismatch",
+	DovecotAuthFailedReasonPasswordMismatch:  "Password Mismatch",
+	DovecotAuthFailedReasonAuthPolicyRefusal: "Policy Server Refusal",
+	DovecotAuthFailedReasonUnknownUser:       "Unknown User",
 }
 
 func (r DovecotAuthFailedReason) String() string {
@@ -34,9 +37,10 @@ func (r DovecotAuthFailedReason) String() string {
 const (
 	// TODO: Should we use iota for those values?
 	// If we do not store them in a database, iota works just well
-	UnsupportedDovecotAuthFailedReason      DovecotAuthFailedReason = 0
-	DovecotAuthFailedReasonPasswordMismatch DovecotAuthFailedReason = 1
-	DovecotAuthFailedReasonUnknownUser      DovecotAuthFailedReason = 2
+	UnsupportedDovecotAuthFailedReason       DovecotAuthFailedReason = 0
+	DovecotAuthFailedReasonPasswordMismatch  DovecotAuthFailedReason = 1
+	DovecotAuthFailedReasonUnknownUser       DovecotAuthFailedReason = 2
+	DovecotAuthFailedReasonAuthPolicyRefusal DovecotAuthFailedReason = 3
 )
 
 func (DovecotAuthFailed) isPayload() {
@@ -60,13 +64,18 @@ func convertDovecotAuthFailed(r rawparser.RawPayload) (Payload, error) {
 			return DovecotAuthFailedReasonUnknownUser
 		}
 
+		if len(p.DovecotAuthFailedReasonAuthPolicyRefusal) > 0 {
+			return DovecotAuthFailedReasonAuthPolicyRefusal
+		}
+
 		return UnsupportedDovecotAuthFailedReason
 	}()
 
 	return DovecotAuthFailed{
-		DB:       string(p.DB),
-		Username: string(p.Username),
-		IP:       ip,
-		Reason:   reason,
+		DB:                p.DB,
+		Username:          p.Username,
+		IP:                ip,
+		Reason:            reason,
+		ReasonExplanation: p.ReasonExplanation,
 	}, nil
 }

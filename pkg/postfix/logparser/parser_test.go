@@ -741,5 +741,36 @@ func TestDovecotLogParsing(t *testing.T) {
 			So(p.IP, ShouldResemble, net.ParseIP("1.2.3.4"))
 			So(p.Reason, ShouldEqual, DovecotAuthFailedReasonUnknownUser)
 		})
+
+		Convey("connection blocked, no extra message", func() {
+			_, parsed, err := Parse(`Nov  6 18:07:37 mail dovecot: auth: policy(alice,33.44.55.66): Authentication failure due to policy server refusal`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(DovecotAuthFailed)
+			So(cast, ShouldBeTrue)
+
+			So(p.DB, ShouldEqual, "policy")
+			So(p.Username, ShouldEqual, "alice")
+			So(p.IP, ShouldResemble, net.ParseIP("33.44.55.66"))
+			So(p.Reason, ShouldEqual, DovecotAuthFailedReasonAuthPolicyRefusal)
+			So(p.ReasonExplanation, ShouldEqual, "")
+		})
+
+		Convey("connection blocked, with extra message", func() {
+			_, parsed, err := Parse(`Nov  6 18:07:37 mail dovecot: auth: policy(alice,33.44.55.66): Authentication failure due to policy server refusal: Blocked for real`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(DovecotAuthFailed)
+			So(cast, ShouldBeTrue)
+
+			So(p.DB, ShouldEqual, "policy")
+			So(p.Username, ShouldEqual, "alice")
+			So(p.IP, ShouldResemble, net.ParseIP("33.44.55.66"))
+			So(p.Reason, ShouldEqual, DovecotAuthFailedReasonAuthPolicyRefusal)
+			So(p.ReasonExplanation, ShouldEqual, "Blocked for real")
+		})
+
 	})
 }

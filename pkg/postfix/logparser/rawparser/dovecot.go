@@ -16,8 +16,11 @@ type DovecotAuthFailedWithReason struct {
 	IP       string
 
 	// Different reasons
-	DovecotAuthFailedReasonPasswordMismatch string
-	DovecotAuthFailedReasonUnknownUser      string
+	DovecotAuthFailedReasonPasswordMismatch  string
+	DovecotAuthFailedReasonUnknownUser       string
+	DovecotAuthFailedReasonAuthPolicyRefusal string
+
+	ReasonExplanation string
 }
 
 func parseDovecotPayload(payloadLine string) (RawPayload, error) {
