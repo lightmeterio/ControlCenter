@@ -479,13 +479,13 @@ export default {
       return this.$gettext("Username");
     },
     EmailServerUsernameInputPlaceholder: function() {
-      return this.$gettext("Username");
+      return this.$gettext("⬤⬤⬤⬤⬤⬤");
     },
     EmailServerPassword: function() {
       return this.$gettext("Password");
     },
     EmailServerPasswordInputPlaceholder: function() {
-      return this.$gettext("Password");
+      return this.$gettext("⬤⬤⬤⬤⬤⬤");
     },
     EmailServerSender: function() {
       return this.$gettext("Sender");
