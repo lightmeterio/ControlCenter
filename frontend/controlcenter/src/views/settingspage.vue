@@ -544,7 +544,7 @@ export default {
       return this.$gettext("Slack channel");
     },
     SlackChannelInputPlaceholder: function() {
-      return "⬤⬤⬤⬤⬤⬤";
+      return this.$gettext("Please enter Slack channel name");
     },
     SlackNotificationsEnabled: function() {
       return this.$gettext("Slack Notifications");
@@ -553,7 +553,7 @@ export default {
       return this.$gettext("Slack API token");
     },
     SlackAPItokenPlacefolder: function() {
-      return this.$gettext("Please enter API token");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     SlackFieldRequired: function() {
       return this.settings.slack_notifications.enabled;
