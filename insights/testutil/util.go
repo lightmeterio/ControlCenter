@@ -68,7 +68,7 @@ func NewFakeAccessor(t *testing.T) (acessor *FakeAccessor, clear func()) {
 
 func executeCyclesUntil(detector core.Detector, accessor *FakeAccessor, clock *FakeClock, end time.Time, stepDuration time.Duration) error {
 	for ; end.After(clock.Time); clock.Sleep(stepDuration) {
-		if err := accessor.ConnPair.RwConn.Tx(func(tx *sql.Tx) error {
+		if err := accessor.ConnPair.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			return detector.Step(clock, tx)
 		}); err != nil {
 			return errorutil.Wrap(err)
