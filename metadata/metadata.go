@@ -63,7 +63,7 @@ type Item struct {
 }
 
 func (writer *Writer) Store(ctx context.Context, items []Item) error {
-	if err := writer.db.Tx(func(tx *sql.Tx) error {
+	if err := writer.db.Tx(ctx, func(ctx context.Context, tx *sql.Tx) error {
 		return Store(ctx, tx, items)
 	}); err != nil {
 		return errorutil.Wrap(err)

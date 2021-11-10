@@ -22,14 +22,14 @@ type RwConn struct {
 }
 
 // Execute some code in a transaction
-func (conn *RwConn) Tx(f func(*sql.Tx) error) error {
-	tx, err := conn.Begin()
+func (conn *RwConn) Tx(ctx context.Context, f func(context.Context, *sql.Tx) error) error {
+	tx, err := conn.BeginTx(ctx, nil)
 
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if err := f(tx); err != nil {
+	if err := f(ctx, tx); err != nil {
 		if err := tx.Rollback(); err != nil {
 			return errorutil.Wrap(err)
 		}

@@ -176,7 +176,7 @@ func engineCycle(e *Engine) (shouldContinue bool, err error) {
 		return false, nil
 	}
 
-	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+	if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 		if err := action(tx); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -245,8 +245,8 @@ func runOnHistoricalData(e *Engine) error {
 
 	if interval.IsZero() {
 		// in case we skip the import
-		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-			if err := metadata.Store(context.Background(), tx, []metadata.Item{{Key: "skip_import", Value: true}}); err != nil {
+		if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
+			if err := metadata.Store(ctx, tx, []metadata.Item{{Key: "skip_import", Value: true}}); err != nil {
 				return errorutil.Wrap(err)
 			}
 
@@ -285,7 +285,7 @@ func generateInsightsDuringImportProgress(e *Engine, start time.Time) (timeutil.
 
 		//nolint:scopelint
 		// It's safe to use `progress` in the transaction
-		if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+		if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			for clock.current.Before(progress.Time) {
 				for _, h := range historicalDetectors {
 					if err := h.Step(&clock, tx); err != nil {
@@ -328,8 +328,8 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		return timeutil.TimeInterval{}, nil
 	}
 
-	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-		if err := core.EnableHistoricalImportFlag(context.Background(), tx); err != nil {
+	if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
+		if err := core.EnableHistoricalImportFlag(ctx, tx); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -343,8 +343,8 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 		return timeutil.TimeInterval{}, errorutil.Wrap(err)
 	}
 
-	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
-		if err := core.DisableHistoricalImportFlag(context.Background(), tx); err != nil {
+	if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
+		if err := core.DisableHistoricalImportFlag(ctx, tx); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -367,7 +367,7 @@ func importHistoricalInsights(e *Engine) (timeutil.TimeInterval, error) {
 }
 
 func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) error {
-	if err := e.accessor.conn.RwConn.Tx(func(tx *sql.Tx) error {
+	if err := e.accessor.conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 		// Single shot detector
 		summaryInsightDetector := importsummary.NewDetector(e.fetcher, interval)
 
