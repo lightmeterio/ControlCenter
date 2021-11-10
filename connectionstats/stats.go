@@ -60,9 +60,10 @@ const (
 
 	// dovecot commands from here
 
-	// this is actually a fake command, as we do
+	// those are actually fake commands, as we do
 	// not support getting the "raw" IMAP commands
-	DovecotAuthCommand Command = 50
+	DovecotAuthCommand  Command = 50
+	DovecotBlockCommand Command = 51
 
 	UnsupportedCommand = 999
 )
@@ -103,6 +104,8 @@ func commandAsString(c Command) string {
 		return "xforward"
 	case DovecotAuthCommand:
 		return "dovecot_auth"
+	case DovecotBlockCommand:
+		return "dovecot_block"
 	}
 
 	return "unsupported"
@@ -146,6 +149,8 @@ func buildCommand(s string) (Command, error) {
 		return XforwardCommand, nil
 	case "dovecot_auth":
 		return DovecotAuthCommand, nil
+	case "dovecot_block":
+		return DovecotBlockCommand, nil
 	}
 
 	return UnsupportedCommand, ErrCommandNotSupported
@@ -192,6 +197,14 @@ func buildSmtpAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAc
 	}
 }
 
+func buildDovecotCommand(p parser.DovecotAuthFailed) Command {
+	if p.Reason == parser.DovecotAuthFailedReasonAuthPolicyRefusal {
+		return DovecotBlockCommand
+	}
+
+	return DovecotAuthCommand
+}
+
 func buildDovecotAction(record postfix.Record, payload parser.DovecotAuthFailed) dbAction {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		//nolint:sqlclosecheck
@@ -206,7 +219,7 @@ func buildDovecotAction(record postfix.Record, payload parser.DovecotAuthFailed)
 		}
 
 		//nolint:sqlclosecheck
-		if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, DovecotAuthCommand, 0, 1); err != nil {
+		if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, buildDovecotCommand(payload), 0, 1); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -258,7 +271,8 @@ func (pub *publisher) Publish(r postfix.Record) {
 		}
 	case parser.DovecotAuthFailed:
 		failed := p.Reason == parser.DovecotAuthFailedReasonUnknownUser ||
-			p.Reason == parser.DovecotAuthFailedReasonPasswordMismatch
+			p.Reason == parser.DovecotAuthFailedReasonPasswordMismatch ||
+			p.Reason == parser.DovecotAuthFailedReasonAuthPolicyRefusal
 
 		if failed {
 			pub.actions <- buildDovecotAction(r, p)

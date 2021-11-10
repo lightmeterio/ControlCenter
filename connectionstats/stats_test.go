@@ -156,6 +156,7 @@ Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] 
 Sep  3 10:40:57 mail postfix/smtpd[8377]: disconnect from lalala.com[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 commands=1/2
 Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 Sep  4 11:30:51 mail dovecot: auth: passwd-file(alice,44.44.44.44): unknown user (SHA1 of given password: 011c94)
+Sep 18 18:54:59 mail dovecot: auth: policy(maintenance,55.55.55.55): Authentication failure due to policy server refusal
 Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 		`), pub, 2020)
 
@@ -171,12 +172,13 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 
 			So(err, ShouldBeNil)
 
-			So(attempts.IPs, ShouldResemble, []string{"1002:1712:4e2b:d061:5dff:19f:c85f:a48f", "11.22.33.44", "22.33.44.55", "44.44.44.44"})
+			So(attempts.IPs, ShouldResemble, []string{"1002:1712:4e2b:d061:5dff:19f:c85f:a48f", "11.22.33.44", "22.33.44.55", "44.44.44.44", "55.55.55.55"})
 			So(attempts.Attempts, ShouldResemble, []AttemptDesc{
 				{Time: timeutil.MustParseTime(`2020-07-13 17:41:40 +0000`).Unix(), IPIndex: 1, Status: "suspicious"},
 				{Time: timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "failed"},
 				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok"},
 				{Time: timeutil.MustParseTime(`2020-09-04 11:30:51 +0000`).Unix(), IPIndex: 3, Status: "failed"},
+				{Time: timeutil.MustParseTime(`2020-09-18 18:54:59 +0000`).Unix(), IPIndex: 4, Status: "blocked"},
 			})
 		}
 	})
