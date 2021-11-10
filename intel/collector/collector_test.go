@@ -116,7 +116,7 @@ func TestReporters(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -214,7 +214,7 @@ func TestDispatcher(t *testing.T) {
 
 		clock := &timeutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 10:00:00 +0000`)}
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err = db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// nothing executes
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -258,7 +258,7 @@ func TestDispatcher(t *testing.T) {
 
 		clock.Sleep(time.Second * 10)
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err = db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			err := TryToDispatchReports(tx, clock, dispatcher)
 			So(err, ShouldBeNil)
 			return nil
@@ -374,7 +374,7 @@ func TestDispatcher(t *testing.T) {
 			},
 		})
 
-		err = db.RwConn.Tx(func(tx *sql.Tx) error {
+		err = db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// r1 and r2 execute on second 12
 			clock.Sleep(2 * time.Second)
 			err := reporters.Step(tx, clock)
@@ -435,7 +435,7 @@ func TestCollectorSteps(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// nothing executes
 			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)
@@ -501,7 +501,7 @@ func TestRemoveOldDatabaseEntries(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err := db.RwConn.Tx(func(tx *sql.Tx) error {
+		err := db.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// nothing executes
 			err := Step(tx, clock, reporters, dispatcher, time.Second*4)
 			So(err, ShouldBeNil)

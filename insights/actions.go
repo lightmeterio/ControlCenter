@@ -6,6 +6,7 @@
 package insights
 
 import (
+	"context"
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/importsummary"
@@ -20,7 +21,7 @@ import (
 //nolint:deadcode,unused
 func addInsightsSamples(detectors []core.Detector, conn dbconn.RwConn, clock core.Clock) error {
 	gen := func(detectors []core.Detector, conn dbconn.RwConn, clock core.Clock) error {
-		if err := conn.Tx(func(tx *sql.Tx) error {
+		if err := conn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			//nolint:unused
 			type sampleInsightGenerator interface {
 				GenerateSampleInsight(*sql.Tx, core.Clock) error
