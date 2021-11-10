@@ -113,39 +113,26 @@ func (r *Auth) Register(ctx context.Context, email, name, password string) (int6
 }
 
 func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) (int64, error) {
-	tx, err := db.BeginTx(ctx, nil)
+	var id int64
 
-	if err != nil {
-		return invalidUserId, errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back user registration transaction")
+	if err := db.Tx(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		if err := userIsAlreadyRegistred(tx, email); err != nil {
+			return errorutil.Wrap(err)
 		}
-	}()
 
-	err = userIsAlreadyRegistred(tx, email)
+		result, err := tx.Exec(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`, email, name, password)
 
-	if err != nil {
-		return invalidUserId, errorutil.Wrap(err)
-	}
+		if err != nil {
+			return errorutil.Wrap(err, "executing user registration query")
+		}
 
-	result, err := tx.Exec(`insert into users(email, name, password) values(?, ?, lm_bcrypt_sum(?))`, email, name, password)
+		id, err = result.LastInsertId()
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
 
-	if err != nil {
-		return invalidUserId, errorutil.Wrap(err, "executing user registration query")
-	}
-
-	id, err := result.LastInsertId()
-
-	if err != nil {
-		return invalidUserId, errorutil.Wrap(err)
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
+		return nil
+	}); err != nil {
 		return invalidUserId, errorutil.Wrap(err)
 	}
 
@@ -346,72 +333,58 @@ func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
 	return &userData, nil
 }
 
-func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
-	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
-
+func queryMustChangeOneRecord(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) error {
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
-		}
-	}()
-
-	queryMustChangeOneRecord := func(query string, args ...interface{}) error {
-		result, err := tx.ExecContext(ctx, query, args...)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		rowsAfftected, err := result.RowsAffected()
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if rowsAfftected != 1 {
-			return ErrEmailAddressNotFound
-		}
-
-		return nil
-	}
-
-	if len(newName) > 0 {
-		if err = queryMustChangeOneRecord(`update users set name = ? where email = ?`, newName, oldEmail); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	if len(newPassword) > 0 {
-		name, err := nameForEmail(tx, oldEmail)
-
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err := validatePassword(oldEmail, name, newPassword); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err = queryMustChangeOneRecord(`update users set password = lm_bcrypt_sum(?) where email = ?`, newPassword, oldEmail); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	if len(newEmail) > 0 {
-		if err = validateEmail(newEmail); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if err = queryMustChangeOneRecord(`update users set email = ? where email = ?`, newEmail, oldEmail); err != nil {
-			return errorutil.Wrap(err)
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
+	rowsAfftected, err := result.RowsAffected()
+	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
+	if rowsAfftected != 1 {
+		return ErrEmailAddressNotFound
+	}
+
 	return nil
+}
+
+func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
+	return r.connPair.RwConn.Tx(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		if len(newName) > 0 {
+			if err := queryMustChangeOneRecord(ctx, tx, `update users set name = ? where email = ?`, newName, oldEmail); err != nil {
+				return errorutil.Wrap(err)
+			}
+		}
+
+		if len(newPassword) > 0 {
+			name, err := nameForEmail(tx, oldEmail)
+
+			if err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			if err := validatePassword(oldEmail, name, newPassword); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			if err = queryMustChangeOneRecord(ctx, tx, `update users set password = lm_bcrypt_sum(?) where email = ?`, newPassword, oldEmail); err != nil {
+				return errorutil.Wrap(err)
+			}
+		}
+
+		if len(newEmail) > 0 {
+			if err := validateEmail(newEmail); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			if err := queryMustChangeOneRecord(ctx, tx, `update users set email = ? where email = ?`, newEmail, oldEmail); err != nil {
+				return errorutil.Wrap(err)
+			}
+		}
+
+		return nil
+	})
 }
