@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
@@ -26,31 +25,22 @@ type HistoricalDetector interface {
 }
 
 type Core struct {
+	closeutil.Closers
 	Detectors []Detector
-	closers   closeutil.Closers
 }
 
 func New(detectors []Detector) (*Core, error) {
-	Detectors := []Detector{}
-	closers := closeutil.New()
+	core := &Core{
+		Detectors: []Detector{},
+		Closers:   closeutil.New(),
+	}
 
 	for _, d := range detectors {
-		Detectors = append(Detectors, d)
-		closers.Add(d)
+		core.Detectors = append(core.Detectors, d)
+		core.Closers.Add(d)
 	}
 
-	return &Core{
-		Detectors: Detectors,
-		closers:   closers,
-	}, nil
-}
-
-func (c *Core) Close() error {
-	if err := c.closers.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return core, nil
 }
 
 type Content interface {
