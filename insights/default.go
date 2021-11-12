@@ -6,6 +6,7 @@
 package insights
 
 import (
+	"gitlab.com/lightmeter/controlcenter/insights/bruteforcesummary"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	"gitlab.com/lightmeter/controlcenter/insights/highrate"
@@ -30,6 +31,7 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 		messagerblinsight.NewDetector(creator, options),
 		newsfeed.NewDetector(creator, options),
 		detectiveescalation.NewDetector(creator, options),
+		bruteforcesummary.NewDetector(creator, options),
 	}
 }
 

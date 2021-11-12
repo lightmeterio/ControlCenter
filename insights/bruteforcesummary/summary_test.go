@@ -51,8 +51,8 @@ func TestSummary(t *testing.T) {
 
 		d := NewDetector(accessor, core.Options{
 			"bruteforcesummary": Options{
-				Checker:       checker,
-				CheckInterval: time.Second * 10,
+				Checker:      checker,
+				PollInterval: time.Second * 10,
 			},
 		})
 

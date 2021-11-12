@@ -19,8 +19,8 @@ import (
 )
 
 type Options struct {
-	Checker       bruteforce.Checker
-	CheckInterval time.Duration
+	Checker      bruteforce.Checker
+	PollInterval time.Duration
 }
 
 type Content bruteforce.SummaryResult
