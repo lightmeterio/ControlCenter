@@ -47,7 +47,7 @@ func TestSummary(t *testing.T) {
 		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
 
-		checker := &fakeChecker{actions: map[time.Time]bruteforce.SummaryResult{}}
+		checker := &fakeChecker{}
 
 		d := NewDetector(accessor, core.Options{
 			"bruteforcesummary": Options{
@@ -65,12 +65,14 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("One insight is created", func() {
-			checker.actions[testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)] = bruteforce.SummaryResult{
-				TopIPs: []bruteforce.BlockedIP{
-					{Addr: "11.22.33.44", Count: 10},
-					{Addr: "11.22.33.44", Count: 15},
+			checker.actions = map[time.Time]bruteforce.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "11.22.33.44", Count: 10},
+						{Addr: "66.77.88.99", Count: 15},
+					},
+					TotalNumber: 42,
 				},
-				TotalNumber: 42,
 			}
 
 			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 1*time.Minute)
@@ -78,23 +80,101 @@ func TestSummary(t *testing.T) {
 
 			insights, err := accessor.Fetcher.FetchInsights(context.Background(), core.FetchOptions{
 				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
-				Category: core.NoCategory,
 			}, clock)
 
 			So(err, ShouldBeNil)
 
 			So(len(insights), ShouldEqual, 1)
-			So(insights[0].Time(), ShouldResemble, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`))
+			So(insights[0].Time(), ShouldResemble, testutil.MustParseTime(`2000-01-01 00:20:00 +0000`))
 			So(insights[0].Category(), ShouldEqual, core.IntelCategory)
 			content, ok := insights[0].Content().(*Content)
 			So(ok, ShouldBeTrue)
 			So(content, ShouldResemble, &Content{
 				TopIPs: []bruteforce.BlockedIP{
 					{Addr: "11.22.33.44", Count: 10},
-					{Addr: "11.22.33.44", Count: 15},
+					{Addr: "66.77.88.99", Count: 15},
 				},
 				TotalNumber: 42,
 			})
+		})
+
+		Convey("When a new insight is created, all the previous ones are archived", func() {
+			checker.actions = map[time.Time]bruteforce.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "11.22.33.44", Count: 10},
+						{Addr: "55.66.77.88", Count: 15},
+					},
+					TotalNumber: 42,
+				},
+				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "11.22.33.44", Count: 30},
+					},
+					TotalNumber: 30,
+				},
+				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "1.1.1.1", Count: 67},
+						{Addr: "2.2.2.2", Count: 3},
+					},
+					TotalNumber: 70,
+				},
+			}
+
+			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 1*time.Minute)
+
+			So(accessor.Insights, ShouldResemble, []int64{1, 2, 3})
+
+			insights, err := accessor.Fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 3)
+
+			{
+				So(insights[0].Time(), ShouldResemble, testutil.MustParseTime(`2000-01-01 01:00:00 +0000`))
+				So(insights[0].Category(), ShouldEqual, core.ArchivedCategory)
+				content, ok := insights[0].Content().(*Content)
+				So(ok, ShouldBeTrue)
+				So(content, ShouldResemble, &Content{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "11.22.33.44", Count: 10},
+						{Addr: "55.66.77.88", Count: 15},
+					},
+					TotalNumber: 42,
+				})
+			}
+
+			{
+				So(insights[1].Time(), ShouldResemble, testutil.MustParseTime(`2000-01-01 01:30:00 +0000`))
+				So(insights[1].Category(), ShouldEqual, core.ArchivedCategory)
+				content, ok := insights[1].Content().(*Content)
+				So(ok, ShouldBeTrue)
+				So(content, ShouldResemble, &Content{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "11.22.33.44", Count: 30},
+					},
+					TotalNumber: 30,
+				})
+			}
+
+			{
+				So(insights[2].Time(), ShouldResemble, testutil.MustParseTime(`2000-01-01 01:40:00 +0000`))
+				So(insights[2].Category(), ShouldEqual, core.IntelCategory)
+				content, ok := insights[2].Content().(*Content)
+				So(ok, ShouldBeTrue)
+				So(content, ShouldResemble, &Content{
+					TopIPs: []bruteforce.BlockedIP{
+						{Addr: "1.1.1.1", Count: 67},
+						{Addr: "2.2.2.2", Count: 3},
+					},
+					TotalNumber: 70,
+				})
+			}
 		})
 	})
 }

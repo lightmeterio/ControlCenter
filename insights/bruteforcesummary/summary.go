@@ -109,9 +109,31 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	}
 }
 
+func archiveAnyPreviousInsightIfNeeded(tx *sql.Tx, c core.Clock) error {
+	var id int64
+
+	err := tx.QueryRow(`select rowid from insights where content_type = ? order by rowid desc limit 1`, ContentTypeId).Scan(&id)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := core.ArchiveInsight(context.Background(), tx, id, c.Now()); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return d.options.Checker.Step(c.Now(), func(r bruteforce.SummaryResult) error {
-		// TODO: archive any previous active insight of this type
+		if err := archiveAnyPreviousInsightIfNeeded(tx, c); err != nil {
+			return errorutil.Wrap(err)
+		}
 
 		return generateInsight(tx, c, d.creator, Content{TopIPs: r.TopIPs, TotalNumber: r.TotalNumber})
 	})
