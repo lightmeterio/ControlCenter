@@ -221,7 +221,7 @@ func (pub *publisher) Publish(r postfix.Record) {
 }
 
 type Stats struct {
-	dbrunner.Runner
+	*dbrunner.Runner
 	closeutil.Closers
 
 	conn *dbconn.PooledPair

@@ -7,6 +7,7 @@ package workspace
 import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
+	"gitlab.com/lightmeter/controlcenter/insights/bruteforcesummary"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
@@ -14,6 +15,7 @@ import (
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
+	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
@@ -25,6 +27,14 @@ const (
 	oneDay  = time.Hour * 24
 	oneWeek = oneDay * 7
 )
+
+type dummyBruteforceChecker struct {
+}
+
+func (c *dummyBruteforceChecker) Step(time.Time, func(bruteforce.SummaryResult) error) error {
+	// FIXME: this obviously should be replaced by an actual checker!!!
+	return nil
+}
 
 func insightsOptions(
 	dashboard dashboard.Dashboard,
@@ -60,6 +70,11 @@ func insightsOptions(
 
 		"detective": detectiveescalation.Options{
 			Escalator: detectiveEscalator,
+		},
+
+		"bruteforcesummary": bruteforcesummary.Options{
+			Checker:      &dummyBruteforceChecker{},
+			PollInterval: time.Minute * 2,
 		},
 	}
 }

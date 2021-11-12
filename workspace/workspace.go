@@ -55,7 +55,7 @@ type Workspace struct {
 	auth                    *auth.Auth
 	rblDetector             *messagerbl.Detector
 	rblChecker              localrbl.Checker
-	intelCollector          *collector.Collector
+	intelRunner             *intel.Runner
 	logsLineCountPublisher  postfix.Publisher
 	postfixVersionPublisher postfixversion.Publisher
 
@@ -261,7 +261,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	intelCollector, logsLineCountPublisher, err := intel.New(
+	intelRunner, logsLineCountPublisher, err := intel.New(
 		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsEngine.Fetcher(),
 		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
 	if err != nil {
@@ -274,7 +274,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	logsRunner := newLogsRunner(tracker, deliveries)
+	logsRunner := runner.NewDependantPairCancellableRunner(tracker, deliveries)
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
@@ -303,7 +303,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		settingsMetaHandler:     m,
 		settingsRunner:          settingsRunner,
 		importAnnouncer:         importAnnouncer,
-		intelCollector:          intelCollector,
+		intelRunner:             intelRunner,
 		intelAccessor:           intelAccessor,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
@@ -315,13 +315,13 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 			rawLogsDb,
 			tracker,
 			insightsEngine,
-			intelCollector,
+			intelRunner,
 			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
 		CancellableRunner: runner.NewCombinedCancellableRunners(
 			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
-			intelCollector, connStats, rblCheckerCancellableRunner, rawLogsDb),
+			intelRunner, connStats, rblCheckerCancellableRunner, rawLogsDb),
 	}, nil
 }
 
