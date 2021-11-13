@@ -37,8 +37,9 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 
 func NewEngine(
 	c *Accessor,
+	fetcher core.Fetcher,
 	notificationCenter *notification.Center,
 	options core.Options,
 ) (*Engine, error) {
-	return NewCustomEngine(c, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)
+	return NewCustomEngine(c, fetcher, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)
 }

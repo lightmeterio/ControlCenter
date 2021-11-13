@@ -66,6 +66,7 @@ type Engine struct {
 
 func NewCustomEngine(
 	c *Accessor,
+	fetcher core.Fetcher,
 	notificationCenter *notification.Center,
 	options core.Options,
 	buildDetectors func(*creator, core.Options) []core.Detector,
@@ -84,11 +85,6 @@ func NewCustomEngine(
 	detectors := buildDetectors(creator, options)
 
 	core, err := core.New(detectors)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	fetcher, err := newFetcher(c.conn.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -382,10 +378,6 @@ func generateImportSummaryInsight(e *Engine, interval timeutil.TimeInterval) err
 	}
 
 	return nil
-}
-
-func (e *Engine) Fetcher() core.Fetcher {
-	return e.fetcher
 }
 
 func (e *Engine) ImportAnnouncer() announcer.ImportAnnouncer {

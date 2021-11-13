@@ -177,7 +177,10 @@ func TestEngine(t *testing.T) {
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
 		Convey("Test Insights Generation", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			}, noAdditionalActions)
@@ -269,8 +272,6 @@ func TestEngine(t *testing.T) {
 				So(notifier.notifications[1].ID, ShouldEqual, 3)
 				So(n.Content, ShouldResemble, fakeContent{T: "13"})
 			}
-
-			fetcher := e.Fetcher()
 
 			Convey("fetch all insights with no filter, sorting by time, default (desc) order", func() {
 				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
@@ -391,7 +392,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test Insights Samples generated when the application starts", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -409,8 +413,6 @@ func TestEngine(t *testing.T) {
 			cancel()
 			So(done(), ShouldBeNil)
 
-			fetcher := e.Fetcher()
-
 			sampleInsights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 				Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime("0000-01-01 00:00:00 +0000"),
@@ -425,7 +427,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test engine loop", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -458,7 +463,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Skip historical import", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -491,7 +499,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test importing Historical insights", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -607,7 +618,7 @@ func TestEngine(t *testing.T) {
 			So(notifier.notifications[0].Content.Description(), ShouldEqual, "A non historical insight")
 
 			Convey("Get active (non archived) insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -645,7 +656,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Get archived insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -664,7 +675,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Get all insights (archived and active)", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -687,7 +698,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Choosing a category should exclude the archived insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -792,7 +803,7 @@ func TestArchivingInsights(t *testing.T) {
 
 		So(err, ShouldBeNil)
 
-		fetcher, err := newFetcher(conn.RoConnPool)
+		fetcher, err := core.NewFetcher(conn.RoConnPool)
 		So(err, ShouldBeNil)
 
 		insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{

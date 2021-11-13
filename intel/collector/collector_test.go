@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/intel/core"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -472,8 +473,13 @@ func TestCollector(t *testing.T) {
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer closeConn()
 
+		options := core.Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}
+
+		dbRunner := core.NewRunner(conn.RwConn, options)
+		dbDone, dbCancel := runner.Run(dbRunner)
+
 		// NOTE: the report times have only precision of seconds only (as they are stored in the database as a int64 timestamp)
-		collector, err := New(conn, Options{CycleInterval: 100 * time.Millisecond, ReportInterval: 2 * time.Second}, reporters, dispatcher)
+		collector, err := New(dbRunner.Actions, options, reporters, dispatcher)
 		So(err, ShouldBeNil)
 
 		done, cancel := runner.Run(collector)
@@ -482,6 +488,9 @@ func TestCollector(t *testing.T) {
 
 		cancel()
 		So(done(), ShouldBeNil)
+
+		dbCancel()
+		So(dbDone(), ShouldBeNil)
 
 		So(len(dispatcher.reports), ShouldEqual, 1)
 		So(len(dispatcher.reports[0].Content), ShouldEqual, 1)
@@ -527,7 +536,7 @@ func TestRemoveOldDatabaseEntries(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			// We then clean anything older than 1h, removing the first report
-			cleaner := makeCleanAction(1 * time.Hour)
+			cleaner := core.MakeCleanAction(1 * time.Hour)
 			err = cleaner(tx, dbconn.TxPreparedStmts{})
 			So(err, ShouldBeNil)
 

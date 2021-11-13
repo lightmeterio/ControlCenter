@@ -28,20 +28,13 @@ const (
 	oneWeek = oneDay * 7
 )
 
-type dummyBruteforceChecker struct {
-}
-
-func (c *dummyBruteforceChecker) Step(time.Time, func(bruteforce.SummaryResult) error) error {
-	// FIXME: this obviously should be replaced by an actual checker!!!
-	return nil
-}
-
 func insightsOptions(
 	dashboard dashboard.Dashboard,
 	rblChecker localrbl.Checker,
 	rblDetector messagerbl.Stepper,
 	detectiveEscalator escalator.Stepper,
 	deliverydbConnPool *dbconn.RoPool,
+	bruteforceChecker bruteforce.Checker,
 ) insightscore.Options {
 	return insightscore.Options{
 		"logsConnPool":   deliverydbConnPool,
@@ -73,7 +66,7 @@ func insightsOptions(
 		},
 
 		"bruteforcesummary": bruteforcesummary.Options{
-			Checker:      &dummyBruteforceChecker{},
+			Checker:      bruteforceChecker,
 			PollInterval: time.Minute * 2,
 		},
 	}

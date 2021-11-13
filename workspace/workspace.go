@@ -52,6 +52,7 @@ type Workspace struct {
 	tracker                 *tracking.Tracker
 	connStats               *connectionstats.Stats
 	insightsEngine          *insights.Engine
+	insightsFetcher         insightsCore.Fetcher
 	auth                    *auth.Auth
 	rblDetector             *messagerbl.Detector
 	rblChecker              localrbl.Checker
@@ -235,20 +236,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	insightsEngine, err := insights.NewEngine(
-		insightsAccessor,
-		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool))
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	connStats, err := connectionstats.New(allDatabases.Connections)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	connectionStatsAccessor, err := connectionstats.NewAccessor(allDatabases.Connections.RoConnPool)
+	insightsFetcher, err := insightsCore.NewFetcher(allDatabases.Insights.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -261,15 +249,33 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	intelRunner, logsLineCountPublisher, err := intel.New(
-		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsEngine.Fetcher(),
+	intelRunner, logsLineCountPublisher, bruteforceChecker, err := intel.New(
+		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsFetcher,
 		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
 
+	insightsEngine, err := insights.NewEngine(
+		insightsAccessor,
+		insightsFetcher,
+		notificationCenter,
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, bruteforceChecker))
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	connStats, err := connectionstats.New(allDatabases.Connections)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	connectionStatsAccessor, err := connectionstats.NewAccessor(allDatabases.Connections.RoConnPool)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -293,6 +299,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		rawLogs:                 rawLogsDb,
 		tracker:                 tracker,
 		insightsEngine:          insightsEngine,
+		insightsFetcher:         insightsFetcher,
 		connStats:               connStats,
 		auth:                    auth,
 		rblDetector:             rblDetector,
@@ -334,7 +341,7 @@ func (ws *Workspace) InsightsEngine() *insights.Engine {
 }
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
-	return ws.insightsEngine.Fetcher()
+	return ws.insightsFetcher
 }
 
 func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
