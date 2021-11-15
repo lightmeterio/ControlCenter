@@ -46,17 +46,7 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Caller().Logger()
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	if conf.LogLevel == "ERROR" {
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	} else if conf.LogLevel == "WARNING" {
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	} else if conf.LogLevel == "DEBUG" {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
+	zerolog.SetGlobalLevel(conf.LogLevel)
 
 	if conf.ShowVersion {
 		version.PrintVersion()

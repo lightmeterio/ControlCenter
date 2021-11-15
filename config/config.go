@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -29,7 +30,7 @@ type Config struct {
 	DirToWatch                string
 	LogPatterns               []string
 	Address                   string
-	LogLevel                  string
+	LogLevel                  zerolog.LogLevel
 	Timezone                  *time.Location
 	LogYear                   int
 	Socket                    string
@@ -97,9 +98,13 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		return conf, err
 	}
 
-	fs.StringVar(&conf.LogLevel, "log-level",
+	var stringLogLevel = "INFO"
+
+	fs.StringVar(&stringLogLevel, "log-level",
 		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
 		"Log level (INFO, DEBUG, WARNING or ERROR. Default: INFO)")
+
+	conf.LogLevel = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
