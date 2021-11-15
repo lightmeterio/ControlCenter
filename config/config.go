@@ -30,7 +30,7 @@ type Config struct {
 	DirToWatch                string
 	LogPatterns               []string
 	Address                   string
-	LogLevel                  zerolog.LogLevel
+	LogLevel                  zerolog.Level
 	Timezone                  *time.Location
 	LogYear                   int
 	Socket                    string
@@ -104,7 +104,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
 		"Log level (INFO, DEBUG, WARNING or ERROR. Default: INFO)")
 
-	conf.LogLevel = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
+	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
+	if err != nil {
+		return conf, err
+	}
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
