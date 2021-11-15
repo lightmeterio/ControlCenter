@@ -43,13 +43,9 @@ func MustSucceed(err error, msg ...string) {
 	panic(err)
 }
 
-func Dief(verbose bool, err error, format string, values ...interface{}) {
+func Dief(err error, format string, values ...interface{}) {
 	log.Error().Msgf(format, values...)
-
-	if verbose {
-		LogErrorf(err, "Detailed error")
-	}
-
+	LogErrorf(err, "Detailed error")
 	os.Exit(1)
 }
 

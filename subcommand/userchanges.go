@@ -41,35 +41,35 @@ func removeAllHTTPSessions(workspaceDirectory string) error {
 	return nil
 }
 
-func PerformUserInfoChange(verbose bool, workspaceDirectory, email, newEmail, name, password string) {
+func PerformUserInfoChange(workspaceDirectory, email, newEmail, name, password string) {
 	connPair, err := dbconn.Open(path.Join(workspaceDirectory, "auth.db"), 10)
 
 	if err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error opening auth database")
+		errorutil.Dief(errorutil.Wrap(err), "Error opening auth database")
 	}
 
 	defer connPair.Close()
 
 	if err := migrator.Run(connPair.RwConn.DB, "auth"); err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error migrating auth database")
+		errorutil.Dief(errorutil.Wrap(err), "Error migrating auth database")
 	}
 
 	auth, err := auth.NewAuth(connPair, auth.Options{})
 
 	if err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error instanciating auth object")
+		errorutil.Dief(errorutil.Wrap(err), "Error instanciating auth object")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	if err := auth.ChangeUserInfo(ctx, email, newEmail, name, password); err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Error Changing user Info password")
+		errorutil.Dief(errorutil.Wrap(err), "Error Changing user Info password")
 	}
 
 	// Finally, reset all existing sessions
 	if err := removeAllHTTPSessions(workspaceDirectory); err != nil {
-		errorutil.Dief(verbose, errorutil.Wrap(err), "Could not clear current sessions")
+		errorutil.Dief(errorutil.Wrap(err), "Could not clear current sessions")
 	}
 
 	log.Info().Msgf("Info change for user %s successfully performed", email)

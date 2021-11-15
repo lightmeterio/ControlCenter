@@ -55,7 +55,7 @@ func TestDatabaseMigrationUp(t *testing.T) {
 			err = migrator.Run(connPair.RwConn.DB, "dummy")
 			So(err, ShouldBeNil)
 
-			PerformMigrateDownTo(true, dir, "dummy", 0)
+			PerformMigrateDownTo(dir, "dummy", 0)
 		})
 	})
 }
