@@ -82,6 +82,26 @@ func TestVariablesShouldNeverOverwriteCommandLine(t *testing.T) {
 	})
 }
 
+func TestWrongCommandLineInputType(t *testing.T) {
+	cmdline := []string{
+		"-log-level=Schrödinger",
+	}
+	_, err := ParseWithErrorHandling(cmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+	Convey("Wrong input value should raise an error", t, func() {
+		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestWrongEnvVarInputType(t *testing.T) {
+	env := fakeEnv{
+		"LIGHTMETER_LOG_LEVEL": "Schrödinger",
+	}
+	_, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
+	Convey("Wrong input value should raise an error", t, func() {
+		So(err, ShouldNotBeNil)
+	})
+}
+
 func TestHelpOption(t *testing.T) {
 	_, err := ParseWithErrorHandling([]string{"-help"}, noEnv.fakeLookupenv, flag.ContinueOnError)
 

@@ -57,7 +57,6 @@ func TestMain(t *testing.T) {
 			WorkspaceDirectory: wsDir,
 			DirToWatch:         path.Join(logsDir, "logs_sample"),
 			ImportOnly:         true,
-			Verbose:            true,
 			LogFormat:          "default",
 		}
 
