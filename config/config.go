@@ -93,21 +93,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
 
-	b, err = lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv)
-	if err != nil {
-		return conf, err
-	}
-
 	var stringLogLevel = "INFO"
 
-	fs.StringVar(&stringLogLevel, "log-level",
+	fs.StringVar(&stringLogLevel, "log_level",
 		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
-		"Log level (INFO, DEBUG, WARNING or ERROR. Default: INFO)")
-
-	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
-	if err != nil {
-		return conf, err
-	}
+		"Log level (DEBUG, INFO, WARN, or ERROR. Default: INFO)")
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
@@ -138,6 +128,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	if err := fs.Parse(cmdlineArgs); err != nil {
 		return Config{}, errorutil.Wrap(err)
+	}
+
+	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
+	if err != nil {
+		return conf, err
 	}
 
 	conf.LogPatterns = func() []string {
