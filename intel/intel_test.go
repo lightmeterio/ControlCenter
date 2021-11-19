@@ -179,8 +179,8 @@ se.vruntime                                  :            24.180579`
 
 		Convey("Send settings if available", func() {
 			err := m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
-				LocalIP:     net.ParseIP(`127.0.0.2`),
-				APPLanguage: "en",
+				LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.2`)},
+				AppLanguage: "en",
 				PublicURL:   "https://example.com",
 			})
 

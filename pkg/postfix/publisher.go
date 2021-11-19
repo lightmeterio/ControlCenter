@@ -19,6 +19,13 @@ type Record struct {
 	Header   parser.Header
 	Location RecordLocation
 	Payload  parser.Payload
+	Line     string
+	Sum      Sum
+}
+
+type SumPair struct {
+	Time time.Time
+	Sum  *Sum
 }
 
 type Publisher interface {

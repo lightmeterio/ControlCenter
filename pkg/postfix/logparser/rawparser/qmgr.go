@@ -9,25 +9,25 @@ func init() {
 }
 
 type QmgrMessageExpired struct {
-	Queue            []byte
-	SenderLocalPart  []byte
-	SenderDomainPart []byte
-	Message          []byte
+	Queue            string
+	SenderLocalPart  string
+	SenderDomainPart string
+	Message          string
 }
 
 type QmgrMailQueued struct {
-	Queue            []byte
-	SenderLocalPart  []byte
-	SenderDomainPart []byte
-	Size             []byte
-	Nrcpt            []byte
+	Queue            string
+	SenderLocalPart  string
+	SenderDomainPart string
+	Size             string
+	Nrcpt            string
 }
 
 type QmgrRemoved struct {
-	Queue []byte
+	Queue string
 }
 
-func parseQmgrPayload(payloadLine []byte) (RawPayload, error) {
+func parseQmgrPayload(payloadLine string) (RawPayload, error) {
 	if s, parsed := parseQmgrMailQueued(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:    PayloadTypeQmgrMailQueued,

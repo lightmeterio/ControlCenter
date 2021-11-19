@@ -29,7 +29,7 @@ func main() {
 
 		lineNo++
 
-		h, p, err := parser.Parse(scanner.Bytes())
+		h, p, err := parser.Parse(scanner.Text())
 
 		if !parser.IsRecoverableError(err) {
 			continue

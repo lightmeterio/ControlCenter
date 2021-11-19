@@ -374,3 +374,34 @@ export function getLatestSignals() {
   get.catch(errorHandler);
   return get;
 }
+
+/**** Raw Logs ****/
+
+export function countLogLinesInInterval(selectedDateFrom, selectedDateTo) {
+  const timeIntervalUrlParams = function() {
+    return (
+      "from=" +
+      encodeURIComponent(selectedDateFrom) +
+      "&to=" +
+      encodeURIComponent(selectedDateTo)
+    );
+  };
+
+  return axios
+    .get(
+      BASE_URL +
+        "api/v0/countRawLogLinesInTimeInterval?" +
+        timeIntervalUrlParams()
+    )
+    .catch(errorHandler);
+}
+
+export function linkToRawLogsInInterval(selectedDateFrom, selectedDateTo) {
+  const timeIntervalUrlParams = function() {
+    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
+  };
+
+  return (
+    BASE_URL + "api/v0/fetchRawLogsInTimeInterval?" + timeIntervalUrlParams()
+  );
+}

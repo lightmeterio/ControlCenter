@@ -59,11 +59,6 @@ func main() {
 
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 
-	if conf.MigrateDownToOnly {
-		subcommand.PerformMigrateDownTo(conf.WorkspaceDirectory, conf.MigrateDownToDatabaseName, int64(conf.MigrateDownToVersion))
-		return
-	}
-
 	if len(conf.EmailToChange) > 0 {
 		changeUserInfo(conf)
 		return
@@ -111,17 +106,23 @@ func main() {
 	}()
 
 	httpServer := server.HttpServer{
-		Workspace:          ws,
-		WorkspaceDirectory: conf.WorkspaceDirectory,
-		Timezone:           conf.Timezone,
-		Address:            conf.Address,
+		Workspace:            ws,
+		WorkspaceDirectory:   conf.WorkspaceDirectory,
+		Timezone:             conf.Timezone,
+		Address:              conf.Address,
+		IsBehindReverseProxy: !conf.IKnowWhatIAmDoingNotUsingAReverseProxy,
 	}
 
 	errorutil.MustSucceed(httpServer.Start(), "server died")
 }
 
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
-	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, &workspace.Options{IsUsingRsyncedLogs: conf.RsyncedDir})
+	options := &workspace.Options{
+		IsUsingRsyncedLogs: conf.RsyncedDir,
+		DefaultSettings:    conf.DefaultSettings,
+	}
+
+	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, options)
 	if err != nil {
 		return nil, logsource.Reader{}, errorutil.Wrap(err)
 	}
@@ -151,12 +152,12 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 	}(conf.LogPatterns)
 
 	if len(conf.DirToWatch) > 0 {
-		mostRecentTime, err := ws.MostRecentLogTime()
+		sum, err := ws.MostRecentLogTimeAndSum()
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		s, err := dirlogsource.New(conf.DirToWatch, mostRecentTime, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
+		s, err := dirlogsource.New(conf.DirToWatch, sum, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

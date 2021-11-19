@@ -10,7 +10,7 @@ package rawparser
 %% machine pickup;
 %% write data;
 
-func parsePickup(data []byte) (Pickup, bool) {
+func parsePickup(data string) (Pickup, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

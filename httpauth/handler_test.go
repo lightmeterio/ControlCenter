@@ -76,7 +76,7 @@ func TestHTTPAuth(t *testing.T) {
 		mux := http.NewServeMux()
 
 		a := httpauthsub.NewAuthenticatorWithOptions(registrar)
-		httpauth.HttpAuthenticator(mux, a, m.Reader)
+		httpauth.HttpAuthenticator(mux, a, m.Reader, true)
 
 		s := httptest.NewServer(mux)
 		defer s.Close()

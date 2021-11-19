@@ -479,13 +479,13 @@ export default {
       return this.$gettext("Username");
     },
     EmailServerUsernameInputPlaceholder: function() {
-      return this.$gettext("Username");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     EmailServerPassword: function() {
       return this.$gettext("Password");
     },
     EmailServerPasswordInputPlaceholder: function() {
-      return this.$gettext("Password");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     EmailServerSender: function() {
       return this.$gettext("Sender");
@@ -553,7 +553,7 @@ export default {
       return this.$gettext("Slack API token");
     },
     SlackAPItokenPlacefolder: function() {
-      return this.$gettext("Please enter API token");
+      return "⬤⬤⬤⬤⬤⬤";
     },
     SlackFieldRequired: function() {
       return this.settings.slack_notifications.enabled;

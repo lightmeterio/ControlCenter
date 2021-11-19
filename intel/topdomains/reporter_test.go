@@ -6,6 +6,7 @@ package topdomains
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -199,7 +200,7 @@ func TestReporter(t *testing.T) {
 
 		reporters := collector.Reporters{reporter}
 
-		err = intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err = intelDb.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// first execution, nothing happens
 			err := reporters.Step(tx, clock)
 			So(err, ShouldBeNil)

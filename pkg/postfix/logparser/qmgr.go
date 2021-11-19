@@ -30,10 +30,10 @@ func convertQmgrMessageExpired(r rawparser.RawPayload) (Payload, error) {
 	p := r.QmgrMessageExpired
 
 	return QmgrMessageExpired{
-		Queue:            string(p.Queue),
-		SenderLocalPart:  string(p.SenderLocalPart),
-		SenderDomainPart: string(p.SenderDomainPart),
-		Message:          string(p.Message),
+		Queue:            p.Queue,
+		SenderLocalPart:  p.SenderLocalPart,
+		SenderDomainPart: p.SenderDomainPart,
+		Message:          p.Message,
 	}, nil
 }
 
@@ -63,9 +63,9 @@ func convertQmgrMailQueued(r rawparser.RawPayload) (Payload, error) {
 	}
 
 	return QmgrMailQueued{
-		Queue:            string(p.Queue),
-		SenderLocalPart:  string(p.SenderLocalPart),
-		SenderDomainPart: string(p.SenderDomainPart),
+		Queue:            p.Queue,
+		SenderLocalPart:  p.SenderLocalPart,
+		SenderDomainPart: p.SenderDomainPart,
 		Size:             size,
 		Nrcpt:            nrcpt,
 	}, nil
@@ -83,6 +83,6 @@ func convertQmgrRemoved(r rawparser.RawPayload) (Payload, error) {
 	p := r.QmgrRemoved
 
 	return QmgrRemoved{
-		Queue: string(p.Queue),
+		Queue: p.Queue,
 	}, nil
 }

@@ -164,7 +164,7 @@ func TestReporter(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err = intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err = intelDb.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			clock.Sleep(fifteenMin)
 			err := reporter.Step(tx, clock)
 			So(err, ShouldBeNil)

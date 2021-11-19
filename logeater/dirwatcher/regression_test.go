@@ -6,6 +6,7 @@ package dirwatcher
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"testing"
@@ -81,7 +82,7 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 			}
 			pub := fakePublisher{}
 			announcer := &fakeAnnouncer{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, testutil.MustParseTime(`1970-01-01 00:00:00 +0100`), timeFormat, DefaultLogPatterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 19)
@@ -109,7 +110,7 @@ func TestRegressionIssue463(t *testing.T) {
 		}
 
 		pub := fakePublisher{}
-		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, testutil.MustParseTime(`1970-01-01 00:00:00 +0000`), timeFormat, DefaultLogPatterns)
+		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, DefaultLogPatterns)
 		err = importer.Run()
 		So(err, ShouldBeNil)
 

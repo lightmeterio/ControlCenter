@@ -220,7 +220,6 @@ type FetchOptions struct {
 	OrderBy    FetchOrder
 	MaxEntries int
 	Category   Category
-	Clock      interface{}
 }
 
 type Fetcher interface {
@@ -261,7 +260,7 @@ func buildSelectStmt(where, order string) string {
 	),
 	insights_with_status_rating(id, time, actual_category, status_category, rating, content_type, content, user_rating, user_rating_ts) as (
 		select
-			insights.rowid, insights.time, insights.category, ifnull(insights_status.status, %d), insights.rating, insights.content_type, insights.content, user_ratings.rating, iif(user_ratings.timestamp is not null, user_ratings.timestamp, 0)
+			insights.rowid, insights.time, insights.category, coalesce(insights_status.status, %d), insights.rating, insights.content_type, insights.content, user_ratings.rating, iif(user_ratings.timestamp is not null, user_ratings.timestamp, 0)
 		from
 			insights
 		left join insights_status on insights.rowid = insights_status.insight_id

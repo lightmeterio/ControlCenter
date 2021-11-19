@@ -6,6 +6,8 @@ package testutil
 
 import (
 	"github.com/rs/zerolog/log"
+	//nolint:golint
+	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
 	"path"
@@ -17,7 +19,7 @@ import (
 // is removed.
 // basename is an optional value specifying the name for the database file,
 // without extension.
-func TempDBConnection(t *testing.T, basename ...string) (conn *dbconn.PooledPair, removeDir func()) {
+func TempDBConnection(t *testing.T, basename ...string) (*dbconn.PooledPair, func()) {
 	dir, removeDir := TempDir(t)
 
 	filename := path.Join(dir, func() string {
@@ -29,16 +31,20 @@ func TempDBConnection(t *testing.T, basename ...string) (conn *dbconn.PooledPair
 	}())
 
 	conn, err := dbconn.Open(filename, 5)
+	So(err, ShouldBeNil)
 
 	if err != nil {
 		log.Panic().Err(err).Msgf("Error creating temporary database")
 	}
 
-	return conn, removeDir
+	return conn, func() {
+		So(conn.Close(), ShouldBeNil)
+		removeDir()
+	}
 }
 
-func TempDBConnectionMigrated(t *testing.T, databaseName string) (conn *dbconn.PooledPair, removeDir func()) {
-	conn, removeDir = TempDBConnection(t, databaseName)
+func TempDBConnectionMigrated(t *testing.T, databaseName string) (*dbconn.PooledPair, func()) {
+	conn, removeDir := TempDBConnection(t, databaseName)
 
 	if err := migrator.Run(conn.RwConn.DB, databaseName); err != nil {
 		log.Panic().Err(err).Msgf("Error migrating temporary database %s", databaseName)

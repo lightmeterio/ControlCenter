@@ -6,6 +6,7 @@ package logslinecount
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -38,7 +39,7 @@ func TestReporter(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err := intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err := intelDb.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// fill publsher with some values
 			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020)
 

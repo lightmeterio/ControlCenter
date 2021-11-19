@@ -32,7 +32,7 @@ import (
 
 type Settings struct {
 	writer *metadata.AsyncWriter
-	reader *metadata.Reader
+	reader metadata.Reader
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   *notification.Center
@@ -40,7 +40,7 @@ type Settings struct {
 }
 
 func NewSettings(writer *metadata.AsyncWriter,
-	reader *metadata.Reader,
+	reader metadata.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter *notification.Center,
 ) *Settings {
@@ -213,7 +213,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		settings := globalsettings.Settings{}
-		settings.APPLanguage = currentSettings.APPLanguage
+		settings.AppLanguage = currentSettings.AppLanguage
 
 		if err := globalsettings.SetSettings(r.Context(), h.writer, settings); err != nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -230,9 +230,8 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	var localIP net.IP
 	if localIPRaw != "" {
-		localIP = net.ParseIP(localIPRaw)
+		localIP := net.ParseIP(localIPRaw)
 		if localIP == nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 		}
@@ -259,7 +258,7 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
 	}
 
-	s := globalsettings.Settings{LocalIP: localIP, APPLanguage: appLanguage, PublicURL: publicURL}
+	s := globalsettings.Settings{LocalIP: globalsettings.IP{IP: net.ParseIP(localIPRaw)}, AppLanguage: appLanguage, PublicURL: publicURL}
 
 	if err := mergo.Merge(&s, currentSettings); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err, "Error handling settings"))
@@ -345,19 +344,17 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	s := globalsettings.Settings{APPLanguage: appLanguage}
+	s := globalsettings.Settings{AppLanguage: appLanguage}
 
 	postfixPublicIp := r.Form.Get("postfix_public_ip")
 	if postfixPublicIp != "" {
-		var localIP net.IP
 		if postfixPublicIp != "" {
-			localIP = net.ParseIP(postfixPublicIp)
-			if localIP == nil {
+			if ip := net.ParseIP(postfixPublicIp); ip == nil {
 				return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, fmt.Errorf("Invalid IP address"))
 			}
 		}
 
-		s = globalsettings.Settings{APPLanguage: appLanguage, LocalIP: localIP}
+		s = globalsettings.Settings{AppLanguage: appLanguage, LocalIP: globalsettings.IP{IP: net.ParseIP(postfixPublicIp)}}
 	}
 
 	result := h.writer.StoreJson(globalsettings.SettingKey, &s)
@@ -435,7 +432,7 @@ func buildEmailSettingsFromForm(form url.Values) (email.Settings, bool, error) {
 		Sender:        sender,
 		Recipients:    recipients,
 		ServerName:    serverName,
-		ServerPort:    int(port),
+		ServerPort:    email.ServerPort(port),
 		SecurityType:  security,
 		AuthMethod:    auth,
 		Username:      stringutil.MakeSensitive(username),

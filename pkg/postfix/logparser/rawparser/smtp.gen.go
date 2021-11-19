@@ -10,7 +10,7 @@
 package rawparser
 
 import (
-	"bytes"
+	"strings"
 )
 
 
@@ -26,7 +26,7 @@ const smtpSentStatusPayload_en_main int = 1
 
 //line smtp.rl:16
 
-func parseSmtpSentStatus(data []byte) (RawSmtpSentStatus, bool) {
+func parseSmtpSentStatus(data string) (RawSmtpSentStatus, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -1157,7 +1157,7 @@ tr83:
 
 		{
 			delays := data[tokBeg:p]
-			split := bytes.Split(delays, []byte("/"))
+			split := strings.Split(delays, string("/"))
 
 			if len(split) != 4 {
 				// delays has format 0.0/0.0/0.0/0.0
@@ -2014,7 +2014,7 @@ const smtpSentStatusExtraMessageSentQueuedPayload_en_main int = 1
 
 //line smtp.rl:109
 
-func parseSmtpSentStatusExtraMessageSentQueued(data []byte) (SmtpSentStatusExtraMessageSentQueued, bool) {
+func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtraMessageSentQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
