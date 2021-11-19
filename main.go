@@ -28,10 +28,10 @@ import (
 
 func changeUserInfo(conf config.Config) {
 	if !(len(conf.ChangeUserInfoNewEmail) > 0 || len(conf.ChangeUserInfoNewName) > 0 || len(conf.PasswordToReset) > 0) {
-		errorutil.Dief(conf.Verbose, nil, "No new user info to be changed")
+		errorutil.Dief(nil, "No new user info to be changed")
 	}
 
-	subcommand.PerformUserInfoChange(conf.Verbose,
+	subcommand.PerformUserInfoChange(
 		conf.WorkspaceDirectory, conf.EmailToChange,
 		conf.ChangeUserInfoNewEmail, conf.ChangeUserInfoNewName,
 		conf.PasswordToReset,
@@ -41,16 +41,12 @@ func changeUserInfo(conf config.Config) {
 func main() {
 	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
 	if err != nil {
-		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
+		errorutil.Dief(errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
 	}
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Caller().Logger()
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	if conf.Verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
+	zerolog.SetGlobalLevel(conf.LogLevel)
 
 	if conf.ShowVersion {
 		version.PrintVersion()
@@ -70,7 +66,7 @@ func main() {
 
 	ws, logReader, err := buildWorkspaceAndLogReader(conf)
 	if err != nil {
-		errorutil.Dief(conf.Verbose, errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", conf.WorkspaceDirectory)
+		errorutil.Dief(errorutil.Wrap(err), "Error creating / opening workspace directory for storing application files: %s. Try specifying a different directory (using -workspace), or check you have permission to write to the specified location.", conf.WorkspaceDirectory)
 	}
 
 	done, cancel := runner.Run(ws)
@@ -81,7 +77,7 @@ func main() {
 		err := logReader.Run()
 
 		if err != nil {
-			errorutil.Dief(conf.Verbose, err, "Error reading logs")
+			errorutil.Dief(err, "Error reading logs")
 		}
 
 		cancel()
@@ -99,13 +95,13 @@ func main() {
 
 	go func() {
 		err := done()
-		errorutil.Dief(true, err, "Error: Workspace execution has ended, which should never happen here!")
+		errorutil.Dief(err, "Error: Workspace execution has ended, which should never happen here!")
 	}()
 
 	go func() {
 		err := logReader.Run()
 		if err != nil {
-			errorutil.Dief(conf.Verbose, err, "Error reading logs")
+			errorutil.Dief(err, "Error reading logs")
 		}
 	}()
 
@@ -192,7 +188,7 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 		return s, nil
 	}
 
-	errorutil.Dief(conf.Verbose, nil, "No logs sources specified or import flag provided! Use -help to more info.")
+	errorutil.Dief(nil, "No logs sources specified or import flag provided! Use -help to more info.")
 
 	return nil, nil
 }

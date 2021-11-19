@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -28,7 +29,7 @@ type Config struct {
 	DirToWatch           string
 	LogPatterns          []string
 	Address              string
-	Verbose              bool
+	LogLevel             zerolog.Level
 	Timezone             *time.Location
 	LogYear              int
 	Socket               string
@@ -91,12 +92,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
 
-	b, err = lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv)
-	if err != nil {
-		return conf, err
-	}
+	var stringLogLevel = "INFO"
 
-	fs.BoolVar(&conf.Verbose, "verbose", b, "Be Verbose")
+	fs.StringVar(&stringLogLevel, "log_level",
+		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
+		"Log level (DEBUG, INFO, WARN, or ERROR. Default: INFO)")
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
@@ -140,6 +140,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	if err := fs.Parse(cmdlineArgs); err != nil {
 		return Config{}, errorutil.Wrap(err)
+	}
+
+	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
+	if err != nil {
+		return conf, err
 	}
 
 	d := json.NewDecoder(strings.NewReader(unparsedDefaultSettings))
