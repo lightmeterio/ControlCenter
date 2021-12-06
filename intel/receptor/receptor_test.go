@@ -17,6 +17,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -81,8 +83,6 @@ func TestReceptor(t *testing.T) {
 			})
 		}
 
-		strAddr := func(s string) string { return s }
-
 		Convey("Start with no events available", func() {
 			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`}).Return(nil, nil)
 
@@ -115,7 +115,7 @@ func TestReceptor(t *testing.T) {
 
 			m.EXPECT().Request(gomock.Any(), Payload{
 				InstanceID:       `f5a206d2-6865-4a0a-b04d-423c4ac9d233`,
-				LastKnownEventID: strAddr(`8d303a39-44a0-449f-b734-6f1a333ad168`),
+				LastKnownEventID: string(`8d303a39-44a0-449f-b734-6f1a333ad168`),
 				Time:             timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`),
 			}).Return(nil, nil)
 
@@ -157,7 +157,7 @@ func TestReceptor(t *testing.T) {
 					},
 				}, nil)
 
-			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: strAddr(`8d303a39-44a0-449f-b734-6f1a333ad168`), Time: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`)}).
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`8d303a39-44a0-449f-b734-6f1a333ad168`), Time: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`)}).
 				Return(&Event{
 					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
 					Type:         `action_link`,
@@ -168,7 +168,146 @@ func TestReceptor(t *testing.T) {
 					},
 				}, nil)
 
-			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: strAddr(`ef086d42-acbe-4f86-94f1-52e8f024fc53`), Time: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`)}).Return(nil, nil)
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`ef086d42-acbe-4f86-94f1-52e8f024fc53`), Time: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`)}).Return(nil, nil)
+
+			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:10 +0000`)}
+
+			drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
+
+			events := retrieveAllEvents(db.RoConnPool)
+
+			So(events, ShouldResemble, []Event{
+				{
+					ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
+					Type:         `blocked_ips`,
+					CreationTime: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`),
+					BlockedIPs: &BlockedIPs{
+						Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
+						Summary: bruteforce.SummaryResult{
+							TopIPs: []bruteforce.BlockedIP{
+								{Addr: "1.1.1.1", Count: 42},
+								{Addr: "2.2.2.2", Count: 35},
+							},
+							TotalNumber: 77,
+						},
+					},
+				},
+				{
+					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
+					Type:         `action_link`,
+					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
+					ActionLink: &ActionLink{
+						Link:  "http://example.com",
+						Label: "Some Link",
+					},
+				},
+			})
+		})
+	})
+}
+
+func TestHTTPReceptor(t *testing.T) {
+	Convey("Test HTTP Receptor", t, func() {
+		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
+		defer clear()
+
+		ctrl := gomock.NewController(t)
+		m := NewMockRequester(ctrl)
+
+		defer ctrl.Finish()
+
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:10 +0000`)}
+		_ = clock
+
+		requestTimeIndex := 0
+		var requestTimes []time.Time
+
+		pushRequestTime := func(time time.Time) {
+			requestTimes = append(requestTimes, time)
+		}
+
+		nextRequestTime := func() time.Time {
+			defer func() { requestTimeIndex++ }()
+			return requestTimes[requestTimeIndex]
+		}
+
+		// this function mimics the actual events fetching endpoint from netint
+		endpoint := func(w http.ResponseWriter, r *http.Request) {
+			instanceID := r.FormValue("instance-id")
+			eventID := r.FormValue("event-id")
+
+			event, err := m.Request(r.Context(), Payload{Time: nextRequestTime(), InstanceID: instanceID, LastKnownEventID: eventID})
+			if event == nil {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			json.NewEncoder(w).Encode(event)
+		}
+
+		s := httptest.NewServer(http.HandlerFunc(endpoint))
+
+		requester := HTTPRequester{URL: s.URL}
+
+		drain := func(clock timeutil.Clock, options Options) {
+			actions := make(chan dbrunner.Action, 1024)
+
+			err := DrainEvents(actions, options, &requester, clock)
+			So(err, ShouldBeNil)
+
+			close(actions)
+
+			db.RwConn.Tx(context.Background(), func(_ context.Context, tx *sql.Tx) error {
+				for action := range actions {
+					err := action(tx, dbconn.TxPreparedStmts{})
+					So(err, ShouldBeNil)
+				}
+
+				return nil
+			})
+		}
+
+		Convey("Two events are generated", func() {
+			pushRequestTime(time.Time{})
+
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`}).
+				Return(&Event{
+					ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
+					Type:         `blocked_ips`,
+					CreationTime: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`),
+					BlockedIPs: &BlockedIPs{
+						Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
+						Summary: bruteforce.SummaryResult{
+							TopIPs: []bruteforce.BlockedIP{
+								{Addr: "1.1.1.1", Count: 42},
+								{Addr: "2.2.2.2", Count: 35},
+							},
+							TotalNumber: 77,
+						},
+					},
+				}, nil)
+
+			pushRequestTime(timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`))
+
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`8d303a39-44a0-449f-b734-6f1a333ad168`), Time: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`)}).
+				Return(&Event{
+					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
+					Type:         `action_link`,
+					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
+					ActionLink: &ActionLink{
+						Link:  "http://example.com",
+						Label: "Some Link",
+					},
+				}, nil)
+
+			pushRequestTime(timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`))
+
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`ef086d42-acbe-4f86-94f1-52e8f024fc53`), Time: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`)}).Return(nil, nil)
 
 			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:10 +0000`)}
 

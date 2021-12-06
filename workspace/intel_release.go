@@ -7,4 +7,7 @@
 
 package workspace
 
-const IntelReportDestinationURL = "https://intelligence.lightmeter.io/reports"
+const (
+	IntelReportDestinationURL = "https://intelligence.lightmeter.io/reports"
+	IntelEventsDestinationURL = "https://intelligence.lightmeter.io/events"
+)

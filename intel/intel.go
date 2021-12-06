@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -29,9 +30,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -284,6 +287,8 @@ type Options struct {
 
 	ReportDestinationURL string
 
+	EventsDestinationURL string
+
 	// whether the postfix logs are being received via rsync
 	IsUsingRsyncedLogs bool
 }
@@ -332,7 +337,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 		InstanceID:   options.InstanceID,
 	}
 
-	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, &requester{}, receptorOptions)
+	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, receptor.HTTPRequester{URL: options.EventsDestinationURL}, receptorOptions, &timeutil.RealClock{})
 	if err != nil {
 		return nil, nil, nil, errorutil.Wrap(err)
 	}
@@ -346,11 +351,4 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 type Runner struct {
 	closeutil.Closers
 	runner.CancellableRunner
-}
-
-type requester struct {
-}
-
-func (r *requester) Request(context.Context, receptor.Payload) (*receptor.Event, error) {
-	return nil, nil
 }

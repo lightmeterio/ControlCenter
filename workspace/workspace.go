@@ -246,6 +246,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		CycleInterval:        time.Second * 30,
 		ReportInterval:       time.Minute * 30,
 		ReportDestinationURL: IntelReportDestinationURL,
+		EventsDestinationURL: IntelEventsDestinationURL,
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
