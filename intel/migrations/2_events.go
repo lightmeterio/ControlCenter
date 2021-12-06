@@ -22,7 +22,7 @@ func upCreateEvent(tx *sql.Tx) error {
 			event_id text not null,
 			content_type blob not null,
 			content text not null,
-			dismissing_time integer,
+			dismissing_time integer
 		);
 
 		create index events_content_type_index on events(content_type);`

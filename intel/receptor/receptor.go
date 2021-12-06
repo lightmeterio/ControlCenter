@@ -8,11 +8,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
-	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -40,8 +40,9 @@ type Requester interface {
 }
 
 type Payload struct {
+	Time             time.Time
 	InstanceID       string
-	LastKnownEventID *string
+	LastKnownEventID string
 }
 
 type Event struct {
@@ -63,66 +64,90 @@ type ActionLink struct {
 }
 
 type BlockedIPs struct {
-	Interval timeutil.TimeInterval `json:"interval"`
-	Summary  bruteforce.BlockedIP  `json:"summary"`
+	Interval timeutil.TimeInterval    `json:"interval"`
+	Summary  bruteforce.SummaryResult `json:"summary"`
 }
 
-const receptorContextKey = `receptor_context`
+func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
+	var (
+		id      string
+		rawTime string
+	)
 
-type receptorContext struct {
-	CreationTime     time.Time `json:"creation_time"`
-	LastKnownEventID string    `json:"last_known_event_id"`
-}
-
-func buildRequestPayload(reader metadata.Reader, instanceID string) (Payload, error) {
-	var receptorContext receptorContext
-
-	err := reader.RetrieveJson(context.Background(), receptorContextKey, &receptorContext)
-	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
-		return Payload{InstanceID: instanceID}, nil
+	// no last event known
+	err := tx.QueryRow(`select json_extract(content, '$.id'), json_extract(content, '$.creation_time') from events order by id desc limit 1`).Scan(&id, &rawTime)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return Payload{InstanceID: instanceID, LastKnownEventID: "", Time: time.Time{}}, nil
 	}
 
 	if err != nil {
 		return Payload{}, errorutil.Wrap(err)
 	}
 
-	return Payload{InstanceID: instanceID, LastKnownEventID: &receptorContext.LastKnownEventID}, nil
+	creationTime, err := time.Parse(time.RFC3339, rawTime)
+	if err != nil {
+		return Payload{}, errorutil.Wrap(err)
+	}
+
+	return Payload{InstanceID: instanceID, LastKnownEventID: id, Time: creationTime.In(time.UTC)}, nil
 }
 
-func drainEvents(reader metadata.Reader, actions dbrunner.Actions, requester Requester) error {
-	for {
-		payload, err := buildRequestPayload(reader, options.InstanceID)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		response, err := requester.Request(context.Background(), payload)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		if response == nil {
-			// on receiving "nothing", we've finished draining the server for more events
-			return nil
-		}
-
-		encoded, err := json.Marshal(response)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		now := clock.Now()
-
-		actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
-			const query = `insert into events(received_time, event_id, content_type, content, dismissing_time) values(?, ?, ?, ?, ?, null)`
-
-			if _, err := tx.Exec(query, now.Unix(), response.ID, response.Type, string(encoded)); err != nil {
-				return errorutil.Wrap(err)
-			}
-
-			return nil
-		}
+func fetchNextEvent(tx *sql.Tx, options Options, requester Requester, clock timeutil.Clock) (*Event, error) {
+	payload, err := buildRequestPayload(tx, options.InstanceID)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
 	}
+
+	// FIXME: doing a request in the middle of a transaction is bad, very bad.
+	// but unfortunately this is the only way for now :-(
+	response, err := requester.Request(context.Background(), payload)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return response, nil
+}
+
+func eventAction(tx *sql.Tx, options Options, requester Requester, clock timeutil.Clock) error {
+	event, err := fetchNextEvent(tx, options, requester, clock)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if event == nil {
+		return nil
+	}
+
+	encoded, err := json.Marshal(event)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	now := clock.Now()
+
+	const query = `insert into events(received_time, event_id, content_type, content, dismissing_time) values(?, ?, ?, ?, null)`
+
+	if _, err := tx.Exec(query, now.Unix(), event.ID, event.Type, string(encoded)); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := eventAction(tx, options, requester, clock); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func DrainEvents(actions dbrunner.Actions, options Options, requester Requester, clock timeutil.Clock) error {
+	actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
+		if err := eventAction(tx, options, requester, clock); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+
+	return nil
 }
 
 func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, options Options, clock timeutil.Clock) (*Receptor, error) {
@@ -134,8 +159,6 @@ func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, opt
 			go func() {
 				timer := time.NewTicker(options.PollInterval)
 
-				reader := metadata.NewReader(pool)
-
 				for {
 					select {
 					case <-cancel:
@@ -144,7 +167,7 @@ func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, opt
 
 						return
 					case <-timer.C:
-						if err := drainEvents(reader, options, actions, requester); err != nil {
+						if err := DrainEvents(actions, options, requester, clock); err != nil {
 							done <- errorutil.Wrap(err)
 							return
 						}
@@ -184,7 +207,7 @@ func (r *Receptor) Step(now time.Time, withResults func(bruteforce.SummaryResult
 	}
 
 	r.actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
-		tx.Exec(`update bruteforce_reports set used = true where id = ?`)
+		_, _ = tx.Exec(`update bruteforce_reports set used = true where id = ?`)
 		return nil
 	}
 
