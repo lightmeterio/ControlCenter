@@ -230,7 +230,7 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 		}
 
 		sort.Slice(ips, func(i, j int) bool {
-			// reverse, high counts first
+			// reverse, higher counts first
 			return ips[i].Count > ips[j].Count
 		})
 
@@ -249,8 +249,6 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 		return errorutil.Wrap(err)
 	}
 
-	log.Debug().Msgf("report: %#v", result)
-
 	if result.TotalNumber == 0 {
 		return nil
 	}
@@ -260,9 +258,17 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 	}
 
 	r.actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
-		_, err := tx.Exec(`update events set dismissing_time = ? where id = ?`, now.Unix(), id)
-		return err
+		if err := DismissEventByID(tx, id, now); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
 	}
 
 	return nil
+}
+
+func DismissEventByID(tx *sql.Tx, id int64, time time.Time) error {
+	_, err := tx.Exec(`update events set dismissing_time = ? where id = ?`, time.Unix(), id)
+	return err
 }
