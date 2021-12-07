@@ -26,6 +26,10 @@ func upCreateEvent(tx *sql.Tx) error {
 		);
 
 		create index events_content_type_index on events(content_type);
+
+		create index events_payload_creation_time_index on events(lm_json_time_to_timestamp(json_extract(content, '$.creation_time')));
+
+		create index events_received_time_index on events(received_time);
 		`
 
 	_, err := tx.Exec(sql)

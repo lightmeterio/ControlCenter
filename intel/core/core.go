@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -32,9 +33,15 @@ func NewRunner(conn dbconn.RwConn, options Options) *dbrunner.Runner {
 }
 
 func MakeCleanAction(maxAge time.Duration) dbrunner.Action {
-	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+	actions := []dbrunner.Action{func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		var mostRecentDispatchTime int64
-		if err := tx.QueryRow(`select time from queued_reports order by id desc limit 1`).Scan(&mostRecentDispatchTime); err != nil {
+		err := tx.QueryRow(`select time from queued_reports order by id desc limit 1`).Scan(&mostRecentDispatchTime)
+
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -48,6 +55,33 @@ func MakeCleanAction(maxAge time.Duration) dbrunner.Action {
 
 		if _, err := tx.Exec(`delete from dispatch_times where time < ?`, oldestTimeToKeepInTimestamp); err != nil {
 			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}, func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		const query = `with time_cut as (
+			select
+				(received_time - ?) as v
+			from
+				events
+			order by
+				id desc
+			limit 1
+		)
+		delete from events where received_time < (select v from time_cut)`
+
+		if _, err := tx.Exec(query, maxAge/time.Second); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}}
+
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		for _, action := range actions {
+			if err := action(tx, stmts); err != nil {
+				return errorutil.Wrap(err)
+			}
 		}
 
 		return nil

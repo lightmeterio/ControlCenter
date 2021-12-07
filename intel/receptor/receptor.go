@@ -41,7 +41,7 @@ type Requester interface {
 }
 
 type Payload struct {
-	Time             time.Time
+	CreationTime     time.Time
 	InstanceID       string
 	LastKnownEventID string
 }
@@ -83,7 +83,7 @@ func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
 	// no last event known
 	err := tx.QueryRow(`select json_extract(content, '$.id'), json_extract(content, '$.creation_time') from events order by id desc limit 1`).Scan(&id, &rawTime)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return Payload{InstanceID: instanceID, LastKnownEventID: "", Time: time.Time{}}, nil
+		return Payload{InstanceID: instanceID, LastKnownEventID: "", CreationTime: time.Time{}}, nil
 	}
 
 	if err != nil {
@@ -95,7 +95,7 @@ func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
 		return Payload{}, errorutil.Wrap(err)
 	}
 
-	return Payload{InstanceID: instanceID, LastKnownEventID: id, Time: creationTime.In(time.UTC)}, nil
+	return Payload{InstanceID: instanceID, LastKnownEventID: id, CreationTime: creationTime.In(time.UTC)}, nil
 }
 
 func fetchNextEvent(tx *sql.Tx, options Options, requester Requester, clock timeutil.Clock) (*Event, error) {
