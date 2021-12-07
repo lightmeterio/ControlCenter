@@ -55,7 +55,7 @@ func jsonTimeToTimestamp(s string) (int64, error) {
 	for _, f := range formats {
 		t, err := time.Parse(f, s)
 		if err == nil {
-			return t.Unix(), err
+			return t.Unix(), nil
 		}
 	}
 

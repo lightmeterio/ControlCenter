@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -34,7 +33,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -337,7 +335,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 		InstanceID:   options.InstanceID,
 	}
 
-	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, receptor.HTTPRequester{URL: options.EventsDestinationURL}, receptorOptions, &timeutil.RealClock{})
+	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, &receptor.HTTPRequester{URL: options.EventsDestinationURL}, receptorOptions, &timeutil.RealClock{})
 	if err != nil {
 		return nil, nil, nil, errorutil.Wrap(err)
 	}

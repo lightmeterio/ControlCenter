@@ -26,10 +26,6 @@ func upCreateEvent(tx *sql.Tx) error {
 		);
 
 		create index events_content_type_index on events(content_type);
-
-		create table current_blocked_ips(
-			id integer primary key
-		);
 		`
 
 	_, err := tx.Exec(sql)

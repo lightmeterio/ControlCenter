@@ -427,6 +427,18 @@ func TestBruteforceChecker(t *testing.T) {
 				})
 			})
 
+			clock.Sleep(time.Minute * 2)
+
+			// a new result should not be generated as no new event was created
+			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
+				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
+
+				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+					results = append(results, &r)
+					return nil
+				})
+			})
+
 			So(results, ShouldResemble, []*bruteforce.SummaryResult{
 				&bruteforce.SummaryResult{
 					TopIPs: []bruteforce.BlockedIP{
@@ -438,67 +450,95 @@ func TestBruteforceChecker(t *testing.T) {
 			})
 		})
 
-		//Convey("Two events are generated", func() {
-		//	m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`}).
-		//		Return(&Event{
-		//			ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
-		//			Type:         `blocked_ips`,
-		//			CreationTime: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`),
-		//			BlockedIPs: &BlockedIPs{
-		//				Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
-		//				List: []BlockedIP{
-		//					{Address: "1.1.1.1", Count: 42},
-		//					{Address: "2.2.2.2", Count: 35},
-		//				},
-		//			},
-		//		}, nil)
+		Convey("Two results", func() {
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`}).
+				Return(&Event{
+					ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
+					Type:         `blocked_ips`,
+					CreationTime: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`),
+					BlockedIPs: &BlockedIPs{
+						Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
+						List: []BlockedIP{
+							{Address: "2.2.2.2", Count: 35},
+							{Address: "1.1.1.1", Count: 42},
+							{Address: "3.3.3.3", Count: 10},
+							{Address: "4.4.4.4", Count: 145},
+						},
+					},
+				}, nil)
 
-		//	pushRequestTime(timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`))
+			// initially nothing there
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: `8d303a39-44a0-449f-b734-6f1a333ad168`, Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}).Return(nil, nil)
 
-		//	m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`8d303a39-44a0-449f-b734-6f1a333ad168`), Time: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`)}).
-		//		Return(&Event{
-		//			ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
-		//			Type:         `action_link`,
-		//			CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
-		//			ActionLink: &ActionLink{
-		//				Link:  "http://example.com",
-		//				Label: "Some Link",
-		//			},
-		//		}, nil)
+			// but after 1 day we get a new event
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: `8d303a39-44a0-449f-b734-6f1a333ad168`, Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}).
+				Return(&Event{
+					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
+					Type:         `blocked_ips`,
+					CreationTime: timeutil.MustParseTime(`2021-11-02 10:00:00 +0000`),
+					BlockedIPs: &BlockedIPs{
+						Interval: timeutil.MustParseTimeInterval(`2021-10-02`, `2021-11-02 09:00:00`),
+						List: []BlockedIP{
+							{Address: "1.1.1.1", Count: 42},
+							{Address: "2.2.2.2", Count: 35},
+							{Address: "5.5.5.5", Count: 5},
+							{Address: "1.2.3.4", Count: 10},
+							{Address: "4.3.2.1", Count: 10},
+						},
+					},
+				}, nil)
 
-		//	pushRequestTime(timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`))
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: `ef086d42-acbe-4f86-94f1-52e8f024fc53`, Time: timeutil.MustParseTime(`2021-11-02 10:00:00 +0000`)}).Return(nil, nil)
 
-		//	m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: string(`ef086d42-acbe-4f86-94f1-52e8f024fc53`), Time: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`)}).Return(nil, nil)
+			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}
 
-		//	clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:10 +0000`)}
+			var results []*bruteforce.SummaryResult
 
-		//	drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
+			drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
 
-		//	events := retrieveAllEvents(db.RoConnPool)
+			// we are checking a bit in the future
+			clock.Sleep(time.Minute * 2)
 
-		//	So(events, ShouldResemble, []Event{
-		//		{
-		//			ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
-		//			Type:         `blocked_ips`,
-		//			CreationTime: timeutil.MustParseTime(`2021-11-01 10:10:00 +0000`),
-		//			BlockedIPs: &BlockedIPs{
-		//				Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
-		//				List: []BlockedIP{
-		//					{Address: "1.1.1.1", Count: 42},
-		//					{Address: "2.2.2.2", Count: 35},
-		//				},
-		//			},
-		//		},
-		//		{
-		//			ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
-		//			Type:         `action_link`,
-		//			CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
-		//			ActionLink: &ActionLink{
-		//				Link:  "http://example.com",
-		//				Label: "Some Link",
-		//			},
-		//		},
-		//	})
-		//})
+			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
+				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
+
+				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+					results = append(results, &r)
+					return nil
+				})
+			})
+
+			clock.Sleep(24 * time.Hour)
+
+			drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
+
+			clock.Sleep(time.Minute * 2)
+
+			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
+				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
+
+				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+					results = append(results, &r)
+					return nil
+				})
+			})
+
+			So(results, ShouldResemble, []*bruteforce.SummaryResult{
+				&bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Address: "4.4.4.4", Count: 145},
+						{Address: "1.1.1.1", Count: 42},
+					},
+					TotalNumber: 232,
+				},
+				&bruteforce.SummaryResult{
+					TopIPs: []bruteforce.BlockedIP{
+						{Address: "1.1.1.1", Count: 42},
+						{Address: "2.2.2.2", Count: 35},
+					},
+					TotalNumber: 102,
+				},
+			})
+		})
 	})
 }
