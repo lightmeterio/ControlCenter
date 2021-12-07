@@ -12,10 +12,12 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type HTTPRequester struct {
-	URL string
+	URL     string
+	Timeout time.Duration
 }
 
 func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (*Event, error) {
@@ -24,7 +26,10 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (*Event, e
 		"event-id":    []string{payload.LastKnownEventID},
 	}.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s?%s", r.URL, encodedArgs), nil)
+	withTimeout, cancel := context.WithTimeout(ctx, r.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(withTimeout, http.MethodGet, fmt.Sprintf("%s?%s", r.URL, encodedArgs), nil)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

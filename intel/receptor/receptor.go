@@ -12,8 +12,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"

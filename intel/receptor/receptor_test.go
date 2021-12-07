@@ -250,7 +250,7 @@ func TestHTTPReceptor(t *testing.T) {
 
 		s := httptest.NewServer(http.HandlerFunc(endpoint))
 
-		requester := HTTPRequester{URL: s.URL}
+		requester := HTTPRequester{URL: s.URL, Timeout: 10 * time.Millisecond}
 
 		drain := func(clock timeutil.Clock, options Options) {
 			actions := make(chan dbrunner.Action, 1024)

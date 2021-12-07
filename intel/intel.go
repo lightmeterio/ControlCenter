@@ -335,7 +335,9 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 		InstanceID:   options.InstanceID,
 	}
 
-	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, &receptor.HTTPRequester{URL: options.EventsDestinationURL}, receptorOptions, &timeutil.RealClock{})
+	requester := &receptor.HTTPRequester{URL: options.EventsDestinationURL, Timeout: 2000 * time.Millisecond}
+
+	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, requester, receptorOptions, &timeutil.RealClock{})
 	if err != nil {
 		return nil, nil, nil, errorutil.Wrap(err)
 	}
