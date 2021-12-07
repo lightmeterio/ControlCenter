@@ -331,8 +331,9 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 	}
 
 	receptorOptions := receptor.Options{
-		PollInterval: 1 * time.Minute,
-		InstanceID:   options.InstanceID,
+		PollInterval:              1 * time.Minute,
+		InstanceID:                options.InstanceID,
+		BruteForceInsightListSize: 100,
 	}
 
 	requester := &receptor.HTTPRequester{URL: options.EventsDestinationURL, Timeout: 2000 * time.Millisecond}

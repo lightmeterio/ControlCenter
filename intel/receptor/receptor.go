@@ -30,8 +30,9 @@ type Receptor struct {
 }
 
 type Options struct {
-	PollInterval time.Duration
-	InstanceID   string
+	PollInterval              time.Duration
+	InstanceID                string
+	BruteForceInsightListSize int
 }
 
 type Requester interface {
@@ -157,7 +158,7 @@ func DrainEvents(actions dbrunner.Actions, options Options, requester Requester,
 func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, options Options, clock timeutil.Clock) (*Receptor, error) {
 	return &Receptor{
 		Closers: closeutil.New(),
-		Checker: &dbBruteForceChecker{pool: pool, actions: actions, listMaxSize: 100},
+		Checker: &dbBruteForceChecker{pool: pool, actions: actions, listMaxSize: options.BruteForceInsightListSize},
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
 				timer := time.NewTicker(options.PollInterval)
