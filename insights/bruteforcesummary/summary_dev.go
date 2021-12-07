@@ -19,8 +19,8 @@ import (
 func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, Content{
 		TopIPs: []bruteforce.BlockedIP{
-			{Addr: "55.44.33.22", Count: 100},
-			{Addr: "11.22.33.44", Count: 45},
+			{Address: "55.44.33.22", Count: 100},
+			{Address: "11.22.33.44", Count: 45},
 		},
 		TotalNumber: 234,
 	}); err != nil {

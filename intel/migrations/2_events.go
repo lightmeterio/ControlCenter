@@ -25,7 +25,12 @@ func upCreateEvent(tx *sql.Tx) error {
 			dismissing_time integer
 		);
 
-		create index events_content_type_index on events(content_type);`
+		create index events_content_type_index on events(content_type);
+
+		create table current_blocked_ips(
+			id integer primary key
+		);
+		`
 
 	_, err := tx.Exec(sql)
 	if err != nil {

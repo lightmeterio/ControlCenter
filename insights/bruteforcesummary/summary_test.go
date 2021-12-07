@@ -68,8 +68,8 @@ func TestSummary(t *testing.T) {
 			checker.actions = map[time.Time]bruteforce.SummaryResult{
 				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): bruteforce.SummaryResult{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "11.22.33.44", Count: 10},
-						{Addr: "66.77.88.99", Count: 15},
+						{Address: "11.22.33.44", Count: 10},
+						{Address: "66.77.88.99", Count: 15},
 					},
 					TotalNumber: 42,
 				},
@@ -91,8 +91,8 @@ func TestSummary(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			So(content, ShouldResemble, &Content{
 				TopIPs: []bruteforce.BlockedIP{
-					{Addr: "11.22.33.44", Count: 10},
-					{Addr: "66.77.88.99", Count: 15},
+					{Address: "11.22.33.44", Count: 10},
+					{Address: "66.77.88.99", Count: 15},
 				},
 				TotalNumber: 42,
 			})
@@ -102,21 +102,21 @@ func TestSummary(t *testing.T) {
 			checker.actions = map[time.Time]bruteforce.SummaryResult{
 				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): bruteforce.SummaryResult{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "11.22.33.44", Count: 10},
-						{Addr: "55.66.77.88", Count: 15},
+						{Address: "11.22.33.44", Count: 10},
+						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
 				},
 				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): bruteforce.SummaryResult{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "11.22.33.44", Count: 30},
+						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
 				},
 				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): bruteforce.SummaryResult{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "1.1.1.1", Count: 67},
-						{Addr: "2.2.2.2", Count: 3},
+						{Address: "1.1.1.1", Count: 67},
+						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
 				},
@@ -142,8 +142,8 @@ func TestSummary(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "11.22.33.44", Count: 10},
-						{Addr: "55.66.77.88", Count: 15},
+						{Address: "11.22.33.44", Count: 10},
+						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
 				})
@@ -156,7 +156,7 @@ func TestSummary(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "11.22.33.44", Count: 30},
+						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
 				})
@@ -169,8 +169,8 @@ func TestSummary(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
 					TopIPs: []bruteforce.BlockedIP{
-						{Addr: "1.1.1.1", Count: 67},
-						{Addr: "2.2.2.2", Count: 3},
+						{Address: "1.1.1.1", Count: 67},
+						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
 				})
@@ -185,7 +185,7 @@ func TestDescriptionFormatting(t *testing.T) {
 			ID: 1,
 			Content: Content{
 				TopIPs: []bruteforce.BlockedIP{
-					{Addr: "11.11.11.11", Count: 42},
+					{Address: "11.11.11.11", Count: 42},
 				},
 				TotalNumber: 245,
 			},

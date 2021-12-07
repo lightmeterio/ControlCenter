@@ -9,7 +9,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sort"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -25,9 +28,7 @@ import (
 type Receptor struct {
 	runner.CancellableRunner
 	closeutil.Closers
-
-	pool    *dbconn.RoPool
-	actions dbrunner.Actions
+	bruteforce.Checker
 }
 
 type Options struct {
@@ -63,9 +64,14 @@ type ActionLink struct {
 	Label string `json:"label"`
 }
 
+type BlockedIP struct {
+	Address string `json:"address"`
+	Count   int    `json:"count"`
+}
+
 type BlockedIPs struct {
-	Interval timeutil.TimeInterval    `json:"interval"`
-	Summary  bruteforce.SummaryResult `json:"summary"`
+	Interval timeutil.TimeInterval `json:"interval"`
+	List     []BlockedIP           `json:"ips"`
 }
 
 func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
@@ -153,8 +159,7 @@ func DrainEvents(actions dbrunner.Actions, options Options, requester Requester,
 func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, options Options, clock timeutil.Clock) (*Receptor, error) {
 	return &Receptor{
 		Closers: closeutil.New(),
-		pool:    pool,
-		actions: actions,
+		Checker: &dbBruteForceChecker{pool: pool, actions: actions},
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {
 				timer := time.NewTicker(options.PollInterval)
@@ -178,12 +183,26 @@ func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, opt
 	}, nil
 }
 
+type dbBruteForceChecker struct {
+	pool        *dbconn.RoPool
+	actions     dbrunner.Actions
+	listMaxSize int
+}
+
 // Implements bruteforce.Checker
-func (r *Receptor) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) error {
+func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) error {
 	conn, release := r.pool.Acquire()
 	defer release()
 
-	rows, err := conn.Query(`select content from bruteforce_reports where not used`)
+	rows, err := conn.Query(`
+		select
+			id, json_extract(content, "$.blocked_ips.ips")
+		from
+			events
+		where
+			content_type = "blocked_ips" and
+			lm_json_time_to_timestamp(json_extract(content, '$.creation_time')) < ? and dismissing_time is null`, now.Unix())
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -195,11 +214,45 @@ func (r *Receptor) Step(now time.Time, withResults func(bruteforce.SummaryResult
 
 	var result bruteforce.SummaryResult
 
+	var id int64
+
 	for rows.Next() {
+		var rawContent string
+
+		if err := rows.Scan(&id, &rawContent); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		var ips []BlockedIP
+
+		if err := json.Unmarshal([]byte(rawContent), &ips); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		sort.Slice(ips, func(i, j int) bool {
+			// reverse, high counts first
+			return ips[i].Count > ips[j].Count
+		})
+
+		result.TopIPs = make([]bruteforce.BlockedIP, 0, len(ips))
+
+		for i, ip := range ips {
+			if i < r.listMaxSize {
+				result.TopIPs = append(result.TopIPs, bruteforce.BlockedIP{Address: ip.Address, Count: ip.Count})
+			}
+
+			result.TotalNumber += ip.Count
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return errorutil.Wrap(err)
+	}
+
+	log.Debug().Msgf("report: %#v", result)
+
+	if result.TotalNumber == 0 {
+		return nil
 	}
 
 	if err := withResults(result); err != nil {
@@ -207,8 +260,8 @@ func (r *Receptor) Step(now time.Time, withResults func(bruteforce.SummaryResult
 	}
 
 	r.actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
-		_, _ = tx.Exec(`update bruteforce_reports set used = true where id = ?`)
-		return nil
+		_, err := tx.Exec(`update events set dismissing_time = ? where id = ?`, now.Unix(), id)
+		return err
 	}
 
 	return nil

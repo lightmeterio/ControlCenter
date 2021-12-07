@@ -13,8 +13,8 @@ type Checker interface {
 }
 
 type BlockedIP struct {
-	Addr  string `json:"addr"`
-	Count int    `json:"count"`
+	Address string `json:"addr"`
+	Count   int    `json:"count"`
 }
 
 type SummaryResult struct {
