@@ -475,6 +475,7 @@ func TestBruteforceChecker(t *testing.T) {
 
 			So(results, ShouldResemble, []*bruteforce.SummaryResult{
 				&bruteforce.SummaryResult{
+					Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
 					TopIPs: []bruteforce.BlockedIP{
 						{Address: "1.1.1.1", Count: 42},
 						{Address: "2.2.2.2", Count: 35},
@@ -559,6 +560,7 @@ func TestBruteforceChecker(t *testing.T) {
 
 			So(results, ShouldResemble, []*bruteforce.SummaryResult{
 				&bruteforce.SummaryResult{
+					Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
 					TopIPs: []bruteforce.BlockedIP{
 						{Address: "4.4.4.4", Count: 145},
 						{Address: "1.1.1.1", Count: 42},
@@ -566,6 +568,7 @@ func TestBruteforceChecker(t *testing.T) {
 					TotalNumber: 232,
 				},
 				&bruteforce.SummaryResult{
+					Interval: timeutil.MustParseTimeInterval(`2021-10-02`, `2021-11-02 09:00:00`),
 					TopIPs: []bruteforce.BlockedIP{
 						{Address: "1.1.1.1", Count: 42},
 						{Address: "2.2.2.2", Count: 35},

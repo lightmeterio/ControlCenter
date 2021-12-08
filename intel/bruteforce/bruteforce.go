@@ -5,6 +5,7 @@
 package bruteforce
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type BlockedIP struct {
 }
 
 type SummaryResult struct {
-	TopIPs      []BlockedIP `json:"top_ips"`
-	TotalNumber int         `json:"total_number"`
+	Interval    timeutil.TimeInterval `json:"time_interval"`
+	TopIPs      []BlockedIP           `json:"top_ips"`
+	TotalNumber int                   `json:"total_number"`
 }

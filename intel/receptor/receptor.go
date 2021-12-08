@@ -77,12 +77,12 @@ type BlockedIPs struct {
 
 func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
 	var (
-		id      string
-		rawTime string
+		id string
+		ts int64
 	)
 
 	// no last event known
-	err := tx.QueryRow(`select json_extract(content, '$.id'), json_extract(content, '$.creation_time') from events order by id desc limit 1`).Scan(&id, &rawTime)
+	err := tx.QueryRow(`select json_extract(content, '$.id'), lm_json_time_to_timestamp(json_extract(content, '$.creation_time')) from events order by id desc limit 1`).Scan(&id, &ts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return Payload{InstanceID: instanceID, LastKnownEventID: "", CreationTime: time.Time{}}, nil
 	}
@@ -91,12 +91,7 @@ func buildRequestPayload(tx *sql.Tx, instanceID string) (Payload, error) {
 		return Payload{}, errorutil.Wrap(err)
 	}
 
-	creationTime, err := time.Parse(time.RFC3339, rawTime)
-	if err != nil {
-		return Payload{}, errorutil.Wrap(err)
-	}
-
-	return Payload{InstanceID: instanceID, LastKnownEventID: id, CreationTime: creationTime.In(time.UTC)}, nil
+	return Payload{InstanceID: instanceID, LastKnownEventID: id, CreationTime: time.Unix(ts, 0).In(time.UTC)}, nil
 }
 
 func fetchNextEvent(tx *sql.Tx, options Options, requester Requester, clock timeutil.Clock) (*Event, error) {
@@ -198,7 +193,9 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 	//nolint:sqlclosecheck
 	rows, err := conn.Query(`
 		select
-			id, json_extract(content, "$.blocked_ips.ips")
+			id, json_extract(content, "$.blocked_ips.ips"),
+			lm_json_time_to_timestamp(json_extract(content, '$.blocked_ips.interval.from')),
+			lm_json_time_to_timestamp(json_extract(content, '$.blocked_ips.interval.to'))
 		from
 			events
 		where
@@ -216,9 +213,13 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 	var id int64
 
 	for rows.Next() {
-		var rawContent string
+		var (
+			rawContent   string
+			intervalFrom int64
+			intervalTo   int64
+		)
 
-		if err := rows.Scan(&id, &rawContent); err != nil {
+		if err := rows.Scan(&id, &rawContent, &intervalFrom, &intervalTo); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -242,6 +243,9 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 
 			result.TotalNumber += ip.Count
 		}
+
+		result.Interval.From = time.Unix(intervalFrom, 0).In(time.UTC)
+		result.Interval.To = time.Unix(intervalTo, 0).In(time.UTC)
 	}
 
 	if err := rows.Err(); err != nil {
