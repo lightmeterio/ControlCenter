@@ -806,13 +806,45 @@ func TestArchivingInsights(t *testing.T) {
 		fetcher, err := core.NewFetcher(conn.RoConnPool)
 		So(err, ShouldBeNil)
 
-		insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
-			Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
-			OrderBy:  core.OrderByCreationAsc,
-		}, clock)
+		// active insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+				FilterBy: core.FilterByCategory,
+				Category: core.ActiveCategory,
+			}, clock)
 
-		So(err, ShouldBeNil)
+			So(err, ShouldBeNil)
 
-		So(len(insights), ShouldEqual, 3)
+			So(len(insights), ShouldEqual, 2)
+		}
+
+		// archived insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+				FilterBy: core.FilterByCategory,
+				Category: core.ArchivedCategory,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 1)
+		}
+
+		// all insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 3)
+		}
+
 	})
 }
