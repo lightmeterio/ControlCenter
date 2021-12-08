@@ -147,6 +147,23 @@ SPDX-License-Identifier: AGPL-3.0-only
       </b-row>
     </b-modal>
 
+    <b-modal
+      ref="modal-bruteforce-summary"
+      id="modal-bruteforce-summary"
+      size="lg"
+      hide-footer
+      centered
+      :title="bruteForceSummaryWindowTitle()"
+    >
+      <div class="modal-body">
+        <bruteforce-summary-insight-content
+          :content="bruteForceSummaryInsight.content"
+        ></bruteforce-summary-insight-content>
+      </div>
+
+      <b-row class="vue-modal-footer"> </b-row>
+    </b-modal>
+
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
@@ -209,6 +226,21 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onImportSummaryDetails(insight)"
                   class="btn btn-sm"
                   v-show="insight.content.insights.length > 0"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+              </p>
+
+              <p
+                v-if="insight.content_type === 'bruteforcesummary'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-b-modal.modal-bruteforce-summary
+                  v-on:click="onBruteForceSummaryDetails(insight)"
+                  class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
                   <translate>Details</translate>
@@ -403,6 +435,7 @@ export default {
       insightRblCheckedIpTitle: "",
       insightMsgRblTitle: "",
       importSummaryInsight: {},
+      bruteForceSummaryInsight: {},
       applicationData: { version: "" },
       // FIXME: AAAHHH, this is really ugly! This insight component should be refactored/split ASAP!
       detectiveInsight: {
@@ -447,6 +480,14 @@ export default {
     },
     newsfeed_content_title(insight) {
       return insight.content.title;
+    },
+    bruteforcesummary_title(insight) {
+      let translation = this.$gettext(
+        `Number of blocked brute force attacks: %{count}`
+      );
+      return this.$gettextInterpolate(translation, {
+        count: insight.content.total_number
+      });
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
@@ -497,6 +538,14 @@ export default {
       return this.$gettextInterpolate(translation, {
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
         intTo: formatInsightDescriptionDateTime(c.interval.to)
+      });
+    },
+    bruteforcesummary_description(insight) {
+      let translation = this.$gettext(
+        `From a total of <strong>%{count}</strong> IP addresses`
+      );
+      return this.$gettextInterpolate(translation, {
+        count: insight.content.top_ips.length
       });
     },
     local_rbl_check_description(i) {
@@ -694,8 +743,18 @@ export default {
       this.trackEvent("InsightDescription", "openSummaryInsightModal");
       this.importSummaryInsight = insight;
     },
+    onBruteForceSummaryDetails(insight) {
+      this.trackEvent(
+        "InsightDescription",
+        "openBruteForceSummaryInsightModal"
+      );
+      this.bruteForceSummaryInsight = insight;
+    },
     importSummaryWindowTitle() {
       return this.$gettext("Mail activity imported successfully");
+    },
+    bruteForceSummaryWindowTitle() {
+      return this.$gettext("Detailed view of the blocked connection attempts");
     },
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
