@@ -19,16 +19,16 @@ func init() {
 
 func upStatus(tx *sql.Tx) error {
 	sql := `
-		create table if not exists insights_status(
+		create table insights_status(
 			id integer primary key,
 			insight_id integer not null,
 			status integer not null,
 			timestamp integer not null
 		);
 
-		create index if not exists insights_status_status_index on insights_status(timestamp, status); 
+		create index insights_status_status_index on insights_status(timestamp, status); 
 
-		create table if not exists import_progress(
+		create table import_progress(
 			id integer primary key,
 			value integer,
 			timestamp integer,
@@ -45,5 +45,6 @@ func upStatus(tx *sql.Tx) error {
 }
 
 func downStatus(tx *sql.Tx) error {
-	return nil
+	_, err := tx.Exec(`drop table insights_status; drop table import_progress`)
+	return err
 }

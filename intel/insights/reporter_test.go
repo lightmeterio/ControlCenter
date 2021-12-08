@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -101,8 +102,12 @@ func TestReporter(t *testing.T) {
 		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
+		insightsFetcher, err := insightsCore.NewFetcher(conn.RoConnPool)
+		So(err, ShouldBeNil)
+
 		e, err := insights.NewCustomEngine(
 			accessor,
+			insightsFetcher,
 			&notification.Center{},
 			core.Options{},
 			insights.NoDetectors,
@@ -160,7 +165,7 @@ func TestReporter(t *testing.T) {
 
 		So(err, ShouldBeNil)
 
-		reporter := NewReporter(e.Fetcher())
+		reporter := NewReporter(insightsFetcher)
 
 		dispatcher := &fakeDispatcher{}
 

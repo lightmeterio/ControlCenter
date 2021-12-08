@@ -177,7 +177,10 @@ func TestEngine(t *testing.T) {
 		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
 
 		Convey("Test Insights Generation", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			}, noAdditionalActions)
@@ -224,27 +227,25 @@ func TestEngine(t *testing.T) {
 			nopStep()
 			genInsight(fakeValue{Category: core.ComparativeCategory, Content: fakeContent{T: "13"}, Rating: core.BadRating})
 
-			fakeClock := &timeutil.FakeClock{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)}
-
 			// wrong rating value
-			err = e.RateInsight("fake_insight_type", 1000, fakeClock)
+			err = e.RateInsight("fake_insight_type", 1000, clock)
 			So(err, ShouldEqual, core.ErrWrongRatingValue)
 			nopStep()
 
 			// correct rating
-			err = e.RateInsight("fake_insight_type", 1, fakeClock)
+			err = e.RateInsight("fake_insight_type", 1, clock)
 			So(err, ShouldBeNil)
 			nopStep()
 
 			// allowed to re-rate after two weeks
-			fakeClock.Sleep(core.TwoWeeks + 5*time.Second)
+			clock.Sleep(core.TwoWeeks + 5*time.Second)
 
-			err = e.RateInsight("fake_insight_type", 1, fakeClock)
+			err = e.RateInsight("fake_insight_type", 1, clock)
 			So(err, ShouldBeNil)
 			nopStep()
 
 			// not allowed to re-rate immediately
-			err = e.RateInsight("fake_insight_type", 0, fakeClock)
+			err = e.RateInsight("fake_insight_type", 0, clock)
 			So(err, ShouldEqual, core.ErrAlreadyRated)
 			nopStep()
 
@@ -272,15 +273,13 @@ func TestEngine(t *testing.T) {
 				So(n.Content, ShouldResemble, fakeContent{T: "13"})
 			}
 
-			fetcher := e.Fetcher()
-
 			Convey("fetch all insights with no filter, sorting by time, default (desc) order", func() {
 				insights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
-				}, fakeClock)
+				}, clock)
 
 				So(err, ShouldBeNil)
 
@@ -318,7 +317,7 @@ func TestEngine(t *testing.T) {
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					MaxEntries: 2,
-				}, fakeClock)
+				}, clock)
 
 				So(err, ShouldBeNil)
 
@@ -344,7 +343,7 @@ func TestEngine(t *testing.T) {
 						To:   testutil.MustParseTime(`2000-01-01 22:00:00 +0000`),
 					},
 					OrderBy: core.OrderByCreationAsc,
-				}, fakeClock)
+				}, clock)
 
 				So(err, ShouldBeNil)
 
@@ -378,7 +377,7 @@ func TestEngine(t *testing.T) {
 					OrderBy:  core.OrderByCreationAsc,
 					FilterBy: core.FilterByCategory,
 					Category: core.IntelCategory,
-				}, fakeClock)
+				}, clock)
 
 				So(err, ShouldBeNil)
 
@@ -393,7 +392,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test Insights Samples generated when the application starts", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -411,8 +413,6 @@ func TestEngine(t *testing.T) {
 			cancel()
 			So(done(), ShouldBeNil)
 
-			fetcher := e.Fetcher()
-
 			sampleInsights, err := fetcher.FetchInsights(dummyContext, core.FetchOptions{
 				Interval: timeutil.TimeInterval{
 					From: testutil.MustParseTime("0000-01-01 00:00:00 +0000"),
@@ -427,7 +427,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test engine loop", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -460,7 +463,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Skip historical import", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -493,7 +499,10 @@ func TestEngine(t *testing.T) {
 		})
 
 		Convey("Test importing Historical insights", func() {
-			e, err := NewCustomEngine(c, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			fetcher, err := core.NewFetcher(conn.RoConnPool)
+			So(err, ShouldBeNil)
+
+			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -609,7 +618,7 @@ func TestEngine(t *testing.T) {
 			So(notifier.notifications[0].Content.Description(), ShouldEqual, "A non historical insight")
 
 			Convey("Get active (non archived) insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -647,7 +656,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Get archived insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -666,7 +675,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Get all insights (archived and active)", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -689,7 +698,7 @@ func TestEngine(t *testing.T) {
 			})
 
 			Convey("Choosing a category should exclude the archived insights", func() {
-				insights, err := e.Fetcher().FetchInsights(context.Background(), core.FetchOptions{
+				insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
 					Interval: timeutil.TimeInterval{
 						From: testutil.MustParseTime(`0000-01-01 00:00:00 +0000`),
 						To:   testutil.MustParseTime(`4000-01-01 00:00:00 +0000`),
@@ -711,5 +720,131 @@ func TestEngine(t *testing.T) {
 			})
 
 		})
+	})
+}
+
+func TestArchivingInsights(t *testing.T) {
+	Convey("Insights Archiving", t, func() {
+		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
+		defer closeConn()
+
+		clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)}
+
+		c, err := NewAccessor(conn)
+		So(err, ShouldBeNil)
+
+		notifier := &fakeNotifier{}
+
+		nc := notification.NewWithCustomLanguageFetcher(translator.New(catalog.NewBuilder()), c.NotificationPolicy(), func() (language.Tag, error) {
+			return language.English, nil
+		}, map[string]notification.Notifier{"fake": notifier})
+
+		creator, err := newCreator(conn.RwConn, nc)
+		So(err, ShouldBeNil)
+
+		detector := &fakeDetector{t: t, creator: creator}
+
+		err = conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
+			detector.setValue(&fakeValue{
+				Category: core.LocalCategory,
+				Rating:   core.BadRating,
+				Content: &fakeContent{
+					T: "title",
+					D: "description",
+				},
+			})
+
+			So(detector.Step(clock, tx), ShouldBeNil)
+
+			clock.Sleep(10 * time.Hour)
+
+			detector.setValue(&fakeValue{
+				Category: core.IntelCategory,
+				Rating:   core.OkRating,
+				Content: &fakeContent{
+					T: "title 2",
+					D: "description 2",
+				},
+			})
+
+			clock.Sleep(5 * time.Hour)
+
+			So(detector.Step(clock, tx), ShouldBeNil)
+
+			detector.setValue(&fakeValue{
+				Category: core.NewsCategory,
+				Rating:   core.GoodRating,
+				Content: &fakeContent{
+					T: "title 3",
+					D: "description 3",
+				},
+			})
+
+			So(detector.Step(clock, tx), ShouldBeNil)
+
+			return nil
+		})
+
+		So(err, ShouldBeNil)
+
+		err = conn.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
+			So(core.ArchiveInsight(ctx, tx, 2, clock.Now()), ShouldBeNil)
+
+			// archiving an already archived insight has no effect
+			So(core.ArchiveInsight(ctx, tx, 2, clock.Now()), ShouldBeNil)
+
+			// no effect even after some time
+			clock.Sleep(5 * time.Minute)
+
+			So(core.ArchiveInsight(ctx, tx, 2, clock.Now()), ShouldBeNil)
+
+			return nil
+		})
+
+		So(err, ShouldBeNil)
+
+		fetcher, err := core.NewFetcher(conn.RoConnPool)
+		So(err, ShouldBeNil)
+
+		// active insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+				FilterBy: core.FilterByCategory,
+				Category: core.ActiveCategory,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 2)
+		}
+
+		// archived insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+				FilterBy: core.FilterByCategory,
+				Category: core.ArchivedCategory,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 1)
+		}
+
+		// all insights
+		{
+			insights, err := fetcher.FetchInsights(context.Background(), core.FetchOptions{
+				Interval: timeutil.MustParseTimeInterval(`2000-01-01`, `4000-01-01`),
+				OrderBy:  core.OrderByCreationAsc,
+			}, clock)
+
+			So(err, ShouldBeNil)
+
+			So(len(insights), ShouldEqual, 3)
+		}
+
 	})
 }

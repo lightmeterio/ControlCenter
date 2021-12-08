@@ -15,6 +15,8 @@ import (
 
 type Action func(*sql.Tx, dbconn.TxPreparedStmts) error
 
+type Actions chan<- Action
+
 type Runner struct {
 	runner.CancellableRunner
 	stmts   dbconn.PreparedStmts
@@ -40,10 +42,10 @@ func newCleaner(cleanInterval time.Duration, cleaner Action, actions chan<- Acti
 	})
 }
 
-func New(timeout time.Duration, actionSize uint, conn dbconn.RwConn, stmts dbconn.PreparedStmts, cleanInterval time.Duration, cleaner Action) Runner {
+func New(timeout time.Duration, actionSize uint, conn dbconn.RwConn, stmts dbconn.PreparedStmts, cleanInterval time.Duration, cleaner Action) *Runner {
 	actions := make(chan Action, actionSize)
 
-	return Runner{
+	return &Runner{
 		stmts:   stmts,
 		Actions: actions,
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {

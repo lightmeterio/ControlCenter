@@ -22,7 +22,7 @@ all:
 	$(error Use make (dev|release|static_release) instead)
 
 race:
-	./tools/go_test.sh -race
+	./tools/go_test.sh -race -tags="sqlite_json"
 
 BUILD_DEPENDENCIES = go gcc ragel npm vue
 $(foreach exec,$(BUILD_DEPENDENCIES),\
@@ -37,16 +37,16 @@ pre_build: npminstall translations frontend_root static_www postfix_parser domai
 pre_release: pre_build recommendation_release
 
 dev_bin: dev_pre_build recommendation_dev
-	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 dev_headless_bin: dev_headless_pre_build recommendation_dev
-	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release_bin: pre_release
-	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 static_release_bin: pre_release
-	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
@@ -66,7 +66,7 @@ recommendation_dev:
 recommendation_release:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/recommendation
 
-mocks: postfix_parser dashboard_mock insights_mock detective_mock
+mocks: postfix_parser dashboard_mock insights_mock detective_mock intel_mock
 
 dashboard_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
@@ -74,8 +74,11 @@ dashboard_mock:
 insights_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/insights/core
 
+intel_mock:
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/intel/receptor
+
 detective_mock:
-	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/detective
+	go generate -tags="dev sqlite_json" gitlab.com/lightmeter/controlcenter/detective
 
 po2go:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/po

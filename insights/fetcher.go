@@ -13,20 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-type fetcher struct {
-	core.Fetcher
-}
-
-func newFetcher(pool *dbconn.RoPool) (*fetcher, error) {
-	f, err := core.NewFetcher(pool)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &fetcher{Fetcher: f}, nil
-}
-
 type creator struct {
 	*core.DBCreator
 	notifier *notification.Center
