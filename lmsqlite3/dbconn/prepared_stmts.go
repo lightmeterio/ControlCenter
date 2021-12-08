@@ -23,7 +23,7 @@ type TxPreparedStmts struct {
 
 // Get obtains the *sql.Stmt in an index.
 // Important: the caller does NOT own the returned value
-// so even you MUST silent the sqlclosecheck when using it.
+// so you MUST silent the sqlclosecheck linter when using it.
 // the statements are closed when TxPreparedStmts.Close() is called,
 // just before a transaction is committed or rolled-out
 func (s TxPreparedStmts) Get(index int) *sql.Stmt {

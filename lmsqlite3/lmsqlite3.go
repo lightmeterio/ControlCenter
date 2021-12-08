@@ -10,11 +10,13 @@ package lmsqlite3
 
 import (
 	"database/sql"
+	"fmt"
 	sqlite "github.com/mattn/go-sqlite3"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/crypto/bcrypt"
 	"net"
 	"sync"
+	"time"
 )
 
 func ipToString(b []byte) string {
@@ -45,6 +47,21 @@ func compareBcryptValue(hash, v []byte) bool {
 	return bcrypt.CompareHashAndPassword(hash, v) == nil
 }
 
+var (
+	formats = []string{time.RFC3339, time.RFC3339Nano}
+)
+
+func jsonTimeToTimestamp(s string) (int64, error) {
+	for _, f := range formats {
+		t, err := time.Parse(f, s)
+		if err == nil {
+			return t.Unix(), nil
+		}
+	}
+
+	return 0, fmt.Errorf(`Invalid format`)
+}
+
 type Options map[string]interface{}
 
 var once sync.Once
@@ -56,6 +73,7 @@ func Initialize(options Options) {
 				errorutil.MustSucceed(conn.RegisterFunc("lm_ip_to_string", ipToString, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true))
+				errorutil.MustSucceed(conn.RegisterFunc("lm_json_time_to_timestamp", jsonTimeToTimestamp, true))
 
 				return nil
 			},

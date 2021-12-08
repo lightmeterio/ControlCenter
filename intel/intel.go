@@ -12,18 +12,24 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
+	"gitlab.com/lightmeter/controlcenter/intel/core"
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
+	"gitlab.com/lightmeter/controlcenter/intel/receptor"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
@@ -43,6 +49,7 @@ func isSchedFileContentInsideContainer(r SchedFileReader) (insideContainer bool,
 	}
 
 	defer func() {
+		// TODO: rewrite this code to reuse the UpdateError() once it's merged!!!
 		if cErr := f.Close(); cErr != nil && err == nil {
 			err = cErr
 		}
@@ -278,6 +285,8 @@ type Options struct {
 
 	ReportDestinationURL string
 
+	EventsDestinationURL string
+
 	// whether the postfix logs are being received via rsync
 	IsUsingRsyncedLogs bool
 }
@@ -286,9 +295,9 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core.Fetcher,
+func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insightscore.Fetcher,
 	settingsReader metadata.Reader, auth *auth.Auth, connStatsPool *dbconn.RoPool,
-	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+	options Options) (*Runner, *logslinecount.Publisher, bruteforce.Checker, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
@@ -299,7 +308,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core
 		intelConnectionStats.NewReporter(connStatsPool),
 	}
 
-	collectorOptions := collector.Options{
+	coreOptions := core.Options{
 		CycleInterval:  options.CycleInterval,
 		ReportInterval: options.ReportInterval,
 	}
@@ -314,10 +323,33 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)
+	dbRunner := core.NewRunner(intelDb.RwConn, coreOptions)
+
+	c, err := collector.New(dbRunner.Actions, coreOptions, reporters, dispatcher)
 	if err != nil {
-		return nil, nil, errorutil.Wrap(err)
+		return nil, nil, nil, errorutil.Wrap(err)
 	}
 
-	return c, logslinePublisher, nil
+	receptorOptions := receptor.Options{
+		PollInterval:              1 * time.Minute,
+		InstanceID:                options.InstanceID,
+		BruteForceInsightListSize: 100,
+	}
+
+	requester := &receptor.HTTPRequester{URL: options.EventsDestinationURL, Timeout: 2000 * time.Millisecond}
+
+	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, requester, receptorOptions, &timeutil.RealClock{})
+	if err != nil {
+		return nil, nil, nil, errorutil.Wrap(err)
+	}
+
+	return &Runner{
+		Closers:           closeutil.New(c, r),
+		CancellableRunner: runner.NewDependantPairCancellableRunner(runner.NewCombinedCancellableRunners(c, r), dbRunner),
+	}, logslinePublisher, r, nil
+}
+
+type Runner struct {
+	closeutil.Closers
+	runner.CancellableRunner
 }

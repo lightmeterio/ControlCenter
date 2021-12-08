@@ -21,7 +21,7 @@ import (
 type dbAction = dbrunner.Action
 
 type DB struct {
-	dbrunner.Runner
+	*dbrunner.Runner
 	closeutil.Closers
 
 	connPair *dbconn.PooledPair

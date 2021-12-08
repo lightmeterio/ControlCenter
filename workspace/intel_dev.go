@@ -8,4 +8,7 @@
 package workspace
 
 // NOTE: this URL does not need to exist, but you can use it to test the reports locally
-const IntelReportDestinationURL = "http://localhost:9999/reports"
+const (
+	IntelReportDestinationURL = "http://localhost:9999/reports"
+	IntelEventsDestinationURL = "http://localhost:9999/events"
+)
