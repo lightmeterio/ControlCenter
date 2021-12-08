@@ -7,6 +7,13 @@ const DATE_DMMM = "D MMM";
 
 import moment from "moment";
 
+function daysAgo(x) {
+  let d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - x);
+  return d;
+}
+
 export default {
   data() {
     return {
@@ -20,20 +27,18 @@ export default {
   },
   methods: {
     formatDatePickerValue(obj) {
+      let s = moment(obj.startDate).format(DATE_DMMM);
+      let e = moment(obj.endDate).format(DATE_DMMM);
+
       document.querySelector(
         ".vue-daterange-picker .reportrange-text span"
-      ).innerHTML =
-        moment(obj.startDate).format(DATE_DMMM) +
-        " - " +
-        moment(obj.endDate).format(DATE_DMMM);
+      ).innerHTML = s == e ? s : s + " - " + e;
     },
     buildDefaultInterval() {
       // past month
       return {
-        startDate: moment()
-          .subtract(29, "days")
-          .format(DATE_YYYYMMDD),
-        endDate: moment().format(DATE_YYYYMMDD)
+        startDate: moment(daysAgo(29)).format(DATE_YYYYMMDD),
+        endDate: moment(daysAgo(0)).format(DATE_YYYYMMDD)
       };
     },
     buildDateInterval() {
@@ -44,32 +49,14 @@ export default {
       return { startDate: start, endDate: end };
     },
     defaultDatePickerRange() {
-      let today = new Date();
-      today.setHours(0, 0, 0, 0);
-      let yesterday = new Date();
-      yesterday.setDate(today.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
-      let thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      let thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      let lastMonthStart = new Date(
-        today.getFullYear(),
-        today.getMonth() - 1,
-        1
-      );
-      let lastMonthEnd = new Date(
-        today.getFullYear(),
-        today.getMonth() - 1 + 1,
-        0
-      );
+      let today = daysAgo(0);
+      let yesterday = daysAgo(1);
       return {
         Today: [today, today],
         Yesterday: [yesterday, yesterday],
-        "This month": [thisMonthStart, thisMonthEnd],
-        "Last month": [lastMonthStart, lastMonthEnd],
-        "This year": [
-          new Date(today.getFullYear(), 0, 1),
-          new Date(today.getFullYear(), 11, 31)
-        ]
+        "Last 7 days": [daysAgo(6), today],
+        "Last 30 days": [daysAgo(29), today],
+        "Last 3 months (all time)": [daysAgo(90), today]
       };
     }
   }
