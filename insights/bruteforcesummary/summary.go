@@ -18,6 +18,11 @@ import (
 	"time"
 )
 
+const (
+	ContentType   = "bruteforcesummary"
+	ContentTypeId = 9
+)
+
 type Options struct {
 	Checker      bruteforce.Checker
 	PollInterval time.Duration
@@ -72,11 +77,6 @@ func (d description) Args() []interface{} {
 func (c Content) HelpLink(urlContainer core.URLContainer) string {
 	return urlContainer.Get(ContentType)
 }
-
-const (
-	ContentType   = "bruteforcesummary"
-	ContentTypeId = 9
-)
 
 func init() {
 	core.RegisterContentType(ContentType, ContentTypeId, core.DefaultContentTypeDecoder(&Content{}))
