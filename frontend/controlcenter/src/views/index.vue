@@ -59,37 +59,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
-      <b-toast
-        v-if="statusMessage"
-        id="status-message"
+      <b-toaster
+        ref="statusMessage"
+        name="statusMessage"
         class="status-message"
-        :variant="statusMessageVariant"
-        :title="statusMessage.title"
-        static
-        no-auto-hide
-        :load="$bvToast.show('status-message')"
       >
-        <p>{{ statusMessage.message }}</p>
-        <b-link v-if="statusMessage.action" href="statusMessage.action.link">
-          {{ statusMessage.action.label }}
-        </b-link>
-      </b-toast>
-
-      <div :class="statusMessageSeverity" v-if="statusMessage">
-        <b-button-close></b-button-close>
-        <div>
-          <i class="far fa-times-circle" style="padding: 1rem;"></i>
-        </div>
-        <div>
-          <h3>{{ statusMessage.title }}</h3>
-          <p>
-            {{ statusMessage.message }}
-            <a v-if="statusMessage.action" href="statusMessage.action.link">
-              {{ statusMessage.action.label }}
-            </a>
-          </p>
-        </div>
-      </div>
+      </b-toaster>
 
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
@@ -298,15 +273,6 @@ export default {
       });
       return message;
     },
-    statusMessageVariant() {
-      return this.statusMessage.severity;
-    },
-    statusMessageSeverity() {
-      return (
-        "container d-flex align-items-start status-message-custom severity-" +
-        this.statusMessage.severity
-      );
-    },
     ...mapState(["isImportProgressFinished"])
   },
   methods: {
@@ -358,8 +324,44 @@ export default {
     },
     updateStatusMessage: function() {
       let vue = this;
+
       getStatusMessage().then(function(response) {
+        if (response.data === null) {
+          return;
+        }
+
+        let isNew = false;
+        if (
+          vue.statusMessage === null ||
+          vue.statusMessage.message != response.data.message ||
+          vue.statusMessage.title != response.data.title
+        ) {
+          isNew = true;
+        }
+
         vue.statusMessage = response.data;
+
+        const e = vue.$createElement;
+        const msg = [
+          e("p", vue.statusMessage.message),
+          e(
+            "a",
+            { attrs: { href: vue.statusMessage.action.link } },
+            vue.statusMessage.action.label
+          )
+        ];
+
+        if (!isNew) {
+          return;
+        }
+
+        vue.$bvToast.toast([msg], {
+          variant: vue.statusMessage.severity,
+          title: vue.statusMessage.title,
+          noAutoHide: true,
+          toaster: "statusMessage",
+          solid: true
+        });
       });
     },
     updateInsights: function() {
@@ -562,34 +564,23 @@ export default {
   margin-bottom: 60px;
 }
 
-.status-message-custom {
-  width: 100%;
-  text-align: left;
-  padding-top: 1rem;
-  border-left: 5px solid;
-  &.severity-warning {
-    /* TODO: other colors */
-    border-color: #d35400;
-    background-color: rgba(230, 126, 34, 0.2);
-  }
-}
-
-.b-toast.status-message {
+.b-toaster.status-message {
   max-width: 100%;
   width: 100%;
 
-  .close {
-    margin: 1rem;
-  }
+  .b-toast,
   .toast {
     max-width: 100%;
     width: 100%;
     flex-basis: 100%;
-    margin-top: 2rem;
+    margin-top: 1rem;
   }
   .toast-body {
     text-align: left;
-    margin: 1rem;
+    > * {
+      margin: 1em;
+      display: block;
+    }
   }
 }
 </style>
