@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div>
     <div v-html="header"></div>
-    <table class="table bruteforce-summary-table">
+    <table class="table blockedips-summary-table">
       <thead class="thead">
         <th scope="col"><translate>IP Address</translate></th>
         <th scope="col"><translate>Attack attempts</translate></th>
@@ -68,12 +68,12 @@ export default {
   font-size: 15px;
 }
 
-.bruteforce-summary-table .thead th {
+.blockedips-summary-table .thead th {
   background-color: #5f689a;
   color: #ffffff;
 }
 
-.bruteforce-summary-table tr td {
+.blockedips-summary-table tr td {
   background: #f9f9f9 0% 0% no-repeat padding-box;
   .time::before {
     content: " | ";

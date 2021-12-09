@@ -7,7 +7,7 @@ package workspace
 import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
-	"gitlab.com/lightmeter/controlcenter/insights/bruteforcesummary"
+	"gitlab.com/lightmeter/controlcenter/insights/blockedipssummary"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
@@ -15,7 +15,7 @@ import (
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/localrbl"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
@@ -34,7 +34,7 @@ func insightsOptions(
 	rblDetector messagerbl.Stepper,
 	detectiveEscalator escalator.Stepper,
 	deliverydbConnPool *dbconn.RoPool,
-	bruteforceChecker bruteforce.Checker,
+	blockedipsChecker blockedips.Checker,
 ) insightscore.Options {
 	return insightscore.Options{
 		"logsConnPool":   deliverydbConnPool,
@@ -65,8 +65,8 @@ func insightsOptions(
 			Escalator: detectiveEscalator,
 		},
 
-		"bruteforcesummary": bruteforcesummary.Options{
-			Checker:      bruteforceChecker,
+		"blockedipssummary": blockedipssummary.Options{
+			Checker:      blockedipsChecker,
 			PollInterval: time.Minute * 2,
 		},
 	}

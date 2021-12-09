@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package bruteforcesummary
+package blockedipssummary
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
@@ -31,10 +31,10 @@ func init() {
 }
 
 type fakeChecker struct {
-	actions map[time.Time]bruteforce.SummaryResult
+	actions map[time.Time]blockedips.SummaryResult
 }
 
-func (c *fakeChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) error {
+func (c *fakeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
 	if result, ok := c.actions[now]; ok {
 		return withResults(result)
 	}
@@ -50,7 +50,7 @@ func TestSummary(t *testing.T) {
 		checker := &fakeChecker{}
 
 		d := NewDetector(accessor, core.Options{
-			"bruteforcesummary": Options{
+			"blockedipssummary": Options{
 				Checker:      checker,
 				PollInterval: time.Second * 10,
 			},
@@ -65,9 +65,9 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("One insight is created", func() {
-			checker.actions = map[time.Time]bruteforce.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+			checker.actions = map[time.Time]blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): blockedips.SummaryResult{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "66.77.88.99", Count: 15},
 					},
@@ -90,7 +90,7 @@ func TestSummary(t *testing.T) {
 			content, ok := insights[0].Content().(*Content)
 			So(ok, ShouldBeTrue)
 			So(content, ShouldResemble, &Content{
-				TopIPs: []bruteforce.BlockedIP{
+				TopIPs: []blockedips.BlockedIP{
 					{Address: "11.22.33.44", Count: 10},
 					{Address: "66.77.88.99", Count: 15},
 				},
@@ -99,22 +99,22 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("When a new insight is created, all the previous ones are archived", func() {
-			checker.actions = map[time.Time]bruteforce.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+			checker.actions = map[time.Time]blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): blockedips.SummaryResult{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
 				},
-				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): blockedips.SummaryResult{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
 				},
-				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): blockedips.SummaryResult{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},
 					},
@@ -141,7 +141,7 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[0].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
 					},
@@ -155,7 +155,7 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[1].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
@@ -168,7 +168,7 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[2].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},
 					},
@@ -184,7 +184,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		n := notification.Notification{
 			ID: 1,
 			Content: Content{
-				TopIPs: []bruteforce.BlockedIP{
+				TopIPs: []blockedips.BlockedIP{
 					{Address: "11.11.11.11", Count: 42},
 				},
 				TotalNumber: 245,

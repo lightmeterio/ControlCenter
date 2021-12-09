@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/intel/core"
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -363,7 +363,7 @@ func TestHTTPReceptor(t *testing.T) {
 }
 
 func TestBruteforceChecker(t *testing.T) {
-	Convey("Test bruteforce checker", t, func() {
+	Convey("Test blockedips checker", t, func() {
 		db, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
 
@@ -418,7 +418,7 @@ func TestBruteforceChecker(t *testing.T) {
 				withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 					checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 100}
 
-					return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+					return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
 						panic("Should not be called!")
 					})
 				})
@@ -447,7 +447,7 @@ func TestBruteforceChecker(t *testing.T) {
 
 			drain(clock, Options{PollInterval: 10 * time.Millisecond, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
 
-			var results []*bruteforce.SummaryResult
+			var results []*blockedips.SummaryResult
 
 			// we are checking a bit in the future
 			clock.Sleep(time.Minute * 2)
@@ -455,7 +455,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
@@ -467,16 +467,16 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
 			})
 
-			So(results, ShouldResemble, []*bruteforce.SummaryResult{
-				&bruteforce.SummaryResult{
+			So(results, ShouldResemble, []*blockedips.SummaryResult{
+				&blockedips.SummaryResult{
 					Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 42},
 						{Address: "2.2.2.2", Count: 35},
 					},
@@ -527,7 +527,7 @@ func TestBruteforceChecker(t *testing.T) {
 
 			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}
 
-			var results []*bruteforce.SummaryResult
+			var results []*blockedips.SummaryResult
 
 			drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
 
@@ -537,7 +537,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
@@ -552,24 +552,24 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r bruteforce.SummaryResult) error {
+				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
 			})
 
-			So(results, ShouldResemble, []*bruteforce.SummaryResult{
-				&bruteforce.SummaryResult{
+			So(results, ShouldResemble, []*blockedips.SummaryResult{
+				&blockedips.SummaryResult{
 					Interval: timeutil.MustParseTimeInterval(`2021-10-01`, `2021-11-01 09:00:00`),
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "4.4.4.4", Count: 145},
 						{Address: "1.1.1.1", Count: 42},
 					},
 					TotalNumber: 232,
 				},
-				&bruteforce.SummaryResult{
+				&blockedips.SummaryResult{
 					Interval: timeutil.MustParseTimeInterval(`2021-10-02`, `2021-11-02 09:00:00`),
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 42},
 						{Address: "2.2.2.2", Count: 35},
 					},

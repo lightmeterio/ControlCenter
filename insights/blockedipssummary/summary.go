@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package bruteforcesummary
+package blockedipssummary
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	ContentType   = "bruteforcesummary"
+	ContentType   = "blockedipssummary"
 	ContentTypeId = 9
 )
 
 type Options struct {
-	Checker      bruteforce.Checker
+	Checker      blockedips.Checker
 	PollInterval time.Duration
 }
 
-type Content bruteforce.SummaryResult
+type Content blockedips.SummaryResult
 
 func (c Content) Title() notificationCore.ContentComponent {
 	return &title{c}
@@ -90,7 +90,7 @@ type detector struct {
 }
 
 func getDetectorOptions(options core.Options) Options {
-	detectorOptions, ok := options["bruteforcesummary"].(Options)
+	detectorOptions, ok := options["blockedipssummary"].(Options)
 
 	if !ok {
 		errorutil.MustSucceed(errors.New("Invalid detector options"))
@@ -130,7 +130,7 @@ func archiveAnyPreviousInsightIfNeeded(tx *sql.Tx, c core.Clock) error {
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
-	return d.options.Checker.Step(c.Now(), func(r bruteforce.SummaryResult) error {
+	return d.options.Checker.Step(c.Now(), func(r blockedips.SummaryResult) error {
 		if err := archiveAnyPreviousInsightIfNeeded(tx, c); err != nil {
 			return errorutil.Wrap(err)
 		}

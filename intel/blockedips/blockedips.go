@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package bruteforce
+package blockedips
 
 import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"

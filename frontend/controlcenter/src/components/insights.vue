@@ -148,17 +148,17 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-modal>
 
     <b-modal
-      ref="modal-bruteforce-summary"
-      id="modal-bruteforce-summary"
+      ref="modal-blockedips-summary"
+      id="modal-blockedips-summary"
       size="lg"
       hide-footer
       centered
       :title="bruteForceSummaryWindowTitle()"
     >
       <div class="modal-body">
-        <bruteforce-summary-insight-content
+        <blockedips-summary-insight-content
           :content="bruteForceSummaryInsight.content"
-        ></bruteforce-summary-insight-content>
+        ></blockedips-summary-insight-content>
       </div>
 
       <b-row class="vue-modal-footer"> </b-row>
@@ -233,12 +233,12 @@ SPDX-License-Identifier: AGPL-3.0-only
               </p>
 
               <p
-                v-if="insight.content_type === 'bruteforcesummary'"
+                v-if="insight.content_type === 'blockedipssummary'"
                 class="card-text description"
               >
                 <span v-html="insight.description"></span>
                 <button
-                  v-b-modal.modal-bruteforce-summary
+                  v-b-modal.modal-blockedips-summary
                   v-on:click="onBruteForceSummaryDetails(insight)"
                   class="btn btn-sm"
                 >
@@ -481,7 +481,7 @@ export default {
     newsfeed_content_title(insight) {
       return insight.content.title;
     },
-    bruteforcesummary_title(insight) {
+    blockedipssummary_title(insight) {
       let translation = this.$gettext(
         `Number of blocked brute force attacks: %{count}`
       );
@@ -540,7 +540,7 @@ export default {
         intTo: formatInsightDescriptionDateTime(c.interval.to)
       });
     },
-    bruteforcesummary_description(insight) {
+    blockedipssummary_description(insight) {
       let translation = this.$gettext(
         `From a total of <strong>%{count}</strong> IP addresses`
       );

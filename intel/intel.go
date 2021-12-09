@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/intel/core"

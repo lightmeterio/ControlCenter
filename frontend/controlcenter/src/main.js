@@ -66,7 +66,7 @@ Vue.component("log-viewer-button", insightLogViewerButton);
 
 Vue.component("import-summary-insight-content", importSummaryInsightContent);
 Vue.component(
-  "bruteforce-summary-insight-content",
+  "blockedips-summary-insight-content",
   bruteForceSummaryInsightContent
 );
 

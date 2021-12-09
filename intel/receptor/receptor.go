@@ -12,7 +12,7 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -26,7 +26,7 @@ import (
 type Receptor struct {
 	runner.CancellableRunner
 	closeutil.Closers
-	bruteforce.Checker
+	blockedips.Checker
 }
 
 type Options struct {
@@ -185,8 +185,8 @@ type dbBruteForceChecker struct {
 	listMaxSize int
 }
 
-// Implements bruteforce.Checker
-func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) (err error) {
+// Implements blockedips.Checker
+func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) (err error) {
 	conn, release := r.pool.Acquire()
 	defer release()
 
@@ -208,7 +208,7 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 
 	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
-	var result bruteforce.SummaryResult
+	var result blockedips.SummaryResult
 
 	var id int64
 
@@ -234,11 +234,11 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 			return ips[i].Count > ips[j].Count
 		})
 
-		result.TopIPs = make([]bruteforce.BlockedIP, 0, len(ips))
+		result.TopIPs = make([]blockedips.BlockedIP, 0, len(ips))
 
 		for i, ip := range ips {
 			if i < r.listMaxSize {
-				result.TopIPs = append(result.TopIPs, bruteforce.BlockedIP{Address: ip.Address, Count: ip.Count})
+				result.TopIPs = append(result.TopIPs, blockedips.BlockedIP{Address: ip.Address, Count: ip.Count})
 			}
 
 			result.TotalNumber += ip.Count
