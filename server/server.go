@@ -78,6 +78,7 @@ func (s *HttpServer) Start() error {
 	api.HttpConnectionsDashboard(auth, mux, s.Timezone, s.Workspace.ConnectionStatsAccessor())
 	api.HttpReports(auth, mux, s.Timezone, s.Workspace.IntelAccessor())
 	api.HttpRawLogs(auth, mux, s.Timezone, s.Workspace.RawLogsAccessor())
+	api.HttpStatusMessage(auth, mux, s.Workspace.IntelAccessor())
 
 	setup.HttpSetup(mux, auth)
 

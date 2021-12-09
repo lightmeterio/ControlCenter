@@ -59,6 +59,38 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
+      <b-toast
+        v-if="statusMessage"
+        id="status-message"
+        class="status-message"
+        :variant="statusMessageVariant"
+        :title="statusMessage.title"
+        static
+        no-auto-hide
+        :load="$bvToast.show('status-message')"
+      >
+        <p>{{ statusMessage.message }}</p>
+        <b-link v-if="statusMessage.action" href="statusMessage.action.link">
+          {{ statusMessage.action.label }}
+        </b-link>
+      </b-toast>
+
+      <div :class="statusMessageSeverity" v-if="statusMessage">
+        <b-button-close></b-button-close>
+        <div>
+          <i class="far fa-times-circle" style="padding: 1rem;"></i>
+        </div>
+        <div>
+          <h3>{{ statusMessage.title }}</h3>
+          <p>
+            {{ statusMessage.message }}
+            <a v-if="statusMessage.action" href="statusMessage.action.link">
+              {{ statusMessage.action.label }}
+            </a>
+          </p>
+        </div>
+      </div>
+
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
       >
@@ -214,7 +246,8 @@ import {
   countLogLinesInInterval,
   fetchInsights,
   getIsNotLoginOrNotRegistered,
-  getUserInfo
+  getUserInfo,
+  getStatusMessage
 } from "../lib/api.js";
 
 import tracking from "../mixin/global_shared.js";
@@ -241,7 +274,9 @@ export default {
       // log import progress
       generatingInsights: this.$gettext("Generating insights"),
 
-      rawLogsDownloadsDisable: true
+      rawLogsDownloadsDisable: true,
+
+      statusMessage: null
     };
   },
   computed: {
@@ -256,13 +291,21 @@ export default {
       let message = this.$gettextInterpolate(translation, { weekday: weekday });
       return message;
     },
-
     welcomeUserText() {
       let translation = this.$gettext("and welcome back, %{username}");
       let message = this.$gettextInterpolate(translation, {
         username: this.username
       });
       return message;
+    },
+    statusMessageVariant() {
+      return this.statusMessage.severity;
+    },
+    statusMessageSeverity() {
+      return (
+        "container d-flex align-items-start status-message-custom severity-" +
+        this.statusMessage.severity
+      );
     },
     ...mapState(["isImportProgressFinished"])
   },
@@ -281,6 +324,7 @@ export default {
       let vue = this;
       vue.updateInsights();
       vue.updateDashboard();
+      vue.updateStatusMessage();
     },
     handleExternalDateIntervalChanged(obj) {
       this.dateRange = obj;
@@ -311,6 +355,12 @@ export default {
       let interval = this.buildDateInterval();
       let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
       window.open(link);
+    },
+    updateStatusMessage: function() {
+      let vue = this;
+      getStatusMessage().then(function(response) {
+        vue.statusMessage = response.data;
+      });
     },
     updateInsights: function() {
       let vue = this;
@@ -510,5 +560,36 @@ export default {
 .progress-indicator-area {
   margin-top: 60px;
   margin-bottom: 60px;
+}
+
+.status-message-custom {
+  width: 100%;
+  text-align: left;
+  padding-top: 1rem;
+  border-left: 5px solid;
+  &.severity-warning {
+    /* TODO: other colors */
+    border-color: #d35400;
+    background-color: rgba(230, 126, 34, 0.2);
+  }
+}
+
+.b-toast.status-message {
+  max-width: 100%;
+  width: 100%;
+
+  .close {
+    margin: 1rem;
+  }
+  .toast {
+    max-width: 100%;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 2rem;
+  }
+  .toast-body {
+    text-align: left;
+    margin: 1rem;
+  }
 }
 </style>
