@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
+	"gitlab.com/lightmeter/controlcenter/intel/receptor"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"net/http"
@@ -16,6 +17,9 @@ import (
 type statusMessageHandler struct {
 	accessor *collector.Accessor
 }
+
+// NOTE: for swagger only
+type Event receptor.Event
 
 // @Summary
 // @Success 200 {object} receptor.Event "desc"
