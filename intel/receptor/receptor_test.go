@@ -155,7 +155,7 @@ func TestReceptor(t *testing.T) {
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
 					MessageNotification: &MessageNotification{
-						Severity: "WARN",
+						Severity: "warning",
 						Title:    "Some Msg",
 						Message:  "THis is a message",
 						ActionLink: &ActionLink{
@@ -174,7 +174,7 @@ func TestReceptor(t *testing.T) {
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-02 10:20:00 +0000`),
 					MessageNotification: &MessageNotification{
-						Severity: "WARN",
+						Severity: "warning",
 						Title:    "Some Msg",
 						Message:  "THis is a message",
 						ActionLink: &ActionLink{
@@ -208,7 +208,7 @@ func TestReceptor(t *testing.T) {
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-02 10:20:00 +0000`),
 					MessageNotification: &MessageNotification{
-						Severity: "WARN",
+						Severity: "warning",
 						Title:    "Some Msg",
 						Message:  "THis is a message",
 						ActionLink: &ActionLink{
@@ -310,7 +310,7 @@ func TestHTTPReceptor(t *testing.T) {
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
 					MessageNotification: &MessageNotification{
-						Severity: "WARN",
+						Severity: "warning",
 						Title:    "Some Msg",
 						Message:  "THis is a message",
 						ActionLink: &ActionLink{
@@ -348,7 +348,7 @@ func TestHTTPReceptor(t *testing.T) {
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
 					MessageNotification: &MessageNotification{
-						Severity: "WARN",
+						Severity: "warning",
 						Title:    "Some Msg",
 						Message:  "THis is a message",
 						ActionLink: &ActionLink{
