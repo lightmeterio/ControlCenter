@@ -200,19 +200,14 @@ func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus
 	return countValue, nil
 }
 
-// rowserrcheck is buggy and unable to see that the query errors are being checked
-// when query.Close() is inside a closure
-//nolint:rowserrcheck
-func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}) (Pairs, error) {
-	r := Pairs{}
-
+func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}) (r Pairs, err error) {
+	//nolint:sqlclosecheck
 	query, err := stmt.QueryContext(ctx, args...)
-
 	if err != nil {
 		return Pairs{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(query.Close()) }()
+	defer errorutil.UpdateErrorFromCloser(query, &err)
 
 	for query.Next() {
 		var (
@@ -241,19 +236,14 @@ func listDomainAndCount(ctx context.Context, stmt *sql.Stmt, args ...interface{}
 	return r, nil
 }
 
-// rowserrcheck is buggy and unable to see that the query errors are being checked
-// when query.Close() is inside a closure
-//nolint:rowserrcheck
-func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval timeutil.TimeInterval) (Pairs, error) {
-	r := Pairs{}
-
+func deliveryStatus(ctx context.Context, stmt *sql.Stmt, interval timeutil.TimeInterval) (r Pairs, err error) {
+	//nolint:sqlclosecheck
 	query, err := stmt.QueryContext(ctx, interval.From.Unix(), interval.To.Unix())
-
 	if err != nil {
 		return Pairs{}, errorutil.Wrap(err)
 	}
 
-	defer func() { errorutil.MustSucceed(query.Close()) }()
+	defer errorutil.UpdateErrorFromCloser(query, &err)
 
 	for query.Next() {
 		var (

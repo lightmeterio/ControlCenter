@@ -112,7 +112,7 @@ func (r *Auth) Register(ctx context.Context, email, name, password string) (int6
 	return id, err
 }
 
-func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) (int64, error) {
+func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password string) (userId int64, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 
 	if err != nil {
@@ -121,7 +121,7 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back user registration transaction")
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 
@@ -346,7 +346,7 @@ func (r *Auth) GetFirstUser(ctx context.Context) (*UserData, error) {
 	return &userData, nil
 }
 
-func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) error {
+func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, newPassword string) (err error) {
 	tx, err := r.connPair.RwConn.BeginTx(ctx, nil)
 
 	if err != nil {
@@ -355,7 +355,7 @@ func (r *Auth) ChangeUserInfo(ctx context.Context, oldEmail, newEmail, newName, 
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback(), "Rolling back attempt to change user password")
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 

@@ -117,16 +117,15 @@ type PooledPair struct {
 	Filename   string
 }
 
-func Open(filename string, poolSize int) (*PooledPair, error) {
+func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(writer.Close(), "Closing RW connection on error")
+			errorutil.UpdateErrorFromCloser(writer, &err)
 		}
 	}()
 

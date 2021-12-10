@@ -64,7 +64,7 @@ func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	return &Accessor{pool: pool}, nil
 }
 
-func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]DispatchedReport, error) {
+func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) (reports []DispatchedReport, err error) {
 	conn, release, err := intelAccessor.pool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -79,11 +79,7 @@ func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]Disp
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(r.Close())
-	}()
-
-	reports := []DispatchedReport{}
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	for r.Next() {
 		var (

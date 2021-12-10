@@ -128,7 +128,7 @@ func (reader *simpleReader) Retrieve(ctx context.Context, key Key) (Value, error
 	return v, nil
 }
 
-func (writer *Writer) StoreJson(ctx context.Context, key Key, value Value) error {
+func (writer *Writer) StoreJson(ctx context.Context, key Key, value Value) (err error) {
 	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
@@ -137,7 +137,7 @@ func (writer *Writer) StoreJson(ctx context.Context, key Key, value Value) error
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 
@@ -146,15 +146,11 @@ func (writer *Writer) StoreJson(ctx context.Context, key Key, value Value) error
 		return errorutil.Wrap(err)
 	}
 
-	err = Store(ctx, tx, []Item{{Key: key, Value: string(jsonBlob)}})
-
-	if err != nil {
+	if err := Store(ctx, tx, []Item{{Key: key, Value: string(jsonBlob)}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	err = tx.Commit()
-
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errorutil.Wrap(err)
 	}
 

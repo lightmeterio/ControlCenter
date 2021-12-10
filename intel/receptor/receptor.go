@@ -191,10 +191,11 @@ type dbBruteForceChecker struct {
 }
 
 // Implements bruteforce.Checker
-func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) error {
+func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) (err error) {
 	conn, release := r.pool.Acquire()
 	defer release()
 
+	//nolint:sqlclosecheck
 	rows, err := conn.Query(`
 		select
 			id, json_extract(content, "$.blocked_ips.ips")
@@ -208,10 +209,7 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(bruteforce.Su
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		// TODO: replace this when !852 is merged
-		errorutil.MustSucceed(rows.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var result bruteforce.SummaryResult
 

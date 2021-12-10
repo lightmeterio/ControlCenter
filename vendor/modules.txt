@@ -69,6 +69,11 @@ github.com/gorilla/securecookie
 github.com/gorilla/sessions
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+## explicit
+github.com/hashicorp/go-multierror
 # github.com/hlubek/readercomp v0.0.0-20210106164045-ffcdb292b4e8
 ## explicit
 github.com/hlubek/readercomp
