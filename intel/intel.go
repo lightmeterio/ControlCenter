@@ -292,7 +292,7 @@ func DefaultVersionBuilder() Version {
 
 func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insightscore.Fetcher,
 	settingsReader metadata.Reader, auth auth.Registrar, connStatsPool *dbconn.RoPool,
-	options Options) (*Runner, *logslinecount.Publisher, bruteforce.Checker, error) {
+	options Options) (*Runner, *logslinecount.Publisher, blockedips.Checker, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
