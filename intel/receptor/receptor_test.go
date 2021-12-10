@@ -154,9 +154,14 @@ func TestReceptor(t *testing.T) {
 					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
-					ActionLink: &ActionLink{
-						Link:  "http://example.com",
-						Label: "Some Link",
+					MessageNotification: &MessageNotification{
+						Severity: "warning",
+						Title:    "Some Msg",
+						Message:  "THis is a message",
+						ActionLink: &ActionLink{
+							Link:  "http://example.com",
+							Label: "Some Link",
+						},
 					},
 				}, nil)
 
@@ -168,9 +173,14 @@ func TestReceptor(t *testing.T) {
 					ID:           `f930eeba-415e-49f0-849d-f238009d670f`,
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-02 10:20:00 +0000`),
-					ActionLink: &ActionLink{
-						Link:  "http://second-link.com",
-						Label: "Second Link",
+					MessageNotification: &MessageNotification{
+						Severity: "warning",
+						Title:    "Some Msg",
+						Message:  "THis is a message",
+						ActionLink: &ActionLink{
+							Link:  "http://second-link.com",
+							Label: "Second Link",
+						},
 					},
 				}, nil)
 
@@ -197,9 +207,14 @@ func TestReceptor(t *testing.T) {
 					ID:           `f930eeba-415e-49f0-849d-f238009d670f`,
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-02 10:20:00 +0000`),
-					ActionLink: &ActionLink{
-						Link:  "http://second-link.com",
-						Label: "Second Link",
+					MessageNotification: &MessageNotification{
+						Severity: "warning",
+						Title:    "Some Msg",
+						Message:  "THis is a message",
+						ActionLink: &ActionLink{
+							Link:  "http://second-link.com",
+							Label: "Second Link",
+						},
 					},
 				},
 			})
@@ -294,9 +309,14 @@ func TestHTTPReceptor(t *testing.T) {
 					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
-					ActionLink: &ActionLink{
-						Link:  "http://example.com",
-						Label: "Some Link",
+					MessageNotification: &MessageNotification{
+						Severity: "warning",
+						Title:    "Some Msg",
+						Message:  "THis is a message",
+						ActionLink: &ActionLink{
+							Link:  "http://example.com",
+							Label: "Some Link",
+						},
 					},
 				}, nil)
 
@@ -327,9 +347,14 @@ func TestHTTPReceptor(t *testing.T) {
 					ID:           `ef086d42-acbe-4f86-94f1-52e8f024fc53`,
 					Type:         `action_link`,
 					CreationTime: timeutil.MustParseTime(`2021-11-01 10:20:00 +0000`),
-					ActionLink: &ActionLink{
-						Link:  "http://example.com",
-						Label: "Some Link",
+					MessageNotification: &MessageNotification{
+						Severity: "warning",
+						Title:    "Some Msg",
+						Message:  "THis is a message",
+						ActionLink: &ActionLink{
+							Link:  "http://example.com",
+							Label: "Some Link",
+						},
 					},
 				},
 			})

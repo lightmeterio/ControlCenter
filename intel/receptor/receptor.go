@@ -49,13 +49,15 @@ type Event struct {
 	ID                  string               `json:"id"`
 	Type                string               `json:"type"`
 	CreationTime        time.Time            `json:"creation_time"`
-	MessageNotification *MessageNotification `json:"message_notification"`
-	ActionLink          *ActionLink          `json:"action_link"`
+	MessageNotification *MessageNotification `json:"notification"`
 	BlockedIPs          *BlockedIPs          `json:"blocked_ips"`
 }
 
 type MessageNotification struct {
-	Message string `json:"message"`
+	Severity   string      `json:"severity"` // primary|secondary|success|danger|warning|info|light|dark (bootstrap)
+	Title      string      `json:"title"`
+	Message    string      `json:"message"`
+	ActionLink *ActionLink `json:"action"`
 }
 
 type ActionLink struct {

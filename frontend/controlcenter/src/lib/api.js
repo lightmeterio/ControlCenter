@@ -367,12 +367,18 @@ export function postUserRating(type, rating) {
     .catch(builderErrorHandler("insight_user_rating"));
 }
 
-/**** Network Intelligence signals ****/
+/**** Network Intelligence ****/
 
 export function getLatestSignals() {
   let get = axios.get(BASE_URL + "api/v0/reports");
   get.catch(errorHandler);
   return get;
+}
+
+export function getStatusMessage() {
+  return axios
+    .get(BASE_URL + "api/v0/intelstatus")
+    .catch(builderErrorHandler("intelstatus"));
 }
 
 /**** Raw Logs ****/
