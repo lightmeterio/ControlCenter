@@ -20,7 +20,7 @@ type HTTPRequester struct {
 	Timeout time.Duration
 }
 
-func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (*Event, error) {
+func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (event *Event, err error) {
 	encodedArgs := url.Values{
 		"instance-id": []string{payload.InstanceID},
 		"event-id":    []string{payload.LastKnownEventID},
@@ -36,6 +36,7 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (*Event, e
 
 	req.Header.Set("Content-Type", "application/json")
 
+	//nolint:bodyclose
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.Error().Err(err).Msg("Could not obtain event")
@@ -46,16 +47,13 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (*Event, e
 		return nil, nil
 	}
 
-	defer func() {
-		// TODO: handle it once !852 is implemented
-		errorutil.MustSucceed(response.Body.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(response.Body, &err)
 
-	var event Event
-	if err := json.NewDecoder(response.Body).Decode(&event); err != nil {
+	var ev Event
+	if err := json.NewDecoder(response.Body).Decode(&ev); err != nil {
 		log.Error().Err(err).Msg("Could not parse event payload")
 		return nil, nil
 	}
 
-	return &event, nil
+	return &ev, nil
 }

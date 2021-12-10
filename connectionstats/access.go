@@ -67,7 +67,7 @@ order by
 	return &Accessor{pool: pool}, nil
 }
 
-func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (AccessResult, error) {
+func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (result AccessResult, err error) {
 	conn, release, err := a.pool.AcquireContext(ctx)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
@@ -88,7 +88,7 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 		return AccessResult{}, errorutil.Wrap(err)
 	}
 
-	defer rows.Close()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	type rawAttemptDesc struct {
 		time    int64
@@ -120,6 +120,10 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 		rawAttempts = append(rawAttempts, rawAttemptDesc{time: ts, ip: ipAsString, command: command, success: success, total: total})
 
 		ipsSet[ipAsString] = struct{}{}
+	}
+
+	if err := rows.Err(); err != nil {
+		return AccessResult{}, errorutil.Wrap(err)
 	}
 
 	ips := make([]string, 0, len(ipsSet))

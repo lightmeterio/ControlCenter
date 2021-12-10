@@ -109,6 +109,7 @@ func messagesAreTheSame(m1, m2 detective.Messages) bool {
 
 func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Clock, tx *sql.Tx) (err error) {
 	// check if an insight with same content has already been created
+	//nolint:sqlclosecheck
 	rows, err := tx.Query(`
 		select
 			content
@@ -126,11 +127,7 @@ func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Cloc
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if cErr := rows.Err(); err != nil {
-			err = cErr
-		}
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	decoder := core.DefaultContentTypeDecoder(&Content{})
 
@@ -163,6 +160,10 @@ func maybeAddNewInsightFromMessage(d *detector, r escalator.Request, c core.Cloc
 		if messagesAreTheSame(content.Messages, fetchedContent.Messages) {
 			return nil
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	if err := generateInsight(tx, c, d.creator, content); err != nil {

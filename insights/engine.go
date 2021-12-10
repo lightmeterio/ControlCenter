@@ -119,10 +119,16 @@ func NewCustomEngine(
 		}()
 
 		go func() {
-			err := runOnHistoricalData(e)
-			errorutil.MustSucceed(err)
-			err = additionalActions(detectors, c.conn.RwConn, &realClock{})
-			errorutil.MustSucceed(err)
+			if err := runOnHistoricalData(e); err != nil {
+				done <- errorutil.Wrap(err)
+				return
+			}
+
+			if err := additionalActions(detectors, c.conn.RwConn, &realClock{}); err != nil {
+				done <- errorutil.Wrap(err)
+				return
+			}
+
 			runDatabaseWriterLoop(e)
 			done <- nil
 		}()

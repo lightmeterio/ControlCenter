@@ -48,12 +48,7 @@ func isSchedFileContentInsideContainer(r SchedFileReader) (insideContainer bool,
 		return false, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		// TODO: rewrite this code to reuse the UpdateError() once it's merged!!!
-		if cErr := f.Close(); cErr != nil && err == nil {
-			err = cErr
-		}
-	}()
+	defer errorutil.UpdateErrorFromCloser(f, &err)
 
 	scanner := bufio.NewScanner(f)
 

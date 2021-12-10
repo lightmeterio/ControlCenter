@@ -109,7 +109,7 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 }
 
 func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
-	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		// NOTE: the time in the database is in Seconds
 		//nolint:sqlclosecheck
 		rows, err := stmts.Get(selectOldDeliveries).Query(maxAge/time.Second, batchSize)
@@ -117,7 +117,7 @@ func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 			return errorutil.Wrap(err)
 		}
 
-		defer rows.Close()
+		defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 		timeBeforeAction := time.Now()
 
