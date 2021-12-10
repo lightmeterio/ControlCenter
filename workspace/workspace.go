@@ -251,7 +251,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	intelRunner, logsLineCountPublisher, bruteforceChecker, err := intel.New(
+	intelRunner, logsLineCountPublisher, blockedipsChecker, err := intel.New(
 		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsFetcher,
 		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
 	if err != nil {
@@ -267,7 +267,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		insightsAccessor,
 		insightsFetcher,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, bruteforceChecker))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, blockedipsChecker))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

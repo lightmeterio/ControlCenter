@@ -48,6 +48,7 @@ import detectiveResults from "./components/detective-results";
 
 import importSummaryInsightContent from "./components/insights/summary/content";
 import insightLogViewerButton from "./components/insights/log-viewer-button";
+import blockedIPsInsightContent from "./components/insights/blockedips-content";
 
 Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
@@ -64,6 +65,7 @@ Vue.component("detective-results", detectiveResults);
 Vue.component("log-viewer-button", insightLogViewerButton);
 
 Vue.component("import-summary-insight-content", importSummaryInsightContent);
+Vue.component("blockedips-insight-content", blockedIPsInsightContent);
 
 import translations from "./translation/translations.json";
 

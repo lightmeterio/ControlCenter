@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package bruteforcesummary
+package blockedips
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	_ "gitlab.com/lightmeter/controlcenter/insights/migrations"
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
@@ -31,10 +31,10 @@ func init() {
 }
 
 type fakeChecker struct {
-	actions map[time.Time]bruteforce.SummaryResult
+	actions map[time.Time]blockedips.SummaryResult
 }
 
-func (c *fakeChecker) Step(now time.Time, withResults func(bruteforce.SummaryResult) error) error {
+func (c *fakeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
 	if result, ok := c.actions[now]; ok {
 		return withResults(result)
 	}
@@ -50,7 +50,7 @@ func TestSummary(t *testing.T) {
 		checker := &fakeChecker{}
 
 		d := NewDetector(accessor, core.Options{
-			"bruteforcesummary": Options{
+			"blockedips": Options{
 				Checker:      checker,
 				PollInterval: time.Second * 10,
 			},
@@ -59,19 +59,21 @@ func TestSummary(t *testing.T) {
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
-		Convey("No new summary created", func() {
+		Convey("No new  created", func() {
 			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 5*time.Minute)
 			So(accessor.Insights, ShouldResemble, []int64{})
 		})
 
 		Convey("One insight is created", func() {
-			checker.actions = map[time.Time]bruteforce.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+			checker.actions = map[time.Time]blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): {
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "66.77.88.99", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				},
 			}
 
@@ -90,35 +92,43 @@ func TestSummary(t *testing.T) {
 			content, ok := insights[0].Content().(*Content)
 			So(ok, ShouldBeTrue)
 			So(content, ShouldResemble, &Content{
-				TopIPs: []bruteforce.BlockedIP{
+				TopIPs: []blockedips.BlockedIP{
 					{Address: "11.22.33.44", Count: 10},
 					{Address: "66.77.88.99", Count: 15},
 				},
 				TotalNumber: 42,
+				Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+				TotalIPs:    4,
 			})
 		})
 
 		Convey("When a new insight is created, all the previous ones are archived", func() {
-			checker.actions = map[time.Time]bruteforce.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+			checker.actions = map[time.Time]blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): {
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				},
-				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): {
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-11`, `2020-10-11`),
+					TotalIPs:    2,
 				},
-				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): bruteforce.SummaryResult{
-					TopIPs: []bruteforce.BlockedIP{
+				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): {
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+					TotalIPs:    5,
 				},
 			}
 
@@ -141,11 +151,13 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[0].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				})
 			}
 
@@ -155,10 +167,12 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[1].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-11`, `2020-10-11`),
+					TotalIPs:    2,
 				})
 			}
 
@@ -168,11 +182,13 @@ func TestSummary(t *testing.T) {
 				content, ok := insights[2].Content().(*Content)
 				So(ok, ShouldBeTrue)
 				So(content, ShouldResemble, &Content{
-					TopIPs: []bruteforce.BlockedIP{
+					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+					TotalIPs:    5,
 				})
 			}
 		})
@@ -184,18 +200,20 @@ func TestDescriptionFormatting(t *testing.T) {
 		n := notification.Notification{
 			ID: 1,
 			Content: Content{
-				TopIPs: []bruteforce.BlockedIP{
+				TopIPs: []blockedips.BlockedIP{
 					{Address: "11.11.11.11", Count: 42},
 				},
 				TotalNumber: 245,
+				Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+				TotalIPs:    5,
 			},
 		}
 
 		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
 		So(err, ShouldBeNil)
 		So(m, ShouldResemble, notificationCore.Message{
-			Title:       "Attacks were prevented",
-			Description: "Network attacks were blocked: 245",
+			Title:       "Blocked suspicious connection attempts",
+			Description: "245 connections blocked from 5 banned IPs (peer network)",
 			Metadata:    map[string]string{},
 		})
 	})
