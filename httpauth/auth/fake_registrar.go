@@ -48,16 +48,16 @@ func (f *FakeRegistrar) GetUserDataByID(ctx context.Context, id int) (*auth.User
 	return &auth.UserData{Id: 1, Name: "Donutloop", Email: "example@test.de"}, nil
 }
 
-func (f *FakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, auth.UserData, error) {
+func (f *FakeRegistrar) Authenticate(ctx context.Context, email, password string) (bool, *auth.UserData, error) {
 	if f.AuthenticateYieldsError {
-		return false, auth.UserData{}, errors.New("Fail On Authentication")
+		return false, nil, errors.New("Fail On Authentication")
 	}
 
 	if f.ShouldFailToAuthenticate {
-		return false, auth.UserData{}, nil
+		return false, nil, nil
 	}
 
-	return email == f.Email && password == f.Password, auth.UserData{Name: f.Name, Email: f.Email}, nil
+	return email == f.Email && password == f.Password, &auth.UserData{Name: f.Name, Email: f.Email}, nil
 }
 
 func (f *FakeRegistrar) CookieStore() sessions.Store {
