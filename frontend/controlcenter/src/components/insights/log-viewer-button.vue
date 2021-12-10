@@ -38,8 +38,8 @@ export default {
       let interval = this.getInterval(insight);
 
       let link = linkToRawLogsInInterval(
-        moment(interval.from).format("YYYY-MM-DD HH:mm:ss"),
-        moment(interval.to).format("YYYY-MM-DD HH:mm:ss")
+        moment.utc(interval.from).format("YYYY-MM-DD HH:mm:ss"),
+        moment.utc(interval.to).format("YYYY-MM-DD HH:mm:ss")
       );
       window.open(link);
     }
