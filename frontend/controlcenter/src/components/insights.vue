@@ -180,8 +180,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               <p
                 v-if="insight.content_type === 'high_bounce_rate'"
                 class="card-text description"
-                v-html="insight.description"
-              ></p>
+              >
+                <span v-html="insight.description"></span>
+                <log-viewer-button :insight="insight" />
+              </p>
 
               <p
                 v-if="insight.content_type === 'newsfeed_content'"
@@ -216,8 +218,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               <p
                 v-if="insight.content_type === 'mail_inactivity'"
                 class="card-text description"
-                v-html="insight.description"
-              ></p>
+              >
+                <span v-html="insight.description"></span>
+                <log-viewer-button :insight="insight" />
+              </p>
               <p
                 v-if="insight.content_type === 'welcome_content'"
                 class="card-text description"
@@ -278,6 +282,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
+                <log-viewer-button :insight="insight" />
               </p>
 
               <div

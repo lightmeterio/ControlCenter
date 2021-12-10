@@ -47,6 +47,7 @@ import detective from "./components/detective";
 import detectiveResults from "./components/detective-results";
 
 import importSummaryInsightContent from "./components/insights/summary/content";
+import insightLogViewerButton from "./components/insights/log-viewer-button";
 
 Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
@@ -60,6 +61,7 @@ Vue.component("import-progress-indicator", importProgressIndicator);
 Vue.component("walkthrough", walkthrough);
 Vue.component("detective", detective);
 Vue.component("detective-results", detectiveResults);
+Vue.component("log-viewer-button", insightLogViewerButton);
 
 Vue.component("import-summary-insight-content", importSummaryInsightContent);
 
