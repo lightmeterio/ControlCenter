@@ -69,32 +69,44 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
       >
-        <div class="col-lg-2 col-md-6 col-6 p-2">
+        <div class="col-lg-2 col-md-2 col-3 p-2">
           <h2 class="insights-title">
             <!-- prettier-ignore -->
             <translate>Insights</translate>
           </h2>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 p-2">
+        <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
             <!-- prettier-ignore -->
             <translate>Time interval</translate>:
           </label>
-          <DateRangePicker
-            @update="onUpdateDateRangePicker"
-            :autoApply="autoApply"
-            :opens="opens"
-            :singleDatePicker="singleDatePicker"
-            :alwaysShowCalendars="alwaysShowCalendars"
-            :ranges="ranges"
-            v-model="dateRange"
-            :showCustomRangeCalendars="false"
-            :max-date="new Date()"
-          >
-          </DateRangePicker>
+          <div class="p-1">
+            <DateRangePicker
+              @update="onUpdateDateRangePicker"
+              :autoApply="autoApply"
+              :opens="opens"
+              :singleDatePicker="singleDatePicker"
+              :alwaysShowCalendars="alwaysShowCalendars"
+              :ranges="ranges"
+              v-model="dateRange"
+              :showCustomRangeCalendars="false"
+              :max-date="new Date()"
+            >
+            </DateRangePicker>
+          </div>
+          <div class="p-1">
+            <b-button
+              variant="primary"
+              size="sm"
+              @click="downloadRawLogsInInterval"
+              :disabled="rawLogsDownloadsDisable"
+              ><i class="fas fa-download" style="margin-right: 0.25rem;"></i
+              ><translate>Logs</translate></b-button
+            >
+          </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 col-12 ml-auto p-2">
+        <div class="col-lg-4 col-md-4 col-12 ml-auto p-2">
           <form id="insights-form">
             <div
               class="form-group d-flex justify-content-end align-items-center"
@@ -109,7 +121,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 name="filter"
                 form="insights-form"
                 v-model="insightsFilter"
-                style="width: 33%"
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
@@ -162,7 +173,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 name="order"
                 form="insights-form"
                 v-model="insightsSort"
-                style="width: 38%"
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
@@ -186,11 +196,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <translate>Oldest</translate>
                 </option>
               </select>
-              <b-button
-                @click="downloadRawLogsInInterval"
-                :disabled="rawLogsDownloadsDisable"
-                ><translate>Download Logs</translate></b-button
-              >
             </div>
           </form>
         </div>
