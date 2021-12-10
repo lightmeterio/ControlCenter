@@ -59,6 +59,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
+      <b-toaster
+        ref="statusMessage"
+        name="statusMessage"
+        class="status-message"
+      >
+      </b-toaster>
+
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
       >
@@ -214,7 +221,8 @@ import {
   countLogLinesInInterval,
   fetchInsights,
   getIsNotLoginOrNotRegistered,
-  getUserInfo
+  getUserInfo,
+  getStatusMessage
 } from "../lib/api.js";
 
 import tracking from "../mixin/global_shared.js";
@@ -241,7 +249,9 @@ export default {
       // log import progress
       generatingInsights: this.$gettext("Generating insights"),
 
-      rawLogsDownloadsDisable: true
+      rawLogsDownloadsDisable: true,
+
+      statusMessage: null
     };
   },
   computed: {
@@ -256,7 +266,6 @@ export default {
       let message = this.$gettextInterpolate(translation, { weekday: weekday });
       return message;
     },
-
     welcomeUserText() {
       let translation = this.$gettext("and welcome back, %{username}");
       let message = this.$gettextInterpolate(translation, {
@@ -281,6 +290,7 @@ export default {
       let vue = this;
       vue.updateInsights();
       vue.updateDashboard();
+      vue.updateStatusMessage();
     },
     handleExternalDateIntervalChanged(obj) {
       this.dateRange = obj;
@@ -311,6 +321,48 @@ export default {
       let interval = this.buildDateInterval();
       let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
       window.open(link);
+    },
+    updateStatusMessage: function() {
+      let vue = this;
+
+      getStatusMessage().then(function(response) {
+        if (response.data === null) {
+          return;
+        }
+
+        let isNew = false;
+        if (
+          vue.statusMessage === null ||
+          vue.statusMessage.message != response.data.message ||
+          vue.statusMessage.title != response.data.title
+        ) {
+          isNew = true;
+        }
+
+        vue.statusMessage = response.data;
+
+        const e = vue.$createElement;
+        const msg = [
+          e("p", vue.statusMessage.message),
+          e(
+            "a",
+            { attrs: { href: vue.statusMessage.action.link } },
+            vue.statusMessage.action.label
+          )
+        ];
+
+        if (!isNew) {
+          return;
+        }
+
+        vue.$bvToast.toast([msg], {
+          variant: vue.statusMessage.severity,
+          title: vue.statusMessage.title,
+          noAutoHide: true,
+          toaster: "statusMessage",
+          solid: true
+        });
+      });
     },
     updateInsights: function() {
       let vue = this;
@@ -510,5 +562,25 @@ export default {
 .progress-indicator-area {
   margin-top: 60px;
   margin-bottom: 60px;
+}
+
+.b-toaster.status-message {
+  max-width: 100%;
+  width: 100%;
+
+  .b-toast,
+  .toast {
+    max-width: 100%;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 1rem;
+  }
+  .toast-body {
+    text-align: left;
+    > * {
+      margin: 1em;
+      display: block;
+    }
+  }
 }
 </style>
