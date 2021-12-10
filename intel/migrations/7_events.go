@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	migrator.AddMigration("intel-collector", "2_events.go", upCreateEvent, downCreateEvent)
+	migrator.AddMigration("intel-collector", "7_events.go", upCreateEvent, downCreateEvent)
 }
 
 func upCreateEvent(tx *sql.Tx) error {
