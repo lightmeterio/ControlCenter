@@ -12,18 +12,19 @@ package rawparser
 // so, although this struct will grow as newer payloads are supported,
 // copying will perform better than using virtual calls
 type RawPayload struct {
-	PayloadType           PayloadType
-	RawSmtpSentStatus     RawSmtpSentStatus
-	QmgrMessageExpired    QmgrMessageExpired
-	QmgrMailQueued        QmgrMailQueued
-	QmgrRemoved           QmgrRemoved
-	SmtpdConnect          SmtpdConnect
-	SmtpdDisconnect       SmtpdDisconnect
-	SmtpdMailAccepted     SmtpdMailAccepted
-	SmtpdReject           SmtpdReject
-	CleanupMesageAccepted CleanupMessageAccepted
-	CleanupMilterReject   CleanupMilterReject
-	BounceCreated         BounceCreated
-	Pickup                Pickup
-	Version               Version
+	PayloadType                 PayloadType
+	RawSmtpSentStatus           RawSmtpSentStatus
+	QmgrMessageExpired          QmgrMessageExpired
+	QmgrMailQueued              QmgrMailQueued
+	QmgrRemoved                 QmgrRemoved
+	SmtpdConnect                SmtpdConnect
+	SmtpdDisconnect             SmtpdDisconnect
+	SmtpdMailAccepted           SmtpdMailAccepted
+	SmtpdReject                 SmtpdReject
+	CleanupMesageAccepted       CleanupMessageAccepted
+	CleanupMilterReject         CleanupMilterReject
+	BounceCreated               BounceCreated
+	Pickup                      Pickup
+	Version                     Version
+	DovecotAuthFailedWithReason DovecotAuthFailedWithReason
 }
