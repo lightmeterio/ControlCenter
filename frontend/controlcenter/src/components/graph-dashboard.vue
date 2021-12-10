@@ -39,10 +39,22 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
         <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'fetchSmtpAuthAttempts')"
-          :title="SmtpConnectionsOverTime"
+          v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
+          :title="ConnectionsOverTime"
         >
-          <div class="dashboard-gadget" id="fetchSmtpAuthAttempts"></div>
+          <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
+          <ul class="smtp-graph-legend">
+            <li style="color: #86C528;">
+              <translate>successful login</translate>
+            </li>
+            <li style="color: #0000ff;">
+              <translate>successful login after failures</translate>
+            </li>
+            <li style="color: #EA3939;"><translate>failed login</translate></li>
+            <li style="color: #961994;">
+              <translate>blocked by Lightmeter</translate>
+            </li>
+          </ul>
         </b-tab>
       </b-tabs>
     </div>
@@ -75,8 +87,8 @@ export default {
     DeferredDomainsTitle: function() {
       return this.$gettext("Deferred Domains");
     },
-    SmtpConnectionsOverTime: function() {
-      return this.$gettext("SMTP Logins");
+    ConnectionsOverTime: function() {
+      return this.$gettext("Auth Attempts");
     }
   },
   beforeDestroy() {
@@ -225,10 +237,12 @@ export default {
         let xValues = [];
         let yValues = [];
         let colors = [];
+        let sizes = [];
 
         let okColor = "#86C528";
         let failedColor = "#EA3939";
         let suspiciousColor = "#0000ff";
+        let blockedColor = "#961994";
 
         let statusAsColor = function(s) {
           switch (s) {
@@ -238,7 +252,17 @@ export default {
               return failedColor;
             case "suspicious":
               return suspiciousColor;
+            case "blocked":
+              return blockedColor;
           }
+        };
+
+        let statusSize = function(s) {
+          if (s == "blocked") {
+            return 12;
+          }
+
+          return 6;
         };
 
         let chartData = [
@@ -248,7 +272,7 @@ export default {
             type: "scattergl",
             mode: "markers",
             marker: {
-              size: 5,
+              size: sizes,
               color: colors
             }
           }
@@ -290,12 +314,14 @@ export default {
               xValues.length = len;
               yValues.length = len;
               colors.length = len;
+              sizes.length = len;
 
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
                 xValues[i].setTime(attempts[i]["time"] * 1000);
                 yValues[i] = response.data.ips[attempts[i]["index"]];
                 colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
               }
 
               // fill the remaining parts of the new buffers, if any
@@ -303,6 +329,7 @@ export default {
                 xValues[i] = new Date(attempts[i]["time"] * 1000);
                 yValues[i] = response.data.ips[attempts[i]["index"]];
                 colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
               }
 
               Plotly.redraw(graphName);
@@ -318,7 +345,7 @@ export default {
       );
       const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
       const updateSmtpConnectionsChart = updateScatterChart(
-        "fetchSmtpAuthAttempts"
+        "fetchAuthAttempts"
       );
 
       vue.updateDashboard = function(start, end) {
@@ -359,7 +386,7 @@ export default {
   }
 };
 </script>
-<style>
+<style lang="less">
 #graph-dashboard #delivery-attempts .card-header {
   text-align: left;
   font-size: 15px;
@@ -399,5 +426,20 @@ export default {
 #graph-dashboard .nav-tabs .nav-item a:hover {
   border: 1px solid #95cdea;
   border-radius: 27px;
+}
+
+.smtp-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+
+  display: flex;
+  font-size: 75%;
+  justify-content: space-around;
+  list-style: none;
+
+  li:before {
+    content: "• ";
+    font-size: 125%;
+  }
 }
 </style>
