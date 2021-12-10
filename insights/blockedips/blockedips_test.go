@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package blockedipssummary
+package blockedips
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func TestSummary(t *testing.T) {
 		checker := &fakeChecker{}
 
 		d := NewDetector(accessor, core.Options{
-			"blockedipssummary": Options{
+			"blockedips": Options{
 				Checker:      checker,
 				PollInterval: time.Second * 10,
 			},
@@ -59,7 +59,7 @@ func TestSummary(t *testing.T) {
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
-		Convey("No new summary created", func() {
+		Convey("No new  created", func() {
 			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 5*time.Minute)
 			So(accessor.Insights, ShouldResemble, []int64{})
 		})

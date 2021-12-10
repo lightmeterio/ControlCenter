@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package blockedipssummary
+package blockedips
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	ContentType   = "blockedipssummary"
+	ContentType   = "blockedips"
 	ContentTypeId = 9
 )
 
@@ -90,7 +90,7 @@ type detector struct {
 }
 
 func getDetectorOptions(options core.Options) Options {
-	detectorOptions, ok := options["blockedipssummary"].(Options)
+	detectorOptions, ok := options["blockedips"].(Options)
 
 	if !ok {
 		errorutil.MustSucceed(errors.New("Invalid detector options"))

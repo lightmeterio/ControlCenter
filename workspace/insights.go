@@ -7,7 +7,7 @@ package workspace
 import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
-	"gitlab.com/lightmeter/controlcenter/insights/blockedipssummary"
+	blockedipsinsight "gitlab.com/lightmeter/controlcenter/insights/blockedips"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
@@ -65,7 +65,7 @@ func insightsOptions(
 			Escalator: detectiveEscalator,
 		},
 
-		"blockedipssummary": blockedipssummary.Options{
+		"blockedips": blockedipsinsight.Options{
 			Checker:      blockedipsChecker,
 			PollInterval: time.Minute * 2,
 		},

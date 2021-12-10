@@ -6,7 +6,7 @@
 //go:build dev || !release
 // +build dev !release
 
-package blockedipssummary
+package blockedips
 
 import (
 	"database/sql"
