@@ -48,11 +48,11 @@ func compareBcryptValue(hash, v []byte) bool {
 }
 
 var (
-	formats = []string{time.RFC3339, time.RFC3339Nano}
+	timeFormats = []string{time.RFC3339, time.RFC3339Nano, `2006-01-02T15:04:05`}
 )
 
 func jsonTimeToTimestamp(s string) (int64, error) {
-	for _, f := range formats {
+	for _, f := range timeFormats {
 		t, err := time.Parse(f, s)
 		if err == nil {
 			return t.Unix(), nil
