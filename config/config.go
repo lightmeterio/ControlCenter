@@ -44,7 +44,10 @@ type Config struct {
 	// being accessed directly, on plain HTTP (as on 2.0)
 	IKnowWhatIAmDoingNotUsingAReverseProxy bool
 
-	DefaultSettings metadata.DefaultValues
+	DefaultSettings        metadata.DefaultValues
+	RegisteredUserName     string
+	RegisteredUserEmail    string
+	RegisteredUserPassword string
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -129,6 +132,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.BoolVar(&conf.IKnowWhatIAmDoingNotUsingAReverseProxy, "i_know_what_am_doing_not_using_a_reverse_proxy",
 		proxyConf, "Used when you are accessing the application without a reverse proxy (e.g. apache2, nginx or traefik), "+
 			"which is unsupported by us at the moment and might lead to security issues")
+
+	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
+	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
+	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
 
 	fs.Usage = func() {
 		version.PrintVersion()

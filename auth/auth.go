@@ -25,7 +25,7 @@ type UserData struct {
 
 type Registrar interface {
 	Register(ctx context.Context, email, name, password string) (int64, error)
-	Authenticate(ctx context.Context, email, password string) (bool, UserData, error)
+	Authenticate(ctx context.Context, email, password string) (bool, *UserData, error)
 	HasAnyUser(ctx context.Context) (bool, error)
 	GetUserDataByID(ctx context.Context, id int) (*UserData, error)
 	GetFirstUser(ctx context.Context) (*UserData, error)
@@ -37,8 +37,15 @@ type RegistrarWithSessionKeys interface {
 	SessionKeys() [][]byte
 }
 
+type PlainAuthOptions struct {
+	Email    string
+	Name     string
+	Password string
+}
+
 type Options struct {
 	AllowMultipleUsers bool
+	PlainAuthOptions   *PlainAuthOptions
 }
 
 type Auth struct {
@@ -147,12 +154,12 @@ func registerInDb(ctx context.Context, db dbconn.RwConn, email, name, password s
 	return id, nil
 }
 
-func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, UserData, error) {
+func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, *UserData, error) {
 	d := UserData{}
 
 	conn, release, err := r.connPair.RoConnPool.AcquireContext(ctx)
 	if err != nil {
-		return false, UserData{}, errorutil.Wrap(err)
+		return false, nil, errorutil.Wrap(err)
 	}
 
 	defer release()
@@ -162,14 +169,14 @@ func (r *Auth) Authenticate(ctx context.Context, email, password string) (bool, 
 		Scan(&d.Id, &d.Email, &d.Name)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, UserData{}, nil
+		return false, nil, nil
 	}
 
 	if err != nil {
-		return false, UserData{}, errorutil.Wrap(err)
+		return false, nil, errorutil.Wrap(err)
 	}
 
-	return true, d, nil
+	return true, &d, nil
 }
 
 func (r *Auth) HasAnyUser(ctx context.Context) (bool, error) {
@@ -257,14 +264,47 @@ func (r *Auth) SessionKeys() [][]byte {
 	return keys
 }
 
-func NewAuth(connPair *dbconn.PooledPair, options Options) (*Auth, error) {
+func NewAuth(connPair *dbconn.PooledPair, options Options) (RegistrarWithSessionKeys, error) {
 	m, err := metadata.NewHandler(connPair)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &Auth{options: options, connPair: connPair, meta: m}, nil
+	a := &Auth{options: options, connPair: connPair, meta: m}
+
+	if options.PlainAuthOptions == nil {
+		return a, nil
+	}
+
+	authOptions := options.PlainAuthOptions
+
+	hasAnyUsers, err := a.HasAnyUser(context.Background())
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if hasAnyUsers {
+		// if an user is already registred, resets its info to the one passed as option
+		oldInfo, err := a.GetFirstUser(context.Background())
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		if err := a.ChangeUserInfo(context.Background(), oldInfo.Email, authOptions.Email, authOptions.Name, authOptions.Password); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return a, nil
+	}
+
+	if _, err := a.Register(context.Background(),
+		authOptions.Email, authOptions.Name,
+		authOptions.Password); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return a, nil
 }
 
 func nameForEmail(tx *sql.Tx, email string) (string, error) {
