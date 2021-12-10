@@ -113,7 +113,7 @@ func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queu
 }
 
 func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) (err error) {
-	//nolint:rowserrcheck,sqlclosecheck
+	//nolint:sqlclosecheck
 	rows, err := trackerStmts.Get(selectQueueFromParentingNewQueue).Query(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -144,8 +144,7 @@ func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) (err err
 		}
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return errorutil.Wrap(err)
 	}
 

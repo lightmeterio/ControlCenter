@@ -419,8 +419,6 @@ func (f *fetchedInsight) UserRatingOld() bool {
 	return f.userRatingOld
 }
 
-// rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
-//nolint:rowserrcheck
 func (f *fetcher) FetchInsights(ctx context.Context, options FetchOptions, clock timeutil.Clock) (result []FetchedInsight, err error) {
 	conn, release, err := f.pool.AcquireContext(ctx)
 	if err != nil {

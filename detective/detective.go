@@ -213,7 +213,6 @@ type MessageDelivery struct {
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
-//nolint:rowserrcheck
 func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (messagesPage *MessagesPage, err error) {
 	senderLocal, senderDomain, err := emailutil.Split(mailFrom)
 
