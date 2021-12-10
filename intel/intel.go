@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
-	"gitlab.com/lightmeter/controlcenter/intel/bruteforce"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/intel/core"
@@ -292,7 +292,7 @@ func DefaultVersionBuilder() Version {
 
 func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insightscore.Fetcher,
 	settingsReader metadata.Reader, auth auth.Registrar, connStatsPool *dbconn.RoPool,
-	options Options) (*Runner, *logslinecount.Publisher, bruteforce.Checker, error) {
+	options Options) (*Runner, *logslinecount.Publisher, blockedips.Checker, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
