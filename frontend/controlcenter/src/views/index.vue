@@ -159,6 +159,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </option>
                 <option
                   v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Intel')
+                  "
+                  value="category-intel"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Intel</translate>
+                </option>
+                <option
+                  v-on:click="
                     trackClick('InsightsFilterCategoryHomepage', 'Archived')
                   "
                   value="category-archived"
