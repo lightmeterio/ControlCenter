@@ -8,9 +8,10 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div>
     <div v-html="header"></div>
     <table class="table blockedips-summary-table">
+      <caption><strong>2</strong> most active IPs out of <strong>10</strong></caption>
       <thead class="thead">
         <th scope="col"><translate>IP Address</translate></th>
-        <th scope="col"><translate>Attack attempts</translate></th>
+        <th scope="col"><translate>Connection attempts</translate></th>
       </thead>
       <tbody>
         <tr v-for="rec in content.top_ips" v-bind:key="rec.addr">
@@ -23,7 +24,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         </tr>
       </tbody>
     </table>
-    <div>Total: {{ content.total_number }}</div>
   </div>
 </template>
 
@@ -52,7 +52,7 @@ export default {
   computed: {
     header() {
       let translation = this.$gettext(
-        `List of IPs blocked from <strong>%{from}</strong> to <strong>%{to}</strong>`
+        `List of banned IPs on <strong>%{from}</strong> due to potential attacks (brute-force, slow-force, botnets):`
       );
       return this.$gettextInterpolate(translation, {
         from: this.formatTableDate(this.content.time_interval.from),

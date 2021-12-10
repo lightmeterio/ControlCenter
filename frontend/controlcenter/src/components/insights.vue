@@ -483,7 +483,7 @@ export default {
     },
     blockedipssummary_title(insight) {
       let translation = this.$gettext(
-        `Number of blocked brute force attacks: %{count}`
+        `Suspicious IPs banned`
       );
       return this.$gettextInterpolate(translation, {
         count: insight.content.total_number
@@ -542,7 +542,7 @@ export default {
     },
     blockedipssummary_description(insight) {
       let translation = this.$gettext(
-        `From a total of <strong>%{count}</strong> IP addresses`
+        `<strong>1,000</strong> connections blocked from <strong>4</strong> banned IPs (peer network)`
       );
       return this.$gettextInterpolate(translation, {
         count: insight.content.top_ips.length
@@ -754,7 +754,7 @@ export default {
       return this.$gettext("Mail activity imported successfully");
     },
     bruteForceSummaryWindowTitle() {
-      return this.$gettext("Detailed view of the blocked connection attempts");
+      return this.$gettext("Blocked suspicious connection attempts");
     },
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
