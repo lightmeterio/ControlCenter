@@ -6,9 +6,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div>
-    <div v-html="header"></div>
+    <div v-html="header" class="blockedips-header"></div>
     <table class="table blockedips-summary-table">
-      <caption><strong>2</strong> most active IPs out of <strong>10</strong></caption>
+      <caption>
+        <strong>{{ content.top_ips.length }}</strong>
+        most active IPs out of
+        <strong>{{ content.total_ips }}</strong>
+      </caption>
       <thead class="thead">
         <th scope="col"><translate>IP Address</translate></th>
         <th scope="col"><translate>Connection attempts</translate></th>
@@ -19,7 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             {{ rec.addr }}
           </td>
           <td>
-            {{ rec.count }}
+            {{ new Intl.NumberFormat().format(rec.count) }}
           </td>
         </tr>
       </tbody>
@@ -85,14 +89,14 @@ export default {
   }
 }
 
-.summary-header strong {
+.blockedips-header strong {
   background-color: #e8e9f0;
   border-radius: 11px;
   padding-left: 0.5em;
   padding-right: 0.5em;
 }
 
-.summary-header {
+.blockedips-header {
   margin-bottom: 20px;
 }
 </style>

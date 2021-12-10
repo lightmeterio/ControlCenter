@@ -148,20 +148,31 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-modal>
 
     <b-modal
-      ref="modal-blockedips-summary"
-      id="modal-blockedips-summary"
+      ref="modal-blockedips"
+      id="modal-blockedips"
       size="lg"
       hide-footer
       centered
-      :title="bruteForceSummaryWindowTitle()"
+      :title="blockedIPsWindowTitle()"
     >
       <div class="modal-body">
-        <blockedips-summary-insight-content
-          :content="bruteForceSummaryInsight.content"
-        ></blockedips-summary-insight-content>
+        <blockedips-insight-content
+          :content="blockedIPsInsight.content"
+        ></blockedips-insight-content>
       </div>
 
-      <b-row class="vue-modal-footer"> </b-row>
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideBlockedIPsListModal"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
     </b-modal>
 
     <div
@@ -233,13 +244,13 @@ SPDX-License-Identifier: AGPL-3.0-only
               </p>
 
               <p
-                v-if="insight.content_type === 'blockedipssummary'"
+                v-if="insight.content_type === 'blockedips'"
                 class="card-text description"
               >
                 <span v-html="insight.description"></span>
                 <button
-                  v-b-modal.modal-blockedips-summary
-                  v-on:click="onBruteForceSummaryDetails(insight)"
+                  v-b-modal.modal-blockedips
+                  v-on:click="onBruteForceDetails(insight)"
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
@@ -435,7 +446,7 @@ export default {
       insightRblCheckedIpTitle: "",
       insightMsgRblTitle: "",
       importSummaryInsight: {},
-      bruteForceSummaryInsight: {},
+      blockedIPsInsight: {},
       applicationData: { version: "" },
       // FIXME: AAAHHH, this is really ugly! This insight component should be refactored/split ASAP!
       detectiveInsight: {
@@ -481,10 +492,8 @@ export default {
     newsfeed_content_title(insight) {
       return insight.content.title;
     },
-    blockedipssummary_title(insight) {
-      let translation = this.$gettext(
-        `Suspicious IPs banned`
-      );
+    blockedips_title(insight) {
+      let translation = this.$gettext(`Suspicious IPs banned`);
       return this.$gettextInterpolate(translation, {
         count: insight.content.total_number
       });
@@ -540,12 +549,15 @@ export default {
         intTo: formatInsightDescriptionDateTime(c.interval.to)
       });
     },
-    blockedipssummary_description(insight) {
+    blockedips_description(insight) {
       let translation = this.$gettext(
-        `<strong>1,000</strong> connections blocked from <strong>4</strong> banned IPs (peer network)`
+        `<strong>%{total_connections}</strong> connections blocked from <strong>%{total_ips}</strong> banned IPs (peer network)`
       );
       return this.$gettextInterpolate(translation, {
-        count: insight.content.top_ips.length
+        total_ips: insight.content.top_ips.length,
+        total_connections: new Intl.NumberFormat().format(
+          insight.content.total_number
+        )
       });
     },
     local_rbl_check_description(i) {
@@ -726,6 +738,9 @@ export default {
     hideRBLListModal() {
       this.$refs["modal-rbl-list"].hide();
     },
+    hideBlockedIPsListModal() {
+      this.$refs["modal-blockedips"].hide();
+    },
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
     },
@@ -743,17 +758,14 @@ export default {
       this.trackEvent("InsightDescription", "openSummaryInsightModal");
       this.importSummaryInsight = insight;
     },
-    onBruteForceSummaryDetails(insight) {
-      this.trackEvent(
-        "InsightDescription",
-        "openBruteForceSummaryInsightModal"
-      );
-      this.bruteForceSummaryInsight = insight;
+    onBruteForceDetails(insight) {
+      this.trackEvent("InsightDescription", "openBruteForceInsightModal");
+      this.blockedIPsInsight = insight;
     },
     importSummaryWindowTitle() {
       return this.$gettext("Mail activity imported successfully");
     },
-    bruteForceSummaryWindowTitle() {
+    blockedIPsWindowTitle() {
       return this.$gettext("Blocked suspicious connection attempts");
     },
     showArchivedInsightsBySummaryInsight(insight) {
@@ -973,6 +985,7 @@ svg.insight-help-button {
 
 #modal-msg-rbl .btn-cancel,
 #modal-rbl-list .btn-cancel,
+#modal-blockedips .btn-cancel,
 #modal-import-summary .btn-cancel,
 #modal-detective-escalation .btn-cancel {
   background: #ff5c6f33 0% 0% no-repeat padding-box;
