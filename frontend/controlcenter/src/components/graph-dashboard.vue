@@ -44,15 +44,15 @@ SPDX-License-Identifier: AGPL-3.0-only
         >
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
           <ul class="smtp-graph-legend">
+            <li style="color: #961994;">
+              <translate>blocked by Lightmeter</translate>
+            </li>
+            <li style="color: #EA3939;"><translate>failed login</translate></li>
             <li style="color: #86C528;">
               <translate>successful login</translate>
             </li>
             <li style="color: #0000ff;">
               <translate>successful login after failures</translate>
-            </li>
-            <li style="color: #EA3939;"><translate>failed login</translate></li>
-            <li style="color: #961994;">
-              <translate>blocked by Lightmeter</translate>
             </li>
           </ul>
         </b-tab>
