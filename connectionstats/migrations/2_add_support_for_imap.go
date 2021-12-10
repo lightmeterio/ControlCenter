@@ -16,18 +16,13 @@ func init() {
 }
 
 func upAddProtocolColumn(tx *sql.Tx) error {
-	// FIXME: this is copied from the connectionstats package, which we unfortunately
-	// cannot include here due dependencies cycle
-	const ProtocolSMTP = 0
-
 	// Before this migration, we supported only smtp connections
-	// so we set all the previous connections with the `ProtocolSMTP` flag.
+	// so we set all the previous connections with the `connectionstats.ProtocolSMTP = 0` flag (column default).
 	sql := `
-	alter table connections add column protocol integer not null;
-	update connections set protocol = ?;
+	alter table connections add column protocol integer not null default 0;
 	`
 
-	_, err := tx.Exec(sql, ProtocolSMTP)
+	_, err := tx.Exec(sql)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
