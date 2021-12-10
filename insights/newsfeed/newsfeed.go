@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -105,13 +106,11 @@ func descForItem(item *gofeed.Item) (string, error) {
 }
 
 type detector struct {
+	closeutil.Closers
+
 	creator core.Creator
 	options Options
 	parser  *gofeed.Parser
-}
-
-func (*detector) Close() error {
-	return nil
 }
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
@@ -125,7 +124,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 
 	parser.RSSTranslator = &rssTranslator{defaultTranslator: &gofeed.DefaultRSSTranslator{}}
 
-	return &detector{creator: creator, options: detectorOptions, parser: parser}
+	return &detector{creator: creator, options: detectorOptions, parser: parser, Closers: closeutil.New()}
 }
 
 // TODO: refactor this function to be reused across different insights instead of copy&pasted

@@ -55,11 +55,12 @@ func (c *Accessor) NotificationPolicy() notification.Policy {
 
 type Engine struct {
 	runner.CancellableRunner
+	closeutil.Closers
+
 	accessor        *Accessor
 	core            *core.Core
 	txActions       chan txAction
 	fetcher         core.Fetcher
-	closers         closeutil.Closers
 	importAnnouncer importAnnouncer
 	progressFetcher core.ProgressFetcher
 }
@@ -99,11 +100,11 @@ func NewCustomEngine(
 	}
 
 	e := &Engine{
+		Closers:         closeutil.New(core),
 		accessor:        c,
 		core:            core,
 		txActions:       make(chan txAction, 1024),
 		fetcher:         fetcher,
-		closers:         closeutil.New(core),
 		importAnnouncer: announcer,
 		progressFetcher: progressFetcher,
 	}
@@ -134,14 +135,6 @@ func NewCustomEngine(
 	e.CancellableRunner = runner.NewCancellableRunner(execute)
 
 	return e, nil
-}
-
-func (e *Engine) Close() error {
-	if err := e.core.Close(); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
 }
 
 func spawnInsightsJob(clock core.Clock, e *Engine, cancel <-chan struct{}) {
