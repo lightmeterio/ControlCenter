@@ -24,8 +24,10 @@ func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 		TopIPs: []blockedips.BlockedIP{
 			{Address: "55.44.33.22", Count: 100},
 			{Address: "11.22.33.44", Count: 45},
+			{Address: "5.6.7.8", Count: 35},
 		},
 		TotalNumber: 234,
+		TotalIPs:    10,
 	}); err != nil {
 		return errorutil.Wrap(err)
 	}

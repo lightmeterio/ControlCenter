@@ -51,7 +51,7 @@ func (t title) String() string {
 }
 
 func (t title) TplString() string {
-	return translator.I18n("Attacks were prevented")
+	return translator.I18n("Blocked suspicious connection attempts")
 }
 
 func (t title) Args() []interface{} {
@@ -67,11 +67,11 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("Network attacks were blocked: %d")
+	return translator.I18n("%v connections blocked from %v banned IPs (peer network)")
 }
 
 func (d description) Args() []interface{} {
-	return []interface{}{d.c.TotalNumber}
+	return []interface{}{d.c.TotalNumber, d.c.TotalIPs}
 }
 
 func (c Content) HelpLink(urlContainer core.URLContainer) string {
@@ -135,7 +135,7 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 			return errorutil.Wrap(err)
 		}
 
-		return generateInsight(tx, c, d.creator, Content{TopIPs: r.TopIPs, TotalNumber: r.TotalNumber})
+		return generateInsight(tx, c, d.creator, Content(r))
 	})
 }
 

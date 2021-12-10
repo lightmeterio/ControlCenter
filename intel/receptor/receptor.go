@@ -241,6 +241,7 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.Su
 				result.TopIPs = append(result.TopIPs, blockedips.BlockedIP{Address: ip.Address, Count: ip.Count})
 			}
 
+			result.TotalIPs++
 			result.TotalNumber += ip.Count
 		}
 

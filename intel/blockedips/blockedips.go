@@ -22,4 +22,5 @@ type SummaryResult struct {
 	Interval    timeutil.TimeInterval `json:"time_interval"`
 	TopIPs      []BlockedIP           `json:"top_ips"`
 	TotalNumber int                   `json:"total_number"`
+	TotalIPs    int                   `json:"total_ips"`
 }

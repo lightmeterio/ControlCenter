@@ -66,12 +66,14 @@ func TestSummary(t *testing.T) {
 
 		Convey("One insight is created", func() {
 			checker.actions = map[time.Time]blockedips.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "66.77.88.99", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				},
 			}
 
@@ -95,30 +97,38 @@ func TestSummary(t *testing.T) {
 					{Address: "66.77.88.99", Count: 15},
 				},
 				TotalNumber: 42,
+				Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+				TotalIPs:    4,
 			})
 		})
 
 		Convey("When a new insight is created, all the previous ones are archived", func() {
 			checker.actions = map[time.Time]blockedips.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				},
-				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-11`, `2020-10-11`),
+					TotalIPs:    2,
 				},
-				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): blockedips.SummaryResult{
+				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+					TotalIPs:    5,
 				},
 			}
 
@@ -146,6 +156,8 @@ func TestSummary(t *testing.T) {
 						{Address: "55.66.77.88", Count: 15},
 					},
 					TotalNumber: 42,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
+					TotalIPs:    4,
 				})
 			}
 
@@ -159,6 +171,8 @@ func TestSummary(t *testing.T) {
 						{Address: "11.22.33.44", Count: 30},
 					},
 					TotalNumber: 30,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-11`, `2020-10-11`),
+					TotalIPs:    2,
 				})
 			}
 
@@ -173,6 +187,8 @@ func TestSummary(t *testing.T) {
 						{Address: "2.2.2.2", Count: 3},
 					},
 					TotalNumber: 70,
+					Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+					TotalIPs:    5,
 				})
 			}
 		})
@@ -188,14 +204,16 @@ func TestDescriptionFormatting(t *testing.T) {
 					{Address: "11.11.11.11", Count: 42},
 				},
 				TotalNumber: 245,
+				Interval:    timeutil.MustParseTimeInterval(`2020-10-12`, `2020-10-12`),
+				TotalIPs:    5,
 			},
 		}
 
 		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
 		So(err, ShouldBeNil)
 		So(m, ShouldResemble, notificationCore.Message{
-			Title:       "Attacks were prevented",
-			Description: "Network attacks were blocked: 245",
+			Title:       "Blocked suspicious connection attempts",
+			Description: "245 connections blocked from 5 banned IPs (peer network)",
 			Metadata:    map[string]string{},
 		})
 	})
