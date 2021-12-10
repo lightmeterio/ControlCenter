@@ -43,6 +43,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           :title="ConnectionsOverTime"
         >
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
+          <ul class="smtp-graph-legend">
+            <li style="color: #86C528;">
+              <translate>successful login</translate>
+            </li>
+            <li style="color: #0000ff;">
+              <translate>successful login after failures</translate>
+            </li>
+            <li style="color: #EA3939;"><translate>failed login</translate></li>
+            <li style="color: #961994;">
+              <translate>blocked by Lightmeter</translate>
+            </li>
+          </ul>
         </b-tab>
       </b-tabs>
     </div>
@@ -374,7 +386,7 @@ export default {
   }
 };
 </script>
-<style>
+<style lang="less">
 #graph-dashboard #delivery-attempts .card-header {
   text-align: left;
   font-size: 15px;
@@ -414,5 +426,20 @@ export default {
 #graph-dashboard .nav-tabs .nav-item a:hover {
   border: 1px solid #95cdea;
   border-radius: 27px;
+}
+
+.smtp-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+
+  display: flex;
+  font-size: 75%;
+  justify-content: space-around;
+  list-style: none;
+
+  li:before {
+    content: "• ";
+    font-size: 125%;
+  }
 }
 </style>
