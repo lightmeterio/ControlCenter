@@ -45,6 +45,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     - [Notifications](#notifications)
     - [Domain mapping](#domain-mapping)
     - [Message detective](#message-detective)
+    - [Peer network powered features](#peer-network-powered-features)
+        - [Brute force protection](#brute-force-protection)
 - [Known issues](#known-issues)
 - [Development](#development)
     - [Frontend development with VueJs](#frontend-development-with-vuejs)
@@ -466,6 +468,79 @@ If you have notifications enabled, this will also trigger a notification.
 If you enable the message detective for your end-users, make sure to share the public page URL with them.
 Rate limiting is applied on the number of searches, with a current maximum of 20 searches every 10 minutes.
 
+### Peer network powered features
+
+These features are powered by real-time information shared between Lightmeter users via a meta-network called the Peer Network, managed by the core Lightmeter team.
+
+Currently the network requires participation to access these features; to receive signals a Lightmeter instance must also be sending them. This is the default behaviour.
+
+#### Brute force protection
+
+Protection against malicious SMTP and IMAP login attempts requires access to a Dovecot server. Dovecot occupies the role of a convenient authentication policy client for both Postfix (SMTP) and Dovecot itself (IMAP). 
+
+When enabled, both Dovecot and Postfix will use a Lightmeter blocklist (generated from real-time Peer Network signals) for pre-authentication checks.
+
+Protection is not complete or guaranteed, and could theoretically result in legitimate authentication attempts being blocked.
+
+##### Dovecot configuration
+
+To enable blocking of malicious IPs in Dovecot (IMAP/POP defence), execute the following script:
+
+```
+#!/bin/sh
+
+# setup lightmeter auth_policy server on dovecot
+
+# TODO: check the dovecot path is correct
+cat << EOF > /etc/dovecot/conf.d/10-auth_lightmeter.conf
+
+# Dovecot will query Lightmeter's blocklist for every incoming IMAP/POP3 connection
+auth_policy_server_url = https://auth.intelligence.lightmeter.io/auth
+
+# TODO: replace the following by a random string of your own
+# See https://doc.dovecot.org/settings/core/#setting-auth-policy-hash-nonce for more information
+auth_policy_hash_nonce = JHghjghHJGhjg$345gfGF35435
+
+# The remote IP address, that is trying to authenticate, is the minimal bit of information
+# needed by Lightmeter to block illegitimate authentication attempts
+# See https://doc.dovecot.org/settings/core/#setting-auth-policy-request-attributes for more information
+auth_policy_request_attributes = remote=%{rip}
+
+# Check Lightmeter blocklist before auth (pre-auth), not after
+# Also, report un·successful auth attempts
+auth_policy_check_before_auth = yes
+auth_policy_check_after_auth = no
+auth_policy_report_after_auth = yes
+
+# The following is needed to verify the number of blocked auth attempts
+auth_verbose = yes
+EOF
+
+dovecot reload
+```
+
+##### Postfix configuration
+
+To enable blocking of malicious IPs by Postfix (SMTP defence) do the following.
+
+Use Dovecot SASL to pre-authorize connection attempts. Note: if Postfix is already configured to use SASL, this will replace it.
+
+If Dovecot is not already being used as a SASL server, add this to your Dovecot config file (e.g. `/etc/dovecot/conf.d/10-auth.conf`):
+
+```
+unix_listener /var/spool/postfix/private/auth {
+    group = postfix_group
+    mode = 0666
+    user = postfix_user
+  }
+```
+
+Then make Postfix use the Dovecot SASL server by adding the following to your Postfix config file (e.g. `/etc/postfix/main.cf`, or alternatively by using `postconf` CLI utility):
+
+```
+smtpd_sasl_path=/var/spool/postfix/private/auth
+smtpd_sasl_type=dovecot
+```
 
 ## Known issues
 
