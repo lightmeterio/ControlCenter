@@ -466,6 +466,62 @@ If you have notifications enabled, this will also trigger a notification.
 If you enable the message detective for your end-users, make sure to share the public page URL with them.
 Rate limiting is applied on the number of searches, with a current maximum of 20 searches every 10 minutes.
 
+### Peer network brute force protection
+
+#### Dovecot configuration
+
+To add support for blocking IPs in Dovecot (IMAP/POP authentication attempts), execute the following script:
+
+```
+#!/bin/sh
+
+# setup lightmeter auth_policy server on dovecot
+
+cat << EOF > /etc/dovecot/conf.d/10-auth_lightmeter.conf
+# Dovecot will query Lightmeter's blocklist for every incoming IMAP/POP3 connection
+auth_policy_server_url = https://auth.intelligence.lightmeter.io/auth
+
+# TODO: replace the following by a random string of your own
+# See https://doc.dovecot.org/settings/core/#setting-auth-policy-hash-nonce for more information
+auth_policy_hash_nonce = JHghjghHJGhjg$345gfGF35435
+
+# The remote IP address, that is trying to authenticate, is the minimal bit of information
+# needed by Lightmeter to block illegitimate authentication attempts
+# See https://doc.dovecot.org/settings/core/#setting-auth-policy-request-attributes for more information
+auth_policy_request_attributes = remote=%{rip}
+
+# Check Lightmeter blocklist before auth (pre-auth), not after
+# Also, report un·successful auth attempts
+auth_policy_check_before_auth = yes
+auth_policy_check_after_auth = no
+auth_policy_report_after_auth = yes
+
+# The following is needed to establish locally how many authentication attempts have been blocked
+auth_verbose = yes
+EOF
+
+dovecot reload
+```
+
+#### To support blocking IPs on Postfix (SMTP authentication attempts): 
+
+Use dovecot sasl to pre-authorize connection attempts, which will break existing SASL config on postfix. 
+
+In case it's configured without Dovecot: Configure dovecot (e.g. in `/etc/dovecot/conf.d/10-auth.conf`) with:
+
+```
+unix_listener /var/spool/postfix/private/auth {
+    group = postfix_group
+    mode = 0666
+    user = postfix_user
+  }
+```
+
+And postfix as following, either by changing `main.cf` or via `postconf`
+
+smtpd_sasl_path=/var/spool/postfix/private/auth
+smtpd_sasl_type=dovecot
+
 
 ## Known issues
 
