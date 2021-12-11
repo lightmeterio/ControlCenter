@@ -22,7 +22,7 @@ const version_en_main int = 1
 
 //line version.rl:12
 
-func parseVersion(data []byte) (Version, bool) {
+func parseVersion(data string) (Version, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -386,7 +386,7 @@ tr28:
 tr29:
 //line version.rl:26
 
-		r = data[tokBeg:p]
+		r = Version(data[tokBeg:p])
 	
 	goto st29
 	st29:

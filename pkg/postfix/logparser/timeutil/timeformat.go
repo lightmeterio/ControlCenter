@@ -5,16 +5,16 @@
 package timeutil
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
 var ErrInvalidTimeFormat = errors.New(`Invalid time format`)
 
-func parseMonth(m []byte) (time.Month, error) {
-	switch string(m) {
+func parseMonth(m string) (time.Month, error) {
+	switch m {
 	case "Jan":
 		return time.January, nil
 	case "Feb":
@@ -44,20 +44,20 @@ func parseMonth(m []byte) (time.Month, error) {
 	return time.January, ErrInvalidTimeFormat
 }
 
-func atoi(s []byte) (int, error) {
-	return strconv.Atoi(string(s))
+func atoi(s string) (int, error) {
+	return strconv.Atoi(s)
 }
 
 type RawTime struct {
-	Time   []byte
-	Month  []byte
-	Day    []byte
-	Hour   []byte
-	Minute []byte
-	Second []byte
+	Time   string
+	Month  string
+	Day    string
+	Hour   string
+	Minute string
+	Second string
 
 	// optional value, available in some syslog configurations
-	Year []byte
+	Year string
 }
 
 type Time struct {
@@ -81,7 +81,7 @@ func (t Time) Time(year int, tz *time.Location) time.Time {
 }
 
 type TimeFormat interface {
-	ExtractRaw([]byte) (h RawTime, remaining []byte, patternLen int, err error)
+	ExtractRaw(string) (h RawTime, remaining string, patternLen int, err error)
 	Convert(RawTime) (Time, error)
 	ConvertWithYear(Time, int, *time.Location) time.Time
 	ConvertWithConverter(*TimeConverter, Time) time.Time
@@ -109,20 +109,20 @@ func init() {
 	Register("default", &DefaultTimeFormat{})
 }
 
-func (DefaultTimeFormat) ExtractRaw(logLine []byte) (RawTime, []byte, int, error) {
+func (DefaultTimeFormat) ExtractRaw(logLine string) (RawTime, string, int, error) {
 	// A line starts with a time, with fixed length
 	// the `day` field is always trailed with a space, if needed
 	// so it's always two characters long
 	const defaultSampleLogDateTime = `Mar 22 06:28:55 `
 
 	if len(logLine) < len(defaultSampleLogDateTime) {
-		return RawTime{}, nil, 0, ErrInvalidTimeFormat
+		return RawTime{}, "", 0, ErrInvalidTimeFormat
 	}
 
 	remainingHeader := logLine[len(defaultSampleLogDateTime):]
 
 	if len(remainingHeader) == 0 {
-		return RawTime{}, nil, 0, ErrInvalidTimeFormat
+		return RawTime{}, "", 0, ErrInvalidTimeFormat
 	}
 
 	h := RawTime{
@@ -147,7 +147,7 @@ func (DefaultTimeFormat) ConvertWithConverter(converter *TimeConverter, t Time) 
 }
 
 func (DefaultTimeFormat) Convert(h RawTime) (Time, error) {
-	day, err := atoi(bytes.TrimLeft(h.Day, ` `))
+	day, err := atoi(strings.TrimLeft(h.Day, ` `))
 	if err != nil {
 		return Time{}, err
 	}
@@ -187,18 +187,18 @@ func init() {
 	Register("rfc3339", &RFC3339TimeFormat{})
 }
 
-func (RFC3339TimeFormat) ExtractRaw(logLine []byte) (RawTime, []byte, int, error) {
+func (RFC3339TimeFormat) ExtractRaw(logLine string) (RawTime, string, int, error) {
 	const sampleTime = `2021-05-16T00:01:42.278515+02:00 `
 	//                  0123456789012345678901234567890123
 
 	if len(logLine) < len(sampleTime) {
-		return RawTime{}, nil, 0, ErrInvalidTimeFormat
+		return RawTime{}, "", 0, ErrInvalidTimeFormat
 	}
 
 	remainingHeader := logLine[len(sampleTime):]
 
 	if len(remainingHeader) == 0 {
-		return RawTime{}, nil, 0, ErrInvalidTimeFormat
+		return RawTime{}, "", 0, ErrInvalidTimeFormat
 	}
 
 	h := RawTime{
@@ -224,7 +224,7 @@ func (RFC3339TimeFormat) ConvertWithConverter(converter *TimeConverter, t Time) 
 }
 
 func (RFC3339TimeFormat) Convert(h RawTime) (Time, error) {
-	day, err := atoi(bytes.TrimLeft(h.Day, ` `))
+	day, err := atoi(strings.TrimLeft(h.Day, ` `))
 	if err != nil {
 		return Time{}, err
 	}

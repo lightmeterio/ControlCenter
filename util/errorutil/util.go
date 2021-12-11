@@ -7,7 +7,9 @@ package errorutil
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
+	"io"
 	"os"
 	"runtime"
 )
@@ -43,13 +45,9 @@ func MustSucceed(err error, msg ...string) {
 	panic(err)
 }
 
-func Dief(verbose bool, err error, format string, values ...interface{}) {
+func Dief(err error, format string, values ...interface{}) {
 	log.Error().Msgf(format, values...)
-
-	if verbose {
-		LogErrorf(err, "Detailed error")
-	}
-
+	LogErrorf(err, "Detailed error")
 	os.Exit(1)
 }
 
@@ -70,4 +68,29 @@ func ExpandError(err error) interface{} {
 	}
 
 	return err
+}
+
+func UpdateErrorFromCall(f func() error, err *error) {
+	if err == nil {
+		log.Fatal().Msg("err must be not nil!")
+	}
+
+	cErr := f()
+
+	if cErr == nil {
+		return
+	}
+
+	if *err == nil {
+		*err = Wrap(cErr)
+		return
+	}
+
+	*err = multierror.Append(*err, Wrap(cErr))
+}
+
+// UpdateErrorFromCloser is supposed to be used to close a io.Closer when a function exits,
+// merging its error return into err, if any.
+func UpdateErrorFromCloser(closer io.Closer, err *error) {
+	UpdateErrorFromCall(closer.Close, err)
 }

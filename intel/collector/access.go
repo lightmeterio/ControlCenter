@@ -6,7 +6,10 @@ package collector
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"gitlab.com/lightmeter/controlcenter/intel/receptor"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
@@ -25,7 +28,8 @@ type Accessor struct {
 }
 
 const (
-	lastReportsQuery = iota
+	lastReportsQuery   = iota
+	statusMessageQuery = iota
 )
 
 func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
@@ -41,6 +45,17 @@ func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 			return errorutil.Wrap(err)
 		}
 
+		//nolint:sqlclosecheck
+		if err := conn.PrepareStmt(`
+			select content
+			from events
+			where content_type = 'notification'
+			order by id desc
+			limit 1
+		`, statusMessageQuery); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}); err != nil {
 		return nil, errorutil.Wrap(err)
@@ -49,7 +64,7 @@ func NewAccessor(pool *dbconn.RoPool) (*Accessor, error) {
 	return &Accessor{pool: pool}, nil
 }
 
-func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]DispatchedReport, error) {
+func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) (reports []DispatchedReport, err error) {
 	conn, release, err := intelAccessor.pool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -64,11 +79,7 @@ func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]Disp
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(r.Close())
-	}()
-
-	reports := []DispatchedReport{}
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	for r.Next() {
 		var (
@@ -97,5 +108,40 @@ func (intelAccessor *Accessor) GetDispatchedReports(ctx context.Context) ([]Disp
 		})
 	}
 
+	if err := r.Err(); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	return reports, nil
+}
+
+func (intelAccessor *Accessor) GetStatusMessage(ctx context.Context) (*receptor.Event, error) {
+	conn, release, err := intelAccessor.pool.AcquireContext(ctx)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	var (
+		content string
+		event   receptor.Event
+	)
+
+	//nolint:sqlclosecheck
+	err = conn.GetStmt(statusMessageQuery).QueryRowContext(ctx).Scan(&content)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err := json.Unmarshal([]byte(content), &event); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &event, nil
 }

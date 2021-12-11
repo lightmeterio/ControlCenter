@@ -54,7 +54,7 @@ func TestDnsRBL(t *testing.T) {
 		Convey("An IP address is defined", func() {
 			{
 				settings := globalsettings.Settings{
-					LocalIP: net.ParseIP("11.22.33.44"),
+					LocalIP: globalsettings.IP{net.ParseIP("11.22.33.44")},
 				}
 
 				meta.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)

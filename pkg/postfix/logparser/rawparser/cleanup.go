@@ -7,15 +7,16 @@ package rawparser
 func init() {
 	registerHandler("postfix", "sender-cleanup/cleanup", parseCleanup)
 	registerHandler("postfix", "cleanup", parseCleanup)
+	registerHandler("postfix", "submission/cleanup", parseCleanup)
 }
 
 type CleanupMessageAccepted struct {
-	Queue     []byte
-	MessageId []byte
+	Queue     string
+	MessageId string
 	Corrupted bool
 }
 
-func parseCleanup(payloadLine []byte) (RawPayload, error) {
+func parseCleanup(payloadLine string) (RawPayload, error) {
 	if s, parsed := parseCleanupMessageAccepted(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:           PayloadTypeCleanupMessageAccepted,
@@ -34,6 +35,6 @@ func parseCleanup(payloadLine []byte) (RawPayload, error) {
 }
 
 type CleanupMilterReject struct {
-	Queue        []byte
-	ExtraMessage []byte
+	Queue        string
+	ExtraMessage string
 }

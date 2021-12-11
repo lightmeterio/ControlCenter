@@ -24,7 +24,7 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	var settings Settings
 
 	err := reader.RetrieveJson(ctx, SettingKey, &settings)

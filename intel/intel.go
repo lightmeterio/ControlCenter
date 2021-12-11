@@ -12,18 +12,24 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
-	"gitlab.com/lightmeter/controlcenter/insights/core"
+	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	intelConnectionStats "gitlab.com/lightmeter/controlcenter/intel/connectionstats"
+	"gitlab.com/lightmeter/controlcenter/intel/core"
 	"gitlab.com/lightmeter/controlcenter/intel/insights"
 	"gitlab.com/lightmeter/controlcenter/intel/logslinecount"
 	"gitlab.com/lightmeter/controlcenter/intel/mailactivity"
+	"gitlab.com/lightmeter/controlcenter/intel/receptor"
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"io"
 	"net/http"
@@ -42,11 +48,7 @@ func isSchedFileContentInsideContainer(r SchedFileReader) (insideContainer bool,
 		return false, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if cErr := f.Close(); cErr != nil && err == nil {
-			err = cErr
-		}
-	}()
+	defer errorutil.UpdateErrorFromCloser(f, &err)
 
 	scanner := bufio.NewScanner(f)
 
@@ -101,7 +103,7 @@ type Dispatcher struct {
 	InstanceID           string
 	VersionBuilder       func() Version
 	ReportDestinationURL string
-	SettingsReader       *metadata.Reader
+	SettingsReader       metadata.Reader
 	Auth                 auth.Registrar
 	SchedFileReader      SchedFileReader
 	IsUsingRsyncedLogs   bool
@@ -221,7 +223,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	}()
 
 	localIP := func() *string {
-		if settings.LocalIP != nil {
+		if settings.LocalIP.IP != nil {
 			return addr(settings.LocalIP.String())
 		}
 
@@ -278,6 +280,8 @@ type Options struct {
 
 	ReportDestinationURL string
 
+	EventsDestinationURL string
+
 	// whether the postfix logs are being received via rsync
 	IsUsingRsyncedLogs bool
 }
@@ -286,9 +290,9 @@ func DefaultVersionBuilder() Version {
 	return Version{Version: version.Version, TagOrBranch: version.TagOrBranch, Commit: version.Commit}
 }
 
-func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core.Fetcher,
-	settingsReader *metadata.Reader, auth *auth.Auth, connStatsPool *dbconn.RoPool,
-	options Options) (*collector.Collector, *logslinecount.Publisher, error) {
+func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insightscore.Fetcher,
+	settingsReader metadata.Reader, auth auth.Registrar, connStatsPool *dbconn.RoPool,
+	options Options) (*Runner, *logslinecount.Publisher, blockedips.Checker, error) {
 	logslinePublisher := logslinecount.NewPublisher()
 
 	reporters := collector.Reporters{
@@ -299,7 +303,7 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core
 		intelConnectionStats.NewReporter(connStatsPool),
 	}
 
-	collectorOptions := collector.Options{
+	coreOptions := core.Options{
 		CycleInterval:  options.CycleInterval,
 		ReportInterval: options.ReportInterval,
 	}
@@ -314,10 +318,33 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher core
 		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
 	}
 
-	c, err := collector.New(intelDb, collectorOptions, reporters, dispatcher)
+	dbRunner := core.NewRunner(intelDb.RwConn, coreOptions)
+
+	c, err := collector.New(dbRunner.Actions, coreOptions, reporters, dispatcher)
 	if err != nil {
-		return nil, nil, errorutil.Wrap(err)
+		return nil, nil, nil, errorutil.Wrap(err)
 	}
 
-	return c, logslinePublisher, nil
+	receptorOptions := receptor.Options{
+		PollInterval:              1 * time.Minute,
+		InstanceID:                options.InstanceID,
+		BruteForceInsightListSize: 100,
+	}
+
+	requester := &receptor.HTTPRequester{URL: options.EventsDestinationURL, Timeout: 2000 * time.Millisecond}
+
+	r, err := receptor.New(dbRunner.Actions, intelDb.RoConnPool, requester, receptorOptions, &timeutil.RealClock{})
+	if err != nil {
+		return nil, nil, nil, errorutil.Wrap(err)
+	}
+
+	return &Runner{
+		Closers:           closeutil.New(c, r),
+		CancellableRunner: runner.NewDependantPairCancellableRunner(runner.NewCombinedCancellableRunners(c, r), dbRunner),
+	}, logslinePublisher, r, nil
+}
+
+type Runner struct {
+	closeutil.Closers
+	runner.CancellableRunner
 }

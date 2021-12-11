@@ -57,7 +57,6 @@ func TestMain(t *testing.T) {
 			WorkspaceDirectory: wsDir,
 			DirToWatch:         path.Join(logsDir, "logs_sample"),
 			ImportOnly:         true,
-			Verbose:            true,
 			LogFormat:          "default",
 		}
 
@@ -86,7 +85,8 @@ func TestMain(t *testing.T) {
 			done, cancel := runner.Run(ws)
 
 			// Won't reimport the logs
-			reader.Run()
+			err = reader.Run()
+			So(err, ShouldBeNil)
 
 			// Request insight to be created
 			ws.DetectiveEscalationRequester().Request(escalator.Request{

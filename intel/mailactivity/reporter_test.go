@@ -6,6 +6,7 @@ package mailactivity
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -206,7 +207,7 @@ func TestReporters(t *testing.T) {
 
 		dispatcher := &fakeDispatcher{}
 
-		err := intelDb.RwConn.Tx(func(tx *sql.Tx) error {
+		err := intelDb.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			clock.Sleep(10 * time.Minute)
 			err := reporter.Step(tx, clock)
 			So(err, ShouldBeNil)

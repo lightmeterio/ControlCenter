@@ -20,7 +20,15 @@ import (
 
 // We keep store in a database all the basic statistics (number and type of smtp commands)
 // provided by Postfix on all connections that sent the AUTH command on the ports used by MUAs.
-// There is no need to to that on the port 25, as it's used by other MTUs only.
+// There is no need to to that on the port 25, as it's used by other MTAs only.
+
+type Protocol int
+
+const (
+	// NOTE: those values are stored in the database, so please do not change existing ones!
+	ProtocolSMTP = 0
+	ProtocolIMAP = 1
+)
 
 type Command int
 
@@ -31,6 +39,8 @@ func (c Command) MarshalText() ([]byte, error) {
 const (
 	// NOTE: we make the values explicit as they are stored in the database.
 	// Changing them is a breaking change!
+
+	// postfix/smtp commands from here:
 	UnknownCommand  Command = 0
 	AuthCommand     Command = 1
 	BdatCommand     Command = 2
@@ -47,6 +57,13 @@ const (
 	EtrnCommand     Command = 13
 	XclientCommand  Command = 14
 	XforwardCommand Command = 15
+
+	// dovecot commands from here
+
+	// those are actually fake commands, as we do
+	// not support getting the "raw" IMAP commands
+	DovecotAuthCommand  Command = 50
+	DovecotBlockCommand Command = 51
 
 	UnsupportedCommand = 999
 )
@@ -85,6 +102,10 @@ func commandAsString(c Command) string {
 		return "xclient"
 	case XforwardCommand:
 		return "xforward"
+	case DovecotAuthCommand:
+		return "dovecot_auth"
+	case DovecotBlockCommand:
+		return "dovecot_block"
 	}
 
 	return "unsupported"
@@ -126,6 +147,10 @@ func buildCommand(s string) (Command, error) {
 		return XclientCommand, nil
 	case "xforward":
 		return XforwardCommand, nil
+	case "dovecot_auth":
+		return DovecotAuthCommand, nil
+	case "dovecot_block":
+		return DovecotBlockCommand, nil
 	}
 
 	return UnsupportedCommand, ErrCommandNotSupported
@@ -137,10 +162,10 @@ type publisher struct {
 	actions chan<- dbAction
 }
 
-func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
+func buildSmtpAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
 		//nolint:sqlclosecheck
-		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP)
+		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP, ProtocolSMTP)
 		if err != nil {
 			return errorutil.Wrap(err, record.Location)
 		}
@@ -172,6 +197,36 @@ func buildAction(record postfix.Record, payload parser.SmtpdDisconnect) dbAction
 	}
 }
 
+func buildDovecotCommand(p parser.DovecotAuthFailed) Command {
+	if p.Reason == parser.DovecotAuthFailedReasonAuthPolicyRefusal {
+		return DovecotBlockCommand
+	}
+
+	return DovecotAuthCommand
+}
+
+func buildDovecotAction(record postfix.Record, payload parser.DovecotAuthFailed) dbAction {
+	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) error {
+		//nolint:sqlclosecheck
+		r, err := stmts.Get(insertDisconnectKey).Exec(record.Time.Unix(), payload.IP, ProtocolIMAP)
+		if err != nil {
+			return errorutil.Wrap(err, record.Location)
+		}
+
+		connectionId, err := r.LastInsertId()
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		//nolint:sqlclosecheck
+		if _, err := stmts.Get(insertCommandStatKey).Exec(connectionId, buildDovecotCommand(payload), 0, 1); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+}
+
 const (
 	insertDisconnectKey = iota
 	insertCommandStatKey
@@ -183,7 +238,7 @@ const (
 )
 
 var stmtsText = map[int]string{
-	insertDisconnectKey:  `insert into connections(disconnection_ts, ip) values(?, ?)`,
+	insertDisconnectKey:  `insert into connections(disconnection_ts, ip, protocol) values(?, ?, ?)`,
 	insertCommandStatKey: `insert into commands(connection_id, cmd, success, total) values(?, ?, ?, ?)`,
 	selectOldLogsKey: `with time_cut as (
 		select
@@ -204,24 +259,29 @@ var stmtsText = map[int]string{
 }
 
 func (pub *publisher) Publish(r postfix.Record) {
-	p, isDisconnect := r.Payload.(parser.SmtpdDisconnect)
+	switch p := r.Payload.(type) {
+	case parser.SmtpdDisconnect:
+		if p.IP == nil {
+			return
+		}
 
-	if !isDisconnect {
-		return
-	}
+		// NOTE: we want to store statistics of connections that tried, either successfully or not, to authenticate
+		if _, ok := p.Stats[commandAsString(AuthCommand)]; ok {
+			pub.actions <- buildSmtpAction(r, p)
+		}
+	case parser.DovecotAuthFailed:
+		failed := p.Reason == parser.DovecotAuthFailedReasonUnknownUser ||
+			p.Reason == parser.DovecotAuthFailedReasonPasswordMismatch ||
+			p.Reason == parser.DovecotAuthFailedReasonAuthPolicyRefusal
 
-	if p.IP == nil {
-		return
-	}
-
-	// NOTE: we want to store statistics of connections that tried, either successfully or not, to authenticate
-	if _, ok := p.Stats[commandAsString(AuthCommand)]; ok {
-		pub.actions <- buildAction(r, p)
+		if failed {
+			pub.actions <- buildDovecotAction(r, p)
+		}
 	}
 }
 
 type Stats struct {
-	dbrunner.Runner
+	*dbrunner.Runner
 	closeutil.Closers
 
 	conn *dbconn.PooledPair
@@ -243,7 +303,7 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
 		Closers: closeutil.New(stmts),
 	}, nil
 }

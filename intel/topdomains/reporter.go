@@ -77,16 +77,13 @@ func fillDomains(conn *dbconn.RoPooledConn, query string, args []interface{}, di
 
 	argsWithDirection := append([]interface{}{int64(direction)}, args...)
 
+	//nolint:sqlclosecheck
 	r, err := conn.Query(query, argsWithDirection...)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		if cErr := r.Close(); cErr != nil && err == nil {
-			err = errorutil.Wrap(err)
-		}
-	}()
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	for r.Next() {
 		var (

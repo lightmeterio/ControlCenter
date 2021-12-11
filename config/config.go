@@ -5,6 +5,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -12,33 +13,41 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
 // nolint: maligned
 type Config struct {
-	ShouldWatchFromStdin      bool
-	WorkspaceDirectory        string
-	ImportOnly                bool
-	RsyncedDir                bool
-	MigrateDownToOnly         bool
-	MigrateDownToVersion      int
-	MigrateDownToDatabaseName string
-	ShowVersion               bool
-	DirToWatch                string
-	LogPatterns               []string
-	Address                   string
-	Verbose                   bool
-	Timezone                  *time.Location
-	LogYear                   int
-	Socket                    string
-	LogFormat                 string
+	ShouldWatchFromStdin bool
+	WorkspaceDirectory   string
+	ImportOnly           bool
+	RsyncedDir           bool
+	ShowVersion          bool
+	DirToWatch           string
+	LogPatterns          []string
+	Address              string
+	LogLevel             zerolog.Level
+	Timezone             *time.Location
+	LogYear              int
+	Socket               string
+	LogFormat            string
 
 	EmailToChange          string
 	PasswordToReset        string
 	ChangeUserInfoNewEmail string
 	ChangeUserInfoNewName  string
+
+	// set it when control center is **NOT** behind a reverse proxy,
+	// being accessed directly, on plain HTTP (as on 2.0)
+	IKnowWhatIAmDoingNotUsingAReverseProxy bool
+
+	DefaultSettings        metadata.DefaultValues
+	RegisteredUserName     string
+	RegisteredUserEmail    string
+	RegisteredUserPassword string
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -46,7 +55,7 @@ func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config,
 }
 
 func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string, bool), errorHandling flag.ErrorHandling) (Config, error) {
-	var conf Config
+	conf := Config{DefaultSettings: metadata.DefaultValues{}}
 	conf.Timezone = time.UTC
 
 	// new flagset to be able to call ParseFlags any number of times
@@ -68,12 +77,6 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync", b, "Log directory is updated by rsync")
 
-	fs.BoolVar(&conf.MigrateDownToOnly, "migrate_down_to_only", false,
-		"Only migrates down")
-	fs.StringVar(&conf.MigrateDownToDatabaseName, "migrate_down_to_database", "", "Database name only for migration")
-
-	fs.IntVar(&conf.MigrateDownToVersion, "migrate_down_to_version", -1, "Specify the new migration version")
-
 	logYear, err := lookupEnvOrInt("LIGHTMETER_LOGS_STARTING_YEAR", 0, lookupenv)
 	if err != nil {
 		return conf, err
@@ -92,12 +95,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
 
-	b, err = lookupEnvOrBool("LIGHTMETER_VERBOSE", false, lookupenv)
-	if err != nil {
-		return conf, err
-	}
+	var stringLogLevel = "INFO"
 
-	fs.BoolVar(&conf.Verbose, "verbose", b, "Be Verbose")
+	fs.StringVar(&stringLogLevel, "log_level",
+		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
+		"Log level (DEBUG, INFO, WARN, or ERROR. Default: INFO)")
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
 	fs.StringVar(&conf.PasswordToReset, "password", "", "Password to reset (requires -email_reset)")
@@ -113,10 +115,27 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		lookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
 
+	var unparsedDefaultSettings string
+
+	fs.StringVar(&unparsedDefaultSettings, "default_settings", lookupEnvOrString("LIGHTMETER_DEFAULT_SETTINGS", `{}`, lookupenv), "JSON string for default settings")
+
 	var unparsedLogPatterns string
 
 	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", lookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
 		`An optional colon separated list of the base filenames for the Postfix log files. Example: "mail.log:mail.err:mail.log" or "maillog"`)
+
+	proxyConf, err := lookupEnvOrBool("LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY", false, lookupenv)
+	if err != nil {
+		return conf, err
+	}
+
+	fs.BoolVar(&conf.IKnowWhatIAmDoingNotUsingAReverseProxy, "i_know_what_am_doing_not_using_a_reverse_proxy",
+		proxyConf, "Used when you are accessing the application without a reverse proxy (e.g. apache2, nginx or traefik), "+
+			"which is unsupported by us at the moment and might lead to security issues")
+
+	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
+	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
+	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
 
 	fs.Usage = func() {
 		version.PrintVersion()
@@ -127,6 +146,18 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}
 
 	if err := fs.Parse(cmdlineArgs); err != nil {
+		return Config{}, errorutil.Wrap(err)
+	}
+
+	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
+	if err != nil {
+		return conf, err
+	}
+
+	d := json.NewDecoder(strings.NewReader(unparsedDefaultSettings))
+	d.UseNumber()
+
+	if err := d.Decode(&conf.DefaultSettings); err != nil {
 		return Config{}, errorutil.Wrap(err)
 	}
 

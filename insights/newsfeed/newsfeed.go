@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -105,13 +106,11 @@ func descForItem(item *gofeed.Item) (string, error) {
 }
 
 type detector struct {
+	closeutil.Closers
+
 	creator core.Creator
 	options Options
 	parser  *gofeed.Parser
-}
-
-func (*detector) Close() error {
-	return nil
 }
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
@@ -125,7 +124,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 
 	parser.RSSTranslator = &rssTranslator{defaultTranslator: &gofeed.DefaultRSSTranslator{}}
 
-	return &detector{creator: creator, options: detectorOptions, parser: parser}
+	return &detector{creator: creator, options: detectorOptions, parser: parser, Closers: closeutil.New()}
 }
 
 // TODO: refactor this function to be reused across different insights instead of copy&pasted
@@ -310,17 +309,14 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 	return nil
 }
 
-// rowserrcheck is not able to notice that query.Err() is called and emits a false positive warning
-//nolint:rowserrcheck
-func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string, timeLimit time.Time) (bool, error) {
+func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string, timeLimit time.Time) (exists bool, err error) {
+	//nolint:sqlclosecheck
 	rows, err := tx.QueryContext(context, `select content from insights where content_type = ? and time >= ?`, ContentTypeId, timeLimit.Unix())
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(rows.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	for rows.Next() {
 		var rawContent string
@@ -342,8 +338,7 @@ func insightAlreadyExists(context context.Context, tx *sql.Tx, guid string, time
 		}
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return false, errorutil.Wrap(err)
 	}
 

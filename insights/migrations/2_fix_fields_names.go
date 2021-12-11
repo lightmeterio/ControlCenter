@@ -25,8 +25,6 @@ func init() {
 	migrator.AddMigration("insights", "2_fix_fields_names.go", upFixNames, downFixNames)
 }
 
-// rowserrcheck is not able to check I call rows.Err() :-(
-// nolint:rowserrcheck
 func updateContent(tx *sql.Tx, fixup func(string) string) (err error) {
 	rows, err := tx.Query(`select rowid, time, content from insights`)
 	if err != nil {
@@ -74,8 +72,7 @@ func updateContent(tx *sql.Tx, fixup func(string) string) (err error) {
 		}
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return errorutil.Wrap(err)
 	}
 

@@ -21,6 +21,7 @@ const (
 	PayloadTypePickup
 	PayloadTypeCleanupMilterReject
 	PayloadTypeVersion
+	PayloadTypeDovecotAuthFailedWithReason
 
 	// types for SmtpMessageStatus extra message
 	PayloadTypeSmtpMessageStatusSentQueued

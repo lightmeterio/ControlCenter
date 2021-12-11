@@ -61,7 +61,7 @@ func (p *disabledFromSettingsPolicy) Reject(core.Notification) (bool, error) {
 	return !s.Enabled, nil
 }
 
-func New(policy core.Policy, reader *metadata.Reader) *Notifier {
+func New(policy core.Policy, reader metadata.Reader) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
@@ -211,7 +211,7 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	settings := &Settings{}
 
 	err := reader.RetrieveJson(ctx, SettingKey, settings)

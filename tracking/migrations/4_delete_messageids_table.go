@@ -24,14 +24,10 @@ func init() {
 }
 
 func migrateMessageIdTables(tx *sql.Tx) (err error) {
-	//nolint:rowserrcheck
+	//nolint:sqlclosecheck
 	rows, err := tx.Query(`select id, messageid_id from queues where messageid_id is not null`)
 
-	defer func() {
-		if cErr := rows.Close(); cErr != nil {
-			err = cErr
-		}
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	for rows.Next() {
 		var (

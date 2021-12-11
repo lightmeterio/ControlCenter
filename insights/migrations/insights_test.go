@@ -59,16 +59,12 @@ func init() {
 
 func TestDatabaseMigrationUp(t *testing.T) {
 	Convey("Migration succeeds", t, func() {
-		connPair, clear := testutil.TempDBConnection(t, "insights.db")
+		connPair, clear := testutil.TempDBConnectionMigrated(t, "insights")
 		defer clear()
 
 		Convey("Test json names fixup", func() {
-			// Initial setup
-			err := migrator.Run(connPair.RwConn.DB, "insights")
-			So(err, ShouldBeNil)
-
 			// Then migrate back to version 1, before fixing the json values
-			err = migrator.DownTo(connPair.RwConn.DB, 1, "insights")
+			err := migrator.DownTo(connPair.RwConn.DB, 1, "insights")
 			So(err, ShouldBeNil)
 
 			{
@@ -93,7 +89,7 @@ func TestDatabaseMigrationUp(t *testing.T) {
 			}
 
 			// Then migrate up again
-			err = migrator.Run(connPair.RwConn.DB, "insights")
+			err = migrator.Up(connPair.RwConn.DB, "insights")
 			So(err, ShouldBeNil)
 
 			conn, release := connPair.RoConnPool.Acquire()

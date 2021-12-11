@@ -26,7 +26,6 @@ func init() {
 	migrator.AddMigration("master", "4_rename_postfix_ip_setting.go", upFixNames, downFixNames)
 }
 
-// rowserrcheck is not able to check I call rows.Err() :-(
 func updateContent(tx *sql.Tx, fixup func(string) string) (err error) {
 	var value string
 

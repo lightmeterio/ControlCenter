@@ -33,6 +33,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
+	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/closeutil"
@@ -47,13 +48,15 @@ type Workspace struct {
 	closeutil.Closers
 
 	deliveries              *deliverydb.DB
+	rawLogs                 *rawlogsdb.DB
 	tracker                 *tracking.Tracker
 	connStats               *connectionstats.Stats
 	insightsEngine          *insights.Engine
-	auth                    *auth.Auth
+	insightsFetcher         insightsCore.Fetcher
+	auth                    auth.RegistrarWithSessionKeys
 	rblDetector             *messagerbl.Detector
 	rblChecker              localrbl.Checker
-	intelCollector          *collector.Collector
+	intelRunner             *intel.Runner
 	logsLineCountPublisher  postfix.Publisher
 	postfixVersionPublisher postfixversion.Publisher
 
@@ -69,6 +72,8 @@ type Workspace struct {
 	importAnnouncer         *announcer.SynchronizingAnnouncer
 	connectionStatsAccessor *connectionstats.Accessor
 	intelAccessor           *collector.Accessor
+
+	databases databases
 }
 
 type databases struct {
@@ -81,6 +86,7 @@ type databases struct {
 	Logs           *dbconn.PooledPair
 	LogTracker     *dbconn.PooledPair
 	Master         *dbconn.PooledPair
+	RawLogs        *dbconn.PooledPair
 }
 
 func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
@@ -100,10 +106,14 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 
 type Options struct {
 	IsUsingRsyncedLogs bool
+	DefaultSettings    metadata.DefaultValues
+	AuthOptions        auth.Options
 }
 
 var DefaultOptions = &Options{
 	IsUsingRsyncedLogs: false,
+	DefaultSettings:    metadata.DefaultValues{},
+	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
 }
 
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
@@ -128,6 +138,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		{"logs", &allDatabases.Logs},
 		{"logtracker", &allDatabases.LogTracker},
 		{"master", &allDatabases.Master},
+		{"rawlogs", &allDatabases.RawLogs},
 	} {
 		db, err := newDb(workspaceDirectory, s.name)
 
@@ -141,7 +152,6 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -151,13 +161,17 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	auth, err := auth.NewAuth(allDatabases.Auth, auth.Options{})
-
+	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	m, err := metadata.NewHandler(allDatabases.Master)
+	auth, err := auth.NewAuth(allDatabases.Auth, options.AuthOptions)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -223,10 +237,37 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
+	insightsFetcher, err := insightsCore.NewFetcher(allDatabases.Insights.RoConnPool)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	intelOptions := intel.Options{
+		InstanceID:           instanceID,
+		CycleInterval:        time.Second * 30,
+		ReportInterval:       time.Minute * 30,
+		ReportDestinationURL: IntelReportDestinationURL,
+		EventsDestinationURL: IntelEventsDestinationURL,
+		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
+	}
+
+	intelRunner, logsLineCountPublisher, blockedipsChecker, err := intel.New(
+		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsFetcher,
+		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
 	insightsEngine, err := insights.NewEngine(
 		insightsAccessor,
+		insightsFetcher,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, blockedipsChecker))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -241,28 +282,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	intelOptions := intel.Options{
-		InstanceID:           instanceID,
-		CycleInterval:        time.Second * 30,
-		ReportInterval:       time.Minute * 30,
-		ReportDestinationURL: IntelReportDestinationURL,
-		IsUsingRsyncedLogs:   options.IsUsingRsyncedLogs,
-	}
-
-	intelCollector, logsLineCountPublisher, err := intel.New(
-		allDatabases.IntelCollector, allDatabases.Logs.RoConnPool, insightsEngine.Fetcher(),
-		m.Reader, auth, allDatabases.Connections.RoConnPool, intelOptions)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	intelAccessor, err := collector.NewAccessor(allDatabases.IntelCollector.RoConnPool)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	logsRunner := newLogsRunner(tracker, deliveries)
+	logsRunner := runner.NewDependantPairCancellableRunner(tracker, deliveries)
 
 	importAnnouncer := announcer.NewSynchronizingAnnouncer(insightsEngine.ImportAnnouncer(), deliveries.MostRecentLogTime, tracker.MostRecentLogTime)
 
@@ -278,8 +298,10 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 
 	return &Workspace{
 		deliveries:              deliveries,
+		rawLogs:                 rawLogsDb,
 		tracker:                 tracker,
 		insightsEngine:          insightsEngine,
+		insightsFetcher:         insightsFetcher,
 		connStats:               connStats,
 		auth:                    auth,
 		rblDetector:             rblDetector,
@@ -290,27 +312,29 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		settingsMetaHandler:     m,
 		settingsRunner:          settingsRunner,
 		importAnnouncer:         importAnnouncer,
-		intelCollector:          intelCollector,
+		intelRunner:             intelRunner,
 		intelAccessor:           intelAccessor,
 		logsLineCountPublisher:  logsLineCountPublisher,
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
+		databases:               allDatabases,
 		Closers: closeutil.New(
 			connStats,
 			deliveries,
+			rawLogsDb,
 			tracker,
 			insightsEngine,
-			intelCollector,
+			intelRunner,
 			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
 		CancellableRunner: runner.NewCombinedCancellableRunners(
 			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
-			intelCollector, connStats, rblCheckerCancellableRunner),
+			intelRunner, connStats, rblCheckerCancellableRunner, rawLogsDb),
 	}, nil
 }
 
-func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, *metadata.Reader) {
+func (ws *Workspace) SettingsAcessors() (*metadata.AsyncWriter, metadata.Reader) {
 	return ws.settingsRunner.Writer(), ws.settingsMetaHandler.Reader
 }
 
@@ -319,7 +343,7 @@ func (ws *Workspace) InsightsEngine() *insights.Engine {
 }
 
 func (ws *Workspace) InsightsFetcher() insightsCore.Fetcher {
-	return ws.insightsEngine.Fetcher()
+	return ws.insightsFetcher
 }
 
 func (ws *Workspace) InsightsProgressFetcher() insightsCore.ProgressFetcher {
@@ -347,13 +371,13 @@ func (ws *Workspace) DetectiveEscalationRequester() escalator.Requester {
 }
 
 func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
-	mostRecentTime, err := ws.MostRecentLogTime()
+	sum, err := ws.MostRecentLogTimeAndSum()
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	// first execution. Must import historical insights
-	if mostRecentTime.IsZero() {
+	if sum.Time.IsZero() {
 		return ws.importAnnouncer, nil
 	}
 
@@ -361,27 +385,40 @@ func (ws *Workspace) ImportAnnouncer() (announcer.ImportAnnouncer, error) {
 	return announcer.Skipper(ws.importAnnouncer), nil
 }
 
-func (ws *Workspace) Auth() *auth.Auth {
+func (ws *Workspace) Auth() auth.RegistrarWithSessionKeys {
 	return ws.auth
 }
 
-func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
+func (ws *Workspace) MostRecentLogTimeAndSum() (postfix.SumPair, error) {
 	mostRecentDeliverTime, err := ws.deliveries.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
 	mostRecentTrackerTime, err := ws.tracker.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
 	mostRecentConnStatsTime, err := ws.connStats.MostRecentLogTime()
 	if err != nil {
-		return time.Time{}, errorutil.Wrap(err)
+		return postfix.SumPair{}, errorutil.Wrap(err)
 	}
 
-	times := []time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
+	rawLogsSum, err := rawlogsdb.MostRecentLogTimeAndSum(context.Background(), ws.databases.RawLogs.RoConnPool)
+	if err != nil {
+		return postfix.SumPair{}, errorutil.Wrap(err)
+	}
+
+	// if raw logs has any logs, just use it
+	if rawLogsSum.Sum != nil {
+		return rawLogsSum, nil
+	}
+
+	// In case we have no raw logs unavailable yet (the first execution after rawlogsdb is introduced),
+	// try the old way to compute the most recent time from the other databases
+
+	times := [3]time.Time{mostRecentConnStatsTime, mostRecentTrackerTime, mostRecentDeliverTime}
 
 	mostRecent := time.Time{}
 
@@ -391,7 +428,7 @@ func (ws *Workspace) MostRecentLogTime() (time.Time, error) {
 		}
 	}
 
-	return mostRecent, nil
+	return postfix.SumPair{Time: mostRecent, Sum: nil}, nil
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
@@ -401,9 +438,14 @@ func (ws *Workspace) NewPublisher() postfix.Publisher {
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
+		ws.rawLogs.Publisher(),
 	}
 }
 
 func (ws *Workspace) HasLogs() bool {
 	return ws.deliveries.HasLogs()
+}
+
+func (ws *Workspace) RawLogsAccessor() rawlogsdb.Accessor {
+	return rawlogsdb.NewAccessor(ws.databases.RawLogs.RoConnPool)
 }

@@ -12,22 +12,20 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) error {
+func collectKeyValueResult(result *Result, stmt *sql.Stmt, args ...interface{}) (err error) {
 	var (
 		id    int64
 		key   int
 		value interface{}
 	)
 
-	//nolint:rowserrcheck
+	//nolint:sqlclosecheck
 	rows, err := stmt.Query(args...)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(rows.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	for rows.Next() {
 		err = rows.Scan(&id, &key, &value)
@@ -114,16 +112,14 @@ func tryToDeleteQueueNotIgnoringErrors(trackerStmts dbconn.TxPreparedStmts, queu
 	return true, nil
 }
 
-func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
-	//nolint:rowserrcheck,sqlclosecheck
+func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) (err error) {
+	//nolint:sqlclosecheck
 	rows, err := trackerStmts.Get(selectQueueFromParentingNewQueue).Query(queueId)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(rows.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	var (
 		dependencyQueueId int64
@@ -148,8 +144,7 @@ func deleteQueueRec(trackerStmts dbconn.TxPreparedStmts, queueId int64) error {
 		}
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return errorutil.Wrap(err)
 	}
 

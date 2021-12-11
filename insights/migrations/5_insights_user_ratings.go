@@ -16,13 +16,13 @@ func init() {
 
 func upRatings(tx *sql.Tx) error {
 	sql := `
-		create table if not exists insights_user_ratings(
+		create table insights_user_ratings(
 			insight_type integer not null,
 			rating integer not null,
 			timestamp integer not null
 		);
 
-		create index if not exists insights_user_ratings_insight_type on insights_user_ratings(insight_type); 
+		create index insights_user_ratings_insight_type on insights_user_ratings(insight_type); 
 `
 
 	_, err := tx.Exec(sql)
@@ -34,5 +34,6 @@ func upRatings(tx *sql.Tx) error {
 }
 
 func downRatings(tx *sql.Tx) error {
-	return nil
+	_, err := tx.Exec(`drop table insights_user_ratings`)
+	return err
 }
