@@ -16,9 +16,18 @@ const (
 	SettingKey = "global"
 )
 
+type IP struct {
+	net.IP
+}
+
+func (t *IP) MergoFromString(s string) error {
+	t.IP = net.ParseIP(s)
+	return nil
+}
+
 type Settings struct {
-	LocalIP     net.IP `json:"postfix_public_ip"`
-	APPLanguage string `json:"app_language"`
+	LocalIP     IP     `json:"postfix_public_ip"`
+	AppLanguage string `json:"app_language"`
 	PublicURL   string `json:"public_url"`
 }
 
@@ -27,10 +36,10 @@ type IPAddressGetter interface {
 }
 
 type MetaReaderGetter struct {
-	meta *metadata.Reader
+	meta metadata.Reader
 }
 
-func New(m *metadata.Reader) *MetaReaderGetter {
+func New(m metadata.Reader) *MetaReaderGetter {
 	return &MetaReaderGetter{meta: m}
 }
 
@@ -45,7 +54,7 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 		return nil
 	}
 
-	return settings.LocalIP
+	return settings.LocalIP.IP
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
@@ -56,7 +65,7 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 	return nil
 }
 
-func GetSettings(ctx context.Context, reader *metadata.Reader) (*Settings, error) {
+func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	var settings Settings
 
 	err := reader.RetrieveJson(ctx, SettingKey, &settings)

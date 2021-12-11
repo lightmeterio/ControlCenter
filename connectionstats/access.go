@@ -48,13 +48,12 @@ where
 
 		if err := conn.PrepareStmt(`
 select
-	ip, disconnection_ts as ts, success, total
+	ip, cmd, disconnection_ts as ts, success, total
 from
 	connections join commands
 		on commands.connection_id = connections.id
 where
-	ts between ? and ? and commands.cmd = ?
-	-- and commands.success != commands.total -- returns only attempts that failed
+	ts between ? and ? and commands.cmd in (?, ?, ?)
 order by
 	ts`, retrieveQuery); err != nil {
 			return errorutil.Wrap(err)
@@ -68,7 +67,7 @@ order by
 	return &Accessor{pool: pool}, nil
 }
 
-func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (AccessResult, error) {
+func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.TimeInterval) (result AccessResult, err error) {
 	conn, release, err := a.pool.AcquireContext(ctx)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
@@ -84,15 +83,16 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 	}
 
 	//nolint:sqlclosecheck
-	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand)
+	rows, err := conn.GetStmt(retrieveQuery).QueryContext(ctx, interval.From.Unix(), interval.To.Unix(), AuthCommand, DovecotAuthCommand, DovecotBlockCommand)
 	if err != nil {
 		return AccessResult{}, errorutil.Wrap(err)
 	}
 
-	defer rows.Close()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	type rawAttemptDesc struct {
 		time    int64
+		command Command
 		ip      string
 		success int
 		total   int
@@ -105,20 +105,25 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 	for rows.Next() {
 		var (
 			ip      net.IP
+			command Command
 			ts      int64
 			success int
 			total   int
 		)
 
-		if err := rows.Scan(&ip, &ts, &success, &total); err != nil {
+		if err := rows.Scan(&ip, &command, &ts, &success, &total); err != nil {
 			return AccessResult{}, errorutil.Wrap(err)
 		}
 
 		ipAsString := ip.String()
 
-		rawAttempts = append(rawAttempts, rawAttemptDesc{time: ts, ip: ipAsString, success: success, total: total})
+		rawAttempts = append(rawAttempts, rawAttemptDesc{time: ts, ip: ipAsString, command: command, success: success, total: total})
 
 		ipsSet[ipAsString] = struct{}{}
+	}
+
+	if err := rows.Err(); err != nil {
+		return AccessResult{}, errorutil.Wrap(err)
 	}
 
 	ips := make([]string, 0, len(ipsSet))
@@ -140,7 +145,7 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 
 	for _, d := range rawAttempts {
 		index := ipIndexes[d.ip]
-		times = append(times, AttemptDesc{Time: d.time, IPIndex: index, Status: statusFromStats(d.success, d.total)})
+		times = append(times, AttemptDesc{Time: d.time, IPIndex: index, Status: statusFromStats(d.command, d.success, d.total)})
 	}
 
 	return AccessResult{
@@ -149,16 +154,20 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 	}, nil
 }
 
-func statusFromStats(success, total int) string {
+func statusFromStats(command Command, success, total int) string {
 	if success == total && total == 1 {
 		return "ok"
 	}
 
-	if success == 0 {
-		return "failed"
+	if success != 0 {
+		// NOTE: failed a few times, but then succeeded on authenticating.
+		// this might indicate a password being cracked!
+		return "suspicious"
 	}
 
-	// NOTE: failed a few times, but then succeeded on authenticating.
-	// this might indicate a password being cracked!
-	return "suspicious"
+	if command == DovecotBlockCommand {
+		return "blocked"
+	}
+
+	return "failed"
 }

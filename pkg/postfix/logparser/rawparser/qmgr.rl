@@ -10,7 +10,7 @@ package rawparser
 %% machine qmgrReturnedToSender;
 %% write data;
 
-func parseQmgrMessageExpired(data []byte) (QmgrMessageExpired, bool) {
+func parseQmgrMessageExpired(data string) (QmgrMessageExpired, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -50,7 +50,7 @@ func parseQmgrMessageExpired(data []byte) (QmgrMessageExpired, bool) {
 %% machine qmgrMailQueued;
 %% write data;
 
-func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
+func parseQmgrMailQueued(data string) (QmgrMailQueued, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 
@@ -96,7 +96,7 @@ func parseQmgrMailQueued(data []byte) (QmgrMailQueued, bool) {
 %% machine qmgrRemoved;
 %% write data;
 
-func parseQmgrRemoved(data []byte) (QmgrRemoved, bool) {
+func parseQmgrRemoved(data string) (QmgrRemoved, bool) {
 	cs, p, pe, eof := 0, 0, len(data), len(data)
 	tokBeg := 0
 

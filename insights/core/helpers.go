@@ -66,6 +66,16 @@ func IsHistoricalImportRunningFromPool(ctx context.Context, pool *dbconn.RoPool)
 }
 
 func ArchiveInsight(ctx context.Context, tx *sql.Tx, id int64, time time.Time) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `select count(*) from insights_status where insight_id = ?`, id).Scan(&count); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// do nothing if the insight is already archived
+	if count > 0 {
+		return nil
+	}
+
 	if _, err := tx.ExecContext(ctx, "insert into insights_status(insight_id, status, timestamp) values(?, ?, ?)", id, ArchivedCategory, time.Unix()); err != nil {
 		return errorutil.Wrap(err)
 	}

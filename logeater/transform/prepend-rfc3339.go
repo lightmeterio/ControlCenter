@@ -5,11 +5,11 @@
 package transform
 
 import (
-	"bytes"
 	"fmt"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"strings"
 	"time"
 )
 
@@ -19,7 +19,7 @@ type prependRfc3399Transformer struct {
 
 // format: time <space> rawline
 // example: 2021-03-06T06:09:00.798Z Mar  6 07:08:59 melian postfix/qmgr[28829]: A1E1E1880093: removed
-func (t *prependRfc3399Transformer) Transform(line []byte) (postfix.Record, error) {
+func (t *prependRfc3399Transformer) Transform(line string) (postfix.Record, error) {
 	lineNo := t.lineNo
 	t.lineNo++
 
@@ -28,13 +28,13 @@ func (t *prependRfc3399Transformer) Transform(line []byte) (postfix.Record, erro
 		Filename: "unknown",
 	}
 
-	index := bytes.Index(line, []byte(" "))
+	index := strings.Index(line, string(" "))
 
 	if index == -1 {
 		return postfix.Record{}, fmt.Errorf("Error parsing time from line %v", t.lineNo)
 	}
 
-	parsedTime, err := time.Parse(time.RFC3339, string(line[:index]))
+	parsedTime, err := time.Parse(time.RFC3339, line[:index])
 	if err != nil {
 		return postfix.Record{}, errorutil.Wrap(err)
 	}

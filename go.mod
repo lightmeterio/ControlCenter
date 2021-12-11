@@ -18,6 +18,7 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/sessions v1.2.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hlubek/readercomp v0.0.0-20210106164045-ffcdb292b4e8
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.11
@@ -47,3 +48,5 @@ require (
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
+
+replace github.com/imdario/mergo => github.com/leandrosansilva/mergo v0.3.13-0.20211105201457-f87294663ad5

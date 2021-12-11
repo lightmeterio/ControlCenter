@@ -367,10 +367,47 @@ export function postUserRating(type, rating) {
     .catch(builderErrorHandler("insight_user_rating"));
 }
 
-/**** Network Intelligence signals ****/
+/**** Network Intelligence ****/
 
 export function getLatestSignals() {
   let get = axios.get(BASE_URL + "api/v0/reports");
   get.catch(errorHandler);
   return get;
+}
+
+export function getStatusMessage() {
+  return axios
+    .get(BASE_URL + "api/v0/intelstatus")
+    .catch(builderErrorHandler("intelstatus"));
+}
+
+/**** Raw Logs ****/
+
+export function countLogLinesInInterval(selectedDateFrom, selectedDateTo) {
+  const timeIntervalUrlParams = function() {
+    return (
+      "from=" +
+      encodeURIComponent(selectedDateFrom) +
+      "&to=" +
+      encodeURIComponent(selectedDateTo)
+    );
+  };
+
+  return axios
+    .get(
+      BASE_URL +
+        "api/v0/countRawLogLinesInTimeInterval?" +
+        timeIntervalUrlParams()
+    )
+    .catch(errorHandler);
+}
+
+export function linkToRawLogsInInterval(selectedDateFrom, selectedDateTo) {
+  const timeIntervalUrlParams = function() {
+    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
+  };
+
+  return (
+    BASE_URL + "api/v0/fetchRawLogsInTimeInterval?" + timeIntervalUrlParams()
+  );
 }

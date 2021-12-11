@@ -200,7 +200,7 @@ Running headless mode requires building ControlCenter for this purpose:
 
 ```
 make devheadless # Build ControlCenter
-./lightmeter -stdin -verbose --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build)
+./lightmeter -stdin -log-level DEBUG --listen :8003 # Example command to start ControlCenter quickly (same as running a normal build)
 ```
 
 ### Authentication
@@ -235,7 +235,22 @@ For detailed information, check [Usage](cli_usage.md).
 (even if compressed with gzip or bzip2) and waiting new log files that happen after such import.
 To use it, start lightmeter with the argument `-watch_dir /path/to/dir`, which is likely to be `/var/log/mail`.
 Lightmeter won't import such logs again if they have already been imported, in case of a process restart.
-- You can run it behind a reverse http proxy such as Apache httpd or nginx, even on a different path. No extra configuration is needed.
+
+### Reverse proxy and securing the user interface
+
+Control Center has a web based user interface, provided over a ***plain*** HTTP server. It does not ship a HTTP server.
+It's up to you to deploy it behind a HTTP reverse proxy, such as NGINX, Apache HTTPD, H2 or Traefik.
+
+Running behind a reverse proxy does not require any extra configuration, even if Control Center user interface is available
+in a path different from `/`, for instance, on `https://example.com/lightmeter/`.
+
+Control Center assumes that it's running behind a reverse proxy to obtain the user's IP (used for rate limiting requests and prevent some sorts of DOS attacks).
+
+In case you are running Control Center in a private network and do not need to run it behind a reverse proxy, using plain HTTP, you should pass
+an extra argument in the command line `-i_know_what_am_doing_not_using_a_reverse_proxy` or set the environment variable
+`LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY=true`.
+
+###
 
 Currently the following patterns for log files are "watched":
 - mail.log
@@ -253,13 +268,14 @@ For cloud installations of Lightmeter, it may be necessary to set parameters via
 Here are all parameters you can set through environment variables, and their respective command-line equivalents:
 - `LIGHTMETER_WORKSPACE=/path/to/workspace` (`-workspace`)
 - `LIGHTMETER_WATCH_DIR=/var/log` (`-watch_dir`)
-- `LIGHTMETER_VERBOSE=true` (`-verbose`)
+- `LIGHTMETER_LOG_LEVEL=DEBUG` (`-log-level DEBUG`)
 - `LIGHTMETER_LISTEN=localhost:9999` (`-listen`)
 - `LIGHTMETER_LOGS_SOCKET=unix;/path/to/socket.sock` (`-logs_socket`)
 - `LIGHTMETER_LOGS_USE_RSYNC=true` (`-logs_use_rsync`)
 - `LIGHTMETER_LOGS_STARTING_YEAR=2019` (`-log_starting_year`)
 - `LIGHTMETER_LOG_FORMAT=prepend-rfc3339` (`-log_format`)
 - `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.err:mail.warn:zimbra.log:maillog` (`-log_file_patterns`)
+- `LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY=true` (`-i_know_what_am_doing_not_using_a_reverse_proxy`)
 
 ### Rotated files
 

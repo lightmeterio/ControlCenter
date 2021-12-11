@@ -147,6 +147,34 @@ SPDX-License-Identifier: AGPL-3.0-only
       </b-row>
     </b-modal>
 
+    <b-modal
+      ref="modal-blockedips"
+      id="modal-blockedips"
+      size="lg"
+      hide-footer
+      centered
+      :title="blockedIPsWindowTitle()"
+    >
+      <div class="modal-body">
+        <blockedips-insight-content
+          :content="blockedIPsInsight.content"
+        ></blockedips-insight-content>
+      </div>
+
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            class="btn-cancel"
+            variant="outline-danger"
+            @click="hideBlockedIPsListModal"
+          >
+            <!-- prettier-ignore -->
+            <translate>Close</translate>
+          </b-button>
+        </b-col>
+      </b-row>
+    </b-modal>
+
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
@@ -180,8 +208,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               <p
                 v-if="insight.content_type === 'high_bounce_rate'"
                 class="card-text description"
-                v-html="insight.description"
-              ></p>
+              >
+                <span v-html="insight.description"></span>
+                <log-viewer-button :insight="insight" />
+              </p>
 
               <p
                 v-if="insight.content_type === 'newsfeed_content'"
@@ -214,10 +244,27 @@ SPDX-License-Identifier: AGPL-3.0-only
               </p>
 
               <p
+                v-if="insight.content_type === 'blockedips'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-b-modal.modal-blockedips
+                  v-on:click="onBruteForceDetails(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+              </p>
+
+              <p
                 v-if="insight.content_type === 'mail_inactivity'"
                 class="card-text description"
-                v-html="insight.description"
-              ></p>
+              >
+                <span v-html="insight.description"></span>
+                <log-viewer-button :insight="insight" />
+              </p>
               <p
                 v-if="insight.content_type === 'welcome_content'"
                 class="card-text description"
@@ -278,6 +325,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
+                <log-viewer-button :insight="insight" />
               </p>
 
               <div
@@ -398,6 +446,7 @@ export default {
       insightRblCheckedIpTitle: "",
       insightMsgRblTitle: "",
       importSummaryInsight: {},
+      blockedIPsInsight: {},
       applicationData: { version: "" },
       // FIXME: AAAHHH, this is really ugly! This insight component should be refactored/split ASAP!
       detectiveInsight: {
@@ -442,6 +491,12 @@ export default {
     },
     newsfeed_content_title(insight) {
       return insight.content.title;
+    },
+    blockedips_title(insight) {
+      let translation = this.$gettext(`Suspicious IPs banned`);
+      return this.$gettextInterpolate(translation, {
+        count: insight.content.total_number
+      });
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
@@ -492,6 +547,17 @@ export default {
       return this.$gettextInterpolate(translation, {
         intFrom: formatInsightDescriptionDateTime(c.interval.from),
         intTo: formatInsightDescriptionDateTime(c.interval.to)
+      });
+    },
+    blockedips_description(insight) {
+      let translation = this.$gettext(
+        `<strong>%{total_connections}</strong> connections blocked from <strong>%{total_ips}</strong> banned IPs (peer network)`
+      );
+      return this.$gettextInterpolate(translation, {
+        total_ips: insight.content.top_ips.length,
+        total_connections: new Intl.NumberFormat().format(
+          insight.content.total_number
+        )
       });
     },
     local_rbl_check_description(i) {
@@ -672,6 +738,9 @@ export default {
     hideRBLListModal() {
       this.$refs["modal-rbl-list"].hide();
     },
+    hideBlockedIPsListModal() {
+      this.$refs["modal-blockedips"].hide();
+    },
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
     },
@@ -689,8 +758,15 @@ export default {
       this.trackEvent("InsightDescription", "openSummaryInsightModal");
       this.importSummaryInsight = insight;
     },
+    onBruteForceDetails(insight) {
+      this.trackEvent("InsightDescription", "openBruteForceInsightModal");
+      this.blockedIPsInsight = insight;
+    },
     importSummaryWindowTitle() {
       return this.$gettext("Mail activity imported successfully");
+    },
+    blockedIPsWindowTitle() {
+      return this.$gettext("Blocked suspicious connection attempts");
     },
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
@@ -909,6 +985,7 @@ svg.insight-help-button {
 
 #modal-msg-rbl .btn-cancel,
 #modal-rbl-list .btn-cancel,
+#modal-blockedips .btn-cancel,
 #modal-import-summary .btn-cancel,
 #modal-detective-escalation .btn-cancel {
   background: #ff5c6f33 0% 0% no-repeat padding-box;

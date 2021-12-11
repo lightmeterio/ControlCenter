@@ -16,7 +16,7 @@ type logstashJsonTransformer struct {
 	lineNo uint64
 }
 
-func (t *logstashJsonTransformer) Transform(line []byte) (postfix.Record, error) {
+func (t *logstashJsonTransformer) Transform(line string) (postfix.Record, error) {
 	var payload struct {
 		Time time.Time `json:"@timestamp"`
 		Log  *struct {
@@ -27,7 +27,7 @@ func (t *logstashJsonTransformer) Transform(line []byte) (postfix.Record, error)
 		Message string `json:"message"`
 	}
 
-	if err := json.Unmarshal(line, &payload); err != nil {
+	if err := json.Unmarshal([]byte(line), &payload); err != nil {
 		return postfix.Record{}, errorutil.Wrap(err)
 	}
 
@@ -45,7 +45,7 @@ func (t *logstashJsonTransformer) Transform(line []byte) (postfix.Record, error)
 		}(),
 	}
 
-	r, err := ParseLine([]byte(payload.Message), func(parser.Header) time.Time {
+	r, err := ParseLine(payload.Message, func(parser.Header) time.Time {
 		return payload.Time
 	}, loc, defaultTimeFormat)
 	if err != nil {

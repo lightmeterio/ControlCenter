@@ -38,6 +38,24 @@ SPDX-License-Identifier: AGPL-3.0-only
         >
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
         </b-tab>
+        <b-tab
+          v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
+          :title="ConnectionsOverTime"
+        >
+          <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
+          <ul class="smtp-graph-legend">
+            <li style="color: #961994;">
+              <translate>blocked by Lightmeter</translate>
+            </li>
+            <li style="color: #EA3939;"><translate>failed login</translate></li>
+            <li style="color: #86C528;">
+              <translate>successful login</translate>
+            </li>
+            <li style="color: #0000ff;">
+              <translate>successful login after failures</translate>
+            </li>
+          </ul>
+        </b-tab>
       </b-tabs>
     </div>
   </div>
@@ -68,6 +86,9 @@ export default {
     },
     DeferredDomainsTitle: function() {
       return this.$gettext("Deferred Domains");
+    },
+    ConnectionsOverTime: function() {
+      return this.$gettext("Auth Attempts");
     }
   },
   beforeDestroy() {
@@ -212,18 +233,127 @@ export default {
         };
       };
 
+      let updateScatterChart = function(graphName) {
+        let xValues = [];
+        let yValues = [];
+        let colors = [];
+        let sizes = [];
+
+        let okColor = "#86C528";
+        let failedColor = "#EA3939";
+        let suspiciousColor = "#0000ff";
+        let blockedColor = "#961994";
+
+        let statusAsColor = function(s) {
+          switch (s) {
+            case "ok":
+              return okColor;
+            case "failed":
+              return failedColor;
+            case "suspicious":
+              return suspiciousColor;
+            case "blocked":
+              return blockedColor;
+          }
+        };
+
+        let statusSize = function(s) {
+          if (s == "blocked") {
+            return 12;
+          }
+
+          return 6;
+        };
+
+        let chartData = [
+          {
+            x: xValues,
+            y: yValues,
+            type: "scattergl",
+            mode: "markers",
+            marker: {
+              size: sizes,
+              color: colors
+            }
+          }
+        ];
+
+        let layout = {
+          height: 220,
+          xaxis: {
+            automargin: true
+          },
+          yaxis: {
+            automargin: true
+          },
+          margin: {
+            t: 0,
+            l: 30,
+            r: 0,
+            b: 50
+          }
+        };
+
+        Plotly.newPlot(graphName, chartData, layout, { responsive: true }).then(
+          function() {
+            resizers.push(function(dimension) {
+              layout.width = dimension.contentRect.width;
+              Plotly.redraw(graphName);
+            });
+          }
+        );
+
+        return function(start, end) {
+          fetchGraphDataAsJsonWithTimeInterval(start, end, graphName).then(
+            function(response) {
+              let attempts = response.data.attempts;
+              let len = attempts.length;
+              let oldLen = xValues.length;
+              let minLen = oldLen < len ? oldLen : len;
+
+              xValues.length = len;
+              yValues.length = len;
+              colors.length = len;
+              sizes.length = len;
+
+              // fill existing buffers
+              for (let i = 0; i < minLen; i++) {
+                xValues[i].setTime(attempts[i]["time"] * 1000);
+                yValues[i] = response.data.ips[attempts[i]["index"]];
+                colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
+              }
+
+              // fill the remaining parts of the new buffers, if any
+              for (let i = minLen; i < len; i++) {
+                xValues[i] = new Date(attempts[i]["time"] * 1000);
+                yValues[i] = response.data.ips[attempts[i]["index"]];
+                colors[i] = statusAsColor(attempts[i]["status"]);
+                sizes[i] = statusSize(attempts[i]["status"]);
+              }
+
+              Plotly.redraw(graphName);
+            }
+          );
+        };
+      };
+
       const updateDeliveryStatus = updateDonutChart("deliveryStatus");
       const updateTopBusiestDomainsChart = updateBarChart("topBusiestDomains");
       const updateTopDeferredDomainsChart = updateBarChart(
         "topDeferredDomains"
       );
       const updateTopBouncedDomainsChart = updateBarChart("topBouncedDomains");
+      const updateSmtpConnectionsChart = updateScatterChart(
+        "fetchAuthAttempts"
+      );
 
       vue.updateDashboard = function(start, end) {
         updateDeliveryStatus(start, end);
         updateTopBusiestDomainsChart(start, end);
         updateTopDeferredDomainsChart(start, end);
         updateTopBouncedDomainsChart(start, end);
+        updateSmtpConnectionsChart(start, end);
       };
 
       // Plotly has a bug that makes it unable to resize hidden graphs:
@@ -256,7 +386,7 @@ export default {
   }
 };
 </script>
-<style>
+<style lang="less">
 #graph-dashboard #delivery-attempts .card-header {
   text-align: left;
   font-size: 15px;
@@ -296,5 +426,20 @@ export default {
 #graph-dashboard .nav-tabs .nav-item a:hover {
   border: 1px solid #95cdea;
   border-radius: 27px;
+}
+
+.smtp-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+
+  display: flex;
+  font-size: 75%;
+  justify-content: space-around;
+  list-style: none;
+
+  li:before {
+    content: "• ";
+    font-size: 125%;
+  }
 }
 </style>

@@ -9,11 +9,11 @@ func init() {
 }
 
 type BounceCreated struct {
-	Queue      []byte
-	ChildQueue []byte
+	Queue      string
+	ChildQueue string
 }
 
-func parseBounce(payloadLine []byte) (RawPayload, error) {
+func parseBounce(payloadLine string) (RawPayload, error) {
 	if s, parsed := parseBounceCreated(payloadLine); parsed {
 		return RawPayload{
 			PayloadType:   PayloadTypeBounceCreated,

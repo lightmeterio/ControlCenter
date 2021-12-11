@@ -50,18 +50,17 @@ func lastReportTime(tx *sql.Tx) (time.Time, error) {
 	return time.Unix(ts, 0).In(time.UTC), nil
 }
 
-func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatcher) error {
+func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatcher) (err error) {
 	// creates a report and mark all the queued reports as dispatched
 	// TODO: maybe do the dispatching in a different thread,
 	// in order not to block the transaction?
+	//nolint:sqlclosecheck
 	r, err := tx.Query(`select time, identifier, value from queued_reports where dispatched_time = 0 order by id asc`)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	defer func() {
-		errorutil.MustSucceed(r.Close())
-	}()
+	defer errorutil.UpdateErrorFromCloser(r, &err)
 
 	initialTime, err := lastReportTime(tx)
 	if err != nil {
@@ -99,7 +98,7 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 	}
 
 	if len(report.Content) == 0 {
-		log.Warn().Msgf("Nothing to be reported!")
+		log.Debug().Msgf("Nothing to be reported!")
 		return nil
 	}
 

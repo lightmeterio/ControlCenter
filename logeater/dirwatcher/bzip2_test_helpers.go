@@ -11,7 +11,7 @@ import (
 )
 
 // nolint:unused,deadcode
-func compressBzip2(content []byte) []byte {
+func compressBzip2(content string) []byte {
 	var buf bytes.Buffer
 
 	w, err := bzip2.NewWriter(&buf, nil)
@@ -19,7 +19,7 @@ func compressBzip2(content []byte) []byte {
 		log.Fatal().Msg("compressing bz2 data")
 	}
 
-	if _, err := w.Write(content); err != nil {
+	if _, err := w.Write([]byte(content)); err != nil {
 		log.Fatal().Msg("compressing bz2 data")
 	}
 
@@ -32,5 +32,5 @@ func compressBzip2(content []byte) []byte {
 
 // nolint:unused,deadcode
 func bzip2edDataFile(s string) fakeFileDataBytes {
-	return fakeFileDataBytes{compressBzip2([]byte(s))}
+	return fakeFileDataBytes{compressBzip2(s)}
 }

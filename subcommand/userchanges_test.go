@@ -81,7 +81,7 @@ func TestChangeUserInfo(t *testing.T) {
 		writer := writeRunner.Writer()
 		writer.StoreJsonSync(dummyContext, metadata.UuidMetaKey, uuid)
 
-		httpauth.HttpAuthenticator(mux, authenticator, m.Reader)
+		httpauth.HttpAuthenticator(mux, authenticator, m.Reader, true)
 
 		s := httptest.NewServer(mux)
 		defer s.Close()
@@ -104,7 +104,7 @@ func TestChangeUserInfo(t *testing.T) {
 		}
 
 		Convey("When the e-mail changes, all sessions are reset", func() {
-			PerformUserInfoChange(true, dir, "email@example.com", "new@example.com", "", ``)
+			PerformUserInfoChange(dir, "email@example.com", "new@example.com", "", ``)
 
 			{
 				// check login
@@ -123,7 +123,7 @@ func TestChangeUserInfo(t *testing.T) {
 
 		Convey("When the password changes, all sessions are reset", func() {
 			newPassword := "(786875656&*^*&^*&^======"
-			PerformUserInfoChange(true, dir, "email@example.com", "", "", newPassword)
+			PerformUserInfoChange(dir, "email@example.com", "", "", newPassword)
 
 			// check login
 			{

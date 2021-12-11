@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/imdario/mergo"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -21,12 +22,20 @@ var (
 	ErrNoSuchKey = errors.New("No Such Key")
 )
 
-type Reader struct {
+type Key interface{}
+type Value = interface{}
+
+type Reader interface {
+	Retrieve(context.Context, Key) (Value, error)
+	RetrieveJson(context.Context, Key, Value) error
+}
+
+type simpleReader struct {
 	pool *dbconn.RoPool
 }
 
-func NewReader(pool *dbconn.RoPool) *Reader {
-	return &Reader{pool: pool}
+func NewReader(pool *dbconn.RoPool) Reader {
+	return &simpleReader{pool: pool}
 }
 
 type Writer struct {
@@ -34,12 +43,12 @@ type Writer struct {
 }
 
 type Handler struct {
-	Reader *Reader
+	Reader Reader
 	Writer *Writer
 }
 
 func NewHandler(conn *dbconn.PooledPair) (*Handler, error) {
-	reader := NewReader(conn.RoConnPool)
+	reader := &simpleReader{pool: conn.RoConnPool}
 	writer := &Writer{conn.RwConn}
 
 	return &Handler{
@@ -54,27 +63,9 @@ type Item struct {
 }
 
 func (writer *Writer) Store(ctx context.Context, items []Item) error {
-	tx, err := writer.db.BeginTx(ctx, nil)
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	defer func() {
-		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
-		}
-	}()
-
-	err = Store(ctx, tx, items)
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-
-	if err != nil {
+	if err := writer.db.Tx(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		return Store(ctx, tx, items)
+	}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -94,7 +85,7 @@ func Store(ctx context.Context, tx *sql.Tx, items []Item) error {
 	return nil
 }
 
-func Retrieve(ctx context.Context, tx *sql.Tx, key interface{}, value interface{}) error {
+func Retrieve(ctx context.Context, tx *sql.Tx, key Key, value Value) error {
 	if err := retrieve(ctx, tx, key, value); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -106,7 +97,7 @@ type queryiable interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
-func retrieve(ctx context.Context, q queryiable, key interface{}, value interface{}) error {
+func retrieve(ctx context.Context, q queryiable, key Key, value interface{}) error {
 	err := q.QueryRowContext(ctx, `select value from meta where key = ?`, key).Scan(value)
 
 	if err == nil {
@@ -120,7 +111,7 @@ func retrieve(ctx context.Context, q queryiable, key interface{}, value interfac
 	return errorutil.Wrap(err)
 }
 
-func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{}, error) {
+func (reader *simpleReader) Retrieve(ctx context.Context, key Key) (Value, error) {
 	conn, release, err := reader.pool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -128,7 +119,7 @@ func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{
 
 	defer release()
 
-	var v interface{}
+	var v Value
 
 	if err := retrieve(ctx, conn, key, &v); err != nil {
 		return nil, errorutil.Wrap(err)
@@ -137,7 +128,7 @@ func (reader *Reader) Retrieve(ctx context.Context, key interface{}) (interface{
 	return v, nil
 }
 
-func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value interface{}) error {
+func (writer *Writer) StoreJson(ctx context.Context, key Key, value Value) (err error) {
 	tx, err := writer.db.BeginTx(ctx, nil)
 
 	if err != nil {
@@ -146,7 +137,7 @@ func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value inte
 
 	defer func() {
 		if err != nil {
-			errorutil.MustSucceed(tx.Rollback())
+			errorutil.UpdateErrorFromCall(tx.Rollback, &err)
 		}
 	}()
 
@@ -155,26 +146,22 @@ func (writer *Writer) StoreJson(ctx context.Context, key interface{}, value inte
 		return errorutil.Wrap(err)
 	}
 
-	err = Store(ctx, tx, []Item{{Key: key, Value: string(jsonBlob)}})
-
-	if err != nil {
+	if err := Store(ctx, tx, []Item{{Key: key, Value: string(jsonBlob)}}); err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	err = tx.Commit()
-
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errorutil.Wrap(err)
 	}
 
 	return nil
 }
 
-func (reader *Reader) RetrieveJson(ctx context.Context, key interface{}, values interface{}) error {
-	reflectValues := reflect.ValueOf(values)
+func (reader *simpleReader) RetrieveJson(ctx context.Context, key Key, value Value) error {
+	reflectValue := reflect.ValueOf(value)
 
-	if reflectValues.Kind() != reflect.Ptr {
-		panic("values isn't a pointer")
+	if reflectValue.Kind() != reflect.Ptr {
+		panic("value isn't a pointer")
 	}
 
 	conn, release, err := reader.pool.AcquireContext(ctx)
@@ -189,9 +176,110 @@ func (reader *Reader) RetrieveJson(ctx context.Context, key interface{}, values 
 		return errorutil.Wrap(err)
 	}
 
-	if err := json.Unmarshal([]byte(v), values); err != nil {
+	if err := json.Unmarshal([]byte(v), value); err != nil {
 		return errorutil.Wrap(err, "could not Unmarshal values")
 	}
 
 	return nil
+}
+
+type DefaultValues map[string]interface{}
+
+type defaultedReader struct {
+	simpleReader  *simpleReader
+	defaultValues DefaultValues
+}
+
+func (r *defaultedReader) Retrieve(ctx context.Context, key Key) (Value, error) {
+	v, err := r.simpleReader.Retrieve(ctx, key)
+	if err != nil && !errors.Is(err, ErrNoSuchKey) {
+		return nil, errorutil.Wrap(err)
+	}
+
+	if err == nil {
+		return v, nil
+	}
+
+	keyAsString, ok := key.(string)
+	if !ok {
+		return v, nil
+	}
+
+	defaultValue, ok := r.defaultValues[keyAsString]
+	if !ok {
+		return nil, errorutil.Wrap(ErrNoSuchKey)
+	}
+
+	return defaultValue, nil
+}
+
+func (r *defaultedReader) RetrieveJson(ctx context.Context, key Key, value Value) error {
+	err := r.simpleReader.RetrieveJson(ctx, key, value)
+
+	if err != nil && !errors.Is(err, ErrNoSuchKey) {
+		return errorutil.Wrap(err)
+	}
+
+	keyAsString, ok := key.(string)
+	if !ok {
+		return nil
+	}
+
+	defaultValue, hasDefaults := r.defaultValues[keyAsString]
+
+	if !hasDefaults {
+		if err != nil && errors.Is(err, ErrNoSuchKey) {
+			return errorutil.Wrap(ErrNoSuchKey)
+		}
+
+		// no need to merge
+		return nil
+	}
+
+	if err := mergo.Map(value, defaultValue, mergo.WithTransformers(&customTypeTransformer{})); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+type customTypeTransformer struct {
+}
+
+func (customTypeTransformer) Transformer(t reflect.Type) func(dst, src reflect.Value) error {
+	if _, ok := reflect.PtrTo(t).MethodByName("MergoFromString"); !ok {
+		return nil
+	}
+
+	return func(dst, src reflect.Value) error {
+		type mergoFromString interface {
+			MergoFromString(string) error
+		}
+
+		asInterface, ok := dst.Addr().Interface().(mergoFromString)
+		if !ok {
+			return errors.New(`MergeFromString should be func(string) error`)
+		}
+
+		srcValue, ok := src.Interface().(string)
+		if !ok {
+			return errors.New(`Source type must be string`)
+		}
+
+		if err := asInterface.MergoFromString(srcValue); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+}
+
+func NewDefaultedHandler(conn *dbconn.PooledPair, defaultValues DefaultValues) (*Handler, error) {
+	simpleReader := &simpleReader{pool: conn.RoConnPool}
+	writer := &Writer{conn.RwConn}
+
+	return &Handler{
+		Reader: &defaultedReader{simpleReader: simpleReader, defaultValues: defaultValues},
+		Writer: writer,
+	}, nil
 }

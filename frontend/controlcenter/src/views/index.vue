@@ -59,35 +59,54 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
+      <b-toaster
+        ref="statusMessage"
+        name="statusMessage"
+        class="status-message"
+      >
+      </b-toaster>
+
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
       >
-        <div class="col-lg-2 col-md-6 col-6 p-2">
+        <div class="col-lg-2 col-md-2 col-3 p-2">
           <h2 class="insights-title">
             <!-- prettier-ignore -->
             <translate>Insights</translate>
           </h2>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 p-2">
+        <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
             <!-- prettier-ignore -->
             <translate>Time interval</translate>:
           </label>
-          <DateRangePicker
-            @update="onUpdateDateRangePicker"
-            :autoApply="autoApply"
-            :opens="opens"
-            :singleDatePicker="singleDatePicker"
-            :alwaysShowCalendars="alwaysShowCalendars"
-            :ranges="ranges"
-            v-model="dateRange"
-            :showCustomRangeCalendars="false"
-            :max-date="new Date()"
-          >
-          </DateRangePicker>
+          <div class="p-1">
+            <DateRangePicker
+              @update="onUpdateDateRangePicker"
+              :autoApply="autoApply"
+              :opens="opens"
+              :singleDatePicker="singleDatePicker"
+              :alwaysShowCalendars="alwaysShowCalendars"
+              :ranges="ranges"
+              v-model="dateRange"
+              :showCustomRangeCalendars="false"
+              :max-date="new Date()"
+            >
+            </DateRangePicker>
+          </div>
+          <div class="p-1">
+            <b-button
+              variant="primary"
+              size="sm"
+              @click="downloadRawLogsInInterval"
+              :disabled="rawLogsDownloadsDisable"
+              ><i class="fas fa-download" style="margin-right: 0.25rem;"></i
+              ><translate>Logs</translate></b-button
+            >
+          </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 col-12 ml-auto p-2">
+        <div class="col-lg-4 col-md-4 col-12 ml-auto p-2">
           <form id="insights-form">
             <div
               class="form-group d-flex justify-content-end align-items-center"
@@ -102,7 +121,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 name="filter"
                 form="insights-form"
                 v-model="insightsFilter"
-                style="width: 33%"
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
@@ -141,6 +159,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </option>
                 <option
                   v-on:click="
+                    trackClick('InsightsFilterCategoryHomepage', 'Intel')
+                  "
+                  value="category-intel"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Intel</translate>
+                </option>
+                <option
+                  v-on:click="
                     trackClick('InsightsFilterCategoryHomepage', 'Archived')
                   "
                   value="category-archived"
@@ -155,7 +182,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 name="order"
                 form="insights-form"
                 v-model="insightsSort"
-                style="width: 38%"
                 v-on:change="updateInsights"
               >
                 <!-- todo remove in style -->
@@ -205,9 +231,12 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 import {
+  linkToRawLogsInInterval,
+  countLogLinesInInterval,
   fetchInsights,
   getIsNotLoginOrNotRegistered,
-  getUserInfo
+  getUserInfo,
+  getStatusMessage
 } from "../lib/api.js";
 
 import tracking from "../mixin/global_shared.js";
@@ -232,7 +261,11 @@ export default {
       insights: [],
 
       // log import progress
-      generatingInsights: this.$gettext("Generating insights")
+      generatingInsights: this.$gettext("Generating insights"),
+
+      rawLogsDownloadsDisable: true,
+
+      statusMessage: null
     };
   },
   computed: {
@@ -247,7 +280,6 @@ export default {
       let message = this.$gettextInterpolate(translation, { weekday: weekday });
       return message;
     },
-
     welcomeUserText() {
       let translation = this.$gettext("and welcome back, %{username}");
       let message = this.$gettextInterpolate(translation, {
@@ -262,6 +294,7 @@ export default {
       let vue = this;
       vue.updateDashboardAndInsights();
       vue.formatDatePickerValue(obj);
+      vue.updateRawLogsDownloadButton();
     },
     handleProgressFinished() {
       this.setInsightsImportProgressFinished();
@@ -271,6 +304,7 @@ export default {
       let vue = this;
       vue.updateInsights();
       vue.updateDashboard();
+      vue.updateStatusMessage();
     },
     handleExternalDateIntervalChanged(obj) {
       this.dateRange = obj;
@@ -287,9 +321,65 @@ export default {
 
       this.updateSelectedInterval(obj);
     },
-    updateInsights: function() {
+    updateRawLogsDownloadButton: function() {
+      let vue = this;
+      let interval = vue.buildDateInterval();
+
+      countLogLinesInInterval(interval.startDate, interval.endDate).then(
+        function(response) {
+          vue.rawLogsDownloadsDisable = response.data.count == 0;
+        }
+      );
+    },
+    downloadRawLogsInInterval() {
+      let interval = this.buildDateInterval();
+      let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      window.open(link);
+    },
+    updateStatusMessage: function() {
       let vue = this;
 
+      getStatusMessage().then(function(response) {
+        if (response.data === null) {
+          return;
+        }
+
+        let isNew = false;
+        if (
+          vue.statusMessage === null ||
+          vue.statusMessage.message != response.data.message ||
+          vue.statusMessage.title != response.data.title
+        ) {
+          isNew = true;
+        }
+
+        vue.statusMessage = response.data;
+
+        const e = vue.$createElement;
+        const msg = [
+          e("p", vue.statusMessage.message),
+          e(
+            "a",
+            { attrs: { href: vue.statusMessage.action.link } },
+            vue.statusMessage.action.label
+          )
+        ];
+
+        if (!isNew) {
+          return;
+        }
+
+        vue.$bvToast.toast([msg], {
+          variant: vue.statusMessage.severity,
+          title: vue.statusMessage.title,
+          noAutoHide: true,
+          toaster: "statusMessage",
+          solid: true
+        });
+      });
+    },
+    updateInsights: function() {
+      let vue = this;
       let interval = vue.buildDateInterval();
 
       fetchInsights(
@@ -486,5 +576,25 @@ export default {
 .progress-indicator-area {
   margin-top: 60px;
   margin-bottom: 60px;
+}
+
+.b-toaster.status-message {
+  max-width: 100%;
+  width: 100%;
+
+  .b-toast,
+  .toast {
+    max-width: 100%;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 1rem;
+  }
+  .toast-body {
+    text-align: left;
+    > * {
+      margin: 1em;
+      display: block;
+    }
+  }
 }
 </style>

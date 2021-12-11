@@ -8,9 +8,9 @@ func init() {
 	registerHandler("postfix", "master", parseVersionPayload)
 }
 
-type Version []byte
+type Version string
 
-func parseVersionPayload(payloadLine []byte) (RawPayload, error) {
+func parseVersionPayload(payloadLine string) (RawPayload, error) {
 	if version, parsed := parseVersion(payloadLine); parsed {
 		return RawPayload{
 			PayloadType: PayloadTypeVersion,
