@@ -175,6 +175,37 @@ SPDX-License-Identifier: AGPL-3.0-only
       </b-row>
     </b-modal>
 
+    <b-modal
+      ref="modal-blockedips-summary"
+      id="modal-blockedips-summary"
+      size="lg"
+      hide-footer
+      centered
+      :title="blockedIPsSummarysWindowTitle()"
+    >
+      <div class="modal-body">
+        <blockedips-insight-summary-content
+          :content="blockedIPsSummarysInsight.content"
+        ></blockedips-insight-summary-content>
+      </div>
+
+      <b-row class="vue-modal-footer">
+        <b-col>
+          <b-button
+            variant="outline-primary"
+            @click="
+              showArchivedInsightsByBlockedIPsSummaryInsight(
+                blockedIPsSummarysInsight
+              )
+            "
+          >
+            <!-- prettier-ignore -->
+            <translate>View Details</translate>
+          </b-button>
+        </b-col>
+      </b-row>
+    </b-modal>
+
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
@@ -251,6 +282,21 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <button
                   v-b-modal.modal-blockedips
                   v-on:click="onBruteForceDetails(insight)"
+                  class="btn btn-sm"
+                >
+                  <!-- prettier-ignore -->
+                  <translate>Details</translate>
+                </button>
+              </p>
+
+              <p
+                v-if="insight.content_type === 'blockedips_summary'"
+                class="card-text description"
+              >
+                <span v-html="insight.description"></span>
+                <button
+                  v-b-modal.modal-blockedips-summary
+                  v-on:click="onBruteForceSummaryDetails(insight)"
                   class="btn btn-sm"
                 >
                   <!-- prettier-ignore -->
@@ -447,6 +493,7 @@ export default {
       insightMsgRblTitle: "",
       importSummaryInsight: {},
       blockedIPsInsight: {},
+      blockedIPsSummarysInsight: {},
       applicationData: { version: "" },
       // FIXME: AAAHHH, this is really ugly! This insight component should be refactored/split ASAP!
       detectiveInsight: {
@@ -497,6 +544,9 @@ export default {
       return this.$gettextInterpolate(translation, {
         count: insight.content.total_number
       });
+    },
+    blockedips_summary_title() {
+      return this.$gettext(`A new weekly summary is available`);
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");
@@ -560,6 +610,28 @@ export default {
         )
       });
     },
+    blockedips_summary_description(insight) {
+      let translation = this.$gettext(
+        `In the past <strong>%{days}</strong> days <strong>%{connections_count}</strong> suspicious connection attempts were blocked from <strong>%{ip_count}</strong> IPs`
+      );
+
+      let v = insight.content.summary.reduce(function(p, c) {
+        return {
+          ip_count: p.ip_count + c.ip_count,
+          connections_count: p.connections_count + c.connections_count
+        };
+      });
+
+      return this.$gettextInterpolate(translation, {
+        days:
+          (moment(insight.content.time_interval.to) -
+            moment(insight.content.time_interval.from)) /
+          (24 * 3600 * 1000),
+        connections_count: new Intl.NumberFormat().format(v.connections_count),
+        ip_count: new Intl.NumberFormat().format(v.ip_count)
+      });
+    },
+
     local_rbl_check_description(i) {
       let c = i.content;
       // TODO: handle difference between singular (one RBL) and plurals
@@ -741,16 +813,19 @@ export default {
     hideBlockedIPsListModal() {
       this.$refs["modal-blockedips"].hide();
     },
+    hideBlockedIPsSummaryListModal() {
+      this.$refs["modal-blockedips-summary"].hide();
+    },
     hideRBLMsqModal() {
       this.$refs["modal-msg-rbl"].hide();
     },
     hideDetectiveInsightModalWindow() {
       this.$refs["modal-detective-escalation"].hide();
     },
-    applySummaryInterval(insight) {
+    applySummaryInterval(interval) {
       this.$emit("dateIntervalChanged", {
-        startDate: insight.content.interval.from,
-        endDate: insight.content.interval.to,
+        startDate: interval.from,
+        endDate: interval.to,
         category: "archived"
       });
     },
@@ -762,16 +837,35 @@ export default {
       this.trackEvent("InsightDescription", "openBruteForceInsightModal");
       this.blockedIPsInsight = insight;
     },
+    onBruteForceSummaryDetails(insight) {
+      this.trackEvent(
+        "InsightDescription",
+        "openBruteForceSummaryInsightModal"
+      );
+      this.blockedIPsSummarysInsight = insight;
+    },
     importSummaryWindowTitle() {
       return this.$gettext("Mail activity imported successfully");
     },
     blockedIPsWindowTitle() {
       return this.$gettext("Blocked suspicious connection attempts");
     },
+    blockedIPsSummarysWindowTitle() {
+      return this.$gettext("Summary for insights... bla bla");
+    },
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
-      this.applySummaryInterval(insight);
+      this.applySummaryInterval(insight.content.interval);
       this.$refs["modal-import-summary"].hide();
+    },
+    showArchivedInsightsByBlockedIPsSummaryInsight(insight) {
+      this.trackEvent(
+        "HistoricalInsights",
+        "showArchivedBlockedIPsSummaryInsights"
+      );
+      console.log(insight.content);
+      this.applySummaryInterval(insight.content.time_interval);
+      this.$refs["modal-blockedips-summary"].hide();
     },
     seeMessageDetails(insight) {
       let params = {
