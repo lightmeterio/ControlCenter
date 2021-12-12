@@ -267,7 +267,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		insightsAccessor,
 		insightsFetcher,
 		notificationCenter,
-		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, blockedipsChecker))
+		insightsOptions(dashboard, rblChecker, rblDetector, detectiveEscalator, allDatabases.Logs.RoConnPool, blockedipsChecker, insightsFetcher))
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
