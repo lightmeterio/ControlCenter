@@ -30,24 +30,12 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
-type fakeChecker struct {
-	actions map[time.Time]blockedips.SummaryResult
-}
-
-func (c *fakeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
-	if result, ok := c.actions[now]; ok {
-		return withResults(result)
-	}
-
-	return nil
-}
-
 func TestSummary(t *testing.T) {
 	Convey("Test Summary", t, func() {
 		accessor, clear := insighttestsutil.NewFakeAccessor(t)
 		defer clear()
 
-		checker := &fakeChecker{}
+		checker := &FakeChecker{}
 
 		d := NewDetector(accessor, core.Options{
 			"blockedips": Options{
@@ -65,7 +53,7 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("One insight is created", func() {
-			checker.actions = map[time.Time]blockedips.SummaryResult{
+			checker.Actions = map[time.Time]blockedips.SummaryResult{
 				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
@@ -103,7 +91,7 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("When a new insight is created, all the previous ones are archived", func() {
-			checker.actions = map[time.Time]blockedips.SummaryResult{
+			checker.Actions = map[time.Time]blockedips.SummaryResult{
 				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
