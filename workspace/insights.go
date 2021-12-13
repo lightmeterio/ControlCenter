@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	blockedipsinsight "gitlab.com/lightmeter/controlcenter/insights/blockedips"
+	"gitlab.com/lightmeter/controlcenter/insights/blockedipssummary"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
@@ -35,6 +36,7 @@ func insightsOptions(
 	detectiveEscalator escalator.Stepper,
 	deliverydbConnPool *dbconn.RoPool,
 	blockedipsChecker blockedips.Checker,
+	insightsFetcher insightscore.Fetcher,
 ) insightscore.Options {
 	return insightscore.Options{
 		"logsConnPool":   deliverydbConnPool,
@@ -68,6 +70,11 @@ func insightsOptions(
 		"blockedips": blockedipsinsight.Options{
 			Checker:      blockedipsChecker,
 			PollInterval: time.Minute * 2,
+		},
+
+		"blockedips_summary": blockedipssummary.Options{
+			TimeSpan:        oneWeek,
+			InsightsFetcher: insightsFetcher,
 		},
 	}
 }
