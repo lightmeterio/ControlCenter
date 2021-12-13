@@ -47,7 +47,9 @@ SPDX-License-Identifier: AGPL-3.0-only
             <li style="color: #227AAF;">
               <translate>blocked by Lightmeter</translate>
             </li>
-            <li style="color: #C53030;"><translate>failed login</translate></li>
+            <li style="color: #C53030;">
+              <translate>failed login</translate>
+            </li>
             <li style="color: #206C00;">
               <translate>successful login</translate>
             </li>
