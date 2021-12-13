@@ -851,9 +851,9 @@ export default {
       return this.$gettext("Blocked suspicious connection attempts");
     },
     blockedIPsSummarysWindowTitle() {
-      // TODO (sam): fix this label, for the summary modal window
-      return this.$gettext("Summary for insights... bla bla");
+      return this.$gettext("Summary of blocked suspicious connection attempts");
     },
+    
     showArchivedInsightsBySummaryInsight(insight) {
       this.trackEvent("HistoricalInsights", "showArchivedImportedInsights");
       this.applySummaryInterval(insight.content.interval);
