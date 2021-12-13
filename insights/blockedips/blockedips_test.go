@@ -30,6 +30,48 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
+type poolTimeChecker struct {
+	times []time.Time
+}
+
+func (c *poolTimeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
+	c.times = append(c.times, now)
+	return nil
+}
+
+func TestExecutionTimes(t *testing.T) {
+	Convey("Test Execution times", t, func() {
+		accessor, clear := insighttestsutil.NewFakeAccessor(t)
+		defer clear()
+
+		checker := &poolTimeChecker{}
+
+		d := NewDetector(accessor, core.Options{
+			"blockedips": Options{
+				Checker:      checker,
+				PollInterval: time.Second * 30,
+			},
+		})
+
+		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+		clock := &insighttestsutil.FakeClock{Time: baseTime}
+
+		Convey("Execute every 30 seconds", func() {
+			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Minute*3+time.Second*2), 2*time.Second)
+
+			So(checker.times, ShouldResemble, []time.Time{
+				baseTime,
+				baseTime.Add(time.Second * 30),
+				baseTime.Add(time.Second * 60),
+				baseTime.Add(time.Second * 90),
+				baseTime.Add(time.Second * 120),
+				baseTime.Add(time.Second * 150),
+				baseTime.Add(time.Second * 180),
+			})
+		})
+	})
+}
+
 func TestSummary(t *testing.T) {
 	Convey("Test Summary", t, func() {
 		accessor, clear := insighttestsutil.NewFakeAccessor(t)
@@ -48,7 +90,7 @@ func TestSummary(t *testing.T) {
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
 
 		Convey("No new  created", func() {
-			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 5*time.Minute)
+			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 2*time.Second)
 			So(accessor.Insights, ShouldResemble, []int64{})
 		})
 
@@ -65,7 +107,7 @@ func TestSummary(t *testing.T) {
 				},
 			}
 
-			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 1*time.Minute)
+			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 2*time.Second)
 			So(accessor.Insights, ShouldResemble, []int64{1})
 
 			insights, err := accessor.Fetcher.FetchInsights(context.Background(), core.FetchOptions{
@@ -120,7 +162,7 @@ func TestSummary(t *testing.T) {
 				},
 			}
 
-			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 1*time.Minute)
+			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*2), 2*time.Second)
 
 			So(accessor.Insights, ShouldResemble, []int64{1, 2, 3})
 
