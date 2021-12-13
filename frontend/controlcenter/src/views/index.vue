@@ -588,6 +588,7 @@ export default {
     width: 100%;
     flex-basis: 100%;
     margin-top: 1rem;
+    margin-bottom: 1.9rem;
   }
   .toast-body {
     text-align: left;
