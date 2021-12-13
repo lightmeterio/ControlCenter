@@ -64,7 +64,7 @@ func (t title) String() string {
 }
 
 func (t title) TplString() string {
-	return translator.I18n("A new weekly summary is available")
+	return translator.I18n("Suspicious IPs banned last week")
 }
 
 func (t title) Args() []interface{} {

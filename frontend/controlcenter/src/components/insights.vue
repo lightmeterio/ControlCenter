@@ -546,7 +546,7 @@ export default {
       });
     },
     blockedips_summary_title() {
-      return this.$gettext(`A new weekly summary is available`);
+      return this.$gettext(`Suspicious IPs banned this week`);
     },
     high_bounce_rate_title() {
       return this.$gettext("High Bounce Rate");

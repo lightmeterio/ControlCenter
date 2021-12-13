@@ -154,7 +154,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		m, err := notificationCore.TranslateNotification(n, translator.DummyTranslator{})
 		So(err, ShouldBeNil)
 		So(m, ShouldResemble, notificationCore.Message{
-			Title:       "A new weekly summary is available",
+			Title:       "Suspicious IPs banned last week",
 			Description: "In the past 6 days 77 suspicious connection attempts were blocked from 10 IPs",
 			Metadata:    map[string]string{},
 		})
