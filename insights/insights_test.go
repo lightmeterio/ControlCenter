@@ -693,7 +693,7 @@ func TestEngine(t *testing.T) {
 				So(insights[1].Content().Description().String(), ShouldEqual, "A non historical insight")
 				So(insights[1].Category(), ShouldEqual, core.LocalCategory)
 
-				So(insights[2].Content().Description().String(), ShouldEqual, "Mail activity imported successfully Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
+				So(insights[2].Content().Description().String(), ShouldEqual, "Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
 				So(insights[2].Category(), ShouldEqual, core.LocalCategory)
 			})
 
@@ -715,7 +715,7 @@ func TestEngine(t *testing.T) {
 				So(insights[0].Content().Description().String(), ShouldEqual, "A non historical insight")
 				So(insights[0].Category(), ShouldEqual, core.LocalCategory)
 
-				So(insights[1].Content().Description().String(), ShouldEqual, "Mail activity imported successfully Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
+				So(insights[1].Content().Description().String(), ShouldEqual, "Events since 2000-01-01 00:00:00 +0000 UTC were analysed, producing 1 Insights")
 				So(insights[1].Category(), ShouldEqual, core.LocalCategory)
 			})
 
