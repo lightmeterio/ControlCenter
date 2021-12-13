@@ -340,7 +340,7 @@ export default {
       let vue = this;
 
       getStatusMessage().then(function(response) {
-        if (response.data === null) {
+        if (response.data === null || response.data.title == "") {
           return;
         }
 
