@@ -14,6 +14,10 @@ msgstr ""
 msgid "%v connections blocked from %v banned IPs (peer network)"
 msgstr "%v connections blocked from %v banned IPs (peer network)"
 
+#: insights/blockedipssummary/blockedips_summary.go:83
+msgid "%v Connections from %v IPs were blocked over %v days"
+msgstr "%v Connections from %v IPs were blocked over %v days"
+
 #: insights/highrate/high_status_rate_insight.go:219
 msgid "%v percent bounce rate between %v and %v"
 msgstr "%v percent bounce rate between %v and %v"
@@ -77,6 +81,10 @@ msgstr "No emails were sent or received between %v and %v"
 #: insights/detectiveescalation/escalation.go:81
 msgid "Sender: %v, recipient: %v"
 msgstr "Sender: %v, recipient: %v"
+
+#: insights/blockedipssummary/blockedips_summary.go:67
+msgid "Suspicious IPs banned last week"
+msgstr "Suspicious IPs banned last week"
 
 #: insights/messagerbl/rbl.go:83
 msgid "The IP %v cannot deliver to %v (%v)"

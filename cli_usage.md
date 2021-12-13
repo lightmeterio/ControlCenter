@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 1.9.1
+Lightmeter ControlCenter 2.0.0-RC1
 
  Example call: 
 
