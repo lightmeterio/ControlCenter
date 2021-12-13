@@ -80,7 +80,7 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("In the past %v days %v suspicious connection attempts were blocked from %v IPs")
+	return translator.I18n("%v Connections from %v IPs were blocked over %v days")
 }
 
 func (d description) Args() []interface{} {

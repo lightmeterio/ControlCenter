@@ -155,7 +155,7 @@ func TestDescriptionFormatting(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(m, ShouldResemble, notificationCore.Message{
 			Title:       "Suspicious IPs banned last week",
-			Description: "In the past 6 days 77 suspicious connection attempts were blocked from 10 IPs",
+			Description: "77 Connections from 10 IPs were blocked over 6 days",
 			Metadata:    map[string]string{},
 		})
 	})

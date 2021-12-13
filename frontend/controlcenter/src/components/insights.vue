@@ -612,9 +612,9 @@ export default {
     },
     blockedips_summary_description(insight) {
       let translation = this.$gettext(
-        `In the past <strong>%{days}</strong> days <strong>%{connections_count}</strong> suspicious connection attempts were blocked from <strong>%{ip_count}</strong> IPs`
+        `<strong>%{connections_count}</strong> connections from <strong>%{ip_count}</strong> IPs were blocked over %{days} days`
       );
-
+      
       let v = insight.content.summary.reduce(function(p, c) {
         return {
           ip_count: p.ip_count + c.ip_count,
