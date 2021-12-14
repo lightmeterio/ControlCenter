@@ -49,9 +49,11 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				join
 					delivery_queue dq on dq.delivery_id = d.id
 				where
-					sender_local_part    = ? collate nocase and sender_domain.domain    = ? collate nocase
-					and recipient_local_part = ? collate nocase and recipient_domain.domain = ? collate nocase
-					and delivery_ts between ? and ?
+					(sender_local_part       = ? collate nocase or ? = '') and
+					(sender_domain.domain    = ? collate nocase or ? = '') and
+					(recipient_local_part    = ? collate nocase or ? = '') and
+					(recipient_domain.domain = ? collate nocase or ? = '') and
+					delivery_ts between ? and ?
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned) as (
 				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, true
@@ -214,14 +216,25 @@ type MessageDelivery struct {
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
 func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, page int) (messagesPage *MessagesPage, err error) {
-	senderLocal, senderDomain, err := emailutil.Split(mailFrom)
+	splitEmail := func(email string) (local, domain string, err error) {
+		if len(email) == 0 {
+			return "", "", nil
+		}
 
+		local, domain, _, err = emailutil.SplitPartial(email)
+		if err != nil {
+			return "", "", errorutil.Wrap(err)
+		}
+
+		return local, domain, nil
+	}
+
+	senderLocal, senderDomain, err := splitEmail(mailFrom)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	recipientLocal, recipientDomain, err := emailutil.Split(mailTo)
-
+	recipientLocal, recipientDomain, err := splitEmail(mailTo)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -234,8 +247,8 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 
 	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx,
-		senderLocal, senderDomain,
-		recipientLocal, recipientDomain,
+		senderLocal, senderLocal, senderDomain, senderDomain,
+		recipientLocal, recipientLocal, recipientDomain, recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
 		resultsPerPage, (page-1)*resultsPerPage,
 	)

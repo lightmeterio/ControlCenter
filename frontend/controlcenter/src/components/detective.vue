@@ -20,10 +20,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         </label>
 
         <b-form-input
-          type="email"
+          type="text"
           name="mail_from"
           maxlength="255"
-          required
+          :required="forEndUsers"
           v-model="mail_from"
           :v-state="isEmailFrom"
           placeholder="sender@example.org"
@@ -36,10 +36,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         </label>
 
         <b-form-input
-          type="email"
+          type="text"
           name="mail_to"
           maxlength="255"
-          required
+          :required="forEndUsers"
           v-model="mail_to"
           :v-state="isEmailTo"
           placeholder="recipient@example.org"
@@ -117,7 +117,8 @@ import datepicker from "@/mixin/datepicker.js";
 import DateRangePicker from "vue2-daterange-picker";
 import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
 
-function isEmail(email) {
+function isEmail(forEndUsers, email) {
+  if (!forEndUsers) return true;
   // NOTE: regexp also used in util/emailutil/email.go
   if (email == "") return null;
   return email.match(/^[^@\s]+@[^@\s]+$/) !== null;
@@ -151,10 +152,10 @@ export default {
   },
   computed: {
     isEmailFrom: function() {
-      return isEmail(this.mail_from);
+      return isEmail(this.forEndUsers, this.mail_from);
     },
     isEmailTo: function() {
-      return isEmail(this.mail_to);
+      return isEmail(this.forEndUsers, this.mail_to);
     }
   },
   methods: {
@@ -259,9 +260,13 @@ input,
 .pages {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
 
-  button + button {
-    margin-left: 0.5em;
+  button {
+    margin-top: 0.5em;
+    & + button {
+      margin-left: 0.5em;
+    }
   }
 }
 
