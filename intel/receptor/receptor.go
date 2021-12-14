@@ -261,6 +261,9 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.Su
 		return errorutil.Wrap(err)
 	}
 
+	// NOTE: the dismissal happens asynchronously, so the next execution of Step()
+	// won't see the current result event being dismissed if the interval between executions
+	// is very short (like a couple of seconds)
 	r.actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
 		if err := DismissEventByID(tx, id, now); err != nil {
 			return errorutil.Wrap(err)
