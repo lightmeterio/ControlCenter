@@ -29,6 +29,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           placeholder="sender@example.org"
         />
       </div>
+
+      <div class="p-2 d-flex align-items-center" @click="swapEmails()">
+        <i class="fas fa-exchange-alt"></i>
+      </div>
+
       <div class="col p-2">
         <label>
           <!-- prettier-ignore -->
@@ -177,6 +182,11 @@ export default {
     }
   },
   methods: {
+    swapEmails() {
+      let temp = this.mail_from;
+      this.mail_from = this.mail_to;
+      this.mail_to = temp;
+    },
     updateSelectedInterval(obj) {
       let vue = this;
       vue.formatDatePickerValue(obj);
