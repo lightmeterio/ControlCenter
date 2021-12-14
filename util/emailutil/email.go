@@ -17,7 +17,6 @@ var (
 	// NOTE: valid-email-regexp also used in src/views/detective.vue
 	localRe         = `[^@\s]+`
 	domainRe        = `[^@\s]+`
-	localRegexp     = regexp.MustCompile(fmt.Sprintf(`^%s$`, localRe))
 	domainRegexp    = regexp.MustCompile(fmt.Sprintf(`^%s$`, domainRe))
 	emailRegexp     = regexp.MustCompile(fmt.Sprintf(`^%s@%s$`, localRe, domainRe))
 	ErrInvalidEmail = errors.New("Not a valid email address")

@@ -114,6 +114,8 @@ type Interval string
 // @Param mail_to        query string true "Recipient email address"
 // @Param timestamp_from query string true "Initial timestamp in the format 1999-12-23 12:00:00"
 // @Param timestamp_to   query string true "Final timestamp in the format 1999-12-23 14:00:00"
+// @Param status         query string true "A status to filter messages (-1: all, 0: sent... see smtp.go)"
+// @Param page           query string true "Page number to return results"
 // @Produce json
 // @Success 200 {object} []detective.MessageDelivery "desc"
 // @Failure 422 {string} string "desc"
@@ -128,12 +130,17 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
 	}
 
+	status, err := strconv.Atoi(r.Form.Get("status"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
 	page, err := strconv.Atoi(r.Form.Get("page"))
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
 	}
 
-	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, page)
+	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, page)
 
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)

@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         page = 1;
         updateResults();
       "
-      class="detective-form d-flex"
+      class="detective-form d-flex flex-wrap"
     >
       <div class="col p-2">
         <label>
@@ -66,6 +66,22 @@ SPDX-License-Identifier: AGPL-3.0-only
         </DateRangePicker>
       </div>
 
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Status</translate>
+        </label>
+
+        <select name="status" v-model="statusSelected">
+          <option value="-1"><translate>Any status</translate></option>
+          <option value="0"><translate>Sent</translate></option>
+          <option value="1"><translate>Bounced</translate></option>
+          <option value="2"><translate>Deferred</translate></option>
+          <option value="3"><translate>Expired</translate></option>
+          <option value="4"><translate>Returned</translate></option>
+        </select>
+      </div>
+
       <div class="col p-2 ml-auto">
         <b-button type="submit" variant="primary" class="btn-block">
           <!-- prettier-ignore -->
@@ -81,6 +97,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <detective-results
       :results="results.messages"
       :showQueues="!forEndUsers"
+      :showFromTo="!forEndUsers"
     ></detective-results>
 
     <b-container class="pages mt-4 mb-4" v-show="results.last_page > 1">
@@ -142,6 +159,7 @@ export default {
       searchResultText: this.$gettext("No results yet"),
       searchResultClass: "text-muted",
       results: [],
+      statusSelected: "-1",
       page: 1,
 
       // specific auth
@@ -192,6 +210,7 @@ export default {
         this.mail_to,
         interval.startDate,
         interval.endDate,
+        vue.statusSelected,
         vue.page
       ).then(function(response) {
         vue.results = response.data;
