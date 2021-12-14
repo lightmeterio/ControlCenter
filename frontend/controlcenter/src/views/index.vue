@@ -265,7 +265,8 @@ export default {
 
       rawLogsDownloadsDisable: true,
 
-      statusMessage: null
+      statusMessage: null,
+      statusMessageID: 0
     };
   },
   created() {},
@@ -345,20 +346,18 @@ export default {
       let vue = this;
 
       getStatusMessage().then(function(response) {
-        if (response.data === null || response.data.title == "") {
+        let notification = response.data.notification !== null ? response.data.notification : null;
+        let id = response.data.id;
+
+        if (notification.data === null || notification.title == "") {
           return;
         }
 
-        let isNew = false;
-        if (
-          vue.statusMessage === null ||
-          vue.statusMessage.message != response.data.message ||
-          vue.statusMessage.title != response.data.title
-        ) {
-          isNew = true;
-        }
+        let isNew = vue.statusMessage === null ||
+          vue.statusMessage.message != notification.message ||
+          vue.statusMessage.title != notification.title;
 
-        vue.statusMessage = response.data;
+        vue.statusMessage = notification;
 
         const e = vue.$createElement;
         const msg = [
@@ -374,7 +373,24 @@ export default {
           return;
         }
 
-        vue.$bvToast.toast([msg], {
+        let toastID = `status-message-id-${id}`;
+
+        const $closeButton = e(
+          "b-button",
+          {
+            on: {
+              click: function() {
+                vue.trackEvent("CloseStatusMessage", id);
+                vue.$bvToast.hide(toastID);
+              }
+            }
+          },
+          vue.$gettext("Close")
+        );
+
+        vue.$bvToast.toast([msg, $closeButton], {
+          id: toastID,
+          noCloseButton: true,
           variant: vue.statusMessage.severity,
           title: vue.statusMessage.title,
           noAutoHide: true,
