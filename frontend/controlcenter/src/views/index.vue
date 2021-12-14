@@ -268,6 +268,7 @@ export default {
       statusMessage: null
     };
   },
+  created() {},
   computed: {
     shouldShowInsights() {
       return this.isImportProgressFinished;
@@ -334,6 +335,10 @@ export default {
     downloadRawLogsInInterval() {
       let interval = this.buildDateInterval();
       let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      let range = interval.startDate + "_" + interval.endDate;
+
+      this.trackEvent("DownloadDatePickerLogs", range);
+
       window.open(link);
     },
     updateStatusMessage: function() {

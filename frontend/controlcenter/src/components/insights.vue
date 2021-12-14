@@ -834,13 +834,13 @@ export default {
       this.importSummaryInsight = insight;
     },
     onBruteForceDetails(insight) {
-      this.trackEvent("InsightDescription", "openBruteForceInsightModal");
+      this.trackEvent("InsightDescription", "openBlockedIPsInsightModal");
       this.blockedIPsInsight = insight;
     },
     onBruteForceSummaryDetails(insight) {
       this.trackEvent(
         "InsightDescription",
-        "openBruteForceSummaryInsightModal"
+        "openBlockedIPsSummaryInsightModal"
       );
       this.blockedIPsSummarysInsight = insight;
     },

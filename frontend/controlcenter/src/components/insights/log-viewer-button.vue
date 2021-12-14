@@ -19,8 +19,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script>
 import { linkToRawLogsInInterval } from "@/lib/api";
 import moment from "moment";
+import tracking from "../../mixin/global_shared.js";
 
 export default {
+  mixins: [tracking],
   props: {
     insight: Object
   },
@@ -41,6 +43,9 @@ export default {
         moment.utc(interval.from).format("YYYY-MM-DD HH:mm:ss"),
         moment.utc(interval.to).format("YYYY-MM-DD HH:mm:ss")
       );
+
+      this.trackEvent("DownloadInsightLogs", insight.content_type);
+
       window.open(link);
     }
   }
