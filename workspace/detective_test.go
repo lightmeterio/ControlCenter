@@ -74,6 +74,8 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	}
 }
 
+var bg = context.Background()
+
 func TestDetective(t *testing.T) {
 	Convey("Detective on real logs", t, func() {
 		const year = 2020
@@ -88,7 +90,7 @@ func TestDetective(t *testing.T) {
 			d, clear := buildDetectiveFromReader(t, bytes.NewReader(nil), year)
 			defer clear()
 
-			_, err := d.OldestAvailableTime(context.Background())
+			_, err := d.OldestAvailableTime(bg)
 			So(errors.Is(err, detective.ErrNoAvailableLogs), ShouldBeTrue)
 		})
 
@@ -96,15 +98,38 @@ func TestDetective(t *testing.T) {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/3_local_delivery.log", year)
 			defer clear()
 
+			noDeliveries := detective.Messages{}
+			noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
+
 			Convey("Message found", func() {
-				messagesLowerCase, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 1)
+				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, 1)
 				So(err, ShouldBeNil)
 
-				messagesMixedCase, err := d.CheckMessageDelivery(context.Background(), "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, 1)
+				messagesMixedCase, err := d.CheckMessageDelivery(bg, "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				// working partial searches
+				messagesPartialSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				messagesPartialSearch2, err := d.CheckMessageDelivery(bg, "@example.com", "example.com", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				messagesPartialSearch3, err := d.CheckMessageDelivery(bg, "", "@example.com", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				messagesPartialSearch4, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				// partial searches with no results
+				messagesPartialSearch5, err := d.CheckMessageDelivery(bg, "@test.org", "", correctInterval, -1, 1)
+				So(err, ShouldBeNil)
+
+				messagesPartialSearch6, err := d.CheckMessageDelivery(bg, "", "@domain.org", correctInterval, -1, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
-				So(messagesLowerCase, ShouldResemble, &detective.MessagesPage{1, 1, 1, 1,
+				expectedResult := &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
 						detective.Message{
 							Queue: "400643011B47",
@@ -116,20 +141,30 @@ func TestDetective(t *testing.T) {
 									detective.Status(parser.SentStatus),
 									"2.0.0",
 									nil,
+									"sender@example.com",
+									"recipient@example.com",
 								},
 							},
 						},
 					},
-				})
+				}
+				So(messagesLowerCase, ShouldResemble, expectedResult)
 
 				// Gitlab issue #526
 				So(messagesMixedCase, ShouldResemble, messagesLowerCase)
+
+				// Gitlab issue #566
+				So(messagesPartialSearch1, ShouldResemble, messagesLowerCase)
+				So(messagesPartialSearch2, ShouldResemble, messagesLowerCase)
+				So(messagesPartialSearch3, ShouldResemble, messagesLowerCase)
+				So(messagesPartialSearch4, ShouldResemble, messagesLowerCase)
+
+				So(messagesPartialSearch5, ShouldResemble, noDeliveriesPage1)
+				So(messagesPartialSearch6, ShouldResemble, noDeliveriesPage1)
 			})
 
-			noDeliveries := detective.Messages{}
-
 			Convey("Page number too big", func() {
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", correctInterval, 2)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, 2)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, &detective.MessagesPage{2, 1, 1, 0, noDeliveries})
 			})
@@ -140,12 +175,12 @@ func TestDetective(t *testing.T) {
 					time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
 				}
 
-				messages, err := d.CheckMessageDelivery(context.Background(), "sender@example.com", "recipient@example.com", wrongInterval, 1)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", wrongInterval, -1, 1)
 				So(err, ShouldBeNil)
-				So(messages, ShouldResemble, &detective.MessagesPage{1, 1, 1, 0, noDeliveries})
+				So(messages, ShouldResemble, noDeliveriesPage1)
 			})
 
-			oldestTime, err := d.OldestAvailableTime(context.Background())
+			oldestTime, err := d.OldestAvailableTime(bg)
 			So(err, ShouldBeNil)
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-01-10 16:15:30 +0000`))
 		})
@@ -155,7 +190,7 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(context.Background(), "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, 1)
 				So(err, ShouldBeNil)
 
 				expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
@@ -176,6 +211,8 @@ func TestDetective(t *testing.T) {
 									detective.Status(parser.DeferredStatus),
 									"4.1.1",
 									&expectedExpiredTime,
+									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+									"h-664d01@h-695da2287.com",
 								},
 								{
 									1,
@@ -184,6 +221,8 @@ func TestDetective(t *testing.T) {
 									detective.Status(parser.ReturnedStatus),
 									"2.0.0",
 									&expectedExpiredTime,
+									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+									"h-664d01@h-695da2287.com",
 								},
 							},
 						},
@@ -191,7 +230,7 @@ func TestDetective(t *testing.T) {
 				})
 			})
 
-			oldestTime, err := d.OldestAvailableTime(context.Background())
+			oldestTime, err := d.OldestAvailableTime(bg)
 			So(err, ShouldBeNil)
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-09-25 18:26:36 +0000`))
 		})
@@ -201,7 +240,7 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(context.Background(), "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, -1, 1)
 				So(err, ShouldBeNil)
 
 				So(messages, ShouldResemble, &detective.MessagesPage{
@@ -220,6 +259,8 @@ func TestDetective(t *testing.T) {
 									detective.Status(parser.SentStatus),
 									"2.0.0",
 									nil,
+									"h-195704c@h-b7bed8eb24c5049d9.com",
+									"h-493fac8f3@h-ea3f4afa.com",
 								},
 							},
 						},
@@ -233,6 +274,8 @@ func TestDetective(t *testing.T) {
 									detective.Status(parser.SentStatus),
 									"2.0.0",
 									nil,
+									"h-195704c@h-b7bed8eb24c5049d9.com",
+									"h-493fac8f3@h-ea3f4afa.com",
 								},
 							},
 						},
