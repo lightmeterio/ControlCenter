@@ -39,6 +39,7 @@ Title: {{.Title}}
 Description: {{.Description}}
 Category: {{.Category}}
 Priority: {{.Priority}}
+PriorityColor: {{.PriorityColor}}
 DetailsURL: {{.DetailsURL}}
 PreferencesURL: {{.PreferencesURL}}
 PublicURL: {{.PublicURL}}
@@ -322,9 +323,26 @@ type templateValues struct {
 	Description    string
 	Category       string
 	Priority       string
+	PriorityColor  string
 	PublicURL      string
 	DetailsURL     string
 	PreferencesURL string
+}
+
+// as copied from insights.vue CSS code
+var colorMap = map[string]string{
+	"bad":     "rgb(255, 92, 111)",
+	"ok":      "rgb(255, 220, 0)",
+	"good":    "rgb(135, 197, 40)",
+	"unrated": "#f0f8fc",
+}
+
+func priorityToColor(p string) string {
+	if c, ok := colorMap[p]; ok {
+		return c
+	}
+
+	return colorMap["unrated"]
 }
 
 func buildTemplateValues(id int64, message core.Message, globalSettings *globalsettings.Settings) templateValues {
@@ -346,6 +364,7 @@ func buildTemplateValues(id int64, message core.Message, globalSettings *globals
 			t.Category = v
 		case "priority":
 			t.Priority = v
+			t.PriorityColor = priorityToColor(t.Priority)
 		}
 	}
 
