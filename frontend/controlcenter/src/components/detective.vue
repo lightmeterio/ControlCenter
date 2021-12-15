@@ -96,7 +96,20 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-form>
 
     <b-container ref="searchResultText" class="search-result-text mt-4">
-      <p :class="searchResultClass">{{ searchResultText }}</p>
+      <p :class="searchResultClass">
+        {{ searchResultText }}
+        <b-button
+          v-show="showLogsDownloadButton"
+          v-on:click="downloadRawLogsInInterval()"
+          variant="primary"
+          size="sm"
+          style="margin-left: 1rem;"
+        >
+          <i class="fas fa-download"></i>
+          <!-- prettier-ignore -->
+          <translate>Logs</translate>
+        </b-button>
+      </p>
     </b-container>
 
     <detective-results
@@ -130,7 +143,8 @@ axios.defaults.withCredentials = true;
 import {
   checkMessageDelivery,
   escalateMessage,
-  oldestAvailableTimeForMessageDetective
+  oldestAvailableTimeForMessageDetective,
+  linkToRawLogsInInterval
 } from "@/lib/api.js";
 
 import tracking from "@/mixin/global_shared.js";
@@ -179,6 +193,13 @@ export default {
     },
     isEmailTo: function() {
       return isEmail(this.forEndUsers, this.mail_to);
+    },
+    showLogsDownloadButton: function() {
+      if (this.forEndUsers || this.results.length == 0) {
+        return false;
+      }
+
+      return this.results.messages.length > 0;
     }
   },
   methods: {
@@ -260,6 +281,11 @@ export default {
       ).then(function() {
         console.log("All good");
       });
+    },
+    downloadRawLogsInInterval() {
+      let interval = this.buildDateInterval();
+      let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      window.open(link);
     }
   },
   mounted() {
