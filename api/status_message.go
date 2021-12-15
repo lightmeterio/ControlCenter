@@ -18,11 +18,13 @@ type statusMessageHandler struct {
 	accessor *collector.Accessor
 }
 
-// NOTE: for swagger only
-type Event receptor.Event
+type MessageNotification struct {
+	ID           string                        `json:"id"`
+	Notification *receptor.MessageNotification `json:"notification,omitempty"`
+}
 
 // @Summary
-// @Success 200 {object} receptor.Event "desc"
+// @Success 200 {object} MessageNotification "desc"
 // @Failure 422 {string} string "desc"
 // @Failure 500 {string} string "desc"
 // @Router /api/v0/intelstatus [post]
@@ -40,7 +42,7 @@ func (h statusMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return httputil.WriteJson(w, statusMessage, http.StatusOK)
 	}
 
-	return httputil.WriteJson(w, statusMessage.MessageNotification, http.StatusOK)
+	return httputil.WriteJson(w, MessageNotification{ID: statusMessage.ID, Notification: statusMessage.MessageNotification}, http.StatusOK)
 }
 
 func HttpStatusMessage(auth *auth.Authenticator, mux *http.ServeMux, accessor *collector.Accessor) {
