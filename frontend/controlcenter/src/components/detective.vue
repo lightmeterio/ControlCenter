@@ -319,6 +319,10 @@ input,
   display: block !important;
 }
 
+button.btn-primary {
+  background-color: #227aaf;
+}
+
 .pages {
   display: flex;
   justify-content: center;
