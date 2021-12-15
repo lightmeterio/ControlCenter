@@ -47,7 +47,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 		})
 
 		Convey("No Time Interval", func() {
-			r, err := http.Get(fmt.Sprintf("%s?mail_from=user1@example.org&mail_to=user2@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?mail_from=user1@example.org&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
@@ -56,27 +56,27 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 
 		Convey("No Sender", func() {
 			m.EXPECT().CheckMessageDelivery(gomock.Any(), "", "user2@example.org", interval, -1, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_to=user2@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("No Recipient", func() {
 			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "", interval, -1, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("Dates out of order", func() {
 			// "from" comes after "to"
-			r, err := http.Get(fmt.Sprintf("%s?to=1999-01-01&from=1999-12-31&mail_from=user1@example.org&mail_to=user2&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?to=1999-01-01&from=1999-12-31&mail_from=user1@example.org&mail_to=user2&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("No page", func() {
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&status=-1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
@@ -107,7 +107,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 
 			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, -1, 1).Return(&messages, nil)
 
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
