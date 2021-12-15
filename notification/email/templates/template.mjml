@@ -35,10 +35,10 @@
       <mj-section>
         <mj-group>
           <mj-column width="50%">
-            <mj-button width="120px" height="25px" align="right" padding="15px" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 12px" background-color="#E2F5FC" color="#2F2F2F">Category: Local</mj-button>
+            <mj-button width="120px" height="25px" align="right" padding="15px" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 12px" background-color="#E2F5FC" color="#2F2F2F">Category: {{.Category}}</mj-button>
           </mj-column>
           <mj-column width="50%">
-            <mj-button width="120px" height="25px" padding="15px" align="left" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 16px" background-color="#F65E5E" color="#FFFFFF">Rating: {{.Priority}}</mj-button>
+            <mj-button width="120px" height="25px" padding="15px" align="left" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 16px" background-color="{{.PriorityColor}" color="#FFFFFF">Rating: {{.Priority}}</mj-button>
           </mj-column>
         </mj-group>
       </mj-section>
