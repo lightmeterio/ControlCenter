@@ -350,14 +350,13 @@ export default {
 
       getStatusMessage().then(function(response) {
         let notification =
-          response.data.notification !== null
-            ? response.data.notification
-            : null;
-        let id = response.data.id;
+          response.data !== null ? response.data.notification : null;
 
-        if (notification.data === null || notification.title == "") {
+        if (notification === null || notification.title == "") {
           return;
         }
+
+        let id = response.data.id;
 
         let isNew =
           vue.statusMessage === null ||
