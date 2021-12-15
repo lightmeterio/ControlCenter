@@ -18,3 +18,5 @@ You can paste the MJML code here, edit and generate the updated HTML version by 
 
 Alternatively, you can download and use MJML locally following the steps outlined here: https://mjml.io/download
 
+TODO: we should automate the process, as described on https://gitlab.com/lightmeter/controlcenter/-/issues/431
+

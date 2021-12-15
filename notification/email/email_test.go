@@ -45,6 +45,8 @@ func (c fakeContentComponent) TplString() string {
 }
 
 type fakeContent struct {
+	category string
+	priority string
 }
 
 func (c fakeContent) Title() core.ContentComponent {
@@ -57,8 +59,8 @@ func (c fakeContent) Description() core.ContentComponent {
 
 func (c fakeContent) Metadata() core.ContentMetadata {
 	return core.ContentMetadata{
-		"category": fakeContentComponent("Intel"),
-		"priority": fakeContentComponent("Low"),
+		"category": fakeContentComponent(c.category),
+		"priority": fakeContentComponent(c.priority),
 	}
 }
 
@@ -145,7 +147,7 @@ func TestSendEmail(t *testing.T) {
 
 				err := notifier.Notify(core.Notification{
 					ID:      42,
-					Content: fakeContent{},
+					Content: fakeContent{category: "intel", priority: "bad"},
 				}, translator)
 
 				So(err, ShouldBeNil)
@@ -166,8 +168,9 @@ func TestSendEmail(t *testing.T) {
 				expectedContent := `
 Title: some fake content
 Description: some fake description
-Category: Intel
-Priority: Low
+Category: intel
+Priority: bad
+PriorityColor: rgb(255, 92, 111)
 DetailsURL: https://example.com/lightmeter/#/insight-card/42
 PreferencesURL: https://example.com/lightmeter/#/settings
 PublicURL: https://example.com/lightmeter/

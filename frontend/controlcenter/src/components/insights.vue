@@ -384,7 +384,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >
                   <span>
                     <!-- prettier-ignore -->
-                    <translate>Was this useful?</translate>
+                    <translate>Useful?</translate>
                   </span>
                   <div>
                     <span
@@ -674,7 +674,7 @@ export default {
       let counter = c.insights.length;
 
       let translation = this.$gettext(
-        "Mail activity imported successfully Events since %{start} were analysed, producing %{count} Insights"
+        "Events since %{start} were analysed, producing %{count} Insights"
       );
 
       return this.$gettextInterpolate(translation, {
@@ -834,13 +834,13 @@ export default {
       this.importSummaryInsight = insight;
     },
     onBruteForceDetails(insight) {
-      this.trackEvent("InsightDescription", "openBruteForceInsightModal");
+      this.trackEvent("InsightDescription", "openBlockedIPsInsightModal");
       this.blockedIPsInsight = insight;
     },
     onBruteForceSummaryDetails(insight) {
       this.trackEvent(
         "InsightDescription",
-        "openBruteForceSummaryInsightModal"
+        "openBlockedIPsSummaryInsightModal"
       );
       this.blockedIPsSummarysInsight = insight;
     },
