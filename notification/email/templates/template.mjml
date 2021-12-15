@@ -21,43 +21,65 @@
         </mj-column>
       </mj-section>
     </mj-wrapper>
-    <mj-wrapper background-color="#ffffff" css-class="box-shadow">
+    <mj-wrapper background-color="#ffffff">
       <mj-section>
-        <mj-column width="50%">
+        <mj-column width="30%">
           <mj-image src="https://lightmeter.io/wp-content/uploads/2020/01/Logo_color@4x-1024x203.png" alt="Logo Image" padding-top="37px" padding-bottom="37px"></mj-image>
         </mj-column>
       </mj-section>
       <mj-section>
         <mj-column width="100%">
-          <mj-text font-family="Open Sans" font-weight="normal" font-size="26px" color="#000000" align="center">IP on shared blocklist</mj-text>
+          <mj-text font-family="Open Sans" font-weight="normal" font-size="26px" color="#000000" align="center">{{.Title}}</mj-text>
         </mj-column>
       </mj-section>
       <mj-section>
         <mj-group>
           <mj-column width="50%">
-            <mj-button width="120px" height="25px" align="right" padding="15px" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 12px" background-color="#E2F5FC" color="#2F2F2F">Category: Local</mj-button>
+            <mj-button width="120px" height="25px" align="right" padding="15px" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 12px" background-color="#E2F5FC" color="#2F2F2F">Category: {{.Category}}</mj-button>
           </mj-column>
           <mj-column width="50%">
-            <mj-button width="120px" height="25px" padding="15px" align="left" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 16px" background-color="#F65E5E" color="#FFFFFF">Rating: {{.Priority}}</mj-button>
+            <mj-button width="120px" height="25px" padding="15px" align="left" border-radius="2px" font-size="12px" font-family="montserrat, Arial, sans-serif" inner-padding="4px 16px" background-color="{{.PriorityColor}}" color="#FFFFFF">Rating: {{.Priority}}</mj-button>
           </mj-column>
         </mj-group>
       </mj-section>
       <mj-section padding-top="20px" padding-bottom="40px">
         <mj-column width="100%">
-          <mj-text font-family="Open Sans" font-weight="normal" font-size="16px" color="#202324" align="center">The IP 79.106.69.106 cannot deliver to typographus.de (Microsoft)</mj-text>
+          <mj-text font-family="Open Sans" font-weight="normal" font-size="16px" color="#202324" align="center">{{.Description}}</mj-text>
         </mj-column>
       </mj-section>
       <mj-section>
         <mj-column width="100%">
-          <mj-button width="150px" height="50px" align="center" padding="15px" border="1px solid #185A8D4D" padding-bottom="40px" font-size="16px" font-family="Open Sans" font-weight="bold" inner-padding="4px 12px" background-color="#FFFFFF" color="#227AAF"><a href="{{.DetailsURL}}">More details</a></mj-button>
+          <mj-button width="258px" height="54px" align="center" padding="15px" border="1px solid #185A8D4D" padding-bottom="40px" font-size="16px" font-family="Open Sans" font-weight="bold" inner-padding="4px 12px" background-color="#248BC3"><a style="color: #FFFFFF" href="{{.DetailsURL}}">More details</a></mj-button>
         </mj-column>
       </mj-section>
     </mj-wrapper>
+     <mj-wrapper>
+         <mj-section background-color="#F9F9F9" padding-top="20px"></mj-section>
+       </mj-wrapper>
+       <mj-wrapper background-color="#ffffff">
+         <mj-section padding-left="35px" padding-right="30px">
+           <mj-column>
+             <mj-text align="center" font-family="Open Sans" font-size="14px" color="#202324" padding-top="22px" font-weight="400">Mailserver monitoring &amp; security powered by <a href="https://lightmeter.io" target="_blank">Lightmeter</a>. Supported by:</mj-text>
+           </mj-column>
+         </mj-section>
+         <mj-section>
+           <mj-column>
+             <mj-social padding-left="4px" font-size="15px" icon-size="100px" mode="horizontal">
+               <mj-social-element name="European-Union" href="https://www.ngi.eu/ngi-projects/" src="https://i.ibb.co/jh1qxzs/EU-funding.png">
+               </mj-social-element>
+               <mj-social-element name="OTF" href="https://www.opentech.fund/" src="https://i.ibb.co/VjsvCmD/OTF.png">
+               </mj-social-element>
+               <mj-social-element name="DO" href="https://www.digitalocean.com/" src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/PNG/DO_Logo_Horizontal_Blue.png">
+               </mj-social-element>
+             </mj-social>
+           </mj-column>
+         </mj-section>
+       </mj-wrapper>
     <mj-wrapper padding-top="10px">
       <mj-section background-color="#F9F9F9" padding="34px">
         <mj-column>
           <mj-text align="center" font-family="Open Sans, Semibold" font-weight="600" font-size="16px" color="#202324">Why am I getting these emails?</mj-text>
-          <mj-text align="center" font-family="opensans-regular" font-size="14px" color="#202324">Yours is the designated address for notifications from <a href="{{.PublicURL}}">{{.PublicURL}}</a>.</mj-text>
+          <mj-text align="center" font-family="Open Sans" font-size="13px" color="#202324">Yours is the designated address for notifications from <a href="{{.PublicURL}}">{{.PublicURL}}</a>.</mj-text>
           <mj-text align="center" font-size="12px" color="#414445" padding-top="15px"><a href="{{.PreferencesURL}}">Manage preferences</a></mj-text>
         </mj-column>
       </mj-section>
@@ -85,7 +107,7 @@
       </mj-section>
       <mj-section>
         <mj-column>
-          <mj-text align="center" font-size="12px" color="#202324" padding-top="15px">Copyright &copy; 2021 Lightmeter. Made in Berlin.</mj-text>
+          <mj-text align="center" font-size="12px" color="#202324" padding-top="15px">Copyright &copy; 2021 Lightmeter. Made in Europe.</mj-text>
         </mj-column>
       </mj-section>
     </mj-wrapper>
