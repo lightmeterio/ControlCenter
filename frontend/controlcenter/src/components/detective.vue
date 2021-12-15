@@ -266,7 +266,10 @@ export default {
           ? "text-primary"
           : "text-secondary";
         vue.searchResultText = vue.results.total
-          ? vue.results.total + " " + vue.$gettext("message(s) found") + pageNb
+          ? new Intl.NumberFormat().format(vue.results.total) +
+            " " +
+            vue.$gettext("message(s) found") +
+            pageNb
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
       });
