@@ -77,7 +77,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           <translate>Status</translate>
         </label>
 
-        <select name="status" v-model="statusSelected">
+        <select
+          class="form-control custom-select"
+          name="status"
+          v-model="statusSelected"
+        >
           <option value="-1"><translate>Any status</translate></option>
           <option value="0"><translate>Sent</translate></option>
           <option value="1"><translate>Bounced</translate></option>
