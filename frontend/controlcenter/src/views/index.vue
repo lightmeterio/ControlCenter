@@ -266,7 +266,7 @@ export default {
       rawLogsDownloadsDisable: true,
 
       statusMessage: null,
-      statusMessageID: 0
+      statusMessageId: null
     };
   },
   created() {},
@@ -342,24 +342,37 @@ export default {
 
       window.open(link);
     },
+    onStatusMessageClosed() {
+      this.trackEvent("CloseStatusMessage", this.statusMessageId);
+    },
     updateStatusMessage: function() {
       let vue = this;
 
       getStatusMessage().then(function(response) {
-        let notification = response.data.notification !== null ? response.data.notification : null;
+        let notification =
+          response.data.notification !== null
+            ? response.data.notification
+            : null;
         let id = response.data.id;
 
         if (notification.data === null || notification.title == "") {
           return;
         }
 
-        let isNew = vue.statusMessage === null ||
+        let isNew =
+          vue.statusMessage === null ||
           vue.statusMessage.message != notification.message ||
           vue.statusMessage.title != notification.title;
 
         vue.statusMessage = notification;
+        vue.statusMessageId = id;
+
+        if (!isNew) {
+          return;
+        }
 
         const e = vue.$createElement;
+
         const msg = [
           e("p", vue.statusMessage.message),
           e(
@@ -369,28 +382,7 @@ export default {
           )
         ];
 
-        if (!isNew) {
-          return;
-        }
-
-        let toastID = `status-message-id-${id}`;
-
-        const $closeButton = e(
-          "b-button",
-          {
-            on: {
-              click: function() {
-                vue.trackEvent("CloseStatusMessage", id);
-                vue.$bvToast.hide(toastID);
-              }
-            }
-          },
-          vue.$gettext("Close")
-        );
-
-        vue.$bvToast.toast([msg, $closeButton], {
-          id: toastID,
-          noCloseButton: true,
+        vue.$bvToast.toast([msg], {
           variant: vue.statusMessage.severity,
           title: vue.statusMessage.title,
           noAutoHide: true,
@@ -433,7 +425,12 @@ export default {
   },
   mounted() {
     this.initIndex();
+
     let vue = this;
+
+    vue.$root.$on("bv::toast:hidden", event => {
+      vue.onStatusMessageClosed(event);
+    });
 
     getUserInfo().then(function(response) {
       vue.username = response.data.user.name;
