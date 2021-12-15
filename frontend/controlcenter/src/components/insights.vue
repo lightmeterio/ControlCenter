@@ -674,7 +674,7 @@ export default {
       let counter = c.insights.length;
 
       let translation = this.$gettext(
-        "Mail activity imported successfully Events since %{start} were analysed, producing %{count} Insights"
+        "Events since %{start} were analysed, producing %{count} Insights"
       );
 
       return this.$gettextInterpolate(translation, {

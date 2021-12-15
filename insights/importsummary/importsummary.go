@@ -54,7 +54,7 @@ func (d description) String() string {
 }
 
 func (d description) TplString() string {
-	return translator.I18n("Mail activity imported successfully Events since %s were analysed, producing %d Insights")
+	return translator.I18n("Events since %s were analysed, producing %d Insights")
 }
 
 func (d description) Args() []interface{} {
