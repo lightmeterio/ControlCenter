@@ -38,6 +38,10 @@ msgstr "Blocked suspicious connection attempts"
 msgid "comparative"
 msgstr "comparative"
 
+#: insights/importsummary/importsummary.go:57
+msgid "Events since %s were analysed, producing %d Insights"
+msgstr "Events since %s were analysed, producing %d Insights"
+
 #: insights/highrate/high_status_rate_insight.go:203
 msgid "High Bounce Rate"
 msgstr "High Bounce Rate"
@@ -61,10 +65,6 @@ msgstr "IP on shared blocklist"
 #: insights/core/access.go:29
 msgid "local"
 msgstr "local"
-
-#: insights/importsummary/importsummary.go:57
-msgid "Mail activity imported successfully Events since %s were analysed, producing %d Insights"
-msgstr "Mail activity imported successfully Events since %s were analysed, producing %d Insights"
 
 #: insights/mailinactivity/mail_inactivity_insight.go:44
 msgid "Mail Inactivity"
