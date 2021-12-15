@@ -384,7 +384,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 >
                   <span>
                     <!-- prettier-ignore -->
-                    <translate>Was this useful?</translate>
+                    <translate>Useful?</translate>
                   </span>
                   <div>
                     <span
