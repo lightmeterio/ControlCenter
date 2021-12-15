@@ -11,13 +11,73 @@ import (
 )
 
 func TestDisposableDomains(t *testing.T) {
-	Convey("Split email addresses", t, func() {
+	Convey("Valid email addresses", t, func() {
+		// valid emails
+		So(IsValidEmailAddress("hello@lightmeter.io"), ShouldBeTrue)
+		So(IsValidEmailAddress("hello+test@lightmeter.io"), ShouldBeTrue)
+
+		// invalid emails
+		So(IsValidEmailAddress("lightmeter.io"), ShouldBeFalse)
+		So(IsValidEmailAddress("@lightmeter.io"), ShouldBeFalse)
+		So(IsValidEmailAddress("hello+test@"), ShouldBeFalse)
+	})
+
+	Convey("Split complete email addresses", t, func() {
 		user, domain, err := Split("hello@lightmeter.io")
+		So(err, ShouldBeNil)
 		So(user, ShouldEqual, "hello")
 		So(domain, ShouldEqual, "lightmeter.io")
-		So(err, ShouldBeNil)
 
-		user, domain, err = Split("not-an-email")
+		user, domain, err = Split("hello+test@lightmeter.io")
+		So(err, ShouldBeNil)
+		So(user, ShouldEqual, "hello+test")
+		So(domain, ShouldEqual, "lightmeter.io")
+
+		_, _, err = Split("not-an-email")
+		So(err, ShouldEqual, ErrPartialEmail)
+
+		_, _, err = Split("test@example@org")
+		So(err, ShouldEqual, ErrInvalidEmail)
+
+		_, _, err = Split("lightmeter.io")
+		So(err, ShouldEqual, ErrPartialEmail)
+
+		_, _, err = Split("@lightmeter.io")
+		So(err, ShouldEqual, ErrPartialEmail)
+	})
+
+	Convey("Split partial email addresses", t, func() {
+		user, domain, partial, err := SplitPartial("hello@lightmeter.io")
+		So(err, ShouldBeNil)
+		So(partial, ShouldBeFalse)
+		So(user, ShouldEqual, "hello")
+		So(domain, ShouldEqual, "lightmeter.io")
+
+		user, domain, partial, err = SplitPartial("hello+test@lightmeter.io")
+		So(err, ShouldBeNil)
+		So(partial, ShouldBeFalse)
+		So(user, ShouldEqual, "hello+test")
+		So(domain, ShouldEqual, "lightmeter.io")
+
+		user, domain, partial, err = SplitPartial("@lightmeter.io")
+		So(err, ShouldBeNil)
+		So(partial, ShouldBeTrue)
+		So(user, ShouldEqual, "")
+		So(domain, ShouldEqual, "lightmeter.io")
+
+		user, domain, partial, err = SplitPartial("lightmeter.io")
+		So(err, ShouldBeNil)
+		So(partial, ShouldBeTrue)
+		So(user, ShouldEqual, "")
+		So(domain, ShouldEqual, "lightmeter.io")
+
+		user, domain, partial, err = SplitPartial("test")
+		So(err, ShouldBeNil)
+		So(partial, ShouldBeTrue)
+		So(user, ShouldEqual, "")
+		So(domain, ShouldEqual, "test")
+
+		_, _, _, err = SplitPartial("test@example@org")
 		So(err, ShouldEqual, ErrInvalidEmail)
 	})
 

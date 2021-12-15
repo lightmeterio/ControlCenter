@@ -47,7 +47,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 		})
 
 		Convey("No Time Interval", func() {
-			r, err := http.Get(fmt.Sprintf("%s?mail_from=user1@example.org&mail_to=user2@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?mail_from=user1@example.org&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
@@ -55,28 +55,28 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 		emptyResult := detective.MessagesPage{}
 
 		Convey("No Sender", func() {
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "", "user2@example.org", interval, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_to=user2@example.org&page=1", s.URL))
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "", "user2@example.org", interval, -1, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("No Recipient", func() {
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "", interval, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&page=1", s.URL))
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "", interval, -1, 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("Dates out of order", func() {
 			// "from" comes after "to"
-			r, err := http.Get(fmt.Sprintf("%s?to=1999-01-01&from=1999-12-31&mail_from=user1@example.org&mail_to=user2&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?to=1999-01-01&from=1999-12-31&mail_from=user1@example.org&mail_to=user2&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("No page", func() {
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&status=-1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
@@ -97,15 +97,17 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 							detective.Status(parser.SentStatus),
 							"2.0.0",
 							nil,
+							"user1@example.org",
+							"user2@example.org",
 						},
 						},
 					},
 				},
 			}
 
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, 1).Return(&messages, nil)
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, -1, 1).Return(&messages, nil)
 
-			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&page=1", s.URL))
+			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&status=-1&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
@@ -177,7 +179,7 @@ func TestEscalation(t *testing.T) {
 		s := httptest.NewServer(httpmiddleware.New().WithEndpoint(detectiveEscalatorHandler{requester: e, detective: d}))
 
 		Convey("No message escalated", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
 
 			r, err := http.PostForm(s.URL, url.Values{
 				"from":      []string{"2000-01-01"},
@@ -192,7 +194,7 @@ func TestEscalation(t *testing.T) {
 		})
 
 		Convey("Internal error if detective check fails", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, errors.New(`Some error`))
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, errors.New(`Some error`))
 
 			r, err := http.PostForm(s.URL, url.Values{
 				"from":      []string{"2000-01-01"},
@@ -220,7 +222,7 @@ func TestEscalation(t *testing.T) {
 		})
 
 		Convey("Escalate issue", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,
@@ -231,11 +233,13 @@ func TestEscalation(t *testing.T) {
 							Queue: "AAA",
 							Entries: []detective.MessageDelivery{
 								{
-									TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-									TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-									Status:  detective.Status(parser.BouncedStatus),
-									Dsn:     "3.4.6",
-									Expired: nil,
+									TimeMin:  timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:  timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:   detective.Status(parser.BouncedStatus),
+									Dsn:      "3.4.6",
+									Expired:  nil,
+									MailFrom: "user1@example.com",
+									MailTo:   "user2@example.com",
 								},
 							},
 						},
@@ -261,11 +265,13 @@ func TestEscalation(t *testing.T) {
 							Queue: "AAA",
 							Entries: []detective.MessageDelivery{
 								{
-									TimeMin: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-									TimeMax: timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
-									Status:  detective.Status(parser.BouncedStatus),
-									Dsn:     "3.4.6",
-									Expired: nil,
+									TimeMin:  timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:  timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:   detective.Status(parser.BouncedStatus),
+									Dsn:      "3.4.6",
+									Expired:  nil,
+									MailFrom: "user1@example.com",
+									MailTo:   "user2@example.com",
 								},
 							},
 						},
