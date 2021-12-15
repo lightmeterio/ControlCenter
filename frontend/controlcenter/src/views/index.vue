@@ -265,9 +265,11 @@ export default {
 
       rawLogsDownloadsDisable: true,
 
-      statusMessage: null
+      statusMessage: null,
+      statusMessageId: null
     };
   },
+  created() {},
   computed: {
     shouldShowInsights() {
       return this.isImportProgressFinished;
@@ -334,28 +336,42 @@ export default {
     downloadRawLogsInInterval() {
       let interval = this.buildDateInterval();
       let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      let range = interval.startDate + "_" + interval.endDate;
+
+      this.trackEvent("DownloadDatePickerLogs", range);
+
       window.open(link);
+    },
+    onStatusMessageClosed() {
+      this.trackEvent("CloseStatusMessage", this.statusMessageId);
     },
     updateStatusMessage: function() {
       let vue = this;
 
       getStatusMessage().then(function(response) {
-        if (response.data === null || response.data.title == "") {
+        let notification =
+          response.data !== null ? response.data.notification : null;
+
+        if (notification === null || notification.title == "") {
           return;
         }
 
-        let isNew = false;
-        if (
+        let id = response.data.id;
+
+        let isNew =
           vue.statusMessage === null ||
-          vue.statusMessage.message != response.data.message ||
-          vue.statusMessage.title != response.data.title
-        ) {
-          isNew = true;
+          vue.statusMessage.message != notification.message ||
+          vue.statusMessage.title != notification.title;
+
+        vue.statusMessage = notification;
+        vue.statusMessageId = id;
+
+        if (!isNew) {
+          return;
         }
 
-        vue.statusMessage = response.data;
-
         const e = vue.$createElement;
+
         const msg = [
           e("p", vue.statusMessage.message),
           e(
@@ -364,10 +380,6 @@ export default {
             vue.statusMessage.action.label
           )
         ];
-
-        if (!isNew) {
-          return;
-        }
 
         vue.$bvToast.toast([msg], {
           variant: vue.statusMessage.severity,
@@ -412,7 +424,12 @@ export default {
   },
   mounted() {
     this.initIndex();
+
     let vue = this;
+
+    vue.$root.$on("bv::toast:hidden", event => {
+      vue.onStatusMessageClosed(event);
+    });
 
     getUserInfo().then(function(response) {
       vue.username = response.data.user.name;

@@ -44,14 +44,16 @@ SPDX-License-Identifier: AGPL-3.0-only
         >
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
           <ul class="smtp-graph-legend">
-            <li style="color: #961994;">
+            <li style="color: #227AAF;">
               <translate>blocked by Lightmeter</translate>
             </li>
-            <li style="color: #EA3939;"><translate>failed login</translate></li>
-            <li style="color: #86C528;">
+            <li style="color: #C53030;">
+              <translate>failed login</translate>
+            </li>
+            <li style="color: #206C00;">
               <translate>successful login</translate>
             </li>
-            <li style="color: #0000ff;">
+            <li style="color: #2C3371;">
               <translate>successful login after failures</translate>
             </li>
           </ul>
@@ -239,10 +241,10 @@ export default {
         let colors = [];
         let sizes = [];
 
-        let okColor = "#86C528";
-        let failedColor = "#EA3939";
-        let suspiciousColor = "#0000ff";
-        let blockedColor = "#961994";
+        let okColor = "#206C00";
+        let failedColor = "#C53030";
+        let suspiciousColor = "#2C3371";
+        let blockedColor = "#227AAF";
 
         let statusAsColor = function(s) {
           switch (s) {

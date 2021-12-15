@@ -130,6 +130,24 @@ func archiveAnyPreviousInsightIfNeeded(tx *sql.Tx, c core.Clock) error {
 }
 
 func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
+	now := c.Now()
+
+	kind := "blockedips"
+
+	lastExecTime, err := core.RetrieveLastDetectorExecution(tx, kind)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// respect the polling time
+	if !(lastExecTime.IsZero() || now.Sub(lastExecTime) >= d.options.PollInterval) {
+		return nil
+	}
+
+	if err := core.StoreLastDetectorExecution(tx, kind, now); err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	return d.options.Checker.Step(c.Now(), func(r blockedips.SummaryResult) error {
 		if err := archiveAnyPreviousInsightIfNeeded(tx, c); err != nil {
 			return errorutil.Wrap(err)

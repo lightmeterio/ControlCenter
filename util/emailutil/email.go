@@ -7,15 +7,20 @@ package emailutil
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
 )
 
 var (
-	// NOTE: regexp also used in src/views/detective.vue
-	emailRegexp     = regexp.MustCompile(`^[^@\s]+@[^@\s]+$`)
+	// NOTE: valid-email-regexp also used in src/views/detective.vue
+	localRe         = `[^@\s]+`
+	domainRe        = `[^@\s]+`
+	domainRegexp    = regexp.MustCompile(fmt.Sprintf(`^%s$`, domainRe))
+	emailRegexp     = regexp.MustCompile(fmt.Sprintf(`^%s@%s$`, localRe, domainRe))
 	ErrInvalidEmail = errors.New("Not a valid email address")
+	ErrPartialEmail = errors.New("Email address isn't complete")
 )
 
 func IsValidEmailAddress(email string) bool {
@@ -23,17 +28,36 @@ func IsValidEmailAddress(email string) bool {
 }
 
 func Split(email string) (local string, domain string, err error) {
-	if !IsValidEmailAddress(email) {
-		return "", "", ErrInvalidEmail
+	local, domain, isPartial, err := SplitPartial(email)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	if isPartial {
+		return "", "", ErrPartialEmail
+	}
+
+	return local, domain, nil
+}
+
+func SplitPartial(email string) (local string, domain string, isPartial bool, err error) {
+	if domainRegexp.Match([]byte(email)) {
+		return "", email, true, nil
 	}
 
 	emailParts := strings.Split(email, "@")
-
 	if len(emailParts) != 2 {
-		return "", "", errors.New("Can't split email address")
+		return "", "", false, ErrInvalidEmail
 	}
 
-	return emailParts[0], emailParts[1], nil
+	isPartial = len(emailParts[0]) == 0
+
+	if !domainRegexp.Match([]byte(emailParts[1])) {
+		return "", "", false, ErrInvalidEmail
+	}
+
+	return emailParts[0], emailParts[1], isPartial, nil
 }
 
 func HasMX(email string) bool {
