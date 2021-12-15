@@ -38,6 +38,10 @@ SPDX-License-Identifier: AGPL-3.0-only
           Queue ID: %{queue}
         </div>
 
+        <div v-show="showFromTo" class="card-text">
+          {{ result.entries[0].from }} → {{ result.entries[0].to }}
+        </div>
+
         <ul class="list-unstyled card-text">
           <li
             class="mt-3 card-text"
@@ -98,6 +102,10 @@ export default {
       default: null
     },
     showQueues: {
+      type: Boolean,
+      default: false
+    },
+    showFromTo: {
       type: Boolean,
       default: false
     }
@@ -177,10 +185,6 @@ export default {
     },
     formatMaxTime(delivery) {
       return this.formatTime(delivery.time_max);
-    },
-    queueLabel(queue) {
-      let message = this.$gettext("Queue ID: %{queue}");
-      return this.$gettextInterpolate(message, { queue: queue });
     }
   },
   data() {

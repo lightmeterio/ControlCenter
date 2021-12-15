@@ -306,6 +306,7 @@ export function checkMessageDelivery(
   mail_to,
   date_from,
   date_to,
+  status,
   page
 ) {
   let formData = new FormData();
@@ -313,6 +314,7 @@ export function checkMessageDelivery(
   formData.append("mail_to", mail_to);
   formData.append("from", date_from);
   formData.append("to", date_to);
+  formData.append("status", status);
   formData.append("page", page);
 
   var post = axios.post(

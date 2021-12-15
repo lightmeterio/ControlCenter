@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         page = 1;
         updateResults();
       "
-      class="detective-form d-flex"
+      class="detective-form d-flex flex-wrap"
     >
       <div class="col p-2">
         <label>
@@ -20,15 +20,20 @@ SPDX-License-Identifier: AGPL-3.0-only
         </label>
 
         <b-form-input
-          type="email"
+          type="text"
           name="mail_from"
           maxlength="255"
-          required
+          :required="forEndUsers"
           v-model="mail_from"
           :v-state="isEmailFrom"
           placeholder="sender@example.org"
         />
       </div>
+
+      <div class="p-2 d-flex align-items-center" @click="swapEmails()">
+        <i class="fas fa-exchange-alt"></i>
+      </div>
+
       <div class="col p-2">
         <label>
           <!-- prettier-ignore -->
@@ -36,10 +41,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         </label>
 
         <b-form-input
-          type="email"
+          type="text"
           name="mail_to"
           maxlength="255"
-          required
+          :required="forEndUsers"
           v-model="mail_to"
           :v-state="isEmailTo"
           placeholder="recipient@example.org"
@@ -66,6 +71,26 @@ SPDX-License-Identifier: AGPL-3.0-only
         </DateRangePicker>
       </div>
 
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Status</translate>
+        </label>
+
+        <select
+          class="form-control custom-select"
+          name="status"
+          v-model="statusSelected"
+        >
+          <option value="-1"><translate>Any status</translate></option>
+          <option value="0"><translate>Sent</translate></option>
+          <option value="1"><translate>Bounced</translate></option>
+          <option value="2"><translate>Deferred</translate></option>
+          <option value="3"><translate>Expired</translate></option>
+          <option value="4"><translate>Returned</translate></option>
+        </select>
+      </div>
+
       <div class="col p-2 ml-auto">
         <b-button type="submit" variant="primary" class="btn-block">
           <!-- prettier-ignore -->
@@ -75,12 +100,26 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-form>
 
     <b-container ref="searchResultText" class="search-result-text mt-4">
-      <p :class="searchResultClass">{{ searchResultText }}</p>
+      <p :class="searchResultClass">
+        {{ searchResultText }}
+        <b-button
+          v-show="showLogsDownloadButton"
+          v-on:click="downloadRawLogsInInterval()"
+          variant="primary"
+          size="sm"
+          style="margin-left: 1rem;"
+        >
+          <i class="fas fa-download"></i>
+          <!-- prettier-ignore -->
+          <translate>Logs</translate>
+        </b-button>
+      </p>
     </b-container>
 
     <detective-results
       :results="results.messages"
       :showQueues="!forEndUsers"
+      :showFromTo="!forEndUsers"
     ></detective-results>
 
     <b-container class="pages mt-4 mb-4" v-show="results.last_page > 1">
@@ -108,7 +147,8 @@ axios.defaults.withCredentials = true;
 import {
   checkMessageDelivery,
   escalateMessage,
-  oldestAvailableTimeForMessageDetective
+  oldestAvailableTimeForMessageDetective,
+  linkToRawLogsInInterval
 } from "@/lib/api.js";
 
 import tracking from "@/mixin/global_shared.js";
@@ -117,7 +157,8 @@ import datepicker from "@/mixin/datepicker.js";
 import DateRangePicker from "vue2-daterange-picker";
 import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
 
-function isEmail(email) {
+function isEmail(forEndUsers, email) {
+  if (!forEndUsers) return true;
   // NOTE: regexp also used in util/emailutil/email.go
   if (email == "") return null;
   return email.match(/^[^@\s]+@[^@\s]+$/) !== null;
@@ -141,6 +182,7 @@ export default {
       searchResultText: this.$gettext("No results yet"),
       searchResultClass: "text-muted",
       results: [],
+      statusSelected: "-1",
       page: 1,
 
       // specific auth
@@ -151,13 +193,25 @@ export default {
   },
   computed: {
     isEmailFrom: function() {
-      return isEmail(this.mail_from);
+      return isEmail(this.forEndUsers, this.mail_from);
     },
     isEmailTo: function() {
-      return isEmail(this.mail_to);
+      return isEmail(this.forEndUsers, this.mail_to);
+    },
+    showLogsDownloadButton: function() {
+      if (this.forEndUsers || this.results.length == 0) {
+        return false;
+      }
+
+      return this.results.messages.length > 0;
     }
   },
   methods: {
+    swapEmails() {
+      let temp = this.mail_from;
+      this.mail_from = this.mail_to;
+      this.mail_to = temp;
+    },
     updateSelectedInterval(obj) {
       let vue = this;
       vue.formatDatePickerValue(obj);
@@ -191,6 +245,7 @@ export default {
         this.mail_to,
         interval.startDate,
         interval.endDate,
+        vue.statusSelected,
         vue.page
       ).then(function(response) {
         vue.results = response.data;
@@ -215,7 +270,10 @@ export default {
           ? "text-primary"
           : "text-secondary";
         vue.searchResultText = vue.results.total
-          ? vue.results.total + " " + vue.$gettext("message(s) found") + pageNb
+          ? new Intl.NumberFormat().format(vue.results.total) +
+            " " +
+            vue.$gettext("message(s) found") +
+            pageNb
           : vue.$gettext("No message found");
         vue.$refs.searchResultText.scrollIntoView();
       });
@@ -230,6 +288,11 @@ export default {
       ).then(function() {
         console.log("All good");
       });
+    },
+    downloadRawLogsInInterval() {
+      let interval = this.buildDateInterval();
+      let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      window.open(link);
     }
   },
   mounted() {
@@ -256,12 +319,20 @@ input,
   display: block !important;
 }
 
+button.btn-primary {
+  background-color: #227aaf;
+}
+
 .pages {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
 
-  button + button {
-    margin-left: 0.5em;
+  button {
+    margin-top: 0.5em;
+    & + button {
+      margin-left: 0.5em;
+    }
   }
 }
 
