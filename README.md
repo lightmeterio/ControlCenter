@@ -519,6 +519,18 @@ EOF
 dovecot reload
 ```
 
+###### Older Dovecot version
+
+In case you're running an older version of Dovecot, you may experience that the `auth_policy_check_before_auth` parameter does not exist.
+
+If this is the case, leave out these three parameters from the above configuration file:
+- `auth_policy_check_before_auth`
+- `auth_policy_check_after_auth`
+- `auth_policy_report_after_auth`
+
+The counting of blocked IPs will be doubled in your Control Center¹, but you'll still enjoy protection (¹ we're trying to find a workaround).
+
+
 ##### Postfix configuration
 
 To enable blocking of malicious IPs by Postfix (SMTP defence) do the following.
