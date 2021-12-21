@@ -10,10 +10,16 @@ import (
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
+	"net/url"
 )
 
 const (
 	SettingKey = "global"
+)
+
+var (
+	ErrPublicURLInvalid = errors.New("Please provide a full public URL")
+	ErrPublicURLNoDNS   = errors.New("Public URL cannot be reached")
 )
 
 type IP struct {
@@ -57,7 +63,29 @@ func (r *MetaReaderGetter) IPAddress(ctx context.Context) net.IP {
 	return settings.LocalIP.IP
 }
 
+func checkPublicURL(u string) error {
+	if len(u) == 0 {
+		return nil
+	}
+
+	url, err := url.Parse(u)
+	if err != nil || len(url.Scheme) == 0 || len(url.Host) == 0 {
+		return ErrPublicURLInvalid
+	}
+
+	ips, err := net.LookupHost(url.Hostname())
+	if err != nil || len(ips) == 0 {
+		return ErrPublicURLNoDNS
+	}
+
+	return nil
+}
+
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
+	if err := checkPublicURL(settings.PublicURL); err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
 		return errorutil.Wrap(err)
 	}
