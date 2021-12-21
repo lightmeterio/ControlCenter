@@ -550,9 +550,22 @@ unix_listener /var/spool/postfix/private/auth {
 Then make Postfix use the Dovecot SASL server by adding the following to your Postfix config file (e.g. `/etc/postfix/main.cf`, or alternatively by using `postconf` CLI utility):
 
 ```
+smtpd_sasl_auth_enable=yes
 smtpd_sasl_path=/var/spool/postfix/private/auth
 smtpd_sasl_type=dovecot
 ```
+
+More documentation can be found on postfix' website:
+- [Configuring Dovecot SASL](http://www.postfix.org/SASL_README.html#server_dovecot)
+- [Enabling SASL in Postfix](http://www.postfix.org/SASL_README.html#server_sasl_enable)
+
+
+##### Blocklist use
+
+In order for Control Center to know that your Postfix/Dovecot are using the blocklist, please fill in their IP address on the Settings Page ("*Postfix public IP*").
+
+Currently the only supported setup for this is when Postfix and Dovecot are on the same IP address.
+
 
 ## Known issues
 
