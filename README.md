@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
-# Lightmeter ControlCenter (Alpha)
+# Lightmeter ControlCenter
 
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![Translation status](https://translate.lightmeter.io/widgets/controlcenter/-/svg-badge.svg)](https://translate.lightmeter.io/engage/controlcenter/)
