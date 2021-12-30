@@ -521,7 +521,7 @@ dovecot reload
 
 ###### Older Dovecot version
 
-In case you're running an older version of Dovecot, you may experience that the `auth_policy_check_before_auth` parameter does not exist.
+In case you're running a version of Dovecot older than 2.3.1, you will experience that the `auth_policy_check_before_auth` parameter does not exist.
 
 If this is the case, leave out these three parameters from the above configuration file:
 - `auth_policy_check_before_auth`
