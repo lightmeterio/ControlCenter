@@ -9,17 +9,17 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	_ "gitlab.com/lightmeter/controlcenter/rawlogsdb/migrations"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
 
 type DB struct {
 	*dbrunner.Runner
-	closeutil.Closers
+	closers.Closers
 }
 
 const (
@@ -53,7 +53,7 @@ func New(conn dbconn.RwConn) (*DB, error) {
 
 	return &DB{
 		Runner:  dbrunner.New(500*time.Millisecond, 1024*1000, conn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
-		Closers: closeutil.New(stmts),
+		Closers: closers.New(stmts),
 	}, nil
 }
 

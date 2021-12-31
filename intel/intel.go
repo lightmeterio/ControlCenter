@@ -24,10 +24,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -339,12 +339,12 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 	}
 
 	return &Runner{
-		Closers:           closeutil.New(c, r),
+		Closers:           closers.New(c, r),
 		CancellableRunner: runner.NewDependantPairCancellableRunner(runner.NewCombinedCancellableRunners(c, r), dbRunner),
 	}, logslinePublisher, r, nil
 }
 
 type Runner struct {
-	closeutil.Closers
+	closers.Closers
 	runner.CancellableRunner
 }

@@ -15,8 +15,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -55,7 +55,7 @@ func (c *Accessor) NotificationPolicy() notification.Policy {
 
 type Engine struct {
 	runner.CancellableRunner
-	closeutil.Closers
+	closers.Closers
 
 	accessor        *Accessor
 	core            *core.Core
@@ -96,7 +96,7 @@ func NewCustomEngine(
 	}
 
 	e := &Engine{
-		Closers:         closeutil.New(core),
+		Closers:         closers.New(core),
 		accessor:        c,
 		core:            core,
 		txActions:       make(chan txAction, 1024),

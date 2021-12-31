@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package closeutil
+package closers
 
 import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"

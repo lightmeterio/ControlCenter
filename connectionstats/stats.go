@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/connectionstats/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -282,7 +282,7 @@ func (pub *publisher) Publish(r postfix.Record) {
 
 type Stats struct {
 	*dbrunner.Runner
-	closeutil.Closers
+	closers.Closers
 
 	conn *dbconn.PooledPair
 }
@@ -304,7 +304,7 @@ func New(connPair *dbconn.PooledPair) (*Stats, error) {
 	return &Stats{
 		conn:    connPair,
 		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
-		Closers: closeutil.New(stmts),
+		Closers: closers.New(stmts),
 	}, nil
 }
 
