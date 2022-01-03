@@ -323,7 +323,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               id="publicURL"
               v-model="settings.general.public_url"
               required
-              :placeholder="PublicURLPlaceholder"
+              placeholder="http://lightmeter.mywebsite.com"
               maxlength="255"
             ></b-form-input>
           </b-form-group>
@@ -567,9 +567,6 @@ export default {
     EnterIpAddress: function() {
       return this.$gettext("Enter IP address");
     },
-    PublicURLPlaceholder: function() {
-      return this.$gettext("Enter Public URL");
-    },
     InsecureTlsHelpText() {
       return this.$gettext(
         "Certificates will be used but not validated, allowing insecure connections"
@@ -628,6 +625,9 @@ export default {
 
         if (fillVueSettings) {
           vue.settings = new_settings;
+          if (!vue.settings.general.public_url)
+            vue.settings.general.public_url =
+              window.location.origin + window.location.pathname;
         }
       });
     },
