@@ -9,9 +9,9 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/intel/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 
@@ -111,7 +111,7 @@ func (reporters Reporters) Step(tx *sql.Tx, clock timeutil.Clock) error {
 
 type Collector struct {
 	runner.CancellableRunner
-	closeutil.Closers
+	closers.Closers
 
 	reporters Reporters
 }
@@ -122,7 +122,7 @@ func New(actions dbrunner.Actions, options core.Options, reporters Reporters, di
 
 // NOTE: New takes ownwership of the reporters, calling Close() when it ends
 func NewWithCustomClock(actions dbrunner.Actions, options core.Options, reporters Reporters, dispatcher Dispatcher, clock timeutil.Clock) (*Collector, error) {
-	closers := closeutil.New()
+	closers := closers.New()
 
 	for _, r := range reporters {
 		closers.Add(r)
