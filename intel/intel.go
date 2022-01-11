@@ -110,8 +110,6 @@ type Dispatcher struct {
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
-	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
-
 	metadata, err := func() (Metadata, error) {
 		// InstanceID is always available
 		metadata := Metadata{InstanceID: d.InstanceID}
@@ -145,6 +143,12 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
+	if metadata.UserEmail == nil || len(*metadata.UserEmail) == 0 {
+		return collector.ErrUnregisteredUser
+	}
+
+	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	reportWithMetadata := ReportWithMetadata{
 		Version:  d.VersionBuilder(),
@@ -202,8 +206,8 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
 
-	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
-		log.Warn().Msgf("Unexpected error retrieving global settings")
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Error().Err(err).Msgf("Unexpected error retrieving global settings")
 	}
 
 	if err != nil {
