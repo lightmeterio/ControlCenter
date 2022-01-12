@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+var ErrUnregisteredUser = errors.New(`Can't send reports, user is not registered yet`)
+
 type Dispatcher interface {
 	Dispatch(Report) error
 }
@@ -105,6 +107,11 @@ func TryToDispatchReports(tx *sql.Tx, clock timeutil.Clock, dispatcher Dispatche
 	log.Info().Msgf("Dispatching reports at %v with last dispatch time %v", now, initialTime)
 
 	if err := dispatcher.Dispatch(report); err != nil {
+		if errors.Is(err, ErrUnregisteredUser) {
+			log.Info().Msgf("Can't send reports yet, user not registered")
+			return nil
+		}
+
 		return errorutil.Wrap(err)
 	}
 
