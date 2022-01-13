@@ -21,7 +21,7 @@ import (
 const resultsPerPage = 100
 
 type Detective interface {
-	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, page int) (*MessagesPage, error)
+	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, queueName string, page int) (*MessagesPage, error)
 	OldestAvailableTime(context.Context) (time.Time, error)
 }
 
@@ -51,13 +51,16 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
 				join
 					delivery_queue dq on dq.delivery_id = d.id
+				join
+					queues q on q.id = dq.queue_id
 				where
 					(sender_local_part       = ? collate nocase or ? = '') and
 					(sender_domain.domain    = ? collate nocase or ? = '') and
 					(recipient_local_part    = ? collate nocase or ? = '') and
 					(recipient_domain.domain = ? collate nocase or ? = '') and
 					(delivery_ts between ? and ?) and
-					(status = ? or ? = -1)
+					(status = ? or ? = -1) and
+					(q.name = ? or ? = '')
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto) as (
 				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, true, mailfrom, mailto
@@ -134,7 +137,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
-func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, page int) (*MessagesPage, error) {
+func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, queueName string, page int) (*MessagesPage, error) {
 	conn, release, err := d.pool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -143,7 +146,7 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 	defer release()
 
 	//nolint:sqlclosecheck
-	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, page)
+	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, queueName, page)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
@@ -222,7 +225,7 @@ type MessageDelivery struct {
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
-func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, page int) (messagesPage *MessagesPage, err error) {
+func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, queueName string, page int) (messagesPage *MessagesPage, err error) {
 	splitEmail := func(email string) (local, domain string, err error) {
 		if len(email) == 0 {
 			return "", "", nil
@@ -258,6 +261,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		recipientLocal, recipientLocal, recipientDomain, recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
 		status, status,
+		queueName, queueName,
 		resultsPerPage, (page-1)*resultsPerPage,
 	)
 

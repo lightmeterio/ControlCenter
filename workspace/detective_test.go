@@ -102,37 +102,50 @@ func TestDetective(t *testing.T) {
 			noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
 
 			Convey("Message found", func() {
-				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, 1)
+				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
-				messagesMixedCase, err := d.CheckMessageDelivery(bg, "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, -1, 1)
+				messagesMixedCase, err := d.CheckMessageDelivery(bg, "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
 				// working partial searches
-				messagesPartialSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, 1)
+				messagesPartialSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch2, err := d.CheckMessageDelivery(bg, "@example.com", "example.com", correctInterval, -1, 1)
+				messagesPartialSearch2, err := d.CheckMessageDelivery(bg, "@example.com", "example.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch3, err := d.CheckMessageDelivery(bg, "", "@example.com", correctInterval, -1, 1)
+				messagesPartialSearch3, err := d.CheckMessageDelivery(bg, "", "@example.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch4, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, 1)
+				messagesPartialSearch4, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
 				// partial searches with no results
-				messagesPartialSearch5, err := d.CheckMessageDelivery(bg, "@test.org", "", correctInterval, -1, 1)
+				messagesPartialSearch5, err := d.CheckMessageDelivery(bg, "@test.org", "", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch6, err := d.CheckMessageDelivery(bg, "", "@domain.org", correctInterval, -1, 1)
+				messagesPartialSearch6, err := d.CheckMessageDelivery(bg, "", "@domain.org", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+
+				queueID := "400643011B47"
+				wrongQueueID := "511754122C58"
+
+				// queueName searches
+				messagesQueueNameSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, queueID, 1)
+				So(err, ShouldBeNil)
+
+				messagesQueueNameSearch2, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
+				So(err, ShouldBeNil)
+
+				messagesQueueNameSearch3, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongQueueID, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
 				expectedResult := &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
 						detective.Message{
-							Queue: "400643011B47",
+							Queue: queueID,
 							Entries: []detective.MessageDelivery{
 								{
 									1,
@@ -161,10 +174,15 @@ func TestDetective(t *testing.T) {
 
 				So(messagesPartialSearch5, ShouldResemble, noDeliveriesPage1)
 				So(messagesPartialSearch6, ShouldResemble, noDeliveriesPage1)
+
+				// Gitlab issue #572
+				So(messagesQueueNameSearch1, ShouldResemble, expectedResult)
+				So(messagesQueueNameSearch2, ShouldResemble, expectedResult)
+				So(messagesQueueNameSearch3, ShouldResemble, noDeliveriesPage1)
 			})
 
 			Convey("Page number too big", func() {
-				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, 2)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 2)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, &detective.MessagesPage{2, 1, 1, 0, noDeliveries})
 			})
@@ -175,7 +193,7 @@ func TestDetective(t *testing.T) {
 					time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
 				}
 
-				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", wrongInterval, -1, 1)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", wrongInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, noDeliveriesPage1)
 			})
@@ -190,7 +208,7 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
 				expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
@@ -240,7 +258,7 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(bg, "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, -1, 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 
 				So(messages, ShouldResemble, &detective.MessagesPage{

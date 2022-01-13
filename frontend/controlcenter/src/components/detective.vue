@@ -23,7 +23,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           type="text"
           name="mail_from"
           maxlength="255"
-          :required="forEndUsers"
           v-model="mail_from"
           :v-state="isEmailFrom"
           placeholder="sender@example.org"
@@ -44,7 +43,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           type="text"
           name="mail_to"
           maxlength="255"
-          :required="forEndUsers"
           v-model="mail_to"
           :v-state="isEmailTo"
           placeholder="recipient@example.org"
@@ -89,6 +87,20 @@ SPDX-License-Identifier: AGPL-3.0-only
           <option value="3"><translate>Expired</translate></option>
           <option value="4"><translate>Returned</translate></option>
         </select>
+      </div>
+
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
+          <translate>Message ID</translate>
+        </label>
+
+        <b-form-input
+          type="text"
+          name="queue_name"
+          v-model="queue_name"
+          placeholder="Msg ID: 400643011B47"
+        />
       </div>
 
       <div class="col p-2 ml-auto">
@@ -183,6 +195,7 @@ export default {
       searchResultClass: "text-muted",
       results: [],
       statusSelected: "-1",
+      queue_name: "",
       page: 1,
 
       // specific auth
@@ -227,7 +240,7 @@ export default {
     updateResults: function() {
       let vue = this;
 
-      if (!this.isEmailFrom || !this.isEmailTo) {
+      if (!vue.queue_name && (!vue.isEmailFrom || !vue.isEmailTo)) {
         vue.searchResultClass = "text-warning";
         vue.searchResultText = vue.$gettext(
           "Please check the given email addresses"
@@ -241,11 +254,12 @@ export default {
       let interval = vue.buildDateInterval();
 
       checkMessageDelivery(
-        this.mail_from,
-        this.mail_to,
+        vue.mail_from,
+        vue.mail_to,
         interval.startDate,
         interval.endDate,
         vue.statusSelected,
+        vue.queue_name,
         vue.page
       ).then(function(response) {
         vue.results = response.data;
@@ -260,7 +274,8 @@ export default {
           response.data,
           vue.mail_from,
           vue.mail_to,
-          interval
+          interval,
+          vue.queue_name
         );
 
         let pageNb =

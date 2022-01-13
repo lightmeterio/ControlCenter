@@ -81,11 +81,15 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 
 func TestDetectiveAuth(t *testing.T) {
 	Convey("Detective auth", t, func() {
-		detectiveURL := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&page=1"
-		detectiveURLPartialMailFrom := "/api/v0/checkMessageDeliveryStatus?mail_from=b.c&mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&page=1"
-		detectiveURLPartialMailTo := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&mail_to=e.f&from=2020-01-01&to=2020-12-31&status=-1&page=1"
-		detectiveURLEmptyMailFrom := "/api/v0/checkMessageDeliveryStatus?mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&page=1"
-		detectiveURLEmptyMailTo := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&from=2020-01-01&to=2020-12-31&status=-1&page=1"
+		detectiveURL := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&queue_name=&page=1"
+
+		detectiveURLPartialMailFrom := "/api/v0/checkMessageDeliveryStatus?mail_from=b.c&mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&queue_name=&page=1"
+		detectiveURLPartialMailTo := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&mail_to=e.f&from=2020-01-01&to=2020-12-31&status=-1&queue_name=&page=1"
+
+		detectiveURLEmptyMailFrom := "/api/v0/checkMessageDeliveryStatus?mail_to=d@e.f&from=2020-01-01&to=2020-12-31&status=-1&queue_name=&page=1"
+		detectiveURLEmptyMailTo := "/api/v0/checkMessageDeliveryStatus?mail_from=a@b.c&from=2020-01-01&to=2020-12-31&status=-1&queue_name=&page=1"
+
+		detectiveURLQueueName := "/api/v0/checkMessageDeliveryStatus?from=2020-01-01&to=2020-12-31&status=-1&queue_name=1A2B3C4D&page=1"
 
 		c := buildCookieClient()
 
@@ -94,7 +98,7 @@ func TestDetectiveAuth(t *testing.T) {
 
 		expect := func(d *mock_detective.MockDetective) {
 			d.EXPECT().
-				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&detective.MessagesPage{}, nil)
 		}
 
@@ -140,6 +144,17 @@ func TestDetectiveAuth(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			})
+
+			Convey("Queue name search (no mailfrom/to) available to authenticated users", func() {
+				r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"super-secret"}})
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+				expect(d)
+				r, err = c.Get(s.URL + detectiveURLQueueName)
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+			})
 		})
 
 		Convey("Detective API only accessible to end-users if setting is enabled", func() {
@@ -173,6 +188,13 @@ func TestDetectiveAuth(t *testing.T) {
 					r, err = c.Get(s.URL + detectiveURLEmptyMailTo)
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
+				})
+
+				Convey("Queue name search (no mailfrom/to) available to unauthenticated users", func() {
+					expect(d)
+					r, err = c.Get(s.URL + detectiveURLQueueName)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
 				})
 			})
 		})
