@@ -131,21 +131,31 @@ func TestDetective(t *testing.T) {
 				queueID := "400643011B47"
 				wrongQueueID := "511754122C58"
 
-				// queueName searches
-				messagesQueueNameSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, queueID, 1)
+				messageID := "414300fb-b063-fa96-4fc6-2d35b3168d61@example.com"
+				wrongMessageID := "1234-abcd@example.com"
+
+				// someID searches
+				messagesMailFromToAndQueueID, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, queueID, 1)
 				So(err, ShouldBeNil)
 
-				messagesQueueNameSearch2, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
+				messagesQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
 				So(err, ShouldBeNil)
 
-				messagesQueueNameSearch3, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongQueueID, 1)
+				messagesWrongQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongQueueID, 1)
+				So(err, ShouldBeNil)
+
+				messagesMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, messageID, 1)
+				So(err, ShouldBeNil)
+
+				messagesWrongMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongMessageID, 1)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
 				expectedResult := &detective.MessagesPage{1, 1, 1, 1,
 					detective.Messages{
 						detective.Message{
-							Queue: queueID,
+							Queue:     queueID,
+							MessageID: messageID,
 							Entries: []detective.MessageDelivery{
 								{
 									1,
@@ -176,9 +186,12 @@ func TestDetective(t *testing.T) {
 				So(messagesPartialSearch6, ShouldResemble, noDeliveriesPage1)
 
 				// Gitlab issue #572
-				So(messagesQueueNameSearch1, ShouldResemble, expectedResult)
-				So(messagesQueueNameSearch2, ShouldResemble, expectedResult)
-				So(messagesQueueNameSearch3, ShouldResemble, noDeliveriesPage1)
+				So(messagesMailFromToAndQueueID, ShouldResemble, expectedResult)
+				So(messagesQueueID, ShouldResemble, expectedResult)
+				So(messagesMessageID, ShouldResemble, expectedResult)
+
+				So(messagesWrongQueueID, ShouldResemble, noDeliveriesPage1)
+				So(messagesWrongMessageID, ShouldResemble, noDeliveriesPage1)
 			})
 
 			Convey("Page number too big", func() {
@@ -220,7 +233,8 @@ func TestDetective(t *testing.T) {
 					TotalResults: 1,
 					Messages: detective.Messages{
 						detective.Message{
-							Queue: "23EBE3D5C0",
+							Queue:     "23EBE3D5C0",
+							MessageID: "h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com",
 							Entries: []detective.MessageDelivery{
 								{
 									5,
@@ -268,7 +282,8 @@ func TestDetective(t *testing.T) {
 					TotalResults: 2,
 					Messages: detective.Messages{
 						detective.Message{
-							Queue: "95154657C",
+							Queue:     "95154657C",
+							MessageID: "h-ec262eb25918e7678e9e8737f7b@h-e7d9fe256179482d76de1b3e83c.com",
 							Entries: []detective.MessageDelivery{
 								{
 									1,
@@ -283,7 +298,8 @@ func TestDetective(t *testing.T) {
 							},
 						},
 						detective.Message{
-							Queue: "D390B657C",
+							Queue:     "D390B657C",
+							MessageID: "h-dfd067542de35f4b23673e0b3b3@h-e7d9fe256179482d76de1b3e83c.com",
 							Entries: []detective.MessageDelivery{
 								{
 									1,

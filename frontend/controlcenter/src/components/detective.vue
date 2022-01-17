@@ -97,9 +97,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         <b-form-input
           type="text"
-          name="queue_name"
-          v-model="queue_name"
-          placeholder="Msg ID: 400643011B47"
+          name="some_id"
+          v-model="some_id"
+          placeholder="Message/Queue ID"
         />
       </div>
 
@@ -195,7 +195,7 @@ export default {
       searchResultClass: "text-muted",
       results: [],
       statusSelected: "-1",
-      queue_name: "",
+      some_id: "",
       page: 1,
 
       // specific auth
@@ -240,7 +240,7 @@ export default {
     updateResults: function() {
       let vue = this;
 
-      if (!vue.queue_name && (!vue.isEmailFrom || !vue.isEmailTo)) {
+      if (!vue.some_id && (!vue.isEmailFrom || !vue.isEmailTo)) {
         vue.searchResultClass = "text-warning";
         vue.searchResultText = vue.$gettext(
           "Please check the given email addresses"
@@ -259,7 +259,7 @@ export default {
         interval.startDate,
         interval.endDate,
         vue.statusSelected,
-        vue.queue_name,
+        vue.some_id,
         vue.page
       ).then(function(response) {
         vue.results = response.data;
@@ -275,7 +275,7 @@ export default {
           vue.mail_from,
           vue.mail_to,
           interval,
-          vue.queue_name
+          vue.some_id
         );
 
         let pageNb =
