@@ -87,16 +87,16 @@ export default {
       escalationSender: "",
       escalationRecipient: "",
       escalationInterval: {},
-      queueName: "",
+      someID: "",
       hasAnyResults: false
     };
   },
   methods: {
-    onResults(results, sender, recipient, interval, queue_name) {
+    onResults(results, sender, recipient, interval, some_id) {
       this.escalationSender = sender;
       this.escalationRecipient = recipient;
       this.escalationInterval = interval;
-      this.queueName = queue_name;
+      this.someID = some_id;
       this.canEscalateResults = resultCanBeEscalated(results.messages);
       this.hasAnyResults = results.messages.length > 0;
     },
@@ -107,7 +107,7 @@ export default {
         this.escalationRecipient,
         this.escalationInterval.startDate,
         this.escalationInterval.endDate,
-        this.queueName
+        this.someID
       ).then(function() {
         vue.canEscalateResults = false;
       });
