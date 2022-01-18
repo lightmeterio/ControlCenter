@@ -54,12 +54,12 @@ func (e *escalator) Request(r Request) {
 	e.requests <- r
 }
 
-func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval) error {
+func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester Requester, from, to string, interval timeutil.TimeInterval, someID string) error {
 	// FIXME: this call is only checking the first page, which is obviously wrong.
 	// It should instead browse through all, by iterating over all pages!
 	page := 1
 
-	messages, err := d.CheckMessageDelivery(ctx, from, to, interval, -1, page)
+	messages, err := d.CheckMessageDelivery(ctx, from, to, interval, -1, someID, page)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

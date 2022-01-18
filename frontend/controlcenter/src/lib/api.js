@@ -307,6 +307,7 @@ export function checkMessageDelivery(
   date_from,
   date_to,
   status,
+  some_id,
   page
 ) {
   let formData = new FormData();
@@ -315,6 +316,7 @@ export function checkMessageDelivery(
   formData.append("from", date_from);
   formData.append("to", date_to);
   formData.append("status", status);
+  formData.append("some_id", some_id);
   formData.append("page", page);
 
   var post = axios.post(
@@ -325,12 +327,19 @@ export function checkMessageDelivery(
   return post;
 }
 
-export function escalateMessage(mail_from, mail_to, date_from, date_to) {
+export function escalateMessage(
+  mail_from,
+  mail_to,
+  date_from,
+  date_to,
+  some_id
+) {
   let formData = new FormData();
   formData.append("mail_from", mail_from);
   formData.append("mail_to", mail_to);
   formData.append("from", date_from);
   formData.append("to", date_to);
+  formData.append("some_id", some_id);
 
   var post = axios.post(
     BASE_URL + "api/v0/escalateMessage",
