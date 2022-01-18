@@ -52,6 +52,20 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="col p-2">
         <label>
           <!-- prettier-ignore -->
+          <translate>Message ID</translate>
+        </label>
+
+        <b-form-input
+          type="text"
+          name="some_id"
+          v-model="some_id"
+          placeholder="Message/Queue ID"
+        />
+      </div>
+
+      <div class="col p-2">
+        <label>
+          <!-- prettier-ignore -->
           <translate>Sent Between</translate>
         </label>
 
@@ -87,20 +101,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           <option value="3"><translate>Expired</translate></option>
           <option value="4"><translate>Returned</translate></option>
         </select>
-      </div>
-
-      <div class="col p-2">
-        <label>
-          <!-- prettier-ignore -->
-          <translate>Message ID</translate>
-        </label>
-
-        <b-form-input
-          type="text"
-          name="some_id"
-          v-model="some_id"
-          placeholder="Message/Queue ID"
-        />
       </div>
 
       <div class="col p-2 ml-auto">
