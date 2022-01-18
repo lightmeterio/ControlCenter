@@ -33,9 +33,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div
           v-show="showQueues"
           class="queue-name card-text"
-          v-translate="{ queue: result.queue }"
+          v-translate="{ queue: result.queue, mid: result.message_id }"
         >
-          Queue ID: %{queue}
+          Queue ID: %{queue} / Message ID: %{mid}
         </div>
 
         <div v-show="showFromTo" class="card-text">

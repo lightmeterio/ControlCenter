@@ -106,7 +106,7 @@ func TestDetectiveEscalation(t *testing.T) {
 					},
 				},
 			},
-			// then a repeated request is done, but the insight is not create.
+			// then a repeated request is done, but the insight is not created.
 			// It prevents spammimg the sysadmin with e-mails
 			baseTime.Add(time.Second * 20): {
 				Sender:    "sender1@example.com",
