@@ -283,10 +283,10 @@ export default {
 
         // FIXME: this is very ugly, as it makes the function updateScatterChart() not reusable,
         // by making assumptions about the values it handles!
-        let numberOfBlockedIPs = new Set();
-        let numberOfFailedLogins = new Set();
-        let numberOfSuccessfulLogins = new Set();
-        let numberOfSuccessfulLoginsAfterFailures = new Set();
+        let blockedIPs = new Set();
+        let failedLogins = new Set();
+        let successfulLogins = new Set();
+        let successfulLoginsAfterFailures = new Set();
 
         let statusSize = function() {
           return 6;
@@ -331,6 +331,30 @@ export default {
           }
         );
 
+        let updatePoint = function(i, dateConverter, attempts, ips) {
+          dateConverter(xValues, attempts[i]["time"] * 1000);
+
+          let ip = ips[attempts[i]["index"]];
+          yValues[i] = ip + "/" + attempts[i]["protocol"];
+          colors[i] = statusAsColor(attempts[i]["status"]);
+          sizes[i] = statusSize(attempts[i]["status"]);
+
+          switch (attempts[i]["status"]) {
+            case "blocked":
+              blockedIPs.add(ip);
+              break;
+            case "suspicious":
+              successfulLoginsAfterFailures.add(ip);
+              break;
+            case "failed":
+              failedLogins.add(ip);
+              break;
+            case "ok":
+              successfulLogins.add(ip);
+              break;
+          }
+        };
+
         return function(start, end) {
           fetchGraphDataAsJsonWithTimeInterval(start, end, graphName).then(
             function(response) {
@@ -344,66 +368,42 @@ export default {
               colors.length = len;
               sizes.length = len;
 
-              numberOfBlockedIPs.clear();
-              numberOfFailedLogins.clear();
-              numberOfSuccessfulLogins.clear();
-              numberOfSuccessfulLoginsAfterFailures.clear();
+              blockedIPs.clear();
+              failedLogins.clear();
+              successfulLogins.clear();
+              successfulLoginsAfterFailures.clear();
 
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
-                xValues[i].setTime(attempts[i]["time"] * 1000);
-                let ip = response.data.ips[attempts[i]["index"]];
-                yValues[i] = ip + "/" + attempts[i]["protocol"];
-                colors[i] = statusAsColor(attempts[i]["status"]);
-                sizes[i] = statusSize(attempts[i]["status"]);
-
-                switch (attempts[i]["status"]) {
-                  case "blocked":
-                    numberOfBlockedIPs.add(ip);
-                    break;
-                  case "suspicious":
-                    numberOfSuccessfulLoginsAfterFailures.add(ip);
-                    break;
-                  case "failed":
-                    numberOfFailedLogins.add(ip);
-                    break;
-                  case "ok":
-                    numberOfSuccessfulLogins.add(ip);
-                    break;
-                }
+                updatePoint(
+                  i,
+                  function(v, t) {
+                    v[i].setTime(t);
+                  },
+                  attempts,
+                  response.data.ips
+                );
               }
 
               // fill the remaining parts of the new buffers, if any
               for (let i = minLen; i < len; i++) {
-                xValues[i] = new Date(attempts[i]["time"] * 1000);
-                let ip = response.data.ips[attempts[i]["index"]];
-                yValues[i] = ip + "/" + attempts[i]["protocol"];
-                colors[i] = statusAsColor(attempts[i]["status"]);
-                sizes[i] = statusSize(attempts[i]["status"]);
-
-                switch (attempts[i]["status"]) {
-                  case "blocked":
-                    numberOfBlockedIPs.add(ip);
-                    break;
-                  case "suspicious":
-                    numberOfSuccessfulLoginsAfterFailures.add(ip);
-                    break;
-                  case "failed":
-                    numberOfFailedLogins.add(ip);
-                    break;
-                  case "ok":
-                    numberOfSuccessfulLogins.add(ip);
-                    break;
-                }
+                updatePoint(
+                  i,
+                  function(v, t) {
+                    v[i] = new Date(t);
+                  },
+                  attempts,
+                  response.data.ips
+                );
               }
 
               Plotly.redraw(graphName);
 
-              vue.numberOfBlockedIPs = numberOfBlockedIPs.size;
-              vue.numberOfFailedLogins = numberOfFailedLogins.size;
-              vue.numberOfSuccessfulLogins = numberOfSuccessfulLogins.size;
+              vue.numberOfBlockedIPs = blockedIPs.size;
+              vue.numberOfFailedLogins = failedLogins.size;
+              vue.numberOfSuccessfulLogins = successfulLogins.size;
               vue.numberOfSuccessfulLoginsAfterFailures =
-                numberOfSuccessfulLoginsAfterFailures.size;
+                successfulLoginsAfterFailures.size;
             }
           );
         };
