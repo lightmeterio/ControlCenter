@@ -80,6 +80,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 "
               >
                 <span>{{ signal.kind }}</span>
+                <i class="far fa-question-circle"></i>
               </button>
             </div>
             <vue-json-pretty :data="signal.value"> </vue-json-pretty>
