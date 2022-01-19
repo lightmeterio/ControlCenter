@@ -49,7 +49,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
           <ul class="smtp-graph-legend">
             <li style="color: #227AAF;">
-              <translate>blocked by Lightmeter</translate>
+              <a href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection" target="_blank">
+              <translate>blocked by Lightmeter</translate> <i class="far fa-question-circle"></i>
+              </a>
             </li>
             <li style="color: #C53030;">
               <translate>failed login</translate>
