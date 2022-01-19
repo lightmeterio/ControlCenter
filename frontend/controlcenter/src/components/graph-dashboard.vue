@@ -49,18 +49,29 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
           <ul class="smtp-graph-legend">
             <li style="color: #227AAF;">
-              <a href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection" target="_blank">
-              <translate>blocked by Lightmeter</translate> <i class="far fa-question-circle"></i>
+              <a
+                href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection"
+                target="_blank"
+              >
+                <translate
+                  >blocked by Lightmeter: %{numberOfBlockedIPs} IPs</translate
+                >
+                <i class="far fa-question-circle"></i>
               </a>
             </li>
             <li style="color: #C53030;">
-              <translate>failed login</translate>
+              <translate>failed login: %{numberOfFailedLogins} IPs</translate>
             </li>
             <li style="color: #206C00;">
-              <translate>successful login</translate>
+              <translate
+                >successful login: %{numberOfSuccessfulLogins} IPs</translate
+              >
             </li>
             <li style="color: #2C3371;">
-              <translate>successful login after failures</translate>
+              <translate
+                >successful login after failures:
+                %{numberOfSuccessfulLoginsAfterFailures} IPs</translate
+              >
             </li>
           </ul>
         </b-tab>
@@ -83,7 +94,11 @@ export default {
   data() {
     return {
       graphAreaResizeObserver: null,
-      defaultTab: 3
+      defaultTab: 3,
+      numberOfSuccessfulLoginsAfterFailures: 0,
+      numberOfBlockedIPs: 0,
+      numberOfSuccessfulLogins: 0,
+      numberOfFailedLogins: 0
     };
   },
   computed: {
@@ -266,6 +281,13 @@ export default {
           }
         };
 
+        // FIXME: this is very ugly, as it makes the function updateScatterChart() not reusable,
+        // by making assumptions about the values it handles!
+        let numberOfBlockedIPs = new Set();
+        let numberOfFailedLogins = new Set();
+        let numberOfSuccessfulLogins = new Set();
+        let numberOfSuccessfulLoginsAfterFailures = new Set();
+
         let statusSize = function() {
           return 6;
         };
@@ -322,6 +344,11 @@ export default {
               colors.length = len;
               sizes.length = len;
 
+              numberOfBlockedIPs.clear();
+              numberOfFailedLogins.clear();
+              numberOfSuccessfulLogins.clear();
+              numberOfSuccessfulLoginsAfterFailures.clear();
+
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
                 xValues[i].setTime(attempts[i]["time"] * 1000);
@@ -329,6 +356,21 @@ export default {
                 yValues[i] = ip + "/" + attempts[i]["protocol"];
                 colors[i] = statusAsColor(attempts[i]["status"]);
                 sizes[i] = statusSize(attempts[i]["status"]);
+
+                switch (attempts[i]["status"]) {
+                  case "blocked":
+                    numberOfBlockedIPs.add(ip);
+                    break;
+                  case "suspicious":
+                    numberOfSuccessfulLoginsAfterFailures.add(ip);
+                    break;
+                  case "failed":
+                    numberOfFailedLogins.add(ip);
+                    break;
+                  case "ok":
+                    numberOfSuccessfulLogins.add(ip);
+                    break;
+                }
               }
 
               // fill the remaining parts of the new buffers, if any
@@ -338,9 +380,30 @@ export default {
                 yValues[i] = ip + "/" + attempts[i]["protocol"];
                 colors[i] = statusAsColor(attempts[i]["status"]);
                 sizes[i] = statusSize(attempts[i]["status"]);
+
+                switch (attempts[i]["status"]) {
+                  case "blocked":
+                    numberOfBlockedIPs.add(ip);
+                    break;
+                  case "suspicious":
+                    numberOfSuccessfulLoginsAfterFailures.add(ip);
+                    break;
+                  case "failed":
+                    numberOfFailedLogins.add(ip);
+                    break;
+                  case "ok":
+                    numberOfSuccessfulLogins.add(ip);
+                    break;
+                }
               }
 
               Plotly.redraw(graphName);
+
+              vue.numberOfBlockedIPs = numberOfBlockedIPs.size;
+              vue.numberOfFailedLogins = numberOfFailedLogins.size;
+              vue.numberOfSuccessfulLogins = numberOfSuccessfulLogins.size;
+              vue.numberOfSuccessfulLoginsAfterFailures =
+                numberOfSuccessfulLoginsAfterFailures.size;
             }
           );
         };
