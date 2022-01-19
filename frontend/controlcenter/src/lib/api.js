@@ -210,6 +210,23 @@ export function getIsNotLoginOrNotRegistered() {
   return axios.get(BASE_URL + "auth/check");
 }
 
+axios.interceptors.response.use(
+  function(response) {
+    return response;
+  },
+  function(error) {
+    if (!error.response && error.message == "Network Error") {
+      let msg = Vue.prototype.$gettext(
+        "A Network error happened!!! Is Lightmeter still running?"
+      );
+
+      alert(msg);
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export function getIsNotLoginAndNotEndUsersEnabled() {
   return axios.get(BASE_URL + "auth/detective");
 }
