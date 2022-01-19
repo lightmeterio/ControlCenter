@@ -18,11 +18,15 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
     </div>
     <div class="col-md-8">
-      <b-tabs id="basic-graphs-area" content-class="mt-3" justified>
+      <b-tabs
+        id="basic-graphs-area"
+        content-class="mt-3"
+        justified
+        v-model="defaultTab"
+      >
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topBusiestDomains')"
           :title="BusiestDomainsTitle"
-          active
         >
           <div class="dashboard-gadget" id="topBusiestDomains"></div
         ></b-tab>
@@ -76,7 +80,8 @@ export default {
   },
   data() {
     return {
-      graphAreaResizeObserver: null
+      graphAreaResizeObserver: null,
+      defaultTab: 3
     };
   },
   computed: {
