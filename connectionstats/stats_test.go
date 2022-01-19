@@ -6,6 +6,7 @@ package connectionstats
 
 import (
 	"context"
+	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -130,6 +131,46 @@ Sep  3 11:30:51 mail dovecot: auth: passwd-file(alice,1.2.3.4): unknown user (SH
 	})
 }
 
+func TestJSONSerialization(t *testing.T) {
+	Convey("JSON serialization", t, func() {
+		a := AccessResult{
+			IPs: []string{"1.1.1.1", "2.2.2.2"},
+			Attempts: []AttemptDesc{
+				{Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Unix(), IPIndex: 1, Status: "blocked", Protocol: ProtocolIMAP},
+				{Time: timeutil.MustParseTime(`2000-01-01 00:00:01 +0000`).Unix(), IPIndex: 0, Status: "ok", Protocol: ProtocolSMTP},
+			},
+		}
+
+		j, err := json.Marshal(a)
+		So(err, ShouldBeNil)
+
+		{
+			var decoded interface{}
+
+			err := json.Unmarshal(j, &decoded)
+			So(err, ShouldBeNil)
+
+			So(decoded, ShouldResemble, map[string]interface{}{
+				"ips": []interface{}{"1.1.1.1", "2.2.2.2"},
+				"attempts": []interface{}{
+					map[string]interface{}{
+						"time":     float64(timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Unix()),
+						"index":    float64(1),
+						"status":   "blocked",
+						"protocol": "imap",
+					},
+					map[string]interface{}{
+						"time":     float64(timeutil.MustParseTime(`2000-01-01 00:00:01 +0000`).Unix()),
+						"index":    float64(0),
+						"status":   "ok",
+						"protocol": "smtp",
+					},
+				},
+			})
+		}
+	})
+}
+
 func TestSmtpConnectionAccessor(t *testing.T) {
 	Convey("Smtp Connection Stats", t, func() {
 		stats, accessor, pub, _, closeConn := buildContext(t)
@@ -174,11 +215,11 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 
 			So(attempts.IPs, ShouldResemble, []string{"1002:1712:4e2b:d061:5dff:19f:c85f:a48f", "11.22.33.44", "22.33.44.55", "44.44.44.44", "55.55.55.55"})
 			So(attempts.Attempts, ShouldResemble, []AttemptDesc{
-				{Time: timeutil.MustParseTime(`2020-07-13 17:41:40 +0000`).Unix(), IPIndex: 1, Status: "suspicious"},
-				{Time: timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "failed"},
-				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok"},
-				{Time: timeutil.MustParseTime(`2020-09-04 11:30:51 +0000`).Unix(), IPIndex: 3, Status: "failed"},
-				{Time: timeutil.MustParseTime(`2020-09-18 18:54:59 +0000`).Unix(), IPIndex: 4, Status: "blocked"},
+				{Time: timeutil.MustParseTime(`2020-07-13 17:41:40 +0000`).Unix(), IPIndex: 1, Status: "suspicious", Protocol: ProtocolSMTP},
+				{Time: timeutil.MustParseTime(`2020-09-03 10:40:57 +0000`).Unix(), IPIndex: 0, Status: "failed", Protocol: ProtocolSMTP},
+				{Time: timeutil.MustParseTime(`2020-09-04 10:40:57 +0000`).Unix(), IPIndex: 2, Status: "ok", Protocol: ProtocolSMTP},
+				{Time: timeutil.MustParseTime(`2020-09-04 11:30:51 +0000`).Unix(), IPIndex: 3, Status: "failed", Protocol: ProtocolIMAP},
+				{Time: timeutil.MustParseTime(`2020-09-18 18:54:59 +0000`).Unix(), IPIndex: 4, Status: "blocked", Protocol: ProtocolIMAP},
 			})
 		}
 	})

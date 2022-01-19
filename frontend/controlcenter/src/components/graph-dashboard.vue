@@ -264,11 +264,7 @@ export default {
           }
         };
 
-        let statusSize = function(s) {
-          if (s == "blocked") {
-            return 12;
-          }
-
+        let statusSize = function() {
           return 6;
         };
 
@@ -286,6 +282,7 @@ export default {
         ];
 
         let layout = {
+          hovermode: "closest",
           height: 220,
           xaxis: {
             automargin: true
@@ -326,7 +323,8 @@ export default {
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
                 xValues[i].setTime(attempts[i]["time"] * 1000);
-                yValues[i] = response.data.ips[attempts[i]["index"]];
+                let ip = response.data.ips[attempts[i]["index"]];
+                yValues[i] = ip + "/" + attempts[i]["protocol"];
                 colors[i] = statusAsColor(attempts[i]["status"]);
                 sizes[i] = statusSize(attempts[i]["status"]);
               }
@@ -334,7 +332,8 @@ export default {
               // fill the remaining parts of the new buffers, if any
               for (let i = minLen; i < len; i++) {
                 xValues[i] = new Date(attempts[i]["time"] * 1000);
-                yValues[i] = response.data.ips[attempts[i]["index"]];
+                let ip = response.data.ips[attempts[i]["index"]];
+                yValues[i] = ip + "/" + attempts[i]["protocol"];
                 colors[i] = statusAsColor(attempts[i]["status"]);
                 sizes[i] = statusSize(attempts[i]["status"]);
               }
