@@ -95,7 +95,7 @@ export default {
       return this.$gettext("Deferred Domains");
     },
     ConnectionsOverTime: function() {
-      return this.$gettext("Auth Attempts");
+      return this.$gettext("SMTP&IMAP Logins");
     }
   },
   beforeDestroy() {
