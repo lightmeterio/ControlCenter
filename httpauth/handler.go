@@ -39,9 +39,10 @@ func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader
 			})))
 
 	// NOTE: This endpoint is actually authenticated, see auth.HandleGetUserSystemData
-	// TODO: such behaviour should be explic in the implementation, requiring an authenticated
+	// NOTE: use a regular 'unauthenticated' endpoint, with no rate-limiting, since /userInfo is actually authenticated
+	// TODO: such behaviour should be explicit in the implementation, requiring an authenticated
 	// middleware
-	mux.Handle("/api/v0/userInfo", unauthenticatedAndRateLimited.
+	mux.Handle("/api/v0/userInfo", httpmiddleware.WithDefaultStackWithoutAuth().
 		WithEndpoint(httpmiddleware.CustomHTTPHandler(func(w http.ResponseWriter, r *http.Request) error {
 			return auth.HandleGetUserSystemData(a, settingsReader, w, r)
 		})))
