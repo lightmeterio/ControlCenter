@@ -6,6 +6,7 @@ package connectionstats
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/connectionstats/migrations"
@@ -26,14 +27,30 @@ type Protocol int
 
 const (
 	// NOTE: those values are stored in the database, so please do not change existing ones!
-	ProtocolSMTP = 0
-	ProtocolIMAP = 1
+	ProtocolSMTP Protocol = 0
+	ProtocolIMAP Protocol = 1
 )
 
 type Command int
 
 func (c Command) MarshalText() ([]byte, error) {
 	return []byte(commandAsString(c)), nil
+}
+
+func (p Protocol) MarshalJSON() ([]byte, error) {
+	s := func() string {
+		switch p {
+		case ProtocolIMAP:
+			return "imap"
+		case ProtocolSMTP:
+			return "smtp"
+		default:
+			log.Panic().Msgf("Invalid protocol: %#v", p)
+			return ""
+		}
+	}()
+
+	return json.Marshal(s)
 }
 
 const (
