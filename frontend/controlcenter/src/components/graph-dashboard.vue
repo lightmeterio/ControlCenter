@@ -526,10 +526,6 @@ export default {
 .bar-graph-legend {
   padding: 0.1rem 0.5rem;
   border: 1px solid #bdc3c7;
-
-  display: flex;
   font-size: 75%;
-  justify-content: space-around;
-  list-style: none;
 }
 </style>
