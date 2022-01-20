@@ -114,8 +114,9 @@ func TestReports(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		email := "user@lightmeter.io"
+		username := "Jane Doe"
 
-		_, err = auth.Register(context.Background(), email, "username", "that_password_5689")
+		_, err = auth.Register(context.Background(), email, username, "that_password_5689")
 		So(err, ShouldBeNil)
 
 		// notice that the first word in the first line is "lightmeter", which is
@@ -217,6 +218,7 @@ se.vruntime                                  :            24.180579`
 					"postfix_public_ip":     "127.0.0.2",
 					"public_url":            "https://example.com",
 					"user_email":            email,
+					"user_name":             username,
 					"mail_kind":             string(settings.MailKindMarketing),
 					"is_using_rsynced_logs": true,
 				},
@@ -255,7 +257,7 @@ se.vruntime                                  :            24.180579`
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "is_docker_container": true, "is_using_rsynced_logs": false},
+				"metadata":    map[string]interface{}{"user_email": email, "user_name": username, "instance_id": "my-best-uuid", "is_docker_container": true, "is_using_rsynced_logs": false},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
@@ -295,7 +297,7 @@ se.vruntime                                  :            24.180579`
 			So(err, ShouldBeNil)
 
 			So(handler.response, ShouldResemble, map[string]interface{}{
-				"metadata":    map[string]interface{}{"user_email": email, "instance_id": "my-best-uuid", "postfix_version": "3.4.14", "is_docker_container": false, "is_using_rsynced_logs": false},
+				"metadata":    map[string]interface{}{"user_email": email, "user_name": username, "instance_id": "my-best-uuid", "postfix_version": "3.4.14", "is_docker_container": false, "is_using_rsynced_logs": false},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
 				"payload": map[string]interface{}{
 					"interval": map[string]interface{}{
