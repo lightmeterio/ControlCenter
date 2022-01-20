@@ -28,19 +28,28 @@ SPDX-License-Identifier: AGPL-3.0-only
           v-on:click="trackEvent('change-domains-tab', 'topBusiestDomains')"
           :title="BusiestDomainsTitle"
         >
-          <div class="dashboard-gadget" id="topBusiestDomains"></div
-        ></b-tab>
+          <div class="dashboard-gadget" id="topBusiestDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
+        </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topBouncedDomains')"
           :title="BouncedDomainsTitle"
         >
-          <div class="dashboard-gadget" id="topBouncedDomains"></div
-        ></b-tab>
+          <div class="dashboard-gadget" id="topBouncedDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
+        </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topDeferredDomains')"
           :title="DeferredDomainsTitle"
         >
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
         </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
@@ -512,5 +521,15 @@ export default {
     content: "• ";
     font-size: 125%;
   }
+}
+
+.bar-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+
+  display: flex;
+  font-size: 75%;
+  justify-content: space-around;
+  list-style: none;
 }
 </style>
