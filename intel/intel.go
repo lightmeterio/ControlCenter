@@ -83,6 +83,7 @@ type Metadata struct {
 	UserEmail          *string `json:"user_email,omitempty"`
 	PostfixVersion     *string `json:"postfix_version,omitempty"`
 	MailKind           *string `json:"mail_kind,omitempty"`
+	UserName           *string `json:"user_name"`
 	IsDockerContainer  bool    `json:"is_docker_container"`
 	IsUsingRsyncedLogs bool    `json:"is_using_rsynced_logs"`
 }
@@ -124,6 +125,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 		if err == nil {
 			metadata.UserEmail = &userData.Email
+			metadata.UserName = &userData.Name
 		}
 
 		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
