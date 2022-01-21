@@ -9,7 +9,7 @@ import (
 	"database/sql"
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
@@ -45,7 +45,7 @@ func (conn *RwConn) Tx(ctx context.Context, f func(context.Context, *sql.Tx) err
 }
 
 type RoPooledConn struct {
-	closeutil.Closers
+	closers.Closers
 	RoConn
 
 	LocalId int
@@ -79,7 +79,7 @@ func (c *RoPooledConn) GetStmt(key interface{}) *sql.Stmt {
 }
 
 type RoPool struct {
-	closeutil.Closers
+	closers.Closers
 
 	conns []*RoPooledConn
 	pool  chan *RoPooledConn
@@ -110,7 +110,7 @@ func (p *RoPool) AcquireContext(ctx context.Context) (*RoPooledConn, func(), err
 }
 
 type PooledPair struct {
-	closeutil.Closers
+	closers.Closers
 
 	RwConn     RwConn
 	RoConnPool *RoPool
@@ -131,7 +131,7 @@ func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 
 	pool := &RoPool{
 		pool:    make(chan *RoPooledConn, poolSize),
-		Closers: closeutil.New(),
+		Closers: closers.New(),
 	}
 
 	for i := 0; i < poolSize; i++ {
@@ -145,7 +145,7 @@ func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 			RoConn:  RoConn{reader},
 			LocalId: i,
 			stmts:   map[interface{}]*sql.Stmt{},
-			Closers: closeutil.New(newConnCloser(filename, ROMode, reader)),
+			Closers: closers.New(newConnCloser(filename, ROMode, reader)),
 		}
 
 		pool.conns = append(pool.conns, conn)
@@ -154,5 +154,5 @@ func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 		pool.pool <- conn
 	}
 
-	return &PooledPair{RwConn: RwConn{writer}, RoConnPool: pool, Closers: closeutil.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
+	return &PooledPair{RwConn: RwConn{writer}, RoConnPool: pool, Closers: closers.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
 }

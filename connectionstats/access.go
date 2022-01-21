@@ -14,9 +14,10 @@ import (
 )
 
 type AttemptDesc struct {
-	Time    int64  `json:"time"`
-	IPIndex int    `json:"index"`
-	Status  string `json:"status"`
+	Time     int64    `json:"time"`
+	IPIndex  int      `json:"index"`
+	Status   string   `json:"status"`
+	Protocol Protocol `json:"protocol"`
 }
 
 type AccessResult struct {
@@ -48,7 +49,7 @@ where
 
 		if err := conn.PrepareStmt(`
 select
-	ip, cmd, disconnection_ts as ts, success, total
+	ip, cmd, disconnection_ts as ts, success, total, protocol
 from
 	connections join commands
 		on commands.connection_id = connections.id
@@ -91,11 +92,12 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	type rawAttemptDesc struct {
-		time    int64
-		command Command
-		ip      string
-		success int
-		total   int
+		time     int64
+		command  Command
+		ip       string
+		success  int
+		total    int
+		protocol Protocol
 	}
 
 	rawAttempts := make([]rawAttemptDesc, 0, count)
@@ -104,20 +106,28 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 
 	for rows.Next() {
 		var (
-			ip      net.IP
-			command Command
-			ts      int64
-			success int
-			total   int
+			ip       net.IP
+			command  Command
+			ts       int64
+			success  int
+			total    int
+			protocol Protocol
 		)
 
-		if err := rows.Scan(&ip, &command, &ts, &success, &total); err != nil {
+		if err := rows.Scan(&ip, &command, &ts, &success, &total, &protocol); err != nil {
 			return AccessResult{}, errorutil.Wrap(err)
 		}
 
 		ipAsString := ip.String()
 
-		rawAttempts = append(rawAttempts, rawAttemptDesc{time: ts, ip: ipAsString, command: command, success: success, total: total})
+		rawAttempts = append(rawAttempts, rawAttemptDesc{
+			time:     ts,
+			ip:       ipAsString,
+			command:  command,
+			success:  success,
+			total:    total,
+			protocol: protocol,
+		})
 
 		ipsSet[ipAsString] = struct{}{}
 	}
@@ -145,7 +155,12 @@ func (a *Accessor) FetchAuthAttempts(ctx context.Context, interval timeutil.Time
 
 	for _, d := range rawAttempts {
 		index := ipIndexes[d.ip]
-		times = append(times, AttemptDesc{Time: d.time, IPIndex: index, Status: statusFromStats(d.command, d.success, d.total)})
+		times = append(times, AttemptDesc{
+			Time:     d.time,
+			IPIndex:  index,
+			Status:   statusFromStats(d.command, d.success, d.total),
+			Protocol: d.protocol,
+		})
 	}
 
 	return AccessResult{

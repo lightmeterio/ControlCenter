@@ -540,11 +540,13 @@ Use Dovecot SASL to pre-authorize connection attempts. Note: if Postfix is alrea
 If Dovecot is not already being used as a SASL server, add this to your Dovecot config file (e.g. `/etc/dovecot/conf.d/10-auth.conf`):
 
 ```
-unix_listener /var/spool/postfix/private/auth {
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
     group = postfix_group
     mode = 0666
     user = postfix_user
   }
+}
 ```
 
 Then make Postfix use the Dovecot SASL server by adding the following to your Postfix config file (e.g. `/etc/postfix/main.cf`, or alternatively by using `postconf` CLI utility):

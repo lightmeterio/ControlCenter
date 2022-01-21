@@ -6,13 +6,13 @@ package dbconn
 
 import (
 	"database/sql"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 // Cache statements of a connection, to reuse them over several transactions
 type PreparedStmts struct {
-	closeutil.Closers
+	closers.Closers
 	stmts []*sql.Stmt
 }
 
@@ -48,7 +48,7 @@ func TxStmts(tx *sql.Tx, stmts PreparedStmts) TxPreparedStmts {
 type StmtsText map[int]string
 
 func BuildPreparedStmts(size int) PreparedStmts {
-	return PreparedStmts{stmts: make([]*sql.Stmt, size), Closers: closeutil.New()}
+	return PreparedStmts{stmts: make([]*sql.Stmt, size), Closers: closers.New()}
 }
 
 func PrepareRwStmts(stmtsText StmtsText, conn RwConn, stmts *PreparedStmts) error {

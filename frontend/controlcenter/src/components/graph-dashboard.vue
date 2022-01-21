@@ -18,25 +18,38 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
     </div>
     <div class="col-md-8">
-      <b-tabs id="basic-graphs-area" content-class="mt-3" justified>
+      <b-tabs
+        id="basic-graphs-area"
+        content-class="mt-3"
+        justified
+        v-model="defaultTab"
+      >
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topBusiestDomains')"
           :title="BusiestDomainsTitle"
-          active
         >
-          <div class="dashboard-gadget" id="topBusiestDomains"></div
-        ></b-tab>
+          <div class="dashboard-gadget" id="topBusiestDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
+        </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topBouncedDomains')"
           :title="BouncedDomainsTitle"
         >
-          <div class="dashboard-gadget" id="topBouncedDomains"></div
-        ></b-tab>
+          <div class="dashboard-gadget" id="topBouncedDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
+        </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'topDeferredDomains')"
           :title="DeferredDomainsTitle"
         >
           <div class="dashboard-gadget" id="topDeferredDomains"></div>
+          <div class="bar-graph-legend" v-translate>
+            Showing maximum 20 outbound domains
+          </div>
         </b-tab>
         <b-tab
           v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
@@ -45,16 +58,29 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
           <ul class="smtp-graph-legend">
             <li style="color: #227AAF;">
-              <translate>blocked by Lightmeter</translate>
+              <a
+                href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection"
+                target="_blank"
+              >
+                <translate
+                  >blocked by Lightmeter: %{numberOfBlockedIPs} IPs</translate
+                >
+                <i class="far fa-question-circle"></i>
+              </a>
             </li>
             <li style="color: #C53030;">
-              <translate>failed login</translate>
+              <translate>failed login: %{numberOfFailedLogins} IPs</translate>
             </li>
             <li style="color: #206C00;">
-              <translate>successful login</translate>
+              <translate
+                >successful login: %{numberOfSuccessfulLogins} IPs</translate
+              >
             </li>
             <li style="color: #2C3371;">
-              <translate>successful login after failures</translate>
+              <translate
+                >successful login after failures:
+                %{numberOfSuccessfulLoginsAfterFailures} IPs</translate
+              >
             </li>
           </ul>
         </b-tab>
@@ -76,7 +102,12 @@ export default {
   },
   data() {
     return {
-      graphAreaResizeObserver: null
+      graphAreaResizeObserver: null,
+      defaultTab: 3,
+      numberOfSuccessfulLoginsAfterFailures: 0,
+      numberOfBlockedIPs: 0,
+      numberOfSuccessfulLogins: 0,
+      numberOfFailedLogins: 0
     };
   },
   computed: {
@@ -90,7 +121,7 @@ export default {
       return this.$gettext("Deferred Domains");
     },
     ConnectionsOverTime: function() {
-      return this.$gettext("Auth Attempts");
+      return this.$gettext("SMTP&IMAP Logins");
     }
   },
   beforeDestroy() {
@@ -259,11 +290,14 @@ export default {
           }
         };
 
-        let statusSize = function(s) {
-          if (s == "blocked") {
-            return 12;
-          }
+        // FIXME: this is very ugly, as it makes the function updateScatterChart() not reusable,
+        // by making assumptions about the values it handles!
+        let blockedIPs = new Set();
+        let failedLogins = new Set();
+        let successfulLogins = new Set();
+        let successfulLoginsAfterFailures = new Set();
 
+        let statusSize = function() {
           return 6;
         };
 
@@ -281,6 +315,7 @@ export default {
         ];
 
         let layout = {
+          hovermode: "closest",
           height: 220,
           xaxis: {
             automargin: true
@@ -305,6 +340,30 @@ export default {
           }
         );
 
+        let updatePoint = function(i, dateConverter, attempts, ips) {
+          dateConverter(xValues, attempts[i]["time"] * 1000);
+
+          let ip = ips[attempts[i]["index"]];
+          yValues[i] = ip + "/" + attempts[i]["protocol"];
+          colors[i] = statusAsColor(attempts[i]["status"]);
+          sizes[i] = statusSize(attempts[i]["status"]);
+
+          switch (attempts[i]["status"]) {
+            case "blocked":
+              blockedIPs.add(ip);
+              break;
+            case "suspicious":
+              successfulLoginsAfterFailures.add(ip);
+              break;
+            case "failed":
+              failedLogins.add(ip);
+              break;
+            case "ok":
+              successfulLogins.add(ip);
+              break;
+          }
+        };
+
         return function(start, end) {
           fetchGraphDataAsJsonWithTimeInterval(start, end, graphName).then(
             function(response) {
@@ -318,23 +377,42 @@ export default {
               colors.length = len;
               sizes.length = len;
 
+              blockedIPs.clear();
+              failedLogins.clear();
+              successfulLogins.clear();
+              successfulLoginsAfterFailures.clear();
+
               // fill existing buffers
               for (let i = 0; i < minLen; i++) {
-                xValues[i].setTime(attempts[i]["time"] * 1000);
-                yValues[i] = response.data.ips[attempts[i]["index"]];
-                colors[i] = statusAsColor(attempts[i]["status"]);
-                sizes[i] = statusSize(attempts[i]["status"]);
+                updatePoint(
+                  i,
+                  function(v, t) {
+                    v[i].setTime(t);
+                  },
+                  attempts,
+                  response.data.ips
+                );
               }
 
               // fill the remaining parts of the new buffers, if any
               for (let i = minLen; i < len; i++) {
-                xValues[i] = new Date(attempts[i]["time"] * 1000);
-                yValues[i] = response.data.ips[attempts[i]["index"]];
-                colors[i] = statusAsColor(attempts[i]["status"]);
-                sizes[i] = statusSize(attempts[i]["status"]);
+                updatePoint(
+                  i,
+                  function(v, t) {
+                    v[i] = new Date(t);
+                  },
+                  attempts,
+                  response.data.ips
+                );
               }
 
               Plotly.redraw(graphName);
+
+              vue.numberOfBlockedIPs = blockedIPs.size;
+              vue.numberOfFailedLogins = failedLogins.size;
+              vue.numberOfSuccessfulLogins = successfulLogins.size;
+              vue.numberOfSuccessfulLoginsAfterFailures =
+                successfulLoginsAfterFailures.size;
             }
           );
         };
@@ -443,5 +521,11 @@ export default {
     content: "• ";
     font-size: 125%;
   }
+}
+
+.bar-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+  font-size: 75%;
 }
 </style>

@@ -192,34 +192,38 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
 }
 
+func (h *Settings) clearSettings(r *http.Request) error {
+	currentSettings, err := func() (globalsettings.Settings, error) {
+		s, err := globalsettings.GetSettings(r.Context(), h.reader)
+
+		if err != nil {
+			return globalsettings.Settings{}, errorutil.Wrap(err)
+		}
+
+		return *s, nil
+	}()
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
+	}
+
+	settings := globalsettings.Settings{}
+	settings.AppLanguage = currentSettings.AppLanguage
+
+	if err := globalsettings.SetSettings(r.Context(), h.writer, settings); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	return nil
+}
+
 func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := handleForm(w, r); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if r.Form.Get("action") == "clear" {
-		currentSettings, err := func() (globalsettings.Settings, error) {
-			s, err := globalsettings.GetSettings(r.Context(), h.reader)
-
-			if err != nil {
-				return globalsettings.Settings{}, errorutil.Wrap(err)
-			}
-
-			return *s, nil
-		}()
-
-		if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
-			return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err, "Error fetching general configuration"))
-		}
-
-		settings := globalsettings.Settings{}
-		settings.AppLanguage = currentSettings.AppLanguage
-
-		if err := globalsettings.SetSettings(r.Context(), h.writer, settings); err != nil {
-			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
-		}
-
-		return nil
+		return h.clearSettings(r)
 	}
 
 	localIPRaw := r.Form.Get("postfix_public_ip")
@@ -265,6 +269,10 @@ func (h *Settings) GeneralSettingsHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := globalsettings.SetSettings(r.Context(), h.writer, s); err != nil {
+		if errors.Is(err, globalsettings.ErrPublicURLInvalid) || errors.Is(err, globalsettings.ErrPublicURLNoDNS) {
+			return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errorutil.Wrap(err))
+		}
+
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 

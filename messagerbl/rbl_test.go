@@ -63,6 +63,10 @@ func TestRBL(t *testing.T) {
 			record(`Feb 21 12:56:43 mail postfix/smtp[19793]: 6BAB0300C9CD: to=<someone@example.com>, relay=example.com[1.2.3.4]:25, delay=0.7, delays=0.04/0.02/0.47/0.16, dsn=5.7.1, status=bounced (host some.host[11.22.33.44] said: 550-5.7.1 The user or domain that you are sending to (or from) has a policy that 550-5.7.1 prohibited the mail that you sent. Please contact your domain 550-5.7.1 administrator for further details. For more information, please visit 550 5.7.1  https://support.google.com/a/answer/172179 g13si3070469otj.207 - gsmtp (in reply to end of DATA command))`),
 			// Google
 			record(`Feb 22 13:57:44 mail postfix/smtp[19793]: 6BAB0300C9CD: to=<someone@example.com>, relay=example.com[1.2.3.4]:25, delay=0.7, delays=0.04/0.02/0.47/0.16, dsn=5.7.1, status=bounced (host some.host[11.22.33.44] said: 550-5.7.28 [1.2.3.4       1] Our system has detected an unusual rate of 550-5.7.28 unsolicited mail originating from your IP address. To protect our 550-5.7.28 users from spam, mail sent from your IP address has been blocked. 550-5.7.28 Please visit 550-5.7.28  https://support.google.com/mail/?p=UnsolicitedIPError to review our 550 5.7.28 Bulk Email Senders Guidelines. 2si9625341ooe.33 - gsmtp (in reply to end of DATA command))`),
+			// Microsoft
+			record(`Feb 23 12:22:22 mail postfix/smtp[8292]: 46187194BD9: to=<recip@example.com>, relay=lalala.mail.protection.outlook.com[1.1.1.1]:25, delay=1.3, delays=0.25/0.01/0.15/0.85, dsn=5.7.511, status=bounced (host lalala.mail.protection.outlook.com[1.1.1.1] said: 550 5.7.51 1 Access denied, banned sender[2.2.2.2]. To request removal from this list please forward this message to delist@messaging.microsoft.com. For more information please go to  http://go.microsoft.com/fwlink/?LinkId=526653. AS(1410) [LO2GBR01FT012.eop-gbr01.prod.protection.outlook.com] (in reply to RCPT TO command))`),
+			// iCloud
+			record(`Feb 23 12:22:22 mail postfix/smtp[3505]: 2B7CA1F56B: to=<recipient@example.com>, relay=mx01.mail.icloud.com[17.57.152.14]:25, delay=372639, delays=372635/0.04/3.7/0, dsn=4.7.0, status=deferred (host mx02.mail.icloud.com[17.57.152.14] refused to talk to me: 554 5.7.0 Blocked - see https://support.proofpoint.com/dnsbl-lookup.cgi?0ip=)`),
 		}
 
 		for _, r := range records {
@@ -82,7 +86,7 @@ func TestRBL(t *testing.T) {
 
 		results := <-resultsChan
 
-		So(len(results), ShouldEqual, 6)
+		So(len(results), ShouldEqual, 8)
 
 		So(results[0], ShouldResemble, Result{
 			Host:    "Microsoft",
@@ -130,6 +134,22 @@ func TestRBL(t *testing.T) {
 			Payload: records[7].Payload.(parser.SmtpSentStatus),
 			Header:  records[7].Header,
 			Time:    records[7].Time,
+		})
+
+		So(results[6], ShouldResemble, Result{
+			Host:    "Microsoft",
+			Address: ip,
+			Payload: records[8].Payload.(parser.SmtpSentStatus),
+			Header:  records[8].Header,
+			Time:    records[8].Time,
+		})
+
+		So(results[7], ShouldResemble, Result{
+			Host:    "iCloud",
+			Address: ip,
+			Payload: records[9].Payload.(parser.SmtpSentStatus),
+			Header:  records[9].Header,
+			Time:    records[9].Time,
 		})
 	})
 }

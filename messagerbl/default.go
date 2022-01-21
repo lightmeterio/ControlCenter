@@ -25,4 +25,8 @@ var defaultMatchers = matchers{
 	{host: "Yahoo", pattern: regexp.MustCompile(`\[TS03\]`)},
 	{host: "Trend Micro", dsn: "5.7.1", pattern: regexp.MustCompile(`blocked using Trend Micro`)},
 	{host: "Microsoft", dsn: "5.7.1", pattern: regexp.MustCompile(`Unfortunately, messages from .* weren't sent\. Please contact your Internet service provider since part of their network is on our block list \(S3140\)\. You can also refer your provider to http:\/\/mail\.live\.com`)},
+	{host: "Microsoft", dsn: "5.7.511", pattern: regexp.MustCompile(`Access denied, banned sender.*. To request removal from this list please forward this message to delist@messaging.microsoft.com\.`)},
+
+	// dsn 4.7.0 (deferred) was reported on gitlab issue #615, and 5.7.0 (bounced) has been found in some of our (obfuscated) logs.
+	{host: "iCloud", pattern: regexp.MustCompile(`refused to talk to me.* Blocked - see https:\/\/support\.proofpoint\.com\/dnsbl-lookup\.cgi`)},
 }

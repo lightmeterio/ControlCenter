@@ -72,7 +72,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               }}</span>
               –
               <button
-                class="btn btn-sm"
+                class="btn btn-sm btn-info"
                 v-b-modal.modal-explanation
                 v-on:click="
                   signalKindExplanationTitle = signal.kind;
@@ -80,6 +80,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 "
               >
                 <span>{{ signal.kind }}</span>
+                <i class="far fa-question-circle signal_help_btn"></i>
               </button>
             </div>
             <vue-json-pretty :data="signal.value"> </vue-json-pretty>
@@ -246,5 +247,9 @@ export default {
   .vjs-tree {
     display: inline-block;
   }
+}
+
+.signal_help_btn {
+  margin-left: 10px;
 }
 </style>
