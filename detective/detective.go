@@ -97,9 +97,9 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					row_number() over (order by delivery_ts),
 					count() over () as total,
 					delivery_ts, status, dsn, d.queue_id, d.message_id, queues.name as queue, expired_ts,
-					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
+					count(distinct delivery_ts) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
 					d.returned as returned,
-					d.mailfrom, d.mailto
+					d.mailfrom, json_group_array(distinct d.mailto)
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
 				join queues_filtered_by_condition q where q.queue_id = d.queue_id
@@ -226,7 +226,7 @@ type MessageDelivery struct {
 	Dsn              string     `json:"dsn"`
 	Expired          *time.Time `json:"expired"`
 	MailFrom         string     `json:"from"`
-	MailTo           string     `json:"to"`
+	MailTo           []string   `json:"to"`
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
@@ -324,6 +324,11 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			expiredTime = &eT
 		}
 
+		var mailTos []string
+		if err := json.Unmarshal([]byte(mailTo), &mailTos); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
 		delivery := MessageDelivery{
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
@@ -332,7 +337,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			Dsn:              dsn,
 			Expired:          expiredTime,
 			MailFrom:         mailFrom,
-			MailTo:           mailTo,
+			MailTo:           mailTos,
 		}
 
 		messages[index].Entries = append(messages[index].Entries, delivery)
