@@ -8,6 +8,7 @@ func init() {
 	registerHandler("postfix", "sender-cleanup/cleanup", parseCleanup)
 	registerHandler("postfix", "cleanup", parseCleanup)
 	registerHandler("postfix", "submission/cleanup", parseCleanup)
+	registerHandler("postfix", "cleanupspam/cleanup", parseCleanup)
 	registerHandler("postfix", "authclean/cleanup", parseCleanup)
 }
 
