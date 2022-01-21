@@ -8,7 +8,7 @@ package core
 import (
 	"database/sql"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
@@ -25,14 +25,14 @@ type HistoricalDetector interface {
 }
 
 type Core struct {
-	closeutil.Closers
+	closers.Closers
 	Detectors []Detector
 }
 
 func New(detectors []Detector) (*Core, error) {
 	core := &Core{
 		Detectors: []Detector{},
-		Closers:   closeutil.New(),
+		Closers:   closers.New(),
 	}
 
 	for _, d := range detectors {

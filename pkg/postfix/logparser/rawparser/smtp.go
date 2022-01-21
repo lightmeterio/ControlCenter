@@ -10,6 +10,10 @@ func init() {
 	registerHandler("postfix", "pipe", parseSmtpPayload)
 	registerHandler("postfix", "local", parseSmtpPayload)
 	registerHandler("postfix", "virtual", parseSmtpPayload)
+
+	// Reported by some curious user
+	registerHandler("amavis-inject", "smtp", parseSmtpPayload)
+	registerHandler("postfix-slow", "smtp", parseSmtpPayload)
 }
 
 type RawSmtpSentStatus struct {

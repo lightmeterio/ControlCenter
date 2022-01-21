@@ -20,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,10 @@ func isUserAuthenticated(auth *httpauth.Authenticator, r *http.Request) bool {
 	}
 
 	return sessionData.IsAuthenticated()
+}
+
+func someID(r *http.Request) string {
+	return strings.TrimSpace(r.Form.Get("some_id"))
 }
 
 func checkQueryParameters(r *http.Request, isAuthenticated bool) error {
@@ -59,11 +64,13 @@ func checkQueryParameters(r *http.Request, isAuthenticated bool) error {
 		return http.StatusOK
 	}
 
-	if fromOk := paramOk(r.Form.Get("mail_from"), isAuthenticated); fromOk != http.StatusOK {
+	isSomeIdSearch := len(someID(r)) > 0
+
+	if fromOk := paramOk(r.Form.Get("mail_from"), isAuthenticated); fromOk != http.StatusOK && !isSomeIdSearch {
 		return httperror.NewHTTPStatusCodeError(fromOk, errors.New("Partial from or to parameter not allowed"))
 	}
 
-	if toOk := paramOk(r.Form.Get("mail_to"), isAuthenticated); toOk != http.StatusOK {
+	if toOk := paramOk(r.Form.Get("mail_to"), isAuthenticated); toOk != http.StatusOK && !isSomeIdSearch {
 		return httperror.NewHTTPStatusCodeError(toOk, errors.New("Partial from or to parameter not allowed"))
 	}
 
@@ -115,6 +122,7 @@ type Interval string
 // @Param timestamp_from query string true "Initial timestamp in the format 1999-12-23 12:00:00"
 // @Param timestamp_to   query string true "Final timestamp in the format 1999-12-23 14:00:00"
 // @Param status         query string true "A status to filter messages (-1: all, 0: sent... see smtp.go)"
+// @Param someID         query string true "A queue name or message ID to filter results -- empty: don't filter"
 // @Param page           query string true "Page number to return results"
 // @Produce json
 // @Success 200 {object} []detective.MessageDelivery "desc"
@@ -140,7 +148,7 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
 	}
 
-	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, page)
+	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page)
 
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
@@ -207,7 +215,7 @@ func (h detectiveEscalatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	if err := escalator.TryToEscalateRequest(r.Context(), h.detective, h.requester, r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval); err != nil {
+	if err := escalator.TryToEscalateRequest(r.Context(), h.detective, h.requester, r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, someID(r)); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, err)
 	}
 

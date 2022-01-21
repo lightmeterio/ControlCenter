@@ -35,8 +35,8 @@ func TestEscalation(t *testing.T) {
 		ctx := context.Background()
 
 		Convey("No detective results. Do not escalate", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
-			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", mustParseTimeInterval("2000-01-01", "2000-01-01"))
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
+			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", mustParseTimeInterval("2000-01-01", "2000-01-01"), "")
 			So(err, ShouldBeNil)
 			So(len(requester.requests), ShouldEqual, 0)
 		})
@@ -44,7 +44,7 @@ func TestEscalation(t *testing.T) {
 		Convey("All messages were delived. Do not escalate", func() {
 			interval := mustParseTimeInterval("2000-01-01", "2000-01-01")
 
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any()).Return(
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,
@@ -87,7 +87,7 @@ func TestEscalation(t *testing.T) {
 					},
 				}, nil)
 
-			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval)
+			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval, "")
 			So(err, ShouldBeNil)
 			So(len(requester.requests), ShouldEqual, 0)
 		})
@@ -95,7 +95,7 @@ func TestEscalation(t *testing.T) {
 		Convey("Any of the messages was not delivered. Escalate one issue", func() {
 			interval := mustParseTimeInterval("2000-01-01", "2000-01-01")
 
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any()).Return(
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,
@@ -141,7 +141,7 @@ func TestEscalation(t *testing.T) {
 					},
 				}, nil)
 
-			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval)
+			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval, "")
 			So(err, ShouldBeNil)
 			So(requester.requests, ShouldResemble, []Request{
 				{
@@ -166,12 +166,62 @@ func TestEscalation(t *testing.T) {
 			})
 		})
 
+		Convey("Escalate by queue name", func() {
+			interval := mustParseTimeInterval("2000-01-01", "2000-01-01")
+
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), "", "", interval, gomock.Any(), "BBB", gomock.Any()).Return(
+				&detective.MessagesPage{
+					PageNumber:   1,
+					FirstPage:    1,
+					LastPage:     1,
+					TotalResults: 1,
+					Messages: detective.Messages{
+						detective.Message{
+							Queue: "BBB",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "3.0.0",
+								},
+							},
+						},
+					},
+				}, nil)
+
+			err := TryToEscalateRequest(ctx, d, requester, "", "", interval, "BBB")
+			So(err, ShouldBeNil)
+			So(requester.requests, ShouldResemble, []Request{
+				{
+					Sender:    "",
+					Recipient: "",
+					Interval:  interval,
+					Messages: detective.Messages{
+						detective.Message{
+							Queue: "BBB",
+							Entries: []detective.MessageDelivery{
+								{
+									NumberOfAttempts: 1,
+									TimeMin:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
+									Status:           detective.Status(parser.BouncedStatus),
+									Dsn:              "3.0.0",
+								},
+							},
+						},
+					},
+				},
+			})
+		})
+
 		Convey("Use the real requester", func() {
 			requester := New()
 
 			interval := mustParseTimeInterval("2000-01-01", "2000-01-01")
 
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any()).Return(
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), "sender@example.com", "recipient@example.com", interval, gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,
@@ -255,7 +305,7 @@ func TestEscalation(t *testing.T) {
 
 			time.Sleep(100 * time.Millisecond)
 
-			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval)
+			err := TryToEscalateRequest(ctx, d, requester, "sender@example.com", "recipient@example.com", interval, "")
 			So(err, ShouldBeNil)
 
 			requests := []Request{}

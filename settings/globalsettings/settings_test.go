@@ -6,9 +6,11 @@ package globalsettings
 
 import (
 	"context"
+	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net"
 	"testing"
@@ -75,6 +77,34 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 				AppLanguage: "de",
 				PublicURL:   "http://example.com/lightmeter",
 			})
+		})
+
+		Convey("Check in·valid settings", func() {
+			writeRunner := metadata.NewSerialWriteRunner(m)
+			done, cancel := runner.Run(writeRunner)
+			w := writeRunner.Writer()
+
+			defer func() {
+				cancel()
+				So(done(), ShouldBeNil)
+			}()
+
+			err := SetSettings(dummyContext, w, Settings{PublicURL: "https://example.com/lightmeter"})
+			So(err, ShouldBeNil)
+
+			err = SetSettings(dummyContext, w, Settings{PublicURL: "http://localhost"})
+			So(err, ShouldBeNil)
+
+			err = SetSettings(dummyContext, w, Settings{PublicURL: "http://localhost:80"})
+			So(err, ShouldBeNil)
+
+			err = SetSettings(dummyContext, w, Settings{PublicURL: "abc"})
+			So(err, ShouldNotBeNil)
+			So(errors.Is(err, ErrPublicURLInvalid), ShouldBeTrue)
+
+			err = SetSettings(dummyContext, w, Settings{PublicURL: "http://abc"})
+			So(err, ShouldNotBeNil)
+			So(errors.Is(err, ErrPublicURLNoDNS), ShouldBeTrue)
 		})
 
 		Convey("Empty values do not override defaults", func() {

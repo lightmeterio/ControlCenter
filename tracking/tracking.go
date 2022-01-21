@@ -9,11 +9,11 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"reflect"
 	"sync"
@@ -77,7 +77,7 @@ type resultsNotifiers []*resultsNotifier
 
 type Tracker struct {
 	runner.CancellableRunner
-	closeutil.Closers
+	closers.Closers
 
 	dbconn           *dbconn.PooledPair
 	actions          chan actionTuple
@@ -208,7 +208,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 		actions:         trackerActions,
 		txActions:       txActions,
 		resultsToNotify: resultsToNotify,
-		Closers:         closeutil.New(trackerStmts),
+		Closers:         closers.New(trackerStmts),
 	}
 
 	// it should be refactored ASAP!!!!

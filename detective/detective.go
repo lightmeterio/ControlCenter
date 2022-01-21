@@ -21,7 +21,7 @@ import (
 const resultsPerPage = 100
 
 type Detective interface {
-	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, page int) (*MessagesPage, error)
+	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, someID string, page int) (*MessagesPage, error)
 	OldestAvailableTime(context.Context) (time.Time, error)
 }
 
@@ -38,9 +38,9 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		if err := db.PrepareStmt(`
 			with
-			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto) as (
+			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
 				select
-					d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, false,
+					d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, mid.value, false,
 					sender_local_part    || '@' || sender_domain.domain    as mailfrom,
 					recipient_local_part || '@' || recipient_domain.domain as mailto
 				from
@@ -51,16 +51,21 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
 				join
 					delivery_queue dq on dq.delivery_id = d.id
+				join
+					queues q on q.id = dq.queue_id
+				join 
+					messageids mid on mid.id = d.message_id
 				where
 					(sender_local_part       = ? collate nocase or ? = '') and
 					(sender_domain.domain    = ? collate nocase or ? = '') and
 					(recipient_local_part    = ? collate nocase or ? = '') and
 					(recipient_domain.domain = ? collate nocase or ? = '') and
 					(delivery_ts between ? and ?) and
-					(status = ? or ? = -1)
+					(status = ? or ? = -1) and
+					(q.name = ? or mid.value = ? or ? = '')
 			),
-			returned_deliveries(id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto) as (
-				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, true, mailfrom, mailto
+			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
+				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, true, mailfrom, mailto
 				from
 					deliveries d
 				join
@@ -73,11 +78,13 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					queues qc on queue_parenting.child_queue_id = qc.id
 				join
 					sent_deliveries_filtered_by_condition sd on qp.id = sd.queue_id
+				join 
+					messageids mid on mid.id = d.message_id
 			),
-			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto) as (
-				select id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto from sent_deliveries_filtered_by_condition
+			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
+				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto from sent_deliveries_filtered_by_condition
 				union
-				select id, delivery_ts, status, dsn, queue_id, returned, mailfrom, mailto from returned_deliveries
+				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto from returned_deliveries
 			),
 			queues_filtered_by_condition(queue_id, expired_ts, mailfrom, mailto) as (
 				select distinct delivery_queue.queue_id, expired_ts, mailfrom, mailto
@@ -85,20 +92,20 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				left join expired_queues eq on eq.queue_id = deliveries_filtered_by_condition.queue_id
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto) as (
+			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto) as (
 				select
 					row_number() over (order by delivery_ts),
 					count() over () as total,
-					delivery_ts, status, dsn, d.queue_id, queues.name as queue, expired_ts,
-					count(*) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
+					delivery_ts, status, dsn, d.queue_id, d.message_id, queues.name as queue, expired_ts,
+					count(distinct delivery_ts) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
 					d.returned as returned,
-					d.mailfrom, d.mailto
+					d.mailfrom, json_group_array(distinct d.mailto)
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
 				join queues_filtered_by_condition q where q.queue_id = d.queue_id
 				group by d.queue_id, status, dsn
 			)
-			select total, status, dsn, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto
+			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto
 			from grouped_and_computed
 			order by delivery_ts, returned
 			limit ?
@@ -134,7 +141,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
-func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, page int) (*MessagesPage, error) {
+func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (*MessagesPage, error) {
 	conn, release, err := d.pool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -143,7 +150,7 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 	defer release()
 
 	//nolint:sqlclosecheck
-	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, page)
+	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, someID, page)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
@@ -174,8 +181,9 @@ func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, erro
 type QueueName = string
 
 type Message struct {
-	Queue   QueueName         `json:"queue"`
-	Entries []MessageDelivery `json:"entries"`
+	Queue     QueueName         `json:"queue"`
+	MessageID string            `json:"message_id"`
+	Entries   []MessageDelivery `json:"entries"`
 }
 
 type Messages = []Message
@@ -218,11 +226,11 @@ type MessageDelivery struct {
 	Dsn              string     `json:"dsn"`
 	Expired          *time.Time `json:"expired"`
 	MailFrom         string     `json:"from"`
-	MailTo           string     `json:"to"`
+	MailTo           []string   `json:"to"`
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
-func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, page int) (messagesPage *MessagesPage, err error) {
+func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (messagesPage *MessagesPage, err error) {
 	splitEmail := func(email string) (local, domain string, err error) {
 		if len(email) == 0 {
 			return "", "", nil
@@ -258,6 +266,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		recipientLocal, recipientLocal, recipientDomain, recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
 		status, status,
+		someID, someID, someID,
 		resultsPerPage, (page-1)*resultsPerPage,
 	)
 
@@ -278,6 +287,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			status           parser.SmtpStatus
 			dsn              string
 			queueName        QueueName
+			messageID        string
 			expiredTs        *int64
 			expiredTime      *time.Time
 			numberOfAttempts int
@@ -288,7 +298,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			mailTo           string
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -304,7 +314,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 				}
 			}
 
-			messages = append(messages, Message{Queue: queueName, Entries: []MessageDelivery{}})
+			messages = append(messages, Message{Queue: queueName, MessageID: messageID, Entries: []MessageDelivery{}})
 
 			return len(messages) - 1
 		}()
@@ -312,6 +322,11 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		if expiredTs != nil {
 			eT := time.Unix(*expiredTs, 0).In(time.UTC)
 			expiredTime = &eT
+		}
+
+		var mailTos []string
+		if err := json.Unmarshal([]byte(mailTo), &mailTos); err != nil {
+			return nil, errorutil.Wrap(err)
 		}
 
 		delivery := MessageDelivery{
@@ -322,7 +337,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			Dsn:              dsn,
 			Expired:          expiredTime,
 			MailFrom:         mailFrom,
-			MailTo:           mailTo,
+			MailTo:           mailTos,
 		}
 
 		messages[index].Entries = append(messages[index].Entries, delivery)

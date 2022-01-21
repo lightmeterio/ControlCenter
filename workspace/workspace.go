@@ -29,6 +29,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/po"
@@ -36,7 +37,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"os"
 	"path"
@@ -45,7 +45,7 @@ import (
 
 type Workspace struct {
 	runner.CancellableRunner
-	closeutil.Closers
+	closers.Closers
 
 	deliveries              *deliverydb.DB
 	rawLogs                 *rawlogsdb.DB
@@ -77,7 +77,7 @@ type Workspace struct {
 }
 
 type databases struct {
-	closeutil.Closers
+	closers.Closers
 
 	Auth           *dbconn.PooledPair
 	Connections    *dbconn.PooledPair
@@ -125,7 +125,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err, "Error creating working directory ", workspaceDirectory)
 	}
 
-	allDatabases := databases{Closers: closeutil.New()}
+	allDatabases := databases{Closers: closers.New()}
 
 	for _, s := range []struct {
 		name string
@@ -318,7 +318,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		postfixVersionPublisher: postfixversion.NewPublisher(settingsRunner.Writer()),
 		connectionStatsAccessor: connectionStatsAccessor,
 		databases:               allDatabases,
-		Closers: closeutil.New(
+		Closers: closers.New(
 			connStats,
 			deliveries,
 			rawLogsDb,
