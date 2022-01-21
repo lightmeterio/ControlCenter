@@ -614,6 +614,20 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(pub.results[0][QueueSenderDomainPartKey].Text(), ShouldEqual, "sender.example.com")
 					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
 				})
+
+				Convey("authcleanup/cleanup (Gitlab issue #621)", func() {
+					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/25_authclean_cleanup.log", t.Publisher(), 2021, "rfc3339")
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 1)
+
+					So(pub.results[0][ResultRecipientDomainPartKey].Text(), ShouldEqual, "recipient.example.com")
+					So(pub.results[0][QueueSenderDomainPartKey].Text(), ShouldEqual, "sender.example.com")
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "1F5A2194AA9")
+					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "AFFBE802-D6B1-483C-ABE2-783F531DE68B@example.com")
+					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
+				})
 			})
 
 			// we expected all results to have been consumed

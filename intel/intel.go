@@ -24,10 +24,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/topdomains"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/postfixversion"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -83,6 +83,7 @@ type Metadata struct {
 	UserEmail          *string `json:"user_email,omitempty"`
 	PostfixVersion     *string `json:"postfix_version,omitempty"`
 	MailKind           *string `json:"mail_kind,omitempty"`
+	UserName           *string `json:"user_name"`
 	IsDockerContainer  bool    `json:"is_docker_container"`
 	IsUsingRsyncedLogs bool    `json:"is_using_rsynced_logs"`
 }
@@ -110,8 +111,6 @@ type Dispatcher struct {
 }
 
 func (d *Dispatcher) Dispatch(r collector.Report) error {
-	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
-
 	metadata, err := func() (Metadata, error) {
 		// InstanceID is always available
 		metadata := Metadata{InstanceID: d.InstanceID}
@@ -126,6 +125,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 
 		if err == nil {
 			metadata.UserEmail = &userData.Email
+			metadata.UserName = &userData.Name
 		}
 
 		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
@@ -145,6 +145,12 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
+
+	if metadata.UserEmail == nil || len(*metadata.UserEmail) == 0 {
+		return collector.ErrUnregisteredUser
+	}
+
+	log.Info().Msgf("Sending a new Network intelligence report in the interval %v and with %v rows", r.Interval, len(r.Content))
 
 	reportWithMetadata := ReportWithMetadata{
 		Version:  d.VersionBuilder(),
@@ -202,8 +208,8 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
 
-	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
-		log.Warn().Msgf("Unexpected error retrieving global settings")
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Error().Err(err).Msgf("Unexpected error retrieving global settings")
 	}
 
 	if err != nil {
@@ -339,12 +345,12 @@ func New(intelDb *dbconn.PooledPair, deliveryDbPool *dbconn.RoPool, fetcher insi
 	}
 
 	return &Runner{
-		Closers:           closeutil.New(c, r),
+		Closers:           closers.New(c, r),
 		CancellableRunner: runner.NewDependantPairCancellableRunner(runner.NewCombinedCancellableRunners(c, r), dbRunner),
 	}, logslinePublisher, r, nil
 }
 
 type Runner struct {
-	closeutil.Closers
+	closers.Closers
 	runner.CancellableRunner
 }

@@ -36,15 +36,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script>
-import auth from "@/mixin/auth.js";
-
 export default {
-  name: "admindetective",
-  mixins: [auth],
-  data() {
-    return {
-      neededAuth: true
-    };
-  }
+  name: "admindetective"
 };
 </script>

@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"path"
@@ -378,9 +378,9 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 
 	descriptors := []fileDescriptor{}
 
-	closers := closeutil.New()
+	allClosers := closers.New()
 
-	defer errorutil.UpdateErrorFromCloser(closers, &err)
+	defer errorutil.UpdateErrorFromCloser(allClosers, &err)
 
 	for _, queue := range queues {
 		if len(queue) == 0 {
@@ -397,14 +397,15 @@ func FindInitialLogTime(content DirectoryContent, patterns LogPatterns, format p
 			return time.Time{}, errorutil.Wrap(err)
 		}
 
-		closer := closeutil.ConvertToCloser(func() error {
+		closer := closers.ConvertToCloser(func() error {
 			err := reader.Close()
 			if err != nil {
 				return fmt.Errorf("could not close file: %v, %w", filename, err)
 			}
 			return nil
 		})
-		closers.Add(closer)
+
+		allClosers.Add(closer)
 
 		d := fileDescriptor{modificationTime: entry.modificationTime, reader: reader}
 

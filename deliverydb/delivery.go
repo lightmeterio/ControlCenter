@@ -10,10 +10,10 @@ import (
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -22,7 +22,7 @@ type dbAction = dbrunner.Action
 
 type DB struct {
 	*dbrunner.Runner
-	closeutil.Closers
+	closers.Closers
 
 	connPair *dbconn.PooledPair
 }
@@ -184,7 +184,7 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 	return &DB{
 		connPair: connPair,
 		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
-		Closers:  closeutil.New(stmts),
+		Closers:  closers.New(stmts),
 	}, nil
 }
 

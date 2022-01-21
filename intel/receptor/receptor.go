@@ -14,9 +14,9 @@ import (
 
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
@@ -25,7 +25,7 @@ import (
 // any new information in the database
 type Receptor struct {
 	runner.CancellableRunner
-	closeutil.Closers
+	closers.Closers
 	blockedips.Checker
 }
 
@@ -154,7 +154,7 @@ func DrainEvents(actions dbrunner.Actions, options Options, requester Requester,
 
 func New(actions dbrunner.Actions, pool *dbconn.RoPool, requester Requester, options Options, clock timeutil.Clock) (*Receptor, error) {
 	return &Receptor{
-		Closers: closeutil.New(),
+		Closers: closers.New(),
 		Checker: &dbBruteForceChecker{pool: pool, actions: actions, listMaxSize: options.BruteForceInsightListSize},
 		CancellableRunner: runner.NewCancellableRunner(func(done runner.DoneChan, cancel runner.CancelChan) {
 			go func() {

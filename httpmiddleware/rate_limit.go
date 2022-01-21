@@ -62,7 +62,7 @@ func remoteAddr(requestRemoteAddr string, header http.Header, isBehindAReversePr
 		return originAddr[0]
 	}
 
-	log.Error().Msgf("Could not obtain the client IP address from the headers. Here they are: %#v", header)
+	log.Debug().Msgf("Could not obtain the client IP address from the headers. Here they are: %#v", header)
 
 	return requestRemoteAddr
 }

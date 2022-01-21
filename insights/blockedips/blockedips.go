@@ -13,7 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	"gitlab.com/lightmeter/controlcenter/util/closeutil"
+	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -83,7 +83,7 @@ func init() {
 }
 
 type detector struct {
-	closeutil.Closers
+	closers.Closers
 
 	options Options
 	creator core.Creator
@@ -103,7 +103,7 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions := getDetectorOptions(options)
 
 	return &detector{
-		Closers: closeutil.New(),
+		Closers: closers.New(),
 		options: detectorOptions,
 		creator: creator,
 	}

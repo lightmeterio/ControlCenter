@@ -16,6 +16,11 @@ func init() {
 	registerHandler("postfix", "amavisd/smtpd", parseSmtpdPayload)
 	registerHandler("postfix", "dkimmilter/smtpd", parseSmtpdPayload)
 	registerHandler("postfix", "smtps/smtpd", parseSmtpdPayload)
+
+	// Reported many times by some curious user
+	registerHandler("postfix", "reinjecteset/smtpd", parseSmtpdPayload)
+	registerHandler("postfix", "newsletter/smtpd", parseSmtpdPayload)
+	registerHandler("postfix", "reinject/smtpd", parseSmtpdPayload)
 }
 
 type SmtpdConnect struct {
