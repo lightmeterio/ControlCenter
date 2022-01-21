@@ -443,7 +443,7 @@ Please consider extending the default mappings by making merge requests to benef
 #### Admin view
 
 You can access the admin view for the message detective clicking the "Search" icon on the navigation bar. 
-Using sender address, recepient address and the time interval you want to check, you can identify the status of any message processed in the given timeframe. 
+The Lightmeter admin can search for a given message by timeframe, sender, recipient, Postfix ID/message ID, or status, to troubleshoot email delivery.
 
 The search result will include the status of the message, the queue ID, the time the message was processed and the status code of each delivery attempt. 
 
@@ -459,7 +459,7 @@ A message can have one of the following states:
 
 You can enable the message detective for any unauthenticated users in the Settings Page. 
 
-Any user (whom you have provided the link to) can check the fate of a message independently, using the same search terms as the admin. They will also see the same amount of information in the search results as the admin. 
+Any user (whom you have provided the link to) can check the fate of a message independently, using the email addresses of the sender AND the recipient, and the message status. In the search results, they will see the same information per message as the admin. 
 
 In addition, the user will also have the option to Escalate any Bounced and Expired results to the mail server admin.
 Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further. 
