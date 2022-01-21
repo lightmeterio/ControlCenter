@@ -39,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
 
         <div v-show="showFromTo" class="card-text">
-          {{ result.entries[0].from }} → {{ result.entries[0].to }}
+          {{ result.entries[0].from }} → {{ result.entries[0].to.join(", ") }}
         </div>
 
         <ul class="list-unstyled card-text">

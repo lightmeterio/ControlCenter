@@ -165,7 +165,7 @@ func TestDetective(t *testing.T) {
 									"2.0.0",
 									nil,
 									"sender@example.com",
-									"recipient@example.com",
+									[]string{"recipient@example.com"},
 								},
 							},
 						},
@@ -216,6 +216,46 @@ func TestDetective(t *testing.T) {
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-01-10 16:15:30 +0000`))
 		})
 
+		Convey("Multi-recipient email", func() {
+			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/26_two_recipients.log", year)
+			defer clear()
+
+			queueID := "B9996EABB6"
+
+			expectedTime := time.Date(year, time.January, 20, 19, 48, 07, 0, time.UTC)
+			expectedResult := &detective.MessagesPage{1, 1, 1, 1,
+				detective.Messages{
+					detective.Message{
+						Queue:     queueID,
+						MessageID: "h-74f3afb0208ad285a794d760c8feb0eee631@internal.org",
+						Entries: []detective.MessageDelivery{
+							{
+								1,
+								expectedTime.In(time.UTC),
+								expectedTime.In(time.UTC),
+								detective.Status(parser.SentStatus),
+								"2.0.0",
+								nil,
+								"sender@internal.org",
+								[]string{"recipient1@external.org", "recipient2@external.org"},
+							},
+						},
+					},
+				},
+			}
+
+			correctInterval = timeutil.TimeInterval{
+				time.Date(year, time.January, 0, 0, 0, 0, 0, time.UTC),
+				time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC),
+			}
+
+			Convey("Multi-recipient someID search should yield correct number of delivery attempts, and recipients", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
+			})
+		})
+
 		Convey("File with an expired message", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/18_expired.log", year)
 			defer clear()
@@ -244,7 +284,7 @@ func TestDetective(t *testing.T) {
 									"4.1.1",
 									&expectedExpiredTime,
 									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									"h-664d01@h-695da2287.com",
+									[]string{"h-664d01@h-695da2287.com"},
 								},
 								{
 									1,
@@ -254,7 +294,7 @@ func TestDetective(t *testing.T) {
 									"2.0.0",
 									&expectedExpiredTime,
 									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									"h-664d01@h-695da2287.com",
+									[]string{"h-664d01@h-695da2287.com"},
 								},
 							},
 						},
@@ -293,7 +333,7 @@ func TestDetective(t *testing.T) {
 									"2.0.0",
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
-									"h-493fac8f3@h-ea3f4afa.com",
+									[]string{"h-493fac8f3@h-ea3f4afa.com"},
 								},
 							},
 						},
@@ -309,7 +349,7 @@ func TestDetective(t *testing.T) {
 									"2.0.0",
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
-									"h-493fac8f3@h-ea3f4afa.com",
+									[]string{"h-493fac8f3@h-ea3f4afa.com"},
 								},
 							},
 						},
