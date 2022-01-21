@@ -15,8 +15,8 @@ import (
 	"os"
 )
 
-func ReadFromTestReader(reader io.Reader, pub postfix.Publisher, year int) {
-	builder, err := transform.Get("default", year)
+func ReadFromTestReaderWithLogFormat(reader io.Reader, pub postfix.Publisher, year int, format string) {
+	builder, err := transform.Get(format, year)
 	errorutil.MustSucceed(err)
 
 	s, err := filelogsource.New(reader, builder, &announcer.DummyImportAnnouncer{})
@@ -27,6 +27,10 @@ func ReadFromTestReader(reader io.Reader, pub postfix.Publisher, year int) {
 	errorutil.MustSucceed(err)
 }
 
+func ReadFromTestReader(reader io.Reader, pub postfix.Publisher, year int) {
+	ReadFromTestReaderWithLogFormat(reader, pub, year, "default")
+}
+
 func openFile(name string) *os.File {
 	f, err := os.Open(name)
 	errorutil.MustSucceed(err)
@@ -34,7 +38,11 @@ func openFile(name string) *os.File {
 	return f
 }
 
-func ReadFromTestFile(name string, pub postfix.Publisher, year int) {
+func ReadFromTestFileWithFormat(name string, pub postfix.Publisher, year int, format string) {
 	f := openFile(name)
-	ReadFromTestReader(f, pub, year)
+	ReadFromTestReaderWithLogFormat(f, pub, year, format)
+}
+
+func ReadFromTestFile(name string, pub postfix.Publisher, year int) {
+	ReadFromTestFileWithFormat(name, pub, year, "default")
 }
