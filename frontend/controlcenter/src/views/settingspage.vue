@@ -579,7 +579,7 @@ export default {
     },
     DetectiveEndUsersHelpText() {
       return this.$gettext(
-        "Anyone with the link can check email delivery outcomes (includes validation, and rate-limiting)"
+        "Anyone with the link below can check email delivery outcomes (requires both 'from' and 'to' email addresses, searches are rate-limited)"
       );
     },
     openDetectiveLink() {

@@ -28,6 +28,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         or some domain.
       </p>
 
+      <p class="mt-4" v-translate>
+        You can enable a restricted version of the Message Detective for your
+        end-users <router-link to="/settings">in the settings</router-link>.
+      </p>
+
       <detective ref="detective"></detective>
     </b-container>
 
