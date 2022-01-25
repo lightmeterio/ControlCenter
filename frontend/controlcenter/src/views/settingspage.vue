@@ -358,7 +358,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               closeLink: closeDetectiveLink
             }"
           >
-            Click %{openLink}here%{closeLink} to know more
+            See %{openLink}documentation%{closeLink} for details
           </p>
           <b-form-group :label="DetectiveEndUsersEnabled">
             <b-form-radio-group

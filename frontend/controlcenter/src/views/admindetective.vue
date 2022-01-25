@@ -21,17 +21,29 @@ SPDX-License-Identifier: AGPL-3.0-only
         Check the delivery status of an email that was sent or received
       </p>
 
-      <p class="mt-4" v-translate>
-        You can use domains instead of email addresses (@domain.org,
-        domain.org).<br />
-        Leave sender or recipient blank, to view all emails to or from someone,
-        or some domain.
-      </p>
-
-      <p class="mt-4" v-translate>
-        You can enable a restricted version of the Message Detective for your
-        end-users <router-link to="/settings">in the settings</router-link>.
-      </p>
+      <div class="card border-info mb-12 lg-12 sm-12">
+        <div class="card-body text-info">
+          <div class="card-title">
+            <i class="fa fa-info-circle"></i>
+            Usage
+          </div>
+          <ul class="card-text" style="margin-left: 0;padding-left: inherit;">
+            <li>
+              You can use domains instead of email addresses (@domain.org,
+              domain.org)
+            </li>
+            <li>
+              Leave sender or recipient blank, to view all emails to or from
+              someone, or some domain
+            </li>
+            <li>
+              You can enable a restricted view of the Message Detective for
+              Mailbox users
+              <router-link to="/settings">in the settings</router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
 
       <detective ref="detective"></detective>
     </b-container>
@@ -45,3 +57,13 @@ export default {
   name: "admindetective"
 };
 </script>
+
+<style lang="less">
+.text-info {
+  color: #227aaf;
+  border-color: #227aaf;
+  .card-title {
+    font-size: 110%;
+  }
+}
+</style>
