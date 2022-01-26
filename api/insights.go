@@ -145,7 +145,7 @@ type archiveInsightHandler struct {
 
 // @Summary Archive an insight
 // @Produce json
-// @Param id query integer - "Insight id"
+// @Param id query integer 0 "Insight id"
 // @Success 200 {string} string "Insight was archived"
 // @Failure 422 {string} string "Wrong parameter"
 // @Router /api/v0/archiveInsight [post]
