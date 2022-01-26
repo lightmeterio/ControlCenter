@@ -395,6 +395,17 @@ export function postUserRating(type, rating) {
     .catch(builderErrorHandler("insight_user_rating"));
 }
 
+/**** Archive insight ****/
+
+export function archiveInsight(id) {
+  let formData = new FormData();
+  formData.append("id", id);
+
+  return axios
+    .post(BASE_URL + "api/v0/archiveInsight", new URLSearchParams(formData))
+    .catch(builderErrorHandler("insight_archive"));
+}
+
 /**** Network Intelligence ****/
 
 export function getLatestSignals() {

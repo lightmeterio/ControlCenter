@@ -406,6 +406,18 @@ func (e *Engine) RateInsight(kind string, rating uint, clock timeutil.Clock) err
 	return nil
 }
 
+func (e *Engine) ArchiveInsight(id int64) {
+	e.txActions <- func(tx *sql.Tx) error {
+		err := core.ArchiveInsight(context.Background(), tx, id, time.Now())
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		return nil
+	}
+}
+
 func (e *Engine) GenerateInsight(ctx context.Context, properties core.InsightProperties) {
 	e.txActions <- func(tx *sql.Tx) error {
 		_, err := core.GenerateInsight(ctx, tx, properties)
