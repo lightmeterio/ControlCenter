@@ -13,7 +13,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <b-container id="detective" class="main-content">
       <h2 class="form-heading mt-5">
-        <!-- prettier-ignore -->
         <translate>Message Detective</translate>
       </h2>
 

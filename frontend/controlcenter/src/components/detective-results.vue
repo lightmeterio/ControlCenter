@@ -48,7 +48,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             v-for="(delivery, deliveryIndex) of result.entries"
             :key="deliveryIndex"
           >
-            <!-- prettier-ignore -->
             <span
               v-show="hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
@@ -61,7 +60,8 @@ SPDX-License-Identifier: AGPL-3.0-only
               }"
               class="mt-3 card-text"
             >
-              %{attempts} delivery attempts %{status} with status code %{code} from %{begin} to %{end}
+              %{attempts} delivery attempts %{status} with status code %{code}
+              from %{begin} to %{end}
             </span>
             <span
               v-show="!hasMultipleDeliveryAttempts(delivery)"

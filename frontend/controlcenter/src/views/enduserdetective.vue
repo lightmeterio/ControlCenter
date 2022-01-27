@@ -15,13 +15,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <b-container id="detective" class="main-content">
       <h2 class="form-heading mt-5">
-        <!-- prettier-ignore -->
         <translate>Search and detect messages</translate>
       </h2>
 
       <p class="mt-4">
-        <!-- prettier-ignore -->
-        <translate>Check the delivery status of an email that you sent or received</translate>
+        <translate
+          >Check the delivery status of an email that you sent or
+          received</translate
+        >
       </p>
 
       <detective forEndUsers ref="detective" @onResults="onResults"></detective>
@@ -33,7 +34,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           variant="primary"
           @click="escalateMessage"
         >
-          <!-- prettier-ignore -->
           <translate>Escalate</translate>
         </b-button>
       </b-container>
@@ -41,7 +41,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <div class="detective-footer">
       <span>
-        <!-- prettier-ignore -->
         <translate>Created with Lightmeter</translate>
       </span>
       <a
