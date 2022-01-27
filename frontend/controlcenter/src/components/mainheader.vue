@@ -10,140 +10,148 @@ SPDX-License-Identifier: AGPL-3.0-only
       :visible="walkthroughNeedsToRun"
       @finished="handleWalkthroughCompleted"
     ></walkthrough>
-    <div class="navbar">
-      <div class="container d-flex justify-content-between">
+
+    <b-navbar toggleable="lg">
+      <div class="container px-3 px-lg-0 d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
           <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
         </router-link>
-        <span class="buttons">
-          <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
-            <router-link to="/detective">
-              <i
-                class="fas fa-search"
-                data-toggle="tooltip"
-                data-placement="bottom"
-                :title="Detective"
-              ></i
-            ></router-link>
-          </span>
-          <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
-            <router-link to="/settings">
-              <i
-                class="fas fa-cog"
-                data-toggle="tooltip"
-                data-placement="bottom"
-                :title="Settings"
-              ></i
-            ></router-link>
-          </span>
-          <span v-b-modal.modal-about v-on:click="onGetApplicationInfo">
-            <i
-              class="fas fa-info-circle"
-              data-toggle="tooltip"
-              data-placement="bottom"
-              :title="Information"
-            ></i>
-          </span>
-          <span v-on:click="onLogout">
-            <i
-              class="fas fa-sign-out-alt"
-              data-toggle="tooltip"
-              data-placement="bottom"
-              :title="LogOut"
-            ></i>
-          </span>
-        </span>
 
-        <b-modal
-          ref="modal-about"
-          id="modal-about"
-          hide-footer
-          :title="About"
-          cancel-only
-        >
-          Lightmeter ControlCenter
-          <br />
-          <span id="release-info" v-if="applicationData">
-            <strong><translate>Version</translate>:</strong>
-            {{ applicationData.version }}
-            <br />
-            <strong><translate>Commit</translate>:</strong>
-            {{ applicationData.commit }}
-          </span>
-          <br />
-          <br />
+        <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
-          <p>
-            <span class="link">
-              <router-link to="/signals"
-                ><translate>View sent signals</translate></router-link
+        <b-collapse id="nav-collapse" is-nav>
+          <b-navbar-nav
+            class="ml-auto d-flex justify-content-between align-items-center"
+          >
+            <div class="buttons">
+              <router-link to="/">
+                <translate>Observatory</translate>
+              </router-link>
+
+              <router-link
+                v-on:click="trackClick('Detective', 'clickHeaderButton')"
+                to="/detective"
               >
-            </span>
-            (<translate>telemetry data</translate>).
-          </p>
+                <translate>Message Detective</translate>
+              </router-link>
 
-          <strong><translate>Get involved</translate></strong>
-          <br />
-          <ul>
-            <li>
-              <a
-                href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui"
-                target="_blank"
+              <router-link
+                v-on:click="trackClick('Settings', 'clickHeaderButton')"
+                to="/settings"
               >
-                <translate>Website</translate>
+                <translate>Settings</translate>
+              </router-link>
+
+              <a v-b-modal.modal-about v-on:click="onGetApplicationInfo">
+                <translate>About</translate>
               </a>
-            </li>
-            <li>
-              <a href="https://gitlab.com/lightmeter" target="_blank">GitLab</a>
-            </li>
-            <li>
-              <a
-                href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1"
-                target="_blank"
-              >
-                <translate>Newsletter</translate></a
-              >
-            </li>
-            <li>
-              <a href="https://discuss.lightmeter.io/" target="_blank">Forum</a>
-            </li>
-            <li>
-              <a href="https://twitter.com/lightmeterio" target="_blank"
-                >Twitter</a
-              >
-            </li>
-            <li>
-              <a href="https://mastodon.social/@lightmeter/" target="_blank"
-                >Mastodon</a
-              >
-            </li>
-            <li>
-              <a href="https://t.me/lightmeterio" target="_blank">Telegram</a>
-            </li>
-          </ul>
 
-          <p>
-            <translate>Open Source software</translate>,
-            <a
-              href="https://www.gnu.org/licenses/agpl-3.0.en.html"
-              target="_blank"
-            >
-              <translate>AGPLv3 Licensed</translate>
-            </a>
-          </p>
+              <a :href="FeedbackMailtoLink" :title="FeedbackButtonTitle">
+                <!-- prettier-ignore -->
+                <translate>Feedback</translate>
+              </a>
+            </div>
 
-          <div class="custom-modal-footer modal-footer">
-            <b-button
-              class="btn-cancel"
-              variant="outline-danger"
-              @click="hideModal"
-            >
-              <translate>Close</translate>
-            </b-button>
-          </div>
-        </b-modal>
+            <div class="logout ml-3">
+              <button v-on:click="onLogout">
+                <translate>Log out</translate>
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          </b-navbar-nav>
+        </b-collapse>
       </div>
-    </div>
+    </b-navbar>
+
+    <b-modal
+      ref="modal-about"
+      id="modal-about"
+      hide-footer
+      :title="About"
+      cancel-only
+    >
+      Lightmeter ControlCenter
+      <br />
+      <span id="release-info" v-if="applicationData">
+        <strong> <translate>Version</translate>: </strong>
+        {{ applicationData.version }}
+        <br />
+        <strong> <translate>Commit</translate>: </strong>
+        {{ applicationData.commit }}
+      </span>
+      <br />
+      <br />
+
+      <p>
+        <span class="link">
+          <router-link to="/signals">
+            <translate>View sent signals</translate>
+          </router-link>
+        </span>
+        (
+        <translate>telemetry data</translate>).
+      </p>
+
+      <strong>
+        <translate>Get involved</translate>
+      </strong>
+      <br />
+      <ul>
+        <li>
+          <a
+            href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui"
+            target="_blank"
+          >
+            <!-- prettier-ignore -->
+            <translate>Website</translate>
+          </a>
+        </li>
+        <li>
+          <a href="https://gitlab.com/lightmeter" target="_blank">GitLab</a>
+        </li>
+        <li>
+          <a
+            href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1"
+            target="_blank"
+          >
+            <!-- prettier-ignore -->
+            <translate>Newsletter</translate>
+          </a>
+        </li>
+        <li>
+          <a href="https://discuss.lightmeter.io/" target="_blank">Forum</a>
+        </li>
+        <li>
+          <a href="https://twitter.com/lightmeterio" target="_blank">Twitter</a>
+        </li>
+        <li>
+          <a href="https://mastodon.social/@lightmeter/" target="_blank"
+            >Mastodon</a
+          >
+        </li>
+        <li>
+          <a href="https://t.me/lightmeterio" target="_blank">Telegram</a>
+        </li>
+      </ul>
+
+      <p>
+        <translate>Open Source software</translate>,
+        <a href="https://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">
+          <translate>AGPLv3 Licensed</translate>
+        </a>
+      </p>
+
+      <div class="custom-modal-footer modal-footer">
+        <b-button
+          class="btn-cancel"
+          variant="outline-danger"
+          @click="hideModal"
+        >
+          <!-- prettier-ignore -->
+          <translate>Close</translate>
+        </b-button>
+      </div>
+    </b-modal>
   </header>
 </template>
 <script>
@@ -220,8 +228,7 @@ export default {
 <style>
 header .navbar {
   height: 70px;
-  background: #ffffff 0% 0% no-repeat padding-box;
-  box-shadow: 0px 6px 8px #00000029;
+  background: #e2f5fc 0% 0% no-repeat padding-box;
   opacity: 1;
   padding: 0;
 }
@@ -230,22 +237,52 @@ header .logo img {
   height: 36px;
 }
 
-header .buttons span {
-  margin-left: 0.25rem;
+header .buttons {
+  display: flex;
 }
 
-header .buttons,
-header a,
+header .buttons a {
+  margin-left: 0.75em;
+}
+
+header a {
+  color: #111827;
+  background-color: transparent;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
 header a:hover {
-  color: #2c9cd6;
+  color: #111827;
+  background-color: #b6e6f6;
+  text-decoration: none;
 }
 
-header span.buttons {
-  cursor: pointer;
+header .logo.router-link-exact-active {
+  background-color: transparent;
 }
 
-header span.buttons svg {
-  margin-left: 0.5rem;
+header .logo:hover {
+  background-color: transparent;
+}
+
+header .router-link-exact-active {
+  background-color: #b6e6f6;
+}
+
+header button {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  color: #374151;
+  padding: 10px 16px;
+  font-weight: 500;
+}
+
+header button span {
+  margin-right: 0.5em;
 }
 
 #modal-about .btn-cancel {
@@ -257,5 +294,17 @@ header span.buttons svg {
   font: normal normal bold 14px/24px Open Sans;
   letter-spacing: 0px;
   color: #820d1b;
+}
+
+@media (max-width: 768px) {
+  header .buttons {
+    flex-direction: column;
+  }
+  header button span {
+    margin-right: 0;
+  }
+  header .buttons a {
+    margin-left: 0;
+  }
 }
 </style>

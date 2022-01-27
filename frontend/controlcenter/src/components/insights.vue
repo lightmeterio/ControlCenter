@@ -7,13 +7,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 <!-- TODO: clean up the mess in this file, moving each insight to its own component -->
 
 <template>
-  <div class="insights" id="insights">
-    <b-modal
-      ref="modal-rbl-list"
-      id="modal-rbl-list"
-      size="lg"
-      hide-footer
-      centered
+  <div class="insights d-flex flex-fill" id="insights">
+    <b-sidebar
+      ref="sidebar-rbl-list"
+      id="sidebar-rbl-list"
+      backdrop
+      right
+      shadow
       :title="insightRblCheckedIpTitle"
     >
       <p class="intro">
@@ -26,38 +26,26 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="card" v-for="r of rbls" v-bind:key="r.text">
           <div class="card-body">
             <h5 class="card-title">
-              <span class="badge badge-pill badge-warning">List</span
-              >{{ r.rbl }}
+              <span class="badge badge-pill badge-warning">List</span>
+              {{ r.rbl }}
             </h5>
             <p class="card-text">
               <span class="message-label">Message:</span>
-              <span v-linkified:options="{ target: { url: '_blank' } }">{{
-                r.text
-              }}</span>
+              <span v-linkified:options="{ target: { url: '_blank' } }">
+                {{ r.text }}
+              </span>
             </p>
           </div>
         </div>
       </span>
+    </b-sidebar>
 
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            class="btn-cancel"
-            variant="outline-danger"
-            @click="hideRBLListModal"
-          >
-            <translate>Close</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
-
-    <b-modal
-      ref="modal-detective-escalation"
-      id="modal-detective-escalation"
-      size="lg"
-      hide-footer
-      centered
+    <b-sidebar
+      ref="sidebar-detective-escalation"
+      id="sidebar-detective-escalation"
+      backdrop
+      right
+      shadow
       :title="titleForDetectiveInsightWindow"
     >
       <p
@@ -76,24 +64,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         :results="detectiveInsight.content.messages"
         :showQueues="true"
       ></detective-results>
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            class="btn-cancel"
-            variant="outline-danger"
-            @click="hideDetectiveInsightModalWindow()"
-          >
-            <translate>Close</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
-    <b-modal
-      ref="modal-msg-rbl"
-      id="modal-msg-rbl"
-      size="lg"
-      hide-footer
-      centered
+    </b-sidebar>
+    <b-sidebar
+      ref="sidebar-msg-rbl"
+      id="sidebar-msg-rbl"
+      backdrop
+      right
+      shadow
       :title="insightMsgRblTitle"
     >
       <div class="modal-body">
@@ -101,30 +78,17 @@ SPDX-License-Identifier: AGPL-3.0-only
           <span
             id="rbl-msg-rbl-content"
             v-linkified:options="{ target: { url: '_blank' } }"
+            >{{ msgRblDetails }}</span
           >
-            {{ msgRblDetails }}
-          </span>
         </blockquote>
       </div>
-
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            class="btn-cancel"
-            variant="outline-danger"
-            @click="hideRBLMsqModal"
-          >
-            <translate>Close</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
-    <b-modal
-      ref="modal-import-summary"
-      id="modal-import-summary"
-      size="lg"
-      hide-footer
-      centered
+    </b-sidebar>
+    <b-sidebar
+      ref="sidebar-import-summary"
+      id="sidebar-import-summary"
+      backdrop
+      right
+      shadow
       :title="importSummaryWindowTitle()"
     >
       <div class="modal-body">
@@ -132,25 +96,14 @@ SPDX-License-Identifier: AGPL-3.0-only
           :content="importSummaryInsight.content"
         ></import-summary-insight-content>
       </div>
+    </b-sidebar>
 
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            variant="outline-primary"
-            @click="showArchivedInsightsBySummaryInsight(importSummaryInsight)"
-          >
-            <translate>View all archived</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
-
-    <b-modal
-      ref="modal-blockedips"
-      id="modal-blockedips"
-      size="lg"
-      hide-footer
-      centered
+    <b-sidebar
+      ref="sidebar-blockedips"
+      id="sidebar-blockedips"
+      backdrop
+      right
+      shadow
       :title="blockedIPsWindowTitle()"
     >
       <div class="modal-body">
@@ -158,26 +111,14 @@ SPDX-License-Identifier: AGPL-3.0-only
           :content="blockedIPsInsight.content"
         ></blockedips-insight-content>
       </div>
+    </b-sidebar>
 
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            class="btn-cancel"
-            variant="outline-danger"
-            @click="hideBlockedIPsListModal"
-          >
-            <translate>Close</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
-
-    <b-modal
-      ref="modal-blockedips-summary"
-      id="modal-blockedips-summary"
-      size="lg"
-      hide-footer
-      centered
+    <b-sidebar
+      ref="sidebar-blockedips-summary"
+      id="sidebar-blockedips-summary"
+      backdrop
+      right
+      shadow
       :title="blockedIPsSummarysWindowTitle()"
     >
       <div class="modal-body">
@@ -185,22 +126,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           :content="blockedIPsSummarysInsight.content"
         ></blockedips-insight-summary-content>
       </div>
-
-      <b-row class="vue-modal-footer">
-        <b-col>
-          <b-button
-            variant="outline-primary"
-            @click="
-              showArchivedInsightsByBlockedIPsSummaryInsight(
-                blockedIPsSummarysInsight
-              )
-            "
-          >
-            <translate>View Details</translate>
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-modal>
+    </b-sidebar>
 
     <div
       class="row container d-flex justify-content-center"
@@ -212,217 +138,190 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
-      class="col-card col-md-6 h-25"
+      class="col-card col-md-4"
     >
       <div class="card" v-bind:class="[insight.highlightedClass]">
-        <div class="row">
-          <div
-            class="col-lg-1 col-md-2 col-sm-1 col-2 rating"
-            v-bind:class="[insight.ratingClass]"
-          ></div>
-          <div class="col-lg-11 col-md-10 col-10">
-            <div class="card-block">
-              <div
-                class="d-flex flex-row justify-content-between insight-header"
-              >
-                <p class="card-text category">{{ insight.category }}</p>
-                <div class="insight-actions">
-                  <span
-                    v-if="insight.help_link"
-                    v-on:click="onInsightInfo($event, insight.help_link)"
-                    v-b-tooltip.hover
-                    :title="Info"
-                  >
-                    <i class="fa fa-info-circle lm-info-circle-grayblue"></i>
-                  </span>
+        <div class="card-block">
+          <!-- <div class="d-flex flex-row justify-content-between insight-header">
+              <p class="card-text category">{{ insight.category }}</p>
 
-                  <span
-                    v-if="insight.category.toLowerCase() != 'archived'"
-                    v-on:click="
-                      archiveInsight(insight.id, insight.content_type)
-                    "
-                    v-b-tooltip.hover
-                    :title="titleArchiveInsight"
-                  >
-                    <i class="fas fa-times-circle"></i>
-                  </span>
-                </div>
-              </div>
-              <h6 class="card-title title">{{ insight.title }}</h6>
+              <span
+                v-if="insight.help_link"
+                v-on:click="onInsightInfo($event, insight.help_link)"
+                v-b-tooltip.hover
+                :title="Info"
+              >
+                <i class="fa fa-info-circle insight-help-button"></i>
+              </span>
+          </div>-->
 
-              <!-- TODO: extract each kind of card to its own component and remove this giant if-then... -->
-              <p
-                v-if="insight.content_type === 'high_bounce_rate'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <log-viewer-button :insight="insight" />
-              </p>
+          <p class="insight-time">{{ insight.modTime }}</p>
 
-              <p
-                v-if="insight.content_type === 'newsfeed_content'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <button
-                  v-on:click="onNewsFeedMoreInfo($event, insight)"
-                  class="btn btn-sm"
-                >
-                  <translate>Read more</translate>
-                </button>
-              </p>
+          <h6 class="card-title title">{{ insight.title }}</h6>
 
-              <p
-                v-if="insight.content_type === 'import_summary'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <button
-                  v-b-modal.modal-import-summary
-                  v-on:click="onImportSummaryDetails(insight)"
-                  class="btn btn-sm"
-                  v-show="insight.content.insights.length > 0"
-                >
-                  <translate>Details</translate>
-                </button>
-              </p>
+          <!-- TODO: extract each kind of card to its own component and remove this giant if-then... -->
+          <p
+            v-if="insight.content_type === 'high_bounce_rate'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <log-viewer-button :insight="insight" />
+          </p>
 
-              <p
-                v-if="insight.content_type === 'blockedips'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <button
-                  v-b-modal.modal-blockedips
-                  v-on:click="onBruteForceDetails(insight)"
-                  class="btn btn-sm"
-                >
-                  <translate>Details</translate>
-                </button>
-              </p>
+          <p
+            v-if="insight.content_type === 'newsfeed_content'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <a
+              v-on:click="onNewsFeedMoreInfo($event, insight)"
+              class="stretched-link"
+              title="<translate>Read more</translate>"
+            ></a>
+          </p>
 
-              <p
-                v-if="insight.content_type === 'blockedips_summary'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <button
-                  v-b-modal.modal-blockedips-summary
-                  v-on:click="onBruteForceSummaryDetails(insight)"
-                  class="btn btn-sm"
-                >
-                  <translate>Details</translate>
-                </button>
-              </p>
+          <p
+            v-if="insight.content_type === 'import_summary'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <a
+              v-b-toggle.sidebar-import-summary
+              v-on:click="onImportSummaryDetails(insight)"
+              class="stretched-link"
+              v-show="insight.content.insights.length > 0"
+              title="Details"
+            ></a>
+          </p>
 
-              <p
-                v-if="insight.content_type === 'mail_inactivity'"
-                class="card-text description"
-              >
-                <span v-html="insight.description"></span>
-                <log-viewer-button :insight="insight" />
-              </p>
-              <p
-                v-if="insight.content_type === 'welcome_content'"
-                class="card-text description"
-              >
-                <translate
-                  >Insights reveal mailops problems in real time &ndash; both
-                  here, and via notifications</translate
-                >
-              </p>
-              <p
-                v-if="insight.content_type === 'insights_introduction_content'"
-                class="card-text description"
-              >
-                <translate
-                  >Join us on the journey to better mailops! We're listening for
-                  your feedback</translate
-                >
-              </p>
-              <p
-                v-if="insight.content_type === 'local_rbl_check'"
-                class="card-text description"
-              >
-                <span v-html="insight.description.message"></span>
+          <p
+            v-if="insight.content_type === 'blockedips'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <a
+              v-b-toggle.sidebar-blockedips
+              v-on:click="onBruteForceDetails(insight)"
+              class="stretched-link"
+              title="Details"
+            ></a>
+          </p>
 
-                <button
-                  v-b-modal.modal-rbl-list
-                  v-on:click="onBuildInsightRbl(insight.id)"
-                  class="btn btn-sm"
+          <p
+            v-if="insight.content_type === 'blockedips_summary'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <a
+              v-b-toggle.sidebar-blockedips-summary
+              v-on:click="onBruteForceSummaryDetails(insight)"
+              class="stretched-link"
+              title="Details"
+            ></a>
+          </p>
+
+          <p
+            v-if="insight.content_type === 'mail_inactivity'"
+            class="card-text description"
+          >
+            <span v-html="insight.description"></span>
+            <log-viewer-button :insight="insight" />
+          </p>
+          <p
+            v-if="insight.content_type === 'welcome_content'"
+            class="card-text description"
+          >
+            <!-- prettier-ignore -->
+            <translate>Insights reveal mailops problems in real time &ndash; both here, and via notifications</translate>
+          </p>
+          <p
+            v-if="insight.content_type === 'insights_introduction_content'"
+            class="card-text description"
+          >
+            <!-- prettier-ignore -->
+            <translate>Join us on the journey to better mailops! We're listening for your feedback</translate>
+          </p>
+          <p
+            v-if="insight.content_type === 'local_rbl_check'"
+            class="card-text description"
+          >
+            <span v-html="insight.description.message"></span>
+
+            <a
+              v-b-toggle.sidebar-rbl-list
+              v-on:click="onBuildInsightRbl(insight.id)"
+              class="stretched-link"
+              title="Details"
+            ></a>
+          </p>
+          <p
+            v-if="insight.content_type === 'message_rbl'"
+            class="card-text description"
+          >
+            <span v-html="insight.description.message"></span>
+            <a
+              v-b-toggle.sidebar-msg-rbl
+              v-on:click="onBuildInsightMsgRbl(insight.id)"
+              class="stretched-link"
+              title="Details"
+            ></a>
+          </p>
+          <p
+            v-if="insight.content_type === 'detective_escalation'"
+            class="card-text description"
+          >
+            <span v-translate="{ count: countDetectiveIssues(insight) }">
+              Investigation requested into failed delivery of %{count} messages
+            </span>
+            <a
+              v-b-toggle.sidebar-detective-escalation
+              v-on:click="onDetectiveEscalationDetails(insight)"
+              class="stretched-link"
+              title="Details"
+            ></a>
+            <log-viewer-button :insight="insight" />
+          </p>
+
+          <!-- <div class="card-text time d-flex justify-content-between align-items-center">
+            <div
+              v-if="showUserRating(insight)"
+              class="user-rating d-flex flex-wrap align-items-center"
+            >
+              <span>
+                prettier-ignore
+                <translate>Useful?</translate>
+              </span>
+              <div>
+                <span
+                  class="user-rating-smiley user-rating-smiley-good"
+                  v-on:click="sendUserRating(insight, 2)"
+                  title="Very useful"
                 >
-                  <translate>Details</translate>
-                </button>
-              </p>
-              <p
-                v-if="insight.content_type === 'message_rbl'"
-                class="card-text description"
-              >
-                <span v-html="insight.description.message"></span>
-                <button
-                  v-b-modal.modal-msg-rbl
-                  v-on:click="onBuildInsightMsgRbl(insight.id)"
-                  class="btn btn-sm"
-                >
-                  <translate>Details</translate>
-                </button>
-              </p>
-              <p
-                v-if="insight.content_type === 'detective_escalation'"
-                class="card-text description"
-              >
-                <span v-translate="{ count: countDetectiveIssues(insight) }"
-                  >Investigation requested into failed delivery of %{count}
-                  messages
+                  <i class="far fa-2x fa-smile"></i>
                 </span>
-                <button
-                  v-b-modal.modal-detective-escalation
-                  v-on:click="onDetectiveEscalationDetails(insight)"
-                  class="btn btn-sm"
+                <span
+                  class="user-rating-smiley user-rating-smiley-neutral"
+                  v-on:click="sendUserRating(insight, 1)"
+                  title="Somewhat useful"
                 >
-                  <translate>Details</translate>
-                </button>
-                <log-viewer-button :insight="insight" />
-              </p>
-
-              <div
-                class="card-text time d-flex justify-content-between align-items-center"
-              >
-                <span>{{ insight.modTime }}</span>
-                <div
-                  v-if="showUserRating(insight)"
-                  class="user-rating d-flex flex-wrap align-items-center"
+                  <i class="far fa-2x fa-meh"></i>
+                </span>
+                <span
+                  class="user-rating-smiley user-rating-smiley-bad"
+                  v-on:click="sendUserRating(insight, 0)"
+                  title="Not useful at all"
                 >
-                  <span>
-                    <translate>Useful?</translate>
-                  </span>
-                  <div>
-                    <span
-                      class="user-rating-smiley user-rating-smiley-good"
-                      v-on:click="sendUserRating(insight, 2)"
-                      title="Very useful"
-                    >
-                      <i class="far fa-2x fa-smile"></i>
-                    </span>
-                    <span
-                      class="user-rating-smiley user-rating-smiley-neutral"
-                      v-on:click="sendUserRating(insight, 1)"
-                      title="Somewhat useful"
-                    >
-                      <i class="far fa-2x fa-meh"></i>
-                    </span>
-                    <span
-                      class="user-rating-smiley user-rating-smiley-bad"
-                      v-on:click="sendUserRating(insight, 0)"
-                      title="Not useful at all"
-                    >
-                      <i class="far fa-2x fa-frown"></i>
-                    </span>
-                  </div>
-                </div>
+                  <i class="far fa-2x fa-frown"></i>
+                </span>
               </div>
             </div>
-          </div>
+          </div>-->
+
+          <span
+            v-html="insight.ratingClass + ' Severity'"
+            class="rating"
+            v-bind:class="[insight.ratingClass]"
+          ></span>
         </div>
       </div>
     </div>
@@ -579,7 +478,8 @@ export default {
         version: this.applicationData.version
       });
     },
-    local_rbl_check_title() {
+
+    _rbl_check_title() {
       return this.$gettext("IP on shared blocklist");
     },
     message_rbl_title(i) {
@@ -735,7 +635,7 @@ export default {
       );
     },
     buildInsightTime(insight) {
-      return moment(insight.time).format("DD MMM YYYY | h:mmA");
+      return moment(insight.time).format("DD MMM YYYY • h:mmA");
     },
     buildInsightTitle(insight) {
       const s = this[insight.content_type + "_title"];
@@ -934,10 +834,12 @@ function formatDateForDetectiveInsightModalWindow(d) {
 }
 
 .insights .card {
-  background: #ffffff 0% 0% no-repeat padding-box;
-  box-shadow: 0px 0px 6px #0000001a;
-  border: 1px solid #e6e7e7;
-  border-radius: 5px;
+  background: #ffffff;
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  height: 100%;
 }
 .insights .card-text.category {
   background-color: #f2f2f2;
@@ -954,19 +856,19 @@ function formatDateForDetectiveInsightModalWindow(d) {
   font-weight: bold;
 }
 .insights .card-block {
-  padding: 0.5rem 0.4rem 0.5rem 0rem;
+  padding: 1.5rem;
   text-align: left;
 }
-.insights .card .rating {
-  background-clip: content-box;
-  background-color: #f0f8fc;
-}
 .insights .card-text {
-  font: 12px/18px "Open Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }
+
+.insights .card:hover {
+  outline: 2px solid #d1d5db;
+}
+
 .insights .card-text.time {
-  background: #f0f8fc 0% 0% no-repeat padding-box;
-  border-radius: 5px;
   padding: 1.5em;
   .user-rating {
     font-size: 120%;
@@ -995,6 +897,23 @@ function formatDateForDetectiveInsightModalWindow(d) {
     }
   }
 }
+
+.insight-time {
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.b-sidebar-body {
+  padding: 2rem;
+}
+
+.b-sidebar .card {
+  height: auto;
+  text-align: left;
+}
+
 .insights .card-title {
   margin: 0 0 0.3rem 0;
   font: 18px Inter;
@@ -1003,35 +922,21 @@ function formatDateForDetectiveInsightModalWindow(d) {
   letter-spacing: 0px;
 }
 .insights .card .rating {
-  background-clip: content-box;
   background-color: #f0f8fc;
+  border-radius: 16px;
+  padding: 4px 8px;
 }
 .insights .card .rating.bad {
-  background: rgb(255, 92, 111);
-  background: linear-gradient(
-      0deg,
-      rgba(255, 92, 111, 1) 85%,
-      rgba(230, 231, 231, 1) 85%
-    )
-    content-box;
+  color: #7f1d1d;
+  background: #fee2e2;
 }
 .insights .card .rating.ok {
-  background: rgb(255, 220, 0);
-  background: linear-gradient(
-      0deg,
-      rgba(255, 220, 0, 1) 50%,
-      rgba(230, 231, 231, 1) 50%
-    )
-    content-box;
+  color: #1f2937;
+  background: #e5e7eb;
 }
 .insights .card .rating.good {
-  background: rgb(135, 197, 40);
-  background: linear-gradient(
-      0deg,
-      rgba(135, 197, 40, 1) 15%,
-      rgba(230, 231, 231, 1) 15%
-    )
-    content-box;
+  color: #78350f;
+  background: #fef3c7;
 }
 .insights .card svg {
   margin-right: 0.05em;
@@ -1042,21 +947,21 @@ function formatDateForDetectiveInsightModalWindow(d) {
 }
 
 .insights .card-text.description button {
-  padding: 0.4em 1.5em;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
   margin-bottom: 0;
-  background: #f9f9f9 0% 0% no-repeat padding-box;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 10px;
   font-weight: bold;
-  color: #1d8caf;
+  color: #374151;
   line-height: 1;
-  border: 1px solid #e6e7e7;
-  margin-left: 1em;
+  border: 1px solid #d1d5db;
+  z-index: 2;
 }
 
 .insights .card-text.description button:hover {
-  background-color: #1d8caf;
-  color: #ffffff;
+  background-color: #e5e7eb;
 }
 
 #modal-msg-rbl blockquote {
@@ -1123,9 +1028,9 @@ function formatDateForDetectiveInsightModalWindow(d) {
   border: 1px solid #c5c7c6;
 }
 .modal-content .card .card-title {
-  font-size: 19px;
+  font-size: 24px;
   font-weight: bold;
-  color: #202324;
+  color: #111827;
   font-family: Inter;
 }
 
@@ -1134,10 +1039,10 @@ function formatDateForDetectiveInsightModalWindow(d) {
 }
 
 #rbl-list-content .card .message-label {
-  color: #7a82ab;
+  color: #111827;
   font-weight: bold;
   padding-right: 0.5em;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 #rbl-list-content .badge {

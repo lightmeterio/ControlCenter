@@ -8,9 +8,9 @@ SPDX-License-Identifier: AGPL-3.0-only
   <button
     v-if="hasInterval(insight)"
     v-on:click="downloadRawLogsInInterval(insight)"
-    class="btn btn-sm"
+    class="btn download-logs"
   >
-    <i class="fas fa-download" style="margin-right: 0.25rem;"></i>
+    <i class="fas fa-list" style="margin-right: 0.25rem;"></i>
     <translate>Logs</translate>
   </button>
 </template>

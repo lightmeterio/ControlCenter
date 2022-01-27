@@ -5,9 +5,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <div id="graph-dashboard" class="row">
-    <div class="col-md-4">
-      <div id="delivery-attempts" class="card">
+  <div id="graph-dashboard" class="row d-flex flex-fill">
+    <div class="col-lg-6 col-12 mb-3">
+      <div id="delivery-attempts" class="card h-100">
         <div class="card-header">
           <translate>Delivery attempts</translate>
         </div>
@@ -16,74 +16,74 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
     </div>
-    <div class="col-md-8">
-      <b-tabs
-        id="basic-graphs-area"
-        content-class="mt-3"
-        justified
-        v-model="defaultTab"
-      >
-        <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'topBusiestDomains')"
-          :title="BusiestDomainsTitle"
-        >
-          <div class="dashboard-gadget" id="topBusiestDomains"></div>
-          <div class="bar-graph-legend" v-translate>
-            Showing maximum 20 outbound domains
-          </div>
-        </b-tab>
-        <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'topBouncedDomains')"
-          :title="BouncedDomainsTitle"
-        >
-          <div class="dashboard-gadget" id="topBouncedDomains"></div>
-          <div class="bar-graph-legend" v-translate>
-            Showing maximum 20 outbound domains
-          </div>
-        </b-tab>
-        <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'topDeferredDomains')"
-          :title="DeferredDomainsTitle"
-        >
-          <div class="dashboard-gadget" id="topDeferredDomains"></div>
-          <div class="bar-graph-legend" v-translate>
-            Showing maximum 20 outbound domains
-          </div>
-        </b-tab>
-        <b-tab
-          v-on:click="trackEvent('change-domains-tab', 'fetchAuthAttempts')"
-          :title="ConnectionsOverTime"
-        >
-          <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
-          <ul class="smtp-graph-legend">
-            <li style="color: #227AAF;">
-              <a
-                href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection"
-                target="_blank"
-              >
-                <translate
-                  >blocked by Lightmeter: %{numberOfBlockedIPs} IPs</translate
-                >
-                <i class="far fa-question-circle"></i>
-              </a>
-            </li>
-            <li style="color: #C53030;">
-              <translate>failed login: %{numberOfFailedLogins} IPs</translate>
-            </li>
-            <li style="color: #206C00;">
+    <div class="col-lg-6 col-l2 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <!-- prettier-ignore -->
+          <translate>Deferred Domains</translate>
+        </div>
+        <div class="dashboard-gadget" id="topDeferredDomains"></div>
+        <!-- <div class="bar-graph-legend" v-translate>Showing maximum 20 outbound domains</div> -->
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-l2 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <!-- prettier-ignore -->
+          <translate>Busiest Domains</translate>
+        </div>
+        <div class="dashboard-gadget" id="topBusiestDomains"></div>
+        <!-- <div class="bar-graph-legend" v-translate>Showing maximum 20 outbound domains</div> -->
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-l2 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <!-- prettier-ignore -->
+          <translate>Bounced Domains</translate>
+        </div>
+        <div class="dashboard-gadget" id="topBouncedDomains"></div>
+        <!-- <div class="bar-graph-legend" v-translate>Showing maximum 20 outbound domains</div> -->
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-l2 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <!-- prettier-ignore -->
+          <translate>Fetch Auth Attempts</translate>
+        </div>
+        <div class="dashboard-gadget" id="fetchAuthAttempts"></div>
+        <ul class="smtp-graph-legend">
+          <li style="color: #227AAF;">
+            <a
+              href="https://gitlab.com/lightmeter/controlcenter/#brute-force-protection"
+              target="_blank"
+            >
               <translate
-                >successful login: %{numberOfSuccessfulLogins} IPs</translate
+                >blocked by Lightmeter: %{numberOfBlockedIPs} IPs</translate
               >
-            </li>
-            <li style="color: #2C3371;">
-              <translate
-                >successful login after failures:
-                %{numberOfSuccessfulLoginsAfterFailures} IPs</translate
-              >
-            </li>
-          </ul>
-        </b-tab>
-      </b-tabs>
+              <i class="far fa-question-circle"></i>
+            </a>
+          </li>
+          <li style="color: #C53030;">
+            <translate>failed login: %{numberOfFailedLogins} IPs</translate>
+          </li>
+          <li style="color: #206C00;">
+            <translate
+              >successful login: %{numberOfSuccessfulLogins} IPs</translate
+            >
+          </li>
+          <li style="color: #2C3371;">
+            <translate>
+              successful login after failures:
+              %{numberOfSuccessfulLoginsAfterFailures} IPs
+            </translate>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -102,7 +102,6 @@ export default {
   data() {
     return {
       graphAreaResizeObserver: null,
-      defaultTab: 3,
       numberOfSuccessfulLoginsAfterFailures: 0,
       numberOfBlockedIPs: 0,
       numberOfSuccessfulLogins: 0,
@@ -465,7 +464,7 @@ export default {
   }
 };
 </script>
-<style lang="less">
+<style>
 #graph-dashboard #delivery-attempts .card-header {
   text-align: left;
   font-size: 15px;
@@ -475,11 +474,6 @@ export default {
 }
 
 #graph-dashboard #delivery-attempts .card-header {
-  background: none;
-  border: none;
-}
-
-#graph-dashboard #delivery-attempts {
   background: none;
   border: none;
 }
@@ -522,6 +516,11 @@ export default {
   }
 }
 
+.bar-graph-legend {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #bdc3c7;
+  font-size: 75%;
+}
 .bar-graph-legend {
   padding: 0.1rem 0.5rem;
   border: 1px solid #bdc3c7;

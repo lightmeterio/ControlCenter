@@ -25,6 +25,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 @font-face {
   font-family: Inter;
+  src: url(~@/assets/fonts/inter/Inter-Medium.woff);
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: Inter;
   src: url(~@/assets/fonts/inter/Inter-Bold.woff);
   font-weight: bold;
 }
@@ -284,7 +290,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 }
 
 * {
-  font-family: "Open Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 body {
@@ -317,7 +323,7 @@ h6 {
 }
 
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Inter", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;

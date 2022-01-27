@@ -7,208 +7,212 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <div id="insights-page" class="d-flex flex-column min-vh-100">
     <mainheader></mainheader>
-    <div class="container main-content">
-      <div class="row align-items-center">
-        <div class="col-7 col-sm-8 col-md-9 col-lg-10">
-          <h1 class="row-title">
-            <translate>Observatory</translate>
-          </h1>
-        </div>
-        <div class="col-5 col-sm-4 col-md-3 col-lg-2">
-          <a
-            :href="FeedbackMailtoLink"
-            :title="FeedbackButtonTitle"
-            class="btn btn-sm btn-block btn-outline-info"
-            ><i
-              class="fas fa-star"
-              style="margin-right: 0.25rem;"
-              data-toggle="tooltip"
-              data-placement="bottom"
-            ></i>
-            <translate>Feedback</translate>
-          </a>
+    <div class="container-fluid greet-panel">
+      <div class="container main-content">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <h1 class="row-title">
+              <!-- prettier-ignore -->
+              <translate>Observatory</translate>
+            </h1>
+            <div class="panel panel-default greeting">
+              <h3>{{ welcomeUserText }}, {{ greetingText }}</h3>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="row">
-        <div class="col-md-12">
-          <div class="panel panel-default greeting">
-            <div class="row">
-              <div class="col-md-3 align-center">
-                <img
-                  class="hero"
-                  src="@/assets/greeting-observatory.svg"
-                  alt="Observatory illustration"
-                />
-              </div>
+    <div class="container-fluid grey">
+      <div class="container">
+        <tabs class :tabList="tabList">
+          <template v-slot:tabPanel-1>
+            <div class="container">
+              <div
+                class="row d-flex align-items-center justify-content-between time-interval card-section-heading"
+              >
+                <div class="col-lg-6 col-md-6 col-12 p-0">
+                  <form id="insights-form">
+                    <div
+                      class="form-group d-flex justify-content-start align-items-center"
+                    >
+                      <label class="sr-only">
+                        <!-- prettier-ignore -->
+                        <translate>Filter</translate>
+                      </label>
+                      <select
+                        id="insights-filter"
+                        class="form-control custom-select custom-select-sm"
+                        name="filter"
+                        form="insights-form"
+                        v-model="insightsFilter"
+                        v-on:change="updateInsights"
+                      >
+                        <!-- todo remove in style -->
+                        <option
+                          selected
+                          v-on:click="
+                            trackClick(
+                              'InsightsFilterCategoryHomepage',
+                              'Active'
+                            )
+                          "
+                          value="category-active"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>Active</translate>
+                        </option>
+                        <option value="nofilter">
+                          <!-- prettier-ignore -->
+                          <translate>All</translate>
+                        </option>
+                        <!--    " -->
+                        <option
+                          v-on:click="
+                            trackClick(
+                              'InsightsFilterCategoryHomepage',
+                              'Local'
+                            )
+                          "
+                          value="category-local"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>Local</translate>
+                        </option>
+                        <option
+                          v-on:click="
+                            trackClick('InsightsFilterCategoryHomepage', 'News')
+                          "
+                          value="category-news"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>News</translate>
+                        </option>
+                        <option
+                          v-on:click="
+                            trackClick(
+                              'InsightsFilterCategoryHomepage',
+                              'Intel'
+                            )
+                          "
+                          value="category-intel"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>Intel</translate>
+                        </option>
+                      </select>
+                      <select
+                        id="insights-sort"
+                        class="form-control custom-select custom-select-sm"
+                        name="order"
+                        form="insights-form"
+                        v-model="insightsSort"
+                        v-on:change="updateInsights"
+                      >
+                        <!-- todo remove in style -->
+                        <option
+                          v-on:click="
+                            trackClick('InsightsFilterOrderHomepage', 'Newest')
+                          "
+                          selected
+                          value="creationDesc"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>Newest</translate>
+                        </option>
+                        <option
+                          v-on:click="
+                            trackClick('InsightsFilterOrderHomepage', 'Oldest')
+                          "
+                          value="creationAsc"
+                        >
+                          <!-- prettier-ignore -->
+                          <translate>Oldest</translate>
+                        </option>
+                      </select>
+                    </div>
+                  </form>
+                </div>
 
-              <div class="col-md-9 d-flex align-items-center">
-                <div class="row">
-                  <div class="container">
-                    <h3>{{ greetingText }}</h3>
-                    <p>{{ welcomeUserText }}</p>
+                <div class="d-flex align-items-center">
+                  <input
+                    type="checkbox"
+                    v-on:click="
+                      trackClick('InsightsFilterCategoryHomepage', 'Archived')
+                    "
+                    value="category-archived"
+                    name="Archived"
+                  />
+                  <!-- prettier-ignore -->
+                  <label class="mb-0 ml-1" for="Archived">
+                    <translate>Show Archived</translate>
+                  </label>
+                </div>
+
+                <div
+                  class="col-lg-4 col-md-4 col-12 p-0 justify-content-start justify-content-lg-end d-flex"
+                >
+                  <label class="col-md-2 col-form-label sr-only">
+                    <!-- prettier-ignore -->
+                    <translate>Time interval</translate>:
+                  </label>
+                  <div class="p-1">
+                    <DateRangePicker
+                      @update="onUpdateDateRangePicker"
+                      :autoApply="autoApply"
+                      :opens="opens"
+                      :singleDatePicker="singleDatePicker"
+                      :alwaysShowCalendars="alwaysShowCalendars"
+                      :ranges="ranges"
+                      v-model="dateRange"
+                      :showCustomRangeCalendars="false"
+                      :max-date="new Date()"
+                    ></DateRangePicker>
+                  </div>
+                  <div class="p-1">
+                    <b-button
+                      variant="primary"
+                      size="sm"
+                      @click="downloadRawLogsInInterval"
+                      :disabled="rawLogsDownloadsDisable"
+                    >
+                      <i
+                        class="fas fa-download"
+                        style="margin-right: 0.25rem;"
+                      ></i>
+                      <translate>Logs</translate>
+                    </b-button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+            <insights
+              class="row"
+              v-show="shouldShowInsights"
+              :insights="insights"
+              @dateIntervalChanged="handleExternalDateIntervalChanged"
+            ></insights>
+
+            <import-progress-indicator
+              :label="generatingInsights"
+              @finished="handleProgressFinished"
+            ></import-progress-indicator>
+          </template>
+
+          <template v-slot:tabPanel-2>
+            <graphdashboard
+              :graphDateRange="dashboardInterval"
+            ></graphdashboard>
+            <b-toaster
+              ref="statusMessage"
+              name="statusMessage"
+              class="status-message"
+            ></b-toaster>
+          </template>
+        </tabs>
       </div>
-
-      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
-
-      <b-toaster
-        ref="statusMessage"
-        name="statusMessage"
-        class="status-message"
-      >
-      </b-toaster>
-
-      <div
-        class="row container d-flex align-items-center time-interval card-section-heading"
-      >
-        <div class="col-lg-2 col-md-2 col-3 p-2">
-          <h2 class="insights-title">
-            <translate>Insights</translate>
-          </h2>
-        </div>
-        <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
-          <label class="col-md-2 col-form-label sr-only">
-            <translate>Time interval</translate>:
-          </label>
-          <div class="p-1">
-            <DateRangePicker
-              @update="onUpdateDateRangePicker"
-              :autoApply="autoApply"
-              :opens="opens"
-              :singleDatePicker="singleDatePicker"
-              :alwaysShowCalendars="alwaysShowCalendars"
-              :ranges="ranges"
-              v-model="dateRange"
-              :showCustomRangeCalendars="false"
-              :max-date="new Date()"
-            >
-            </DateRangePicker>
-          </div>
-          <div class="p-1">
-            <b-button
-              variant="primary"
-              size="sm"
-              @click="downloadRawLogsInInterval"
-              :disabled="rawLogsDownloadsDisable"
-              ><i class="fas fa-download" style="margin-right: 0.25rem;"></i
-              ><translate>Logs</translate></b-button
-            >
-          </div>
-        </div>
-
-        <div class="col-lg-4 col-md-4 col-12 ml-auto p-2">
-          <form id="insights-form">
-            <div
-              class="form-group d-flex justify-content-end align-items-center"
-            >
-              <label class="sr-only">
-                <translate>Filter</translate>
-              </label>
-              <select
-                id="insights-filter"
-                class="form-control custom-select custom-select-sm"
-                name="filter"
-                form="insights-form"
-                v-model="insightsFilter"
-                v-on:change="updateInsights"
-              >
-                <!-- todo remove in style -->
-                <option
-                  selected
-                  v-on:click="
-                    trackClick('InsightsFilterCategoryHomepage', 'Active')
-                  "
-                  value="category-active"
-                >
-                  <translate>Active</translate>
-                </option>
-                <option value="nofilter">
-                  <translate>All</translate>
-                </option>
-                <!--    " -->
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterCategoryHomepage', 'Local')
-                  "
-                  value="category-local"
-                >
-                  <translate>Local</translate>
-                </option>
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterCategoryHomepage', 'News')
-                  "
-                  value="category-news"
-                >
-                  <translate>News</translate>
-                </option>
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterCategoryHomepage', 'Intel')
-                  "
-                  value="category-intel"
-                >
-                  <translate>Intel</translate>
-                </option>
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterCategoryHomepage', 'Archived')
-                  "
-                  value="category-archived"
-                >
-                  <translate>Archived</translate>
-                </option>
-              </select>
-              <select
-                id="insights-sort"
-                class="form-control custom-select custom-select-sm"
-                name="order"
-                form="insights-form"
-                v-model="insightsSort"
-                v-on:change="updateInsights"
-              >
-                <!-- todo remove in style -->
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterOrderHomepage', 'Newest')
-                  "
-                  selected
-                  value="creationDesc"
-                >
-                  <translate>Newest</translate>
-                </option>
-                <option
-                  v-on:click="
-                    trackClick('InsightsFilterOrderHomepage', 'Oldest')
-                  "
-                  value="creationAsc"
-                >
-                  <translate>Oldest</translate>
-                </option>
-              </select>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <import-progress-indicator
-        :label="generatingInsights"
-        @finished="handleProgressFinished"
-      ></import-progress-indicator>
-
-      <insights
-        class="row"
-        v-show="shouldShowInsights"
-        :insights="insights"
-        @dateIntervalChanged="handleExternalDateIntervalChanged"
-      ></insights>
     </div>
+
     <mainfooter></mainfooter>
   </div>
 </template>
@@ -233,10 +237,11 @@ import datepicker from "@/mixin/datepicker.js";
 import { mapActions, mapState } from "vuex";
 import DateRangePicker from "vue2-daterange-picker";
 import "vue2-daterange-picker/dist/vue2-daterange-picker.css";
+import tabs from "../components/tabs";
 
 export default {
   name: "insight",
-  components: { DateRangePicker },
+  components: { DateRangePicker, tabs },
   mixins: [tracking, shared_texts, auth, datepicker],
   data() {
     return {
@@ -246,6 +251,7 @@ export default {
       insightsFilter: "category-active",
       insightsSort: "creationDesc",
       insights: [],
+      tabList: ["Insights", "Graphs"],
 
       // log import progress
       generatingInsights: this.$gettext("Generating insights"),
@@ -265,12 +271,14 @@ export default {
       // todo use better translate function for weekdays
       let dateObj = new Date();
       let weekday = dateObj.toLocaleString("default", { weekday: "long" });
-      let translation = this.$gettext("Happy %{weekday}");
+      let translation = this.$gettext(
+        "you have %{weekday} new Local and %{weekday} new Intel insights since your last visit."
+      );
       let message = this.$gettextInterpolate(translation, { weekday: weekday });
       return message;
     },
     welcomeUserText() {
-      let translation = this.$gettext("and welcome back, %{username}");
+      let translation = this.$gettext("Hi %{username}");
       let message = this.$gettextInterpolate(translation, {
         username: this.username
       });
@@ -433,24 +441,23 @@ export default {
 
 <style lang="less">
 #insights-page .greeting h3 {
-  font: 22px/32px Inter;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 500;
   margin: 0;
   text-align: left;
-  color: white;
+  color: #111827;
 }
 
-#insights-page .greeting p {
-  text-align: left;
+#insights-page .container-fluid.greet-panel {
+  background: #e2f5fc;
+}
+
+#insights-page .container-fluid.grey {
+  background: #f9fafb;
 }
 
 #insights-page .card-section-heading {
   background-color: #f9f9f9;
-}
-
-#insights-page .time-interval {
-  margin: 0.6rem 0 0 0;
-  border-radius: 10px;
 }
 
 #insights-page .card-section-heading h2 {
@@ -464,32 +471,45 @@ export default {
   padding: 0;
 }
 
-#insights-page #insights-form select {
-  font-size: 12px;
-  border-radius: 5px;
-  margin-right: 0.2rem;
+#insights-page .form-control.custom-select {
+  margin: 0 0.5em 0 0;
+  padding: 10px 16px;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
+  height: 100%;
 }
 
-#insights-page .form-control.custom-select {
-  margin: 0;
-  background-color: #e6e7e7;
-  color: #202324;
+#insights-page .form-control.custom-select option {
+  background-color: #fff !important;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+}
+
+#insights-page .daterangepicker .ranges ul {
+  margin: 0 auto auto auto;
 }
 
 #insights-page .greeting {
-  background: url(~@/assets/greeting-lensflare.svg) no-repeat right top,
-    linear-gradient(104deg, #2a93d6 0%, #3dd9d6 100%) 0% 0% padding-box;
-  color: white;
-  padding: 0.5rem;
-  border-radius: 7px;
+  background-color: #b6e6f6;
+  padding: 10px 16px;
+  border-radius: 8px;
   margin-bottom: 30px;
 }
 
 #insights-page h1.row-title {
   font-size: 32px;
   font-weight: bold;
-  margin: 0.7em 0 0.8em 0;
+  margin: 0.7em 0 0.4em 0;
   text-align: left;
+}
+
+#insights-page .row-title span {
+  color: #185a8d;
 }
 
 #insights-page .vue-daterange-picker .reportrange-text {
@@ -521,13 +541,23 @@ export default {
   text-align: left;
 }
 
-@media (min-width: 768px) {
-  #insights-page .greeting {
-    height: 150px;
-  }
-}
-
 @media (max-width: 768px) {
+  #insights-page .daterangepicker.dropdown-menu {
+    left: -40vw;
+  }
+  #insights-page .vue-daterange-picker .calendars {
+    flex-wrap: wrap;
+  }
+  .daterangepicker .calendars-container {
+    display: block;
+  }
+  #insights-page .vue-daterange-picker {
+    padding: 0px;
+  }
+  #insights-page .vue-daterange-picker .form-control {
+    max-width: inherit;
+  }
+
   #insights-page #insights {
     min-height: 100vh;
   }
