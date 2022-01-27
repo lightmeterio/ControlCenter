@@ -323,7 +323,6 @@ export default {
 /* don't squeeze the inputs or datepicker too much, so they'll flex-wrap on smaller screens */
 input,
 .vue-daterange-picker {
-  /*min-width: 200px !important;*/
   display: block !important;
 }
 

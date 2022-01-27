@@ -346,7 +346,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               closeLink: closeDetectiveLink
             }"
           >
-            Click %{openLink}here%{closeLink} to know more
+            See %{openLink}documentation%{closeLink} for details
           </p>
           <b-form-group :label="DetectiveEndUsersEnabled">
             <b-form-radio-group
@@ -566,7 +566,7 @@ export default {
     },
     DetectiveEndUsersHelpText() {
       return this.$gettext(
-        "Anyone with the link can check email delivery outcomes (includes validation, and rate-limiting)"
+        "Anyone with the link below can check email delivery outcomes (requires both 'from' and 'to' email addresses, searches are rate-limited)"
       );
     },
     openDetectiveLink() {

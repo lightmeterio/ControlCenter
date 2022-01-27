@@ -102,6 +102,7 @@ export default {
   data() {
     return {
       graphAreaResizeObserver: null,
+      defaultTab: 3,
       numberOfSuccessfulLoginsAfterFailures: 0,
       numberOfBlockedIPs: 0,
       numberOfSuccessfulLogins: 0,
@@ -464,7 +465,7 @@ export default {
   }
 };
 </script>
-<style>
+<style lang="less">
 #graph-dashboard #delivery-attempts .card-header {
   text-align: left;
   font-size: 15px;
@@ -516,11 +517,6 @@ export default {
   }
 }
 
-.bar-graph-legend {
-  padding: 0.1rem 0.5rem;
-  border: 1px solid #bdc3c7;
-  font-size: 75%;
-}
 .bar-graph-legend {
   padding: 0.1rem 0.5rem;
   border: 1px solid #bdc3c7;
