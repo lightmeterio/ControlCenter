@@ -409,4 +409,11 @@ footer p {
   height: 14px;
   width: 20px;
 }
+
+svg.lm-info-circle-grayblue {
+  color: #c5c7c6;
+  &:hover {
+    color: #2c9cd6;
+  }
+}
 </style>

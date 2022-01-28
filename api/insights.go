@@ -139,6 +139,31 @@ func (h rateInsightHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
+type archiveInsightHandler struct {
+	e *insights.Engine
+}
+
+// @Summary Archive an insight
+// @Produce json
+// @Param id query integer 0 "Insight id"
+// @Success 200 {string} string "Insight was archived"
+// @Failure 422 {string} string "Wrong parameter"
+// @Router /api/v0/archiveInsight [post]
+func (h archiveInsightHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	if r.ParseForm() != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, errors.New("Wrong Input"))
+	}
+
+	id, err := strconv.Atoi(r.Form.Get("id"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	h.e.ArchiveInsight(int64(id))
+
+	return nil
+}
+
 func HttpInsights(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, f core.Fetcher, e *insights.Engine) {
 	recommendationURLContainer := recommendation.GetDefaultURLContainer()
 
@@ -149,4 +174,8 @@ func HttpInsights(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.L
 	mux.Handle("/api/v0/rateInsight",
 		httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout)).
 			WithEndpoint(rateInsightHandler{e: e}))
+
+	mux.Handle("/api/v0/archiveInsight",
+		httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithTimeout(httpmiddleware.DefaultTimeout)).
+			WithEndpoint(archiveInsightHandler{e: e}))
 }
