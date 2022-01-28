@@ -145,7 +145,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <translate>Allow insecure TLS</translate>
                 &nbsp;
                 <span v-b-tooltip.hover :title="InsecureTlsHelpText">
-                  <i class="fa fa-info-circle insight-help-button"></i>
+                  <i class="fa fa-info-circle lm-info-circle-grayblue"></i>
                 </span>
               </b-form-checkbox>
             </b-form-group>

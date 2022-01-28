@@ -203,6 +203,13 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-modal>
 
     <div
+      class="row container d-flex justify-content-center"
+      style="margin: 3rem 0;"
+      v-if="insights.length == 0"
+    >
+      <translate>No insight matching selected filters</translate>
+    </div>
+    <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
       class="col-card col-md-6 h-25"
@@ -219,15 +226,27 @@ SPDX-License-Identifier: AGPL-3.0-only
                 class="d-flex flex-row justify-content-between insight-header"
               >
                 <p class="card-text category">{{ insight.category }}</p>
+                <div class="insight-actions">
+                  <span
+                    v-if="insight.help_link"
+                    v-on:click="onInsightInfo($event, insight.help_link)"
+                    v-b-tooltip.hover
+                    :title="Info"
+                  >
+                    <i class="fa fa-info-circle lm-info-circle-grayblue"></i>
+                  </span>
 
-                <span
-                  v-if="insight.help_link"
-                  v-on:click="onInsightInfo($event, insight.help_link)"
-                  v-b-tooltip.hover
-                  :title="Info"
-                >
-                  <i class="fa fa-info-circle insight-help-button"></i>
-                </span>
+                  <span
+                    v-if="insight.category.toLowerCase() != 'archived'"
+                    v-on:click="
+                      archiveInsight(insight.id, insight.content_type)
+                    "
+                    v-b-tooltip.hover
+                    :title="titleArchiveInsight"
+                  >
+                    <i class="fas fa-times-circle"></i>
+                  </span>
+                </div>
               </div>
               <h6 class="card-title title">{{ insight.title }}</h6>
 
@@ -412,7 +431,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script>
 import moment from "moment";
-import { getApplicationInfo, postUserRating } from "@/lib/api";
+import { getApplicationInfo, postUserRating, archiveInsight } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 import linkify from "vue-linkify";
 import Vue from "vue";
@@ -432,6 +451,9 @@ export default {
     },
     Info() {
       return this.$gettext("Info");
+    },
+    titleArchiveInsight() {
+      return this.$gettext("Archive Insight");
     },
     titleForDetectiveInsightWindow() {
       return this.$gettext("Failed deliveries reported");
@@ -798,6 +820,14 @@ export default {
       this.trackEvent("InsightsInfoButton", helpLink);
       window.open(helpLink);
     },
+    archiveInsight(id, type) {
+      let vue = this;
+
+      archiveInsight(id).then(function() {
+        vue.$emit("dateIntervalChanged"); // ask index.vue to refresh insights
+        vue.trackEvent("ArchiveInsight", type);
+      });
+    },
     hideRBLListModal() {
       this.$refs["modal-rbl-list"].hide();
     },
@@ -1006,14 +1036,8 @@ function formatDateForDetectiveInsightModalWindow(d) {
 .insights .card svg {
   margin-right: 0.05em;
 }
-.insights svg.insight-help-button {
+.insights .insight-actions svg {
   font-size: 1.3em;
-}
-
-svg.insight-help-button:hover {
-  color: #2c9cd6;
-}
-svg.insight-help-button {
   color: #c5c7c6;
 }
 

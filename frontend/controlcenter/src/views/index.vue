@@ -296,10 +296,13 @@ export default {
       vue.updateStatusMessage();
     },
     handleExternalDateIntervalChanged(obj) {
-      this.dateRange = obj;
-      if (obj.category !== undefined) {
-        this.insightsFilter = "category-" + obj.category;
+      if (obj === undefined) {
+        this.updateSelectedInterval(this.dateRange);
+        return;
       }
+
+      this.dateRange = obj;
+      this.insightsFilter = "category-" + obj.category;
       this.updateSelectedInterval(obj);
     },
     onUpdateDateRangePicker: function(obj) {
@@ -516,10 +519,6 @@ export default {
   order: 2;
   margin-left: 1em;
   margin-top: 0.45em;
-}
-
-#insights-page #insights {
-  min-height: 30vh;
 }
 
 #insights-page .vue-daterange-picker .calendars {
