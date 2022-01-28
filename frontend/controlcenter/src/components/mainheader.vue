@@ -90,7 +90,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 href="https://lightmeter.io/?pk_campaign=lmcc&pk_source=webui"
                 target="_blank"
               >
-                <!-- prettier-ignore -->
                 <translate>Website</translate>
               </a>
             </li>
@@ -102,7 +101,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 href="https://phplist.lightmeter.io/lists/?p=subscribe&id=1"
                 target="_blank"
               >
-                <!-- prettier-ignore -->
                 <translate>Newsletter</translate></a
               >
             </li>
@@ -140,7 +138,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               variant="outline-danger"
               @click="hideModal"
             >
-              <!-- prettier-ignore -->
               <translate>Close</translate>
             </b-button>
           </div>

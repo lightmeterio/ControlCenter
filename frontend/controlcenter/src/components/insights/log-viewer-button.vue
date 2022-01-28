@@ -11,7 +11,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     class="btn btn-sm"
   >
     <i class="fas fa-download" style="margin-right: 0.25rem;"></i>
-    <!-- prettier-ignore -->
     <translate>Logs</translate>
   </button>
 </template>
