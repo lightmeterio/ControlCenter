@@ -503,26 +503,18 @@ export default {
   border-radius: 5px;
   text-align: center;
   cursor: pointer;
-}
-
-#insights-page .vue-daterange-picker .reportrange-text {
   display: flex;
   justify-content: center;
-}
 
-#insights-page .vue-daterange-picker .reportrange-text span {
-  order: 1;
-  margin-top: 0.25em;
-}
-
-#insights-page .vue-daterange-picker .reportrange-text svg {
-  order: 2;
-  margin-left: 1em;
-  margin-top: 0.45em;
-}
-
-#insights-page .vue-daterange-picker .calendars {
-  flex-wrap: nowrap;
+  span {
+    order: 1;
+    margin-top: 0.25em;
+  }
+  svg {
+    order: 2;
+    margin-left: 1em;
+    margin-top: 0.45em;
+  }
 }
 
 #insights-page .insights-title {
@@ -536,43 +528,14 @@ export default {
 }
 
 @media (max-width: 768px) {
-  #insights-page .daterangepicker.dropdown-menu {
-    left: -40vw;
-  }
-  #insights-page .vue-daterange-picker .calendars {
-    flex-wrap: wrap;
-  }
-  .daterangepicker .calendars-container {
-    display: block;
-  }
-  #insights-page .vue-daterange-picker {
-    max-width: 150px;
-    padding: 0px;
-  }
-  #insights-page .vue-daterange-picker .form-control {
-    max-width: inherit;
-  }
-
   #insights-page #insights {
     min-height: 100vh;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
-  #insights-page .vue-daterange-picker {
-    max-width: none;
-  }
-  #insights-page .daterangepicker.dropdown-menu {
-    left: -10vw;
-  }
   #insights-page #insights {
     min-height: 60vh;
-  }
-  #insights-page .vue-daterange-picker .calendars {
-    flex-wrap: wrap;
-  }
-  #insights-page .daterangepicker .calendars .ranges li:last-child {
-    display: block;
   }
 }
 
