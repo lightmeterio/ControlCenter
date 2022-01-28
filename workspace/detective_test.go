@@ -256,50 +256,56 @@ func TestDetective(t *testing.T) {
 			})
 		})
 
-		Convey("File with an expired message", func() {
+		Convey("Expired messages", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/18_expired.log", year)
 			defer clear()
+
+			expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
+			expectedResult := &detective.MessagesPage{
+				PageNumber:   1,
+				FirstPage:    1,
+				LastPage:     1,
+				TotalResults: 1,
+				Messages: detective.Messages{
+					detective.Message{
+						Queue:     "23EBE3D5C0",
+						MessageID: "h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com",
+						Entries: []detective.MessageDelivery{
+							{
+								5,
+								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								detective.Status(parser.DeferredStatus),
+								"4.1.1",
+								&expectedExpiredTime,
+								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+								[]string{"h-664d01@h-695da2287.com"},
+							},
+							{
+								1,
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								detective.Status(parser.ReturnedStatus),
+								"2.0.0",
+								&expectedExpiredTime,
+								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+								[]string{"h-664d01@h-695da2287.com"},
+							},
+						},
+					},
+				},
+			}
 
 			Convey("Message found", func() {
 				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
+			})
 
-				expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
-
-				So(messages, ShouldResemble, &detective.MessagesPage{
-					PageNumber:   1,
-					FirstPage:    1,
-					LastPage:     1,
-					TotalResults: 1,
-					Messages: detective.Messages{
-						detective.Message{
-							Queue:     "23EBE3D5C0",
-							MessageID: "h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com",
-							Entries: []detective.MessageDelivery{
-								{
-									5,
-									time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									detective.Status(parser.DeferredStatus),
-									"4.1.1",
-									&expectedExpiredTime,
-									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									[]string{"h-664d01@h-695da2287.com"},
-								},
-								{
-									1,
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									detective.Status(parser.ReturnedStatus),
-									"2.0.0",
-									&expectedExpiredTime,
-									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									[]string{"h-664d01@h-695da2287.com"},
-								},
-							},
-						},
-					},
-				})
+			Convey("Search for expired messages. Gitlab issue #616", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ExpiredStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
 			})
 
 			oldestTime, err := d.OldestAvailableTime(bg)

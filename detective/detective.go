@@ -61,7 +61,11 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					(recipient_local_part    = ? collate nocase or ? = '') and
 					(recipient_domain.domain = ? collate nocase or ? = '') and
 					(delivery_ts between ? and ?) and
-					(status = ? or ? = -1) and
+					(
+						status = ?
+						or ? = -1
+						or ? = 3 and exists(select * from expired_queues where queue_id = q.id)
+					) and
 					(q.name = ? or mid.value = ? or ? = '')
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
@@ -265,7 +269,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		senderLocal, senderLocal, senderDomain, senderDomain,
 		recipientLocal, recipientLocal, recipientDomain, recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
-		status, status,
+		status, status, status,
 		someID, someID, someID,
 		resultsPerPage, (page-1)*resultsPerPage,
 	)
