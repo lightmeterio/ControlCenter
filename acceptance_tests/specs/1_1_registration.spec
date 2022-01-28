@@ -7,7 +7,7 @@ Tags: failure
 * Focus on field with placeholder "Name"
 * Type "User Complete Name"
 * Focus on field with placeholder "Email"
-* Type "acceptance_tests@lightmeter.io"
+* Type "not an email"
 * Focus on field with placeholder "Password"
 * Type "54353%#%#54354353gffgdgdfg"
 * Expect registration to fail
