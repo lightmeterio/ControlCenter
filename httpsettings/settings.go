@@ -332,11 +332,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	mailKind := r.Form.Get("email_kind")
-
 	err = h.initialSetupSettings.Set(r.Context(), h.writer, settings.InitialOptions{
 		SubscribeToNewsletter: subscribe,
-		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,
 	})
 

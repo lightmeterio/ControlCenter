@@ -23,6 +23,5 @@ Tags: success
 * Type "acceptance_tests@lightmeter.io"
 * Focus on field with placeholder "Password"
 * Type "54353%#%#54354353gffgdgdfg"
-* Select option "direct" from menu "Most of my mail is…"
 * Click on "Register"
 * Expect to be in the main page

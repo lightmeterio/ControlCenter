@@ -141,13 +141,13 @@ func TestInitialSetup(t *testing.T) {
 			})
 
 			Convey("Subscribe is not a boolean", func() {
-				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"Falsch"}})
+				r, err := c.PostForm(settingsURL, url.Values{"subscribe_newsletter": {"Falsch"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Unsupported multiple subscribe options", func() {
-				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindTransactional)}, "subscribe_newsletter": {"on", "on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"subscribe_newsletter": {"on", "on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
@@ -165,13 +165,13 @@ func TestInitialSetup(t *testing.T) {
 			})
 
 			Convey("Subscribe without email", func() {
-				r, err := c.PostForm(settingsURL, url.Values{"email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
 
 			Convey("Subscribe with zero email", func() {
-				r, err := c.PostForm(settingsURL, url.Values{"email": {}, "email_kind": {string(settings.MailKindDirect)}, "subscribe_newsletter": {"on"}})
+				r, err := c.PostForm(settingsURL, url.Values{"email": {}, "subscribe_newsletter": {"on"}})
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 			})
@@ -179,7 +179,6 @@ func TestInitialSetup(t *testing.T) {
 			Convey("invalid ip", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"email":                {"user@example.com"},
-					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
 					"app_language":         {"en"},
 					"postfix_public_ip":    {"9.9.9.X"},
@@ -194,7 +193,6 @@ func TestInitialSetup(t *testing.T) {
 			Convey("Do subscribe", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
 					"email":                {"user@example.com"},
-					"email_kind":           {string(settings.MailKindDirect)},
 					"subscribe_newsletter": {"on"},
 					"app_language":         {"en"},
 					"postfix_public_ip":    {"9.9.9.9"},
@@ -206,7 +204,6 @@ func TestInitialSetup(t *testing.T) {
 
 			Convey("Do not subscribe", func() {
 				r, err := c.PostForm(settingsURL, url.Values{
-					"email_kind":        {string(settings.MailKindDirect)},
 					"postfix_public_ip": {"9.9.9.9"},
 				})
 
