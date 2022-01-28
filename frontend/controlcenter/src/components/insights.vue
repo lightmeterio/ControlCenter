@@ -17,8 +17,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="insightRblCheckedIpTitle"
     >
       <p class="intro">
-        <!-- prettier-ignore -->
-        <translate>These lists are recommending that emails from your server be blocked &ndash; check their messages for hints</translate>
+        <translate
+          >These lists are recommending that emails from your server be blocked
+          &ndash; check their messages for hints</translate
+        >
       </p>
       <span id="rbl-list-content">
         <div class="card" v-for="r of rbls" v-bind:key="r.text">
@@ -44,7 +46,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideRBLListModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -82,7 +83,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideDetectiveInsightModalWindow()"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -114,7 +114,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideRBLMsqModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -140,7 +139,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-primary"
             @click="showArchivedInsightsBySummaryInsight(importSummaryInsight)"
           >
-            <!-- prettier-ignore -->
             <translate>View all archived</translate>
           </b-button>
         </b-col>
@@ -168,7 +166,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideBlockedIPsListModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -199,7 +196,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               )
             "
           >
-            <!-- prettier-ignore -->
             <translate>View Details</translate>
           </b-button>
         </b-col>
@@ -253,7 +249,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onNewsFeedMoreInfo($event, insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Read more</translate>
                 </button>
               </p>
@@ -269,7 +264,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   class="btn btn-sm"
                   v-show="insight.content.insights.length > 0"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -284,7 +278,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBruteForceDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -299,7 +292,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBruteForceSummaryDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -315,16 +307,19 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-if="insight.content_type === 'welcome_content'"
                 class="card-text description"
               >
-                <!-- prettier-ignore -->
-                <translate>Insights reveal mailops problems in real time &ndash; both here, and via notifications</translate
+                <translate
+                  >Insights reveal mailops problems in real time &ndash; both
+                  here, and via notifications</translate
                 >
               </p>
               <p
                 v-if="insight.content_type === 'insights_introduction_content'"
                 class="card-text description"
               >
-                <!-- prettier-ignore -->
-                <translate>Join us on the journey to better mailops! We're listening for your feedback</translate>
+                <translate
+                  >Join us on the journey to better mailops! We're listening for
+                  your feedback</translate
+                >
               </p>
               <p
                 v-if="insight.content_type === 'local_rbl_check'"
@@ -337,7 +332,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBuildInsightRbl(insight.id)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -351,7 +345,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBuildInsightMsgRbl(insight.id)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -368,7 +361,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onDetectiveEscalationDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
                 <log-viewer-button :insight="insight" />
@@ -383,7 +375,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   class="user-rating d-flex flex-wrap align-items-center"
                 >
                   <span>
-                    <!-- prettier-ignore -->
                     <translate>Useful?</translate>
                   </span>
                   <div>

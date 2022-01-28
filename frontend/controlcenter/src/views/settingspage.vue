@@ -10,12 +10,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <b-container id="settings" class="main-content">
       <h2 class="form-heading">
-        <!-- prettier-ignore -->
         <translate>Settings</translate>
       </h2>
       <div class="form-container">
         <h5 class="form-heading">
-          <!-- prettier-ignore -->
           <translate>Notifications</translate>
         </h5>
 
@@ -41,7 +39,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             <b-col cols="6">
               <b-form-group>
                 <b-button variant="outline-primary" type="submit">
-                  <!-- prettier-ignore -->
                   <translate>Save</translate>
                 </b-button>
               </b-form-group>
@@ -145,7 +142,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 id="mailServerSkipCertCheck"
                 v-model="settings.email_notifications.skip_cert_check"
               >
-                <!-- prettier-ignore -->
                 <translate>Allow insecure TLS</translate>
                 &nbsp;
                 <span v-b-tooltip.hover :title="InsecureTlsHelpText">
@@ -218,7 +214,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-form-group>
             <div class="button-group">
               <b-button variant="outline-primary" type="submit">
-                <!-- prettier-ignore -->
                 <translate>Save</translate>
               </b-button>
               <b-button
@@ -226,7 +221,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 type="button"
                 @click="OnClearEmailNotificationsSettings"
               >
-                <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
@@ -276,7 +270,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-form-group>
             <div class="button-group">
               <b-button variant="outline-primary" type="submit">
-                <!-- prettier-ignore -->
                 <translate>Save</translate>
               </b-button>
               <b-button
@@ -284,7 +277,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 type="button"
                 @click="OnClearSlackNotificationsSettings"
               >
-                <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
@@ -292,7 +284,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         </b-form>
 
         <h5 class="form-heading">
-          <!-- prettier-ignore -->
           <translate>General</translate>
         </h5>
 
@@ -330,7 +321,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
-              <!-- prettier-ignore -->
               <translate>Save</translate>
             </b-button>
             <b-button
@@ -338,14 +328,12 @@ SPDX-License-Identifier: AGPL-3.0-only
               type="button"
               @click="OnClearGeneralSettings"
             >
-              <!-- prettier-ignore -->
               <translate>Reset</translate>
             </b-button>
           </div>
         </b-form>
 
         <h5 class="form-heading">
-          <!-- prettier-ignore -->
           <translate>Message Detective</translate>
         </h5>
 
@@ -379,7 +367,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
-              <!-- prettier-ignore -->
               <translate>Save</translate>
             </b-button>
           </div>

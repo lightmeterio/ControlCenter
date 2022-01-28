@@ -15,7 +15,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     >
       <div class="col p-2">
         <label>
-          <!-- prettier-ignore -->
           <translate>Sender Email Address</translate>
         </label>
 
@@ -35,7 +34,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="col p-2">
         <label>
-          <!-- prettier-ignore -->
           <translate>Recipient Email Address</translate>
         </label>
 
@@ -51,7 +49,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="col p-2">
         <label>
-          <!-- prettier-ignore -->
           <translate>Message ID</translate>
         </label>
 
@@ -65,7 +62,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="col p-2">
         <label>
-          <!-- prettier-ignore -->
           <translate>Sent Between</translate>
         </label>
 
@@ -85,7 +81,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="col p-2">
         <label>
-          <!-- prettier-ignore -->
           <translate>Status</translate>
         </label>
 
@@ -105,7 +100,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="col p-2 ml-auto">
         <b-button type="submit" variant="primary" class="btn-block">
-          <!-- prettier-ignore -->
           <translate>Search</translate>
         </b-button>
       </div>
@@ -122,7 +116,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           style="margin-left: 1rem;"
         >
           <i class="fas fa-download"></i>
-          <!-- prettier-ignore -->
           <translate>Logs</translate>
         </b-button>
       </p>

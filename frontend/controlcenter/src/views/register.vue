@@ -18,7 +18,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="field-group">
         <h4>
-          <!-- prettier-ignore -->
           <translate>User details</translate>
         </h4>
         <b-form @submit.stop.prevent="onSubmit">
@@ -67,19 +66,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                   id="email_kind"
                 >
                   <option value="" selected disabled>
-                    <!-- prettier-ignore -->
                     <translate>Most of my mail is…</translate>
                   </option>
                   <option value="direct">
-                    <!-- prettier-ignore -->
                     <translate>Direct (personal, office, one-to-one)</translate>
                   </option>
                   <option value="transactional">
-                    <!-- prettier-ignore -->
                     <translate>Transactional (notifications, apps)</translate>
                   </option>
                   <option value="marketing">
-                    <!-- prettier-ignore -->
                     <translate>Marketing (newsletters, adverts)</translate>
                   </option>
                 </select>
@@ -105,7 +100,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 unchecked-value="off"
                 class="custom-form-check-label"
               >
-                <!-- prettier-ignore -->
                 <translate>Subscribe to newsletter</translate>
               </b-form-checkbox>
             </b-input-group>
@@ -136,14 +130,13 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </div>
               </div>
               <b-form-invalid-feedback>
-                <!-- prettier-ignore -->
-                <translate>The Ip Address is invalid</translate
+                <translate
+                  >The Ip Address is invalid</translate
                 ></b-form-invalid-feedback
               >
             </b-form-group>
           </b-form-group>
           <b-button variant="primary" class="w-100" type="submit">
-            <!-- prettier-ignore -->
             <translate>Register</translate>
           </b-button>
         </b-form>
@@ -151,14 +144,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="card-body">
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
-              <!-- prettier-ignore -->
+
               <translate class="text-blue">Terms of service</translate>
             </h5>
-            <!-- prettier-ignore -->
-            <p class="card-text"
-               v-translate
-               render-html="true">
-               %{openPeerNetworkLink}Peer networking%{closePeerNetworkLink} features require exchanging %{openPrivacyLink}data%{closePrivacyLink} with lightmeter.io servers. By registering you agree to the %{openTosLink}Terms of Service%{closeTosLink}. Feature usage data is %{openPrivacyLink}collected%{closePrivacyLink} to improve your experience.
+
+            <p class="card-text" v-translate render-html="true">
+              %{openPeerNetworkLink}Peer networking%{closePeerNetworkLink}
+              features require exchanging
+              %{openPrivacyLink}data%{closePrivacyLink} with lightmeter.io
+              servers. By registering you agree to the %{openTosLink}Terms of
+              Service%{closeTosLink}. Feature usage data is
+              %{openPrivacyLink}collected%{closePrivacyLink} to improve your
+              experience.
             </p>
           </div>
         </div>
