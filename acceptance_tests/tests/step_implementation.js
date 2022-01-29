@@ -31,6 +31,7 @@ const assert = require("assert");
 const child_process = require("child_process")
 const tmp = require("tmp")
 const path = require("path")
+const fs = require('fs');
 
 tmp.setGracefulCleanup();
 
@@ -48,8 +49,31 @@ beforeSuite(async () => {
         throw error
       }
     }
-
-    lightmeterProcess = child_process.execFile('../lightmeter', ['-workspace', workspaceDir.name, '-stdin', '-listen', ':8080'], callback)
+    
+    let logs = "";
+    try {
+      const data = fs.readFileSync('../test_files/postfix_logs/individual_files/25_authclean_cleanup.log', 'utf8');
+      const lines = data.split(/\r?\n/);
+      
+      let somePreviousMonth = new Date(new Date() - 45 *1000*3600*24);  // now - 45 days
+      let prevDate = somePreviousMonth.toISOString().substring(0,11);
+      
+      lines.forEach((line) => {
+        line = line.replace( new RegExp("^\\d{4}-\\d{2}-\\d{2}T"), prevDate)
+        logs += line + "\n"
+      });
+    }
+    catch (err) {
+      console.error(err);
+    }
+    
+    lightmeterProcess = child_process.execFile(
+      '../lightmeter',
+      ['-workspace', workspaceDir.name, '-stdin', '-log_format', 'rfc3339', '-listen', ':8080'],
+      callback
+    )
+    
+    lightmeterProcess.stdin.write(logs)
 
     return new Promise((r) => setTimeout(r, 2000)).then(async () => {
         await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
@@ -95,6 +119,11 @@ step("Go to login page", async () => {
     await reload(waitOpt)
 });
 
+step("Go to detective", async () => {
+  await goto('http://localhost:8080/#/detective', waitOpt);
+  await reload(waitOpt)
+});
+
 step("Focus on field with placeholder <placeholder>", async (placeholder) => {
     await focus(textBox({placeholder: placeholder}))
 });
@@ -107,6 +136,7 @@ step("Type <content>", async (content) => {
     await write(content)
 });
 
+// NOTE: not used any more, was used for mailKind dropdown
 step("Select option <option> from menu <menuName>", async (option, menuName) => {
     // Ugly workaroudn due a bug on taiko: https://github.com/getgauge/taiko/issues/1729
     //await dropDown(menuName).select(option)
@@ -149,13 +179,18 @@ step("Set end date", async () => {
     await click($(".daterangepicker * .right * td.weekend"))
 });
 
+step("Datepicker last 3 months", async () => {
+  await click($(".vue-daterange-picker"))
+  await click(text('Last 3 months (all time)'))
+});
+
 step("Click logout", async () => {
     await waitFor(1000)
     await click($(".fa-sign-out-alt"))
 });
 
 step("Expect to see <pageText>", async (pageText) => {
-    await text(pageText).exists()
+    await assert.ok(await text(pageText).exists())
 });
 
 step("Expect to be in the main page", async () => {
@@ -164,4 +199,8 @@ step("Expect to be in the main page", async () => {
       console.log("current url:", url)
       return url == "http://localhost:8080/#/";
     })
+});
+
+step("Expect <x> detective results", async (x) => {
+  assert.equal( (await $('.results .detective-result-cell').elements()).length, 1);
 });
