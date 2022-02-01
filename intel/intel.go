@@ -82,7 +82,6 @@ type Metadata struct {
 	PublicURL          *string `json:"public_url,omitempty"`
 	UserEmail          *string `json:"user_email,omitempty"`
 	PostfixVersion     *string `json:"postfix_version,omitempty"`
-	MailKind           *string `json:"mail_kind,omitempty"`
 	UserName           *string `json:"user_name"`
 	IsDockerContainer  bool    `json:"is_docker_container"`
 	IsUsingRsyncedLogs bool    `json:"is_using_rsynced_logs"`
@@ -128,7 +127,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 			metadata.UserName = &userData.Name
 		}
 
-		metadata.PublicURL, metadata.LocalIP, metadata.MailKind = d.getGlobalSettings()
+		metadata.PublicURL, metadata.LocalIP = d.getGlobalSettings()
 
 		insideContainer, err := isSchedFileContentInsideContainer(d.SchedFileReader)
 		if err != nil {
@@ -205,7 +204,7 @@ func (d *Dispatcher) Dispatch(r collector.Report) error {
 	return nil
 }
 
-func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
+func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 	settings, err := globalsettings.GetSettings(context.Background(), d.SettingsReader)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
@@ -213,7 +212,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 	}
 
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	addr := func(s string) *string {
@@ -236,28 +235,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string, *string) {
 		return nil
 	}()
 
-	mailKind := func() *string {
-		mailKind, err := d.SettingsReader.Retrieve(context.Background(), "mail_kind")
-
-		if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
-			log.Warn().Msgf("Unexpected error retrieving mail_kind")
-		}
-
-		if err != nil {
-			return nil
-		}
-
-		s, ok := mailKind.(string)
-
-		if !ok {
-			log.Warn().Msgf("mail_kind couldn't be cast to string")
-			return nil
-		}
-
-		return &s
-	}()
-
-	return publicURL, localIP, mailKind
+	return publicURL, localIP
 }
 
 func (d *Dispatcher) getPostfixVersion() *string {

@@ -150,7 +150,6 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
             if (settingsData.subscribe_newsletter) {
               trackEvent("RegisterAdmin", "newsletterOn");
             }
-            trackEvent("RegisterAdmin", settingsData.email_kind);
 
             redirect();
           });

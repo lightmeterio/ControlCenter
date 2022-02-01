@@ -57,41 +57,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <a href=""><i class="fa fa-eye" aria-hidden="true"></i></a>
               </div>
 
-              <div class="input-group">
-                <select
-                  required
-                  v-model="form.email_kind"
-                  class="form-control custom-select"
-                  name="email_kind"
-                  id="email_kind"
-                >
-                  <option value="" selected disabled>
-                    <translate>Most of my mail is…</translate>
-                  </option>
-                  <option value="direct">
-                    <translate>Direct (personal, office, one-to-one)</translate>
-                  </option>
-                  <option value="transactional">
-                    <translate>Transactional (notifications, apps)</translate>
-                  </option>
-                  <option value="marketing">
-                    <translate>Marketing (newsletters, adverts)</translate>
-                  </option>
-                </select>
-                <div class="input-group-append">
-                  <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    data-toggle="tooltip"
-                    data-placement="top"
-                    v-b-tooltip.hover
-                    :title="EmailKindHoverTitle"
-                  >
-                    <i class="far fa-question-circle"></i>
-                  </button>
-                </div>
-              </div>
-
               <b-form-checkbox
                 id="subscribe_newsletter"
                 v-model="form.subscribe_newsletter"
@@ -212,7 +177,6 @@ export default {
         password: "",
         name: ``,
         subscribe_newsletter: null,
-        email_kind: "",
         postfix_public_ip: ""
       }
     };
@@ -261,11 +225,6 @@ export default {
     PasswordInputPlaceholder: function() {
       return this.$gettext("Password");
     },
-    EmailKindHoverTitle: function() {
-      return this.$gettext(
-        "Different types of mail perform differently. This helps show the most relevant information."
-      );
-    },
     progressIndicatorTitle() {
       return this.$gettext(`Generating Insights`);
     },
@@ -286,7 +245,6 @@ export default {
 
       let settingsData = {
         email: this.form.email,
-        email_kind: this.form.email_kind,
         app_language: this.language,
         postfix_public_ip: this.form.postfix_public_ip
       };
