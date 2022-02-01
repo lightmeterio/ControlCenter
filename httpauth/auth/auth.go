@@ -311,7 +311,6 @@ type UserSystemData struct {
 	UserData       *auth.UserData `json:"user"`
 	InstanceID     string         `json:"instance_id"`
 	PostfixVersion string         `json:"postfix_version"`
-	MailKind       string         `json:"mail_kind"`
 }
 
 func HandleGetUserSystemData(auth *Authenticator, settingsReader metadata.Reader, w http.ResponseWriter, r *http.Request) error {
@@ -350,24 +349,6 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader metadata.Reader
 
 	if err != nil {
 		userSystemData.PostfixVersion = ""
-	}
-
-	// retrieve mail kind
-	mailKind, err := settingsReader.Retrieve(r.Context(), "mail_kind")
-
-	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
-		log.Warn().Msgf("Unexpected error retrieving mail_kind: %s", err)
-	}
-
-	if err == nil {
-		var ok bool
-		userSystemData.MailKind, ok = mailKind.(string)
-
-		if !ok {
-			log.Warn().Msgf("mail_kind couldn't be cast to string")
-
-			userSystemData.MailKind = ""
-		}
 	}
 
 	b, err := json.Marshal(userSystemData)

@@ -13,23 +13,13 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-type SetupMailKind string
-
-const (
-	MailKindDirect        SetupMailKind = "direct"
-	MailKindTransactional SetupMailKind = "transactional"
-	MailKindMarketing     SetupMailKind = "marketing"
-)
-
 var (
 	ErrInvalidInintialSetupOption    = errors.New(`Invalid Initial Setup Option`)
 	ErrFailedToSubscribeToNewsletter = errors.New(`Error Subscribing To Newsletter`)
-	ErrInvalidMailKindOption         = errors.New(`Invalid Mail Kind`)
 )
 
 type InitialOptions struct {
 	SubscribeToNewsletter bool
-	MailKind              SetupMailKind
 	Email                 string
 }
 
@@ -41,17 +31,7 @@ func NewInitialSetupSettings(newsletterSubscriber newsletter.Subscriber) *Initia
 	return &InitialSetupSettings{newsletterSubscriber}
 }
 
-func validMailKind(k SetupMailKind) bool {
-	return k == MailKindDirect ||
-		k == MailKindMarketing ||
-		k == MailKindTransactional
-}
-
 func (c *InitialSetupSettings) Set(ctx context.Context, writer *metadata.AsyncWriter, initialOptions InitialOptions) error {
-	if !validMailKind(initialOptions.MailKind) {
-		return ErrInvalidMailKindOption
-	}
-
 	if initialOptions.SubscribeToNewsletter {
 		if err := c.newsletterSubscriber.Subscribe(ctx, initialOptions.Email); err != nil {
 			log.Error().Err(err).Msg("Failed to subscribe")
@@ -60,7 +40,6 @@ func (c *InitialSetupSettings) Set(ctx context.Context, writer *metadata.AsyncWr
 	}
 
 	result := writer.Store([]metadata.Item{
-		{Key: "mail_kind", Value: initialOptions.MailKind},
 		{Key: "subscribe_newsletter", Value: initialOptions.SubscribeToNewsletter},
 	})
 

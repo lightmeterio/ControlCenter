@@ -59,9 +59,8 @@ func TestHTTPAuth(t *testing.T) {
 		writer := writeRunner.Writer()
 		writer.StoreJsonSync(context.Background(), metadata.UuidMetaKey, uuid)
 
-		// store a postfix version and a mail kind to retrieve in /userInfo
+		// store a postfix version to retrieve in /userInfo
 		writer.StoreJsonSync(context.Background(), postfixversion.SettingKey, "3.4.14")
-		m.Writer.Store(context.Background(), []metadata.Item{{"mail_kind", "marketing"}})
 
 		failedAttempts := 0
 
@@ -244,7 +243,6 @@ func TestHTTPAuth(t *testing.T) {
 
 					So(v.InstanceID, ShouldEqual, uuid)
 					So(v.PostfixVersion, ShouldEqual, "3.4.14")
-					So(v.MailKind, ShouldEqual, "marketing")
 				})
 
 				Convey("get fake user data after registration", func() {
