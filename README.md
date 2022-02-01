@@ -501,7 +501,7 @@ And finally, reload the Dovecot configuration with `doveconf reload` to apply th
 
 ###### Older Dovecot version
 
-If your Dovecot version is older than 3.2.1, you need to pass an extra argument `-dovecot_conf_is_old`, as in:
+If your Dovecot version is older than 2.3.1, you need to pass an extra argument `-dovecot_conf_is_old`, as in:
 
 ```sh
 /path/to/lightmeter -dovecot_conf_gen -dovecot_conf_is_old > /etc/dovecot/conf.d/10-lightmeter.conf

@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	uuid "github.com/satori/go.uuid"
 )
 
 func setupDovecotConfig(dovecotIsOld bool) {
@@ -23,11 +24,7 @@ auth_policy_report_after_auth = yes
 `
 	}()
 
-	nonce := func() string {
-		// TODO: generate a randoom string every time, although having a constant nonce should not cause
-		// us any harm at the moment
-		return "ZVKBQYhlZxHWxkJ62hJeTzacEEM7"
-	}()
+	nonce := uuid.NewV4().String()
 
 	var tpl = `
 # Dovecot will query Lightmeter's blocklist for every incoming IMAP/POP3 connection
