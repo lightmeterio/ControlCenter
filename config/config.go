@@ -48,6 +48,9 @@ type Config struct {
 	RegisteredUserName     string
 	RegisteredUserEmail    string
 	RegisteredUserPassword string
+
+	GenerateDovecotConfig bool
+	DovecotConfigIsOld    bool
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -136,6 +139,9 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
 	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
 	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
+
+	fs.BoolVar(&conf.GenerateDovecotConfig, "dovecot_conf_gen", false, "Generate Dovecot Configuration")
+	fs.BoolVar(&conf.DovecotConfigIsOld, "dovecot_conf_is_old", false, "Requires -dovecot_conf_gen. Use if if you're using a Dovecot older than 2.3.1")
 
 	fs.Usage = func() {
 		version.PrintVersion()
