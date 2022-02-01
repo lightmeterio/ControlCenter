@@ -45,6 +45,11 @@ func main() {
 		errorutil.Dief(errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
 	}
 
+	if conf.GenerateDovecotConfig {
+		setupDovecotConfig(conf.DovecotConfigIsOld)
+		return
+	}
+
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Caller().Logger()
 
 	zerolog.SetGlobalLevel(conf.LogLevel)
