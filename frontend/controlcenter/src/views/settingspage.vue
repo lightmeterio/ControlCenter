@@ -546,10 +546,10 @@ export default {
       return this.settings.slack_notifications.enabled;
     },
     PostfixPublicIP: function() {
-      return this.$gettext("Postfix public IP");
+      return this.$gettext("Mail server public IP");
     },
     PublicURL: function() {
-      return this.$gettext("Public URL");
+      return this.$gettext("Lightmeter public URL");
     },
     EnterIpAddress: function() {
       return this.$gettext("Enter IP address");

@@ -250,7 +250,7 @@ export default {
       return `</a>`;
     },
     PostfixPublicIPInputPlaceholder() {
-      return this.$gettext("Postfix public IP");
+      return this.$gettext("Mail server public IP");
     },
     NameInputPlaceholder: function() {
       return this.$gettext("Name");
