@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -98,6 +99,8 @@ func getDetectorOptions(options core.Options) Options {
 
 	return detectorOptions
 }
+
+func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions := getDetectorOptions(options)

@@ -18,6 +18,7 @@ type Clock = timeutil.Clock
 
 type Detector interface {
 	io.Closer
+	UpdateOptionsFromSettings(*insightsSettings.Settings)
 	Step(Clock, *sql.Tx) error
 }
 

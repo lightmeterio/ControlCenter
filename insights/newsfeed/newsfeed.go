@@ -20,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -112,6 +113,8 @@ type detector struct {
 	options Options
 	parser  *gofeed.Parser
 }
+
+func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["newsfeed"].(Options)
