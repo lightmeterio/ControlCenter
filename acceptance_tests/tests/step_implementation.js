@@ -168,7 +168,7 @@ step("Set start date", async () => {
 });
 
 step("Move forward some months", async () => {
-    var button = $(".daterangepicker * .right * .next")
+    var button = $(".daterangepicker * .left * .next")
 
     for (var i = 0; i < 3; i++) {
         await click(button)
@@ -176,7 +176,7 @@ step("Move forward some months", async () => {
 });
 
 step("Set end date", async () => {
-    await click($(".daterangepicker * .right * td.weekend"))
+    await click($(".daterangepicker * .left * td.weekend"))
 });
 
 step("Datepicker last 3 months", async () => {
