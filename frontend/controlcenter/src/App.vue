@@ -421,7 +421,7 @@ svg.lm-info-circle-grayblue {
 	Datepicker custom styling fix.
 	Seems to be broken easily, see e.g. https://github.com/Innologica/vue2-daterange-picker/issues/255
 */
-.vue-daterange-picker .ranges {
-  padding: 0 !important;
+.vue-daterange-picker .calendars {
+  flex-wrap: nowrap !important;
 }
 </style>
