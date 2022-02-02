@@ -41,43 +41,48 @@ var lightmeterProcess = null
 
 var workspaceDir = tmp.dirSync()
 
-beforeSuite(async () => {
-    let callback = function(error, stdout, stderr) {
-      if (error) {
-        console.warn(stdout)
-        console.error(stderr)
-        throw error
-      }
-    }
-    
-    let logs = "";
-    try {
-      const data = fs.readFileSync('../test_files/postfix_logs/individual_files/25_authclean_cleanup.log', 'utf8');
-      const lines = data.split(/\r?\n/);
-      
-      let somePreviousMonth = new Date(new Date() - 45 *1000*3600*24);  // now - 45 days
-      let prevDate = somePreviousMonth.toISOString().substring(0,11);
-      
-      lines.forEach((line) => {
-        line = line.replace( new RegExp("^\\d{4}-\\d{2}-\\d{2}T"), prevDate)
-        logs += line + "\n"
-      });
-    }
-    catch (err) {
-      console.error(err);
-    }
-    
-    lightmeterProcess = child_process.execFile(
-      '../lightmeter',
-      ['-workspace', workspaceDir.name, '-stdin', '-log_format', 'rfc3339', '-listen', ':8080'],
-      callback
-    )
-    
-    lightmeterProcess.stdin.write(logs)
+function getLogsWithSingleDateTodayMinus45Days(originalLogFile) {
+  let logs = "";
+  try {
+    const data = fs.readFileSync(originalLogFile, 'utf8');
+    const lines = data.split(/\r?\n/);
 
-    return new Promise((r) => setTimeout(r, 2000)).then(async () => {
-        await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
-    })
+    let somePreviousMonth = new Date(new Date() - 45 *1000*3600*24);  // now - 45 days
+    let prevDate = somePreviousMonth.toISOString().substring(0,11);
+
+    lines.forEach((line) => {
+      line = line.replace( new RegExp("^\\d{4}-\\d{2}-\\d{2}T"), prevDate)
+      logs += line + "\n"
+    });
+  }
+  catch (err) {
+    console.error(err);
+  }
+
+  return logs;
+}
+
+beforeSuite(async () => {
+  let callback = function(error, stdout, stderr) {
+    if (error) {
+      console.warn(stdout)
+      console.error(stderr)
+      throw error
+    }
+  }
+
+  lightmeterProcess = child_process.execFile(
+    '../lightmeter',
+    ['-workspace', workspaceDir.name, '-stdin', '-log_format', 'rfc3339', '-listen', ':8080'],
+    callback
+  )
+
+  let logs = getLogsWithSingleDateTodayMinus45Days('../test_files/postfix_logs/individual_files/25_authclean_cleanup.log');
+  lightmeterProcess.stdin.write(logs)
+
+  return new Promise((r) => setTimeout(r, 2000)).then(async () => {
+      await openBrowser({ headless: headless, args: ["--no-sandbox", "--no-first-run"] })
+  })
 });
 
 step("Expect registration to fail", async () => {
