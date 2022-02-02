@@ -9,12 +9,14 @@ import (
 	"database/sql"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
 type Clock = timeutil.Clock
 
 type Detector interface {
+	UpdateOptionsFromSettings(*insightsSettings.Settings)
 	Step(Clock, *sql.Tx) error
 	Close() error
 }
@@ -41,6 +43,12 @@ func New(detectors []Detector) (*Core, error) {
 	}
 
 	return core, nil
+}
+
+func (c *Core) UpdateDetectorsFromSettings(settings *insightsSettings.Settings) {
+	for _, d := range c.Detectors {
+		d.UpdateOptionsFromSettings(settings)
+	}
 }
 
 type Content interface {

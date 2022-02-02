@@ -371,6 +371,38 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-button>
           </div>
         </b-form>
+
+        <h5 class="form-heading">
+          <translate>Insights</translate>
+        </h5>
+
+        <b-form @submit="onInsightsSettingsSubmit">
+          <b-form-group
+            :label="LabelBounceRateThreshold"
+            :description="DescriptionBounceRateThreshold"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="%">
+              <b-form-input
+                required
+                v-model="settings.insights.bounce_rate_threshold"
+                type="number"
+                name="bounce_rate_threshold"
+                min="0"
+                max="100"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <div class="button-group">
+            <b-button variant="outline-primary" type="submit">
+              <translate>Save</translate>
+            </b-button>
+          </div>
+        </b-form>
       </div>
     </b-container>
     <mainfooter></mainfooter>
@@ -383,6 +415,7 @@ import {
   getMetaLanguage,
   getSettings,
   submitDetectiveSettingsForm,
+  submitInsightsSettingsForm,
   submitGeneralForm,
   submitNotificationsSettingsForm
 } from "@/lib/api.js";
@@ -426,6 +459,9 @@ export default {
         },
         detective: {
           end_users_enabled: false
+        },
+        insights: {
+          bounce_rate_threshold: 30
         }
       },
       prev_settings: {},
@@ -562,6 +598,14 @@ export default {
     DetectiveEndUsersEnabled() {
       return this.$gettext(
         "Enable public access to the Message Detective search page"
+      );
+    },
+    LabelBounceRateThreshold() {
+      return this.$gettext("Bounce Rate Threshold");
+    },
+    DescriptionBounceRateThreshold() {
+      return this.$gettext(
+        "If the ratio of bounced emails to sent emails gets above this percentage, an insight is generated."
       );
     },
     DetectiveEndUsersHelpText() {
@@ -719,6 +763,13 @@ export default {
         data,
         this.settings.detective.end_users_enabled
       );
+    },
+    onInsightsSettingsSubmit(event) {
+      event.preventDefault();
+
+      submitInsightsSettingsForm({
+        bounce_rate_threshold: this.settings.insights.bounce_rate_threshold
+      });
     }
   },
   mounted() {

@@ -104,6 +104,20 @@ export function submitDetectiveSettingsForm(data, enabled) {
     .catch(builderErrorHandler("settings"));
 }
 
+export function submitInsightsSettingsForm(data) {
+  return axios
+    .post(
+      BASE_URL + "settings?setting=insights",
+      new URLSearchParams(getFormData(data))
+    )
+    .then(function() {
+      trackEvent("InsightsBounceRateThreshold", data.bounce_rate_threshold);
+
+      newAlertSuccess(Vue.prototype.$gettext("Saved insights settings"));
+    })
+    .catch(builderErrorHandler("settings"));
+}
+
 export function getSettings() {
   return axios
     .get(BASE_URL + "settings")
