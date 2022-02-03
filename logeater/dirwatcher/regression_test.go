@@ -127,13 +127,15 @@ func TestRegressionIssue463(t *testing.T) {
 func TestRegressionIssue644(t *testing.T) {
 	/*
 		Lessons learned:
-			- Due some unknown existing bug (and unknown bugs to come), some times logs from the past from an updated file.
+			- Due to some unknown existing bug (and unknown bugs to come), sometimes logs from the past are read from an updated file.
 				- In those cases, we need to prevent the year to be bumped when it happens, otherwise we'll be processing logs from the future,
 					which makes no sense.
 				- I suspect this is a bug in the code that handles the rsync'd files, and this might also happen in case the user accidentally
 					sends an old version of a log file.
 					- What we need to to in such cases is ignoring any old logs until they reach the time we expect (equal or newer than the latest log published)
-				- For now what we have are workarounds. Workaround everywhere.
+				- For now what we have are workarounds. Workarounds everywhere.
+			- This issue can also be intentionally caused by the user, by rsync'ng an unrelated file which contains old log lines, which cannot be computed
+			- Or by messing up with the logs...
 	*/
 	Convey("Regression Tests issue 644", t, func() {
 		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-12-10 20:00:00 +0000`)}
