@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"os"
 	"path"
 	"sync"
@@ -38,6 +39,8 @@ func TestReadingFromDirectory(t *testing.T) {
 		tempDir, clear := testutil.TempDir(t)
 		defer clear()
 
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2030-01-01 10:00:00 +0000`)}
+
 		logDir := path.Join(tempDir, "logs_sample")
 
 		tarball, err := os.Open(sampleTarball)
@@ -51,7 +54,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		patterns := dirwatcher.BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"})
 
 		Convey("Only import from beginning", func() {
-			s, err := New(logDir, postfix.SumPair{}, announcer, false, false, "default", patterns)
+			s, err := New(logDir, postfix.SumPair{}, announcer, false, false, "default", patterns, clock)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 			So(r.Run(), ShouldBeNil)
@@ -59,7 +62,7 @@ func TestReadingFromDirectory(t *testing.T) {
 		})
 
 		Convey("Import logs and watch for changes", func() {
-			s, err := New(logDir, postfix.SumPair{}, announcer, true, false, "default", patterns)
+			s, err := New(logDir, postfix.SumPair{}, announcer, true, false, "default", patterns, clock)
 			So(err, ShouldBeNil)
 			r := logsource.NewReader(s, &pub)
 

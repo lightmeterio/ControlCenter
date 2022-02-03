@@ -14,30 +14,32 @@ import (
 
 func TestTransformers(t *testing.T) {
 	Convey("Test Transformers", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-02-10 10:10:10 +0000`)}
+
 		Convey("Unknown", func() {
 			_, err := Get("invalid blabla")
 			So(err, ShouldEqual, ErrUnknownTransformer)
 		})
 
 		Convey("Invalid year on default transformer", func() {
-			_, err := Get("default", "non-integer-value")
+			_, err := Get("default", clock, "non-integer-value")
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Default no year passed, use current one", func() {
-			builder, err := Get("default")
+		Convey("Default no year passed, use the one from the clock!", func() {
+			builder, err := Get("default", clock)
 			So(err, ShouldBeNil)
 			transformer, err := builder()
 			So(err, ShouldBeNil)
 			r, err := transformer.Transform(string(`Aug 21 03:03:04 mail dog: Useless Payload`))
 			So(err, ShouldBeNil)
 			So(r.Header.Host, ShouldEqual, "mail")
-			So(r.Time, ShouldResemble, time.Date(time.Now().Year(), time.August, 21, 3, 3, 4, 0, time.UTC))
+			So(r.Time, ShouldResemble, time.Date(clock.Now().Year(), time.August, 21, 3, 3, 4, 0, time.UTC))
 			So(r.Line, ShouldEqual, `Aug 21 03:03:04 mail dog: Useless Payload`)
 		})
 
 		Convey("Default, just return the line, unable to get a time from it", func() {
-			builder, err := Get("default", 2000)
+			builder, err := Get("default", clock, 2000)
 			So(err, ShouldBeNil)
 			transformer, err := builder()
 			So(err, ShouldBeNil)
@@ -48,14 +50,14 @@ func TestTransformers(t *testing.T) {
 		})
 
 		Convey("Default, just return the line, use current year as the passed one is zero", func() {
-			builder, err := Get("default", 0)
+			builder, err := Get("default", clock, 0)
 			So(err, ShouldBeNil)
 			transformer, err := builder()
 			So(err, ShouldBeNil)
 			r, err := transformer.Transform(string(`Aug 21 03:03:04 mail dog: Useless Payload`))
 			So(err, ShouldBeNil)
 			So(r.Header.Host, ShouldEqual, "mail")
-			So(r.Time, ShouldResemble, time.Date(time.Now().Year(), time.August, 21, 3, 3, 4, 0, time.UTC))
+			So(r.Time, ShouldResemble, time.Date(clock.Now().Year(), time.August, 21, 3, 3, 4, 0, time.UTC))
 		})
 	})
 }

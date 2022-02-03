@@ -16,6 +16,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
 	"path"
 	"regexp"
@@ -435,6 +436,7 @@ type DirectoryImporter struct {
 	sum       postfix.SumPair
 	patterns  LogPatterns
 	format    parsertimeutil.TimeFormat
+	clock     timeutil.Clock
 }
 
 func NewDirectoryImporter(
@@ -444,8 +446,9 @@ func NewDirectoryImporter(
 	sum postfix.SumPair,
 	format parsertimeutil.TimeFormat,
 	patterns LogPatterns,
+	clock timeutil.Clock,
 ) DirectoryImporter {
-	return DirectoryImporter{content, pub, announcer, sum, patterns, format}
+	return DirectoryImporter{content, pub, announcer, sum, patterns, format, clock}
 }
 
 var ErrLogFilesNotFound = errors.New("Could not find any matching log files")
@@ -654,7 +657,7 @@ func buildQueueProcessors(
 	return p, nil
 }
 
-func createConverterForQueueProcessor(p *queueProcessor, content DirectoryContent, header parser.Header, format parsertimeutil.TimeFormat) (converter *parsertimeutil.TimeConverter, err error) {
+func createConverterForQueueProcessor(clock timeutil.Clock, p *queueProcessor, content DirectoryContent, header parser.Header, format parsertimeutil.TimeFormat) (converter *parsertimeutil.TimeConverter, err error) {
 	modificationTime, err := content.modificationTimeForEntry(p.entries[p.currentIndex].filename)
 
 	if err != nil {
@@ -685,6 +688,7 @@ func createConverterForQueueProcessor(p *queueProcessor, content DirectoryConten
 			0,
 			initialTime.Location(),
 		),
+		clock,
 		func(year int, from parser.Time, to parser.Time) {
 			log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v:%v",
 				year, from, to,
@@ -709,7 +713,7 @@ func setFileLocationOnQueueProcessorIfNeeded(p *queueProcessor) {
 	log.Info().Msgf("Starting importing log file: %v", p.filename)
 }
 
-func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) (bool, error) {
+func updateQueueProcessor(clock timeutil.Clock, p *queueProcessor, content DirectoryContent, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) (bool, error) {
 	setFileLocationOnQueueProcessorIfNeeded(p)
 
 	// tries to read something from the queue, ignoring it on the next iteration
@@ -760,7 +764,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 		}
 
 		if p.converter == nil {
-			converter, err := createConverterForQueueProcessor(p, content, header, format)
+			converter, err := createConverterForQueueProcessor(clock, p, content, header, format)
 
 			if err != nil {
 				return false, errorutil.Wrap(err)
@@ -783,7 +787,7 @@ func updateQueueProcessor(p *queueProcessor, content DirectoryContent, progressN
 	}
 }
 
-func updateQueueProcessors(content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) error {
+func updateQueueProcessors(clock timeutil.Clock, content DirectoryContent, processors []*queueProcessor, updatedProcessors *[]*queueProcessor, toBeUpdated int, progressNotifier *announcer.Notifier, format parsertimeutil.TimeFormat) error {
 	for i, p := range processors {
 		isFirstExecution := toBeUpdated != -1
 
@@ -792,7 +796,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 			continue
 		}
 
-		shouldKeepProcessor, err := updateQueueProcessor(p, content, progressNotifier, format)
+		shouldKeepProcessor, err := updateQueueProcessor(clock, p, content, progressNotifier, format)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -815,7 +819,7 @@ func updateQueueProcessors(content DirectoryContent, processors []*queueProcesso
 
 		// If there were entries to be processed, but a time converter has not been yet created,
 		// create one using the modification time of the most recent file in the queue
-		converter := parsertimeutil.NewTimeConverter(entry.modificationTime,
+		converter := parsertimeutil.NewTimeConverter(entry.modificationTime, clock,
 			func(year int, from parser.Time, to parser.Time) {
 				log.Info().Msgf("Changed Year to %v (from %v to %v), on log file: %v",
 					year, from, to, entry.filename)
@@ -859,6 +863,7 @@ func countNumberOfFilesInQueues(queues fileQueues) int {
 // close enough, as the lines have only precision of second, so it's not a "stable sort"),
 // so the order among different lines on the same second is not deterministic.
 func importExistingLogs(
+	clock timeutil.Clock,
 	offsetChans map[string]chan int64,
 	converterChans map[string]timeConverterChan,
 	content DirectoryContent,
@@ -894,7 +899,7 @@ func importExistingLogs(
 	for {
 		updatedProcessors = updatedProcessors[0:0]
 
-		err := updateQueueProcessors(content, queueProcessors, &updatedProcessors, toBeUpdated, &progressNotifier, format)
+		err := updateQueueProcessors(clock, content, queueProcessors, &updatedProcessors, toBeUpdated, &progressNotifier, format)
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -1327,7 +1332,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(offsetChans, converterChans, importer.content, queues, importer.pub, importer.sum, importer.announcer, importer.patterns, importer.format)
+	err = importExistingLogs(importer.clock, offsetChans, converterChans, importer.content, queues, importer.pub, importer.sum, importer.announcer, importer.patterns, importer.format)
 
 	if err != nil {
 		interruptWatching()

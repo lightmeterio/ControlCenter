@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 )
 
@@ -20,6 +21,8 @@ func TestRegressionIssue368(t *testing.T) {
 			which we use as a reference time.
 	*/
 	Convey("Regression Tests issue 368", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2030-01-01 10:00:00 +0000`)}
+
 		timeFormat, err := parsertimeutil.Get("default")
 		So(err, ShouldBeNil)
 
@@ -82,7 +85,7 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 			}
 			pub := fakePublisher{}
 			announcer := &fakeAnnouncer{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns, clock)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 19)
@@ -95,6 +98,8 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 
 func TestRegressionIssue463(t *testing.T) {
 	Convey("Regression Tests issue #463", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2030-01-01 10:00:00 +0000`)}
+
 		timeFormat, err := parsertimeutil.Get("default")
 		So(err, ShouldBeNil)
 
@@ -110,7 +115,7 @@ func TestRegressionIssue463(t *testing.T) {
 		}
 
 		pub := fakePublisher{}
-		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, DefaultLogPatterns)
+		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, DefaultLogPatterns, clock)
 		err = importer.Run()
 		So(err, ShouldBeNil)
 
