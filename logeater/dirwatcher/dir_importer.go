@@ -1386,19 +1386,12 @@ type ignoringPublisher struct {
 }
 
 func (pub *ignoringPublisher) Publish(r postfix.Record) {
-	if pub.lastPublishedSumPair.Time.IsZero() {
-		pub.lastPublishedSumPair = postfix.SumPair{Time: r.Time, Sum: &r.Sum}
-		pub.pub.Publish(r)
-
-		return
-	}
-
 	// Do not let old logs be published
-	if r.Time.Before(pub.lastPublishedSumPair.Time) {
-		return
-	}
-
-	if r.Time == pub.lastPublishedSumPair.Time && r.Sum == *pub.lastPublishedSumPair.Sum {
+	if !pub.lastPublishedSumPair.Time.IsZero() &&
+		((r.Time.Before(pub.lastPublishedSumPair.Time)) ||
+			r.Time == pub.lastPublishedSumPair.Time &&
+				r.Sum == *pub.lastPublishedSumPair.Sum) {
+		log.Error().Msgf(`Discarding old log with time "%v" which should be more recent than "%v"`, r.Time, pub.lastPublishedSumPair.Time)
 		return
 	}
 
