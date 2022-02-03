@@ -12,7 +12,6 @@ import (
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
 	localrblinsight "gitlab.com/lightmeter/controlcenter/insights/localrbl"
-	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
@@ -38,9 +37,8 @@ func insightsOptions(
 	insightsFetcher insightscore.Fetcher,
 ) insightscore.Options {
 	return insightscore.Options{
-		"logsConnPool":   deliverydbConnPool,
-		"dashboard":      dashboard,
-		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
+		"logsConnPool": deliverydbConnPool,
+		"dashboard":    dashboard,
 
 		"localrbl": localrblinsight.Options{
 			CheckInterval:               time.Hour * 3,

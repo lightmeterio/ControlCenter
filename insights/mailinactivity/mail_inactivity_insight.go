@@ -108,24 +108,33 @@ func (g *generator) generate(interval timeutil.TimeInterval) {
 	g.interval = &interval
 }
 
-type detector struct {
+type Detector struct {
 	logsConnPool *dbconn.RoPool
 	options      Options
 	creator      core.Creator
 	generator    *generator
 }
 
-func (detector) IsHistoricalDetector() {
+func (Detector) IsHistoricalDetector() {
 	// Required by the historical import
 }
 
-func (*detector) Close() error {
+func (*Detector) Close() error {
 	return nil
+}
+
+func (d *Detector) GetOptions() Options {
+	return d.options
 }
 
 const countDeliveriesInIntervalQueryKey = "countDeliveriesInInterval"
 
-func NewDetector(creator core.Creator, options core.Options) core.Detector {
+func (d *Detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {
+	d.options.LookupRange = time.Hour * time.Duration(settings.MailInactivityLookupRange)
+	d.options.MinTimeGenerationInterval = time.Hour * time.Duration(settings.MailInactivityMinInterval)
+}
+
+func NewDetector(settings *insightsSettings.Settings, creator core.Creator, options core.Options) core.Detector {
 	pool, ok := options["logsConnPool"].(*dbconn.RoPool)
 
 	if !ok {
@@ -140,21 +149,18 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 		return nil
 	}))
 
-	detectorOptions, ok := options["mailinactivity"].(Options)
-
-	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid detector options"))
-	}
-
-	return &detector{
+	detector := &Detector{
 		logsConnPool: pool,
-		options:      detectorOptions,
 		creator:      creator,
 		generator:    &generator{creator: creator, interval: nil},
 	}
+
+	detector.UpdateOptionsFromSettings(settings)
+
+	return detector
 }
 
-func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock, tx *sql.Tx) error {
+func execChecksForMailInactivity(ctx context.Context, d *Detector, c core.Clock, tx *sql.Tx) error {
 	now := c.Now()
 
 	kind := "mail_inactivity"
@@ -205,7 +211,7 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 	}
 
 	if lastExecTime.IsZero() {
-		// pottentially first insight generation
+		// potentially first insight generation
 		totalPreviousInterval, err := countActivityInInterval(timeutil.TimeInterval{
 			From: interval.From.Add(d.options.LookupRange * -1),
 			To:   interval.To.Add(d.options.LookupRange * -1),
@@ -229,7 +235,7 @@ func execChecksForMailInactivity(ctx context.Context, d *detector, c core.Clock,
 	return nil
 }
 
-func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
+func (d *Detector) Step(c core.Clock, tx *sql.Tx) error {
 	ctx := context.Background()
 
 	if err := execChecksForMailInactivity(ctx, d, c, tx); err != nil {
