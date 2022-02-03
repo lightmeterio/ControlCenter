@@ -66,7 +66,7 @@ recommendation_dev:
 recommendation_release:
 	go generate -tags="release" gitlab.com/lightmeter/controlcenter/recommendation
 
-mocks: postfix_parser dashboard_mock insights_mock detective_mock intel_mock
+mocks: postfix_parser dashboard_mock insights_mock detective_mock intel_mock timeutil_mock
 
 dashboard_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/dashboard
@@ -76,6 +76,9 @@ insights_mock:
 
 intel_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/intel/receptor
+
+timeutil_mock:
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/util/timeutil
 
 detective_mock:
 	go generate -tags="dev sqlite_json" gitlab.com/lightmeter/controlcenter/detective
