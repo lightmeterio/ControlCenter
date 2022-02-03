@@ -11,6 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
 type Source struct {
@@ -19,12 +20,13 @@ type Source struct {
 	announcer announcer.ImportAnnouncer
 	patterns  dirwatcher.LogPatterns
 	format    parsertimeutil.TimeFormat
+	clock     timeutil.Clock
 
 	// should continue waiting for new results (tail -f)?
 	follow bool
 }
 
-func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns) (*Source, error) {
+func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns, clock timeutil.Clock) (*Source, error) {
 	timeFormat, err := parsertimeutil.Get(logFormat)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -63,11 +65,12 @@ func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnounce
 		announcer: announcer,
 		patterns:  patterns,
 		format:    format,
+		clock:     clock,
 	}, nil
 }
 
 func (s *Source) PublishLogs(p postfix.Publisher) error {
-	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.sum, s.format, s.patterns)
+	watcher := dirwatcher.NewDirectoryImporter(s.dir, p, s.announcer, s.sum, s.format, s.patterns, s.clock)
 
 	f := func() func() error {
 		if s.follow {

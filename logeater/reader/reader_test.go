@@ -54,7 +54,7 @@ func (r *fakeDelayedReader) Read(b []byte) (n int, err error) {
 
 func TestReader(t *testing.T) {
 	Convey("Test Reader", t, func() {
-		transformer, err := transform.Get("default", 2000)
+		transformer, err := transform.Get("default", &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-02-01 10:00:00 +0000`)}, 2000)
 		So(err, ShouldBeNil)
 
 		fakeAnnouncer := &announcer.DummyImportAnnouncer{}
@@ -65,7 +65,7 @@ func TestReader(t *testing.T) {
 			clock := timeutil.FakeClock{Time: time.Date(2020, time.June, 16, 13, 53, 50, 500, time.UTC)}
 
 			Convey("default log format", func() {
-				transformer, err := transform.Get("default", 2020)
+				transformer, err := transform.Get("default", &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-02-01 10:00:00 +0000`)}, 2020)
 				So(err, ShouldBeNil)
 				reader := strings.NewReader(`Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]
 Jun 16 13:53:50 mailgate postfix/smtpd[20252]: connect from unknown[192.168.42.12]`)
@@ -294,7 +294,7 @@ func TestReadTestFiles(t *testing.T) {
 
 			pub := &pub{}
 
-			transformer, err := transform.Get("default", 2000)
+			transformer, err := transform.Get("default", &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-02-01 10:00:00 +0000`)}, 2000)
 			So(err, ShouldBeNil)
 
 			fakeAnnouncer := &announcer.DummyImportAnnouncer{}

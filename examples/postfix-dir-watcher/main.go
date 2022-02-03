@@ -20,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -74,7 +75,7 @@ func main() {
 		log.Fatal().Msg("-dir is mandatory!")
 	}
 
-	logSource, err := dirlogsource.New(*dirToWatch, postfix.SumPair{}, &fakeAnnouncer{}, true, true, "default", dirwatcher.DefaultLogPatterns)
+	logSource, err := dirlogsource.New(*dirToWatch, postfix.SumPair{}, &fakeAnnouncer{}, true, true, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
 	if err != nil {
 		errorutil.LogFatalf(err, "could not init content")
 	}

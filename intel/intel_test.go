@@ -273,7 +273,7 @@ se.vruntime                                  :            24.180579`
 
 		Convey("Send postfix version", func() {
 			p := postfixversion.NewPublisher(writeRunner.Writer())
-			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000)
+			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 15:00:00 +0000`)})
 			time.Sleep(100 * time.Millisecond)
 
 			err := (&Dispatcher{

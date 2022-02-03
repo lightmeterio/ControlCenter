@@ -80,8 +80,8 @@ func TestMessageRBLInsight(t *testing.T) {
 		defer clearAccessor()
 
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-		converter := parsertimeutil.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
+		converter := parsertimeutil.NewTimeConverter(baseTime, clock, func(int, parser.Time, parser.Time) {})
 
 		actions := map[time.Time]func() messagerbl.Result{
 			// this will generate an insight from Host 1
@@ -186,8 +186,8 @@ func TestRegression(t *testing.T) {
 		defer clearAccessor()
 
 		baseTime := testutil.MustParseTime(`2021-04-17 00:00:00 +0000`)
-		converter := parsertimeutil.NewTimeConverter(baseTime, func(int, parser.Time, parser.Time) {})
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
+		converter := parsertimeutil.NewTimeConverter(baseTime, clock, func(int, parser.Time, parser.Time) {})
 
 		actions := map[time.Time]func() messagerbl.Result{
 			// the clock is "behind" the log time, so the log time should be used for the insight instead
