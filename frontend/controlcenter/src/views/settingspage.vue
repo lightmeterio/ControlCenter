@@ -461,7 +461,7 @@ export default {
           end_users_enabled: false
         },
         insights: {
-          bounce_rate_threshold: 30
+          bounce_rate_threshold: "…"
         }
       },
       prev_settings: {},
