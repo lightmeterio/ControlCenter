@@ -91,7 +91,7 @@ func TestSettingsPage(t *testing.T) {
 					"public_url":        "",
 				},
 				"insights": map[string]interface{}{
-					"bounce_rate_threshold": float64(30),
+					"bounce_rate_threshold": float64(5),
 				},
 				"notifications": map[string]interface{}{
 					"language": "",
@@ -229,7 +229,7 @@ func TestSettingsPage(t *testing.T) {
 					"public_url":        "",
 				},
 				"insights": map[string]interface{}{
-					"bounce_rate_threshold": float64(30),
+					"bounce_rate_threshold": float64(5),
 				},
 				"notifications": map[string]interface{}{
 					"language": "en",
@@ -334,7 +334,7 @@ func TestSettingsPage(t *testing.T) {
 						"public_url":        "",
 					},
 					"insights": map[string]interface{}{
-						"bounce_rate_threshold": float64(30),
+						"bounce_rate_threshold": float64(5),
 					},
 					"notifications": map[string]interface{}{
 						"language": "de",
