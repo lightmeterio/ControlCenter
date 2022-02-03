@@ -21,6 +21,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"log"
 	"os"
 	"path"
@@ -80,7 +81,7 @@ func main() {
 
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, postfix.SumPair{}, &fakeAnnouncer{}, false, false, "default", dirwatcher.DefaultLogPatterns)
+			return dirlogsource.New(inputDirectory, postfix.SumPair{}, &fakeAnnouncer{}, false, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
 		}
 
 		f, err := os.Open(inputFile)

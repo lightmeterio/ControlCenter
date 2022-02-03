@@ -11,6 +11,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"net"
 	"testing"
 	"time"
@@ -33,7 +34,9 @@ func TestRBL(t *testing.T) {
 
 		done, cancel := runner.Run(detector)
 
-		converter := parsertimeutil.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), func(int, parser.Time, parser.Time) {})
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-02 00:00:00 +0000`)}
+
+		converter := parsertimeutil.NewTimeConverter(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), clock, func(int, parser.Time, parser.Time) {})
 
 		record := func(s string) postfix.Record {
 			h, p, err := parser.Parse(s)
