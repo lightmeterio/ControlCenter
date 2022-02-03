@@ -109,9 +109,6 @@ clean_mocks:
 dependencies.svg: go.sum go.mod
 	go mod graph | tools/gen_deps_graph.py | dot -Tsvg > dependencies.svg
 
-make testlocal:
-	./tools/go_test_local.sh
-
 postfix_parser:
 	go generate gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/rawparser
 
