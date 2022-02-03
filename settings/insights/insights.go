@@ -32,7 +32,7 @@ func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return &Settings{
 			// default settings
-			BounceRateThreshold: 30,
+			BounceRateThreshold: 5,
 		}, nil
 	}
 
