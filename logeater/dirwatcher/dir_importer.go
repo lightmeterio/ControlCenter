@@ -1332,7 +1332,9 @@ func (importer *DirectoryImporter) run(watch bool) error {
 		done()
 	}
 
-	err = importExistingLogs(importer.clock, offsetChans, converterChans, importer.content, queues, importer.pub, importer.sum, importer.announcer, importer.patterns, importer.format)
+	ignoringPublisher := &ignoringPublisher{pub: importer.pub, lastPublishedSumPair: importer.sum}
+
+	err = importExistingLogs(importer.clock, offsetChans, converterChans, importer.content, queues, ignoringPublisher, importer.sum, importer.announcer, importer.patterns, importer.format)
 
 	if err != nil {
 		interruptWatching()
@@ -1361,7 +1363,7 @@ func (importer *DirectoryImporter) run(watch bool) error {
 			Sum:      postfix.ComputeChecksum(hasher, r.line),
 		}
 
-		importer.pub.Publish(record)
+		ignoringPublisher.Publish(record)
 	}
 
 	// It should never get here in production, only used by the tests
@@ -1376,4 +1378,30 @@ func payloadOrNil(p parser.Payload, err error) parser.Payload {
 	}
 
 	return nil
+}
+
+type ignoringPublisher struct {
+	pub                  postfix.Publisher
+	lastPublishedSumPair postfix.SumPair
+}
+
+func (pub *ignoringPublisher) Publish(r postfix.Record) {
+	if pub.lastPublishedSumPair.Time.IsZero() {
+		pub.lastPublishedSumPair = postfix.SumPair{Time: r.Time, Sum: &r.Sum}
+		pub.pub.Publish(r)
+
+		return
+	}
+
+	// Do not let old logs be published
+	if r.Time.Before(pub.lastPublishedSumPair.Time) {
+		return
+	}
+
+	if r.Time == pub.lastPublishedSumPair.Time && r.Sum == *pub.lastPublishedSumPair.Sum {
+		return
+	}
+
+	pub.lastPublishedSumPair = postfix.SumPair{Time: r.Time, Sum: &r.Sum}
+	pub.pub.Publish(r)
 }

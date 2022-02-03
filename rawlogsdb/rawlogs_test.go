@@ -51,7 +51,7 @@ func TestFetchingLogLines(t *testing.T) {
 			So(sum.Sum, ShouldBeNil)
 		}
 
-		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
+		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 		cancel()
 		So(done(), ShouldBeNil)
@@ -131,7 +131,7 @@ func TestDeleteLogs(t *testing.T) {
 		})
 
 		Convey("With existing logs", func() {
-			postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020)
+			postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/4_lost_queue.log", pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 			// remove the first items
 			rawLogs.Actions <- makeCleanAction(5*time.Second, 40)
@@ -175,7 +175,7 @@ func TestFetchingRawContent(t *testing.T) {
 
 		done, cancel := runner.Run(rawLogs)
 
-		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/5_zimbra_amavisd.log", pub, 2020)
+		postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/5_zimbra_amavisd.log", pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 		cancel()
 		So(done(), ShouldBeNil)

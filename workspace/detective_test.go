@@ -43,7 +43,9 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
-	builder, err := transform.Get("default", year)
+	clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`3000-01-01 00:00:00 +0000`)}
+
+	builder, err := transform.Get("default", clock, year)
 	So(err, ShouldBeNil)
 
 	// needed to prevent the insights execution of blocking

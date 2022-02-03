@@ -47,7 +47,7 @@ Sep  1 05:23:56 mail postfix/smtps/smtpd[11962]: disconnect from unknown[unknown
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from localhost[127.0.0.1] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
 Sep  3 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 Sep  3 11:30:51 mail dovecot: auth: passwd-file(alice,1.2.3.4): unknown user (SHA1 of given password: 011c94)
-		`), pub, 2020)
+		`), pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-10-15 00:00:00 +0000`)})
 
 		cancel()
 		So(done(), ShouldBeNil)
@@ -199,7 +199,7 @@ Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.5
 Sep  4 11:30:51 mail dovecot: auth: passwd-file(alice,44.44.44.44): unknown user (SHA1 of given password: 011c94)
 Sep 18 18:54:59 mail dovecot: auth: policy(maintenance,55.55.55.55): Authentication failure due to policy server refusal
 Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
-		`), pub, 2020)
+		`), pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 		cancel()
 		So(done(), ShouldBeNil)
@@ -255,7 +255,7 @@ Jul 13 17:41:40 mail postfix/smtpd[26098]: disconnect from unknown[11.22.33.44] 
 Sep  3 10:40:57 mail postfix/smtpd[8377]: disconnect from lalala.com[1002:1712:4e2b:d061:5dff:19f:c85f:a48f] ehlo=1 auth=0/1 commands=1/2
 Sep  4 10:40:57 mail postfix/smtpd[9715]: disconnect from example.com[22.33.44.55] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
 Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
-		`), pub, 2020)
+		`), pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 		// removes 2 entry older than 5months
 		stats.Actions <- makeCleanAction(time.Hour*24*30*5, 2)

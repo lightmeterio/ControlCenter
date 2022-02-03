@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"strings"
 	"testing"
 	"time"
@@ -48,9 +49,11 @@ func TestPostfixVersionPublisher(t *testing.T) {
 		settingsWriter := writeRunner.Writer()
 		settingsReader := handler.Reader
 
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-08-10 10:00:00 +0000`)}
+
 		p := NewPublisher(settingsWriter)
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/postfix-script[15017]: starting the Postfix mail system"), p, 2020)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/postfix-script[15017]: starting the Postfix mail system"), p, 2020, clock)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version unset", func() {
@@ -59,7 +62,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 			So(version, ShouldBeNil)
 		})
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2020)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2020, clock)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version set", func() {
@@ -68,7 +71,7 @@ func TestPostfixVersionPublisher(t *testing.T) {
 			So(*version, ShouldEqual, "3.4.14")
 		})
 
-		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 42.0, configuration /etc/postfix"), p, 2020)
+		postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 42.0, configuration /etc/postfix"), p, 2019, clock)
 		time.Sleep(100 * time.Millisecond)
 
 		Convey("Version overriden", func() {

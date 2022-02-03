@@ -45,7 +45,7 @@ Jan  1 00:04:00 mail postfix/smtpd[9715]: disconnect from localhost[127.0.0.1] e
 Jan  1 00:06:00 mail postfix/smtpd[26099]: disconnect from unknown[44.55.66.77] ehlo=1 auth=7/8 rset=1 quit=1 commands=10/11
 Jan  1 00:13:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78] ehlo=1 auth=0/1 commands=1/2
 Jan  1 00:14:00 mail postfix/smtpd[123456]: disconnect from unknown[12.34.56.78] unknown=1 bdat=1 helo=1 starttls=1 noop=1 vrfy=1 etrn=1 xclient=1 xforward=1 commands=9
-		`), pub, 2020)
+		`), pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-01-01 10:00:00 +0000`)})
 
 		cancel()
 		So(done(), ShouldBeNil)
