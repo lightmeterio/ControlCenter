@@ -259,6 +259,7 @@ func generateInsight(tx *sql.Tx, c core.Clock, creator core.Creator, interval ti
 		Content: Content{
 			Interval: interval,
 		},
+		MustBeNotified: true,
 	}
 
 	if err := creator.GenerateInsight(context.Background(), tx, properties); err != nil {
