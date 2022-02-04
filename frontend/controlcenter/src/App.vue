@@ -412,7 +412,8 @@ footer p {
 
 svg.lm-info-circle-grayblue {
   color: #c5c7c6;
-  &:hover {
+  &:hover,
+  &:active {
     color: #2c9cd6;
   }
 }

@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -22,10 +23,6 @@ const (
 	HighBaseBounceRateContentType   = "high_bounce_rate"
 	HighBaseBounceRateContentTypeId = 1
 )
-
-type Options struct {
-	BaseBounceRateThreshold float32
-}
 
 type bounceRateGenerator struct {
 	creator                     core.Creator
@@ -57,36 +54,36 @@ func (g *bounceRateGenerator) generate(interval timeutil.TimeInterval, value flo
 	g.value = &BounceRateContent{Value: value, Interval: interval}
 }
 
-type highRateDetector struct {
+type Detector struct {
 	bounceRateThreshold float32
 	dashboard           dashboard.Dashboard
 	generators          []*bounceRateGenerator
 }
 
-func (highRateDetector) IsHistoricalDetector() {
+func (*Detector) IsHistoricalDetector() {
 	// Required by the historical import
 }
 
-func (*highRateDetector) Close() error {
+func (*Detector) Close() error {
 	return nil
 }
 
-func NewDetector(creator core.Creator, options core.Options) core.Detector {
-	d, ok := options["dashboard"].(dashboard.Dashboard)
+func (d *Detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {
+	d.bounceRateThreshold = float32(settings.BounceRateThreshold) / 100
+}
 
+func (d *Detector) GetBounceRateThreshold() float32 {
+	return d.bounceRateThreshold
+}
+
+func NewDetector(settings *insightsSettings.Settings, creator core.Creator, options core.Options) core.Detector {
+	dashboard, ok := options["dashboard"].(dashboard.Dashboard)
 	if !ok {
 		errorutil.MustSucceed(errors.New("Invalid dashboard"))
 	}
 
-	detectorOptions, ok := options["highrate"].(Options)
-
-	if !ok {
-		errorutil.MustSucceed(errors.New("Invalid Options"))
-	}
-
-	return &highRateDetector{
-		dashboard:           d,
-		bounceRateThreshold: detectorOptions.BaseBounceRateThreshold,
+	detector := &Detector{
+		dashboard: dashboard,
 		generators: []*bounceRateGenerator{
 			{
 				creator:                     creator,
@@ -97,6 +94,10 @@ func NewDetector(creator core.Creator, options core.Options) core.Detector {
 			},
 		},
 	}
+
+	detector.UpdateOptionsFromSettings(settings)
+
+	return detector
 }
 
 func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator, threshold float32, d dashboard.Dashboard, c core.Clock, tx *sql.Tx) error {
@@ -160,7 +161,7 @@ func tryToDetectAndGenerateInsight(ctx context.Context, gen *bounceRateGenerator
 	return nil
 }
 
-func (d *highRateDetector) Step(c core.Clock, tx *sql.Tx) error {
+func (d Detector) Step(c core.Clock, tx *sql.Tx) error {
 	ctx := context.Background()
 
 	for _, g := range d.generators {

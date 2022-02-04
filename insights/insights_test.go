@@ -16,9 +16,11 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/language"
@@ -109,6 +111,9 @@ func (d *fakeDetector) setValue(v *fakeValue) {
 func (fakeDetector) IsHistoricalDetector() {
 }
 
+func (fakeDetector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {
+}
+
 func (*fakeDetector) Close() error {
 	return nil
 }
@@ -160,6 +165,14 @@ func (d *fakeDetector) Step(clock core.Clock, tx *sql.Tx) error {
 
 func TestEngine(t *testing.T) {
 	Convey("Test Insights Generator", t, func() {
+		settingdDB, removeDB := testutil.TempDBConnectionMigrated(t, "master")
+		defer removeDB()
+
+		handler, err := metadata.NewHandler(settingdDB)
+		So(err, ShouldBeNil)
+
+		settingsReader := handler.Reader
+
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, "insights")
 		defer closeConn()
 
@@ -180,7 +193,7 @@ func TestEngine(t *testing.T) {
 			fetcher, err := core.NewFetcher(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
-			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(&settingsReader, c, fetcher, nc, core.Options{}, func(settings *insightsSettings.Settings, c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			}, noAdditionalActions)
@@ -395,7 +408,7 @@ func TestEngine(t *testing.T) {
 			fetcher, err := core.NewFetcher(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
-			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(&settingsReader, c, fetcher, nc, core.Options{}, func(settings *insightsSettings.Settings, c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -430,7 +443,7 @@ func TestEngine(t *testing.T) {
 			fetcher, err := core.NewFetcher(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
-			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(&settingsReader, c, fetcher, nc, core.Options{}, func(settings *insightsSettings.Settings, c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -466,7 +479,7 @@ func TestEngine(t *testing.T) {
 			fetcher, err := core.NewFetcher(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
-			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(&settingsReader, c, fetcher, nc, core.Options{}, func(settings *insightsSettings.Settings, c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
@@ -502,7 +515,7 @@ func TestEngine(t *testing.T) {
 			fetcher, err := core.NewFetcher(conn.RoConnPool)
 			So(err, ShouldBeNil)
 
-			e, err := NewCustomEngine(c, fetcher, nc, core.Options{}, func(c *creator, o core.Options) []core.Detector {
+			e, err := NewCustomEngine(&settingsReader, c, fetcher, nc, core.Options{}, func(settings *insightsSettings.Settings, c *creator, o core.Options) []core.Detector {
 				detector.creator = c
 				return []core.Detector{detector}
 			},
