@@ -13,7 +13,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -125,8 +124,6 @@ func (*detector) Close() error {
 }
 
 const countDeliveriesInIntervalQueryKey = "countDeliveriesInInterval"
-
-func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	pool, ok := options["logsConnPool"].(*dbconn.RoPool)

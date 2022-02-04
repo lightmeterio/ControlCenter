@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"reflect"
@@ -90,8 +89,6 @@ type detector struct {
 	options Options
 	creator core.Creator
 }
-
-func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["detective"].(Options)

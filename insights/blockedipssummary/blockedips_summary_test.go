@@ -18,7 +18,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -37,9 +36,6 @@ func init() {
 type composedDetector struct {
 	blockedIPsDetector core.Detector
 	summaryDetector    core.Detector
-}
-
-func (d *composedDetector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {
 }
 
 func (d *composedDetector) Step(c core.Clock, tx *sql.Tx) error {

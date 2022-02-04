@@ -11,7 +11,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -25,8 +24,6 @@ type detector struct {
 func (detector) Close() error {
 	return nil
 }
-
-func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(fetcher core.Fetcher, interval timeutil.TimeInterval) core.Detector {
 	return &detector{fetcher: fetcher, interval: interval}

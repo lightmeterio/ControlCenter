@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/messagerbl"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"time"
@@ -100,8 +99,6 @@ type detector struct {
 func (detector) IsHistoricalDetector() {
 	// Really empty, just to implement the HistoricalDetector interface
 }
-
-func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator, options core.Options) core.Detector {
 	detectorOptions, ok := options["messagerbl"].(Options)
