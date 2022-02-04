@@ -24,10 +24,6 @@ const (
 	HighBaseBounceRateContentTypeId = 1
 )
 
-type Options struct {
-	BaseBounceRateThreshold int
-}
-
 type bounceRateGenerator struct {
 	creator                     core.Creator
 	value                       *BounceRateContent
