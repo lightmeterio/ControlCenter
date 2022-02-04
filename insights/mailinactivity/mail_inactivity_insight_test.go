@@ -168,7 +168,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			clock.Sleep(time.Hour * 24)
 			cycle(clock)
 
-			// 2000-01-03 11:00, t+59, do not generate insight
+			// 2000-01-03 11:00, t+59, generate insight
 			clock.Sleep(time.Hour * 2)
 			cycle(clock)
 
