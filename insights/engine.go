@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
@@ -57,6 +58,7 @@ type Engine struct {
 	runner.CancellableRunner
 	closers.Closers
 
+	metaReader      *metadata.Reader
 	accessor        *Accessor
 	core            *core.Core
 	txActions       chan txAction
@@ -66,24 +68,30 @@ type Engine struct {
 }
 
 func NewCustomEngine(
-	c *Accessor,
+	metaReader *metadata.Reader,
+	insightsAccessor *Accessor,
 	fetcher core.Fetcher,
 	notificationCenter *notification.Center,
 	options core.Options,
-	buildDetectors func(*creator, core.Options) []core.Detector,
+	buildDetectors func(*insightsSettings.Settings, *creator, core.Options) []core.Detector,
 	additionalActions func([]core.Detector, dbconn.RwConn, core.Clock) error,
 ) (*Engine, error) {
-	creator, err := newCreator(c.conn.RwConn, notificationCenter)
+	settings, err := insightsSettings.GetSettings(context.Background(), *metaReader)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	progressFetcher, err := core.NewProgressFetcher(c.conn.RoConnPool)
+	creator, err := newCreator(insightsAccessor.conn.RwConn, notificationCenter)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	detectors := buildDetectors(creator, options)
+	progressFetcher, err := core.NewProgressFetcher(insightsAccessor.conn.RoConnPool)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	detectors := buildDetectors(settings, creator, options)
 
 	core, err := core.New(detectors)
 	if err != nil {
@@ -97,7 +105,8 @@ func NewCustomEngine(
 
 	e := &Engine{
 		Closers:         closers.New(core),
-		accessor:        c,
+		metaReader:      metaReader,
+		accessor:        insightsAccessor,
 		core:            core,
 		txActions:       make(chan txAction, 1024),
 		fetcher:         fetcher,
@@ -124,7 +133,7 @@ func NewCustomEngine(
 				return
 			}
 
-			if err := additionalActions(detectors, c.conn.RwConn, &realClock{}); err != nil {
+			if err := additionalActions(detectors, insightsAccessor.conn.RwConn, &realClock{}); err != nil {
 				done <- errorutil.Wrap(err)
 				return
 			}
@@ -137,6 +146,21 @@ func NewCustomEngine(
 	e.CancellableRunner = runner.NewCancellableRunner(execute)
 
 	return e, nil
+}
+
+func (e *Engine) UpdateCoreDetectorsFromSettings() error {
+	settings, err := insightsSettings.GetSettings(context.Background(), *e.metaReader)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	e.core.UpdateDetectorsFromSettings(settings)
+
+	return nil
+}
+
+func (e *Engine) GetCoreDetectors() []core.Detector {
+	return e.core.Detectors
 }
 
 func spawnInsightsJob(clock core.Clock, e *Engine, cancel <-chan struct{}) {

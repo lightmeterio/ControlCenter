@@ -11,7 +11,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/blockedipssummary"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
-	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
 	localrblinsight "gitlab.com/lightmeter/controlcenter/insights/localrbl"
 	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
@@ -41,7 +40,6 @@ func insightsOptions(
 	return insightscore.Options{
 		"logsConnPool":   deliverydbConnPool,
 		"dashboard":      dashboard,
-		"highrate":       highrateinsight.Options{BaseBounceRateThreshold: 0.3},
 		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
 
 		"localrbl": localrblinsight.Options{

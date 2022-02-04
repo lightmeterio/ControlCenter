@@ -16,8 +16,8 @@ import (
 	insighttestsutil "gitlab.com/lightmeter/controlcenter/insights/testutil"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
-	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
@@ -97,7 +97,13 @@ func TestReporter(t *testing.T) {
 		accessor, err := insights.NewAccessor(conn)
 		So(err, ShouldBeNil)
 
-		noAdditionalActions := func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
+		settingdDB, removeDB := testutil.TempDBConnectionMigrated(t, "master")
+		defer removeDB()
+
+		handler, err := metadata.NewHandler(settingdDB)
+		So(err, ShouldBeNil)
+
+		settingsReader := handler.Reader
 
 		intelDb, clear := testutil.TempDBConnectionMigrated(t, "intel-collector")
 		defer clear()
@@ -106,12 +112,13 @@ func TestReporter(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		e, err := insights.NewCustomEngine(
+			&settingsReader,
 			accessor,
 			insightsFetcher,
 			&notification.Center{},
 			core.Options{},
 			insights.NoDetectors,
-			noAdditionalActions)
+			insights.NoAdditionalActions)
 
 		So(err, ShouldBeNil)
 

@@ -16,7 +16,7 @@ import (
 )
 
 // Executed only on development builds, for better developer experience
-func (d *highRateDetector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
+func (d *Detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	for _, g := range d.generators {
 		now := c.Now()
 

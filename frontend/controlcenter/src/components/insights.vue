@@ -237,6 +237,23 @@ SPDX-License-Identifier: AGPL-3.0-only
                   </span>
 
                   <span
+                    v-if="insight.content_type === 'high_bounce_rate'"
+                    v-on:click="
+                      trackClick('Settings', 'highBounceRateInsightClick')
+                    "
+                    v-b-tooltip.hover
+                    :title="titleEditInsightSettings"
+                  >
+                    <router-link to="/settings">
+                      <i
+                        class="fas fa-cog"
+                        data-toggle="tooltip"
+                        data-placement="bottom"
+                      ></i
+                    ></router-link>
+                  </span>
+
+                  <span
                     v-if="insight.category.toLowerCase() != 'archived'"
                     v-on:click="
                       archiveInsight(insight.id, insight.content_type)
@@ -457,6 +474,9 @@ export default {
     },
     titleForDetectiveInsightWindow() {
       return this.$gettext("Failed deliveries reported");
+    },
+    titleEditInsightSettings() {
+      return this.$gettext("Edit settings for insights generation");
     },
     detectiveInsightSender() {
       return `<strong>` + this.detectiveInsight.content.sender + `</strong>`;
@@ -1039,6 +1059,18 @@ function formatDateForDetectiveInsightModalWindow(d) {
 .insights .insight-actions svg {
   font-size: 1.3em;
   color: #c5c7c6;
+
+  &:hover,
+  &:active {
+    color: #2c9cd6;
+  }
+
+  &.fa-times-circle {
+    &:hover,
+    &:active {
+      color: #e67e22;
+    }
+  }
 }
 
 .insights .card-text.description button {

@@ -10,8 +10,14 @@ import (
 	"github.com/rs/zerolog/log"
 	slackAPI "github.com/slack-go/slack"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/dashboard"
+	"gitlab.com/lightmeter/controlcenter/deliverydb"
+	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
+	"gitlab.com/lightmeter/controlcenter/insights"
+	"gitlab.com/lightmeter/controlcenter/insights/core"
+	"gitlab.com/lightmeter/controlcenter/insights/highrate"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
@@ -22,8 +28,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/message/catalog"
 	"net"
 	"net/http"
@@ -42,6 +50,12 @@ type dummySubscriber struct{}
 func (*dummySubscriber) Subscribe(ctx context.Context, email string) error {
 	log.Info().Msgf("A dummy call that would otherwise subscribe email %v to Lightmeter newsletter :-)", email)
 	return nil
+}
+
+type fakeFetcher struct{}
+
+func (f *fakeFetcher) FetchInsights(c context.Context, o core.FetchOptions, t timeutil.Clock) ([]core.FetchedInsight, error) {
+	return nil, nil
 }
 
 type fakeNotifier struct {
@@ -70,8 +84,14 @@ func (p *fakeSlackPoster) PostMessage(channelID string, options ...slackAPI.MsgO
 	return "", "", p.err
 }
 
-func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Reader, *notification.Center, *fakeSlackPoster, func()) {
+func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Reader, *notification.Center, *fakeSlackPoster, *insights.Engine, func()) {
 	conn, closeConn := testutil.TempDBConnectionMigrated(t, "master")
+	connInsights, closeConnInsights := testutil.TempDBConnectionMigrated(t, "insights")
+	connLogs, closeConnLogs := testutil.TempDBConnectionMigrated(t, "logs")
+
+	// NOTE: finish migration of logs
+	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping)
+	So(err, ShouldBeNil)
 
 	m, err := metadata.NewHandler(conn)
 	So(err, ShouldBeNil)
@@ -104,18 +124,37 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 
 	center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), notification.PassPolicy, notifiers)
 
-	setup := NewSettings(writer, m.Reader, initialSetupSettings, center)
+	insightsAccessor, err := insights.NewAccessor(connInsights)
+	So(err, ShouldBeNil)
 
-	return setup, writer, m.Reader, center, fakeSlackPoster, func() {
+	dashboard, err := dashboard.New(connLogs.RoConnPool)
+	So(err, ShouldBeNil)
+
+	insightsEngine, err := insights.NewCustomEngine(
+		&m.Reader,
+		insightsAccessor,
+		&fakeFetcher{},
+		center,
+		core.Options{"dashboard": dashboard},
+		insights.SettingsDetectors,
+		insights.NoAdditionalActions,
+	)
+	So(err, ShouldBeNil)
+
+	setup := NewSettings(writer, m.Reader, initialSetupSettings, center, insightsEngine)
+
+	return setup, writer, m.Reader, center, fakeSlackPoster, insightsEngine, func() {
 		cancel()
 		done()
 		closeConn()
+		closeConnInsights()
+		closeConnLogs()
 	}
 }
 
 func TestInitialSetup(t *testing.T) {
 	Convey("Initial Setup", t, func() {
-		setup, _, _, _, _, clear := buildTestSetup(t)
+		setup, _, _, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -216,7 +255,7 @@ func TestInitialSetup(t *testing.T) {
 
 func TestAppSettings(t *testing.T) {
 	Convey("Settings Setup", t, func() {
-		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		setup, writer, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -251,7 +290,7 @@ func TestAppSettings(t *testing.T) {
 	})
 
 	Convey("Clear general settings", t, func() {
-		setup, writer, reader, _, _, clear := buildTestSetup(t)
+		setup, writer, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -325,7 +364,7 @@ func (c fakeContent) Metadata() notificationCore.ContentMetadata {
 
 func TestSlackNotifications(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		setup, _, reader, center, fakeSlackPoster, clear := buildTestSetup(t)
+		setup, _, reader, center, fakeSlackPoster, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -446,7 +485,7 @@ func TestSlackNotifications(t *testing.T) {
 	})
 
 	Convey("Reset slack settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		setup, _, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -495,7 +534,7 @@ func TestSlackNotifications(t *testing.T) {
 
 func TestEmailNotifications(t *testing.T) {
 	Convey("Email Notifications", t, func() {
-		setup, w, _, center, _, clear := buildTestSetup(t)
+		setup, w, _, center, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		// set some basic global settings required by the email notifier
@@ -599,7 +638,7 @@ func TestEmailNotifications(t *testing.T) {
 	})
 
 	Convey("Reset email settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		setup, _, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		emailBackend := &email.FakeMailBackend{ExpectedUser: "user@example.com", ExpectedPassword: "super_password"}
@@ -659,7 +698,7 @@ func TestEmailNotifications(t *testing.T) {
 
 func TestWalkthroughSettings(t *testing.T) {
 	Convey("Integration Settings Setup", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		setup, _, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		chain := httpmiddleware.New()
@@ -729,6 +768,115 @@ func TestWalkthroughSettings(t *testing.T) {
 						asMap, ok := body.(map[string]interface{})
 						So(ok, ShouldBeTrue)
 						So(asMap["walkthrough"], ShouldResemble, map[string]interface{}{"completed": true})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestInsightsSettings(t *testing.T) {
+	Convey("Insights Settings", t, func() {
+		setup, _, reader, _, _, insightsEngine, clear := buildTestSetup(t)
+		defer clear()
+
+		chain := httpmiddleware.New()
+		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
+
+		w := &insightsSettings.Settings{}
+		So(errors.Is(reader.RetrieveJson(dummyContext, insightsSettings.SettingKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
+
+		c := &http.Client{}
+
+		s := httptest.NewServer(handler)
+
+		Convey("Save", func() {
+			querySettingsParameter := "?setting=insights"
+			settingsURL := s.URL + querySettingsParameter
+
+			Convey("Fails", func() {
+				Convey("Invalid Form data", func() {
+					r, err := c.Post(settingsURL, "application/x-www-form-urlencoded", strings.NewReader(`^^%`))
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+
+				Convey("Invalid mime type", func() {
+					r, err := c.Post(settingsURL, "ksajdhfk*I&^&*^87678  $$343", nil)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+
+				Convey("Incompatible Method", func() {
+					r, err := c.Head(settingsURL)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
+				})
+
+				Convey("Invalid option", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold": {"abc"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold": {"1000"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold": {"-1"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold": {"0.5"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+			})
+
+			Convey("Success", func() {
+				Convey("Set to 53%", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold": {"53"},
+					})
+
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+					i := &insightsSettings.Settings{}
+					So(reader.RetrieveJson(dummyContext, insightsSettings.SettingKey, i), ShouldBeNil)
+					So(i.BounceRateThreshold, ShouldEqual, 53)
+
+					Convey("Retrieve", func() {
+						r, err := c.Get(s.URL)
+						So(err, ShouldBeNil)
+						So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+						body, err := decodeBodyAsJson(r.Body)
+						So(err, ShouldBeNil)
+
+						asMap, ok := body.(map[string]interface{})
+						So(ok, ShouldBeTrue)
+						So(asMap["insights"], ShouldResemble, map[string]interface{}{"bounce_rate_threshold": float64(53)})
+					})
+
+					Convey("Detectors should be updated", func() {
+						foundHighRateDetectors := 0
+
+						for _, d := range insightsEngine.GetCoreDetectors() {
+							if hrd, ok := d.(*highrate.Detector); ok {
+								So(hrd.GetBounceRateThreshold(), ShouldEqual, 0.53)
+								foundHighRateDetectors++
+							}
+						}
+
+						So(foundHighRateDetectors, ShouldEqual, 1)
 					})
 				})
 			})
