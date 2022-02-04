@@ -10,7 +10,6 @@ import (
 	"database/sql"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
-	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"time"
 )
@@ -22,8 +21,6 @@ type detector struct {
 func (*detector) Close() error {
 	return nil
 }
-
-func (d *detector) UpdateOptionsFromSettings(settings *insightsSettings.Settings) {}
 
 func NewDetector(creator core.Creator) core.Detector {
 	return &detector{creator}
