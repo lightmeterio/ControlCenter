@@ -11,13 +11,14 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"io"
 )
 
 type Clock = timeutil.Clock
 
 type Detector interface {
+	io.Closer
 	Step(Clock, *sql.Tx) error
-	Close() error
 }
 
 type HistoricalDetector interface {
