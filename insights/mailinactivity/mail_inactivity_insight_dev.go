@@ -16,7 +16,7 @@ import (
 )
 
 // Executed only on development builds, for better developer experience
-func (d *detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
+func (d *Detector) GenerateSampleInsight(tx *sql.Tx, c core.Clock) error {
 	if err := generateInsight(tx, c, d.creator, timeutil.TimeInterval{From: c.Now().Add(-d.options.LookupRange), To: c.Now()}); err != nil {
 		return errorutil.Wrap(err)
 	}

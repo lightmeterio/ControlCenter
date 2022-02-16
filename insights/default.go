@@ -30,13 +30,14 @@ func NoDetectors(settings *insightsSettings.Settings, creator *creator, options 
 func SettingsDetectors(settings *insightsSettings.Settings, creator *creator, options core.Options) []core.Detector {
 	return []core.Detector{
 		highrate.NewDetector(settings, creator, options),
+		mailinactivity.NewDetector(settings, creator, options),
 	}
 }
 
 func defaultDetectors(settings *insightsSettings.Settings, creator *creator, options core.Options) []core.Detector {
 	return []core.Detector{
 		highrate.NewDetector(settings, creator, options),
-		mailinactivity.NewDetector(creator, options),
+		mailinactivity.NewDetector(settings, creator, options),
 		welcome.NewDetector(creator),
 		localrblinsight.NewDetector(creator, options),
 		messagerblinsight.NewDetector(creator, options),

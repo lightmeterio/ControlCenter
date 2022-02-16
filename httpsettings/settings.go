@@ -633,22 +633,63 @@ func (h *Settings) InsightsHandler(w http.ResponseWriter, r *http.Request) error
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	bounceRateThreshold, err := strconv.Atoi(r.Form.Get("bounce_rate_threshold"))
-	if err != nil {
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	settings := &insightsSettings.Settings{}
+
+	if err := setBounceRateThreshold(r, settings); err != nil {
+		return err
 	}
 
-	if bounceRateThreshold < 0 || bounceRateThreshold > 100 {
-		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid threshold value out of [0-100] interval")))
+	if err := setMailInactivity(r, settings); err != nil {
+		return err
 	}
 
-	if err := h.writer.StoreJsonSync(r.Context(), insightsSettings.SettingKey, &insightsSettings.Settings{BounceRateThreshold: bounceRateThreshold}); err != nil {
+	if err := h.writer.StoreJsonSync(r.Context(), insightsSettings.SettingKey, settings); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
 	if err := h.insightsEngine.UpdateCoreDetectorsFromSettings(); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
+
+	return nil
+}
+
+func setBounceRateThreshold(r *http.Request, settings *insightsSettings.Settings) httperror.XHTTPError {
+	bounceRateThreshold, err := strconv.Atoi(r.Form.Get("bounce_rate_threshold"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if bounceRateThreshold < 0 || bounceRateThreshold > 100 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid threshold value out of [0-100] interval")))
+	}
+
+	settings.BounceRateThreshold = bounceRateThreshold
+
+	return nil
+}
+
+func setMailInactivity(r *http.Request, settings *insightsSettings.Settings) httperror.XHTTPError {
+	lookupRange, err := strconv.Atoi(r.Form.Get("mail_inactivity_lookup_range"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if lookupRange < 1 || lookupRange > 999 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid time value out of [1-999] interval")))
+	}
+
+	minInterval, err := strconv.Atoi(r.Form.Get("mail_inactivity_min_interval"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if minInterval < 1 || minInterval > 999 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid time value out of [1-999] interval")))
+	}
+
+	settings.MailInactivityLookupRange = lookupRange
+	settings.MailInactivityMinInterval = minInterval
 
 	return nil
 }

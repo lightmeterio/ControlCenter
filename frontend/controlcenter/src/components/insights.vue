@@ -237,7 +237,10 @@ SPDX-License-Identifier: AGPL-3.0-only
                   </span>
 
                   <span
-                    v-if="insight.content_type === 'high_bounce_rate'"
+                    v-if="
+                      insight.content_type === 'high_bounce_rate' ||
+                        insight.content_type === 'mail_inactivity'
+                    "
                     v-on:click="
                       trackClick('Settings', 'highBounceRateInsightClick')
                     "

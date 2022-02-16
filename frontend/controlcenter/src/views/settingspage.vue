@@ -13,9 +13,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <translate>Settings</translate>
       </h2>
       <div class="form-container">
-        <h5 class="form-heading">
+        <h3 class="form-heading">
           <translate>Notifications</translate>
-        </h5>
+        </h3>
 
         <b-form
           data-subsection="language"
@@ -283,9 +283,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           </b-form-group>
         </b-form>
 
-        <h5 class="form-heading">
+        <h3 class="form-heading">
           <translate>General</translate>
-        </h5>
+        </h3>
 
         <b-form @submit="onGeneralSettingsSubmit">
           <b-form-group
@@ -333,9 +333,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
         </b-form>
 
-        <h5 class="form-heading">
+        <h3 class="form-heading">
           <translate>Message Detective</translate>
-        </h5>
+        </h3>
 
         <b-form @submit="onDetectiveSettingsSubmit">
           <p
@@ -372,9 +372,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
         </b-form>
 
-        <h5 class="form-heading">
+        <h3 class="form-heading">
           <translate>Insights</translate>
-        </h5>
+        </h3>
 
         <b-form @submit="onInsightsSettingsSubmit">
           <b-form-group
@@ -393,6 +393,50 @@ SPDX-License-Identifier: AGPL-3.0-only
                 name="bounce_rate_threshold"
                 min="0"
                 max="100"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <h4 class="form-heading">
+            <translate>Mail Inactivity</translate>
+          </h4>
+
+          <b-form-group
+            :label="LabelMailInactivityLookupRange"
+            :description="DescriptionMailInactivityLookupRange"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="hours">
+              <b-form-input
+                required
+                v-model="settings.insights.mail_inactivity_lookup_range"
+                type="number"
+                name="mail_inactivity_lookup_range"
+                min="1"
+                max="999"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <b-form-group
+            :label="LabelMailInactivityMinInterval"
+            :description="DescriptionMailInactivityMinInterval"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="hours">
+              <b-form-input
+                required
+                v-model="settings.insights.mail_inactivity_min_interval"
+                type="number"
+                name="mail_inactivity_min_interval"
+                min="1"
+                max="999"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -461,7 +505,9 @@ export default {
           end_users_enabled: false
         },
         insights: {
-          bounce_rate_threshold: "…"
+          bounce_rate_threshold: "…",
+          mail_inactivity_lookup_range: "…",
+          mail_inactivity_min_interval: "…"
         }
       },
       prev_settings: {},
@@ -605,7 +651,23 @@ export default {
     },
     DescriptionBounceRateThreshold() {
       return this.$gettext(
-        "If the ratio of bounced emails to sent emails gets above this percentage, an insight is generated."
+        "If the ratio of bounced emails to sent emails gets above this percentage, an insight is generated"
+      );
+    },
+    LabelMailInactivityLookupRange() {
+      return this.$gettext("Inactivity timeframe");
+    },
+    DescriptionMailInactivityLookupRange() {
+      return this.$gettext(
+        "If there aren't any sent or received email in X hours, generate an insight (+ email/slack notification)"
+      );
+    },
+    LabelMailInactivityMinInterval() {
+      return this.$gettext("Max 1 insight / X hours");
+    },
+    DescriptionMailInactivityMinInterval() {
+      return this.$gettext(
+        "Don't generate an insight more frequently than one every X hours"
       );
     },
     DetectiveEndUsersHelpText() {
@@ -768,7 +830,11 @@ export default {
       event.preventDefault();
 
       submitInsightsSettingsForm({
-        bounce_rate_threshold: this.settings.insights.bounce_rate_threshold
+        bounce_rate_threshold: this.settings.insights.bounce_rate_threshold,
+        mail_inactivity_lookup_range: this.settings.insights
+          .mail_inactivity_lookup_range,
+        mail_inactivity_min_interval: this.settings.insights
+          .mail_inactivity_min_interval
       });
     }
   },
@@ -798,7 +864,11 @@ h2.form-heading {
   font-size: 32px;
 }
 
-h5.form-heading {
+h3.form-heading {
+  font-size: 24px;
+}
+
+h4.form-heading {
   font-size: 18px;
 }
 
