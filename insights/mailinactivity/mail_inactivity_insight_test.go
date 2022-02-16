@@ -19,6 +19,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -57,12 +58,11 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 		connPair := accessor.ConnPair
 
-		lookupRange := time.Hour * 24
+		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
+		lookupRangeInt := 24
+		lookupRange := time.Hour * time.Duration(lookupRangeInt)
 
-		detector := NewDetector(accessor, core.Options{
-			"logsConnPool":   conn.RoConnPool,
-			"mailinactivity": Options{LookupRange: lookupRange, MinTimeGenerationInterval: time.Hour * 8},
-		})
+		detector := NewDetector(&insightsSettings.Settings{MailInactivityLookupRange: lookupRangeInt, MailInactivityMinInterval: 8}, accessor, core.Options{"logsConnPool": conn.RoConnPool})
 
 		cycle := func(c *insighttestsutil.FakeClock) {
 			tx, err := connPair.RwConn.Begin()
@@ -75,7 +75,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			cancel()
 			So(done(), ShouldBeNil)
 
-			clock := &insighttestsutil.FakeClock{Time: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange)}
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(lookupRange)}
 
 			// do not generate insight
 			cycle(clock)
@@ -84,19 +84,19 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		})
 
 		Convey("Server stays inactive for one day", func() {
-			baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
-
-			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(lookupRange)}
+			receivedMessageTime := baseTime.Add(1 * time.Hour).Unix()               // t + 1h
+			sentMessageTime := baseTime.Add(lookupRange).Add(10 * time.Hour).Unix() // t + 34h
 
 			// There is some inbound activity in the first 8 hours
 			result1 := tracking.Result{}
+			result1[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(receivedMessageTime)
+
 			result1[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText("sender")
 			result1[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText("sender.example.com")
 			result1[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText("recipient")
 			result1[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("recipient.example.com")
 			result1[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(parser.SentStatus))
 			result1[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionIncoming))
-			result1[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(baseTime.Add(1 * time.Hour).Unix())
 			result1[tracking.QueueMessageIDKey] = tracking.ResultEntryText("msgid1")
 			result1[tracking.QueueOriginalMessageSizeKey] = tracking.ResultEntryInt64(35)
 			result1[tracking.QueueProcessedMessageSizeKey] = tracking.ResultEntryInt64(42)
@@ -116,13 +116,14 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 
 			// Then there is some outbound activity in the final 8 hours
 			result2 := tracking.Result{}
+			result2[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(sentMessageTime)
+
 			result2[tracking.QueueSenderLocalPartKey] = tracking.ResultEntryText("sender")
 			result2[tracking.QueueSenderDomainPartKey] = tracking.ResultEntryText("sender.example.com")
 			result2[tracking.ResultRecipientLocalPartKey] = tracking.ResultEntryText("recipient")
 			result2[tracking.ResultRecipientDomainPartKey] = tracking.ResultEntryText("recipient.example.com")
 			result2[tracking.ResultStatusKey] = tracking.ResultEntryInt64(int64(parser.SentStatus))
 			result2[tracking.ResultMessageDirectionKey] = tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound))
-			result2[tracking.ResultDeliveryTimeKey] = tracking.ResultEntryInt64(baseTime.Add(lookupRange).Add(10 * time.Hour).Unix())
 			result2[tracking.QueueMessageIDKey] = tracking.ResultEntryText("msgid2")
 			result2[tracking.QueueOriginalMessageSizeKey] = tracking.ResultEntryInt64(35)
 			result2[tracking.QueueProcessedMessageSizeKey] = tracking.ResultEntryInt64(42)
@@ -141,39 +142,70 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			cancel()
 			So(done(), ShouldBeNil)
 
-			// do not generate insight
+			/*
+			 * at 24:00, there was activity within [0-24:00] received message at 1:00 => no insight
+			 * at 32:00, there was no activity within [08:00-32:00] => insight!
+			 * at 33:00, there was no activity within [09:00-33:00] BUT there was an insight 1h before => no insight
+			 * at 57:00, there was activity within [33:00-57:00], sent message at 34:00 => no insight
+			 * at 59:00, there was no activity within [35:00-59:00] + no insight generated since 32:00 => insight!
+			 */
+
+			// t+24 - start
+			clock := &insighttestsutil.FakeClock{Time: baseTime.Add(lookupRange)}
+
+			// 2000-01-02 00:00, t+24, do not generate insight
 			cycle(clock)
 
-			// Generate insight
+			// 2000-01-02 08:00, t+32, generate insight
 			clock.Sleep(time.Hour * 8)
 			cycle(clock)
 
-			// do not generate insight
-			clock.Sleep(time.Hour * 8)
+			// 2000-01-02 09:00, t+33, do not generate insight
+			clock.Sleep(time.Hour * 1)
 			cycle(clock)
 
-			So(accessor.Insights, ShouldResemble, []int64{1})
+			// 2000-01-03 09:00, t+57, do not generate insight
+			clock.Sleep(time.Hour * 24)
+			cycle(clock)
 
-			So(len(accessor.Insights), ShouldEqual, 1)
+			// 2000-01-03 11:00, t+59, generate insight
+			clock.Sleep(time.Hour * 2)
+			cycle(clock)
+
+			So(accessor.Insights, ShouldResemble, []int64{1, 2})
+
+			So(len(accessor.Insights), ShouldEqual, 2)
 
 			insights, err := accessor.FetchInsights(dummyContext, core.FetchOptions{Interval: timeutil.TimeInterval{
-				From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`),
-				To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(lookupRange),
+				From: baseTime,
+				To:   baseTime.Add(lookupRange * 4),
 			}}, clock)
 
 			So(err, ShouldBeNil)
 
-			So(len(insights), ShouldEqual, 1)
+			So(len(insights), ShouldEqual, 2)
 
-			So(insights[0].ID(), ShouldEqual, 1)
+			So(insights[1].ID(), ShouldEqual, 1)
+			So(insights[1].ContentType(), ShouldEqual, ContentType)
+			So(insights[1].Rating(), ShouldEqual, core.OkRating)
+			So(insights[1].Time(), ShouldEqual, baseTime.Add(lookupRange).Add(time.Hour*8))
+			So(insights[1].Content(), ShouldResemble, &Content{
+				Interval: timeutil.TimeInterval{
+					From: baseTime.Add(time.Hour * 8),
+					To:   baseTime.Add(lookupRange).Add(time.Hour * 8),
+				},
+			})
+
+			So(insights[0].ID(), ShouldEqual, 2)
 			So(insights[0].ContentType(), ShouldEqual, ContentType)
 			So(insights[0].Rating(), ShouldEqual, core.OkRating)
-			So(insights[0].Time(), ShouldEqual, testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour*8))
+			So(insights[0].Time(), ShouldEqual, baseTime.Add(time.Hour*59))
 			So(insights[0].Content(), ShouldResemble, &Content{
 				Interval: timeutil.TimeInterval{
-					From: testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(time.Hour * 8),
-					To:   testutil.MustParseTime(`2000-01-01 00:00:00 +0000`).Add(lookupRange).Add(time.Hour * 8),
-				}})
+					From: baseTime.Add(time.Hour * 35),
+					To:   baseTime.Add(time.Hour * 59),
+				},
+			})
 		})
 	})
 }

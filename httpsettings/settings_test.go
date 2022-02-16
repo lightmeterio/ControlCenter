@@ -18,6 +18,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights"
 	"gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/highrate"
+	"gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
@@ -39,6 +40,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -135,7 +137,10 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 		insightsAccessor,
 		&fakeFetcher{},
 		center,
-		core.Options{"dashboard": dashboard},
+		core.Options{
+			"dashboard":    dashboard,
+			"logsConnPool": connLogs.RoConnPool,
+		},
 		insights.SettingsDetectors,
 		insights.NoAdditionalActions,
 	)
@@ -813,27 +818,69 @@ func TestInsightsSettings(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusMethodNotAllowed)
 				})
 
-				Convey("Invalid option", func() {
+				Convey("Invalid option for bounce_rate_threshold", func() {
 					r, err := c.PostForm(settingsURL, url.Values{
-						"bounce_rate_threshold": {"abc"},
+						"bounce_rate_threshold":        {"abc"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"8"},
 					})
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
 					r, err = c.PostForm(settingsURL, url.Values{
-						"bounce_rate_threshold": {"1000"},
+						"bounce_rate_threshold":        {"1000"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"8"},
 					})
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
 					r, err = c.PostForm(settingsURL, url.Values{
-						"bounce_rate_threshold": {"-1"},
+						"bounce_rate_threshold":        {"-1"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"8"},
 					})
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
 					r, err = c.PostForm(settingsURL, url.Values{
-						"bounce_rate_threshold": {"0.5"},
+						"bounce_rate_threshold":        {"0.5"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"8"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+				})
+
+				Convey("Invalid option for mail_inactivity", func() {
+					r, err := c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold":        {"50"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"abc"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold":        {"50"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"0"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold":        {"50"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"1000"},
+					})
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
+
+					r, err = c.PostForm(settingsURL, url.Values{
+						"bounce_rate_threshold":        {"50"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"10.12"},
 					})
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
@@ -843,7 +890,9 @@ func TestInsightsSettings(t *testing.T) {
 			Convey("Success", func() {
 				Convey("Set to 53%", func() {
 					r, err := c.PostForm(settingsURL, url.Values{
-						"bounce_rate_threshold": {"53"},
+						"bounce_rate_threshold":        {"53"},
+						"mail_inactivity_lookup_range": {"12"},
+						"mail_inactivity_min_interval": {"8"},
 					})
 
 					So(err, ShouldBeNil)
@@ -863,20 +912,37 @@ func TestInsightsSettings(t *testing.T) {
 
 						asMap, ok := body.(map[string]interface{})
 						So(ok, ShouldBeTrue)
-						So(asMap["insights"], ShouldResemble, map[string]interface{}{"bounce_rate_threshold": float64(53)})
+						So(asMap["insights"], ShouldResemble, map[string]interface{}{
+							"bounce_rate_threshold":        float64(53),
+							"mail_inactivity_lookup_range": float64(12),
+							"mail_inactivity_min_interval": float64(8),
+						})
 					})
 
 					Convey("Detectors should be updated", func() {
-						foundHighRateDetectors := 0
+						foundDetectors := map[string]int{
+							"hrd": 0,
+							"mi":  0,
+						}
 
-						for _, d := range insightsEngine.GetCoreDetectors() {
+						detectors := insightsEngine.GetCoreDetectors()
+						So(len(detectors), ShouldEqual, 2)
+
+						for _, d := range detectors {
 							if hrd, ok := d.(*highrate.Detector); ok {
 								So(hrd.GetBounceRateThreshold(), ShouldEqual, 0.53)
-								foundHighRateDetectors++
+								foundDetectors["hrd"]++
+							}
+
+							if mi, ok := d.(*mailinactivity.Detector); ok {
+								So(mi.GetOptions().LookupRange, ShouldEqual, time.Hour*12)
+								So(mi.GetOptions().MinTimeGenerationInterval, ShouldEqual, time.Hour*8)
+								foundDetectors["mi"]++
 							}
 						}
 
-						So(foundHighRateDetectors, ShouldEqual, 1)
+						So(foundDetectors["hrd"], ShouldEqual, 1)
+						So(foundDetectors["mi"], ShouldEqual, 1)
 					})
 				})
 			})

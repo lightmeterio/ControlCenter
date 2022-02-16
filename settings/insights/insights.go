@@ -12,7 +12,12 @@ import (
 )
 
 type Settings struct {
+	// High bounce rate insight
 	BounceRateThreshold int `json:"bounce_rate_threshold"`
+
+	// Mail inactivity settings
+	MailInactivityLookupRange int `json:"mail_inactivity_lookup_range"`
+	MailInactivityMinInterval int `json:"mail_inactivity_min_interval"`
 }
 
 const SettingKey = "insights"
@@ -32,7 +37,9 @@ func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return &Settings{
 			// default settings
-			BounceRateThreshold: 5,
+			BounceRateThreshold:       5,
+			MailInactivityLookupRange: 24,
+			MailInactivityMinInterval: 12,
 		}, nil
 	}
 

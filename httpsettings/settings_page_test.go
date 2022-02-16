@@ -91,7 +91,9 @@ func TestSettingsPage(t *testing.T) {
 					"public_url":        "",
 				},
 				"insights": map[string]interface{}{
-					"bounce_rate_threshold": float64(5),
+					"bounce_rate_threshold":        float64(5),
+					"mail_inactivity_lookup_range": float64(24),
+					"mail_inactivity_min_interval": float64(12),
 				},
 				"notifications": map[string]interface{}{
 					"language": "",
@@ -138,7 +140,9 @@ func TestSettingsPage(t *testing.T) {
 			{
 				r, err := c.PostForm(settingsServer.URL+"?setting=insights",
 					notificationValuesToPost(url.Values{
-						"bounce_rate_threshold": {"80"},
+						"bounce_rate_threshold":        {"80"},
+						"mail_inactivity_lookup_range": {"10"},
+						"mail_inactivity_min_interval": {"10"},
 					}))
 				So(err, ShouldBeNil)
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -171,7 +175,9 @@ func TestSettingsPage(t *testing.T) {
 					"public_url":        "https://example.com/lightmeter",
 				},
 				"insights": map[string]interface{}{
-					"bounce_rate_threshold": float64(80),
+					"bounce_rate_threshold":        float64(80),
+					"mail_inactivity_lookup_range": float64(10),
+					"mail_inactivity_min_interval": float64(10),
 				},
 				"notifications": map[string]interface{}{
 					"language": "en",
@@ -229,7 +235,9 @@ func TestSettingsPage(t *testing.T) {
 					"public_url":        "",
 				},
 				"insights": map[string]interface{}{
-					"bounce_rate_threshold": float64(5),
+					"bounce_rate_threshold":        float64(5),
+					"mail_inactivity_lookup_range": float64(24),
+					"mail_inactivity_min_interval": float64(12),
 				},
 				"notifications": map[string]interface{}{
 					"language": "en",
@@ -334,7 +342,9 @@ func TestSettingsPage(t *testing.T) {
 						"public_url":        "",
 					},
 					"insights": map[string]interface{}{
-						"bounce_rate_threshold": float64(5),
+						"bounce_rate_threshold":        float64(5),
+						"mail_inactivity_lookup_range": float64(24),
+						"mail_inactivity_min_interval": float64(12),
 					},
 					"notifications": map[string]interface{}{
 						"language": "de",
