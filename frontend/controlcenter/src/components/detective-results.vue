@@ -38,6 +38,16 @@ SPDX-License-Identifier: AGPL-3.0-only
           Queue ID: %{queue} / Message ID: %{mid}
         </div>
 
+        <b-button
+          v-on:click="downloadRawLogsInInterval(result)"
+          variant="primary"
+          size="sm"
+          style="margin-left: 1rem;"
+        >
+          <i class="fas fa-download"></i>
+          <translate>Logs</translate>
+        </b-button>
+
         <div v-show="showFromTo" class="card-text">
           {{ result.entries[0].from }} → {{ result.entries[0].to.join(", ") }}
         </div>
@@ -89,9 +99,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script>
 import { humanDateTime } from "@/lib/date.js";
 import tracking from "@/mixin/global_shared.js";
+import moment from "moment";
+
+import { linkToRawLogsInInterval } from "@/lib/api.js";
 
 function emailDate(d) {
   return humanDateTime(d);
+}
+
+function formatTimeWithOffsetInSeconds(t, offsetInSeconds) {
+  return moment
+    .utc(t)
+    .add(offsetInSeconds, "s")
+    .format("YYYY-MM-DD HH:mm:ss");
 }
 
 export default {
@@ -111,6 +131,14 @@ export default {
     }
   },
   methods: {
+    downloadRawLogsInInterval(result) {
+      let from = formatTimeWithOffsetInSeconds(result.entries[0].time_min, -10);
+      let to = formatTimeWithOffsetInSeconds(result.entries[0].time_max, +5);
+
+      let link = linkToRawLogsInInterval(from, to);
+
+      window.open(link);
+    },
     hasMultipleDeliveryAttempts(delivery) {
       return delivery.number_of_attempts > 1;
     },
