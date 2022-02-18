@@ -86,6 +86,7 @@ func formatRawLogsFilename(interval timeutil.TimeInterval) string {
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
 // @Param format query string gzip "Format of the result. Supported values: gzip, plain"
+// @Param disposition query string inline "Use inline to display the response in the browser"
 // @Success 200 {object} string "desc"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/fetchRawLogsInTimeInterval [get]
@@ -94,11 +95,19 @@ func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 	writer, releaseWriter := func() (io.Writer, func() error) {
 		format := r.Form.Get("format")
+		disposition := r.Form.Get("disposition")
 
 		switch format {
 		case "plain":
 			w.Header()["Content-Type"] = []string{"text/plain"}
-			w.Header()["Content-Disposition"] = []string{formatRawLogsFilename(interval)}
+
+			w.Header()["Content-Disposition"] = []string{func() string {
+				if disposition == "inline" {
+					return "inline"
+				}
+
+				return formatRawLogsFilename(interval)
+			}()}
 
 			return w, func() error { return nil }
 		case "gzip":
