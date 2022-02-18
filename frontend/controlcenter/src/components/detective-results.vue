@@ -12,23 +12,37 @@ SPDX-License-Identifier: AGPL-3.0-only
       class="detective-result-cell card list-unstyled"
     >
       <li class="card-body">
-        <ul class="status-list list-unstyled">
-          <li
-            v-for="(delivery, statusIndex) in result.entries"
-            :key="statusIndex"
-            :class="statusClass(delivery.status)"
-            :title="statusTitle(delivery.status)"
+        <div class="card-status-logs">
+          <ul class="status-list list-unstyled">
+            <li
+              v-for="(delivery, statusIndex) in result.entries"
+              :key="statusIndex"
+              :class="statusClass(delivery.status)"
+              :title="statusTitle(delivery.status)"
+            >
+              {{ delivery.status }}
+            </li>
+            <li
+              :class="statusClass('expired')"
+              :title="statusTitle('expired')"
+              v-show="isExpired(result)"
+            >
+              expired
+            </li>
+          </ul>
+
+          <b-button
+            v-on:click="downloadRawLogsInInterval(result)"
+            variant="primary"
+            size="sm"
+            style="margin-left: 1rem;"
+            v-b-tooltip.hover
+            :title="titleDownloadLogsAroundDelivery"
           >
-            {{ delivery.status }}
-          </li>
-          <li
-            :class="statusClass('expired')"
-            :title="statusTitle('expired')"
-            v-show="isExpired(result)"
-          >
-            expired
-          </li>
-        </ul>
+            <i class="fas fa-download"></i>
+            <translate>Logs</translate>
+          </b-button>
+        </div>
 
         <div
           v-show="showQueues"
@@ -37,16 +51,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         >
           Queue ID: %{queue} / Message ID: %{mid}
         </div>
-
-        <b-button
-          v-on:click="downloadRawLogsInInterval(result)"
-          variant="primary"
-          size="sm"
-          style="margin-left: 1rem;"
-        >
-          <i class="fas fa-download"></i>
-          <translate>Logs</translate>
-        </b-button>
 
         <div v-show="showFromTo" class="card-text">
           {{ result.entries[0].from }} → {{ result.entries[0].to.join(", ") }}
@@ -224,6 +228,11 @@ export default {
   computed: {
     showStatusCodeMoreInfo() {
       return this.results != null && this.results.length > 0;
+    },
+    titleDownloadLogsAroundDelivery: function() {
+      return this.$gettext(
+        "View mail server logs around this delivery (-10s +5s)"
+      );
     }
   }
 };
@@ -263,6 +272,11 @@ export default {
   font-weight: bold;
   padding-left: 5px;
   padding-right: 5px;
+}
+
+.card-status-logs {
+  display: flex;
+  justify-content: space-between;
 }
 
 .detective-result-attempts {

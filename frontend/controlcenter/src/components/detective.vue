@@ -114,6 +114,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           variant="primary"
           size="sm"
           style="margin-left: 1rem;"
+          v-b-tooltip.hover
+          :title="titleDownloadLogsTimeInterval"
         >
           <i class="fas fa-download"></i>
           <translate>Logs</translate>
@@ -210,6 +212,11 @@ export default {
       }
 
       return this.results.messages.length > 0;
+    },
+    titleDownloadLogsTimeInterval: function() {
+      return this.$gettext(
+        "Download mail server logs for selected time interval"
+      );
     }
   },
   methods: {
