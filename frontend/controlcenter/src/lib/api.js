@@ -454,9 +454,20 @@ export function countLogLinesInInterval(selectedDateFrom, selectedDateTo) {
     .catch(errorHandler);
 }
 
-export function linkToRawLogsInInterval(selectedDateFrom, selectedDateTo) {
+export function linkToRawLogsInInterval(
+  selectedDateFrom,
+  selectedDateTo,
+  format,
+  inline
+) {
   const timeIntervalUrlParams =
-    "from=" + encodeURI(selectedDateFrom) + "&to=" + encodeURI(selectedDateTo);
+    "from=" +
+    encodeURI(selectedDateFrom) +
+    "&to=" +
+    encodeURI(selectedDateTo) +
+    "&format=" +
+    (format != undefined ? format : "gzip") +
+    (inline != undefined ? "&disposition=inline" : "");
 
   return (
     BASE_URL + "api/v0/fetchRawLogsInTimeInterval?" + timeIntervalUrlParams

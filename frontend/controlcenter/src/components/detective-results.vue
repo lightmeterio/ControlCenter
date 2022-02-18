@@ -139,7 +139,7 @@ export default {
       let from = formatTimeWithOffsetInSeconds(result.entries[0].time_min, -10);
       let to = formatTimeWithOffsetInSeconds(result.entries[0].time_max, +5);
 
-      let link = linkToRawLogsInInterval(from, to);
+      let link = linkToRawLogsInInterval(from, to, "plain", "inline");
 
       window.open(link);
     },
