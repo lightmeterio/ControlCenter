@@ -13,9 +13,18 @@ import (
 )
 
 func HttpAuthenticator(mux *http.ServeMux, a *auth.Authenticator, settingsReader metadata.Reader, isBehindReverseProxy bool) {
-	// For endpoints constantly called by the UI (every 5sec once the user is logged in)
+	/* Endpoint /auth/check is constantly called in the UI:
+	 * - every 5sec once the user is logged (js interval)
+	 * - once on every page change (user action)
+	 *   (when the page changes, the js interval is reset)
+	 * So the limit in one minute can't be less than
+	 *   60/5 = 12 (js interval)
+	 *   or
+	 *   1 user call per second = 60 per minute (clicking frenzy by the user = js interval never triggers)
+	 * => rate-limit to 60 calls per minute
+	 */
 	unauthenticatedAndRateLimitedForFrequentCalls := httpmiddleware.WithDefaultStackWithoutAuth(
-		httpmiddleware.RequestWithRateLimit(1*time.Minute, 21, isBehindReverseProxy, httpmiddleware.BlockQuery),
+		httpmiddleware.RequestWithRateLimit(1*time.Minute, 60, isBehindReverseProxy, httpmiddleware.BlockQuery),
 	)
 
 	mux.Handle("/auth/check", unauthenticatedAndRateLimitedForFrequentCalls.
