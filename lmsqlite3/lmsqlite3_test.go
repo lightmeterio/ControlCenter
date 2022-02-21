@@ -56,3 +56,43 @@ func TestParsingTimeFromJSON(t *testing.T) {
 		})
 	})
 }
+
+func TestHostDomain(t *testing.T) {
+	Convey("Obtain the host domain from a domain", t, func() {
+		Convey("Unmanaged TLD, no subdomain", func() {
+			d, err := hostDomainFromDomain(`localhost`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `localhost`)
+		})
+
+		Convey("Unmanaged TLD", func() {
+			d, err := hostDomainFromDomain(`there.is.no.such-tld`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `no.such-tld`)
+		})
+
+		Convey("Unmanaged TLD, Fix case", func() {
+			d, err := hostDomainFromDomain(`THERE.Is.No.SUCh-TLD`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `no.such-tld`)
+		})
+
+		Convey("google.com", func() {
+			d, err := hostDomainFromDomain(`ALT2.ASPMX.L.GOOGLE.com`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `google.com`)
+		})
+
+		Convey("google.com.br", func() {
+			d, err := hostDomainFromDomain(`ALT2.ASPMX.L.GOOGLE.com.br`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `google.com.br`)
+		})
+
+		Convey("IP address returns itself", func() {
+			d, err := hostDomainFromDomain(`11.22.33.44`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `11.22.33.44`)
+		})
+	})
+}
