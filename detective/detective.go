@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
@@ -49,6 +50,8 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					remote_domains sender_domain    on sender_domain.id    = d.sender_domain_part_id
 				join
 					remote_domains recipient_domain on recipient_domain.id = d.recipient_domain_part_id
+				left join
+					next_relays relay on relay.id = d.next_relay_id
 				join
 					delivery_queue dq on dq.delivery_id = d.id
 				join
@@ -59,7 +62,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					(sender_local_part       = ? collate nocase or ? = '') and
 					(sender_domain.domain    = ? collate nocase or ? = '') and
 					(recipient_local_part    = ? collate nocase or ? = '') and
-					(recipient_domain.domain = ? collate nocase or ? = '') and
+					(recipient_domain.domain = ? collate nocase or relay.hostname like ? collate nocase or ? = '') and
 					(delivery_ts between ? and ?) and
 					(
 						status = ?
@@ -266,8 +269,10 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 
 	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx,
-		senderLocal, senderLocal, senderDomain, senderDomain,
-		recipientLocal, recipientLocal, recipientDomain, recipientDomain,
+		senderLocal, senderLocal,
+		senderDomain, senderDomain,
+		recipientLocal, recipientLocal,
+		recipientDomain, fmt.Sprintf("%%%s", recipientDomain), recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
 		status, status, status,
 		someID, someID, someID,

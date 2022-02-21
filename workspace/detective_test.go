@@ -79,6 +79,9 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 var bg = context.Background()
 
 func TestDetective(t *testing.T) {
+	noDeliveries := detective.Messages{}
+	noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
+
 	Convey("Detective on real logs", t, func() {
 		const year = 2020
 		var (
@@ -99,9 +102,6 @@ func TestDetective(t *testing.T) {
 		Convey("File with a successful delivery", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/3_local_delivery.log", year)
 			defer clear()
-
-			noDeliveries := detective.Messages{}
-			noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
 
 			Convey("Message found", func() {
 				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 1)
@@ -218,7 +218,7 @@ func TestDetective(t *testing.T) {
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-01-10 16:15:30 +0000`))
 		})
 
-		Convey("Multi-recipient email", func() {
+		Convey("Multi-recipient email and search by relay name", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/26_two_recipients.log", year)
 			defer clear()
 
@@ -255,6 +255,18 @@ func TestDetective(t *testing.T) {
 				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
+			})
+
+			Convey("Searching for relay name should find delivery as well", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "datmail-smtp.h-1e99c9eeac07", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
+			})
+
+			Convey("Searching for wrong relay should yield empty result", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "wrong.relay", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, noDeliveriesPage1)
 			})
 		})
 
