@@ -42,8 +42,8 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/text v0.3.5
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.0.0-20200917221617-d56e4e40bc9d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
