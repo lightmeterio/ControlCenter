@@ -64,8 +64,9 @@ func insightsOptions(
 		},
 
 		"blockedips": blockedipsinsight.Options{
-			Checker:      blockedipsChecker,
-			PollInterval: time.Minute * 2,
+			Checker:        blockedipsChecker,
+			PollInterval:   time.Minute * 2,
+			EventsInterval: time.Hour * 24,
 		},
 
 		"blockedips_summary": blockedipssummary.Options{

@@ -31,11 +31,11 @@ func init() {
 }
 
 type poolTimeChecker struct {
-	times []time.Time
+	intervals []timeutil.TimeInterval
 }
 
-func (c *poolTimeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
-	c.times = append(c.times, now)
+func (c *poolTimeChecker) Step(interval timeutil.TimeInterval, withResults func(blockedips.SummaryResult) error) error {
+	c.intervals = append(c.intervals, interval)
 	return nil
 }
 
@@ -48,8 +48,9 @@ func TestExecutionTimes(t *testing.T) {
 
 		d := NewDetector(accessor, core.Options{
 			"blockedips": Options{
-				Checker:      checker,
-				PollInterval: time.Second * 30,
+				Checker:        checker,
+				PollInterval:   time.Second * 30,
+				EventsInterval: 24 * time.Hour,
 			},
 		})
 
@@ -59,14 +60,14 @@ func TestExecutionTimes(t *testing.T) {
 		Convey("Execute every 30 seconds", func() {
 			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Minute*3+time.Second*2), 2*time.Second)
 
-			So(checker.times, ShouldResemble, []time.Time{
-				baseTime,
-				baseTime.Add(time.Second * 30),
-				baseTime.Add(time.Second * 60),
-				baseTime.Add(time.Second * 90),
-				baseTime.Add(time.Second * 120),
-				baseTime.Add(time.Second * 150),
-				baseTime.Add(time.Second * 180),
+			So(checker.intervals, ShouldResemble, []timeutil.TimeInterval{
+				{From: baseTime.Add(-24 * time.Hour), To: baseTime},
+				{From: baseTime.Add(time.Second * 30).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 30)},
+				{From: baseTime.Add(time.Second * 60).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 60)},
+				{From: baseTime.Add(time.Second * 90).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 90)},
+				{From: baseTime.Add(time.Second * 120).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 120)},
+				{From: baseTime.Add(time.Second * 150).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 150)},
+				{From: baseTime.Add(time.Second * 180).Add(-24 * time.Hour), To: baseTime.Add(time.Second * 180)},
 			})
 		})
 	})
@@ -81,8 +82,9 @@ func TestSummary(t *testing.T) {
 
 		d := NewDetector(accessor, core.Options{
 			"blockedips": Options{
-				Checker:      checker,
-				PollInterval: time.Second * 10,
+				Checker:        checker,
+				PollInterval:   time.Second * 10,
+				EventsInterval: 24 * time.Hour,
 			},
 		})
 
@@ -94,9 +96,13 @@ func TestSummary(t *testing.T) {
 			So(accessor.Insights, ShouldResemble, []int64{})
 		})
 
+		buildInterval := func(now time.Time) timeutil.TimeInterval {
+			return timeutil.TimeInterval{From: now.Add(-24 * time.Hour), To: now}
+		}
+
 		Convey("One insight is created", func() {
-			checker.Actions = map[time.Time]blockedips.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): {
+			checker.Actions = map[timeutil.TimeInterval]blockedips.SummaryResult{
+				buildInterval(testutil.MustParseTime(`2000-01-01 00:20:00 +0000`)): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "66.77.88.99", Count: 15},
@@ -133,8 +139,8 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("When a new insight is created, all the previous ones are archived", func() {
-			checker.Actions = map[time.Time]blockedips.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 01:00:00 +0000`): {
+			checker.Actions = map[timeutil.TimeInterval]blockedips.SummaryResult{
+				buildInterval(testutil.MustParseTime(`2000-01-01 01:00:00 +0000`)): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "55.66.77.88", Count: 15},
@@ -143,7 +149,7 @@ func TestSummary(t *testing.T) {
 					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
 					TotalIPs:    4,
 				},
-				testutil.MustParseTime(`2000-01-01 01:30:00 +0000`): {
+				buildInterval(testutil.MustParseTime(`2000-01-01 01:30:00 +0000`)): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 30},
 					},
@@ -151,7 +157,7 @@ func TestSummary(t *testing.T) {
 					Interval:    timeutil.MustParseTimeInterval(`2020-10-11`, `2020-10-11`),
 					TotalIPs:    2,
 				},
-				testutil.MustParseTime(`2000-01-01 01:40:00 +0000`): {
+				buildInterval(testutil.MustParseTime(`2000-01-01 01:40:00 +0000`)): {
 					TopIPs: []blockedips.BlockedIP{
 						{Address: "1.1.1.1", Count: 67},
 						{Address: "2.2.2.2", Count: 3},

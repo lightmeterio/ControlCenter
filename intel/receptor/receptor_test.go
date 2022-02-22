@@ -412,13 +412,17 @@ func TestBruteforceChecker(t *testing.T) {
 
 			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}
 
+			buildInterval := func() timeutil.TimeInterval {
+				return timeutil.TimeInterval{From: clock.Now().Add(-24 * time.Hour), To: clock.Now()}
+			}
+
 			drain(clock, Options{PollInterval: 10 * time.Millisecond, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
 
 			So(func() {
 				withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 					checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 100}
 
-					return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
+					return checker.Step(buildInterval(), func(r blockedips.SummaryResult) error {
 						panic("Should not be called!")
 					})
 				})
@@ -426,7 +430,22 @@ func TestBruteforceChecker(t *testing.T) {
 		})
 
 		Convey("One new event generates a new result", func() {
+			// Only blockedips summaries newer than 24h are used. This relates to Gitlab issue #641
+			// This event is ignored!
 			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`}).
+				Return(&Event{
+					ID:           `9fcaccc9-2452-4d52-aabb-39e850d0ba08`,
+					Type:         `blocked_ips`,
+					CreationTime: timeutil.MustParseTime(`2021-10-25 10:00:00 +0000`),
+					BlockedIPs: &BlockedIPs{
+						Interval: timeutil.MustParseTimeInterval(`2021-10-25`, `2021-10-25`),
+						List: []BlockedIP{
+							{Address: "10.1.1.1", Count: 67},
+						},
+					},
+				}, nil)
+
+			m.EXPECT().Request(gomock.Any(), Payload{InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`, LastKnownEventID: `9fcaccc9-2452-4d52-aabb-39e850d0ba08`, CreationTime: timeutil.MustParseTime(`2021-10-25 10:00:00 +0000`)}).
 				Return(&Event{
 					ID:           `8d303a39-44a0-449f-b734-6f1a333ad168`,
 					Type:         `blocked_ips`,
@@ -445,6 +464,10 @@ func TestBruteforceChecker(t *testing.T) {
 
 			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}
 
+			buildInterval := func() timeutil.TimeInterval {
+				return timeutil.TimeInterval{From: clock.Now().Add(-24 * time.Hour), To: clock.Now()}
+			}
+
 			drain(clock, Options{PollInterval: 10 * time.Millisecond, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
 
 			var results []*blockedips.SummaryResult
@@ -455,7 +478,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
+				return checker.Step(buildInterval(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
@@ -467,7 +490,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
+				return checker.Step(buildInterval(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
@@ -528,6 +551,10 @@ func TestBruteforceChecker(t *testing.T) {
 
 			clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-11-01 10:00:00 +0000`)}
 
+			buildInterval := func() timeutil.TimeInterval {
+				return timeutil.TimeInterval{From: clock.Now().Add(-24 * time.Hour), To: clock.Now()}
+			}
+
 			var results []*blockedips.SummaryResult
 
 			drain(clock, Options{PollInterval: 10 * time.Second, InstanceID: `f5a206d2-6865-4a0a-b04d-423c4ac9d233`})
@@ -538,7 +565,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
+				return checker.Step(buildInterval(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})
@@ -553,7 +580,7 @@ func TestBruteforceChecker(t *testing.T) {
 			withActions(clock, func(actions dbrunner.Actions, clock timeutil.Clock) error {
 				checker := &dbBruteForceChecker{pool: db.RoConnPool, actions: actions, listMaxSize: 2}
 
-				return checker.Step(clock.Now(), func(r blockedips.SummaryResult) error {
+				return checker.Step(buildInterval(), func(r blockedips.SummaryResult) error {
 					results = append(results, &r)
 					return nil
 				})

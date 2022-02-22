@@ -63,8 +63,9 @@ func TestSummary(t *testing.T) {
 				InsightsFetcher: accessor,
 			},
 			"blockedips": blockedips.Options{
-				Checker:      checker,
-				PollInterval: time.Second * 10,
+				Checker:        checker,
+				PollInterval:   time.Second * 10,
+				EventsInterval: 24 * time.Hour,
 			},
 		}
 
@@ -75,6 +76,10 @@ func TestSummary(t *testing.T) {
 
 		baseTime := testutil.MustParseTime(`2000-01-01 00:00:00 +0000`)
 		clock := &insighttestsutil.FakeClock{Time: baseTime}
+
+		buildInterval := func(now time.Time) timeutil.TimeInterval {
+			return timeutil.TimeInterval{From: now.Add(-24 * time.Hour), To: now}
+		}
 
 		Convey("No new  created as no blockedips insights were created during a week", func() {
 			insighttestsutil.ExecuteCyclesUntil(d, accessor, clock, baseTime.Add(time.Hour*24*9), 5*time.Minute)
@@ -90,8 +95,8 @@ func TestSummary(t *testing.T) {
 		})
 
 		Convey("One insight is created when 7 complete days have elapsed", func() {
-			checker.Actions = map[time.Time]intelblockedips.SummaryResult{
-				testutil.MustParseTime(`2000-01-01 00:20:00 +0000`): {
+			checker.Actions = map[timeutil.TimeInterval]intelblockedips.SummaryResult{
+				buildInterval(testutil.MustParseTime(`2000-01-01 00:20:00 +0000`)): {
 					TopIPs: []intelblockedips.BlockedIP{
 						{Address: "11.22.33.44", Count: 10},
 						{Address: "66.77.88.99", Count: 15},
@@ -100,7 +105,7 @@ func TestSummary(t *testing.T) {
 					Interval:    timeutil.MustParseTimeInterval(`2020-10-10`, `2020-10-10`),
 					TotalIPs:    4,
 				},
-				testutil.MustParseTime(`2000-01-03 00:25:00 +0000`): {
+				buildInterval(testutil.MustParseTime(`2000-01-03 00:25:00 +0000`)): {
 					TopIPs: []intelblockedips.BlockedIP{
 						{Address: "5.6.7.8", Count: 11},
 					},

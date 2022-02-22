@@ -7,15 +7,15 @@ package blockedips
 
 import (
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
-	"time"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 )
 
 type FakeChecker struct {
-	Actions map[time.Time]blockedips.SummaryResult
+	Actions map[timeutil.TimeInterval]blockedips.SummaryResult
 }
 
-func (c *FakeChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) error {
-	if result, ok := c.Actions[now]; ok {
+func (c *FakeChecker) Step(interval timeutil.TimeInterval, withResults func(blockedips.SummaryResult) error) error {
+	if result, ok := c.Actions[interval]; ok {
 		return withResults(result)
 	}
 
