@@ -6,11 +6,10 @@ package blockedips
 
 import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"time"
 )
 
 type Checker interface {
-	Step(time.Time, func(SummaryResult) error) error
+	Step(timeutil.TimeInterval, func(SummaryResult) error) error
 }
 
 type BlockedIP struct {
