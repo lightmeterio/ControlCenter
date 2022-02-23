@@ -12,6 +12,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -101,32 +102,47 @@ func (t *defaultTransformer) Transform(line string) (postfix.Record, error) {
 
 func init() {
 	Register("default", func(args ...interface{}) ([]interface{}, error) {
-		defaultYear := func() int { return time.Now().Year() }
-
 		if len(args) == 0 {
-			return []interface{}{defaultYear}, nil
+			return nil, fmt.Errorf("At least one argument is needed")
 		}
 
-		year, ok := args[0].(int)
+		clock, ok := args[0].(timeutil.Clock)
+		if !ok {
+			return nil, fmt.Errorf("A clock is needed on registering")
+		}
+
+		defaultYear := func() int { return clock.Now().Year() }
+
+		if len(args) == 1 {
+			return []interface{}{clock, defaultYear}, nil
+		}
+
+		year, ok := args[1].(int)
 
 		if !ok {
-			return nil, fmt.Errorf("Argument is not a valid year: %v", args[0])
+			return nil, fmt.Errorf("Argument is not a valid year: %v", args[1])
 		}
 
 		if year == 0 {
-			return []interface{}{defaultYear}, nil
+			return []interface{}{clock, defaultYear}, nil
 		}
 
-		return []interface{}{func() int { return year }}, nil
+		return []interface{}{clock, func() int { return year }}, nil
 	}, func(args ...interface{}) (Transformer, error) {
 		//nolint:forcetypeassert
-		getYear := args[0].(func() int)
+		clock, ok := args[0].(timeutil.Clock)
+		if !ok {
+			return nil, fmt.Errorf("A clock is needed on building")
+		}
+
+		//nolint:forcetypeassert
+		getYear := args[1].(func() int)
 
 		initialTime := time.Date(getYear(), time.January, 1, 0, 0, 0, 0, time.UTC)
 
 		return &defaultTransformer{
 			lineNo: 1,
-			converter: parsertimeutil.NewTimeConverter(initialTime, func(year int, previousTime parser.Time, newTime parser.Time) {
+			converter: parsertimeutil.NewTimeConverter(initialTime, clock, func(year int, previousTime parser.Time, newTime parser.Time) {
 				log.Info().Msgf("Year changed to %v", year)
 			}),
 		}, nil

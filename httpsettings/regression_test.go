@@ -24,7 +24,7 @@ func buildCookieClient() *http.Client {
 
 func TestRegressions(t *testing.T) {
 	Convey("Regressions", t, func() {
-		setup, _, _, _, _, clear := buildTestSetup(t)
+		setup, _, _, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		dir, clearDir := testutil.TempDir(t)

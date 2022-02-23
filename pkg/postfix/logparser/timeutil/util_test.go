@@ -5,10 +5,11 @@
 package timeutil
 
 import (
+	"github.com/golang/mock/gomock"
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 	"time"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestPostfixTimeConverter(t *testing.T) {
@@ -18,9 +19,9 @@ func TestPostfixTimeConverter(t *testing.T) {
 
 	Convey("With zeroed initial time", t, func() {
 		initialTime := DefaultTimeInYear(1999, tz)
+		c := NewTimeConverter(initialTime, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-12-15 10:00:00 +0000`)}, newYearNotifier)
 
 		Convey("Calls without changing year", func() {
-			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
 			So(c.year, ShouldEqual, 1999)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
@@ -30,7 +31,6 @@ func TestPostfixTimeConverter(t *testing.T) {
 		})
 
 		Convey("Change year if the calendar changes", func() {
-			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.December, Day: 31, Hour: 23, Minute: 59, Second: 58}).Unix(), ShouldEqual, 946684798)
 			So(c.year, ShouldEqual, 1999)
 			So(c.Convert(Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0}).Unix(), ShouldEqual, 946684800)
@@ -40,15 +40,14 @@ func TestPostfixTimeConverter(t *testing.T) {
 
 	Convey("With non zero initial time", t, func() {
 		initialTime := time.Date(1999, time.February, 20, 14, 52, 34, 0, tz)
+		c := NewTimeConverter(initialTime, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-12-15 10:00:00 +0000`)}, newYearNotifier)
 
 		Convey("Calls without changing year", func() {
-			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.May, Day: 25, Hour: 5, Minute: 12, Second: 22}).Unix(), ShouldEqual, 927609142)
 			So(c.year, ShouldEqual, 1999)
 		})
 
 		Convey("Calls changing year", func() {
-			c := NewTimeConverter(initialTime, newYearNotifier)
 			So(c.Convert(Time{Month: time.January, Day: 1, Hour: 0, Minute: 0, Second: 0}).Unix(), ShouldEqual, 946684800)
 			So(c.year, ShouldEqual, 2000)
 		})
@@ -63,7 +62,8 @@ func TestPostfixTimeConverter(t *testing.T) {
 
 		t = t.In(time.UTC)
 
-		c := NewTimeConverter(t, func(int, Time, Time) {})
+		c := NewTimeConverter(t, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-15 10:00:00 +0000`)}, newYearNotifier)
+
 		c.Convert(Time{Month: time.March, Day: 29, Hour: 2, Minute: 59, Second: 10})
 		So(c.year, ShouldEqual, 2020)
 
@@ -87,7 +87,7 @@ func TestPostfixTimeConverter(t *testing.T) {
 		initialTime := time.Date(2000, time.January, 1, 0, 0, 0, 0, tz)
 		yearOffset := 0
 
-		c := NewTimeConverter(initialTime, func(int, Time, Time) { yearOffset++ })
+		c := NewTimeConverter(initialTime, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-12-15 10:00:00 +0000`)}, func(int, Time, Time) { yearOffset++ })
 
 		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
 		c.Convert(Time{Month: time.December, Day: 17, Hour: 10, Minute: 42, Second: 27})
@@ -128,7 +128,7 @@ func TestPostfixTimeConverter(t *testing.T) {
 		initialTime := time.Date(2000, time.January, 1, 0, 0, 0, 0, tz)
 		yearOffset := 0
 
-		c := NewTimeConverter(initialTime, func(int, Time, Time) { yearOffset++ })
+		c := NewTimeConverter(initialTime, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-12-15 10:00:00 +0000`)}, func(int, Time, Time) { yearOffset++ })
 
 		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 59, Second: 45})
 		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 59, Second: 46})
@@ -137,5 +137,32 @@ func TestPostfixTimeConverter(t *testing.T) {
 		c.Convert(Time{Month: time.October, Day: 25, Hour: 2, Minute: 00, Second: 34})
 
 		So(c.year, ShouldEqual, 2000)
+	})
+}
+
+func TestYearChanges(t *testing.T) {
+	newYearNotifier := func(int, Time, Time) {}
+
+	ctrl := gomock.NewController(t)
+
+	defer ctrl.Finish()
+
+	clock := timeutil.NewMockClock(ctrl)
+
+	Convey("If the year changes to some value in the future, this is an error, as it should not happen!", t, func() {
+		converter := NewTimeConverter(timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`), clock, newYearNotifier)
+
+		clock.EXPECT().Now().Return(timeutil.MustParseTime(`2000-08-01 13:00:00 +0000`))
+		So(converter.Convert(Time{Month: time.March, Day: 24, Hour: 7, Minute: 34, Second: 56}), ShouldResemble, timeutil.MustParseTime(`2000-03-24 07:34:56 +0000`))
+
+		// Log jumped back to February, but we know the year has not changed yet. Do not bump year, as we cannot be in the future!
+		// This will yield a log line from earlier than the previous log, but let's not worry about it now!
+		// This happens due this bug: Gitlab #644
+		clock.EXPECT().Now().Return(timeutil.MustParseTime(`2000-08-01 13:00:00 +0000`)) // real time did not change, as we are reading logs very quickly
+		So(converter.Convert(Time{Month: time.February, Day: 24, Hour: 7, Minute: 34, Second: 56}), ShouldResemble, timeutil.MustParseTime(`2000-02-24 07:34:56 +0000`))
+
+		// log is only two seconds after the previous one
+		clock.EXPECT().Now().Return(timeutil.MustParseTime(`2000-08-01 13:00:00 +0000`)) // real time did not change, as we are reading logs very quickly
+		So(converter.Convert(Time{Month: time.February, Day: 24, Hour: 7, Minute: 34, Second: 58}), ShouldResemble, timeutil.MustParseTime(`2000-02-24 07:34:58 +0000`))
 	})
 }

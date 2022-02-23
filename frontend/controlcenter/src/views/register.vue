@@ -18,7 +18,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="field-group">
         <h4>
-          <!-- prettier-ignore -->
           <translate>User details</translate>
         </h4>
         <b-form @submit.stop.prevent="onSubmit">
@@ -58,45 +57,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <a href=""><i class="fa fa-eye" aria-hidden="true"></i></a>
               </div>
 
-              <div class="input-group">
-                <select
-                  required
-                  v-model="form.email_kind"
-                  class="form-control custom-select"
-                  name="email_kind"
-                  id="email_kind"
-                >
-                  <option value="" selected disabled>
-                    <!-- prettier-ignore -->
-                    <translate>Most of my mail is…</translate>
-                  </option>
-                  <option value="direct">
-                    <!-- prettier-ignore -->
-                    <translate>Direct (personal, office, one-to-one)</translate>
-                  </option>
-                  <option value="transactional">
-                    <!-- prettier-ignore -->
-                    <translate>Transactional (notifications, apps)</translate>
-                  </option>
-                  <option value="marketing">
-                    <!-- prettier-ignore -->
-                    <translate>Marketing (newsletters, adverts)</translate>
-                  </option>
-                </select>
-                <div class="input-group-append">
-                  <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    data-toggle="tooltip"
-                    data-placement="top"
-                    v-b-tooltip.hover
-                    :title="EmailKindHoverTitle"
-                  >
-                    <i class="far fa-question-circle"></i>
-                  </button>
-                </div>
-              </div>
-
               <b-form-checkbox
                 id="subscribe_newsletter"
                 v-model="form.subscribe_newsletter"
@@ -105,7 +65,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 unchecked-value="off"
                 class="custom-form-check-label"
               >
-                <!-- prettier-ignore -->
                 <translate>Subscribe to newsletter</translate>
               </b-form-checkbox>
             </b-input-group>
@@ -136,14 +95,13 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </div>
               </div>
               <b-form-invalid-feedback>
-                <!-- prettier-ignore -->
-                <translate>The Ip Address is invalid</translate
+                <translate
+                  >The Ip Address is invalid</translate
                 ></b-form-invalid-feedback
               >
             </b-form-group>
           </b-form-group>
           <b-button variant="primary" class="w-100" type="submit">
-            <!-- prettier-ignore -->
             <translate>Register</translate>
           </b-button>
         </b-form>
@@ -151,14 +109,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="card-body">
             <h5 class="card-title">
               <i class="fa fa-info-circle"></i>
-              <!-- prettier-ignore -->
+
               <translate class="text-blue">Terms of service</translate>
             </h5>
-            <!-- prettier-ignore -->
-            <p class="card-text"
-               v-translate
-               render-html="true">
-               %{openPeerNetworkLink}Peer networking%{closePeerNetworkLink} features require exchanging %{openPrivacyLink}data%{closePrivacyLink} with lightmeter.io servers. By registering you agree to the %{openTosLink}Terms of Service%{closeTosLink}. Feature usage data is %{openPrivacyLink}collected%{closePrivacyLink} to improve your experience.
+
+            <p class="card-text" v-translate render-html="true">
+              %{openPeerNetworkLink}Peer networking%{closePeerNetworkLink}
+              features require exchanging
+              %{openPrivacyLink}data%{closePrivacyLink} with lightmeter.io
+              servers. By registering you agree to the %{openTosLink}Terms of
+              Service%{closeTosLink}. Feature usage data is
+              %{openPrivacyLink}collected%{closePrivacyLink} to improve your
+              experience.
             </p>
           </div>
         </div>
@@ -215,7 +177,6 @@ export default {
         password: "",
         name: ``,
         subscribe_newsletter: null,
-        email_kind: "",
         postfix_public_ip: ""
       }
     };
@@ -253,7 +214,7 @@ export default {
       return `</a>`;
     },
     PostfixPublicIPInputPlaceholder() {
-      return this.$gettext("Postfix public IP");
+      return this.$gettext("Mail server public IP");
     },
     NameInputPlaceholder: function() {
       return this.$gettext("Name");
@@ -263,11 +224,6 @@ export default {
     },
     PasswordInputPlaceholder: function() {
       return this.$gettext("Password");
-    },
-    EmailKindHoverTitle: function() {
-      return this.$gettext(
-        "Different types of mail perform differently. This helps show the most relevant information."
-      );
     },
     progressIndicatorTitle() {
       return this.$gettext(`Generating Insights`);
@@ -289,7 +245,6 @@ export default {
 
       let settingsData = {
         email: this.form.email,
-        email_kind: this.form.email_kind,
         app_language: this.language,
         postfix_public_ip: this.form.postfix_public_ip
       };

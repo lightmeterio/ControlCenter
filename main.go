@@ -23,6 +23,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"gitlab.com/lightmeter/controlcenter/workspace"
 )
@@ -43,6 +44,11 @@ func main() {
 	conf, err := config.Parse(os.Args[1:], os.LookupEnv)
 	if err != nil {
 		errorutil.Dief(errorutil.Wrap(err), "Could not parse command-line arguments or environment variables")
+	}
+
+	if conf.GenerateDovecotConfig {
+		setupDovecotConfig(conf.DovecotConfigIsOld)
+		return
 	}
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Str("service", "controlcenter").Caller().Logger()
@@ -177,7 +183,7 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 			return nil, errorutil.Wrap(err)
 		}
 
-		s, err := dirlogsource.New(conf.DirToWatch, sum, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns)
+		s, err := dirlogsource.New(conf.DirToWatch, sum, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns, &timeutil.RealClock{})
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}

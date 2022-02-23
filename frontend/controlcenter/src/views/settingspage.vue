@@ -10,14 +10,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <b-container id="settings" class="main-content">
       <h2 class="form-heading">
-        <!-- prettier-ignore -->
         <translate>Settings</translate>
       </h2>
       <div class="form-container">
-        <h5 class="form-heading">
-          <!-- prettier-ignore -->
+        <h3 class="form-heading">
           <translate>Notifications</translate>
-        </h5>
+        </h3>
 
         <b-form
           data-subsection="language"
@@ -41,7 +39,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             <b-col cols="6">
               <b-form-group>
                 <b-button variant="outline-primary" type="submit">
-                  <!-- prettier-ignore -->
                   <translate>Save</translate>
                 </b-button>
               </b-form-group>
@@ -145,11 +142,10 @@ SPDX-License-Identifier: AGPL-3.0-only
                 id="mailServerSkipCertCheck"
                 v-model="settings.email_notifications.skip_cert_check"
               >
-                <!-- prettier-ignore -->
                 <translate>Allow insecure TLS</translate>
                 &nbsp;
                 <span v-b-tooltip.hover :title="InsecureTlsHelpText">
-                  <i class="fa fa-info-circle insight-help-button"></i>
+                  <i class="fa fa-info-circle lm-info-circle-grayblue"></i>
                 </span>
               </b-form-checkbox>
             </b-form-group>
@@ -218,7 +214,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-form-group>
             <div class="button-group">
               <b-button variant="outline-primary" type="submit">
-                <!-- prettier-ignore -->
                 <translate>Save</translate>
               </b-button>
               <b-button
@@ -226,7 +221,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 type="button"
                 @click="OnClearEmailNotificationsSettings"
               >
-                <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
@@ -276,7 +270,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             </b-form-group>
             <div class="button-group">
               <b-button variant="outline-primary" type="submit">
-                <!-- prettier-ignore -->
                 <translate>Save</translate>
               </b-button>
               <b-button
@@ -284,17 +277,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 type="button"
                 @click="OnClearSlackNotificationsSettings"
               >
-                <!-- prettier-ignore -->
                 <translate>Reset</translate>
               </b-button>
             </div>
           </b-form-group>
         </b-form>
 
-        <h5 class="form-heading">
-          <!-- prettier-ignore -->
+        <h3 class="form-heading">
           <translate>General</translate>
-        </h5>
+        </h3>
 
         <b-form @submit="onGeneralSettingsSubmit">
           <b-form-group
@@ -330,7 +321,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
-              <!-- prettier-ignore -->
               <translate>Save</translate>
             </b-button>
             <b-button
@@ -338,16 +328,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               type="button"
               @click="OnClearGeneralSettings"
             >
-              <!-- prettier-ignore -->
               <translate>Reset</translate>
             </b-button>
           </div>
         </b-form>
 
-        <h5 class="form-heading">
-          <!-- prettier-ignore -->
+        <h3 class="form-heading">
           <translate>Message Detective</translate>
-        </h5>
+        </h3>
 
         <b-form @submit="onDetectiveSettingsSubmit">
           <p
@@ -358,7 +346,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               closeLink: closeDetectiveLink
             }"
           >
-            Click %{openLink}here%{closeLink} to know more
+            See %{openLink}documentation%{closeLink} for details
           </p>
           <b-form-group :label="DetectiveEndUsersEnabled">
             <b-form-radio-group
@@ -379,7 +367,82 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           <div class="button-group">
             <b-button variant="outline-primary" type="submit">
-              <!-- prettier-ignore -->
+              <translate>Save</translate>
+            </b-button>
+          </div>
+        </b-form>
+
+        <h3 class="form-heading">
+          <translate>Insights</translate>
+        </h3>
+
+        <b-form @submit="onInsightsSettingsSubmit">
+          <b-form-group
+            :label="LabelBounceRateThreshold"
+            :description="DescriptionBounceRateThreshold"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="%">
+              <b-form-input
+                required
+                v-model="settings.insights.bounce_rate_threshold"
+                type="number"
+                name="bounce_rate_threshold"
+                min="0"
+                max="100"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <h4 class="form-heading">
+            <translate>Mail Inactivity</translate>
+          </h4>
+
+          <b-form-group
+            :label="LabelMailInactivityLookupRange"
+            :description="DescriptionMailInactivityLookupRange"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="hours">
+              <b-form-input
+                required
+                v-model="settings.insights.mail_inactivity_lookup_range"
+                type="number"
+                name="mail_inactivity_lookup_range"
+                min="1"
+                max="999"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <b-form-group
+            :label="LabelMailInactivityMinInterval"
+            :description="DescriptionMailInactivityMinInterval"
+            label-cols-sm="4"
+            label-cols-lg="5"
+            content-cols-sm
+            content-cols-lg
+          >
+            <b-input-group append="hours">
+              <b-form-input
+                required
+                v-model="settings.insights.mail_inactivity_min_interval"
+                type="number"
+                name="mail_inactivity_min_interval"
+                min="1"
+                max="999"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+
+          <div class="button-group">
+            <b-button variant="outline-primary" type="submit">
               <translate>Save</translate>
             </b-button>
           </div>
@@ -396,6 +459,7 @@ import {
   getMetaLanguage,
   getSettings,
   submitDetectiveSettingsForm,
+  submitInsightsSettingsForm,
   submitGeneralForm,
   submitNotificationsSettingsForm
 } from "@/lib/api.js";
@@ -439,6 +503,11 @@ export default {
         },
         detective: {
           end_users_enabled: false
+        },
+        insights: {
+          bounce_rate_threshold: "…",
+          mail_inactivity_lookup_range: "…",
+          mail_inactivity_min_interval: "…"
         }
       },
       prev_settings: {},
@@ -559,10 +628,10 @@ export default {
       return this.settings.slack_notifications.enabled;
     },
     PostfixPublicIP: function() {
-      return this.$gettext("Postfix public IP");
+      return this.$gettext("Mail server public IP");
     },
     PublicURL: function() {
-      return this.$gettext("Public URL");
+      return this.$gettext("Lightmeter public URL");
     },
     EnterIpAddress: function() {
       return this.$gettext("Enter IP address");
@@ -577,9 +646,33 @@ export default {
         "Enable public access to the Message Detective search page"
       );
     },
+    LabelBounceRateThreshold() {
+      return this.$gettext("Bounce Rate Threshold");
+    },
+    DescriptionBounceRateThreshold() {
+      return this.$gettext(
+        "If the ratio of bounced emails to sent emails gets above this percentage, an insight is generated"
+      );
+    },
+    LabelMailInactivityLookupRange() {
+      return this.$gettext("Inactivity timeframe");
+    },
+    DescriptionMailInactivityLookupRange() {
+      return this.$gettext(
+        "If there aren't any sent or received email in X hours, generate an insight (+ email/slack notification)"
+      );
+    },
+    LabelMailInactivityMinInterval() {
+      return this.$gettext("Max 1 insight / X hours");
+    },
+    DescriptionMailInactivityMinInterval() {
+      return this.$gettext(
+        "Don't generate an insight more frequently than one every X hours"
+      );
+    },
     DetectiveEndUsersHelpText() {
       return this.$gettext(
-        "Anyone with the link can check email delivery outcomes (includes validation, and rate-limiting)"
+        "Anyone with the link below can check email delivery outcomes (requires both 'from' and 'to' email addresses, searches are rate-limited)"
       );
     },
     openDetectiveLink() {
@@ -732,6 +825,17 @@ export default {
         data,
         this.settings.detective.end_users_enabled
       );
+    },
+    onInsightsSettingsSubmit(event) {
+      event.preventDefault();
+
+      submitInsightsSettingsForm({
+        bounce_rate_threshold: this.settings.insights.bounce_rate_threshold,
+        mail_inactivity_lookup_range: this.settings.insights
+          .mail_inactivity_lookup_range,
+        mail_inactivity_min_interval: this.settings.insights
+          .mail_inactivity_min_interval
+      });
     }
   },
   mounted() {
@@ -760,7 +864,11 @@ h2.form-heading {
   font-size: 32px;
 }
 
-h5.form-heading {
+h3.form-heading {
+  font-size: 24px;
+}
+
+h4.form-heading {
   font-size: 18px;
 }
 

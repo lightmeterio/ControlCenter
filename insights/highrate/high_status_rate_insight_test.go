@@ -17,6 +17,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
@@ -59,7 +60,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
 			}, nil)
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.4}}) // threshold 40%
+			detector := NewDetector(&insightsSettings.Settings{BounceRateThreshold: 40}, accessor, core.Options{"dashboard": d})
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
@@ -92,7 +93,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "sent", Value: 10},    // 50%
 			}, nil)
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
+			detector := NewDetector(&insightsSettings.Settings{BounceRateThreshold: 20}, accessor, core.Options{"dashboard": d})
 
 			tx, err := connPair.RwConn.Begin()
 			So(err, ShouldBeNil)
@@ -135,7 +136,7 @@ func TestHighRateDetectorInsight(t *testing.T) {
 				dashboard.Pair{Key: "sent", Value: 3},     // 30%
 			}, nil)
 
-			detector := NewDetector(accessor, core.Options{"dashboard": d, "highrate": Options{BaseBounceRateThreshold: 0.2}}) // threshold 20%
+			detector := NewDetector(&insightsSettings.Settings{BounceRateThreshold: 20}, accessor, core.Options{"dashboard": d})
 
 			{
 				tx, err := connPair.RwConn.Begin()

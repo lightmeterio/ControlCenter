@@ -28,5 +28,6 @@ var defaultMatchers = matchers{
 	{host: "Microsoft", dsn: "5.7.511", pattern: regexp.MustCompile(`Access denied, banned sender.*. To request removal from this list please forward this message to delist@messaging.microsoft.com\.`)},
 
 	// dsn 4.7.0 (deferred) was reported on gitlab issue #615, and 5.7.0 (bounced) has been found in some of our (obfuscated) logs.
-	{host: "iCloud", pattern: regexp.MustCompile(`refused to talk to me.* Blocked - see https:\/\/support\.proofpoint\.com\/dnsbl-lookup\.cgi`)},
+	// Also references #664
+	{host: "ProofPoint", pattern: regexp.MustCompile(`refused to talk to me: 5.. .*\bBlocked - see https:\/\/(support|ipcheck)\.proofpoint\.com\/`)},
 }

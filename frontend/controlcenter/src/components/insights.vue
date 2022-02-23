@@ -17,8 +17,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="insightRblCheckedIpTitle"
     >
       <p class="intro">
-        <!-- prettier-ignore -->
-        <translate>These lists are recommending that emails from your server be blocked &ndash; check their messages for hints</translate>
+        <translate
+          >These lists are recommending that emails from your server be blocked
+          &ndash; check their messages for hints</translate
+        >
       </p>
       <span id="rbl-list-content">
         <div class="card" v-for="r of rbls" v-bind:key="r.text">
@@ -44,7 +46,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideRBLListModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -82,7 +83,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideDetectiveInsightModalWindow()"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -114,7 +114,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideRBLMsqModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -140,7 +139,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-primary"
             @click="showArchivedInsightsBySummaryInsight(importSummaryInsight)"
           >
-            <!-- prettier-ignore -->
             <translate>View all archived</translate>
           </b-button>
         </b-col>
@@ -168,7 +166,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             variant="outline-danger"
             @click="hideBlockedIPsListModal"
           >
-            <!-- prettier-ignore -->
             <translate>Close</translate>
           </b-button>
         </b-col>
@@ -199,13 +196,19 @@ SPDX-License-Identifier: AGPL-3.0-only
               )
             "
           >
-            <!-- prettier-ignore -->
             <translate>View Details</translate>
           </b-button>
         </b-col>
       </b-row>
     </b-modal>
 
+    <div
+      class="row container d-flex justify-content-center"
+      style="margin: 3rem 0;"
+      v-if="insights.length == 0"
+    >
+      <translate>No insight matching selected filters</translate>
+    </div>
     <div
       v-for="insight of insightsTransformed"
       v-bind:key="insight.id"
@@ -223,15 +226,47 @@ SPDX-License-Identifier: AGPL-3.0-only
                 class="d-flex flex-row justify-content-between insight-header"
               >
                 <p class="card-text category">{{ insight.category }}</p>
+                <div class="insight-actions">
+                  <span
+                    v-if="insight.help_link"
+                    v-on:click="onInsightInfo($event, insight.help_link)"
+                    v-b-tooltip.hover
+                    :title="Info"
+                  >
+                    <i class="fa fa-info-circle lm-info-circle-grayblue"></i>
+                  </span>
 
-                <span
-                  v-if="insight.help_link"
-                  v-on:click="onInsightInfo($event, insight.help_link)"
-                  v-b-tooltip.hover
-                  :title="Info"
-                >
-                  <i class="fa fa-info-circle insight-help-button"></i>
-                </span>
+                  <span
+                    v-if="
+                      insight.content_type === 'high_bounce_rate' ||
+                        insight.content_type === 'mail_inactivity'
+                    "
+                    v-on:click="
+                      trackClick('Settings', 'highBounceRateInsightClick')
+                    "
+                    v-b-tooltip.hover
+                    :title="titleEditInsightSettings"
+                  >
+                    <router-link to="/settings">
+                      <i
+                        class="fas fa-cog"
+                        data-toggle="tooltip"
+                        data-placement="bottom"
+                      ></i
+                    ></router-link>
+                  </span>
+
+                  <span
+                    v-if="insight.category.toLowerCase() != 'archived'"
+                    v-on:click="
+                      archiveInsight(insight.id, insight.content_type)
+                    "
+                    v-b-tooltip.hover
+                    :title="titleArchiveInsight"
+                  >
+                    <i class="fas fa-times-circle"></i>
+                  </span>
+                </div>
               </div>
               <h6 class="card-title title">{{ insight.title }}</h6>
 
@@ -253,7 +288,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onNewsFeedMoreInfo($event, insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Read more</translate>
                 </button>
               </p>
@@ -269,7 +303,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   class="btn btn-sm"
                   v-show="insight.content.insights.length > 0"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -284,7 +317,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBruteForceDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -299,7 +331,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBruteForceSummaryDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -315,16 +346,19 @@ SPDX-License-Identifier: AGPL-3.0-only
                 v-if="insight.content_type === 'welcome_content'"
                 class="card-text description"
               >
-                <!-- prettier-ignore -->
-                <translate>Insights reveal mailops problems in real time &ndash; both here, and via notifications</translate
+                <translate
+                  >Insights reveal mailops problems in real time &ndash; both
+                  here, and via notifications</translate
                 >
               </p>
               <p
                 v-if="insight.content_type === 'insights_introduction_content'"
                 class="card-text description"
               >
-                <!-- prettier-ignore -->
-                <translate>Join us on the journey to better mailops! We're listening for your feedback</translate>
+                <translate
+                  >Join us on the journey to better mailops! We're listening for
+                  your feedback</translate
+                >
               </p>
               <p
                 v-if="insight.content_type === 'local_rbl_check'"
@@ -337,7 +371,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBuildInsightRbl(insight.id)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -351,7 +384,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onBuildInsightMsgRbl(insight.id)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
               </p>
@@ -368,7 +400,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   v-on:click="onDetectiveEscalationDetails(insight)"
                   class="btn btn-sm"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Details</translate>
                 </button>
                 <log-viewer-button :insight="insight" />
@@ -383,7 +414,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   class="user-rating d-flex flex-wrap align-items-center"
                 >
                   <span>
-                    <!-- prettier-ignore -->
                     <translate>Useful?</translate>
                   </span>
                   <div>
@@ -421,7 +451,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script>
 import moment from "moment";
-import { getApplicationInfo, postUserRating } from "@/lib/api";
+import { getApplicationInfo, postUserRating, archiveInsight } from "@/lib/api";
 import tracking from "../mixin/global_shared.js";
 import linkify from "vue-linkify";
 import Vue from "vue";
@@ -442,8 +472,14 @@ export default {
     Info() {
       return this.$gettext("Info");
     },
+    titleArchiveInsight() {
+      return this.$gettext("Archive Insight");
+    },
     titleForDetectiveInsightWindow() {
       return this.$gettext("Failed deliveries reported");
+    },
+    titleEditInsightSettings() {
+      return this.$gettext("Edit settings for insights generation");
     },
     detectiveInsightSender() {
       return `<strong>` + this.detectiveInsight.content.sender + `</strong>`;
@@ -807,6 +843,14 @@ export default {
       this.trackEvent("InsightsInfoButton", helpLink);
       window.open(helpLink);
     },
+    archiveInsight(id, type) {
+      let vue = this;
+
+      archiveInsight(id).then(function() {
+        vue.$emit("dateIntervalChanged"); // ask index.vue to refresh insights
+        vue.trackEvent("ArchiveInsight", type);
+      });
+    },
     hideRBLListModal() {
       this.$refs["modal-rbl-list"].hide();
     },
@@ -1015,15 +1059,21 @@ function formatDateForDetectiveInsightModalWindow(d) {
 .insights .card svg {
   margin-right: 0.05em;
 }
-.insights svg.insight-help-button {
+.insights .insight-actions svg {
   font-size: 1.3em;
-}
-
-svg.insight-help-button:hover {
-  color: #2c9cd6;
-}
-svg.insight-help-button {
   color: #c5c7c6;
+
+  &:hover,
+  &:active {
+    color: #2c9cd6;
+  }
+
+  &.fa-times-circle {
+    &:hover,
+    &:active {
+      color: #e67e22;
+    }
+  }
 }
 
 .insights .card-text.description button {

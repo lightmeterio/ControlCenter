@@ -5,6 +5,7 @@
 package timeutil
 
 import (
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -12,18 +13,21 @@ type TimeConverter struct {
 	timezone *time.Location
 	lastTime Time
 	year     int
+	clock    timeutil.Clock
 
 	// every time a year change is detected, notifies it
 	newYearNotifier func(newYear int, old Time, new Time)
 }
 
-func NewTimeConverter(initialTime time.Time,
+func NewTimeConverter(initialTime time.Time, clock timeutil.Clock,
 	newYearNotifier func(int, Time, Time),
 ) TimeConverter {
 	return TimeConverter{
 		timezone: initialTime.Location(),
 		year:     initialTime.Year(),
 		lastTime: Time{
+			// NOTE; Year is intentionally left out, as we are aiming to figure it out
+			Year:   0,
 			Month:  initialTime.Month(),
 			Day:    uint8(initialTime.Day()),
 			Hour:   uint8(initialTime.Hour()),
@@ -31,6 +35,7 @@ func NewTimeConverter(initialTime time.Time,
 			Second: uint8(initialTime.Second()),
 		},
 		newYearNotifier: newYearNotifier,
+		clock:           clock,
 	}
 }
 
@@ -55,16 +60,33 @@ func (c *TimeConverter) Convert(t Time) time.Time {
 	// This is a totally arbitrarily chosen number, though. It has to be something less than
 	// one hour, but is not expected to be too small, as I believe most servers are expected to
 	// output at least one log line every 10min.
-	somehowLessThanOneHour := int64((time.Minute * 50) / time.Second)
+	const somehowLessThanOneHour = int64((time.Minute * 50) / time.Second)
 
 	dstChanged := diffInSeconds <= oneHour && diffInSeconds >= somehowLessThanOneHour
 
+	defer func() {
+		c.lastTime = t
+	}()
+
+	updatedYear := c.year
+
 	if isOutOfOrder && !dstChanged {
-		c.year++
-		c.newYearNotifier(c.year, c.lastTime, t)
+		updatedYear++
 	}
 
-	c.lastTime = t
+	newTime := t.Time(updatedYear, c.timezone)
 
-	return t.Time(c.year, c.timezone)
+	// We are forbidden to handle logs from the future!
+	// See issue #644 for the context
+	if newTime.Year() > c.clock.Now().Year() {
+		return t.Time(c.year, c.timezone)
+	}
+
+	if c.year < updatedYear {
+		c.newYearNotifier(updatedYear, c.lastTime, t)
+	}
+
+	c.year = updatedYear
+
+	return newTime
 }
