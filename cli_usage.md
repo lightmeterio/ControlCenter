@@ -1,5 +1,5 @@
 ```
-Lightmeter ControlCenter 2.0.0-RC3
+Lightmeter ControlCenter 2.0.0-RC4
 
  Example call: 
 
@@ -9,6 +9,10 @@ Lightmeter ControlCenter 2.0.0-RC3
 
   -default_settings string
     	JSON string for default settings (default "{}")
+  -dovecot_conf_gen
+    	Generate Dovecot Configuration
+  -dovecot_conf_is_old
+    	Requires -dovecot_conf_gen. Use if if you're using a Dovecot older than 2.3.1
   -email_reset string
     	Change user info (email, name or password; depends on -workspace)
   -i_know_what_am_doing_not_using_a_reverse_proxy
