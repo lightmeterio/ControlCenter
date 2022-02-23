@@ -1387,14 +1387,28 @@ type ignoringPublisher struct {
 
 func (pub *ignoringPublisher) Publish(r postfix.Record) {
 	// Do not let old logs be published
-	if !pub.lastPublishedSumPair.Time.IsZero() &&
+	shouldIgnore := !pub.lastPublishedSumPair.Time.IsZero() &&
 		((r.Time.Before(pub.lastPublishedSumPair.Time)) ||
-			r.Time == pub.lastPublishedSumPair.Time &&
-				r.Sum == *pub.lastPublishedSumPair.Sum) {
-		log.Error().Msgf(`Discarding old log with time "%v" which should be more recent than "%v"`, r.Time, pub.lastPublishedSumPair.Time)
+			r.Time.Equal(pub.lastPublishedSumPair.Time) &&
+				r.Sum == *pub.lastPublishedSumPair.Sum)
+
+	if !shouldIgnore {
+		pub.lastPublishedSumPair = postfix.SumPair{Time: r.Time, Sum: &r.Sum}
+		pub.pub.Publish(r)
+
 		return
 	}
 
-	pub.lastPublishedSumPair = postfix.SumPair{Time: r.Time, Sum: &r.Sum}
-	pub.pub.Publish(r)
+	if pub.lastPublishedSumPair.Sum != nil && *pub.lastPublishedSumPair.Sum == r.Sum {
+		// NOTE: Avoid being spammed about repeated log lines,
+		// when either the same log lines is produced multiple lines per second
+		// or the same log line is produced by multiple files (mail.log and mail.warn, for instance)
+		// The bad effect of it is that we'll never know about lines which are generated with the exact same content (including time)
+		return
+	}
+
+	log.Error().Msgf(
+		`Discarding old log with time "%v" which should be more recent than "%v": line: %v:%v`,
+		r.Time, pub.lastPublishedSumPair.Time, r.Location.Filename, r.Location.Line,
+	)
 }
