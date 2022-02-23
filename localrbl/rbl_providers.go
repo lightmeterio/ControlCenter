@@ -279,10 +279,6 @@ var DefaultRBLs = []string{
 	"q.mail-abuse.com",                      // Trend Micro QIL
 	"rbl2.triumf.ca",                        // TRIUMF.ca DNSBL
 	"truncate.gbudb.net",                    // truncate.gbudb.net
-	"dnsbl-0.uceprotect.net",                // UCEPROTECT Level 0
-	"dnsbl-1.uceprotect.net",                // UCEPROTECT Level 1
-	"dnsbl-2.uceprotect.net",                // UCEPROTECT Level 2
-	"dnsbl-3.uceprotect.net",                // UCEPROTECT Level 3
 	"ubl.unsubscore.com",                    // Unsubscribe Blacklist UBL
 	"free.v4bl.org",                         // V4BL-FREE/DDNSBL-FREE
 	"ip.v4bl.org",                           // V4BL/DDNSBL
