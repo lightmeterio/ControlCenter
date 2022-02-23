@@ -9,6 +9,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"testing"
 )
 
@@ -20,6 +21,8 @@ func TestRegressionIssue368(t *testing.T) {
 			which we use as a reference time.
 	*/
 	Convey("Regression Tests issue 368", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2030-01-01 10:00:00 +0000`)}
+
 		timeFormat, err := parsertimeutil.Get("default")
 		So(err, ShouldBeNil)
 
@@ -82,7 +85,7 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 			}
 			pub := fakePublisher{}
 			announcer := &fakeAnnouncer{}
-			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns)
+			importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns, clock)
 			err := importer.Run()
 			So(err, ShouldBeNil)
 			So(len(pub.logs), ShouldEqual, 19)
@@ -95,6 +98,8 @@ Dec 14 06:24:27 cloud2 postfix/anvil[15757]: statistics: max cache size 1 at Dec
 
 func TestRegressionIssue463(t *testing.T) {
 	Convey("Regression Tests issue #463", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2030-01-01 10:00:00 +0000`)}
+
 		timeFormat, err := parsertimeutil.Get("default")
 		So(err, ShouldBeNil)
 
@@ -110,11 +115,87 @@ func TestRegressionIssue463(t *testing.T) {
 		}
 
 		pub := fakePublisher{}
-		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, DefaultLogPatterns)
+		importer := NewDirectoryImporter(dirContent, &pub, &fakeAnnouncer{}, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0000`)}, timeFormat, DefaultLogPatterns, clock)
 		err = importer.Run()
 		So(err, ShouldBeNil)
 
 		So(len(pub.logs), ShouldEqual, 1)
 		So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-04-27 08:00:21 +0000`))
+	})
+}
+
+func TestRegressionIssue644(t *testing.T) {
+	/*
+		Lessons learned:
+			- Due to some unknown existing bug (and unknown bugs to come), sometimes logs from the past are read from an updated file.
+				- In those cases, we need to prevent the year to be bumped when it happens, otherwise we'll be processing logs from the future,
+					which makes no sense.
+				- I suspect this is a bug in the code that handles the rsync'd files, and this might also happen in case the user accidentally
+					sends an old version of a log file.
+					- What we need to to in such cases is ignoring any old logs until they reach the time we expect (equal or newer than the latest log published)
+				- For now what we have are workarounds. Workarounds everywhere.
+			- This issue can also be intentionally caused by the user, by rsync'ng an unrelated file which contains old log lines, which cannot be computed
+			- Or by messing up with the logs...
+	*/
+	Convey("Regression Tests issue 644", t, func() {
+		clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-12-10 20:00:00 +0000`)}
+
+		timeFormat, err := parsertimeutil.Get("default")
+		So(err, ShouldBeNil)
+
+		pub := fakePublisher{}
+
+		Convey("Test1", func() {
+			{
+				dirContent := FakeDirectoryContent{
+					entries: fileEntryList{
+						fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2021-03-05 14:05:47 +0000`)},
+					},
+					contents: map[string]fakeFileData{
+						"mail.log": plainCurrentDataFile(`Jan  2 06:25:07 cloud2 postfix/pickup[25779]: DD78F3E8C1: uid=0 from=<root>
+Jan  3 06:25:07 cloud2 postfix/cleanup[26489]: DD78F3E8C1: message-id=<h-02419a263e156696315f34ffa@h-32c0e75797df5c34bbefdfa.com>
+Jan  4 07:00:00 cloud2 postfix/cleanup[26489]: Something not supported
+Mar  5 14:05:47 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed
+`, ``),
+					},
+				}
+
+				// first run
+				announcer := &fakeAnnouncer{}
+				importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns, clock)
+				err := importer.Run()
+				So(err, ShouldBeNil)
+			}
+
+			{
+				dirContent := FakeDirectoryContent{
+					entries: fileEntryList{
+						fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2021-03-08 14:05:47 +0000`)},
+					},
+
+					// we get two new lines, and after that, two repeated ones from the past, and then some new lines again. The repeated ones are ignored, not changing the year
+					contents: map[string]fakeFileData{
+						"mail.log": plainCurrentDataFile(`Mar  6 00:00:00 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed
+Mar  6 10:00:00 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed
+Jan  3 06:25:07 cloud2 postfix/cleanup[26489]: DD78F3E8C1: message-id=<h-02419a263e156696315f34ffa@h-32c0e75797df5c34bbefdfa.com>
+Jan  4 07:00:00 cloud2 postfix/cleanup[26489]: Something not supported
+Mar  7 10:11:12 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed
+Mar  8 10:11:12 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed`, ``),
+					},
+				}
+
+				// second run
+				announcer := &fakeAnnouncer{}
+				importer := NewDirectoryImporter(dirContent, &pub, announcer, postfix.SumPair{Time: testutil.MustParseTime(`1970-01-01 00:00:00 +0100`)}, timeFormat, DefaultLogPatterns, clock)
+				err := importer.Run()
+				So(err, ShouldBeNil)
+
+			}
+
+			So(len(pub.logs), ShouldEqual, 8)
+
+			So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-01-02 06:25:07 +0000`))
+			So(pub.logs[len(pub.logs)-1].Time, ShouldResemble, testutil.MustParseTime(`2021-03-08 10:11:12 +0000`))
+		})
 	})
 }

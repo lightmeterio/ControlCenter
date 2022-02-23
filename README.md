@@ -165,8 +165,8 @@ For more information about how the CA certificates are found, please check the c
 In case the logs directory passed via `-watch_dir` is not in the same filesystem as postfix writes them, but instead copied via rsync,
 you must pass the command line argument `-logs_use_rsync`, otherwise new log lines received after the first `rsync` execution won't be noticed.
 
-When using rsync, remembed **NOT** to use any in-place synchronization option, such as `--append`, as Control Center expects the default rsync behaviour
-on updating files that consists on first create a temporary file in the destination and onde it's completely transfered, rename it to the final file.
+When using rsync, remember **NOT** to use any in-place synchronization option, such as `--append`, as Control Center expects the default rsync behaviour
+on updating files that consists on first create a temporary file in the destination and once it's completely transferred, rename it to the final file.
 
 ### Docker image
 
@@ -178,7 +178,7 @@ $ docker run -p 8080:8080 -v "<path_to_workspace>:/workspace:rw" -v "/var/log/:/
 
 ```
 
-Where `<path_to_workspace>` is a directory where Control Center will keep data that has to be persisted accross restarts.
+Where `<path_to_workspace>` is a directory where Control Center will keep data that has to be persisted across restarts.
 
 Then open your browser on http://localhost:8080 to access the web based user interface.
 
@@ -229,7 +229,7 @@ For detailed information, check [Usage](cli_usage.md).
 - The web UI authenticated sessions last 1 week by default
 - To supply logs via stdin instead of logfile location, use the command line argument `-stdin` like `lightmeter -stdin < [log-data]`.
 - You can also receive logs listening on an unix socket or a TCP port, as in `-socket "unix;/path/to/socket.sock"` or
-`-socket "tcp;localhost:9999"`. It's important to notice that such socket communication is unanthenticated and unencrypted, so use it only in safe environments!
+`-socket "tcp;localhost:9999"`. It's important to notice that such socket communication is unauthenticated and unencrypted, so use it only in safe environments!
 - To supply single logs file, use the command line argument `-stdin` like `tail -f /path-to-file.log | lightmeter -stdin`.
 - Mailserver data is stored in separate workspaces so that different servers can be monitored separately. The workspace directory is set as `/var/lib/lightmeter_workspace` by default and can be changed with `-workspace /path/to/workspace`.
 - As Postfix logs don't contain a year as part of the date of each line, when using `-stdin`, the year for processed logs is assumed to be the current one. To override this and specify a year manually, use the `-log_starting_year` flag like `-log_starting_year 2018`
@@ -434,7 +434,7 @@ Domain Mapping is supported. This means remote hosts which are related to each o
 
 Currently the mapping is hardcoded in the application - changing the mappings requires [rebuilding](#Build-from-source-code) the application.
 
-Mappings are stored in `domainmapping/mapping.json` and cover the largest remote hosts by default. The mappings can be easily customised by editing that file, followed by [rebuilding](#Build-from-source-code).
+Mappings are stored in `domainmapping/mapping.json` and cover the largest remote hosts by default. The mappings can be easily customized by editing that file, followed by [rebuilding](#Build-from-source-code).
 
 Please consider extending the default mappings by making merge requests to benefit all users!
 
@@ -442,13 +442,13 @@ Please consider extending the default mappings by making merge requests to benef
 
 #### Admin view
 
-You can access the admin view for the message detective clicking the "Search" icon on the navigation bar. 
-The Lightmeter admin can search for a given message by timeframe, sender, recipient, Postfix ID/message ID, or status, to troubleshoot email delivery.
+You can access the admin view for the message detective clicking the "Search" icon on the navigation bar.
+Using sender address, recipient address and the time interval you want to check, you can identify the status of any message processed in the given timeframe.
 
-The search result will include the status of the message, the queue ID, the time the message was processed and the status code of each delivery attempt. 
+The search result will include the status of the message, the queue ID, the time the message was processed and the status code of each delivery attempt.
 
-A message can have one of the following states: 
-- Sent for successfull delivery
+A message can have one of the following states:
+- Sent for successfully delivery
 - Bounced for messages refused by recipient's mail provider
 - Deferred for messages temporarily refused and retried
 - Expired for abandoned delivery after too many deferred attempts
@@ -457,13 +457,13 @@ A message can have one of the following states:
 
 #### Public view
 
-You can enable the message detective for any unauthenticated users in the Settings Page. 
+You can enable the message detective for any unauthenticated users in the Settings Page.
 
-Any user (whom you have provided the link to) can check the fate of a message independently, using the email addresses of the sender AND the recipient, and the message status. In the search results, they will see the same information per message as the admin. 
+Any user (whom you have provided the link to) can check the fate of a message independently, using the same search terms as the admin. They will also see the same amount of information in the search results as the admin.
 
 In addition, the user will also have the option to Escalate any Bounced and Expired results to the mail server admin.
-Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further. 
-If you have notifications enabled, this will also trigger a notification. 
+Lightmeter will then generate an insight that shows all the details, including queue ID for the admin to investigate further.
+If you have notifications enabled, this will also trigger a notification.
 
 If you enable the message detective for your end-users, make sure to share the public page URL with them.
 Rate limiting is applied on the number of searches, with a current maximum of 20 searches every 10 minutes.
@@ -476,7 +476,7 @@ Currently the network requires participation to access these features; to receiv
 
 #### Brute force protection
 
-Protection against malicious SMTP and IMAP login attempts requires access to a Dovecot server. Dovecot occupies the role of a convenient authentication policy client for both Postfix (SMTP) and Dovecot itself (IMAP). 
+Protection against malicious SMTP and IMAP login attempts requires access to a Dovecot server. Dovecot occupies the role of a convenient authentication policy client for both Postfix (SMTP) and Dovecot itself (IMAP).
 
 When enabled, both Dovecot and Postfix will use a Lightmeter blocklist (generated from real-time Peer Network signals) for pre-authentication checks.
 
@@ -484,58 +484,39 @@ Protection is not complete or guaranteed, and could theoretically result in legi
 
 ##### Dovecot configuration
 
-To enable blocking of malicious IPs in Dovecot (IMAP/POP defence), execute the following script:
+We provide a utility as part of controlcenter that generates some needed Dovecot configuration. If you are using Lightmeter in Docker,
+you can do it with the command:
 
+```sh
+docker run -it --rm lightmeter/controlcenter:latest -dovecot_conf_gen > /path/to/etc/dovecot/conf.d/10-lightmeter.conf
 ```
-#!/bin/sh
 
-# setup lightmeter auth_policy server on dovecot
+Or, similarly, when using the standalone binary:
 
-# TODO: check the dovecot path is correct
-cat << EOF > /etc/dovecot/conf.d/10-auth_lightmeter.conf
-
-# Dovecot will query Lightmeter's blocklist for every incoming IMAP/POP3 connection
-auth_policy_server_url = https://auth.intelligence.lightmeter.io/auth
-
-# TODO: replace the following by a random string of your own
-# See https://doc.dovecot.org/settings/core/#setting-auth-policy-hash-nonce for more information
-auth_policy_hash_nonce = JHghjghHJGhjg$345gfGF35435
-
-# The remote IP address, that is trying to authenticate, is the minimal bit of information
-# needed by Lightmeter to block illegitimate authentication attempts
-# See https://doc.dovecot.org/settings/core/#setting-auth-policy-request-attributes for more information
-auth_policy_request_attributes = remote=%{rip}
-
-# Check Lightmeter blocklist before auth (pre-auth), not after
-# Also, report un·successful auth attempts
-auth_policy_check_before_auth = yes
-auth_policy_check_after_auth = no
-auth_policy_report_after_auth = yes
-
-# The following is needed to verify the number of blocked auth attempts
-auth_verbose = yes
-EOF
-
-dovecot reload
+```sh
+/path/to/lightmeter -dovecot_conf_gen > /etc/dovecot/conf.d/10-lightmeter.conf
 ```
+
+And finally, reload the Dovecot configuration with `doveconf reload` to apply those changes.
 
 ###### Older Dovecot version
 
-In case you're running a version of Dovecot older than 2.3.1, you will experience that the `auth_policy_check_before_auth` parameter does not exist.
+If your Dovecot version is older than 2.3.1, you need to pass an extra argument `-dovecot_conf_is_old`, as in:
 
-If this is the case, leave out these three parameters from the above configuration file:
-- `auth_policy_check_before_auth`
-- `auth_policy_check_after_auth`
-- `auth_policy_report_after_auth`
+```sh
+/path/to/lightmeter -dovecot_conf_gen -dovecot_conf_is_old > /etc/dovecot/conf.d/10-lightmeter.conf
+```
 
 The counting of blocked IPs will be doubled in your Control Center¹, but you'll still enjoy protection (¹ we're trying to find a workaround).
 
-
 ##### Postfix configuration
 
-To enable blocking of malicious IPs by Postfix (SMTP defence) do the following.
+To enable blocking of malicious IPs by Postfix (SMTP defense) do the following.
 
-Use Dovecot SASL to pre-authorize connection attempts. Note: if Postfix is already configured to use SASL, this will replace it.
+Use Dovecot SASL to pre-authorize connection attempts.
+
+**Note**: if Postfix is already configured to use SASL, this will replace it. This configuration works only if Postfix and Dovecot share the same filesystem.
+For more complex setups, please contact us at hello AT lightmeter.io.
 
 If Dovecot is not already being used as a SASL server, add this to your Dovecot config file (e.g. `/etc/dovecot/conf.d/10-auth.conf`):
 
@@ -616,7 +597,7 @@ The following command will look for translatable words inside interface files (c
 
 Translatable strings can be found in diverse files, such as Go code, used by the backend, or Vue/html/js files used in the web ui.
 
-In order to update the translable strings, making them available for translators with the command:
+In order to update the translatable strings, making them available for translators with the command:
 
 ```bash
 $ make messages

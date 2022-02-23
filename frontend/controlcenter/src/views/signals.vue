@@ -44,10 +44,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <span>User Email</span>
                 <span>{{ userEmail }}</span>
               </div>
-              <div>
-                <span>Mail Kind</span>
-                <span>{{ mailKind }}</span>
-              </div>
             </div>
           </div>
 
@@ -138,7 +134,6 @@ export default {
       postfixVersion: "…",
       appVersion: "…",
       userEmail: "…",
-      mailKind: "…",
 
       // translations
       InstanceIdText: this.$gettext(
@@ -205,7 +200,6 @@ export default {
 
     getUserInfo().then(function(userInfo) {
       vue.instanceID = userInfo.data.instance_id;
-      vue.mailKind = userInfo.data.mail_kind;
       vue.postfixVersion = userInfo.data.postfix_version;
       vue.userEmail = userInfo.data.user.email;
     });

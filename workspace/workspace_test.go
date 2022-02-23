@@ -118,14 +118,14 @@ func TestMostRecentLogTime(t *testing.T) {
 
 			pub := ws.NewPublisher()
 
-			postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020)
+			postfixutil.ReadFromTestFile("../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 			// then read some random info for failed connections (gitlab issue #548)
 			postfixutil.ReadFromTestReader(strings.NewReader(
 				`
 Jun  3 10:41:05 mail postfix/smtpd[11978]: disconnect from unknown[1.2.3.4] ehlo=1 auth=0/1 commands=1/2
 Jun  3 10:41:10 mail postfix/smtpd[11978]: disconnect from unknown[4.3.2.1] ehlo=1 auth=0/3 commands=1/3
-`), pub, 2020)
+`), pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 
 			cancel()
 

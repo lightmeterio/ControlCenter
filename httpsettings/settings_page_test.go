@@ -53,7 +53,7 @@ func notificationValuesToPost(values url.Values) url.Values {
 
 func TestSettingsPage(t *testing.T) {
 	Convey("Retrieve all settings", t, func() {
-		setup, _, reader, _, _, clear := buildTestSetup(t)
+		setup, _, reader, _, _, _, clear := buildTestSetup(t)
 		defer clear()
 
 		// Approach: as for now we have independent endpoints, we instantiate one server per endpoint
@@ -89,6 +89,11 @@ func TestSettingsPage(t *testing.T) {
 					"app_language":      "",
 					"postfix_public_ip": "",
 					"public_url":        "",
+				},
+				"insights": map[string]interface{}{
+					"bounce_rate_threshold":        float64(5),
+					"mail_inactivity_lookup_range": float64(24),
+					"mail_inactivity_min_interval": float64(12),
 				},
 				"notifications": map[string]interface{}{
 					"language": "",
@@ -131,6 +136,18 @@ func TestSettingsPage(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 			}
 
+			// set insights settings
+			{
+				r, err := c.PostForm(settingsServer.URL+"?setting=insights",
+					notificationValuesToPost(url.Values{
+						"bounce_rate_threshold":        {"80"},
+						"mail_inactivity_lookup_range": {"10"},
+						"mail_inactivity_min_interval": {"10"},
+					}))
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+			}
+
 			r, err := c.Get(settingsServer.URL)
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
@@ -156,6 +173,11 @@ func TestSettingsPage(t *testing.T) {
 					"app_language":      "en",
 					"postfix_public_ip": "11.22.33.44",
 					"public_url":        "https://example.com/lightmeter",
+				},
+				"insights": map[string]interface{}{
+					"bounce_rate_threshold":        float64(80),
+					"mail_inactivity_lookup_range": float64(10),
+					"mail_inactivity_min_interval": float64(10),
 				},
 				"notifications": map[string]interface{}{
 					"language": "en",
@@ -211,6 +233,11 @@ func TestSettingsPage(t *testing.T) {
 					"app_language":      "",
 					"postfix_public_ip": "",
 					"public_url":        "",
+				},
+				"insights": map[string]interface{}{
+					"bounce_rate_threshold":        float64(5),
+					"mail_inactivity_lookup_range": float64(24),
+					"mail_inactivity_min_interval": float64(12),
 				},
 				"notifications": map[string]interface{}{
 					"language": "en",
@@ -313,6 +340,11 @@ func TestSettingsPage(t *testing.T) {
 						"app_language":      "en",
 						"postfix_public_ip": "11.22.33.44",
 						"public_url":        "",
+					},
+					"insights": map[string]interface{}{
+						"bounce_rate_threshold":        float64(5),
+						"mail_inactivity_lookup_range": float64(24),
+						"mail_inactivity_min_interval": float64(12),
 					},
 					"notifications": map[string]interface{}{
 						"language": "de",

@@ -85,7 +85,7 @@ func main() {
 		errorutil.MustSucceed(err)
 
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, sum, importAnnouncer, false, false, "default", dirwatcher.DefaultLogPatterns)
+			return dirlogsource.New(inputDirectory, sum, importAnnouncer, false, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
 		}
 
 		f, err := os.Open(inputFile)

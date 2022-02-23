@@ -180,7 +180,6 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	settingsRunner := metadata.NewSerialWriteRunner(m)
 
 	// determine instance ID from the database, or create one
-
 	var instanceID string
 	err = m.Reader.RetrieveJson(context.Background(), metadata.UuidMetaKey, &instanceID)
 
@@ -264,6 +263,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	insightsEngine, err := insights.NewEngine(
+		&m.Reader,
 		insightsAccessor,
 		insightsFetcher,
 		notificationCenter,

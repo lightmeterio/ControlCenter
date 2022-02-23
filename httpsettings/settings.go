@@ -10,6 +10,7 @@ import (
 	"github.com/imdario/mergo"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
+	"gitlab.com/lightmeter/controlcenter/insights"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
@@ -19,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings"
 	"gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
@@ -36,19 +38,23 @@ type Settings struct {
 
 	initialSetupSettings *settings.InitialSetupSettings
 	notificationCenter   *notification.Center
+	insightsEngine       *insights.Engine
 	handlers             map[string]func(http.ResponseWriter, *http.Request) error
 }
 
-func NewSettings(writer *metadata.AsyncWriter,
+func NewSettings(
+	writer *metadata.AsyncWriter,
 	reader metadata.Reader,
 	initialSetupSettings *settings.InitialSetupSettings,
 	notificationCenter *notification.Center,
+	insightsEngine *insights.Engine,
 ) *Settings {
 	s := &Settings{
 		writer:               writer,
 		reader:               reader,
 		initialSetupSettings: initialSetupSettings,
 		notificationCenter:   notificationCenter,
+		insightsEngine:       insightsEngine,
 	}
 	s.handlers = map[string]func(http.ResponseWriter, *http.Request) error{
 		"initSetup":    s.InitialSetupHandler,
@@ -56,6 +62,7 @@ func NewSettings(writer *metadata.AsyncWriter,
 		"general":      s.GeneralSettingsHandler,
 		"walkthrough":  s.WalkthroughHandler,
 		"detective":    s.DetectiveHandler,
+		"insights":     s.InsightsHandler,
 	}
 
 	return s
@@ -122,12 +129,13 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 	// TODO: this structure should somehow be dynamic and easily extensible for future new settings we add,
 	// also supporting optional settings
 	allCurrentSettings := struct {
-		SlackNotification slack.Settings          `json:"slack_notifications"`
-		EmailNotification email.Settings          `json:"email_notifications"`
-		Notification      notification.Settings   `json:"notifications"`
-		General           globalsettings.Settings `json:"general"`
-		Walkthrough       walkthrough.Settings    `json:"walkthrough"`
-		Detective         detective.Settings      `json:"detective"`
+		SlackNotification slack.Settings            `json:"slack_notifications"`
+		EmailNotification email.Settings            `json:"email_notifications"`
+		Notification      notification.Settings     `json:"notifications"`
+		General           globalsettings.Settings   `json:"general"`
+		Walkthrough       walkthrough.Settings      `json:"walkthrough"`
+		Detective         detective.Settings        `json:"detective"`
+		Insights          insightsSettings.Settings `json:"insights"`
 	}{}
 
 	ctx := r.Context()
@@ -162,6 +170,11 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
+	insightsSettings, err := insightsSettings.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
 	if slackSettings != nil {
 		slackSettings.BearerToken = nil
 		allCurrentSettings.SlackNotification = *slackSettings
@@ -187,6 +200,10 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	if detectiveSettings != nil {
 		allCurrentSettings.Detective = *detectiveSettings
+	}
+
+	if insightsSettings != nil {
+		allCurrentSettings.Insights = *insightsSettings
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)
@@ -332,11 +349,8 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, err)
 	}
 
-	mailKind := r.Form.Get("email_kind")
-
 	err = h.initialSetupSettings.Set(r.Context(), h.writer, settings.InitialOptions{
 		SubscribeToNewsletter: subscribe,
-		MailKind:              settings.SetupMailKind(mailKind),
 		Email:                 email,
 	})
 
@@ -610,6 +624,72 @@ func (h *Settings) DetectiveHandler(w http.ResponseWriter, r *http.Request) erro
 	if err := h.writer.StoreJsonSync(r.Context(), detective.SettingKey, &detective.Settings{EndUsersEnabled: endUsersEnabled}); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
+
+	return nil
+}
+
+func (h *Settings) InsightsHandler(w http.ResponseWriter, r *http.Request) error {
+	if err := handleForm(w, r); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
+	}
+
+	settings := &insightsSettings.Settings{}
+
+	if err := setBounceRateThreshold(r, settings); err != nil {
+		return err
+	}
+
+	if err := setMailInactivity(r, settings); err != nil {
+		return err
+	}
+
+	if err := h.writer.StoreJsonSync(r.Context(), insightsSettings.SettingKey, settings); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	if err := h.insightsEngine.UpdateCoreDetectorsFromSettings(); err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
+	return nil
+}
+
+func setBounceRateThreshold(r *http.Request, settings *insightsSettings.Settings) httperror.XHTTPError {
+	bounceRateThreshold, err := strconv.Atoi(r.Form.Get("bounce_rate_threshold"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if bounceRateThreshold < 0 || bounceRateThreshold > 100 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid threshold value out of [0-100] interval")))
+	}
+
+	settings.BounceRateThreshold = bounceRateThreshold
+
+	return nil
+}
+
+func setMailInactivity(r *http.Request, settings *insightsSettings.Settings) httperror.XHTTPError {
+	lookupRange, err := strconv.Atoi(r.Form.Get("mail_inactivity_lookup_range"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if lookupRange < 1 || lookupRange > 999 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid time value out of [1-999] interval")))
+	}
+
+	minInterval, err := strconv.Atoi(r.Form.Get("mail_inactivity_min_interval"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errors.New("Badly formatted number"))
+	}
+
+	if minInterval < 1 || minInterval > 999 {
+		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(errors.New("Invalid time value out of [1-999] interval")))
+	}
+
+	settings.MailInactivityLookupRange = lookupRange
+	settings.MailInactivityMinInterval = minInterval
 
 	return nil
 }

@@ -41,7 +41,7 @@ func TestReporter(t *testing.T) {
 
 		err := intelDb.RwConn.Tx(context.Background(), func(ctx context.Context, tx *sql.Tx) error {
 			// fill publsher with some values
-			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020)
+			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/1_bounce_simple.log", pub, 2020, clock)
 
 			err := reporter.Step(tx, clock)
 			So(err, ShouldBeNil)
@@ -49,7 +49,7 @@ func TestReporter(t *testing.T) {
 			clock.Sleep(10 * time.Minute)
 
 			// reads from a different file, and the values from the previous file must have been erased prior to it
-			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/2_multiple_recipients_some_bounces.log", pub, 2020)
+			postfixutil.ReadFromTestFile("../../test_files/postfix_logs/individual_files/2_multiple_recipients_some_bounces.log", pub, 2020, clock)
 
 			err = reporter.Step(tx, clock)
 			So(err, ShouldBeNil)

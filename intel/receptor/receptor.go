@@ -186,7 +186,7 @@ type dbBruteForceChecker struct {
 }
 
 // Implements blockedips.Checker
-func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.SummaryResult) error) (err error) {
+func (r *dbBruteForceChecker) Step(interval timeutil.TimeInterval, withResults func(blockedips.SummaryResult) error) (err error) {
 	conn, release := r.pool.Acquire()
 	defer release()
 
@@ -200,7 +200,7 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.Su
 			events
 		where
 			content_type = "blocked_ips" and
-			lm_json_time_to_timestamp(json_extract(content, '$.creation_time')) < ? and dismissing_time is null`, now.Unix())
+			lm_json_time_to_timestamp(json_extract(content, '$.creation_time')) between ? and ? and dismissing_time is null`, interval.From.Unix(), interval.To.Unix())
 
 	if err != nil {
 		return errorutil.Wrap(err)
@@ -210,18 +210,21 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.Su
 
 	var result blockedips.SummaryResult
 
-	var id int64
+	var ids []int64
 
 	for rows.Next() {
 		var (
 			rawContent   string
 			intervalFrom int64
 			intervalTo   int64
+			id           int64
 		)
 
 		if err := rows.Scan(&id, &rawContent, &intervalFrom, &intervalTo); err != nil {
 			return errorutil.Wrap(err)
 		}
+
+		ids = append(ids, id)
 
 		var ips []BlockedIP
 
@@ -265,8 +268,10 @@ func (r *dbBruteForceChecker) Step(now time.Time, withResults func(blockedips.Su
 	// won't see the current result event being dismissed if the interval between executions
 	// is very short (like a couple of seconds)
 	r.actions <- func(tx *sql.Tx, _ dbconn.TxPreparedStmts) error {
-		if err := DismissEventByID(tx, id, now); err != nil {
-			return errorutil.Wrap(err)
+		for _, id := range ids {
+			if err := DismissEventByID(tx, id, interval.To); err != nil {
+				return errorutil.Wrap(err)
+			}
 		}
 
 		return nil

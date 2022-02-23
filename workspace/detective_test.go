@@ -43,7 +43,9 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
-	builder, err := transform.Get("default", year)
+	clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`3000-01-01 00:00:00 +0000`)}
+
+	builder, err := transform.Get("default", clock, year)
 	So(err, ShouldBeNil)
 
 	// needed to prevent the insights execution of blocking
@@ -77,6 +79,9 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detecti
 var bg = context.Background()
 
 func TestDetective(t *testing.T) {
+	noDeliveries := detective.Messages{}
+	noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
+
 	Convey("Detective on real logs", t, func() {
 		const year = 2020
 		var (
@@ -97,9 +102,6 @@ func TestDetective(t *testing.T) {
 		Convey("File with a successful delivery", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/3_local_delivery.log", year)
 			defer clear()
-
-			noDeliveries := detective.Messages{}
-			noDeliveriesPage1 := &detective.MessagesPage{1, 1, 1, 0, noDeliveries}
 
 			Convey("Message found", func() {
 				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 1)
@@ -216,7 +218,7 @@ func TestDetective(t *testing.T) {
 			So(oldestTime, ShouldResemble, testutil.MustParseTime(`2020-01-10 16:15:30 +0000`))
 		})
 
-		Convey("Multi-recipient email", func() {
+		Convey("Multi-recipient email and search by relay name", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/26_two_recipients.log", year)
 			defer clear()
 
@@ -254,52 +256,70 @@ func TestDetective(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
+
+			Convey("Searching for relay name should find delivery as well", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "datmail-smtp.h-1e99c9eeac07", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
+			})
+
+			Convey("Searching for wrong relay should yield empty result", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "wrong.relay", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, noDeliveriesPage1)
+			})
 		})
 
-		Convey("File with an expired message", func() {
+		Convey("Expired messages", func() {
 			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/18_expired.log", year)
 			defer clear()
+
+			expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
+			expectedResult := &detective.MessagesPage{
+				PageNumber:   1,
+				FirstPage:    1,
+				LastPage:     1,
+				TotalResults: 1,
+				Messages: detective.Messages{
+					detective.Message{
+						Queue:     "23EBE3D5C0",
+						MessageID: "h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com",
+						Entries: []detective.MessageDelivery{
+							{
+								5,
+								time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								detective.Status(parser.DeferredStatus),
+								"4.1.1",
+								&expectedExpiredTime,
+								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+								[]string{"h-664d01@h-695da2287.com"},
+							},
+							{
+								1,
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
+								detective.Status(parser.ReturnedStatus),
+								"2.0.0",
+								&expectedExpiredTime,
+								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
+								[]string{"h-664d01@h-695da2287.com"},
+							},
+						},
+					},
+				},
+			}
 
 			Convey("Message found", func() {
 				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
+			})
 
-				expectedExpiredTime := testutil.MustParseTime(fmt.Sprint(year) + `-09-30 20:46:08 +0000`)
-
-				So(messages, ShouldResemble, &detective.MessagesPage{
-					PageNumber:   1,
-					FirstPage:    1,
-					LastPage:     1,
-					TotalResults: 1,
-					Messages: detective.Messages{
-						detective.Message{
-							Queue:     "23EBE3D5C0",
-							MessageID: "h-dea85411b67a40a063ef58e0ab590721@h-daa2fe3dd7fc0b5c2017db90829038b.com",
-							Entries: []detective.MessageDelivery{
-								{
-									5,
-									time.Date(year, time.September, 25, 18, 26, 36, 0, time.UTC),
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									detective.Status(parser.DeferredStatus),
-									"4.1.1",
-									&expectedExpiredTime,
-									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									[]string{"h-664d01@h-695da2287.com"},
-								},
-								{
-									1,
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
-									detective.Status(parser.ReturnedStatus),
-									"2.0.0",
-									&expectedExpiredTime,
-									"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
-									[]string{"h-664d01@h-695da2287.com"},
-								},
-							},
-						},
-					},
-				})
+			Convey("Search for expired messages. Gitlab issue #616", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ExpiredStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages, ShouldResemble, expectedResult)
 			})
 
 			oldestTime, err := d.OldestAvailableTime(bg)

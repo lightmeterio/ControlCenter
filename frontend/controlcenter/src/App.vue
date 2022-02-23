@@ -409,4 +409,20 @@ footer p {
   height: 14px;
   width: 20px;
 }
+
+svg.lm-info-circle-grayblue {
+  color: #c5c7c6;
+  &:hover,
+  &:active {
+    color: #2c9cd6;
+  }
+}
+
+/*
+	Datepicker custom styling fix.
+	Seems to be broken easily, see e.g. https://github.com/Innologica/vue2-daterange-picker/issues/255
+*/
+.vue-daterange-picker .calendars {
+  flex-wrap: nowrap !important;
+}
 </style>
