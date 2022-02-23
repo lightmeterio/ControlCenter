@@ -9,7 +9,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div class="col-md-4">
       <div id="delivery-attempts" class="card">
         <div class="card-header">
-          <!-- prettier-ignore -->
           <translate>Delivery attempts</translate>
         </div>
         <div class="card-body">

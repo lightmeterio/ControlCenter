@@ -43,7 +43,7 @@ func TestListenLogsOnSocket(t *testing.T) {
 
 		pub := &pub{}
 
-		transformer, err := transform.Get("default", 2000)
+		transformer, err := transform.Get("default", &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-02-01 10:00:00 +0000`)}, 2000)
 		So(err, ShouldBeNil)
 
 		Convey("Wrong socket description", func() {

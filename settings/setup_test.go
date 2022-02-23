@@ -80,19 +80,11 @@ func TestInitialSetup(t *testing.T) {
 
 		s := NewInitialSetupSettings(newsletterSubscriber)
 
-		Convey("Invalid Mail Kind", func() {
-			So(errors.Is(s.Set(context, writer, InitialOptions{
-				SubscribeToNewsletter: true,
-				MailKind:              "Lalala"},
-			), ErrInvalidMailKindOption), ShouldBeTrue)
-		})
-
 		Convey("Fails to Subscribe", func() {
 			newsletterSubscriber.ShouldFailToSubscribe = true
 
 			So(errors.Is(s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
-				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
 			), ErrFailedToSubscribeToNewsletter), ShouldBeTrue)
 		})
@@ -100,18 +92,13 @@ func TestInitialSetup(t *testing.T) {
 		Convey("Succeeds subscribing", func() {
 			err := s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: true,
-				MailKind:              MailKindMarketing,
 				Email:                 "user@example.com"},
 			)
 
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.HasSubscribed, ShouldBeTrue)
 
-			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
-			So(err, ShouldBeNil)
-			So(r, ShouldEqual, MailKindMarketing)
-
-			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err := m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 1)
 		})
@@ -119,18 +106,13 @@ func TestInitialSetup(t *testing.T) {
 		Convey("Succeeds not subscribing", func() {
 			err := s.Set(context, writer, InitialOptions{
 				SubscribeToNewsletter: false,
-				MailKind:              MailKindTransactional,
 				Email:                 "user@example.com"},
 			)
 
 			So(err, ShouldBeNil)
 			So(newsletterSubscriber.HasSubscribed, ShouldBeFalse)
 
-			r, err := m.Reader.Retrieve(dummyContext, "mail_kind")
-			So(err, ShouldBeNil)
-			So(r, ShouldEqual, MailKindTransactional)
-
-			r, err = m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
+			r, err := m.Reader.Retrieve(dummyContext, "subscribe_newsletter")
 			So(err, ShouldBeNil)
 			So(r, ShouldEqual, 0)
 		})

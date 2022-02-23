@@ -19,7 +19,7 @@ export default {
     return {
       autoApply: true,
       alwaysShowCalendars: false,
-      singleDatePicker: false,
+      singleDatePicker: "range",
       dateRange: this.buildDefaultInterval(),
       ranges: this.defaultDatePickerRange(),
       opens: "center"

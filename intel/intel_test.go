@@ -189,10 +189,7 @@ se.vruntime                                  :            24.180579`
 
 			initSettings := settings.NewInitialSetupSettings(&newsletter.FakeNewsletterSubscriber{})
 
-			So(initSettings.Set(context.Background(), writeRunner.Writer(), settings.InitialOptions{
-				SubscribeToNewsletter: false,
-				MailKind:              settings.MailKindMarketing},
-			), ShouldBeNil)
+			So(initSettings.Set(context.Background(), writeRunner.Writer(), settings.InitialOptions{SubscribeToNewsletter: false}), ShouldBeNil)
 
 			err = (&Dispatcher{
 				InstanceID:           "my-best-uuid",
@@ -219,7 +216,6 @@ se.vruntime                                  :            24.180579`
 					"public_url":            "https://example.com",
 					"user_email":            email,
 					"user_name":             username,
-					"mail_kind":             string(settings.MailKindMarketing),
 					"is_using_rsynced_logs": true,
 				},
 				"app_version": map[string]interface{}{"version": "1.0", "tag_or_branch": "some_branch", "commit": "123456"},
@@ -277,7 +273,7 @@ se.vruntime                                  :            24.180579`
 
 		Convey("Send postfix version", func() {
 			p := postfixversion.NewPublisher(writeRunner.Writer())
-			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000)
+			postfixutil.ReadFromTestReader(strings.NewReader("Mar 29 12:55:50 test1 postfix/master[15019]: daemon started -- version 3.4.14, configuration /etc/postfix"), p, 2000, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 15:00:00 +0000`)})
 			time.Sleep(100 * time.Millisecond)
 
 			err := (&Dispatcher{

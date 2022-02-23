@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
 	"io/ioutil"
 	"os"
@@ -40,16 +41,16 @@ func (p *fakeResultPublisher) Publish(r Result) {
 }
 
 func readFromTestFile(s string, pub postfix.Publisher) {
-	postfixutil.ReadFromTestFile(s, pub, 2020)
+	postfixutil.ReadFromTestFile(s, pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 }
 
 func readFromTestReader(r io.Reader, pub postfix.Publisher) {
-	postfixutil.ReadFromTestReader(r, pub, 2020)
+	postfixutil.ReadFromTestReader(r, pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 }
 
 func readFromTestContent(content string, pub postfix.Publisher) {
 	r := strings.NewReader(content)
-	postfixutil.ReadFromTestReader(r, pub, 2020)
+	postfixutil.ReadFromTestReader(r, pub, 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2020-12-31 00:00:00 +0000`)})
 }
 
 func buildPublisherAndTempTracker(t *testing.T) (*fakeResultPublisher, *Tracker, func()) {
@@ -616,7 +617,7 @@ func TestTrackingFromFiles(t *testing.T) {
 				})
 
 				Convey("authcleanup/cleanup (Gitlab issue #621)", func() {
-					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/25_authclean_cleanup.log", t.Publisher(), 2021, "rfc3339")
+					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/25_authclean_cleanup.log", t.Publisher(), 2021, "rfc3339", &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-12-31 00:00:00 +0000`)})
 					cancel()
 					done()
 

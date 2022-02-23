@@ -54,7 +54,7 @@ func (s *HttpServer) Start() error {
 
 	writer, reader := s.Workspace.SettingsAcessors()
 
-	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter)
+	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter, s.Workspace.InsightsEngine())
 
 	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
 

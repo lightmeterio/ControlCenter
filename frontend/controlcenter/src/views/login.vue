@@ -8,7 +8,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   <panel-page>
     <div id="login-page">
       <h2>
-        <!-- prettier-ignore -->
         <translate>Login</translate>
       </h2>
       <div class="field-group">
@@ -45,14 +44,12 @@ SPDX-License-Identifier: AGPL-3.0-only
                   target="_blank"
                   href="https://gitlab.com/lightmeter/controlcenter#password-reset"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Forgot password?</translate>
                 </a></small
               >
             </p>
           </b-form-group>
           <b-button variant="primary" class="w-100" type="submit">
-            <!-- prettier-ignore -->
             <translate>Login</translate>
           </b-button>
         </b-form>

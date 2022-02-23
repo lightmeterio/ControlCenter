@@ -12,23 +12,37 @@ SPDX-License-Identifier: AGPL-3.0-only
       class="detective-result-cell card list-unstyled"
     >
       <li class="card-body">
-        <ul class="status-list list-unstyled">
-          <li
-            v-for="(delivery, statusIndex) in result.entries"
-            :key="statusIndex"
-            :class="statusClass(delivery.status)"
-            :title="statusTitle(delivery.status)"
+        <div class="card-status-logs">
+          <ul class="status-list list-unstyled">
+            <li
+              v-for="(delivery, statusIndex) in result.entries"
+              :key="statusIndex"
+              :class="statusClass(delivery.status)"
+              :title="statusTitle(delivery.status)"
+            >
+              {{ delivery.status }}
+            </li>
+            <li
+              :class="statusClass('expired')"
+              :title="statusTitle('expired')"
+              v-show="isExpired(result)"
+            >
+              expired
+            </li>
+          </ul>
+
+          <b-button
+            v-on:click="downloadRawLogsInInterval(result)"
+            variant="primary"
+            size="sm"
+            style="margin-left: 1rem;"
+            v-b-tooltip.hover
+            :title="titleDownloadLogsAroundDelivery"
           >
-            {{ delivery.status }}
-          </li>
-          <li
-            :class="statusClass('expired')"
-            :title="statusTitle('expired')"
-            v-show="isExpired(result)"
-          >
-            expired
-          </li>
-        </ul>
+            <i class="fas fa-download"></i>
+            <translate>Logs</translate>
+          </b-button>
+        </div>
 
         <div
           v-show="showQueues"
@@ -48,7 +62,6 @@ SPDX-License-Identifier: AGPL-3.0-only
             v-for="(delivery, deliveryIndex) of result.entries"
             :key="deliveryIndex"
           >
-            <!-- prettier-ignore -->
             <span
               v-show="hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
@@ -61,7 +74,8 @@ SPDX-License-Identifier: AGPL-3.0-only
               }"
               class="mt-3 card-text"
             >
-              %{attempts} delivery attempts %{status} with status code %{code} from %{begin} to %{end}
+              %{attempts} delivery attempts %{status} with status code %{code}
+              from %{begin} to %{end}
             </span>
             <span
               v-show="!hasMultipleDeliveryAttempts(delivery)"
@@ -89,9 +103,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script>
 import { humanDateTime } from "@/lib/date.js";
 import tracking from "@/mixin/global_shared.js";
+import moment from "moment";
+
+import { linkToRawLogsInInterval } from "@/lib/api.js";
 
 function emailDate(d) {
   return humanDateTime(d);
+}
+
+function formatTimeWithOffsetInSeconds(t, offsetInSeconds) {
+  return moment
+    .utc(t)
+    .add(offsetInSeconds, "s")
+    .format("YYYY-MM-DD HH:mm:ss");
 }
 
 export default {
@@ -111,6 +135,14 @@ export default {
     }
   },
   methods: {
+    downloadRawLogsInInterval(result) {
+      let from = formatTimeWithOffsetInSeconds(result.entries[0].time_min, -10);
+      let to = formatTimeWithOffsetInSeconds(result.entries[0].time_max, +5);
+
+      let link = linkToRawLogsInInterval(from, to, "plain", "inline");
+
+      window.open(link);
+    },
     hasMultipleDeliveryAttempts(delivery) {
       return delivery.number_of_attempts > 1;
     },
@@ -196,6 +228,11 @@ export default {
   computed: {
     showStatusCodeMoreInfo() {
       return this.results != null && this.results.length > 0;
+    },
+    titleDownloadLogsAroundDelivery: function() {
+      return this.$gettext(
+        "View mail server logs around this delivery (-10s +5s)"
+      );
     }
   }
 };
@@ -235,6 +272,11 @@ export default {
   font-weight: bold;
   padding-left: 5px;
   padding-right: 5px;
+}
+
+.card-status-logs {
+  display: flex;
+  justify-content: space-between;
 }
 
 .detective-result-attempts {

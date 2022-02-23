@@ -15,6 +15,7 @@ import (
 	notificationCore "gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"time"
 )
 
@@ -24,8 +25,9 @@ const (
 )
 
 type Options struct {
-	Checker      blockedips.Checker
-	PollInterval time.Duration
+	Checker        blockedips.Checker
+	PollInterval   time.Duration
+	EventsInterval time.Duration
 }
 
 type Content blockedips.SummaryResult
@@ -148,7 +150,9 @@ func (d *detector) Step(c core.Clock, tx *sql.Tx) error {
 		return errorutil.Wrap(err)
 	}
 
-	return d.options.Checker.Step(c.Now(), func(r blockedips.SummaryResult) error {
+	interval := timeutil.TimeInterval{From: c.Now().Add(-d.options.EventsInterval), To: c.Now()}
+
+	return d.options.Checker.Step(interval, func(r blockedips.SummaryResult) error {
 		if err := archiveAnyPreviousInsightIfNeeded(tx, c); err != nil {
 			return errorutil.Wrap(err)
 		}

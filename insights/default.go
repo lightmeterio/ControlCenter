@@ -16,17 +16,28 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	"gitlab.com/lightmeter/controlcenter/insights/newsfeed"
 	"gitlab.com/lightmeter/controlcenter/insights/welcome"
+	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification"
+	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 )
 
-func NoDetectors(creator *creator, options core.Options) []core.Detector {
+func NoDetectors(settings *insightsSettings.Settings, creator *creator, options core.Options) []core.Detector {
 	return []core.Detector{}
 }
 
-func defaultDetectors(creator *creator, options core.Options) []core.Detector {
+// SettingsDetectors is a list of detectors that take some of their options from the settings (list is used for unit tests purposes)
+func SettingsDetectors(settings *insightsSettings.Settings, creator *creator, options core.Options) []core.Detector {
 	return []core.Detector{
-		highrate.NewDetector(creator, options),
-		mailinactivity.NewDetector(creator, options),
+		highrate.NewDetector(settings, creator, options),
+		mailinactivity.NewDetector(settings, creator, options),
+	}
+}
+
+func defaultDetectors(settings *insightsSettings.Settings, creator *creator, options core.Options) []core.Detector {
+	return []core.Detector{
+		highrate.NewDetector(settings, creator, options),
+		mailinactivity.NewDetector(settings, creator, options),
 		welcome.NewDetector(creator),
 		localrblinsight.NewDetector(creator, options),
 		messagerblinsight.NewDetector(creator, options),
@@ -37,11 +48,14 @@ func defaultDetectors(creator *creator, options core.Options) []core.Detector {
 	}
 }
 
+var NoAdditionalActions = func([]core.Detector, dbconn.RwConn, core.Clock) error { return nil }
+
 func NewEngine(
-	c *Accessor,
+	metaReader *metadata.Reader,
+	insightsAccessor *Accessor,
 	fetcher core.Fetcher,
 	notificationCenter *notification.Center,
 	options core.Options,
 ) (*Engine, error) {
-	return NewCustomEngine(c, fetcher, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)
+	return NewCustomEngine(metaReader, insightsAccessor, fetcher, notificationCenter, options, defaultDetectors, executeAdditionalDetectorsInitialActions)
 }

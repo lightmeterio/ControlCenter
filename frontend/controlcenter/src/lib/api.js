@@ -104,6 +104,20 @@ export function submitDetectiveSettingsForm(data, enabled) {
     .catch(builderErrorHandler("settings"));
 }
 
+export function submitInsightsSettingsForm(data) {
+  return axios
+    .post(
+      BASE_URL + "settings?setting=insights",
+      new URLSearchParams(getFormData(data))
+    )
+    .then(function() {
+      trackEvent("InsightsBounceRateThreshold", data.bounce_rate_threshold);
+
+      newAlertSuccess(Vue.prototype.$gettext("Saved insights settings"));
+    })
+    .catch(builderErrorHandler("settings"));
+}
+
 export function getSettings() {
   return axios
     .get(BASE_URL + "settings")
@@ -150,7 +164,6 @@ export function submitRegisterForm(registrationData, settingsData, redirect) {
             if (settingsData.subscribe_newsletter) {
               trackEvent("RegisterAdmin", "newsletterOn");
             }
-            trackEvent("RegisterAdmin", settingsData.email_kind);
 
             redirect();
           });
@@ -395,6 +408,17 @@ export function postUserRating(type, rating) {
     .catch(builderErrorHandler("insight_user_rating"));
 }
 
+/**** Archive insight ****/
+
+export function archiveInsight(id) {
+  let formData = new FormData();
+  formData.append("id", id);
+
+  return axios
+    .post(BASE_URL + "api/v0/archiveInsight", new URLSearchParams(formData))
+    .catch(builderErrorHandler("insight_archive"));
+}
+
 /**** Network Intelligence ****/
 
 export function getLatestSignals() {
@@ -430,12 +454,22 @@ export function countLogLinesInInterval(selectedDateFrom, selectedDateTo) {
     .catch(errorHandler);
 }
 
-export function linkToRawLogsInInterval(selectedDateFrom, selectedDateTo) {
-  const timeIntervalUrlParams = function() {
-    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
-  };
+export function linkToRawLogsInInterval(
+  selectedDateFrom,
+  selectedDateTo,
+  format,
+  inline
+) {
+  const timeIntervalUrlParams =
+    "from=" +
+    encodeURI(selectedDateFrom) +
+    "&to=" +
+    encodeURI(selectedDateTo) +
+    "&format=" +
+    (format != undefined ? format : "gzip") +
+    (inline != undefined ? "&disposition=inline" : "");
 
   return (
-    BASE_URL + "api/v0/fetchRawLogsInTimeInterval?" + timeIntervalUrlParams()
+    BASE_URL + "api/v0/fetchRawLogsInTimeInterval?" + timeIntervalUrlParams
   );
 }

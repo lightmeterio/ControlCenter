@@ -11,12 +11,13 @@ import (
 	"gitlab.com/lightmeter/controlcenter/logeater/transform"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"io"
 	"os"
 )
 
-func ReadFromTestReaderWithLogFormat(reader io.Reader, pub postfix.Publisher, year int, format string) {
-	builder, err := transform.Get(format, year)
+func ReadFromTestReaderWithLogFormat(reader io.Reader, pub postfix.Publisher, year int, format string, clock timeutil.Clock) {
+	builder, err := transform.Get(format, clock, year)
 	errorutil.MustSucceed(err)
 
 	s, err := filelogsource.New(reader, builder, &announcer.DummyImportAnnouncer{})
@@ -27,8 +28,8 @@ func ReadFromTestReaderWithLogFormat(reader io.Reader, pub postfix.Publisher, ye
 	errorutil.MustSucceed(err)
 }
 
-func ReadFromTestReader(reader io.Reader, pub postfix.Publisher, year int) {
-	ReadFromTestReaderWithLogFormat(reader, pub, year, "default")
+func ReadFromTestReader(reader io.Reader, pub postfix.Publisher, year int, clock timeutil.Clock) {
+	ReadFromTestReaderWithLogFormat(reader, pub, year, "default", clock)
 }
 
 func openFile(name string) *os.File {
@@ -38,11 +39,11 @@ func openFile(name string) *os.File {
 	return f
 }
 
-func ReadFromTestFileWithFormat(name string, pub postfix.Publisher, year int, format string) {
+func ReadFromTestFileWithFormat(name string, pub postfix.Publisher, year int, format string, clock timeutil.Clock) {
 	f := openFile(name)
-	ReadFromTestReaderWithLogFormat(f, pub, year, format)
+	ReadFromTestReaderWithLogFormat(f, pub, year, format, clock)
 }
 
-func ReadFromTestFile(name string, pub postfix.Publisher, year int) {
-	ReadFromTestFileWithFormat(name, pub, year, "default")
+func ReadFromTestFile(name string, pub postfix.Publisher, year int, clock timeutil.Clock) {
+	ReadFromTestFileWithFormat(name, pub, year, "default", clock)
 }

@@ -11,7 +11,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="row align-items-center">
         <div class="col-7 col-sm-8 col-md-9 col-lg-10">
           <h1 class="row-title">
-            <!-- prettier-ignore -->
             <translate>Observatory</translate>
           </h1>
         </div>
@@ -26,7 +25,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               data-toggle="tooltip"
               data-placement="bottom"
             ></i>
-            <!-- prettier-ignore -->
             <translate>Feedback</translate>
           </a>
         </div>
@@ -71,13 +69,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       >
         <div class="col-lg-2 col-md-2 col-3 p-2">
           <h2 class="insights-title">
-            <!-- prettier-ignore -->
             <translate>Insights</translate>
           </h2>
         </div>
         <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
-            <!-- prettier-ignore -->
             <translate>Time interval</translate>:
           </label>
           <div class="p-1">
@@ -112,7 +108,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               class="form-group d-flex justify-content-end align-items-center"
             >
               <label class="sr-only">
-                <!-- prettier-ignore -->
                 <translate>Filter</translate>
               </label>
               <select
@@ -131,11 +126,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="category-active"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Active</translate>
                 </option>
                 <option value="nofilter">
-                  <!-- prettier-ignore -->
                   <translate>All</translate>
                 </option>
                 <!--    " -->
@@ -145,7 +138,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="category-local"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Local</translate>
                 </option>
                 <option
@@ -154,7 +146,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="category-news"
                 >
-                  <!-- prettier-ignore -->
                   <translate>News</translate>
                 </option>
                 <option
@@ -163,7 +154,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="category-intel"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Intel</translate>
                 </option>
                 <option
@@ -172,7 +162,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="category-archived"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Archived</translate>
                 </option>
               </select>
@@ -192,7 +181,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   selected
                   value="creationDesc"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Newest</translate>
                 </option>
                 <option
@@ -201,7 +189,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                   "
                   value="creationAsc"
                 >
-                  <!-- prettier-ignore -->
                   <translate>Oldest</translate>
                 </option>
               </select>
@@ -309,10 +296,13 @@ export default {
       vue.updateStatusMessage();
     },
     handleExternalDateIntervalChanged(obj) {
-      this.dateRange = obj;
-      if (obj.category !== undefined) {
-        this.insightsFilter = "category-" + obj.category;
+      if (obj === undefined) {
+        this.updateSelectedInterval(this.dateRange);
+        return;
       }
+
+      this.dateRange = obj;
+      this.insightsFilter = "category-" + obj.category;
       this.updateSelectedInterval(obj);
     },
     onUpdateDateRangePicker: function(obj) {
@@ -513,30 +503,18 @@ export default {
   border-radius: 5px;
   text-align: center;
   cursor: pointer;
-}
-
-#insights-page .vue-daterange-picker .reportrange-text {
   display: flex;
   justify-content: center;
-}
 
-#insights-page .vue-daterange-picker .reportrange-text span {
-  order: 1;
-  margin-top: 0.25em;
-}
-
-#insights-page .vue-daterange-picker .reportrange-text svg {
-  order: 2;
-  margin-left: 1em;
-  margin-top: 0.45em;
-}
-
-#insights-page #insights {
-  min-height: 30vh;
-}
-
-#insights-page .vue-daterange-picker .calendars {
-  flex-wrap: nowrap;
+  span {
+    order: 1;
+    margin-top: 0.25em;
+  }
+  svg {
+    order: 2;
+    margin-left: 1em;
+    margin-top: 0.45em;
+  }
 }
 
 #insights-page .insights-title {
@@ -550,43 +528,14 @@ export default {
 }
 
 @media (max-width: 768px) {
-  #insights-page .daterangepicker.dropdown-menu {
-    left: -40vw;
-  }
-  #insights-page .vue-daterange-picker .calendars {
-    flex-wrap: wrap;
-  }
-  .daterangepicker .calendars-container {
-    display: block;
-  }
-  #insights-page .vue-daterange-picker {
-    max-width: 150px;
-    padding: 0px;
-  }
-  #insights-page .vue-daterange-picker .form-control {
-    max-width: inherit;
-  }
-
   #insights-page #insights {
     min-height: 100vh;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
-  #insights-page .vue-daterange-picker {
-    max-width: none;
-  }
-  #insights-page .daterangepicker.dropdown-menu {
-    left: -10vw;
-  }
   #insights-page #insights {
     min-height: 60vh;
-  }
-  #insights-page .vue-daterange-picker .calendars {
-    flex-wrap: wrap;
-  }
-  #insights-page .daterangepicker .calendars .ranges li:last-child {
-    display: block;
   }
 }
 

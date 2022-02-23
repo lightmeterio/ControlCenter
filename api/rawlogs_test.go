@@ -126,6 +126,7 @@ func TestFetchingRawLogs(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
+					So(r.Header.Get(`Content-Disposition`), ShouldEqual, `attachment; filename=logs-20000101-40000101.log`)
 
 					content, err := io.ReadAll(r.Body)
 					So(err, ShouldBeNil)
@@ -138,6 +139,7 @@ func TestFetchingRawLogs(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 					So(r.Header.Get("Content-Type"), ShouldEqual, "application/gzip")
+					So(r.Header.Get(`Content-Disposition`), ShouldEqual, `attachment; filename=logs-20000101-40000101.log.gz`)
 
 					decompressor, err := gzip.NewReader(r.Body)
 					So(err, ShouldBeNil)

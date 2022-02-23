@@ -11,9 +11,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/insights/blockedipssummary"
 	insightscore "gitlab.com/lightmeter/controlcenter/insights/core"
 	"gitlab.com/lightmeter/controlcenter/insights/detectiveescalation"
-	highrateinsight "gitlab.com/lightmeter/controlcenter/insights/highrate"
 	localrblinsight "gitlab.com/lightmeter/controlcenter/insights/localrbl"
-	mailinactivityinsight "gitlab.com/lightmeter/controlcenter/insights/mailinactivity"
 	messagerblinsight "gitlab.com/lightmeter/controlcenter/insights/messagerbl"
 	newsfeedinsight "gitlab.com/lightmeter/controlcenter/insights/newsfeed"
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
@@ -39,10 +37,8 @@ func insightsOptions(
 	insightsFetcher insightscore.Fetcher,
 ) insightscore.Options {
 	return insightscore.Options{
-		"logsConnPool":   deliverydbConnPool,
-		"dashboard":      dashboard,
-		"highrate":       highrateinsight.Options{BaseBounceRateThreshold: 0.3},
-		"mailinactivity": mailinactivityinsight.Options{LookupRange: time.Hour * 24, MinTimeGenerationInterval: time.Hour * 12},
+		"logsConnPool": deliverydbConnPool,
+		"dashboard":    dashboard,
 
 		"localrbl": localrblinsight.Options{
 			CheckInterval:               time.Hour * 3,
@@ -68,8 +64,9 @@ func insightsOptions(
 		},
 
 		"blockedips": blockedipsinsight.Options{
-			Checker:      blockedipsChecker,
-			PollInterval: time.Minute * 2,
+			Checker:        blockedipsChecker,
+			PollInterval:   time.Minute * 2,
+			EventsInterval: time.Hour * 24,
 		},
 
 		"blockedips_summary": blockedipssummary.Options{
