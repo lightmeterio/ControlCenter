@@ -142,7 +142,7 @@ acceptance-test:
 publish-release:
   extends: .on-non-tag
   stage: publish
-  image: registry.gitlab.com/gitlab-org/release-cli
+  image: registry.gitlab.com/gitlab-org/release-cli:v0.10.0
   needs:
     - build
   dependencies:
