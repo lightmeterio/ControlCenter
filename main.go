@@ -191,7 +191,7 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 		return s, nil
 	}
 
-	builder, err := transform.Get(conf.LogFormat, conf.LogYear)
+	builder, err := transform.Get(conf.LogFormat, &timeutil.RealClock{}, conf.LogYear)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

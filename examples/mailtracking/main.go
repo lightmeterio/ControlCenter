@@ -91,7 +91,7 @@ func main() {
 
 		year := time.Now().Year()
 
-		builder, err := transform.Get("default", year)
+		builder, err := transform.Get("default", &timeutil.RealClock{}, year)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
