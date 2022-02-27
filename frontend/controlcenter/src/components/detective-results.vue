@@ -77,6 +77,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               %{attempts} delivery attempts %{status} with status code %{code}
               from %{begin} to %{end}
             </span>
+
             <span
               v-show="!hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
@@ -89,6 +90,16 @@ SPDX-License-Identifier: AGPL-3.0-only
             >
               Message %{status} with status code %{code} at %{time}
             </span>
+
+            <ul class="comma-list">
+              <li
+                v-for="relay of delivery.relays"
+                :key="relay"
+                class="card-text"
+              >
+                {{ relay }}
+              </li>
+            </ul>
           </li>
         </ul>
       </li>
@@ -312,5 +323,29 @@ export default {
 
 .status-sent {
   background-color: #8cfa86;
+}
+
+.comma-list {
+  display: inline;
+  list-style: none;
+  padding: 0px;
+
+  li {
+    display: inline;
+    margin: 0px;
+    padding-left: 10px;
+
+    &:after {
+      content: ", ";
+    }
+
+    &:last-child:after {
+      content: ")";
+    }
+
+    &:first-child:before {
+      content: "(";
+    }
+  }
 }
 </style>
