@@ -19,6 +19,7 @@ const (
 	decrementQueueUsageById
 	queueUsageCounter
 	insertQueueData
+	insertResultData
 	updateQueueWithMessageId
 	selectQueueIdForQueue
 	insertQueueParenting
@@ -27,9 +28,6 @@ const (
 	selectQueueFromParentingNewQueue
 	deleteQueueParentingById
 	selectQueueById
-	insertResultData15Rows
-	insertResultData3Rows
-	insertResultData4Rows
 	insertResult
 	deleteFromNotificationQueues
 	selectFromNotificationQueues
@@ -77,6 +75,7 @@ var trackerStmtsText = dbconn.StmtsText{
 	decrementQueueUsageById:  `update queues set usage_counter = usage_counter - 1 where id = ?`,
 	queueUsageCounter:        `select usage_counter from queues where id = ?`,
 	insertQueueData:          `insert into queue_data(queue_id, key, value) values(?, ?, ?)`,
+	insertResultData:         `insert into result_data(result_id, key, value) values(?, ?, ?)`,
 	updateQueueWithMessageId: `update queues set messageid_id = ? where queues.id = ?`,
 	selectQueueIdForQueue: `select
 		queues.id
@@ -87,36 +86,11 @@ var trackerStmtsText = dbconn.StmtsText{
 		pids.host = ? and queues.queue = ?`,
 	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	// TODO: perform a migration that remove filename and line fields
-	insertNotificationQueue:          `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
-	countNewQueueFromParenting:       `select count(new_queue_id) from queue_parenting where orig_queue_id = ?`,
-	selectQueueFromParentingNewQueue: `select id, orig_queue_id from queue_parenting where new_queue_id = ?`,
-	deleteQueueParentingById:         `delete from queue_parenting where id = ?`,
-	selectQueueById:                  `select queue from queues where id = ?`,
-	insertResultData15Rows: `insert into result_data(result_id, key, value)
-		values(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?)`,
-	insertResultData3Rows: `insert into result_data(result_id, key, value)
-		values(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?)`,
-	insertResultData4Rows: `insert into result_data(result_id, key, value)
-		values(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?),
-					(?, ?, ?)`,
+	insertNotificationQueue:            `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
+	countNewQueueFromParenting:         `select count(new_queue_id) from queue_parenting where orig_queue_id = ?`,
+	selectQueueFromParentingNewQueue:   `select id, orig_queue_id from queue_parenting where new_queue_id = ?`,
+	deleteQueueParentingById:           `delete from queue_parenting where id = ?`,
+	selectQueueById:                    `select queue from queues where id = ?`,
 	insertResult:                       `insert into results(queue_id) values(?)`,
 	selectFromNotificationQueues:       `select id, result_id from notification_queues`,
 	deleteFromNotificationQueues:       `delete from notification_queues where id = ?`,
