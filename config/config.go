@@ -9,12 +9,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/util/envutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
@@ -67,20 +67,20 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.BoolVar(&conf.ShouldWatchFromStdin, "stdin", false, "Read log lines from stdin")
 
 	fs.StringVar(&conf.WorkspaceDirectory, "workspace",
-		lookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_WORKSPACE", "/var/lib/lightmeter_workspace", lookupenv),
 		"Path to the directory to store all working data")
 
 	fs.BoolVar(&conf.ImportOnly, "importonly", false,
 		"Only import existing logs, exiting immediately, without running the full application.")
 
-	b, err := lookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv)
+	b, err := envutil.LookupEnvOrBool("LIGHTMETER_LOGS_USE_RSYNC", false, lookupenv)
 	if err != nil {
 		return conf, err
 	}
 
 	fs.BoolVar(&conf.RsyncedDir, "logs_use_rsync", b, "Log directory is updated by rsync")
 
-	logYear, err := lookupEnvOrInt("LIGHTMETER_LOGS_STARTING_YEAR", 0, lookupenv)
+	logYear, err := envutil.LookupEnvOrInt("LIGHTMETER_LOGS_STARTING_YEAR", 0, lookupenv)
 	if err != nil {
 		return conf, err
 	}
@@ -91,17 +91,17 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.BoolVar(&conf.ShowVersion, "version", false, "Show Version Information")
 
 	fs.StringVar(&conf.DirToWatch, "watch_dir",
-		lookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
 		"Path to the directory where postfix stores its log files, to be watched")
 
 	fs.StringVar(&conf.Address, "listen",
-		lookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
 		"Network Address to listen to")
 
 	var stringLogLevel = "INFO"
 
 	fs.StringVar(&stringLogLevel, "log_level",
-		lookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_LOG_LEVEL", "INFO", lookupenv),
 		"Log level (DEBUG, INFO, WARN, or ERROR. Default: INFO)")
 
 	fs.StringVar(&conf.EmailToChange, "email_reset", "", "Change user info (email, name or password; depends on -workspace)")
@@ -111,23 +111,23 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.StringVar(&conf.ChangeUserInfoNewName, "new_user_name", "", "Update user name (depends on -email_reset)")
 
 	fs.StringVar(&conf.Socket, "logs_socket",
-		lookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_LOGS_SOCKET", "", lookupenv),
 		"Receive logs via a Socket. E.g. unix=/tmp/lightemter.sock or tcp=localhost:9999")
 
 	fs.StringVar(&conf.LogFormat, "log_format",
-		lookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
+		envutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
 
 	var unparsedDefaultSettings string
 
-	fs.StringVar(&unparsedDefaultSettings, "default_settings", lookupEnvOrString("LIGHTMETER_DEFAULT_SETTINGS", `{}`, lookupenv), "JSON string for default settings")
+	fs.StringVar(&unparsedDefaultSettings, "default_settings", envutil.LookupEnvOrString("LIGHTMETER_DEFAULT_SETTINGS", `{}`, lookupenv), "JSON string for default settings")
 
 	var unparsedLogPatterns string
 
-	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", lookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
+	fs.StringVar(&unparsedLogPatterns, "log_file_patterns", envutil.LookupEnvOrString("LIGHTMETER_LOG_FILE_PATTERNS", "", lookupenv),
 		`An optional colon separated list of the base filenames for the Postfix log files. Example: "mail.log:mail.err:mail.log" or "maillog"`)
 
-	proxyConf, err := lookupEnvOrBool("LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY", false, lookupenv)
+	proxyConf, err := envutil.LookupEnvOrBool("LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY", false, lookupenv)
 	if err != nil {
 		return conf, err
 	}
@@ -136,9 +136,9 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		proxyConf, "Used when you are accessing the application without a reverse proxy (e.g. apache2, nginx or traefik), "+
 			"which is unsupported by us at the moment and might lead to security issues")
 
-	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
-	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
-	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", lookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
+	fs.StringVar(&conf.RegisteredUserEmail, "registered_user_email", envutil.LookupEnvOrString("LIGHTMETER_REGISTERED_USER_EMAIL", "", lookupenv), "Experimental: static user e-mail")
+	fs.StringVar(&conf.RegisteredUserName, "registered_user_name", envutil.LookupEnvOrString("LIGHTMETER_REGISTERED_USER_NAME", "", lookupenv), "Experimental: static user name")
+	fs.StringVar(&conf.RegisteredUserPassword, "registered_user_password", envutil.LookupEnvOrString("LIGHTMETER_REGISTERED_USER_PASSWORD", "", lookupenv), "Experimental: static user password")
 
 	fs.BoolVar(&conf.GenerateDovecotConfig, "dovecot_conf_gen", false, "Generate Dovecot Configuration")
 	fs.BoolVar(&conf.DovecotConfigIsOld, "dovecot_conf_is_old", false, "Requires -dovecot_conf_gen. Use if if you're using a Dovecot older than 2.3.1")
@@ -178,38 +178,4 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}()
 
 	return conf, nil
-}
-
-func lookupEnvOrString(key string, defaultVal string, loopkupenv func(string) (string, bool)) string {
-	if val, ok := loopkupenv(key); ok {
-		return val
-	}
-
-	return defaultVal
-}
-
-func lookupEnvOrBool(key string, defaultVal bool, loopkupenv func(string) (string, bool)) (bool, error) {
-	if val, ok := loopkupenv(key); ok {
-		v, err := strconv.ParseBool(val)
-		if err != nil {
-			return v, fmt.Errorf("Boolean env var %v boolean value could not be parsed: %w", key, err)
-		}
-
-		return v, nil
-	}
-
-	return defaultVal, nil
-}
-
-func lookupEnvOrInt(key string, defaultVal int64, loopkupenv func(string) (string, bool)) (int64, error) {
-	if val, ok := loopkupenv(key); ok {
-		v, err := strconv.ParseInt(val, 10, 32)
-		if err != nil {
-			return v, fmt.Errorf("Integer env var %v integer value could not be parsed: %w", key, err)
-		}
-
-		return v, nil
-	}
-
-	return defaultVal, nil
 }
