@@ -90,10 +90,18 @@ SPDX-License-Identifier: AGPL-3.0-only
             >
               Message %{status} with status code %{code} at %{time}
             </span>
-
             <span class="relays" v-b-tooltip.hover :title="titleRelay">
               ({{ delivery.relays.join(", ") }})
             </span>
+            <ul v-show="delivery.log_msgs != null && delivery.log_msgs.length > 0" class="list-unstyled">
+              <li
+                v-for="(logMsg, logIndex) of delivery.log_msgs"
+                :key="logIndex"
+                class="raw-log card em small"
+              >
+                {{ logMsg }}
+              </li>
+            </ul>
           </li>
         </ul>
       </li>
@@ -324,5 +332,10 @@ export default {
 
 .relays {
   color: #7f8c8d;
+}
+
+.raw-log {
+  margin: 5px;
+  padding: 5px;
 }
 </style>
