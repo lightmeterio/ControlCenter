@@ -39,11 +39,12 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		if err := db.PrepareStmt(`
 			with
-			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
+			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id) as (
 				select
 					d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, mid.value, false,
 					sender_local_part    || '@' || sender_domain.domain    as mailfrom,
-					recipient_local_part || '@' || recipient_domain.domain as mailto
+					recipient_local_part || '@' || recipient_domain.domain as mailto,
+					d.next_relay_id
 				from
 					deliveries d
 				join
@@ -56,7 +57,7 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					delivery_queue dq on dq.delivery_id = d.id
 				join
 					queues q on q.id = dq.queue_id
-				join 
+				join
 					messageids mid on mid.id = d.message_id
 				where
 					(sender_local_part       = ? collate nocase or ? = '') and
@@ -71,8 +72,8 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					) and
 					(q.name = ? or mid.value = ? or ? = '')
 			),
-			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
-				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, true, mailfrom, mailto
+			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id) as (
+				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, true, mailfrom, mailto, d.next_relay_id
 				from
 					deliveries d
 				join
@@ -85,13 +86,13 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					queues qc on queue_parenting.child_queue_id = qc.id
 				join
 					sent_deliveries_filtered_by_condition sd on qp.id = sd.queue_id
-				join 
+				join
 					messageids mid on mid.id = d.message_id
 			),
-			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto) as (
-				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto from sent_deliveries_filtered_by_condition
+			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id) as (
+				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id from sent_deliveries_filtered_by_condition
 				union
-				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto from returned_deliveries
+				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id from returned_deliveries
 			),
 			queues_filtered_by_condition(queue_id, expired_ts, mailfrom, mailto) as (
 				select distinct delivery_queue.queue_id, expired_ts, mailfrom, mailto
@@ -99,20 +100,23 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				left join expired_queues eq on eq.queue_id = deliveries_filtered_by_condition.queue_id
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto) as (
+			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay) as (
 				select
 					row_number() over (order by delivery_ts),
 					count() over () as total,
 					delivery_ts, status, dsn, d.queue_id, d.message_id, queues.name as queue, expired_ts,
 					count(distinct delivery_ts) as number_of_attempts, min(delivery_ts) as min_ts, max(delivery_ts) as max_ts,
 					d.returned as returned,
-					d.mailfrom, json_group_array(distinct d.mailto)
+					d.mailfrom, json_group_array(distinct d.mailto),
+					json_group_array(distinct lm_host_domain_from_domain(coalesce(next_relays.hostname, 'local')))
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
-				join queues_filtered_by_condition q where q.queue_id = d.queue_id
+				join queues_filtered_by_condition q
+				left join next_relays on d.relay_id = next_relays.id
+				where q.queue_id = d.queue_id
 				group by d.queue_id, status, dsn
 			)
-			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto
+			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay
 			from grouped_and_computed
 			order by delivery_ts, returned
 			limit ?
@@ -231,6 +235,7 @@ type MessageDelivery struct {
 	TimeMax          time.Time  `json:"time_max"`
 	Status           Status     `json:"status"`
 	Dsn              string     `json:"dsn"`
+	Relays           []string   `json:"relays"`
 	Expired          *time.Time `json:"expired"`
 	MailFrom         string     `json:"from"`
 	MailTo           []string   `json:"to"`
@@ -305,9 +310,10 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			returned         bool
 			mailFrom         string
 			mailTo           string
+			relay            string
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo, &relay); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -338,6 +344,11 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			return nil, errorutil.Wrap(err)
 		}
 
+		var relays []string
+		if err := json.Unmarshal([]byte(relay), &relays); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
 		delivery := MessageDelivery{
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
@@ -347,6 +358,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			Expired:          expiredTime,
 			MailFrom:         mailFrom,
 			MailTo:           mailTos,
+			Relays:           relays,
 		}
 
 		messages[index].Entries = append(messages[index].Entries, delivery)

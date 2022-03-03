@@ -77,6 +77,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               %{attempts} delivery attempts %{status} with status code %{code}
               from %{begin} to %{end}
             </span>
+
             <span
               v-show="!hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
@@ -88,6 +89,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               class="mt-3 card-text"
             >
               Message %{status} with status code %{code} at %{time}
+            </span>
+
+            <span class="relays" v-b-tooltip.hover :title="titleRelay">
+              ({{ delivery.relays.join(", ") }})
             </span>
           </li>
         </ul>
@@ -233,6 +238,9 @@ export default {
       return this.$gettext(
         "View mail server logs around this delivery (-10s +5s)"
       );
+    },
+    titleRelay: function() {
+      return this.$gettext("Message was sent to this server (relay)");
     }
   }
 };
@@ -312,5 +320,9 @@ export default {
 
 .status-sent {
   background-color: #8cfa86;
+}
+
+.relays {
+  color: #7f8c8d;
 }
 </style>
