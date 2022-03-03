@@ -40,6 +40,14 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
+	var err error
+
+	defer func() {
+		if err != nil {
+			clearDir()
+		}
+	}()
+
 	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
@@ -165,6 +173,7 @@ func TestDetective(t *testing.T) {
 									expectedTime.In(time.UTC),
 									detective.Status(parser.SentStatus),
 									"2.0.0",
+									[]string{"outlook.com"},
 									nil,
 									"sender@example.com",
 									[]string{"recipient@example.com"},
@@ -237,6 +246,7 @@ func TestDetective(t *testing.T) {
 								expectedTime.In(time.UTC),
 								detective.Status(parser.SentStatus),
 								"2.0.0",
+								[]string{"outlook.com"},
 								nil,
 								"sender@internal.org",
 								[]string{"recipient1@external.org", "recipient2@external.org"},
@@ -258,7 +268,7 @@ func TestDetective(t *testing.T) {
 			})
 
 			Convey("Searching for relay name should find delivery as well", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "datmail-smtp.h-1e99c9eeac07", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "outlook.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
@@ -291,6 +301,7 @@ func TestDetective(t *testing.T) {
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.DeferredStatus),
 								"4.1.1",
+								[]string{"google.com", "outlook.com"},
 								&expectedExpiredTime,
 								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
 								[]string{"h-664d01@h-695da2287.com"},
@@ -301,6 +312,7 @@ func TestDetective(t *testing.T) {
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.ReturnedStatus),
 								"2.0.0",
+								[]string{"h-213dce00be4cedefd"},
 								&expectedExpiredTime,
 								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
 								[]string{"h-664d01@h-695da2287.com"},
@@ -351,6 +363,7 @@ func TestDetective(t *testing.T) {
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
 									detective.Status(parser.SentStatus),
 									"2.0.0",
+									[]string{"local"},
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
 									[]string{"h-493fac8f3@h-ea3f4afa.com"},
@@ -367,6 +380,7 @@ func TestDetective(t *testing.T) {
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
 									detective.Status(parser.SentStatus),
 									"2.0.0",
+									[]string{"local"},
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
 									[]string{"h-493fac8f3@h-ea3f4afa.com"},

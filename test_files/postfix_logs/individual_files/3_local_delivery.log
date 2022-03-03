@@ -22,6 +22,6 @@ Jan 10 16:15:30 mail amavis[27886]: (27886-10) size: 945, TIMING [total 108 ms] 
 Jan 10 16:15:30 mail dovecot: lmtp(11997): Connect from local
 Jan 10 16:15:30 mail dovecot: lmtp(recipient@example.com)<11997><hz3kESIo+1/dLgAAWP5Hkg>: msgid=<414300fb-b063-fa96-4fc6-2d35b3168d61@example.com>: saved mail to INBOX
 Jan 10 16:15:30 mail dovecot: lmtp(11997): Disconnect from local: Client has quit the connection (state=READY)
-Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, relay=mail.example.com[/var/run/dovecot/lmtp], delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent (250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)
+Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, relay=example-com.mail.protection.outlook.com[1.2.3.4]:25, delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent (250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)
 Jan 10 16:15:30 mail postfix/qmgr[1789]: 400643011B47: removed
 Jan 10 16:15:30 mail dovecot: imap(sender@example.com)<11828><ZoUEF464n0dZ9/zl>: Connection closed (noop finished 0.051 secs ago) in=670 out=3687 deleted=0 expunged=0 trashed=0 hdr_count=0 hdr_bytes=0 body_count=0 body_bytes=0
