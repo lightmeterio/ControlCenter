@@ -600,7 +600,7 @@ func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 	return nil
 }
 
-func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
+func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64, sum postfix.Sum) error {
 	direction := func() MessageDirection {
 		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") {
 			return MessageDirectionIncoming
@@ -625,6 +625,7 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		kvData{key: ResultDeliveryFileLineKey, value: loc.Line},
 		kvData{key: ResultDeliveryTimeKey, value: time.Unix()},
 		kvData{key: ResultMessageDirectionKey, value: direction},
+		kvData{key: ResultDeliveryLineChecksum, value: sum},
 	); err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -671,7 +672,7 @@ func createResult(trackerStmts dbconn.TxPreparedStmts, r postfix.Record) (result
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	err = addResultData(trackerStmts, r.Time, r.Location, r.Header, p, resultId)
+	err = addResultData(trackerStmts, r.Time, r.Location, r.Header, p, resultId, r.Sum)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
