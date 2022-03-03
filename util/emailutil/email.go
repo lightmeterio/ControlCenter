@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
-// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -8,6 +7,8 @@ package emailutil
 import (
 	"errors"
 	"fmt"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"golang.org/x/net/publicsuffix"
 	"net"
 	"regexp"
 	"strings"
@@ -82,4 +83,22 @@ func IsDisposableEmailAddress(email string) bool {
 	_, isDisposable := disposableDomains[domain]
 
 	return isDisposable
+}
+
+func HostDomainFromDomain(domain string) (string, error) {
+	// not a domain, but an IP address!
+	if ip := net.ParseIP(domain); ip != nil {
+		return domain, nil
+	}
+
+	d, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	if len(d) == 0 {
+		return strings.ToLower(domain), nil
+	}
+
+	if err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	return strings.ToLower(d), nil
 }

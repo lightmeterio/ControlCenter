@@ -12,11 +12,10 @@ import (
 	"database/sql"
 	"fmt"
 	sqlite "github.com/mattn/go-sqlite3"
+	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/publicsuffix"
 	"net"
-	"strings"
 	"sync"
 	"time"
 )
@@ -76,28 +75,10 @@ func Initialize(options Options) {
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_json_time_to_timestamp", jsonTimeToTimestamp, true))
-				errorutil.MustSucceed(conn.RegisterFunc("lm_host_domain_from_domain", hostDomainFromDomain, true))
+				errorutil.MustSucceed(conn.RegisterFunc("lm_host_domain_from_domain", emailutil.HostDomainFromDomain, true))
 
 				return nil
 			},
 		})
 	})
-}
-
-func hostDomainFromDomain(domain string) (string, error) {
-	// not a domain, but an IP address!
-	if ip := net.ParseIP(domain); ip != nil {
-		return domain, nil
-	}
-
-	d, err := publicsuffix.EffectiveTLDPlusOne(domain)
-	if len(d) == 0 {
-		return strings.ToLower(domain), nil
-	}
-
-	if err != nil {
-		return "", errorutil.Wrap(err)
-	}
-
-	return strings.ToLower(d), nil
 }
