@@ -91,15 +91,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               Message %{status} with status code %{code} at %{time}
             </span>
 
-            <ul class="comma-list">
-              <li
-                v-for="relay of delivery.relays"
-                :key="relay"
-                class="card-text"
-              >
-                {{ relay }}
-              </li>
-            </ul>
+            <span class="relays" v-b-tooltip.hover :title="titleRelay">
+              ({{ delivery.relays.join(", ") }})
+            </span>
           </li>
         </ul>
       </li>
@@ -244,6 +238,9 @@ export default {
       return this.$gettext(
         "View mail server logs around this delivery (-10s +5s)"
       );
+    },
+    titleRelay: function() {
+      return this.$gettext("Message was sent to this server (relay)");
     }
   }
 };
@@ -325,27 +322,7 @@ export default {
   background-color: #8cfa86;
 }
 
-.comma-list {
-  display: inline;
-  list-style: none;
-  padding: 0px;
-
-  li {
-    display: inline;
-    margin: 0px;
-    padding-left: 10px;
-
-    &:after {
-      content: ", ";
-    }
-
-    &:last-child:after {
-      content: ")";
-    }
-
-    &:first-child:before {
-      content: "(";
-    }
-  }
+.relays {
+  color: #7f8c8d;
 }
 </style>
