@@ -44,6 +44,7 @@ const (
 	DeferredStatus SmtpStatus = 2
 	ExpiredStatus  SmtpStatus = 3
 	ReturnedStatus SmtpStatus = 4
+	ReceivedStatus SmtpStatus = 5
 )
 
 type SmtpSentStatus struct {
