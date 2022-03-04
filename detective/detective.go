@@ -12,7 +12,10 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -27,7 +30,8 @@ type Detective interface {
 }
 
 type sqlDetective struct {
-	pool *dbconn.RoPool
+	deliveriesConnPool *dbconn.RoPool
+	rawLogsAccessor    rawlogsdb.Accessor
 }
 
 const (
@@ -35,7 +39,7 @@ const (
 	oldestAvailableTimeKey
 )
 
-func New(pool *dbconn.RoPool) (Detective, error) {
+func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
 		if err := db.PrepareStmt(`
 			with
@@ -94,14 +98,15 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 				union
 				select id, delivery_ts, status, dsn, queue_id, message_id, returned, mailfrom, mailto, relay_id from returned_deliveries
 			),
-			queues_filtered_by_condition(queue_id, expired_ts, mailfrom, mailto) as (
-				select distinct delivery_queue.queue_id, expired_ts, mailfrom, mailto
+			queues_filtered_by_condition(delivery_id, queue_id, expired_ts, mailfrom, mailto) as (
+				select distinct deliveries_filtered_by_condition.id, delivery_queue.queue_id, expired_ts, mailfrom, mailto
 				from deliveries_filtered_by_condition
 				left join expired_queues eq on eq.queue_id = deliveries_filtered_by_condition.queue_id
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay) as (
+			grouped_and_computed(log_refs, rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay) as (
 				select
+					json_group_array(distinct iif(ref.time is null, json_object('invalid', true), json_object('time', ref.time, 'checksum', ref.checksum))),
 					row_number() over (order by delivery_ts),
 					count() over () as total,
 					delivery_ts, status, dsn, d.queue_id, d.message_id, queues.name as queue, expired_ts,
@@ -111,13 +116,13 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 					json_group_array(distinct lm_host_domain_from_domain(coalesce(next_relays.hostname, 'local')))
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
-				join queues_filtered_by_condition q
+				join queues_filtered_by_condition q on q.queue_id = d.queue_id 
 				left join next_relays on d.relay_id = next_relays.id
-				where q.queue_id = d.queue_id
+				left join log_lines_ref ref on d.id = ref.delivery_id and (ref.ref_type = ? or ref.ref_type is null)
 				group by d.queue_id, status, dsn
 			)
-			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay
-			from grouped_and_computed
+			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay, log_refs
+			from grouped_and_computed gac
 			order by delivery_ts, returned
 			limit ?
 			offset ?
@@ -141,19 +146,20 @@ func New(pool *dbconn.RoPool) (Detective, error) {
 		return nil
 	}
 
-	if err := pool.ForEach(setup); err != nil {
+	if err := deliveriesConnPool.ForEach(setup); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	return &sqlDetective{
-		pool: pool,
+		deliveriesConnPool: deliveriesConnPool,
+		rawLogsAccessor:    rawLogsAccessor,
 	}, nil
 }
 
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
 func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (*MessagesPage, error) {
-	conn, release, err := d.pool.AcquireContext(ctx)
+	conn, release, err := d.deliveriesConnPool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -161,11 +167,11 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 	defer release()
 
 	//nolint:sqlclosecheck
-	return checkMessageDelivery(ctx, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, someID, page)
+	return checkMessageDelivery(ctx, d.rawLogsAccessor, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, someID, page)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
-	conn, release, err := d.pool.AcquireContext(ctx)
+	conn, release, err := d.deliveriesConnPool.AcquireContext(ctx)
 	if err != nil {
 		return time.Time{}, errorutil.Wrap(err)
 	}
@@ -239,10 +245,41 @@ type MessageDelivery struct {
 	Expired          *time.Time `json:"expired"`
 	MailFrom         string     `json:"from"`
 	MailTo           []string   `json:"to"`
+	RawLogMsgs       []string   `json:"log_msgs"`
+}
+
+func parseLogRefs(ctx context.Context, rawLogsAccessor rawlogsdb.Accessor, content string) ([]string, error) {
+	var logRefs []struct {
+		Time     int64       `json:"time"`
+		Checksum postfix.Sum `json:"checksum"`
+		Invalid  int         `json:"invalid"`
+	}
+
+	if err := json.Unmarshal([]byte(content), &logRefs); err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	logLines := make([]string, 0, len(logRefs))
+
+	for _, ref := range logRefs {
+		// NOTE: this is a very ugly hack!
+		if ref.Invalid == 1 {
+			continue
+		}
+
+		logLine, err := rawLogsAccessor.FetchLogLine(ctx, time.Unix(ref.Time, 0), ref.Checksum)
+		if err != nil && !errors.Is(err, rawlogsdb.ErrLogLineNotFound) {
+			return nil, errorutil.Wrap(err)
+		}
+
+		logLines = append(logLines, logLine)
+	}
+
+	return logLines, nil
 }
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
-func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (messagesPage *MessagesPage, err error) {
+func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accessor, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (messagesPage *MessagesPage, err error) {
 	splitEmail := func(email string) (local, domain string, err error) {
 		if len(email) == 0 {
 			return "", "", nil
@@ -281,6 +318,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 		interval.From.Unix(), interval.To.Unix(),
 		status, status, status,
 		someID, someID, someID,
+		tracking.ResultDeliveryLineChecksum,
 		resultsPerPage, (page-1)*resultsPerPage,
 	)
 
@@ -311,9 +349,10 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			mailFrom         string
 			mailTo           string
 			relay            string
+			logRefsContent   string
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo, &relay); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &returned, &mailFrom, &mailTo, &relay, &logRefsContent); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -349,6 +388,21 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			return nil, errorutil.Wrap(err)
 		}
 
+		var logRefs []struct {
+			Time     int64       `json:"time"`
+			Checksum postfix.Sum `json:"checksum"`
+			Invalid  int         `json:"invalid"`
+		}
+
+		if err := json.Unmarshal([]byte(logRefsContent), &logRefs); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		logLines, err := parseLogRefs(ctx, rawLogsAccessor, logRefsContent)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
 		delivery := MessageDelivery{
 			NumberOfAttempts: numberOfAttempts,
 			TimeMin:          time.Unix(tsMin, 0).In(time.UTC),
@@ -359,6 +413,7 @@ func checkMessageDelivery(ctx context.Context, stmt *sql.Stmt, mailFrom string, 
 			MailFrom:         mailFrom,
 			MailTo:           mailTos,
 			Relays:           relays,
+			RawLogMsgs:       logLines,
 		}
 
 		messages[index].Entries = append(messages[index].Entries, delivery)

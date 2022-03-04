@@ -254,6 +254,17 @@ func insertQueueDataValues(stmts dbconn.TxPreparedStmts, queueId int64, values .
 	return nil
 }
 
+func insertResultDataValues(stmts dbconn.TxPreparedStmts, resultId int64, values ...kvData) error {
+	for _, v := range values {
+		//nolint:sqlclosecheck
+		if _, err := stmts.Get(insertResultData).Exec(resultId, v.key, v.value); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
 func createQueue(time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
 	//nolint:sqlclosecheck
 	result, err := trackerStmts.Get(insertQueueForConnection).Exec(connectionId, queue)
@@ -589,7 +600,7 @@ func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 	return nil
 }
 
-func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64) error {
+func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64, sum postfix.Sum) error {
 	direction := func() MessageDirection {
 		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") {
 			return MessageDirectionIncoming
@@ -598,26 +609,24 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		return MessageDirectionOutbound
 	}()
 
-	//nolint:sqlclosecheck
-	_, err := trackerStmts.Get(insertResultData15Rows).Exec(
-		resultId, ResultRecipientLocalPartKey, p.RecipientLocalPart,
-		resultId, ResultRecipientDomainPartKey, p.RecipientDomainPart,
-		resultId, ResultOrigRecipientLocalPartKey, p.OrigRecipientLocalPart,
-		resultId, ResultOrigRecipientDomainPartKey, p.OrigRecipientDomainPart,
-		resultId, ResultDelayKey, p.Delay,
-		resultId, ResultDelaySMTPDKey, p.Delays.Smtpd,
-		resultId, ResultDelayCleanupKey, p.Delays.Cleanup,
-		resultId, ResultDelayQmgrKey, p.Delays.Qmgr,
-		resultId, ResultDelaySMTPKey, p.Delays.Smtp,
-		resultId, ResultDSNKey, p.Dsn,
-		resultId, ResultStatusKey, p.Status,
-		resultId, ResultDeliveryFilenameKey, loc.Filename,
-		resultId, ResultDeliveryFileLineKey, loc.Line,
-		resultId, ResultDeliveryTimeKey, time.Unix(),
-		resultId, ResultMessageDirectionKey, direction,
-	)
-
-	if err != nil {
+	if err := insertResultDataValues(trackerStmts, resultId,
+		kvData{key: ResultRecipientLocalPartKey, value: p.RecipientLocalPart},
+		kvData{key: ResultRecipientDomainPartKey, value: p.RecipientDomainPart},
+		kvData{key: ResultOrigRecipientLocalPartKey, value: p.OrigRecipientLocalPart},
+		kvData{key: ResultOrigRecipientDomainPartKey, value: p.OrigRecipientDomainPart},
+		kvData{key: ResultDelayKey, value: p.Delay},
+		kvData{key: ResultDelaySMTPDKey, value: p.Delays.Smtpd},
+		kvData{key: ResultDelayCleanupKey, value: p.Delays.Cleanup},
+		kvData{key: ResultDelayQmgrKey, value: p.Delays.Qmgr},
+		kvData{key: ResultDelaySMTPKey, value: p.Delays.Smtp},
+		kvData{key: ResultDSNKey, value: p.Dsn},
+		kvData{key: ResultStatusKey, value: p.Status},
+		kvData{key: ResultDeliveryFilenameKey, value: loc.Filename},
+		kvData{key: ResultDeliveryFileLineKey, value: loc.Line},
+		kvData{key: ResultDeliveryTimeKey, value: time.Unix()},
+		kvData{key: ResultMessageDirectionKey, value: direction},
+		kvData{key: ResultDeliveryLineChecksum, value: sum},
+	); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -626,14 +635,11 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		return nil
 	}
 
-	//nolint:sqlclosecheck
-	_, err = trackerStmts.Get(insertResultData3Rows).Exec(
-		resultId, ResultRelayNameKey, p.RelayName,
-		resultId, ResultRelayIPKey, p.RelayIP,
-		resultId, ResultRelayPortKey, p.RelayPort,
-	)
-
-	if err != nil {
+	if err := insertResultDataValues(trackerStmts, resultId,
+		kvData{key: ResultRelayNameKey, value: p.RelayName},
+		kvData{key: ResultRelayIPKey, value: p.RelayIP},
+		kvData{key: ResultRelayPortKey, value: p.RelayPort},
+	); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -666,7 +672,7 @@ func createResult(trackerStmts dbconn.TxPreparedStmts, r postfix.Record) (result
 		return resultInfo{}, errorutil.Wrap(err)
 	}
 
-	err = addResultData(trackerStmts, r.Time, r.Location, r.Header, p, resultId)
+	err = addResultData(trackerStmts, r.Time, r.Location, r.Header, p, resultId, r.Sum)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
@@ -810,12 +816,11 @@ func rejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 }
 
 func createMessageExpiredMessage(resultId int64, loc postfix.RecordLocation, time time.Time, trackerStmts dbconn.TxPreparedStmts) error {
-	//nolint:sqlclosecheck
-	if _, err := trackerStmts.Get(insertResultData4Rows).Exec(
-		resultId, ResultStatusKey, parser.ExpiredStatus,
-		resultId, ResultDeliveryFilenameKey, loc.Filename,
-		resultId, ResultDeliveryFileLineKey, loc.Line,
-		resultId, MessageExpiredTime, time.Unix(),
+	if err := insertResultDataValues(trackerStmts, resultId,
+		kvData{key: ResultStatusKey, value: parser.ExpiredStatus},
+		kvData{key: ResultDeliveryFilenameKey, value: loc.Filename},
+		kvData{key: ResultDeliveryFileLineKey, value: loc.Line},
+		kvData{key: MessageExpiredTime, value: time.Unix()},
 	); err != nil {
 		return errorutil.Wrap(err)
 	}
