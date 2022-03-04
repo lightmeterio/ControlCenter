@@ -93,7 +93,10 @@ SPDX-License-Identifier: AGPL-3.0-only
             <span class="relays" v-b-tooltip.hover :title="titleRelay">
               ({{ delivery.relays.join(", ") }})
             </span>
-            <ul v-show="delivery.log_msgs != null && delivery.log_msgs.length > 0" class="list-unstyled">
+            <ul
+              v-show="delivery.log_msgs != null && delivery.log_msgs.length > 0"
+              class="list-unstyled"
+            >
               <li
                 v-for="(logMsg, logIndex) of delivery.log_msgs"
                 :key="logIndex"
