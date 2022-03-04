@@ -142,7 +142,7 @@ export default {
   methods: {
     downloadRawLogsInInterval(result) {
       let from = formatTimeWithOffsetInSeconds(result.entries[0].time_min, -10);
-      let to = formatTimeWithOffsetInSeconds(result.entries[0].time_max, +5);
+      let to = formatTimeWithOffsetInSeconds(result.entries[result.entries.length - 1].time_max, +5);
 
       let link = linkToRawLogsInInterval(from, to, "plain", "inline");
 
