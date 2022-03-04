@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/httpauth"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -44,6 +45,10 @@ func (f *fakeRawLogsFetcher) FetchLogsInIntervalToWriter(ctx context.Context, in
 
 func (f *fakeRawLogsFetcher) CountLogLinesInInterval(context.Context, timeutil.TimeInterval) (int64, error) {
 	return 42, nil
+}
+
+func (f *fakeRawLogsFetcher) FetchLogLine(context.Context, time.Time, postfix.Sum) (string, error) {
+	return "", nil
 }
 
 func TestFetchingRawLogs(t *testing.T) {

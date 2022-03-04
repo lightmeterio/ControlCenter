@@ -31,7 +31,10 @@ type Accessor interface {
 	FetchLogsInInterval(ctx context.Context, interval timeutil.TimeInterval, pageSize int, cursor int64) (Content, error)
 	FetchLogsInIntervalToWriter(context.Context, timeutil.TimeInterval, io.Writer) error
 	CountLogLinesInInterval(context.Context, timeutil.TimeInterval) (int64, error)
+	FetchLogLine(context.Context, time.Time, postfix.Sum) (string, error)
 }
+
+var ErrLogLineNotFound = errors.New(`Log line not found`)
 
 type accessor struct {
 	pool *dbconn.RoPool
@@ -51,6 +54,10 @@ func (a *accessor) FetchLogsInIntervalToWriter(ctx context.Context, interval tim
 
 func (a *accessor) CountLogLinesInInterval(ctx context.Context, interval timeutil.TimeInterval) (int64, error) {
 	return CountLogLinesInInterval(ctx, a.pool, interval)
+}
+
+func (a *accessor) FetchLogLine(ctx context.Context, time time.Time, sum postfix.Sum) (string, error) {
+	return FetchLogLine(ctx, a.pool, time, sum)
 }
 
 func FetchLogsInIntervalToWriter(ctx context.Context, pool *dbconn.RoPool, interval timeutil.TimeInterval, w io.Writer) error {
@@ -179,4 +186,26 @@ func MostRecentLogTimeAndSum(ctx context.Context, pool *dbconn.RoPool) (postfix.
 	}
 
 	return postfix.SumPair{Time: time.Unix(ts, 0).In(time.UTC), Sum: (*postfix.Sum)(&sum)}, nil
+}
+
+func FetchLogLine(ctx context.Context, pool *dbconn.RoPool, t time.Time, sum postfix.Sum) (string, error) {
+	var line string
+
+	conn, release, err := pool.AcquireContext(ctx)
+	if err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	err = conn.QueryRow(`select content from logs where time = ? and checksum = ?`, t.Unix(), sum).Scan(&line)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return "", ErrLogLineNotFound
+	}
+
+	if err != nil {
+		return "", errorutil.Wrap(err)
+	}
+
+	return line, nil
 }

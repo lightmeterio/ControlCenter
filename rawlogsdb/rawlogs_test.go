@@ -7,6 +7,7 @@ package rawlogsdb
 import (
 	"bytes"
 	"context"
+	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -184,6 +185,19 @@ func TestFetchingRawContent(t *testing.T) {
 			From: timeutil.MustParseTime(`2020-12-17 06:29:07 +0000`),
 			To:   timeutil.MustParseTime(`2020-12-17 06:29:10 +0000`),
 		}
+
+		Convey("Obtain just one line by its time and checksum", func() {
+			expectedLine := `Dec 17 06:29:07 sm02 postfix/qmgr[95074]: 218BEDC28EC: removed`
+			sum := postfix.ComputeChecksum(postfix.NewHasher(), expectedLine)
+			line, err := FetchLogLine(context.Background(), pool, timeutil.MustParseTime(`2020-12-17 06:29:07 +0000`), sum)
+			So(err, ShouldBeNil)
+			So(line, ShouldEqual, expectedLine)
+		})
+
+		Convey("Fail to obtain single line", func() {
+			_, err := FetchLogLine(context.Background(), pool, timeutil.MustParseTime(`2020-12-17 06:29:07 +0000`), postfix.Sum(42))
+			So(errors.Is(err, ErrLogLineNotFound), ShouldBeTrue)
+		})
 
 		var buffer bytes.Buffer
 

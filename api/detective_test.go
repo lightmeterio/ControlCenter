@@ -100,6 +100,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 							nil,
 							"user1@example.org",
 							[]string{"user2@example.org"},
+							nil,
 						},
 						},
 					},

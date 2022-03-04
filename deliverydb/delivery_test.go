@@ -89,6 +89,7 @@ func buildDefaultResult() tracking.Result {
 		tracking.ResultDeliveryServerKey:          tracking.ResultEntryText("server"),
 		tracking.ResultMessageDirectionKey:        tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
 		tracking.QueueDeliveryNameKey:             tracking.ResultEntryText("AAAAAA"),
+		tracking.ResultDeliveryLineChecksum:       tracking.ResultEntryInt64(42),
 	}.Result()
 }
 
@@ -449,6 +450,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(200),
 		}.Result())
 
 		pub.Publish(tracking.MappedResult{
@@ -478,6 +480,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(201),
 		}.Result())
 
 		// a bounced message, followed by a return message
@@ -508,6 +511,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A2"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("4.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(202),
 		}.Result())
 
 		// returned here
@@ -539,6 +543,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A3"),
 			tracking.ParentQueueDeliveryNameKey:   tracking.ResultEntryText("A2"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(203),
 		}.Result())
 
 		// Deferred once and then expired
@@ -569,6 +574,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A4"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("5.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(204),
 		}.Result())
 
 		// expires here
@@ -599,6 +605,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A4"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("5.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(205),
 		}.Result())
 
 		pub.Publish(tracking.MappedResult{
@@ -628,6 +635,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A5"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(206),
 		}.Result())
 
 		// a normal outbound message
@@ -658,6 +666,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ConnectionClientIPKey:        tracking.ResultEntryBlob([]byte{192, 168, 0, 2}),
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A6"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
+			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(207),
 		}.Result())
 
 		// delete two messages older than 6min, but not all yet
@@ -680,6 +689,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			queueParentingCount int
 			deliveriesCount     int
 			messageIdsCount     int
+			logLinesRefCount    int
 		)
 
 		ro, release := conn.RoConnPool.Acquire()
@@ -703,6 +713,9 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		So(ro.QueryRow(`select count(*) from messageids`).Scan(&messageIdsCount), ShouldBeNil)
 		So(messageIdsCount, ShouldEqual, 2)
+
+		So(ro.QueryRow(`select count(*) from log_lines_ref`).Scan(&logLinesRefCount), ShouldBeNil)
+		So(logLinesRefCount, ShouldEqual, 2)
 	})
 }
 
