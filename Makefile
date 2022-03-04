@@ -30,8 +30,10 @@ $(foreach exec,$(BUILD_DEPENDENCIES),\
 
 dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go www
 
+pre_build: export SKIP_VUE_SOURCE_MAPS := false
 dev_pre_build: npminstall mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
 
+pre_build: export SKIP_VUE_SOURCE_MAPS := true
 pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go email_notification_template
 
 pre_release: pre_build recommendation_release
