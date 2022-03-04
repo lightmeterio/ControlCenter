@@ -116,10 +116,9 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 					json_group_array(distinct lm_host_domain_from_domain(coalesce(next_relays.hostname, 'local')))
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
-				join queues_filtered_by_condition q
+				join queues_filtered_by_condition q on q.queue_id = d.queue_id 
 				left join next_relays on d.relay_id = next_relays.id
-				left join log_lines_ref ref on d.id = ref.delivery_id
-				where q.queue_id = d.queue_id and (ref.ref_type = ? or ref.ref_type is null)
+				left join log_lines_ref ref on d.id = ref.delivery_id and (ref.ref_type = ? or ref.ref_type is null)
 				group by d.queue_id, status, dsn
 			)
 			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, returned, mailfrom, mailto, relay, log_refs
