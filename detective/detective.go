@@ -70,7 +70,8 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 					(recipient_domain.domain = ? collate nocase or relay.hostname like ? collate nocase or ? = '') and
 					(delivery_ts between ? and ?) and
 					(
-						status = ?
+						status = ? and status != 42 and direction = 0  -- sent emails
+						or ? = 42 and direction = 1                    -- received emails
 						or ? = -1
 						or ? = 3 and exists(select * from expired_queues where queue_id = q.id)
 					) and
@@ -316,7 +317,7 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 		recipientLocal, recipientLocal,
 		recipientDomain, fmt.Sprintf("%%%s", recipientDomain), recipientDomain,
 		interval.From.Unix(), interval.To.Unix(),
-		status, status, status,
+		status, status, status, status,
 		someID, someID, someID,
 		tracking.ResultDeliveryLineChecksum,
 		resultsPerPage, (page-1)*resultsPerPage,
