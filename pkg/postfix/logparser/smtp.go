@@ -31,6 +31,7 @@ var (
 		SentStatus:     "sent",
 		ExpiredStatus:  "expired",
 		ReturnedStatus: "returned",
+		ReceivedStatus: "received",
 	}
 )
 

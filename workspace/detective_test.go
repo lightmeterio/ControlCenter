@@ -171,7 +171,7 @@ func TestDetective(t *testing.T) {
 									1,
 									expectedTime.In(time.UTC),
 									expectedTime.In(time.UTC),
-									detective.Status(parser.SentStatus),
+									detective.Status(parser.ReceivedStatus),
 									"2.0.0",
 									[]string{"outlook.com"},
 									nil,
@@ -422,6 +422,7 @@ func TestDetective(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(messages.TotalResults, ShouldEqual, 1)
 				So(messages.Messages[0].Queue, ShouldEqual, "4FA51DFCAD")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.SentStatus)
 			})
 
 			Convey("Received: return only received messages", func() {
@@ -429,6 +430,7 @@ func TestDetective(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(messages.TotalResults, ShouldEqual, 1)
 				So(messages.Messages[0].Queue, ShouldEqual, "DF1C3EB916")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.ReceivedStatus)
 			})
 		})
 	})

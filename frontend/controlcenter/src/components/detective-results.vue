@@ -18,12 +18,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-for="(delivery, statusIndex) in result.entries"
               :key="statusIndex"
               :class="statusClass(delivery.status)"
+              v-b-tooltip.hover
               :title="statusTitle(delivery.status)"
             >
               {{ delivery.status }}
             </li>
             <li
               :class="statusClass('expired')"
+              v-b-tooltip.hover
               :title="statusTitle('expired')"
               v-show="isExpired(result)"
             >
@@ -173,7 +175,8 @@ export default {
         bounced: "status-bounced",
         deferred: "status-deferred",
         expired: "status-expired",
-        returned: "status-returned"
+        returned: "status-returned",
+        received: "status-received"
       }[status];
 
       return baseClass + customClass;
@@ -188,7 +191,8 @@ export default {
         ),
         returned: this.$gettext(
           "Return notification sent back to original sender"
-        )
+        ),
+        received: this.$gettext("Received message")
       }[status];
     },
     isExpired: function(result) {
@@ -334,6 +338,10 @@ export default {
 
 .status-sent {
   background-color: #8cfa86;
+}
+
+.status-received {
+  background-color: #ecf0f1;
 }
 
 .relays {
