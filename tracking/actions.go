@@ -68,7 +68,7 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		switch p.Status {
 		case parser.BouncedStatus:
 			return MailBouncedActionType, emptyActionDataPair
-		case parser.SentStatus:
+		case parser.SentStatus, parser.ReceivedStatus:
 			return MailSentActionType, emptyActionDataPair
 		case parser.DeferredStatus:
 			return MailBouncedActionType, emptyActionDataPair
