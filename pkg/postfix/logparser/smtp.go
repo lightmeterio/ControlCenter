@@ -31,6 +31,7 @@ var (
 		SentStatus:     "sent",
 		ExpiredStatus:  "expired",
 		ReturnedStatus: "returned",
+		ReceivedStatus: "received",
 	}
 )
 
@@ -44,6 +45,7 @@ const (
 	DeferredStatus SmtpStatus = 2
 	ExpiredStatus  SmtpStatus = 3
 	ReturnedStatus SmtpStatus = 4
+	ReceivedStatus SmtpStatus = 42 // not an actual status; used in Message Detective
 )
 
 type SmtpSentStatus struct {

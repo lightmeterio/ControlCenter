@@ -11,7 +11,7 @@ Search for messages
 * Click on "Search"
 
 * Expect "1" detective results
-* Expect to see "Sent"
+* Expect to see "Received"
 * Expect to see "sender@sender.example.com"
 * Expect to see "user@recipient.example.com"
 * Expect to see "1F5A2194AA9"

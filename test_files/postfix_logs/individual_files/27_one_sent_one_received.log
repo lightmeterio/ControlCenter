@@ -1,0 +1,20 @@
+Feb 28 17:09:19 mailserver postfix/smtpd[1477465]: 4FA51DFCAD: client=unknown[185.1.135.97], sasl_method=PLAIN, sasl_username=h-1d6e@h-08cedc5c.com
+Feb 28 17:09:19 mailserver postfix/cleanup[1477468]: 4FA51DFCAD: message-id=<h-dab1d512bd2e1b8cce6a398c01ec3a360807@h-08cedc5c.com>
+Feb 28 17:09:19 mailserver opendkim[12864]: 4FA51DFCAD: DKIM-Signature field added (s=default, d=h-08cedc5c)
+Feb 28 17:09:19 mailserver postfix/qmgr[651668]: 4FA51DFCAD: from=<h-1d6e@h-08cedc5c.com>, size=1152, nrcpt=1 (queue active)
+Feb 28 17:09:20 mailserver postfix/smtpd[1477465]: disconnect from unknown[185.1.135.97] ehlo=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=6
+Feb 28 17:09:20 mailserver postfix/smtp[1477469]: 4FA51DFCAD: to=<h-97607be360@h-357b5d30382e3252d.com>, relay=h-658302d1392cf0bcaa2d2b[232.26.1.68]:25, delay=1.6, delays=0.83/0.05/0.25/0.42, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 337249F4C4)
+Feb 28 17:09:20 mailserver postfix/qmgr[651668]: 4FA51DFCAD: removed
+Feb 28 17:09:47 mailserver postfix/smtpd[1477474]: DF1C3EB916: client=h-357b5d30382e3252d[232.26.1.68]
+Feb 28 17:09:47 mailserver postfix/cleanup[1477468]: DF1C3EB916: message-id=<h-1de5f5d473143079b31a927ef699881cf83e@h-357b5d30382e3252d.com>
+Feb 28 17:09:47 mailserver opendkim[12864]: DF1C3EB916: h-357b5d30382e3252d [232.26.1.68] not internal
+Feb 28 17:09:47 mailserver opendkim[12864]: DF1C3EB916: not authenticated
+Feb 28 17:09:48 mailserver opendkim[12864]: DF1C3EB916: DKIM verification successful
+Feb 28 17:09:48 mailserver opendkim[12864]: DF1C3EB916: s=default d=h-357b5d30382e3252d a=rsa-sha256 SSL
+Feb 28 17:09:48 mailserver postfix/smtpd[1477474]: disconnect from h-357b5d30382e3252d[232.26.1.68] ehlo=2 starttls=1 mail=1 rcpt=1 data=1 quit=1 commands=7
+Feb 28 17:09:48 mailserver postfix/qmgr[651668]: DF1C3EB916: from=<h-97607be360@h-357b5d30382e3252d.com>, size=2421, nrcpt=1 (queue active)
+Feb 28 17:09:48 mailserver dovecot: lmtp(1477476): Connect from local
+Feb 28 17:09:48 mailserver dovecot: lmtp(h-1d6e@h-08cedc5c.com)<1477476><KqpVFMzzHGJkixYArqg3ow>: sieve: msgid=<h-1de5f5d473143079b31a927ef699881cf83e@h-357b5d30382e3252d.com>: stored mail into mailbox 'INBOX'
+Feb 28 17:09:48 mailserver postfix/lmtp[1477475]: DF1C3EB916: to=<h-1d6e@h-08cedc5c.com>, relay=h-138674ebe[private/dovecot-lmtp], delay=0.6, delays=0.32/0.06/0.05/0.17, dsn=2.0.0, status=sent (250 2.0.0 <h-1d6e@h-08cedc5c.com> KqpVFMzzHGJkixYArqg3ow Saved)
+Feb 28 17:09:48 mailserver dovecot: lmtp(1477476): Disconnect from local: Client has quit the connection (state=READY)
+Feb 28 17:09:48 mailserver postfix/qmgr[651668]: DF1C3EB916: removed

@@ -171,7 +171,7 @@ func TestDetective(t *testing.T) {
 									1,
 									expectedTime.In(time.UTC),
 									expectedTime.In(time.UTC),
-									detective.Status(parser.SentStatus),
+									detective.Status(parser.ReceivedStatus),
 									"2.0.0",
 									[]string{"outlook.com"},
 									nil,
@@ -404,6 +404,33 @@ func TestDetective(t *testing.T) {
 						},
 					},
 				})
+			})
+		})
+
+		Convey("Search for sent/received messages", func() {
+			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/27_one_sent_one_received.log", year)
+			defer clear()
+
+			Convey("No status: return sent and received messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 2)
+			})
+
+			Convey("Sent: return only sent messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.SentStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 1)
+				So(messages.Messages[0].Queue, ShouldEqual, "4FA51DFCAD")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.SentStatus)
+			})
+
+			Convey("Received: return only received messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ReceivedStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 1)
+				So(messages.Messages[0].Queue, ShouldEqual, "DF1C3EB916")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.ReceivedStatus)
 			})
 		})
 	})
