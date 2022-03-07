@@ -128,6 +128,26 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	return servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
+type sentMailsByMailboxHandler handler
+
+// @Summary Messages sent by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Produce json
+// @Success 200 {object} dashboard.SentMailsByMailboxResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/sentMailsByMailbox  [get]
+func (h sentMailsByMailboxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	interval := httpmiddleware.GetIntervalFromContext(r)
+
+	result, err := h.dashboard.SentMailsByMailbox(r.Context(), interval)
+	if err != nil {
+		return err
+	}
+
+	return httputil.WriteJson(w, result, http.StatusOK)
+}
+
 type appVersionHandler struct{}
 
 type appVersion struct {
@@ -153,5 +173,6 @@ func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.
 	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{dashboard}))
 	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{dashboard}))
+	mux.Handle("/api/v0/sentMailsByMailbox", authenticated.WithEndpoint(sentMailsByMailboxHandler{dashboard}))
 	mux.Handle("/api/v0/appVersion", unauthenticated.WithEndpoint(appVersionHandler{}))
 }
