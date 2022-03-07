@@ -7,10 +7,12 @@ package dashboard
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"math"
 	"strings"
 )
 
@@ -21,12 +23,18 @@ type Pair struct {
 
 type Pairs []Pair
 
+type SentMailsByMailboxResult struct {
+	Times  []int64            `json:"times"`
+	Values map[string][]int64 `json:"values"`
+}
+
 type Dashboard interface {
 	CountByStatus(context.Context, parser.SmtpStatus, timeutil.TimeInterval) (int, error)
 	TopBusiestDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
+	SentMailsByMailbox(context.Context, timeutil.TimeInterval) (SentMailsByMailboxResult, error)
 }
 
 type sqlDashboard struct {
@@ -115,6 +123,51 @@ from
 			return errorutil.Wrap(err)
 		}
 
+		// TODO: fix building the list of senders not to include bounce msgs
+		if err := db.PrepareStmt(`
+with deliveries_in_range as (
+	select * from deliveries where delivery_ts between @start and @end
+),
+senders as (
+select
+	distinct d.sender_local_part, d.sender_domain_part_id, rd.domain
+from
+	deliveries_in_range d join remote_domains rd on d.sender_domain_part_id = rd.id
+where
+	d.direction = 0 and sender_local_part != '' and domain != ''
+),
+bins as (
+  select
+			-- this round is equivalent to floor(), but using built-in functions (floor requires an external build flag)
+			cast(round(delivery_ts/(@granularity), 0.5)*(@granularity) as integer) as t,
+      id,
+	s.sender_local_part,
+	s.domain
+  from
+      deliveries_in_range d join senders s on 
+	d.sender_local_part = s.sender_local_part and d.sender_domain_part_id = s.sender_domain_part_id
+  where
+      status = 0
+  order by
+      t
+),
+number_sent_mails_per_sender_per_interval as (
+select
+	t, count(id) as c, sender_local_part || '@' || domain as mailbox
+from
+	bins
+group by
+	t, sender_local_part, domain
+)
+select
+	mailbox, min(t) as min_r, max(t) as max_r, json_group_array(json_array(t, c))
+from
+	number_sent_mails_per_sender_per_interval
+group by mailbox
+order by t`, "outboundSentVolumeByMailbox"); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}
 
@@ -187,6 +240,112 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 
 	//nolint:sqlclosecheck
 	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
+}
+
+func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval) (result SentMailsByMailboxResult, err error) {
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	const granularity = 60 * 60 * 12
+
+	//nolint:sqlclosecheck
+	rows, err := conn.GetStmt("outboundSentVolumeByMailbox").
+		Query(
+			sql.Named("start", interval.From.Unix()),
+			sql.Named("end", interval.To.Unix()),
+			sql.Named("granularity", granularity),
+		)
+
+	if err != nil {
+		return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+	}
+
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
+
+	type counter [2]int64
+
+	basicResult := map[string][]counter{}
+
+	var (
+		// NOTE: we start with extreme values, obviously
+		overallMinTime int64 = math.MaxInt64
+		overallMaxTime int64 = math.MinInt64
+	)
+
+	for rows.Next() {
+		var (
+			mailbox          string
+			counters         []counter
+			rawCounters      string
+			minTime, maxTime int64
+		)
+
+		if err := rows.Scan(&mailbox, &minTime, &maxTime, &rawCounters); err != nil {
+			return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+		}
+
+		if json.Unmarshal([]byte(rawCounters), &counters); err != nil {
+			return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+		}
+
+		basicResult[mailbox] = counters
+
+		overallMinTime = min(minTime, overallMinTime)
+		overallMaxTime = max(maxTime, overallMaxTime)
+	}
+
+	compute := func(min, max int64) int64 {
+		return int64(float64(max-min) / float64(granularity))
+	}
+
+	resultLen := compute(overallMinTime, overallMaxTime) + 1
+
+	times := make([]int64, int64(resultLen))
+
+	for t := overallMinTime; t < overallMaxTime; t += granularity {
+		i := compute(overallMinTime, t)
+		times[i] = t
+	}
+
+	values := map[string][]int64{}
+
+	for k, v := range basicResult {
+		counters := make([]int64, resultLen)
+
+		for _, c := range v {
+			i := compute(overallMinTime, c[0])
+			counters[i] = c[1]
+		}
+
+		values[k] = counters
+	}
+
+	return SentMailsByMailboxResult{
+		Times:  times,
+		Values: values,
+	}, nil
+}
+
+// FIXME: yes, this is ugly
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+// FIXME: yes, this is ugly
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+
+	return b
 }
 
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {
