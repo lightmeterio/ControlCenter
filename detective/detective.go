@@ -64,18 +64,18 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				join
 					messageids mid on mid.id = d.message_id
 				where
-					(sender_local_part       = ? collate nocase or ? = '') and
-					(sender_domain.domain    = ? collate nocase or ? = '') and
-					(recipient_local_part    = ? collate nocase or ? = '') and
-					(recipient_domain.domain = ? collate nocase or relay.hostname like ? collate nocase or ? = '') and
-					(delivery_ts between ? and ?) and
+					(sender_local_part       = @sender_local_part    collate nocase or @sender_local_part = '') and
+					(sender_domain.domain    = @sender_domain        collate nocase or @sender_domain = '') and
+					(recipient_local_part    = @recipient_local_part collate nocase or @recipient_local_part = '') and
+					(recipient_domain.domain = @recipient_domain     collate nocase or @recipient_domain = '' or relay.hostname like @recipient_domain_like collate nocase) and
+					(delivery_ts between @start and @end) and
 					(
-						status = ? and status != 42 and direction = 0  -- sent emails
-						or ? = 42 and direction = 1                    -- received emails
-						or ? = -1
-						or ? = 3 and exists(select * from expired_queues where queue_id = q.id)
+						status = @status and status != @ReceivedStatus and direction = 0  -- sent emails
+						or @status = @ReceivedStatus and direction = 1                    -- received emails
+						or @status = -1
+						or @status = 3 and exists(select * from expired_queues where queue_id = q.id)
 					) and
-					(q.name = ? or mid.value = ? or ? = '')
+					(q.name = @someID or mid.value = @someID or @someID = '')
 			),
 			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id) as (
 				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, d.direction, true, mailfrom, mailto, d.next_relay_id
@@ -120,14 +120,14 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				join queues on d.queue_id = queues.id
 				join queues_filtered_by_condition q on q.queue_id = d.queue_id 
 				left join next_relays on d.relay_id = next_relays.id
-				left join log_lines_ref ref on d.id = ref.delivery_id and (ref.ref_type = ? or ref.ref_type is null)
+				left join log_lines_ref ref on d.id = ref.delivery_id and (ref.ref_type = @ref_type or ref.ref_type is null)
 				group by d.queue_id, status, dsn
 			)
 			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay, log_refs
 			from grouped_and_computed gac
 			order by delivery_ts, returned
-			limit ?
-			offset ?
+			limit @limit
+			offset @offset
 			`, checkMessageDeliveryKey); err != nil {
 			return errorutil.Wrap(err)
 		}
@@ -314,15 +314,19 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 
 	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx,
-		senderLocal, senderLocal,
-		senderDomain, senderDomain,
-		recipientLocal, recipientLocal,
-		recipientDomain, fmt.Sprintf("%%%s", recipientDomain), recipientDomain,
-		interval.From.Unix(), interval.To.Unix(),
-		status, status, status, status,
-		someID, someID, someID,
-		tracking.ResultDeliveryLineChecksum,
-		resultsPerPage, (page-1)*resultsPerPage,
+		sql.Named("start", interval.From.Unix()),
+		sql.Named("end", interval.To.Unix()),
+		sql.Named("status", status),
+		sql.Named("ReceivedStatus", parser.ReceivedStatus),
+		sql.Named("sender_local_part", senderLocal),
+		sql.Named("sender_domain", senderDomain),
+		sql.Named("recipient_local_part", recipientLocal),
+		sql.Named("recipient_domain", recipientDomain),
+		sql.Named("recipient_domain_like", fmt.Sprintf("%%%s", recipientDomain)),
+		sql.Named("someID", someID),
+		sql.Named("ref_type", tracking.ResultDeliveryLineChecksum),
+		sql.Named("limit", resultsPerPage),
+		sql.Named("offset", (page-1)*resultsPerPage),
 	)
 
 	if err != nil {
