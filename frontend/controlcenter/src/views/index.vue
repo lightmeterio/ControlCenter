@@ -55,10 +55,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <maindashboard :graphDateRange="dashboardInterval"></maindashboard>
-
-      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
-
       <b-toaster
         ref="statusMessage"
         name="statusMessage"
@@ -198,6 +194,10 @@ SPDX-License-Identifier: AGPL-3.0-only
           </form>
         </div>
       </div>
+
+      <maindashboard :graphDateRange="dashboardInterval"></maindashboard>
+
+      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
 
       <import-progress-indicator
         :label="generatingInsights"

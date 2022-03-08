@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -133,6 +134,7 @@ type sentMailsByMailboxHandler handler
 // @Summary Messages sent by mailbox over time
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
 // @Produce json
 // @Success 200 {object} dashboard.SentMailsByMailboxResult
 // @Failure 422 {string} string "desc"
@@ -140,7 +142,12 @@ type sentMailsByMailboxHandler handler
 func (h sentMailsByMailboxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
-	result, err := h.dashboard.SentMailsByMailbox(r.Context(), interval)
+	granularity, err := strconv.Atoi(r.Form.Get("granularity"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	result, err := h.dashboard.SentMailsByMailbox(r.Context(), interval, granularity)
 	if err != nil {
 		return err
 	}

@@ -285,10 +285,11 @@ export function fetchGraphDataAsJsonWithTimeInterval(
 
 export function fetchSentMailsByMailboxDataWithTimeInterval(
   selectedDateFrom,
-  selectedDateTo
+  selectedDateTo,
+  granularityInHours
 ) {
   const timeIntervalUrlParams = function() {
-    return "from=" + selectedDateFrom + "&to=" + selectedDateTo;
+    return "from=" + selectedDateFrom + "&to=" + selectedDateTo + "&granularity=" + granularityInHours;
   };
 
   return axios
