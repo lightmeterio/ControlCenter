@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div class="row dashboard">
-    <dashboard-supergraph></dashboard-supergraph>
+    <dashboard-supergraph :graphDateRange="graphDateRange"></dashboard-supergraph>
   </div>
 </template>
 

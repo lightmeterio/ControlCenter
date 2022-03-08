@@ -14,6 +14,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"math"
 	"strings"
+	"time"
 )
 
 type Pair struct {
@@ -34,7 +35,7 @@ type Dashboard interface {
 	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
-	SentMailsByMailbox(context.Context, timeutil.TimeInterval) (SentMailsByMailboxResult, error)
+	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (SentMailsByMailboxResult, error)
 }
 
 type sqlDashboard struct {
@@ -242,7 +243,7 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
 }
 
-func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval) (result SentMailsByMailboxResult, err error) {
+func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (result SentMailsByMailboxResult, err error) {
 	conn, release, err := d.pool.AcquireContext(ctx)
 	if err != nil {
 		return SentMailsByMailboxResult{}, errorutil.Wrap(err)
@@ -250,7 +251,7 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 
 	defer release()
 
-	const granularity = 60 * 60 * 12
+	granularity := granularityInHour * int(time.Hour/time.Second)
 
 	//nolint:sqlclosecheck
 	rows, err := conn.GetStmt("outboundSentVolumeByMailbox").
@@ -306,7 +307,7 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 
 	times := make([]int64, int64(resultLen))
 
-	for t := overallMinTime; t < overallMaxTime; t += granularity {
+	for t := overallMinTime; t < overallMaxTime; t += int64(granularity) {
 		i := compute(overallMinTime, t)
 		times[i] = t
 	}

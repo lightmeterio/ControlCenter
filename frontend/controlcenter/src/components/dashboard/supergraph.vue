@@ -9,9 +9,36 @@ import "echarts";
 
 import { fetchSentMailsByMailboxDataWithTimeInterval } from "@/lib/api";
 
+//function randomColor() {
+//  var o = Math.round,
+//    r = Math.random,
+//    s = 255;
+//  return (
+//    "rgba(" +
+//    o(r() * s) +
+//    "," +
+//    o(r() * s) +
+//    "," +
+//    o(r() * s) +
+//    "," +
+//    r().toFixed(1) +
+//    ")"
+//  );
+//}
+
 export default {
   name: "SuperGraph",
-  props: {},
+  props: {
+    graphDateRange: Object
+  },
+  watch: {
+    graphDateRange: {
+      handler(graphDateRange) {
+        this.redrawChart(graphDateRange.startDate, graphDateRange.endDate);
+      },
+      deep: true
+    }
+  },
   components: {
     VChart
   },
@@ -28,15 +55,22 @@ export default {
         tooltip: {
           trigger: "axis",
           axisPointer: {
-            type: "cross",
+            type: "line",
             label: {
               backgroundColor: "#6a7985"
             }
           }
+          //formatter: function(params) {
+          //  console.log(params);
+          //  return params[0].seriesName;
+          //}
         },
         toolbox: {
           feature: {
-            saveAsImage: {}
+            dataZoom: {
+              yAxisIndex: 'none'
+            },
+            magicType: { type: ['line', 'bar', 'stack', 'tiled'] },
           }
         },
         grid: {
@@ -76,37 +110,17 @@ export default {
     };
   },
   mounted() {
-    this.redrawChart();
+    this.redrawChart(this.graphDateRange.startDate, this.graphDateRange.endDate);
   },
   methods: {
-    redrawChart() {
+    redrawChart(from, to) {
       let self = this;
 
-      fetchSentMailsByMailboxDataWithTimeInterval(
-        "2000-01-01",
-        "4000-01-01"
-      ).then(function(response) {
+      console.log("cacatua", from, to);
+
+      fetchSentMailsByMailboxDataWithTimeInterval(from, to, 6).then(function(response) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
         let values = response.data.values;
-
-        self.option.series = [];
-
-        function randomColor() {
-          var o = Math.round,
-            r = Math.random,
-            s = 255;
-          return (
-            "rgba(" +
-            o(r() * s) +
-            "," +
-            o(r() * s) +
-            "," +
-            o(r() * s) +
-            "," +
-            r().toFixed(1) +
-            ")"
-          );
-        }
 
         let series = [];
 
@@ -115,7 +129,6 @@ export default {
             name: mailbox,
             type: "line",
             stack: "Total",
-            smooth: false,
             lineStyle: {
               width: 0
             },
@@ -125,8 +138,7 @@ export default {
               position: "top"
             },
             areaStyle: {
-              opacity: 0.8,
-              color: randomColor()
+              //color: randomColor()
             },
             emphasis: {
               focus: "series"
