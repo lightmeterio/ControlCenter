@@ -9,23 +9,6 @@ import "echarts";
 
 import { fetchSentMailsByMailboxDataWithTimeInterval } from "@/lib/api";
 
-//function randomColor() {
-//  var o = Math.round,
-//    r = Math.random,
-//    s = 255;
-//  return (
-//    "rgba(" +
-//    o(r() * s) +
-//    "," +
-//    o(r() * s) +
-//    "," +
-//    o(r() * s) +
-//    "," +
-//    r().toFixed(1) +
-//    ")"
-//  );
-//}
-
 export default {
   name: "SuperGraph",
   props: {
@@ -60,10 +43,6 @@ export default {
               backgroundColor: "#6a7985"
             }
           }
-          //formatter: function(params) {
-          //  console.log(params);
-          //  return params[0].seriesName;
-          //}
         },
         toolbox: {
           feature: {
@@ -110,13 +89,15 @@ export default {
     };
   },
   mounted() {
+    this.$refs.chart.chart.on('highlight', function() { });
+
     this.redrawChart(this.graphDateRange.startDate, this.graphDateRange.endDate);
   },
   methods: {
+    setupStuff() {
+    },
     redrawChart(from, to) {
       let self = this;
-
-      console.log("cacatua", from, to);
 
       fetchSentMailsByMailboxDataWithTimeInterval(from, to, 6).then(function(response) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
@@ -130,7 +111,7 @@ export default {
             type: "line",
             stack: "Total",
             lineStyle: {
-              width: 0
+              width: 1
             },
             showSymbol: false,
             label: {
@@ -138,7 +119,6 @@ export default {
               position: "top"
             },
             areaStyle: {
-              //color: randomColor()
             },
             emphasis: {
               focus: "series"
