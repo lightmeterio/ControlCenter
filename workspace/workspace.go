@@ -73,6 +73,8 @@ type Workspace struct {
 	connectionStatsAccessor *connectionstats.Accessor
 	intelAccessor           *collector.Accessor
 
+	rawLogsAcessor rawlogsdb.Accessor
+
 	databases databases
 }
 
@@ -161,6 +163,8 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
+	rawLogsAccessor := rawlogsdb.NewAccessor(allDatabases.RawLogs.RoConnPool)
+
 	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -202,7 +206,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	messageDetective, err := detective.New(allDatabases.Logs.RoConnPool)
+	messageDetective, err := detective.New(allDatabases.Logs.RoConnPool, rawLogsAccessor)
 
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -328,6 +332,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 			allDatabases,
 		),
 		NotificationCenter: notificationCenter,
+		rawLogsAcessor:     rawLogsAccessor,
 		CancellableRunner: runner.NewCombinedCancellableRunners(
 			insightsEngine, settingsRunner, rblDetector, logsRunner, importAnnouncer,
 			intelRunner, connStats, rblCheckerCancellableRunner, rawLogsDb),
@@ -447,5 +452,5 @@ func (ws *Workspace) HasLogs() bool {
 }
 
 func (ws *Workspace) RawLogsAccessor() rawlogsdb.Accessor {
-	return rawlogsdb.NewAccessor(ws.databases.RawLogs.RoConnPool)
+	return ws.rawLogsAcessor
 }

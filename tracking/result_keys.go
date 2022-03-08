@@ -64,6 +64,8 @@ const (
 	MessageExpiredTime
 	ParentQueueDeliveryNameKey
 
+	ResultDeliveryLineChecksum
+
 	lasResulttKey
 )
 

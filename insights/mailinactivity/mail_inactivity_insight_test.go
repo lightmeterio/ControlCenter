@@ -110,6 +110,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			result1[tracking.ResultDSNKey] = tracking.ResultEntryText("2.0.0")
 			result1[tracking.QueueBeginKey] = tracking.ResultEntryInt64(0)
 			result1[tracking.QueueDeliveryNameKey] = tracking.ResultEntryText("A1")
+			result1[tracking.ResultDeliveryLineChecksum] = tracking.ResultEntryInt64(42)
 			pub.Publish(result1)
 
 			// No activity in the next 8 hours...
@@ -137,6 +138,7 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 			result2[tracking.ResultDSNKey] = tracking.ResultEntryText("2.0.0")
 			result2[tracking.QueueBeginKey] = tracking.ResultEntryInt64(0)
 			result2[tracking.QueueDeliveryNameKey] = tracking.ResultEntryText("A2")
+			result2[tracking.ResultDeliveryLineChecksum] = tracking.ResultEntryInt64(42)
 			pub.Publish(result2)
 
 			cancel()

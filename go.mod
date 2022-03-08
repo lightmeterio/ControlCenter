@@ -24,7 +24,7 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/mattn/go-sqlite3 v1.14.7
+	github.com/mattn/go-sqlite3 v1.14.12
 	github.com/mmcdole/gofeed v1.1.0
 	github.com/mmcdole/goxpp v0.0.0-20200921145534-2f3784f67354 // indirect
 	github.com/mrichman/godnsbl v1.0.1-0.20200717145146-f46459fe0fb6
@@ -42,8 +42,8 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/text v0.3.5
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.0.0-20200917221617-d56e4e40bc9d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect

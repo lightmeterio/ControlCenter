@@ -22,7 +22,7 @@ all:
 	$(error Use make (dev|release|static_release) instead)
 
 race:
-	./tools/go_test.sh -race -tags="sqlite_json"
+	./tools/go_test.sh -race
 
 BUILD_DEPENDENCIES = go gcc ragel npm vue
 $(foreach exec,$(BUILD_DEPENDENCIES),\
@@ -30,23 +30,25 @@ $(foreach exec,$(BUILD_DEPENDENCIES),\
 
 dev_headless_pre_build: mocks translations swag static_www postfix_parser domain_mapping_list po2go www
 
+pre_build: export SKIP_VUE_SOURCE_MAPS := false
 dev_pre_build: npminstall mocks translations frontend_root swag static_www postfix_parser domain_mapping_list po2go
 
+pre_build: export SKIP_VUE_SOURCE_MAPS := true
 pre_build: npminstall translations frontend_root static_www postfix_parser domain_mapping_list po2go email_notification_template
 
 pre_release: pre_build recommendation_release
 
 dev_bin: dev_pre_build recommendation_dev
-	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 dev_headless_bin: dev_headless_pre_build recommendation_dev
-	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="dev include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 release_bin: pre_release
-	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags "${BUILD_INFO_FLAGS}"
 
 static_release_bin: pre_release
-	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql sqlite_json" -o "lightmeter" -ldflags \
+	go build -tags="release include no_postgres no_mysql no_clickhouse no_mssql" -o "lightmeter" -ldflags \
 		"${BUILD_INFO_FLAGS} -linkmode external -extldflags '-static' -s -w" -a -v
 
 static_www:
@@ -81,7 +83,7 @@ timeutil_mock:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/util/timeutil
 
 detective_mock:
-	go generate -tags="dev sqlite_json" gitlab.com/lightmeter/controlcenter/detective
+	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/detective
 
 po2go:
 	go generate -tags="dev" gitlab.com/lightmeter/controlcenter/po

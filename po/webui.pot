@@ -144,7 +144,7 @@ msgstr ""
 msgid "Bounce Rate Threshold"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:51
+#: ./frontend/controlcenter/src/components/detective.vue:52
 msgid "Bounced"
 msgstr ""
 
@@ -214,7 +214,7 @@ msgstr ""
 msgid "Default: %{port}"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:52
+#: ./frontend/controlcenter/src/components/detective.vue:53
 msgid "Deferred"
 msgstr ""
 
@@ -292,7 +292,7 @@ msgstr ""
 msgid "Events since %{start} were analysed, producing %{count} Insights"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:53
+#: ./frontend/controlcenter/src/components/detective.vue:54
 msgid "Expired"
 msgstr ""
 
@@ -499,7 +499,7 @@ msgid "Login - %{mainPageTitle}"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/detective-results.vue:16
-#: ./frontend/controlcenter/src/components/detective.vue:70
+#: ./frontend/controlcenter/src/components/detective.vue:71
 #: ./frontend/controlcenter/src/components/insights/log-viewer-button.vue:3
 #: ./frontend/controlcenter/src/views/index.vue:58
 msgid "Logs"
@@ -539,11 +539,11 @@ msgstr ""
 msgid "Max 1 insight / X hours"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:40
+#: ./frontend/controlcenter/src/components/detective-results.vue:41
 msgid "Message %{status} with status code %{code} at %{time}"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:64
+#: ./frontend/controlcenter/src/components/detective-results.vue:68
 msgid "Message delivery abandoned after too many deferred attempts"
 msgstr ""
 
@@ -560,15 +560,15 @@ msgstr ""
 msgid "Message ID"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:62
+#: ./frontend/controlcenter/src/components/detective-results.vue:66
 msgid "Message refused by recipient's mail provider"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:61
+#: ./frontend/controlcenter/src/components/detective-results.vue:65
 msgid "Message successfully sent"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:63
+#: ./frontend/controlcenter/src/components/detective-results.vue:67
 msgid "Message temporarily refused and retried"
 msgstr ""
 
@@ -576,11 +576,15 @@ msgstr ""
 msgid "Message tracing for everyone"
 msgstr ""
 
+#: ./frontend/controlcenter/src/components/detective-results.vue:140
+msgid "Message was sent to this server (relay)"
+msgstr ""
+
 #: ./frontend/controlcenter/src/components/detective.vue:140
 msgid "message(s) found"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:52
+#: ./frontend/controlcenter/src/components/detective-results.vue:61
 msgid "More on status codes: %{openLink}IANA's reference list%{closeLink}"
 msgstr ""
 
@@ -714,6 +718,14 @@ msgstr ""
 msgid "Read more"
 msgstr ""
 
+#: ./frontend/controlcenter/src/components/detective.vue:51
+msgid "Received"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/detective-results.vue:74
+msgid "Received message"
+msgstr ""
+
 #: ./frontend/controlcenter/src/components/detective.vue:20
 msgid "Recipient Email Address"
 msgstr ""
@@ -748,11 +760,11 @@ msgstr ""
 msgid "Reset slack notification settings?"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:67
+#: ./frontend/controlcenter/src/components/detective-results.vue:71
 msgid "Return notification sent back to original sender"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:54
+#: ./frontend/controlcenter/src/components/detective.vue:55
 msgid "Returned"
 msgstr ""
 
@@ -781,7 +793,7 @@ msgstr ""
 msgid "Saved notification settings"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:60
+#: ./frontend/controlcenter/src/components/detective.vue:61
 msgid "Search"
 msgstr ""
 
@@ -983,7 +995,7 @@ msgstr ""
 msgid "View Details"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective-results.vue:130
+#: ./frontend/controlcenter/src/components/detective-results.vue:135
 msgid "View mail server logs around this delivery (-10s +5s)"
 msgstr ""
 

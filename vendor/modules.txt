@@ -103,7 +103,7 @@ github.com/jtolds/gls
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-sqlite3 v1.14.7
+# github.com/mattn/go-sqlite3 v1.14.12
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/mmcdole/gofeed v1.1.0
@@ -196,18 +196,19 @@ golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210119194325-5f4716e94777
+# golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 ## explicit
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/idna
+golang.org/x/net/publicsuffix
 golang.org/x/net/webdav
 golang.org/x/net/webdav/internal/xml
-# golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
+# golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
-# golang.org/x/text v0.3.5
+# golang.org/x/text v0.3.7
 ## explicit
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
