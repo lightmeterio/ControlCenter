@@ -11,9 +11,7 @@ import { fetchSentMailsByMailboxDataWithTimeInterval } from "@/lib/api";
 
 export default {
   name: "SuperGraph",
-  props: {
-    
-  },
+  props: {},
   components: {
     VChart
   },
@@ -23,9 +21,9 @@ export default {
   data() {
     return {
       option: {
-        color: [],
+        animation: false,
         title: {
-          text: "Sent mail by mailbox"
+          text: "Sent mails per mailbox"
         },
         tooltip: {
           trigger: "axis",
@@ -36,10 +34,9 @@ export default {
             }
           }
         },
-        legend: {
-        },
         toolbox: {
           feature: {
+            saveAsImage: {}
           }
         },
         grid: {
@@ -50,7 +47,8 @@ export default {
         },
         xAxis: [
           {
-            data: []
+            type: "category",
+            boundaryGap: false
           }
         ],
         yAxis: [
@@ -58,7 +56,22 @@ export default {
             type: "value"
           }
         ],
-        series: []
+        series: [
+          // this is a dummy dataset to force the graph to stack the data
+          {
+            type: "line",
+            stack: "Total",
+            showSymbol: false,
+            areaStyle: {
+              opacity: 0.8,
+              color: "black"
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: []
+          }
+        ]
       }
     };
   },
@@ -69,27 +82,40 @@ export default {
     redrawChart() {
       let self = this;
 
-      fetchSentMailsByMailboxDataWithTimeInterval('2000-01-01', '4000-01-01').then(function(response) {
-        let times = response.data.times;
+      fetchSentMailsByMailboxDataWithTimeInterval(
+        "2000-01-01",
+        "4000-01-01"
+      ).then(function(response) {
+        let times = response.data.times.map(ts => new Date(ts * 1000));
         let values = response.data.values;
 
         self.option.series = [];
 
         function randomColor() {
-            var o = Math.round, r = Math.random, s = 255;
-            return 'rgba(' + o(r()*s) + ',' + o(r()*s) + ',' + o(r()*s) + ',' + r().toFixed(1) + ')';
+          var o = Math.round,
+            r = Math.random,
+            s = 255;
+          return (
+            "rgba(" +
+            o(r() * s) +
+            "," +
+            o(r() * s) +
+            "," +
+            o(r() * s) +
+            "," +
+            r().toFixed(1) +
+            ")"
+          );
         }
 
         let series = [];
-
-        let category = 'Counters';
 
         for (const [mailbox, counters] of Object.entries(values)) {
           let serie = {
             name: mailbox,
             type: "line",
-            stack: category,
-            smooth: true,
+            stack: "Total",
+            smooth: false,
             lineStyle: {
               width: 0
             },
@@ -105,21 +131,21 @@ export default {
             emphasis: {
               focus: "series"
             },
-            data: counters.slice(3, 10)
+            data: counters
           };
 
           series.push(serie);
         }
 
-        console.log(times)
-
-        self.$refs.chart.setOption({
+        let newOptions = {
           series: series,
           xAxis: {
-            data: times.slice(3,10)
+            data: times
           }
-        })
-      })
+        };
+
+        self.$refs.chart.setOption(newOptions);
+      });
     }
   }
 };
