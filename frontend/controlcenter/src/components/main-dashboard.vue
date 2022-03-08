@@ -29,8 +29,4 @@ export default {
   methods: {}
 };
 </script>
-<style lang="less" scoped>
-.dashboard {
-  border: 1px dotted black;
-}
-</style>
+<style lang="less" scoped></style>
