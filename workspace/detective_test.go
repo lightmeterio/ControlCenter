@@ -434,4 +434,32 @@ func TestDetective(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("CSV conversion", t, func() {
+		expectedTime := time.Date(2020, time.January, 10, 16, 15, 30, 0, time.UTC)
+		result := &detective.MessagesPage{1, 1, 1, 1,
+			detective.Messages{
+				detective.Message{
+					Queue:     "1234",
+					MessageID: "xf56",
+					Entries: []detective.MessageDelivery{
+						{
+							1,
+							expectedTime.In(time.UTC),
+							expectedTime.In(time.UTC),
+							detective.Status(parser.ReceivedStatus),
+							"2.0.0",
+							[]string{"host.com"},
+							nil,
+							"sender@example.com",
+							[]string{"recipient@example.com"},
+							[]string{`fake log line here`},
+						},
+					},
+				},
+			},
+		}
+
+		So(result.ExportCSV(), ShouldResemble, [][]string{{"1234", "xf56", "1", "2020-01-10T16:15:30Z", "2020-01-10T16:15:30Z", "received", "2.0.0", "", "sender@example.com", "recipient@example.com", "host.com", "fake log line here"}})
+	})
 }

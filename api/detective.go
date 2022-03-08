@@ -5,6 +5,7 @@
 package api
 
 import (
+	"encoding/csv"
 	"errors"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
@@ -74,6 +75,10 @@ func checkQueryParameters(r *http.Request, isAuthenticated bool) error {
 		return httperror.NewHTTPStatusCodeError(toOk, errors.New("Partial from or to parameter not allowed"))
 	}
 
+	if r.Form.Get("csv") == "true" && !isAuthenticated {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnauthorized, errors.New("CSV export not allowed"))
+	}
+
 	return nil
 }
 
@@ -124,8 +129,9 @@ type Interval string
 // @Param status         query string true "A status to filter messages (-1: all, 0: sent... see smtp.go)"
 // @Param someID         query string true "A queue name or message ID to filter results -- empty: don't filter"
 // @Param page           query string true "Page number to return results"
-// @Produce json
-// @Success 200 {object} []detective.MessageDelivery "desc"
+// @Param csv            query string false "if present and =true, generates CSV instead of json (export)"
+// @Produce json, text/csv
+// @Success 200 {object} []detective.MessageDelivery "or equivalent csv if parameter csv=true"
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/checkMessageDelivery [get]
 func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
@@ -148,6 +154,10 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
 	}
 
+	if r.Form.Get("csv") == "true" {
+		return h.exportCSV(w, r, interval, status)
+	}
+
 	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page)
 
 	if err != nil {
@@ -155,6 +165,44 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	return httputil.WriteJson(w, messages, http.StatusOK)
+}
+
+func (h checkMessageDeliveryHandler) exportCSV(w http.ResponseWriter, r *http.Request, interval timeutil.TimeInterval, status int) error {
+	page := 1
+	records := [][]string{detective.CSVHeader}
+
+	for {
+		messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page)
+		if err != nil {
+			return err
+		}
+
+		records = append(records, messages.ExportCSV()...)
+
+		if page >= messages.LastPage {
+			break
+		}
+		page++
+	}
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment;filename=messages.csv")
+
+	csvWriter := csv.NewWriter(w)
+
+	for _, record := range records {
+		if err := csvWriter.Write(record); err != nil {
+			return err
+		}
+	}
+
+	csvWriter.Flush()
+
+	if err := csvWriter.Error(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type oldestAvailableTimeHandler detectiveHandler

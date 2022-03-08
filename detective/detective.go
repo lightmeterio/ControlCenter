@@ -19,6 +19,8 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -442,4 +444,56 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 		TotalResults: total - grouped,
 		Messages:     messages,
 	}, nil
+}
+
+var CSVHeader = []string{
+	"Queue",
+	"MessageID",
+	"NumberOfAttempts",
+	"TimeMin",
+	"TimeMax",
+	"Status",
+	"DSN",
+	"Expired",
+	"MailFrom",
+	"MailTo",
+	"Relays",
+	"RawLogMsgs",
+}
+
+func (p *MessagesPage) ExportCSV() [][]string {
+	records := [][]string{}
+
+	for _, m := range p.Messages {
+		lineheader := []string{m.Queue, m.MessageID}
+
+		for _, d := range m.Entries {
+			record := d.ExportCSV()
+			records = append(records, append(lineheader, record...))
+		}
+	}
+
+	return records
+}
+
+const csvTimeFormat = time.RFC3339
+
+func (d *MessageDelivery) ExportCSV() []string {
+	exp := ""
+	if d.Expired != nil {
+		exp = d.Expired.Format(csvTimeFormat)
+	}
+
+	return []string{
+		strconv.Itoa(d.NumberOfAttempts),
+		d.TimeMin.Format(csvTimeFormat),
+		d.TimeMax.Format(csvTimeFormat),
+		parser.SmtpStatus(d.Status).String(),
+		d.Dsn,
+		exp,
+		d.MailFrom,
+		strings.Join(d.MailTo, "\n"),
+		strings.Join(d.Relays, "\n"),
+		strings.Join(d.RawLogMsgs, "\n"),
+	}
 }
