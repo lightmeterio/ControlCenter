@@ -40,6 +40,14 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
+	var err error
+
+	defer func() {
+		if err != nil {
+			clearDir()
+		}
+	}()
+
 	ws, err := NewWorkspace(dir, nil)
 	So(err, ShouldBeNil)
 
@@ -163,11 +171,13 @@ func TestDetective(t *testing.T) {
 									1,
 									expectedTime.In(time.UTC),
 									expectedTime.In(time.UTC),
-									detective.Status(parser.SentStatus),
+									detective.Status(parser.ReceivedStatus),
 									"2.0.0",
+									[]string{"outlook.com"},
 									nil,
 									"sender@example.com",
 									[]string{"recipient@example.com"},
+									[]string{`Jan 10 16:15:30 mail postfix/lmtp[11996]: 400643011B47: to=<recipient@example.com>, relay=example-com.mail.protection.outlook.com[1.2.3.4]:25, delay=0.06, delays=0.02/0.02/0.01/0.01, dsn=2.0.0, status=sent (250 2.0.0 <recipient@example.com> hz3kESIo+1/dLgAAWP5Hkg Saved)`},
 								},
 							},
 						},
@@ -237,9 +247,14 @@ func TestDetective(t *testing.T) {
 								expectedTime.In(time.UTC),
 								detective.Status(parser.SentStatus),
 								"2.0.0",
+								[]string{"outlook.com"},
 								nil,
 								"sender@internal.org",
 								[]string{"recipient1@external.org", "recipient2@external.org"},
+								[]string{
+									`Jan 20 19:48:07 teupos postfix/smtp[2467312]: B9996EABB6: to=<recipient1@external.org>, relay=example-com.mail.protection.outlook.com[12.11.12.13]:25, delay=2.7, delays=1.3/0.06/0.33/1, dsn=2.0.0, status=sent (250 2.0.0 OK  1642704487 v125si7680590wme.216 - smtp)`,
+									`Jan 20 19:48:07 teupos postfix/smtp[2467312]: B9996EABB6: to=<recipient2@external.org>, relay=example-com.mail.protection.outlook.com[13.11.12.13]:25, delay=2.7, delays=1.3/0.06/0.33/1, dsn=2.0.0, status=sent (250 2.0.0 OK  1642704487 v125si7680590wme.216 - smtp)`,
+								},
 							},
 						},
 					},
@@ -258,7 +273,7 @@ func TestDetective(t *testing.T) {
 			})
 
 			Convey("Searching for relay name should find delivery as well", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "datmail-smtp.h-1e99c9eeac07", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "outlook.com", correctInterval, -1, "", 1)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
@@ -291,9 +306,17 @@ func TestDetective(t *testing.T) {
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.DeferredStatus),
 								"4.1.1",
+								[]string{"google.com", "outlook.com"},
 								&expectedExpiredTime,
 								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
 								[]string{"h-664d01@h-695da2287.com"},
+								[]string{
+									`Sep 25 18:26:36 smtpnode16 postfix-239.58.50.50/smtp[5084]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=ALT2.ASPMX.L.GOOGLE.com[3.155.237.60]:25, delay=2, delays=0.18/0/1.6/0.19, dsn=4.1.1, status=deferred (host ALT2.ASPMX.L.GOOGLE.com[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))`,
+									`Sep 25 19:01:05 smtpnode16 postfix-239.58.50.50/smtp[8810]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=ALT2.ASPMX.L.GOOGLE.com[3.155.237.60]:25, delay=2071, delays=2069/0.05/1.9/0.23, dsn=4.1.1, status=deferred (host ALT2.ASPMX.L.GOOGLE.com[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))`,
+									`Sep 30 12:46:06 smtpnode16 postfix-239.58.50.50/smtp[2851]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=ALT2.ASPMX.L.GOOGLE.com[3.155.237.60]:25, delay=411573, delays=411571/0/1.5/0.2, dsn=4.1.1, status=deferred (host ALT2.ASPMX.L.GOOGLE.com[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))`,
+									`Sep 30 16:46:07 smtpnode16 postfix-239.58.50.50/smtp[29711]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=ALT2.ASPMX.L.GOOGLE.com[3.155.237.60]:25, delay=425973, delays=425971/0.03/2/0.37, dsn=4.1.1, status=deferred (host ALT2.ASPMX.L.GOOGLE.com[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))`,
+									`Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/smtp[23560]: 23EBE3D5C0: to=<h-664d01@h-695da2287.com>, relay=example-com.mail.protection.outlook.com[3.155.237.60]:25, delay=440374, delays=440372/0.04/1.6/0.84, dsn=4.1.1, status=deferred (host ALT2.ASPMX.L.GOOGLE.com[3.155.237.60] said: 452 4.1.1 <h-664d01@h-695da2287.com> user is over quota, please try again later (in reply to RCPT TO command))`,
+								},
 							},
 							{
 								1,
@@ -301,9 +324,11 @@ func TestDetective(t *testing.T) {
 								time.Date(year, time.September, 30, 20, 46, 8, 0, time.UTC),
 								detective.Status(parser.ReturnedStatus),
 								"2.0.0",
+								[]string{"h-213dce00be4cedefd"},
 								&expectedExpiredTime,
 								"h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com",
 								[]string{"h-664d01@h-695da2287.com"},
+								[]string{`Sep 30 20:46:08 smtpnode16 postfix-239.58.50.50/smtp[23557]: A7E673C067: to=<h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com>, relay=h-213dce00be4cedefd[199.170.45.30]:25, delay=0.14, delays=0.01/0/0.11/0.02, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 46hvZ85lJRz1w8W)`},
 							},
 						},
 					},
@@ -351,9 +376,11 @@ func TestDetective(t *testing.T) {
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
 									detective.Status(parser.SentStatus),
 									"2.0.0",
+									[]string{"local"},
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
 									[]string{"h-493fac8f3@h-ea3f4afa.com"},
+									[]string{`Jun 20 05:02:07 ns4 postfix/local[16460]: 95154657C: to=<h-493fac8f3@h-ea3f4afa.com>, orig_to=<h-195704c@h-20b651e8120a33ec11.com>, relay=local, delay=0.1, delays=0.09/0/0/0.01, dsn=2.0.0, status=sent (delivered to command: procmail -a "$EXTENSION" DEFAULT=$HOME/Maildir/)`},
 								},
 							},
 						},
@@ -367,14 +394,43 @@ func TestDetective(t *testing.T) {
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
 									detective.Status(parser.SentStatus),
 									"2.0.0",
+									[]string{"local"},
 									nil,
 									"h-195704c@h-b7bed8eb24c5049d9.com",
 									[]string{"h-493fac8f3@h-ea3f4afa.com"},
+									[]string{`Jun 20 05:04:07 ns4 postfix/local[16746]: D390B657C: to=<h-493fac8f3@h-ea3f4afa.com>, orig_to=<h-195704c@h-20b651e8120a33ec11.com>, relay=local, delay=0.11, delays=0.1/0.01/0/0.01, dsn=2.0.0, status=sent (delivered to command: procmail -a "$EXTENSION" DEFAULT=$HOME/Maildir/)`},
 								},
 							},
 						},
 					},
 				})
+			})
+		})
+
+		Convey("Search for sent/received messages", func() {
+			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/27_one_sent_one_received.log", year)
+			defer clear()
+
+			Convey("No status: return sent and received messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 2)
+			})
+
+			Convey("Sent: return only sent messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.SentStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 1)
+				So(messages.Messages[0].Queue, ShouldEqual, "4FA51DFCAD")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.SentStatus)
+			})
+
+			Convey("Received: return only received messages", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ReceivedStatus), "", 1)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 1)
+				So(messages.Messages[0].Queue, ShouldEqual, "DF1C3EB916")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.ReceivedStatus)
 			})
 		})
 	})

@@ -43,8 +43,14 @@ export default {
     },
     buildDateInterval() {
       let vue = this;
-      let start = moment(vue.dateRange.startDate).format(DATE_YYYYMMDD);
-      let end = moment(vue.dateRange.endDate).format(DATE_YYYYMMDD);
+
+      let convert = function(date, offset) {
+        let local = moment(moment(date).format(DATE_YYYYMMDD) + " " + offset);
+        return moment.utc(local).format(DATE_YYYYMMDD + " hh:mm:ss");
+      };
+
+      let start = convert(vue.dateRange.startDate, "00:00:00");
+      let end = convert(vue.dateRange.endDate, "23:59:59");
 
       return { startDate: start, endDate: end };
     },

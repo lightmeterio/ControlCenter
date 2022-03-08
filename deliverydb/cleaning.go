@@ -108,6 +108,15 @@ func tryToDeleteDeliveryQueue(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPrepa
 	return nil
 }
 
+func tryToDeleteLogLinesRefs(tx *sql.Tx, deliveryId int64, stmts dbconn.TxPreparedStmts) error {
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteLogLinesRefsByDeliveryId).Exec(deliveryId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		// NOTE: the time in the database is in Seconds
@@ -141,6 +150,10 @@ func makeCleanAction(maxAge time.Duration, batchSize int) dbrunner.Action {
 			}
 
 			if err := tryToDeleteDeliveryQueue(tx, deliveryId, stmts); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			if err := tryToDeleteLogLinesRefs(tx, deliveryId, stmts); err != nil {
 				return errorutil.Wrap(err)
 			}
 

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
-// SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -100,5 +99,45 @@ func TestDisposableDomains(t *testing.T) {
 		So(IsDisposableEmailAddress("NutzerIn@gmx.de"), ShouldBeFalse)
 		So(IsDisposableEmailAddress("utilisatrice@free.fr"), ShouldBeFalse)
 		So(IsDisposableEmailAddress("utilisateur@orange.fr"), ShouldBeFalse)
+	})
+}
+
+func TestHostDomain(t *testing.T) {
+	Convey("Obtain the host domain from a domain", t, func() {
+		Convey("Unmanaged TLD, no subdomain", func() {
+			d, err := HostDomainFromDomain(`localhost`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `localhost`)
+		})
+
+		Convey("Unmanaged TLD", func() {
+			d, err := HostDomainFromDomain(`there.is.no.such-tld`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `no.such-tld`)
+		})
+
+		Convey("Unmanaged TLD, Fix case", func() {
+			d, err := HostDomainFromDomain(`THERE.Is.No.SUCh-TLD`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `no.such-tld`)
+		})
+
+		Convey("google.com", func() {
+			d, err := HostDomainFromDomain(`ALT2.ASPMX.L.GOOGLE.com`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `google.com`)
+		})
+
+		Convey("google.com.br", func() {
+			d, err := HostDomainFromDomain(`ALT2.ASPMX.L.GOOGLE.com.br`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `google.com.br`)
+		})
+
+		Convey("IP address returns itself", func() {
+			d, err := HostDomainFromDomain(`11.22.33.44`)
+			So(err, ShouldBeNil)
+			So(d, ShouldEqual, `11.22.33.44`)
+		})
 	})
 }

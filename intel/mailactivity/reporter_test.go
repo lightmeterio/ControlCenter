@@ -72,6 +72,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			// another sent message in the first interval
@@ -96,6 +97,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A2"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			// a deferred message in the first interval
@@ -120,6 +122,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("B2"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			// an expired message in the first interval
@@ -144,6 +147,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("B2"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			// an inbound message in the second interval
@@ -168,6 +172,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("C1"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			// a bounced message in the second interval
@@ -192,6 +197,7 @@ func TestReporters(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("C1"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			})
 
 			cancel()

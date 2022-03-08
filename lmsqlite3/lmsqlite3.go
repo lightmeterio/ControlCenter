@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"fmt"
 	sqlite "github.com/mattn/go-sqlite3"
+	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"golang.org/x/crypto/bcrypt"
 	"net"
@@ -74,6 +75,7 @@ func Initialize(options Options) {
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_sum", computeBcryptSum, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_bcrypt_compare", compareBcryptValue, true))
 				errorutil.MustSucceed(conn.RegisterFunc("lm_json_time_to_timestamp", jsonTimeToTimestamp, true))
+				errorutil.MustSucceed(conn.RegisterFunc("lm_host_domain_from_domain", emailutil.HostDomainFromDomain, true))
 
 				return nil
 			},

@@ -94,6 +94,7 @@ func TestReporter(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A1"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			},
 			mappedResult{ // not so old message
 				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("bob"),
@@ -116,6 +117,7 @@ func TestReporter(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A21"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			},
 		)
 
@@ -142,6 +144,7 @@ func TestReporter(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A3"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			},
 			mappedResult{ // recent message
 				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("alice"),
@@ -164,6 +167,7 @@ func TestReporter(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A4"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			},
 			mappedResult{ // recent message
 				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("alice"),
@@ -186,6 +190,7 @@ func TestReporter(t *testing.T) {
 				tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 				tracking.QueueBeginKey:                tracking.ResultEntryInt64(0),
 				tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A5"),
+				tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(42),
 			},
 		)
 

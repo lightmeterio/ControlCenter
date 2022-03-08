@@ -18,12 +18,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-for="(delivery, statusIndex) in result.entries"
               :key="statusIndex"
               :class="statusClass(delivery.status)"
+              v-b-tooltip.hover
               :title="statusTitle(delivery.status)"
             >
               {{ delivery.status }}
             </li>
             <li
               :class="statusClass('expired')"
+              v-b-tooltip.hover
               :title="statusTitle('expired')"
               v-show="isExpired(result)"
             >
@@ -77,6 +79,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               %{attempts} delivery attempts %{status} with status code %{code}
               from %{begin} to %{end}
             </span>
+
             <span
               v-show="!hasMultipleDeliveryAttempts(delivery)"
               render-html="true"
@@ -89,6 +92,21 @@ SPDX-License-Identifier: AGPL-3.0-only
             >
               Message %{status} with status code %{code} at %{time}
             </span>
+            <span class="relays" v-b-tooltip.hover :title="titleRelay">
+              ({{ delivery.relays.join(", ") }})
+            </span>
+            <ul
+              v-show="delivery.log_msgs != null && delivery.log_msgs.length > 0"
+              class="list-unstyled"
+            >
+              <li
+                v-for="(logMsg, logIndex) of delivery.log_msgs"
+                :key="logIndex"
+                class="raw-log card em small"
+              >
+                {{ logMsg }}
+              </li>
+            </ul>
           </li>
         </ul>
       </li>
@@ -137,7 +155,10 @@ export default {
   methods: {
     downloadRawLogsInInterval(result) {
       let from = formatTimeWithOffsetInSeconds(result.entries[0].time_min, -10);
-      let to = formatTimeWithOffsetInSeconds(result.entries[0].time_max, +5);
+      let to = formatTimeWithOffsetInSeconds(
+        result.entries[result.entries.length - 1].time_max,
+        +5
+      );
 
       let link = linkToRawLogsInInterval(from, to, "plain", "inline");
 
@@ -154,7 +175,8 @@ export default {
         bounced: "status-bounced",
         deferred: "status-deferred",
         expired: "status-expired",
-        returned: "status-returned"
+        returned: "status-returned",
+        received: "status-received"
       }[status];
 
       return baseClass + customClass;
@@ -169,7 +191,8 @@ export default {
         ),
         returned: this.$gettext(
           "Return notification sent back to original sender"
-        )
+        ),
+        received: this.$gettext("Received message")
       }[status];
     },
     isExpired: function(result) {
@@ -233,6 +256,9 @@ export default {
       return this.$gettext(
         "View mail server logs around this delivery (-10s +5s)"
       );
+    },
+    titleRelay: function() {
+      return this.$gettext("Message was sent to this server (relay)");
     }
   }
 };
@@ -312,5 +338,18 @@ export default {
 
 .status-sent {
   background-color: #8cfa86;
+}
+
+.status-received {
+  background-color: #ecf0f1;
+}
+
+.relays {
+  color: #7f8c8d;
+}
+
+.raw-log {
+  margin: 5px;
+  padding: 5px;
 }
 </style>

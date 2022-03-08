@@ -58,6 +58,9 @@ const (
 	countDeliveriesWithMessageId
 	deleteMessageIdById
 
+	insertLogLineRef
+	deleteLogLinesRefsByDeliveryId
+
 	lastStmtKey
 )
 
@@ -129,12 +132,14 @@ from
 	deliveries join delivery_queue on delivery_queue.delivery_id = deliveries.id
 where
 	delivery_queue.queue_id = ?`,
-	deleteDeliveryQueueById:       `delete from delivery_queue where id = ?`,
-	deleteExpiredQueuesByQueueId:  `delete from expired_queues where queue_id = ?`,
-	deleteQueueParentingByQueueId: `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
-	deleteQueueById:               `delete from queues where id = ?`,
-	countDeliveriesWithMessageId:  `select count(*) from deliveries where message_id = ? and delivery_ts < ?`,
-	deleteMessageIdById:           `delete from messageids where id = ?`,
+	deleteDeliveryQueueById:        `delete from delivery_queue where id = ?`,
+	deleteExpiredQueuesByQueueId:   `delete from expired_queues where queue_id = ?`,
+	deleteQueueParentingByQueueId:  `delete from queue_parenting where parent_queue_id = ? or child_queue_id = ?`,
+	deleteQueueById:                `delete from queues where id = ?`,
+	countDeliveriesWithMessageId:   `select count(*) from deliveries where message_id = ? and delivery_ts < ?`,
+	deleteMessageIdById:            `delete from messageids where id = ?`,
+	insertLogLineRef:               `insert into log_lines_ref(delivery_id, ref_type, time, checksum) values(?, ?, ?, ?)`,
+	deleteLogLinesRefsByDeliveryId: `delete from log_lines_ref where delivery_id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -336,6 +341,16 @@ func insertMandatoryResultFields(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tr
 	)
 
 	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	deliveryId, err := result.LastInsertId()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(insertLogLineRef).Exec(deliveryId, tracking.ResultDeliveryLineChecksum, tr[tracking.ResultDeliveryTimeKey].Int64(), tr[tracking.ResultDeliveryLineChecksum].Int64()); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
