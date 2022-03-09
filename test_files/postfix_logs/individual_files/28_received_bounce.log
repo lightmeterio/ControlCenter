@@ -1,0 +1,14 @@
+Feb 16 15:23:03 outreach postfix/smtpd[2429]: connect from unknown[11.22.33.44]
+Feb 16 15:23:04 outreach postfix/smtpd[2429]: Anonymous TLS connection established from unknown[11.22.33.44]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Feb 16 15:23:04 outreach postfix/trivial-rewrite[2432]: warning: do not list domain example.com in BOTH mydestination and virtual_mailbox_domains
+Feb 16 15:23:04 outreach postfix/smtpd[2429]: 8E98A9D382: client=unknown[11.22.33.44]
+Feb 16 15:23:04 outreach postfix/cleanup[2433]: 8E98A9D382: message-id=<6451b359-97d2-4277-8866-a23f6dae7869@12345678-test.prod.protection.outlook.com>
+Feb 16 15:23:04 outreach opendkim[33]: 8E98A9D382: [11.22.33.44] [11.22.33.44] not internal
+Feb 16 15:23:04 outreach opendkim[33]: 8E98A9D382: not authenticated
+Feb 16 15:23:04 outreach opendkim[33]: 8E98A9D382: no signature data
+Feb 16 15:23:04 outreach postfix/qmgr[134]: 8E98A9D382: from=<bounces+YYY=76YYY=S7@microsoft.onmicrosoft.com>, size=3919, nrcpt=1 (queue active)
+Feb 16 15:23:04 outreach postfix/trivial-rewrite[2432]: warning: do not list domain example.com in BOTH mydestination and virtual_mailbox_domains
+Feb 16 15:23:04 outreach postfix/local[2434]: 8E98A9D382: to=<root@example.com>, orig_to=<postmaster@example.com>, relay=local, delay=0.18, delays=0.17/0.01/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Feb 16 15:23:04 outreach postfix/qmgr[134]: 8E98A9D382: removed
+Feb 16 15:23:04 outreach postfix/smtpd[2429]: disconnect from unknown[11.22.33.44] ehlo=2 starttls=1 mail=1 rcpt=1 bdat=1 quit=1 commands=7
+Feb 16 15:23:04 outreach postfix/trivial-rewrite[2432]: warning: do not list domain example.com in BOTH mydestination and virtual_mailbox_domains
