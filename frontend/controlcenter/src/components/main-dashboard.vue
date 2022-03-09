@@ -6,7 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div class="row dashboard">
-    <dashboard-supergraph :graphDateRange="graphDateRange"></dashboard-supergraph>
+    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="sentMailsByMailbox" ></dashboard-supergraph>
+    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="bouncedMailsByMailbox" ></dashboard-supergraph>
+    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="deferredMailsByMailbox" ></dashboard-supergraph>
   </div>
 </template>
 

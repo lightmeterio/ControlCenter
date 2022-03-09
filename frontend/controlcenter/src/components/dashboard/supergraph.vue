@@ -12,7 +12,8 @@ import { fetchSentMailsByMailboxDataWithTimeInterval } from "@/lib/api";
 export default {
   name: "SuperGraph",
   props: {
-    graphDateRange: Object
+    graphDateRange: Object,
+    endpoint: String
   },
   watch: {
     graphDateRange: {
@@ -109,7 +110,7 @@ export default {
     redrawChart(from, to) {
       let self = this;
 
-      fetchSentMailsByMailboxDataWithTimeInterval(from, to, 6).then(function(
+      fetchSentMailsByMailboxDataWithTimeInterval(this.endpoint, from, to, 6).then(function(
         response
       ) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
@@ -162,6 +163,6 @@ export default {
 
 <style scoped>
 .chart {
-  height: 600px;
+  height: 400px;
 }
 </style>

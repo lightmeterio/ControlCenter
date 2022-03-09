@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"math"
@@ -24,7 +25,7 @@ type Pair struct {
 
 type Pairs []Pair
 
-type SentMailsByMailboxResult struct {
+type MailTrafficPerSenderOverTimeResult struct {
 	Times  []int64            `json:"times"`
 	Values map[string][]int64 `json:"values"`
 }
@@ -35,7 +36,9 @@ type Dashboard interface {
 	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
-	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (SentMailsByMailboxResult, error)
+	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	BouncedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	DeferredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 }
 
 type sqlDashboard struct {
@@ -124,7 +127,6 @@ from
 			return errorutil.Wrap(err)
 		}
 
-		// TODO: fix building the list of senders not to include bounce msgs
 		if err := db.PrepareStmt(`
 with deliveries_in_range as (
 	select * from deliveries where delivery_ts between @start and @end
@@ -135,7 +137,7 @@ select
 from
 	deliveries_in_range d join remote_domains rd on d.sender_domain_part_id = rd.id
 where
-	d.direction = 0 and sender_local_part != '' and domain != ''
+	d.direction = @direction and sender_local_part != '' and domain != ''
 ),
 bins as (
   select
@@ -148,7 +150,7 @@ bins as (
       deliveries_in_range d join senders s on 
 	d.sender_local_part = s.sender_local_part and d.sender_domain_part_id = s.sender_domain_part_id
   where
-      status = 0
+      status = @status
   order by
       t
 ),
@@ -243,10 +245,10 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
 }
 
-func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (result SentMailsByMailboxResult, err error) {
+func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
 	conn, release, err := d.pool.AcquireContext(ctx)
 	if err != nil {
-		return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 	}
 
 	defer release()
@@ -254,15 +256,57 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 	granularity := granularityInHour * int(time.Hour/time.Second)
 
 	//nolint:sqlclosecheck
-	rows, err := conn.GetStmt("outboundSentVolumeByMailbox").
-		Query(
-			sql.Named("start", interval.From.Unix()),
-			sql.Named("end", interval.To.Unix()),
-			sql.Named("granularity", granularity),
-		)
+	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
+		granularity,
+		sql.Named("start", interval.From.Unix()),
+		sql.Named("end", interval.To.Unix()),
+		sql.Named("status", parser.SentStatus),
+		sql.Named("direction", tracking.MessageDirectionOutbound))
+}
+
+func (d sqlDashboard) BouncedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	granularity := granularityInHour * int(time.Hour/time.Second)
+
+	//nolint:sqlclosecheck
+	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
+		granularity,
+		sql.Named("start", interval.From.Unix()),
+		sql.Named("end", interval.To.Unix()),
+		sql.Named("status", parser.BouncedStatus),
+		sql.Named("direction", tracking.MessageDirectionOutbound))
+}
+
+func (d sqlDashboard) DeferredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	conn, release, err := d.pool.AcquireContext(ctx)
+	if err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	granularity := granularityInHour * int(time.Hour/time.Second)
+
+	//nolint:sqlclosecheck
+	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
+		granularity,
+		sql.Named("start", interval.From.Unix()),
+		sql.Named("end", interval.To.Unix()),
+		sql.Named("status", parser.DeferredStatus),
+		sql.Named("direction", tracking.MessageDirectionOutbound))
+}
+
+func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+	rows, err := stmt.QueryContext(ctx, append([]interface{}{sql.Named("granularity", granularity)}, args...)...)
 
 	if err != nil {
-		return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 	}
 
 	defer errorutil.UpdateErrorFromCloser(rows, &err)
@@ -286,11 +330,11 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 		)
 
 		if err := rows.Scan(&mailbox, &minTime, &maxTime, &rawCounters); err != nil {
-			return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 		}
 
 		if json.Unmarshal([]byte(rawCounters), &counters); err != nil {
-			return SentMailsByMailboxResult{}, errorutil.Wrap(err)
+			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 		}
 
 		basicResult[mailbox] = counters
@@ -325,7 +369,7 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 		values[k] = counters
 	}
 
-	return SentMailsByMailboxResult{
+	return MailTrafficPerSenderOverTimeResult{
 		Times:  times,
 		Values: values,
 	}, nil

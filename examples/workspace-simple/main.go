@@ -31,7 +31,7 @@ func simpleDashboard(d dashboard.Dashboard) {
 	i, _ := timeutil.ParseTimeInterval("0000-01-01", "5000-01-01", time.UTC)
 
 	for {
-		s, _ := d.SentMailsByMailBox(context.Background(), i)
+		s, _ := d.SentMailsByMailbox(context.Background(), i, 1)
 		fmt.Println(s)
 		time.Sleep(time.Second * 1)
 	}

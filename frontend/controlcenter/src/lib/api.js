@@ -284,6 +284,7 @@ export function fetchGraphDataAsJsonWithTimeInterval(
 }
 
 export function fetchSentMailsByMailboxDataWithTimeInterval(
+  endpoint,
   selectedDateFrom,
   selectedDateTo,
   granularityInHours
@@ -293,7 +294,7 @@ export function fetchSentMailsByMailboxDataWithTimeInterval(
   };
 
   return axios
-    .get(BASE_URL + "api/v0/sentMailsByMailbox?" + timeIntervalUrlParams())
+    .get(BASE_URL + "api/v0/" + endpoint + "?" + timeIntervalUrlParams())
     .catch(errorHandler);
 }
 

@@ -129,17 +129,38 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	return servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
-type sentMailsByMailboxHandler handler
+type trafficBySenderOverTimeHandler struct {
+	f func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error)
+}
 
 // @Summary Messages sent by mailbox over time
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
 // @Param granularity query integer 12 "Time granularity in hours"
 // @Produce json
-// @Success 200 {object} dashboard.SentMailsByMailboxResult
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/sentMailsByMailbox  [get]
-func (h sentMailsByMailboxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+
+// @Summary Messages bounced by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/bouncedMailsByMailbox  [get]
+
+// @Summary Messages bounced by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/deferredMailsByMailbox  [get]
+
+func (h trafficBySenderOverTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
 	granularity, err := strconv.Atoi(r.Form.Get("granularity"))
@@ -147,7 +168,7 @@ func (h sentMailsByMailboxHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
 	}
 
-	result, err := h.dashboard.SentMailsByMailbox(r.Context(), interval, granularity)
+	result, err := h.f(r.Context(), interval, granularity)
 	if err != nil {
 		return err
 	}
@@ -171,15 +192,24 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error
 	return httputil.WriteJson(w, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch}, http.StatusOK)
 }
 
-func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
+func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, d dashboard.Dashboard) {
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 
-	mux.Handle("/api/v0/countByStatus", authenticated.WithEndpoint(countByStatusHandler{dashboard}))
-	mux.Handle("/api/v0/topBusiestDomains", authenticated.WithEndpoint(topBusiestDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{dashboard}))
-	mux.Handle("/api/v0/sentMailsByMailbox", authenticated.WithEndpoint(sentMailsByMailboxHandler{dashboard}))
+	trafficBySender := map[string]func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error){
+		"/api/v0/sentMailsByMailbox":     d.SentMailsByMailbox,
+		"/api/v0/bouncedMailsByMailbox":  d.BouncedMailsByMailbox,
+		"/api/v0/deferredMailsByMailbox": d.DeferredMailsByMailbox,
+	}
+
+	for k, v := range trafficBySender {
+		mux.Handle(k, authenticated.WithEndpoint(trafficBySenderOverTimeHandler{v}))
+	}
+
+	mux.Handle("/api/v0/countByStatus", authenticated.WithEndpoint(countByStatusHandler{d}))
+	mux.Handle("/api/v0/topBusiestDomains", authenticated.WithEndpoint(topBusiestDomainsHandler{d}))
+	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{d}))
+	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{d}))
+	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{d}))
 	mux.Handle("/api/v0/appVersion", unauthenticated.WithEndpoint(appVersionHandler{}))
 }
