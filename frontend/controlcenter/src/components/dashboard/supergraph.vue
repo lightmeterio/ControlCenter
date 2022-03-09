@@ -37,16 +37,16 @@ export default {
         },
         tooltip: {
           trigger: "axis",
-          name: "tooltip-1",
-          formatter: function(params) {
-            return params.toString();
-          }
-          //axisPointer: {
-          //  type: "line",
-          //  label: {
-          //    backgroundColor: "#6a7985"
-          //  }
+          //name: "tooltip-1",
+          //formatter: function(params) {
+          //  return params.toString();
           //}
+          axisPointer: {
+            type: "line",
+            label: {
+              backgroundColor: "#6a7985"
+            }
+          }
         },
         toolbox: {
           feature: {
@@ -79,13 +79,13 @@ export default {
               opacity: 0.8,
               color: "black"
             },
-            tooltip: {
-              trigger: "axis",
-              name: "tooltip-1",
-              formatter: function(params) {
-                return params.toString();
-              }
-            },
+            //tooltip: {
+            //  trigger: "axis",
+            //  name: "tooltip-1",
+            //  formatter: function(params) {
+            //    return params.toString();
+            //  }
+            //},
             data: []
           }
         ]
@@ -136,10 +136,10 @@ export default {
             },
             data: counters,
             tooltip: {
-              name: "tooltip-" + mailbox,
-              formatter: function(params) {
-                return params.name;
-              }
+              //name: "tooltip-" + mailbox,
+              //formatter: function(params) {
+              //  return params.name;
+              //}
             }
           };
 
