@@ -338,7 +338,8 @@ export function checkMessageDelivery(
   date_to,
   status,
   some_id,
-  page
+  page,
+  csv
 ) {
   let formData = new FormData();
   formData.append("mail_from", mail_from);
@@ -349,10 +350,18 @@ export function checkMessageDelivery(
   formData.append("some_id", some_id);
   formData.append("page", page);
 
-  var post = axios.post(
-    BASE_URL + "api/v0/checkMessageDeliveryStatus",
-    new URLSearchParams(formData)
-  );
+  if (csv) {
+    formData.append("csv", "true");
+  }
+
+  let url = BASE_URL + "api/v0/checkMessageDeliveryStatus";
+  let search = new URLSearchParams(formData);
+
+  if (csv) {
+    return url + "?" + search.toString();
+  }
+
+  var post = axios.post(url, search);
   post.catch(builderErrorHandler("detective_search"));
   return post;
 }
