@@ -59,7 +59,7 @@ func TryToEscalateRequest(ctx context.Context, d detective.Detective, requester 
 	// It should instead browse through all, by iterating over all pages!
 	page := 1
 
-	messages, err := d.CheckMessageDelivery(ctx, from, to, interval, -1, someID, page)
+	messages, err := d.CheckMessageDelivery(ctx, from, to, interval, -1, someID, page, detective.ResultsPerPage)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

@@ -102,7 +102,7 @@ func TestDetectiveAuth(t *testing.T) {
 
 		expect := func(d *mock_detective.MockDetective) {
 			d.EXPECT().
-				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&detective.MessagesPage{}, nil)
 		}
 

@@ -158,7 +158,7 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return h.exportCSV(w, r, interval, status)
 	}
 
-	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page)
+	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page, detective.ResultsPerPage)
 
 	if err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
@@ -169,31 +169,22 @@ func (h checkMessageDeliveryHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 func (h checkMessageDeliveryHandler) exportCSV(w http.ResponseWriter, r *http.Request, interval timeutil.TimeInterval, status int) error {
 	page := 1
-	records := [][]string{detective.CSVHeader}
+	limit := 10000
 
-	for {
-		messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page)
-		if err != nil {
-			return err
-		}
-
-		records = append(records, messages.ExportCSV()...)
-
-		if page >= messages.LastPage {
-			break
-		}
-		page++
+	messages, err := h.detective.CheckMessageDelivery(r.Context(), r.Form.Get("mail_from"), r.Form.Get("mail_to"), interval, status, someID(r), page, limit)
+	if err != nil {
+		return err
 	}
+
+	records := append([][]string{detective.CSVHeader}, messages.ExportCSV()...)
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment;filename=messages.csv")
 
 	csvWriter := csv.NewWriter(w)
 
-	for _, record := range records {
-		if err := csvWriter.Write(record); err != nil {
-			return err
-		}
+	if err := csvWriter.WriteAll(records); err != nil {
+		return err
 	}
 
 	csvWriter.Flush()
