@@ -37,19 +37,23 @@ export default {
         },
         tooltip: {
           trigger: "axis",
-          axisPointer: {
-            type: "line",
-            label: {
-              backgroundColor: "#6a7985"
-            }
+          name: "tooltip-1",
+          formatter: function(params) {
+            return params.toString();
           }
+          //axisPointer: {
+          //  type: "line",
+          //  label: {
+          //    backgroundColor: "#6a7985"
+          //  }
+          //}
         },
         toolbox: {
           feature: {
             dataZoom: {
-              yAxisIndex: 'none'
+              yAxisIndex: "none"
             },
-            magicType: { type: ['line', 'bar', 'stack', 'tiled'] },
+            magicType: { type: ["line", "bar", "stack", "tiled"] }
           }
         },
         grid: {
@@ -64,11 +68,7 @@ export default {
             boundaryGap: false
           }
         ],
-        yAxis: [
-          {
-            type: "value"
-          }
-        ],
+        yAxis: [{ type: "value" }],
         series: [
           // this is a dummy dataset to force the graph to stack the data
           {
@@ -79,8 +79,12 @@ export default {
               opacity: 0.8,
               color: "black"
             },
-            emphasis: {
-              focus: "series"
+            tooltip: {
+              trigger: "axis",
+              name: "tooltip-1",
+              formatter: function(params) {
+                return params.toString();
+              }
             },
             data: []
           }
@@ -89,24 +93,31 @@ export default {
     };
   },
   mounted() {
-    this.$refs.chart.chart.on('highlight', function() { });
+    //this.$refs.chart.chart.on('highlight', 'series.name', function(params) {
+    //  // TODO: ob highlight, somehow obtain the series under the cursor to show only relevant information about it!
+    //  console.log(params);
+    //});
 
-    this.redrawChart(this.graphDateRange.startDate, this.graphDateRange.endDate);
+    this.redrawChart(
+      this.graphDateRange.startDate,
+      this.graphDateRange.endDate
+    );
   },
   methods: {
-    setupStuff() {
-    },
+    setupStuff() {},
     redrawChart(from, to) {
       let self = this;
 
-      fetchSentMailsByMailboxDataWithTimeInterval(from, to, 6).then(function(response) {
+      fetchSentMailsByMailboxDataWithTimeInterval(from, to, 6).then(function(
+        response
+      ) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
         let values = response.data.values;
 
         let series = [];
 
         for (const [mailbox, counters] of Object.entries(values)) {
-          let serie = {
+          let s = {
             name: mailbox,
             type: "line",
             stack: "Total",
@@ -118,15 +129,20 @@ export default {
               show: true,
               position: "top"
             },
-            areaStyle: {
-            },
+            areaStyle: {},
             emphasis: {
               focus: "series"
             },
-            data: counters
+            data: counters,
+            tooltip: {
+              name: "tooltip-" + mailbox,
+              formatter: function(params) {
+                return params.name;
+              }
+            }
           };
 
-          series.push(serie);
+          series.push(s);
         }
 
         let newOptions = {
