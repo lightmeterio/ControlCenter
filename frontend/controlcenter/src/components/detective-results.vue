@@ -270,8 +270,7 @@ export default {
   border-radius: 18px;
   padding: 0.4em 1.5em;
   margin-right: 0.5em;
-  width: min-content;
-  height: 100%;
+  margin-bottom: 0.5em;
   font-weight: bold;
   color: #724141;
 }
@@ -285,6 +284,7 @@ export default {
 .status-list {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   justify-content: flex-start;
 }
 
@@ -303,6 +303,7 @@ export default {
 .card-status-logs {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
 }
 
 .detective-result-attempts {
