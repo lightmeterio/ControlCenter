@@ -39,6 +39,8 @@ type Dashboard interface {
 	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	BouncedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	DeferredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	ExpiredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	ReceivedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 }
 
 type sqlDashboard struct {
@@ -300,6 +302,16 @@ func (d sqlDashboard) DeferredMailsByMailbox(ctx context.Context, interval timeu
 		sql.Named("end", interval.To.Unix()),
 		sql.Named("status", parser.DeferredStatus),
 		sql.Named("direction", tracking.MessageDirectionOutbound))
+}
+
+func (d sqlDashboard) ExpiredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	// TODO: implement!
+	return MailTrafficPerSenderOverTimeResult{}, nil
+}
+
+func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	// TODO: implement!
+	return MailTrafficPerSenderOverTimeResult{}, nil
 }
 
 func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {

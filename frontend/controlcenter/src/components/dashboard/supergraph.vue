@@ -13,7 +13,8 @@ export default {
   name: "SuperGraph",
   props: {
     graphDateRange: Object,
-    endpoint: String
+    endpoint: String,
+    title: String,
   },
   watch: {
     graphDateRange: {
@@ -34,7 +35,7 @@ export default {
       option: {
         animation: false,
         title: {
-          text: "Sent mails per mailbox"
+          text: this.title
         },
         tooltip: {
           trigger: "axis",
@@ -161,7 +162,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 .chart {
   height: 400px;
 }

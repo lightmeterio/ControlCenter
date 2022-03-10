@@ -151,7 +151,7 @@ type trafficBySenderOverTimeHandler struct {
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/bouncedMailsByMailbox  [get]
 
-// @Summary Messages bounced by mailbox over time
+// @Summary Messages deferred by mailbox over time
 // @Param from query string true "Initial date in the format 1999-12-23"
 // @Param to   query string true "Final date in the format 1999-12-23"
 // @Param granularity query integer 12 "Time granularity in hours"
@@ -159,6 +159,24 @@ type trafficBySenderOverTimeHandler struct {
 // @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/deferredMailsByMailbox  [get]
+
+// @Summary Messages expired by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/expiredMailsByMailbox  [get]
+
+// @Summary Messages received by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/receivedMailsByMailbox  [get]
 
 func (h trafficBySenderOverTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
@@ -196,13 +214,13 @@ func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 
-	trafficBySender := map[string]func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error){
+	for k, v := range map[string]func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error){
 		"/api/v0/sentMailsByMailbox":     d.SentMailsByMailbox,
 		"/api/v0/bouncedMailsByMailbox":  d.BouncedMailsByMailbox,
 		"/api/v0/deferredMailsByMailbox": d.DeferredMailsByMailbox,
-	}
-
-	for k, v := range trafficBySender {
+		"/api/v0/expiredMailsByMailbox":  d.ExpiredMailsByMailbox,
+		"/api/v0/receivedMailsByMailbox": d.ReceivedMailsByMailbox,
+	} {
 		mux.Handle(k, authenticated.WithEndpoint(trafficBySenderOverTimeHandler{v}))
 	}
 
