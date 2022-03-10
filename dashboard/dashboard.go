@@ -306,12 +306,18 @@ func (d sqlDashboard) DeferredMailsByMailbox(ctx context.Context, interval timeu
 
 func (d sqlDashboard) ExpiredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
 	// TODO: implement!
-	return MailTrafficPerSenderOverTimeResult{}, nil
+	return MailTrafficPerSenderOverTimeResult{
+		Times:  []int64{},
+		Values: map[string][]int64{},
+	}, nil
 }
 
 func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
 	// TODO: implement!
-	return MailTrafficPerSenderOverTimeResult{}, nil
+	return MailTrafficPerSenderOverTimeResult{
+		Times:  []int64{},
+		Values: map[string][]int64{},
+	}, nil
 }
 
 func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {

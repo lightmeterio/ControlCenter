@@ -6,7 +6,7 @@
 import VChart, { THEME_KEY } from "vue-echarts";
 
 import "echarts";
-
+import moment from "moment";
 import { fetchSentMailsByMailboxDataWithTimeInterval } from "@/lib/api";
 
 export default {
@@ -111,7 +111,26 @@ export default {
     redrawChart(from, to) {
       let self = this;
 
-      fetchSentMailsByMailboxDataWithTimeInterval(this.endpoint, from, to, 6).then(function(
+      let granularity = function() {
+        // same day, no second precision
+        if (from == to) {
+          return 1
+        }
+
+        let fromTime = moment(from);
+        let toTime = moment(to);
+        let diff = toTime.diff(fromTime, 'hours')
+
+        // one day or less
+        if (diff <= 24) {
+          return 1
+        }
+
+        // over one day, use daily granularity
+        return 24
+      }()
+
+      fetchSentMailsByMailboxDataWithTimeInterval(this.endpoint, from, to, granularity).then(function(
         response
       ) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
