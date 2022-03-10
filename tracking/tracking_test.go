@@ -647,19 +647,21 @@ func TestTrackingFromFiles(t *testing.T) {
 
 				Convey("An inbound message is relayed, passing through two servers", func() {
 					clock := &timeutil.FakeClock{Time: timeutil.MustParseTime(`2021-12-31 00:00:00 +0000`)}
-					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/29_inbound_relayed_message_server_1.log", t.Publisher(), 2021, "default", clock)
+
 					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/29_inbound_relayed_message_server_2.log", t.Publisher(), 2021, "default", clock)
+					postfixutil.ReadFromTestFileWithFormat("../test_files/postfix_logs/individual_files/29_inbound_relayed_message_server_1.log", t.Publisher(), 2021, "default", clock)
+
 					cancel()
 					done()
 
 					So(len(pub.results), ShouldEqual, 1)
 
-					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
-					So(pub.results[0][ResultRecipientDomainPartKey].Text(), ShouldEqual, "example.com")
-					So(pub.results[0][QueueSenderDomainPartKey].Text(), ShouldEqual, "sender.example.com")
-					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "29A7484FC6")
-					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "9bc3be89-b254-08b4-c00f-3afc30101e35@sender.example.com")
-					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
+					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionOutbound)
+					So(pub.results[0][ResultRecipientDomainPartKey].Text(), ShouldEqual, "gmail.com")
+					So(pub.results[0][QueueSenderDomainPartKey].Text(), ShouldEqual, "campfireremote.com")
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "F27E789349")
+					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "fa421b15dce6013dc6e14fec64e371b2@swift.generated")
+					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionOutbound)
 				})
 
 				Convey("Message with in-reply-to header", func() {
