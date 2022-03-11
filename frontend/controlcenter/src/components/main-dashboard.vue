@@ -6,11 +6,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div class="row dashboard">
-    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="sentMailsByMailbox" :title="sentMailsByMailboTitle"></dashboard-supergraph>
-    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="bouncedMailsByMailbox" :title="bouncedMailsByMailboxTitle"></dashboard-supergraph>
-    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="deferredMailsByMailbox" :title="deferredMailsByMailboxTitle"></dashboard-supergraph>
-    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="expiredMailsByMailbox" :title="expiredMailsByMailboxTitle"></dashboard-supergraph>
-    <dashboard-supergraph :graphDateRange="graphDateRange" endpoint="receivedMailsByMailbox" :title="receivedMailsByMailboxTitle"></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="sentMailsByMailbox"
+      :title="sentMailsByMailboTitle"
+    ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="bouncedMailsByMailbox"
+      :title="bouncedMailsByMailboxTitle"
+    ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="deferredMailsByMailbox"
+      :title="deferredMailsByMailboxTitle"
+    ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="expiredMailsByMailbox"
+      :title="expiredMailsByMailboxTitle"
+    ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="receivedMailsByMailbox"
+      :title="receivedMailsByMailboxTitle"
+    ></dashboard-supergraph>
   </div>
 </template>
 
@@ -26,7 +46,7 @@ export default {
   data() {
     return {
       sentMailsByMailboTitle: this.$gettext("Sent Mails By Sender"),
-      bouncedMailsByMailboxTitle:  this.$gettext("Bounced Mails By Sender"),
+      bouncedMailsByMailboxTitle: this.$gettext("Bounced Mails By Sender"),
       deferredMailsByMailboxTitle: this.$gettext("Deferred Mails By Sender"),
       expiredMailsByMailboxTitle: this.$gettext("Expired Mails By Sender"),
       receivedMailsByMailboxTitle: this.$gettext("Received Mails By Sender")

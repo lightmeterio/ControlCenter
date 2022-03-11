@@ -14,7 +14,7 @@ export default {
   props: {
     graphDateRange: Object,
     endpoint: String,
-    title: String,
+    title: String
   },
   watch: {
     graphDateRange: {
@@ -111,28 +111,31 @@ export default {
     redrawChart(from, to) {
       let self = this;
 
-      let granularity = function() {
+      let granularity = (function() {
         // same day, no second precision
         if (from == to) {
-          return 1
+          return 1;
         }
 
         let fromTime = moment(from);
         let toTime = moment(to);
-        let diff = toTime.diff(fromTime, 'hours')
+        let diff = toTime.diff(fromTime, "hours");
 
         // one day or less
         if (diff <= 24) {
-          return 1
+          return 1;
         }
 
         // over one day, use daily granularity
-        return 24
-      }()
+        return 24;
+      })();
 
-      fetchSentMailsByMailboxDataWithTimeInterval(this.endpoint, from, to, granularity).then(function(
-        response
-      ) {
+      fetchSentMailsByMailboxDataWithTimeInterval(
+        this.endpoint,
+        from,
+        to,
+        granularity
+      ).then(function(response) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
         let values = response.data.values;
 
