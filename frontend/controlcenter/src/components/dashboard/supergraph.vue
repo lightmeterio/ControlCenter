@@ -277,7 +277,7 @@ export default {
   max-width: 100%; /* override bootstrap col- */
   height: 100%;
   padding: 2em;
-  z-index: 20;
+  z-index: 100;
   background: white;
 }
 </style>

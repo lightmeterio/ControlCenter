@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-  <div class="row">
+  <div class="row dashboard">
     <dashboard-supergraph
       :graphDateRange="graphDateRange"
       endpoint="sentMailsByMailbox"
@@ -56,18 +56,12 @@ export default {
       expiredMailsByMailboxTitle: this.$gettext("Expired"),
       receivedMailsByMailboxTitle: this.$gettext("Received")
     };
-  },
-  computed: {},
-  beforeDestroy() {},
-  mounted() {},
-  watch: {},
-  methods: {}
+  }
 };
 </script>
+
 <style lang="less" scoped>
 .dashboard {
-  display: flex;
-  flex-wrap: wrap;
-  justify-items: space-between;
+  margin: 2em 0;
 }
 </style>
