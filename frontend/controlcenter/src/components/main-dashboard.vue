@@ -61,8 +61,8 @@ export default {
 </script>
 <style lang="less" scoped>
 .dashboard {
-  display: grid;
-  justify-items: stretch;
-  grid-template-columns: 2fr 2fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-items: space-between;
 }
 </style>

@@ -1,5 +1,19 @@
+<!--
+SPDX-FileCopyrightText: 2021 Lightmeter <hello@lightmeter.io>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
-  <v-chart ref="chart" class="chart" :option="option" />
+  <div ref="chart" :class="chartClass()">
+    <div
+      ref="overlay"
+      class="small-chart-overlay"
+      @click="zoomIn()"
+      v-on:keyup.enter="zoomOut()"
+    ></div>
+    <v-chart ref="echart" class="chart" :option="option" />
+  </div>
 </template>
 
 <script>
@@ -32,6 +46,8 @@ export default {
   },
   data() {
     return {
+      granularity: false,
+      zoomed: false,
       option: {
         animation: false,
         title: {
@@ -39,15 +55,33 @@ export default {
         },
         tooltip: {
           trigger: "axis",
-          //name: "tooltip-1",
-          //formatter: function(params) {
-          //  return params.toString();
-          //}
-          axisPointer: {
-            type: "line",
-            label: {
-              backgroundColor: "#6a7985"
-            }
+          position: "inside",
+          triggerOn: "click",
+          hideDelay: 2000,
+          enterable: true,
+          formatter: function(params) {
+            let tt = "<div class='lm-tooltip'>";
+
+            params.sort((s1, s2) => s1.value < s2.value);
+
+            params.forEach(function(s) {
+              if (s.value == 0) {
+                return;
+              }
+
+              tt += "<div class='lm-serie'>";
+
+              tt +=
+                "<span class='lm-serieName' style='color: " +
+                s.color +
+                "'>" +
+                s.seriesName +
+                "</span>";
+              tt += "<span class='lm-serieValue'>" + s.value + "</span>";
+              tt += "</div>";
+            });
+            tt += "</div>";
+            return tt;
           }
         },
         toolbox: {
@@ -55,7 +89,7 @@ export default {
             dataZoom: {
               yAxisIndex: "none"
             },
-            magicType: { type: ["line", "bar", "stack", "tiled"] }
+            magicType: { type: ["line", "bar"] }
           }
         },
         grid: {
@@ -67,7 +101,10 @@ export default {
         xAxis: [
           {
             type: "category",
-            boundaryGap: false
+            boundaryGap: false,
+            axisLabel: {
+              formatter: this.formatTime
+            }
           }
         ],
         yAxis: [{ type: "value" }],
@@ -81,13 +118,6 @@ export default {
               opacity: 0.8,
               color: "black"
             },
-            //tooltip: {
-            //  trigger: "axis",
-            //  name: "tooltip-1",
-            //  formatter: function(params) {
-            //    return params.toString();
-            //  }
-            //},
             data: []
           }
         ]
@@ -96,10 +126,17 @@ export default {
   },
   mounted() {
     // TODO: also have a look at this example: https://jsfiddle.net/b6yr1u79/
-    //this.$refs.chart.chart.on('highlight', 'series.name', function(params) {
+    //this.$refs.echart.chart.on('highlight', 'series.name', function(params) {
     //  // TODO: ob highlight, somehow obtain the series under the cursor to show only relevant information about it!
     //  console.log(params);
     //});
+
+    let vue = this;
+    window.addEventListener("resize", function() {
+      vue.$refs.echart.resize();
+    });
+
+    window.addEventListener("keydown", this.keyListener);
 
     this.redrawChart(
       this.graphDateRange.startDate,
@@ -107,11 +144,36 @@ export default {
     );
   },
   methods: {
-    setupStuff() {},
-    redrawChart(from, to) {
-      let self = this;
+    chartClass() {
+      return "small-chart" + (this.zoomed ? " zoomed" : "");
+    },
+    zoomIn() {
+      this.zoomed = true;
+      this.$refs.chart.style.top = "" + window.scrollY + "px";
+      setTimeout(this.$refs.echart.resize, 50);
+    },
+    keyListener(event) {
+      if (event.key === "Escape") {
+        this.zoomOut();
+      }
+    },
+    zoomOut() {
+      this.zoomed = false;
+      this.$refs.chart.style.top = 0;
+      setTimeout(this.$refs.echart.resize, 50);
+    },
+    formatTime(value) {
+      let val = new Date(value);
+      console.log(val, value);
 
-      let granularity = (function() {
+      return this.granularity == 24
+        ? val.toISOString().substring(0, 10)
+        : val.toISOString().substring(11, 16);
+    },
+    redrawChart(from, to) {
+      let vue = this;
+
+      vue.granularity = (function() {
         // same day, no second precision
         if (from == to) {
           return 1;
@@ -121,12 +183,12 @@ export default {
         let toTime = moment(to);
         let diff = toTime.diff(fromTime, "hours");
 
-        // one day or less
+        // one day or less, use hourly data
         if (diff <= 24) {
           return 1;
         }
 
-        // over one day, use daily granularity
+        // over one day, use daily data
         return 24;
       })();
 
@@ -134,7 +196,7 @@ export default {
         this.endpoint,
         from,
         to,
-        granularity
+        vue.granularity
       ).then(function(response) {
         let times = response.data.times.map(ts => new Date(ts * 1000));
         let values = response.data.values;
@@ -158,13 +220,7 @@ export default {
             emphasis: {
               focus: "series"
             },
-            data: counters,
-            tooltip: {
-              //name: "tooltip-" + mailbox,
-              //formatter: function(params) {
-              //  return params.name;
-              //}
-            }
+            data: counters
           };
 
           series.push(s);
@@ -177,7 +233,7 @@ export default {
           }
         };
 
-        self.$refs.chart.setOption(newOptions);
+        vue.$refs.echart.setOption(newOptions);
       });
     }
   }
@@ -185,7 +241,50 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.chart {
+.small-chart:not(.zoomed) {
+  width: calc(50% - 4em);
   height: 400px;
+  max-height: 66vh;
+  margin: 1em;
+  position: relative;
+
+  .small-chart-overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 10;
+    cursor: zoom-in;
+    &:hover {
+      background-color: #0069d9;
+      opacity: 0.05;
+    }
+  }
+
+  .chart {
+    width: 100%;
+    height: 100%;
+  }
+}
+.small-chart.zoomed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 2em;
+  z-index: 20;
+  background: white;
+}
+</style>
+
+<!-- NOTE: following CSS is not scoped on purpose: the echarts tooltip is just below <body> -->
+<style lang="less">
+.lm-serie {
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  .lm-serieValue {
+    margin-left: 0.5em;
+  }
 }
 </style>
