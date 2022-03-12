@@ -130,46 +130,59 @@ from
 		}
 
 		if err := db.PrepareStmt(`
-with deliveries_in_range as (
-	select * from deliveries where delivery_ts between @start and @end
-),
-senders as (
-select
-	distinct d.sender_local_part, d.sender_domain_part_id, rd.domain
-from
-	deliveries_in_range d join remote_domains rd on d.sender_domain_part_id = rd.id
-where
-	d.direction = @direction and sender_local_part != '' and domain != ''
-),
-bins as (
-  select
-			-- this round is equivalent to floor(), but using built-in functions (floor requires an external build flag)
-			cast(round(delivery_ts/(@granularity), 0.5)*(@granularity) as integer) as t,
-      id,
-	s.sender_local_part,
-	s.domain
-  from
-      deliveries_in_range d join senders s on 
-	d.sender_local_part = s.sender_local_part and d.sender_domain_part_id = s.sender_domain_part_id
-  where
-      status = @status
-  order by
-      t
-),
-number_sent_mails_per_sender_per_interval as (
-select
-	t, count(id) as c, sender_local_part || '@' || domain as mailbox
-from
-	bins
-group by
-	t, sender_local_part, domain
-)
-select
-	mailbox, min(t) as min_r, max(t) as max_r, json_group_array(json_array(t, c))
-from
-	number_sent_mails_per_sender_per_interval
-group by mailbox
-order by t`, "outboundSentVolumeByMailbox"); err != nil {
+			with deliveries_in_range as (
+				select * from deliveries where delivery_ts between @start and @end
+			),
+			users as (
+				select distinct
+						case d.direction when 0 then d.sender_local_part     else d.recipient_local_part     end as local_part,
+						case d.direction when 0 then d.sender_domain_part_id else d.recipient_domain_part_id end as domain_part_id,
+						rd.domain
+				from
+					deliveries_in_range d join remote_domains rd on
+						@direction = 0 and d.sender_domain_part_id = rd.id    and sender_local_part != ''
+						or
+						@direction = 1 and d.recipient_domain_part_id = rd.id and recipient_local_part != ''
+				where
+					d.direction = @direction and domain != ''
+			),
+			bins as (
+				select
+					-- this round is equivalent to floor(), but using built-in functions (floor requires an external build flag)
+					cast(round(delivery_ts/(@granularity), 0.5)*(@granularity) as integer) as t,
+					id,
+					u.local_part,
+					u.domain
+				from
+					deliveries_in_range d join users u on
+						@direction = 0 and d.sender_local_part    = u.local_part and d.sender_domain_part_id    = u.domain_part_id
+						or
+						@direction = 1 and d.recipient_local_part = u.local_part and d.recipient_domain_part_id = u.domain_part_id
+				where
+					status = @status
+					or @status = 3 and exists(
+						select *
+						from expired_queues eq 
+						join delivery_queue dq on eq.queue_id = dq.queue_id
+						where delivery_id = d.id
+					)
+				order by
+						t
+			),
+			number_sent_mails_per_user_per_interval as (
+				select
+					t, count(id) as c, local_part || '@' || domain as mailbox
+				from
+					bins
+				group by
+					t, local_part, domain
+			)
+			select
+				mailbox, min(t) as min_r, max(t) as max_r, json_group_array(json_array(t, c))
+			from
+				number_sent_mails_per_user_per_interval
+			group by mailbox
+			order by t`, "outboundSentVolumeByMailbox"); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -247,7 +260,7 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
 }
 
-func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int, status parser.SmtpStatus, direction tracking.MessageDirection) (MailTrafficPerSenderOverTimeResult, error) {
 	conn, release, err := d.pool.AcquireContext(ctx)
 	if err != nil {
 		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
@@ -262,65 +275,32 @@ func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.
 		granularity,
 		sql.Named("start", interval.From.Unix()),
 		sql.Named("end", interval.To.Unix()),
-		sql.Named("status", parser.SentStatus),
-		sql.Named("direction", tracking.MessageDirectionOutbound))
+		sql.Named("status", status),
+		sql.Named("direction", direction))
+}
+
+func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus, tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) BouncedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
-	conn, release, err := d.pool.AcquireContext(ctx)
-	if err != nil {
-		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
-	}
-
-	defer release()
-
-	granularity := granularityInHour * int(time.Hour/time.Second)
-
-	//nolint:sqlclosecheck
-	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
-		granularity,
-		sql.Named("start", interval.From.Unix()),
-		sql.Named("end", interval.To.Unix()),
-		sql.Named("status", parser.BouncedStatus),
-		sql.Named("direction", tracking.MessageDirectionOutbound))
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.BouncedStatus, tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) DeferredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
-	conn, release, err := d.pool.AcquireContext(ctx)
-	if err != nil {
-		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
-	}
-
-	defer release()
-
-	granularity := granularityInHour * int(time.Hour/time.Second)
-
-	//nolint:sqlclosecheck
-	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
-		granularity,
-		sql.Named("start", interval.From.Unix()),
-		sql.Named("end", interval.To.Unix()),
-		sql.Named("status", parser.DeferredStatus),
-		sql.Named("direction", tracking.MessageDirectionOutbound))
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.DeferredStatus, tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) ExpiredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
-	// TODO: implement!
-	return MailTrafficPerSenderOverTimeResult{
-		Times:  []int64{},
-		Values: map[string][]int64{},
-	}, nil
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.ExpiredStatus, tracking.MessageDirectionOutbound)
 }
 
 func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
-	// TODO: implement!
-	return MailTrafficPerSenderOverTimeResult{
-		Times:  []int64{},
-		Values: map[string][]int64{},
-	}, nil
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus /* <= not a bug*/, tracking.MessageDirectionIncoming)
 }
 
 func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx, append([]interface{}{sql.Named("granularity", granularity)}, args...)...)
 
 	if err != nil {
@@ -351,7 +331,7 @@ func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity 
 			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 		}
 
-		if json.Unmarshal([]byte(rawCounters), &counters); err != nil {
+		if err := json.Unmarshal([]byte(rawCounters), &counters); err != nil {
 			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 		}
 
@@ -361,13 +341,17 @@ func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity 
 		overallMaxTime = max(maxTime, overallMaxTime)
 	}
 
+	if err := rows.Err(); err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
 	compute := func(min, max int64) int64 {
 		return int64(float64(max-min) / float64(granularity))
 	}
 
 	resultLen := compute(overallMinTime, overallMaxTime) + 1
 
-	times := make([]int64, int64(resultLen))
+	times := make([]int64, resultLen)
 
 	for t := overallMinTime; t < overallMaxTime; t += int64(granularity) {
 		i := compute(overallMinTime, t)

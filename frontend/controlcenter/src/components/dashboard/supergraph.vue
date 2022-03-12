@@ -28,7 +28,8 @@ export default {
   props: {
     graphDateRange: Object,
     endpoint: String,
-    title: String
+    title: String,
+    size: String
   },
   watch: {
     graphDateRange: {
@@ -59,6 +60,7 @@ export default {
           triggerOn: "click",
           hideDelay: 2000,
           enterable: true,
+          confine: true,
           formatter: function(params) {
             let tt = "<div class='lm-tooltip'>";
 
@@ -145,7 +147,11 @@ export default {
   },
   methods: {
     chartClass() {
-      return "small-chart" + (this.zoomed ? " zoomed" : "");
+      let bootstrapClass = {
+        2: "col-md-6 col-12",
+        3: "col-md-4 col-12"
+      }[this.size];
+      return "small-chart " + bootstrapClass + (this.zoomed ? " zoomed" : "");
     },
     zoomIn() {
       this.zoomed = true;
@@ -164,7 +170,6 @@ export default {
     },
     formatTime(value) {
       let val = new Date(value);
-      console.log(val, value);
 
       return this.granularity == 24
         ? val.toISOString().substring(0, 10)
@@ -242,10 +247,9 @@ export default {
 
 <style lang="less" scoped>
 .small-chart:not(.zoomed) {
-  width: calc(50% - 4em);
-  height: 400px;
+  height: 300px;
   max-height: 66vh;
-  margin: 1em;
+  padding: 1em;
   position: relative;
 
   .small-chart-overlay {
@@ -270,6 +274,7 @@ export default {
   top: 0;
   left: 0;
   width: 100%;
+  max-width: 100%; /* override bootstrap col- */
   height: 100%;
   padding: 2em;
   z-index: 20;
