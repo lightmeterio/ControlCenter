@@ -135,14 +135,14 @@ from
 			),
 			users as (
 				select distinct
-						case d.direction when 0 then d.sender_local_part     else d.recipient_local_part     end as local_part,
-						case d.direction when 0 then d.sender_domain_part_id else d.recipient_domain_part_id end as domain_part_id,
+						case d.direction when @Outbound then d.sender_local_part     else d.recipient_local_part     end as local_part,
+						case d.direction when @Outbound then d.sender_domain_part_id else d.recipient_domain_part_id end as domain_part_id,
 						rd.domain
 				from
 					deliveries_in_range d join remote_domains rd on
-						@direction = 0 and d.sender_domain_part_id = rd.id    and sender_local_part != ''
+						@direction = @Outbound and d.sender_domain_part_id = rd.id    and sender_local_part != ''
 						or
-						@direction = 1 and d.recipient_domain_part_id = rd.id and recipient_local_part != ''
+						@direction = @Inbound  and d.recipient_domain_part_id = rd.id and recipient_local_part != ''
 				where
 					d.direction = @direction and domain != ''
 			),
@@ -155,12 +155,12 @@ from
 					u.domain
 				from
 					deliveries_in_range d join users u on
-						@direction = 0 and d.sender_local_part    = u.local_part and d.sender_domain_part_id    = u.domain_part_id
+						@direction = @Outbound and d.sender_local_part    = u.local_part and d.sender_domain_part_id    = u.domain_part_id
 						or
-						@direction = 1 and d.recipient_local_part = u.local_part and d.recipient_domain_part_id = u.domain_part_id
+						@direction = @Inbound  and d.recipient_local_part = u.local_part and d.recipient_domain_part_id = u.domain_part_id
 				where
 					status = @status
-					or @status = 3 and exists(
+					or @status = @Expired and exists(
 						select *
 						from expired_queues eq 
 						join delivery_queue dq on eq.queue_id = dq.queue_id
@@ -273,6 +273,11 @@ func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.
 	//nolint:sqlclosecheck
 	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
 		granularity,
+
+		sql.Named("Outbound", tracking.MessageDirectionOutbound),
+		sql.Named("Inbound", tracking.MessageDirectionIncoming),
+		sql.Named("Expired", parser.ExpiredStatus),
+
 		sql.Named("start", interval.From.Unix()),
 		sql.Named("end", interval.To.Unix()),
 		sql.Named("status", status),
