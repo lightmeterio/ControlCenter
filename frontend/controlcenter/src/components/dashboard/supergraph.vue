@@ -46,13 +46,14 @@ export default {
     [THEME_KEY]: "default"
   },
   data() {
+    let vue = this;
     return {
       granularity: false,
       zoomed: false,
       option: {
         animation: false,
         title: {
-          text: this.title
+          text: vue.title
         },
         tooltip: {
           trigger: "axis",
@@ -62,13 +63,21 @@ export default {
           enterable: true,
           confine: true,
           formatter: function(params) {
+            let dateDisplayed = false;
             let tt = "<div class='lm-tooltip'>";
 
             params.sort((s1, s2) => s1.value < s2.value);
-
             params.forEach(function(s) {
               if (s.value == 0) {
                 return;
+              }
+
+              let date = vue.formatTime(s.axisValue, true);
+
+              if (!dateDisplayed) {
+                dateDisplayed = true;
+                tt +=
+                  "<p><b>" + date + " </b>" + vue.detectiveLink(date) + "</p>";
               }
 
               tt += "<div class='lm-serie'>";
@@ -79,7 +88,13 @@ export default {
                 "'>" +
                 s.seriesName +
                 "</span>";
-              tt += "<span class='lm-serieValue'>" + s.value + "</span>";
+              tt +=
+                "<div>" +
+                "<span class='lm-serieValue'>" +
+                s.value +
+                " </span>" +
+                vue.detectiveLink(date, s.seriesName) +
+                "</div>";
               tt += "</div>";
             });
             tt += "</div>";
@@ -168,12 +183,47 @@ export default {
       this.$refs.chart.style.top = 0;
       setTimeout(this.$refs.echart.resize, 50);
     },
-    formatTime(value) {
+    formatTime(value, keepDate = false) {
       let val = new Date(value);
 
-      return this.granularity == 24
-        ? val.toISOString().substring(0, 10)
+      if (this.granularity == 24) {
+        return val.toISOString().substring(0, 10);
+      }
+
+      return keepDate === true
+        ? val.toISOString().substring(0, 16)
         : val.toISOString().substring(11, 16);
+    },
+    detectiveLink(date, seriesName) {
+      let vue = this;
+
+      let status = {
+        sentMailsByMailbox: 0,
+        receivedMailsByMailbox: 42,
+        bouncedMailsByMailbox: 1,
+        deferredMailsByMailbox: 2,
+        expiredMailsByMailbox: 3
+      }[vue.endpoint];
+
+      let from_to = vue.endpoint == "receivedMailsByMailbox" ? "to" : "from";
+
+      let link =
+        "/#/detective?" +
+        (seriesName
+          ? "mail_" + from_to + "=" + encodeURIComponent(seriesName)
+          : "") +
+        "&startDate=" +
+        encodeURIComponent(date) +
+        "&endDate=" +
+        encodeURIComponent(date) +
+        "&statusSelected=" +
+        encodeURIComponent(status);
+
+      return (
+        "<a href='" +
+        link +
+        "'> <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a>"
+      );
     },
     redrawChart(from, to) {
       let vue = this;

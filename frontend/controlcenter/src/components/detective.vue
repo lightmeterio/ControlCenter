@@ -7,6 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <b-container class="mt-5 detective-body">
     <b-form
+      ref="searchForm"
       @submit.prevent="
         page = 1;
         updateResults();
@@ -307,7 +308,7 @@ export default {
             vue.$gettext("message(s) found") +
             pageNb
           : vue.$gettext("No message found");
-        vue.$refs.searchResultText.scrollIntoView();
+        vue.$refs.searchForm.scrollIntoView();
       });
     },
     escalateMessage() {
@@ -344,17 +345,56 @@ export default {
     }
   },
   mounted() {
+    let vue = this;
+
+    let runSearch = false;
+    let dateFromParams = false;
+
+    let hash = window.location.hash.split("?");
+    if (hash.length > 1) {
+      let get = hash[1];
+      let params = {};
+      get.split("&").forEach(function(gp) {
+        let [k, v] = gp.split("=");
+        params[k] = decodeURIComponent(v);
+      });
+
+      ["mail_from", "mail_to", "statusSelected", "some_id"].forEach(function(
+        k
+      ) {
+        if (params[k]) {
+          vue[k] = params[k];
+          runSearch = true;
+        }
+      });
+
+      if (params.startDate && params.endDate) {
+        vue.dateRange = {
+          startDate: params.startDate,
+          endDate: params.endDate
+        };
+        dateFromParams = true;
+        runSearch = true;
+      }
+    }
+
     this.updateSelectedInterval(this.dateRange);
 
-    oldestAvailableTimeForMessageDetective().then(r => {
-      if (r.data.time != null) {
-        this.dateRange = {
-          startDate: r.data.time,
-          endDate: this.dateRange.endDate
-        };
-        this.updateSelectedInterval(this.dateRange);
-      }
-    });
+    if (runSearch) {
+      vue.updateResults();
+    }
+
+    if (!dateFromParams) {
+      oldestAvailableTimeForMessageDetective().then(r => {
+        if (r.data.time != null) {
+          this.dateRange = {
+            startDate: r.data.time,
+            endDate: this.dateRange.endDate
+          };
+          this.updateSelectedInterval(this.dateRange);
+        }
+      });
+    }
   }
 };
 </script>

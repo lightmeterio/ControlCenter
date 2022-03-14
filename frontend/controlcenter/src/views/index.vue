@@ -80,8 +80,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="dateRange"
               :showCustomRangeCalendars="false"
               :max-date="new Date()"
-              v-b-tooltip.hover
-              :title="titleDatepicker"
             >
             </DateRangePicker>
           </div>
@@ -269,11 +267,6 @@ export default {
   },
   created() {},
   computed: {
-    titleDatepicker() {
-      return this.$gettext(
-        "Choose date interval - applies to all graphs and insights"
-      );
-    },
     titleDownloadLogs() {
       return this.$gettext("Download server logs for selected date interval");
     },
