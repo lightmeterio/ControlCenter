@@ -49,6 +49,7 @@ const (
 	incrementPidUsageById
 	decrementPidUsageById
 	selectPidForPidAndHost
+	selectConnectionAuthCountForQueue
 
 	lastTrackerStmtKey
 )
@@ -112,4 +113,12 @@ var trackerStmtsText = dbconn.StmtsText{
 	incrementPidUsageById:              `update pids set usage_counter = usage_counter + 1 where id = ?`,
 	decrementPidUsageById:              `update pids set usage_counter = usage_counter - 1 where id = ?`,
 	selectPidForPidAndHost:             `select id from pids where pid = ? and host = ?`,
+	selectConnectionAuthCountForQueue: `select 
+	connection_data.value
+from
+	queues join connections on queues.connection_id = connections.id
+		join connection_data on connection_data.connection_id = connections.id
+where
+	queues.id = ?
+	and connection_data.key = ?`,
 }

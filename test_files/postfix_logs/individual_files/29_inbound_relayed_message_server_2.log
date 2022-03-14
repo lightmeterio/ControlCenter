@@ -1,0 +1,13 @@
+Mar  9 04:27:03 mail2 postfix/smtpd[870]: connect from unknown[22.22.22.22]
+Mar  9 04:27:03 mail2 postfix/smtpd[870]: Anonymous TLS connection established from unknown[22.22.22.22]: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature RSA-PSS (2048 bits)
+Mar  9 04:27:03 mail2 postfix/smtpd[870]: F27E789349: client=unknown[22.22.22.22]
+Mar  9 04:27:04 mail2 postfix/cleanup[873]: F27E789349: message-id=<fa421b15dce6013dc6e14fec64e371b2@swift.generated>
+Mar  9 04:27:04 mail2 opendkim[42]: F27E789349: [22.22.22.22] [22.22.22.22] not internal
+Mar  9 04:27:04 mail2 opendkim[42]: F27E789349: not authenticated
+Mar  9 04:27:04 mail2 opendkim[42]: F27E789349: DKIM verification successful
+Mar  9 04:27:04 mail2 opendkim[42]: F27E789349: s=default d=campfireremote.com a=rsa-sha256 SSL 
+Mar  9 04:27:04 mail2 postfix/qmgr[146]: F27E789349: from=<sender@sender.com>, size=1599, nrcpt=2 (queue active)
+Mar  9 04:27:04 mail2 postfix/smtpd[870]: disconnect from unknown[22.22.22.22] ehlo=2 starttls=1 mail=1 rcpt=1 data=1 quit=1 commands=7
+Mar  9 04:27:04 mail2 postfix/smtp[875]: Untrusted TLS connection established to gmail-smtp-in.l.google.com[44.44.44.44]:25: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature ECDSA (P-256)
+Mar  9 04:27:04 mail2 postfix/smtp[875]: F27E789349: to=<recipient@recipient.com>, relay=gmail-smtp-in.l.google.com[44.44.44.44]:25, delay=0.99, delays=0.07/0.03/0.12/0.77, dsn=2.0.0, status=sent (250 2.0.0 OK  1646800024 v2-20020adf8b42000000b001e897c2e2d0si580205wra.733 - gsmtp)
+Mar  9 04:27:04 mail2 postfix/qmgr[146]: F27E789349: removed

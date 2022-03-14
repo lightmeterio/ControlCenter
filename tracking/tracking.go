@@ -492,6 +492,11 @@ loop:
 				errorutil.MustSucceed(err)
 				return errorutil.Wrap(err)
 			}
+
+			if err := debugTrackingAction(&tx, t, &batchId, trackerStmts, &txStmts); err != nil {
+				return errorutil.Wrap(err)
+			}
+
 		default:
 			panic("Read wrong select index!!!")
 		}

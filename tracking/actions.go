@@ -464,6 +464,23 @@ func disconnectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPai
 		return errorutil.Wrap(err)
 	}
 
+	authSuccess := func() int {
+		//nolint:forcetypeassert
+		disconnect := r.Payload.(parser.SmtpdDisconnect)
+
+		if auth, ok := disconnect.Stats["auth"]; ok {
+			return auth.Success
+		}
+
+		return 0
+	}()
+
+	//nolint:sqlclosecheck
+	_, err = trackerStmts.Get(insertConnectionData).Exec(connectionId, ConnectionAuthSuccessCount, authSuccess)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
 	if usageCounter > 0 {
 		// Cannot delete the connection yet as there are queues using it!
 		return nil
@@ -503,28 +520,110 @@ func createMailDeliveredResult(r postfix.Record, trackerStmts dbconn.TxPreparedS
 	return nil
 }
 
+func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts, p parser.SmtpSentStatus) (bool, error) {
+	// check if we are an internal relay, and it's possible that the logs from the previous hop are not yet known.
+	// NOTE: For now we support only outbound relayed messages for now.
+	direction := findMsgDirection(r.Header)
+
+	if direction == MessageDirectionIncoming {
+		// NOTE: we don't support relayed inbound messages yet
+		return true, nil
+	}
+
+	// goes in the queue chain until finding a queue that had an authenticated connection
+
+	var queueId int64
+
+	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil {
+		return false, errorutil.Wrap(err)
+	}
+
+	for {
+		var authSuccessCount int64
+
+		//nolint:sqlclosecheck
+		err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
+
+		if err != nil {
+			return false, errorutil.Wrap(err)
+		}
+
+		// authenticated queue, good to go!
+		if authSuccessCount > 0 {
+			return true, nil
+		}
+
+		var parentQueueId int64
+
+		// this queue was created from a connection without authentication.
+		// That means we are now in a relay, where the message started elsewhere.
+		err = trackerStmts.Get(selectQueueFromParentingNewQueue).QueryRow(queueId).Scan(&parentQueueId)
+
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			// a gap was found, and it's marked to be "filled out" later
+			// Incrementing its counter prevents if of being deleted when the 'removed queue' line is called
+			if err := incrementQueueUsage(trackerStmts, queueId); err != nil {
+				return false, errorutil.Wrap(err)
+			}
+
+			return false, nil
+		}
+
+		if err != nil {
+			return false, errorutil.Wrap(err)
+		}
+
+		// a parent was found. Search deeper...
+		queueId = parentQueueId
+		continue
+	}
+}
+
+func handleMailSentToExternalRelay(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts, p parser.SmtpSentStatus) error {
+	canDeliver, err := mailSentActionCanGenerateDeliveryResult(tx, r, trackerStmts, p)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if !canDeliver {
+		// there are some gaps in the logs, so we're unable to notify a new delivery now
+		return nil
+	}
+
+	// here we know all is good for notifying a new delivery
+
+	// not internally queued
+	err = createMailDeliveredResult(r, trackerStmts)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
+		// TODO: postfix can have very long living queues (that are active for many days)
+		// and can use such queue for delivering many e-mails.
+		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
+		// TODO: More investigation is needed
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
 func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// Check if message has been forwarded to the an internal relay
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
-	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
+	e, cast := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
+
+	sentToNextRelayHop := !cast || (cast && !e.InternalMTA && p.RelayPort == 25)
 
 	// delivery to the next relay outside of the system
-	if !messageQueuedInternally {
-		// not internally queued
-		err := createMailDeliveredResult(r, trackerStmts)
-
-		if err != nil && errors.Is(err, sql.ErrNoRows) {
-			// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-			// TODO: postfix can have very long living queues (that are active for many days)
-			// and can use such queue for delivering many e-mails.
-			// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-			// More investigation is needed
-			return nil
-		}
-
-		if err != nil {
+	if sentToNextRelayHop {
+		if err := handleMailSentToExternalRelay(tx, r, trackerStmts, p); err != nil {
 			return errorutil.Wrap(err)
 		}
 
@@ -557,7 +656,7 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 		return errorutil.Wrap(err)
 	}
 
-	// this is an e-mail that postfix sends to itself before trying to deliver.
+	// this is an e-mail that postfix sometimes (if configured to do so) sends to itself before trying to deliver.
 	// As it's moved to another queue to be delivered, we queue the original and
 	// the newly created queue
 	//nolint:sqlclosecheck
@@ -612,15 +711,15 @@ func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 	return nil
 }
 
+func findMsgDirection(h parser.Header) MessageDirection {
+	if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") || strings.HasSuffix(h.Daemon, "local") {
+		return MessageDirectionIncoming
+	}
+
+	return MessageDirectionOutbound
+}
+
 func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64, sum postfix.Sum) error {
-	direction := func() MessageDirection {
-		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") || strings.HasSuffix(h.Daemon, "local") {
-			return MessageDirectionIncoming
-		}
-
-		return MessageDirectionOutbound
-	}()
-
 	if err := insertResultDataValues(trackerStmts, resultId,
 		kvData{key: ResultRecipientLocalPartKey, value: p.RecipientLocalPart},
 		kvData{key: ResultRecipientDomainPartKey, value: p.RecipientDomainPart},
@@ -636,7 +735,7 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		kvData{key: ResultDeliveryFilenameKey, value: loc.Filename},
 		kvData{key: ResultDeliveryFileLineKey, value: loc.Line},
 		kvData{key: ResultDeliveryTimeKey, value: time.Unix()},
-		kvData{key: ResultMessageDirectionKey, value: direction},
+		kvData{key: ResultMessageDirectionKey, value: findMsgDirection(h)},
 		kvData{key: ResultDeliveryLineChecksum, value: sum},
 	); err != nil {
 		return errorutil.Wrap(err)
@@ -697,6 +796,7 @@ func mailBouncedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPa
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
+			//nolint:forcetypeassert
 			r.Payload.(parser.SmtpSentStatus).Queue, r.Location.Filename, r.Location.Line)
 
 		return nil
