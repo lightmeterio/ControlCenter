@@ -323,8 +323,7 @@ func cloneAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, tr
 		return errorutil.Wrap(err)
 	}
 
-	_, err = createQueue(r.Time, connectionId, p.Queue, r.Location, trackerStmts)
-	if err != nil {
+	if _, err := createOrFixQueue(r.Time, connectionId, p.Queue, r.Location, trackerStmts); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -626,6 +625,53 @@ func handleMailSentToExternalRelay(tx *sql.Tx, r postfix.Record, trackerStmts db
 	return nil
 }
 
+const unknownConnectionId = -99
+
+func findNewQueueIdOrCreateIncompleteOne(queue string, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	newQueueId, err := findQueueIdFromQueueValue(queue, trackerStmts)
+	if err == nil {
+		return newQueueId, nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, errorutil.Wrap(err)
+	}
+
+	// The queue will be created in the future, as soon as the relevant logs arrive.
+	// As we don't know its connection yet, just fake it and replace it once we know it.
+	queueId, err := createQueue(r.Time, unknownConnectionId, queue, r.Location, trackerStmts)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return queueId, nil
+}
+
+func createOrFixQueue(time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	// If the queue already exists and is in a "incomplete" state, we have to "fix it".
+	queueId, err := findQueueIdFromQueueValue(queue, trackerStmts)
+
+	// brand new queue
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return createQueue(time, connectionId, queue, loc, trackerStmts)
+	}
+
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	// fix the queue, assigning the correction connection to it
+	if _, err := trackerStmts.Get(fixQueueConnectionId).Exec(connectionId, queueId); err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	if err := incrementConnectionUsage(trackerStmts, connectionId); err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return queueId, nil
+}
+
 func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	// Check if message has been forwarded to the an internal relay
 	//nolint:forcetypeassert
@@ -644,16 +690,6 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 		return nil
 	}
 
-	newQueueId, err := findQueueIdFromQueueValue(e.Queue, trackerStmts)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v at %v", e.Queue, r.Location.Filename, r.Location.Line, r.Time)
-		return nil
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
 	origQueueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	// TODO: this block is copy&pasted many times! It should be refactored!
@@ -666,6 +702,13 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 		return nil
 	}
 
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// here we know that the current queue is not the final one, so another one will be used to deliver
+	// to the final destination
+	newQueueId, err := findNewQueueIdOrCreateIncompleteOne(e.Queue, r, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}

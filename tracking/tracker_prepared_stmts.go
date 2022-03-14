@@ -53,6 +53,7 @@ const (
 	insertPreNotificationByQueueIdAndResultId
 	selectPreNotificationResultIdsForQueue
 	deletePreNotificationEntryByQueueId
+	fixQueueConnectionId
 
 	lastTrackerStmtKey
 )
@@ -84,8 +85,7 @@ var trackerStmtsText = dbconn.StmtsText{
 	selectQueueIdForQueue: `select
 		queues.id
 	from
-		queues join connections on queues.connection_id = connections.id
-		join pids on connections.pid_id = pids.id
+		queues
 	where
 		queues.queue = ?`,
 	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
@@ -127,4 +127,5 @@ where
 	insertPreNotificationByQueueIdAndResultId: `insert into prenotification_results(queue_id, result_id) values(?, ?)`,
 	selectPreNotificationResultIdsForQueue:    `select result_id from prenotification_results where queue_id = ?`,
 	deletePreNotificationEntryByQueueId:       `delete from prenotification_results where queue_id = ?`,
+	fixQueueConnectionId:                      `update queues set connection_id = ? where id = ?`,
 }
