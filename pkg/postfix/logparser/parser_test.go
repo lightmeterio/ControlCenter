@@ -314,6 +314,7 @@ func TestSMTPParsing(t *testing.T) {
 			So(e.Port, ShouldEqual, 10025)
 			So(e.IP, ShouldEqual, net.ParseIP("127.0.0.1"))
 			So(e.Queue, ShouldEqual, "2F01D1855DB2")
+			So(e.InternalMTA, ShouldBeTrue)
 
 			// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
 			So(e.SmtpCode, ShouldEqual, 250)
@@ -338,7 +339,30 @@ func TestSMTPParsing(t *testing.T) {
 			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 Ok: queued as 5744140325)`)
 
 			_, cast = p.ExtraMessagePayload.(SmtpSentStatusExtraMessageSentQueued)
-			So(cast, ShouldBeFalse)
+			So(cast, ShouldBeTrue)
+		})
+
+		Convey("A message of a delivery to an internal relay", func() {
+			_, parsed, err := Parse(string(`Mar  9 04:27:04 lightmetermail postfix/smtp[1970]: 670FCA58C8: to=<recipient@recipient.com>, ` +
+				`relay=mail2.example.com[33.33.33.33]:587, delay=0.69, delays=0.22/0/0.35/0.12, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as F27E789349)`))
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, "670FCA58C8")
+			So(p.RelayPort, ShouldEqual, 587)
+			So(p.Status, ShouldEqual, SentStatus)
+			So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 Ok: queued as F27E789349)`)
+
+			e, cast := p.ExtraMessagePayload.(SmtpSentStatusExtraMessageSentQueued)
+			So(cast, ShouldBeTrue)
+			So(e.Queue, ShouldEqual, "F27E789349")
+			So(e.InternalMTA, ShouldBeFalse)
+
+			// obtained from the beginning of the line, as the values from the end are hard-coded by postfix
+			So(e.SmtpCode, ShouldEqual, 250)
+			So(e.Dsn, ShouldEqual, "2.0.0")
 		})
 	})
 

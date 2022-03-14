@@ -37,11 +37,12 @@ type RawSmtpSentStatus struct {
 }
 
 type SmtpSentStatusExtraMessageSentQueued struct {
-	SmtpCode string
-	Dsn      string
-	IP       string
-	Port     string
-	Queue    string
+	SmtpCode    string
+	Dsn         string
+	IP          string
+	Port        string
+	Queue       string
+	InternalMTA bool
 }
 
 func parseSmtpPayload(payloadLine string) (RawPayload, error) {

@@ -2096,6 +2096,8 @@ func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtra
 		goto st_case_29
 	case 30:
 		goto st_case_30
+	case 92:
+		goto st_case_92
 	case 31:
 		goto st_case_31
 	case 32:
@@ -2172,8 +2174,6 @@ func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtra
 		goto st_case_67
 	case 68:
 		goto st_case_68
-	case 92:
-		goto st_case_92
 	case 69:
 		goto st_case_69
 	case 70:
@@ -2344,16 +2344,26 @@ tr11:
 		}
 	st_case_10:
 //line smtp.gen.go:2347
-		if data[p] == 102 {
+		switch data[p] {
+		case 79:
 			goto st11
+		case 102:
+			goto st47
 		}
 		goto st0
+tr90:
+//line smtp.rl:141
+
+    r.InternalMTA = true
+  
+	goto st11
 	st11:
 		if p++; p == pe {
 			goto _test_eof11
 		}
 	st_case_11:
-		if data[p] == 114 {
+//line smtp.gen.go:2366
+		if data[p] == 107 {
 			goto st12
 		}
 		goto st0
@@ -2362,7 +2372,7 @@ tr11:
 			goto _test_eof12
 		}
 	st_case_12:
-		if data[p] == 111 {
+		if data[p] == 58 {
 			goto st13
 		}
 		goto st0
@@ -2371,7 +2381,7 @@ tr11:
 			goto _test_eof13
 		}
 	st_case_13:
-		if data[p] == 109 {
+		if data[p] == 32 {
 			goto st14
 		}
 		goto st0
@@ -2380,7 +2390,7 @@ tr11:
 			goto _test_eof14
 		}
 	st_case_14:
-		if data[p] == 32 {
+		if data[p] == 113 {
 			goto st15
 		}
 		goto st0
@@ -2389,7 +2399,7 @@ tr11:
 			goto _test_eof15
 		}
 	st_case_15:
-		if data[p] == 77 {
+		if data[p] == 117 {
 			goto st16
 		}
 		goto st0
@@ -2398,7 +2408,7 @@ tr11:
 			goto _test_eof16
 		}
 	st_case_16:
-		if data[p] == 84 {
+		if data[p] == 101 {
 			goto st17
 		}
 		goto st0
@@ -2407,7 +2417,7 @@ tr11:
 			goto _test_eof17
 		}
 	st_case_17:
-		if data[p] == 65 {
+		if data[p] == 117 {
 			goto st18
 		}
 		goto st0
@@ -2416,7 +2426,7 @@ tr11:
 			goto _test_eof18
 		}
 	st_case_18:
-		if data[p] == 40 {
+		if data[p] == 101 {
 			goto st19
 		}
 		goto st0
@@ -2425,7 +2435,7 @@ tr11:
 			goto _test_eof19
 		}
 	st_case_19:
-		if data[p] == 115 {
+		if data[p] == 100 {
 			goto st20
 		}
 		goto st0
@@ -2434,7 +2444,7 @@ tr11:
 			goto _test_eof20
 		}
 	st_case_20:
-		if data[p] == 109 {
+		if data[p] == 32 {
 			goto st21
 		}
 		goto st0
@@ -2443,7 +2453,7 @@ tr11:
 			goto _test_eof21
 		}
 	st_case_21:
-		if data[p] == 116 {
+		if data[p] == 97 {
 			goto st22
 		}
 		goto st0
@@ -2452,7 +2462,7 @@ tr11:
 			goto _test_eof22
 		}
 	st_case_22:
-		if data[p] == 112 {
+		if data[p] == 115 {
 			goto st23
 		}
 		goto st0
@@ -2461,7 +2471,7 @@ tr11:
 			goto _test_eof23
 		}
 	st_case_23:
-		if data[p] == 58 {
+		if data[p] == 32 {
 			goto st24
 		}
 		goto st0
@@ -2470,37 +2480,73 @@ tr11:
 			goto _test_eof24
 		}
 	st_case_24:
-		if data[p] == 91 {
-			goto st25
-		}
-		goto st0
-	st25:
-		if p++; p == pe {
-			goto _test_eof25
-		}
-	st_case_25:
-		if data[p] == 117 {
-			goto tr28
-		}
-		if 48 <= data[p] && data[p] <= 57 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto tr27
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto tr28
+				}
+			case data[p] >= 71:
+				goto tr28
+			}
+		default:
 			goto tr27
 		}
 		goto st0
 tr27:
 //line common.rl:29
  tokBeg = p 
-	goto st26
+	goto st25
+	st25:
+		if p++; p == pe {
+			goto _test_eof25
+		}
+	st_case_25:
+//line smtp.gen.go:2511
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st26
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st45
+				}
+			case data[p] >= 71:
+				goto st45
+			}
+		default:
+			goto st26
+		}
+		goto st0
 	st26:
 		if p++; p == pe {
 			goto _test_eof26
 		}
 	st_case_26:
-//line smtp.gen.go:2499
-		if data[p] == 46 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st27
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st44
+				}
+			case data[p] >= 71:
+				goto st44
+			}
+		default:
 			goto st27
-		}
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st26
 		}
 		goto st0
 	st27:
@@ -2508,7 +2554,21 @@ tr27:
 			goto _test_eof27
 		}
 	st_case_27:
-		if 48 <= data[p] && data[p] <= 57 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st28
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st43
+				}
+			case data[p] >= 71:
+				goto st43
+			}
+		default:
 			goto st28
 		}
 		goto st0
@@ -2517,11 +2577,22 @@ tr27:
 			goto _test_eof28
 		}
 	st_case_28:
-		if data[p] == 46 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st29
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st42
+				}
+			case data[p] >= 71:
+				goto st42
+			}
+		default:
 			goto st29
-		}
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st28
 		}
 		goto st0
 	st29:
@@ -2529,7 +2600,21 @@ tr27:
 			goto _test_eof29
 		}
 	st_case_29:
-		if 48 <= data[p] && data[p] <= 57 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st30
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st41
+				}
+			case data[p] >= 71:
+				goto st41
+			}
+		default:
 			goto st30
 		}
 		goto st0
@@ -2538,487 +2623,28 @@ tr27:
 			goto _test_eof30
 		}
 	st_case_30:
-		if data[p] == 46 {
-			goto st31
-		}
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st30
-		}
-		goto st0
-	st31:
-		if p++; p == pe {
-			goto _test_eof31
-		}
-	st_case_31:
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st32
-		}
-		goto st0
-	st32:
-		if p++; p == pe {
-			goto _test_eof32
-		}
-	st_case_32:
-		if data[p] == 93 {
-			goto tr36
-		}
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st32
-		}
-		goto st0
-tr36:
-//line smtp.rl:129
-
-		r.IP = data[tokBeg:p]
-	
-	goto st33
-	st33:
-		if p++; p == pe {
-			goto _test_eof33
-		}
-	st_case_33:
-//line smtp.gen.go:2581
-		if data[p] == 58 {
-			goto st34
-		}
-		goto st0
-	st34:
-		if p++; p == pe {
-			goto _test_eof34
-		}
-	st_case_34:
-		if 48 <= data[p] && data[p] <= 57 {
-			goto tr38
-		}
-		goto st0
-tr38:
-//line common.rl:29
- tokBeg = p 
-	goto st35
-	st35:
-		if p++; p == pe {
-			goto _test_eof35
-		}
-	st_case_35:
-//line smtp.gen.go:2604
 		if data[p] == 41 {
 			goto tr39
 		}
-		if 48 <= data[p] && data[p] <= 57 {
-			goto st35
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st31
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st40
+				}
+			case data[p] >= 71:
+				goto st40
+			}
+		default:
+			goto st31
 		}
 		goto st0
 tr39:
-//line smtp.rl:133
-
-		r.Port = data[tokBeg:p]
-	
-	goto st36
-	st36:
-		if p++; p == pe {
-			goto _test_eof36
-		}
-	st_case_36:
-//line smtp.gen.go:2623
-		if data[p] == 58 {
-			goto st37
-		}
-		goto st0
-	st37:
-		if p++; p == pe {
-			goto _test_eof37
-		}
-	st_case_37:
-		if data[p] == 32 {
-			goto st38
-		}
-		goto st0
-	st38:
-		if p++; p == pe {
-			goto _test_eof38
-		}
-	st_case_38:
-		if data[p] == 50 {
-			goto st39
-		}
-		goto st0
-	st39:
-		if p++; p == pe {
-			goto _test_eof39
-		}
-	st_case_39:
-		if data[p] == 53 {
-			goto st40
-		}
-		goto st0
-	st40:
-		if p++; p == pe {
-			goto _test_eof40
-		}
-	st_case_40:
-		if data[p] == 48 {
-			goto st41
-		}
-		goto st0
-	st41:
-		if p++; p == pe {
-			goto _test_eof41
-		}
-	st_case_41:
-		if data[p] == 32 {
-			goto st42
-		}
-		goto st0
-	st42:
-		if p++; p == pe {
-			goto _test_eof42
-		}
-	st_case_42:
-		if data[p] == 50 {
-			goto st43
-		}
-		goto st0
-	st43:
-		if p++; p == pe {
-			goto _test_eof43
-		}
-	st_case_43:
-		if data[p] == 46 {
-			goto st44
-		}
-		goto st0
-	st44:
-		if p++; p == pe {
-			goto _test_eof44
-		}
-	st_case_44:
-		if data[p] == 48 {
-			goto st45
-		}
-		goto st0
-	st45:
-		if p++; p == pe {
-			goto _test_eof45
-		}
-	st_case_45:
-		if data[p] == 46 {
-			goto st46
-		}
-		goto st0
-	st46:
-		if p++; p == pe {
-			goto _test_eof46
-		}
-	st_case_46:
-		if data[p] == 48 {
-			goto st47
-		}
-		goto st0
-	st47:
-		if p++; p == pe {
-			goto _test_eof47
-		}
-	st_case_47:
-		if data[p] == 32 {
-			goto st48
-		}
-		goto st0
-	st48:
-		if p++; p == pe {
-			goto _test_eof48
-		}
-	st_case_48:
-		if data[p] == 79 {
-			goto st49
-		}
-		goto st0
-	st49:
-		if p++; p == pe {
-			goto _test_eof49
-		}
-	st_case_49:
-		if data[p] == 107 {
-			goto st50
-		}
-		goto st0
-	st50:
-		if p++; p == pe {
-			goto _test_eof50
-		}
-	st_case_50:
-		if data[p] == 58 {
-			goto st51
-		}
-		goto st0
-	st51:
-		if p++; p == pe {
-			goto _test_eof51
-		}
-	st_case_51:
-		if data[p] == 32 {
-			goto st52
-		}
-		goto st0
-	st52:
-		if p++; p == pe {
-			goto _test_eof52
-		}
-	st_case_52:
-		if data[p] == 113 {
-			goto st53
-		}
-		goto st0
-	st53:
-		if p++; p == pe {
-			goto _test_eof53
-		}
-	st_case_53:
-		if data[p] == 117 {
-			goto st54
-		}
-		goto st0
-	st54:
-		if p++; p == pe {
-			goto _test_eof54
-		}
-	st_case_54:
-		if data[p] == 101 {
-			goto st55
-		}
-		goto st0
-	st55:
-		if p++; p == pe {
-			goto _test_eof55
-		}
-	st_case_55:
-		if data[p] == 117 {
-			goto st56
-		}
-		goto st0
-	st56:
-		if p++; p == pe {
-			goto _test_eof56
-		}
-	st_case_56:
-		if data[p] == 101 {
-			goto st57
-		}
-		goto st0
-	st57:
-		if p++; p == pe {
-			goto _test_eof57
-		}
-	st_case_57:
-		if data[p] == 100 {
-			goto st58
-		}
-		goto st0
-	st58:
-		if p++; p == pe {
-			goto _test_eof58
-		}
-	st_case_58:
-		if data[p] == 32 {
-			goto st59
-		}
-		goto st0
-	st59:
-		if p++; p == pe {
-			goto _test_eof59
-		}
-	st_case_59:
-		if data[p] == 97 {
-			goto st60
-		}
-		goto st0
-	st60:
-		if p++; p == pe {
-			goto _test_eof60
-		}
-	st_case_60:
-		if data[p] == 115 {
-			goto st61
-		}
-		goto st0
-	st61:
-		if p++; p == pe {
-			goto _test_eof61
-		}
-	st_case_61:
-		if data[p] == 32 {
-			goto st62
-		}
-		goto st0
-	st62:
-		if p++; p == pe {
-			goto _test_eof62
-		}
-	st_case_62:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto tr67
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto tr68
-				}
-			case data[p] >= 71:
-				goto tr68
-			}
-		default:
-			goto tr67
-		}
-		goto st0
-tr67:
-//line common.rl:29
- tokBeg = p 
-	goto st63
-	st63:
-		if p++; p == pe {
-			goto _test_eof63
-		}
-	st_case_63:
-//line smtp.gen.go:2885
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st64
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st83
-				}
-			case data[p] >= 71:
-				goto st83
-			}
-		default:
-			goto st64
-		}
-		goto st0
-	st64:
-		if p++; p == pe {
-			goto _test_eof64
-		}
-	st_case_64:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st65
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st82
-				}
-			case data[p] >= 71:
-				goto st82
-			}
-		default:
-			goto st65
-		}
-		goto st0
-	st65:
-		if p++; p == pe {
-			goto _test_eof65
-		}
-	st_case_65:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st66
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st81
-				}
-			case data[p] >= 71:
-				goto st81
-			}
-		default:
-			goto st66
-		}
-		goto st0
-	st66:
-		if p++; p == pe {
-			goto _test_eof66
-		}
-	st_case_66:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st67
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st80
-				}
-			case data[p] >= 71:
-				goto st80
-			}
-		default:
-			goto st67
-		}
-		goto st0
-	st67:
-		if p++; p == pe {
-			goto _test_eof67
-		}
-	st_case_67:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st68
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st79
-				}
-			case data[p] >= 71:
-				goto st79
-			}
-		default:
-			goto st68
-		}
-		goto st0
-	st68:
-		if p++; p == pe {
-			goto _test_eof68
-		}
-	st_case_68:
-		if data[p] == 41 {
-			goto tr79
-		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st69
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st78
-				}
-			case data[p] >= 71:
-				goto st78
-			}
-		default:
-			goto st69
-		}
-		goto st0
-tr79:
 //line smtp.rl:137
 
 		r.Queue = data[tokBeg:p]
@@ -3029,31 +2655,567 @@ tr79:
 			goto _test_eof92
 		}
 	st_case_92:
-//line smtp.gen.go:3033
+//line smtp.gen.go:2659
 		goto st0
-	st69:
+	st31:
 		if p++; p == pe {
-			goto _test_eof69
+			goto _test_eof31
 		}
-	st_case_69:
+	st_case_31:
 		if data[p] == 41 {
-			goto tr79
+			goto tr39
 		}
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st70
+				goto st32
 			}
 		case data[p] > 70:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st77
+					goto st39
 				}
 			case data[p] >= 71:
-				goto st77
+				goto st39
 			}
 		default:
+			goto st32
+		}
+		goto st0
+	st32:
+		if p++; p == pe {
+			goto _test_eof32
+		}
+	st_case_32:
+		if data[p] == 41 {
+			goto tr39
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st33
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st38
+				}
+			case data[p] >= 71:
+				goto st38
+			}
+		default:
+			goto st33
+		}
+		goto st0
+	st33:
+		if p++; p == pe {
+			goto _test_eof33
+		}
+	st_case_33:
+		if data[p] == 41 {
+			goto tr39
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st34
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st37
+				}
+			case data[p] >= 71:
+				goto st37
+			}
+		default:
+			goto st34
+		}
+		goto st0
+	st34:
+		if p++; p == pe {
+			goto _test_eof34
+		}
+	st_case_34:
+		if data[p] == 41 {
+			goto tr39
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st35
+			}
+		case data[p] > 70:
+			switch {
+			case data[p] > 90:
+				if 97 <= data[p] && data[p] <= 122 {
+					goto st36
+				}
+			case data[p] >= 71:
+				goto st36
+			}
+		default:
+			goto st35
+		}
+		goto st0
+	st35:
+		if p++; p == pe {
+			goto _test_eof35
+		}
+	st_case_35:
+		if data[p] == 41 {
+			goto tr39
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st35
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st35
+			}
+		default:
+			goto st35
+		}
+		goto st0
+	st36:
+		if p++; p == pe {
+			goto _test_eof36
+		}
+	st_case_36:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st35
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st35
+			}
+		default:
+			goto st35
+		}
+		goto st0
+	st37:
+		if p++; p == pe {
+			goto _test_eof37
+		}
+	st_case_37:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st36
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st36
+			}
+		default:
+			goto st36
+		}
+		goto st0
+	st38:
+		if p++; p == pe {
+			goto _test_eof38
+		}
+	st_case_38:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st37
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st37
+			}
+		default:
+			goto st37
+		}
+		goto st0
+	st39:
+		if p++; p == pe {
+			goto _test_eof39
+		}
+	st_case_39:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st38
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st38
+			}
+		default:
+			goto st38
+		}
+		goto st0
+	st40:
+		if p++; p == pe {
+			goto _test_eof40
+		}
+	st_case_40:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st39
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st39
+			}
+		default:
+			goto st39
+		}
+		goto st0
+	st41:
+		if p++; p == pe {
+			goto _test_eof41
+		}
+	st_case_41:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st40
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st40
+			}
+		default:
+			goto st40
+		}
+		goto st0
+	st42:
+		if p++; p == pe {
+			goto _test_eof42
+		}
+	st_case_42:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st41
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st41
+			}
+		default:
+			goto st41
+		}
+		goto st0
+	st43:
+		if p++; p == pe {
+			goto _test_eof43
+		}
+	st_case_43:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st42
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st42
+			}
+		default:
+			goto st42
+		}
+		goto st0
+	st44:
+		if p++; p == pe {
+			goto _test_eof44
+		}
+	st_case_44:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st43
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st43
+			}
+		default:
+			goto st43
+		}
+		goto st0
+	st45:
+		if p++; p == pe {
+			goto _test_eof45
+		}
+	st_case_45:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st44
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st44
+			}
+		default:
+			goto st44
+		}
+		goto st0
+tr28:
+//line common.rl:29
+ tokBeg = p 
+	goto st46
+	st46:
+		if p++; p == pe {
+			goto _test_eof46
+		}
+	st_case_46:
+//line smtp.gen.go:2975
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st45
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st45
+			}
+		default:
+			goto st45
+		}
+		goto st0
+	st47:
+		if p++; p == pe {
+			goto _test_eof47
+		}
+	st_case_47:
+		if data[p] == 114 {
+			goto st48
+		}
+		goto st0
+	st48:
+		if p++; p == pe {
+			goto _test_eof48
+		}
+	st_case_48:
+		if data[p] == 111 {
+			goto st49
+		}
+		goto st0
+	st49:
+		if p++; p == pe {
+			goto _test_eof49
+		}
+	st_case_49:
+		if data[p] == 109 {
+			goto st50
+		}
+		goto st0
+	st50:
+		if p++; p == pe {
+			goto _test_eof50
+		}
+	st_case_50:
+		if data[p] == 32 {
+			goto st51
+		}
+		goto st0
+	st51:
+		if p++; p == pe {
+			goto _test_eof51
+		}
+	st_case_51:
+		if data[p] == 77 {
+			goto st52
+		}
+		goto st0
+	st52:
+		if p++; p == pe {
+			goto _test_eof52
+		}
+	st_case_52:
+		if data[p] == 84 {
+			goto st53
+		}
+		goto st0
+	st53:
+		if p++; p == pe {
+			goto _test_eof53
+		}
+	st_case_53:
+		if data[p] == 65 {
+			goto st54
+		}
+		goto st0
+	st54:
+		if p++; p == pe {
+			goto _test_eof54
+		}
+	st_case_54:
+		if data[p] == 40 {
+			goto st55
+		}
+		goto st0
+	st55:
+		if p++; p == pe {
+			goto _test_eof55
+		}
+	st_case_55:
+		if data[p] == 115 {
+			goto st56
+		}
+		goto st0
+	st56:
+		if p++; p == pe {
+			goto _test_eof56
+		}
+	st_case_56:
+		if data[p] == 109 {
+			goto st57
+		}
+		goto st0
+	st57:
+		if p++; p == pe {
+			goto _test_eof57
+		}
+	st_case_57:
+		if data[p] == 116 {
+			goto st58
+		}
+		goto st0
+	st58:
+		if p++; p == pe {
+			goto _test_eof58
+		}
+	st_case_58:
+		if data[p] == 112 {
+			goto st59
+		}
+		goto st0
+	st59:
+		if p++; p == pe {
+			goto _test_eof59
+		}
+	st_case_59:
+		if data[p] == 58 {
+			goto st60
+		}
+		goto st0
+	st60:
+		if p++; p == pe {
+			goto _test_eof60
+		}
+	st_case_60:
+		if data[p] == 91 {
+			goto st61
+		}
+		goto st0
+	st61:
+		if p++; p == pe {
+			goto _test_eof61
+		}
+	st_case_61:
+		if data[p] == 117 {
+			goto tr65
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto tr64
+		}
+		goto st0
+tr64:
+//line common.rl:29
+ tokBeg = p 
+	goto st62
+	st62:
+		if p++; p == pe {
+			goto _test_eof62
+		}
+	st_case_62:
+//line smtp.gen.go:3136
+		if data[p] == 46 {
+			goto st63
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st62
+		}
+		goto st0
+	st63:
+		if p++; p == pe {
+			goto _test_eof63
+		}
+	st_case_63:
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st64
+		}
+		goto st0
+	st64:
+		if p++; p == pe {
+			goto _test_eof64
+		}
+	st_case_64:
+		if data[p] == 46 {
+			goto st65
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st64
+		}
+		goto st0
+	st65:
+		if p++; p == pe {
+			goto _test_eof65
+		}
+	st_case_65:
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st66
+		}
+		goto st0
+	st66:
+		if p++; p == pe {
+			goto _test_eof66
+		}
+	st_case_66:
+		if data[p] == 46 {
+			goto st67
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st66
+		}
+		goto st0
+	st67:
+		if p++; p == pe {
+			goto _test_eof67
+		}
+	st_case_67:
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st68
+		}
+		goto st0
+	st68:
+		if p++; p == pe {
+			goto _test_eof68
+		}
+	st_case_68:
+		if data[p] == 93 {
+			goto tr73
+		}
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st68
+		}
+		goto st0
+tr73:
+//line smtp.rl:129
+
+		r.IP = data[tokBeg:p]
+	
+	goto st69
+	st69:
+		if p++; p == pe {
+			goto _test_eof69
+		}
+	st_case_69:
+//line smtp.gen.go:3218
+		if data[p] == 58 {
 			goto st70
 		}
 		goto st0
@@ -3062,76 +3224,40 @@ tr79:
 			goto _test_eof70
 		}
 	st_case_70:
-		if data[p] == 41 {
-			goto tr79
-		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st71
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st76
-				}
-			case data[p] >= 71:
-				goto st76
-			}
-		default:
-			goto st71
+		if 48 <= data[p] && data[p] <= 57 {
+			goto tr75
 		}
 		goto st0
+tr75:
+//line common.rl:29
+ tokBeg = p 
+	goto st71
 	st71:
 		if p++; p == pe {
 			goto _test_eof71
 		}
 	st_case_71:
+//line smtp.gen.go:3241
 		if data[p] == 41 {
-			goto tr79
+			goto tr76
 		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st72
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st75
-				}
-			case data[p] >= 71:
-				goto st75
-			}
-		default:
-			goto st72
+		if 48 <= data[p] && data[p] <= 57 {
+			goto st71
 		}
 		goto st0
+tr76:
+//line smtp.rl:133
+
+		r.Port = data[tokBeg:p]
+	
+	goto st72
 	st72:
 		if p++; p == pe {
 			goto _test_eof72
 		}
 	st_case_72:
-		if data[p] == 41 {
-			goto tr79
-		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st73
-			}
-		case data[p] > 70:
-			switch {
-			case data[p] > 90:
-				if 97 <= data[p] && data[p] <= 122 {
-					goto st74
-				}
-			case data[p] >= 71:
-				goto st74
-			}
-		default:
+//line smtp.gen.go:3260
+		if data[p] == 58 {
 			goto st73
 		}
 		goto st0
@@ -3140,20 +3266,8 @@ tr79:
 			goto _test_eof73
 		}
 	st_case_73:
-		if data[p] == 41 {
-			goto tr79
-		}
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st73
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st73
-			}
-		default:
-			goto st73
+		if data[p] == 32 {
+			goto st74
 		}
 		goto st0
 	st74:
@@ -3161,17 +3275,8 @@ tr79:
 			goto _test_eof74
 		}
 	st_case_74:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st73
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st73
-			}
-		default:
-			goto st73
+		if data[p] == 50 {
+			goto st75
 		}
 		goto st0
 	st75:
@@ -3179,17 +3284,8 @@ tr79:
 			goto _test_eof75
 		}
 	st_case_75:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st74
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st74
-			}
-		default:
-			goto st74
+		if data[p] == 53 {
+			goto st76
 		}
 		goto st0
 	st76:
@@ -3197,17 +3293,8 @@ tr79:
 			goto _test_eof76
 		}
 	st_case_76:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st75
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st75
-			}
-		default:
-			goto st75
+		if data[p] == 48 {
+			goto st77
 		}
 		goto st0
 	st77:
@@ -3215,17 +3302,8 @@ tr79:
 			goto _test_eof77
 		}
 	st_case_77:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st76
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st76
-			}
-		default:
-			goto st76
+		if data[p] == 32 {
+			goto st78
 		}
 		goto st0
 	st78:
@@ -3233,17 +3311,8 @@ tr79:
 			goto _test_eof78
 		}
 	st_case_78:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st77
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st77
-			}
-		default:
-			goto st77
+		if data[p] == 50 {
+			goto st79
 		}
 		goto st0
 	st79:
@@ -3251,17 +3320,8 @@ tr79:
 			goto _test_eof79
 		}
 	st_case_79:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st78
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st78
-			}
-		default:
-			goto st78
+		if data[p] == 46 {
+			goto st80
 		}
 		goto st0
 	st80:
@@ -3269,17 +3329,8 @@ tr79:
 			goto _test_eof80
 		}
 	st_case_80:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st79
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st79
-			}
-		default:
-			goto st79
+		if data[p] == 48 {
+			goto st81
 		}
 		goto st0
 	st81:
@@ -3287,17 +3338,8 @@ tr79:
 			goto _test_eof81
 		}
 	st_case_81:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st80
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st80
-			}
-		default:
-			goto st80
+		if data[p] == 46 {
+			goto st82
 		}
 		goto st0
 	st82:
@@ -3305,17 +3347,8 @@ tr79:
 			goto _test_eof82
 		}
 	st_case_82:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st81
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st81
-			}
-		default:
-			goto st81
+		if data[p] == 48 {
+			goto st83
 		}
 		goto st0
 	st83:
@@ -3323,43 +3356,20 @@ tr79:
 			goto _test_eof83
 		}
 	st_case_83:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st82
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st82
-			}
-		default:
-			goto st82
+		if data[p] == 32 {
+			goto st84
 		}
 		goto st0
-tr68:
-//line common.rl:29
- tokBeg = p 
-	goto st84
 	st84:
 		if p++; p == pe {
 			goto _test_eof84
 		}
 	st_case_84:
-//line smtp.gen.go:3349
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st83
-			}
-		case data[p] > 90:
-			if 97 <= data[p] && data[p] <= 122 {
-				goto st83
-			}
-		default:
-			goto st83
+		if data[p] == 79 {
+			goto tr90
 		}
 		goto st0
-tr28:
+tr65:
 //line common.rl:29
  tokBeg = p 
 	goto st85
@@ -3368,7 +3378,7 @@ tr28:
 			goto _test_eof85
 		}
 	st_case_85:
-//line smtp.gen.go:3372
+//line smtp.gen.go:3382
 		if data[p] == 110 {
 			goto st86
 		}
@@ -3424,7 +3434,7 @@ tr28:
 		}
 	st_case_91:
 		if data[p] == 93 {
-			goto tr36
+			goto tr73
 		}
 		goto st0
 	st_out:
@@ -3457,6 +3467,7 @@ tr28:
 	_test_eof28: cs = 28; goto _test_eof
 	_test_eof29: cs = 29; goto _test_eof
 	_test_eof30: cs = 30; goto _test_eof
+	_test_eof92: cs = 92; goto _test_eof
 	_test_eof31: cs = 31; goto _test_eof
 	_test_eof32: cs = 32; goto _test_eof
 	_test_eof33: cs = 33; goto _test_eof
@@ -3495,7 +3506,6 @@ tr28:
 	_test_eof66: cs = 66; goto _test_eof
 	_test_eof67: cs = 67; goto _test_eof
 	_test_eof68: cs = 68; goto _test_eof
-	_test_eof92: cs = 92; goto _test_eof
 	_test_eof69: cs = 69; goto _test_eof
 	_test_eof70: cs = 70; goto _test_eof
 	_test_eof71: cs = 71; goto _test_eof
@@ -3524,18 +3534,18 @@ tr28:
 	if p == eof {
 		switch cs {
 		case 92:
-//line smtp.rl:143
+//line smtp.rl:145
 
 		return r, true
 	
-//line smtp.gen.go:3532
+//line smtp.gen.go:3542
 		}
 	}
 
 	_out: {}
 	}
 
-//line smtp.rl:149
+//line smtp.rl:151
 
 
 	return r, false
