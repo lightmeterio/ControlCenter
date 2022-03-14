@@ -357,7 +357,7 @@ func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, actionDataPair action
 	p := r.Payload.(parser.CleanupMessageAccepted)
 
 	queueId, err := func() (int64, error) {
-		queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+		queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return 0, errorutil.Wrap(err)
 		}
@@ -400,12 +400,11 @@ func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, actionDataPair action
 	return nil
 }
 
-func findQueueIdFromQueueValue(h parser.Header, queue string, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+func findQueueIdFromQueueValue(queue string, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
 	var queueId int64
 
 	//nolint:sqlclosecheck
-	err := trackerStmts.Get(selectQueueIdForQueue).QueryRow(
-		h.Host, queue).Scan(&queueId)
+	err := trackerStmts.Get(selectQueueIdForQueue).QueryRow(queue).Scan(&queueId)
 
 	if err != nil {
 		return 0, errorutil.Wrap(err, "No queue id for queue: ", queue)
@@ -419,7 +418,7 @@ func mailQueuedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPai
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMailQueued)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// started reading the logs when a queue is referenced, but not known (it was on a previous and unknown log)
 		// just ignore it.
@@ -534,7 +533,7 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 
 	var queueId int64
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 	if err != nil {
 		return false, errorutil.Wrap(err)
 	}
@@ -554,19 +553,17 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 			return true, nil
 		}
 
-		var parentQueueId int64
+		var (
+			parentQueueId  int64
+			parentRecordId int64
+		)
 
 		// this queue was created from a connection without authentication.
 		// That means we are now in a relay, where the message started elsewhere.
-		err = trackerStmts.Get(selectQueueFromParentingNewQueue).QueryRow(queueId).Scan(&parentQueueId)
+		err = trackerStmts.Get(selectQueueFromParentingNewQueue).QueryRow(queueId).Scan(&parentRecordId, &parentQueueId)
 
 		if err != nil && errors.Is(err, sql.ErrNoRows) {
 			// a gap was found, and it's marked to be "filled out" later
-			// Incrementing its counter prevents if of being deleted when the 'removed queue' line is called
-			if err := incrementQueueUsage(trackerStmts, queueId); err != nil {
-				return false, errorutil.Wrap(err)
-			}
-
 			return false, nil
 		}
 
@@ -587,7 +584,24 @@ func handleMailSentToExternalRelay(tx *sql.Tx, r postfix.Record, trackerStmts db
 	}
 
 	if !canDeliver {
-		// there are some gaps in the logs, so we're unable to notify a new delivery now
+		// there are some gaps in the logs, so we're unable to notify a new delivery now.
+		// But we need to create a result and "schedule" it to be executed later,
+		// once the gap is filled.
+		resultInfo, err := createResult(trackerStmts, r)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		// Mark result to be notified only when all the gaps in the logs are filled.
+		if _, err := trackerStmts.Get(insertPreNotificationByQueueIdAndResultId).Exec(queueId, resultInfo.id); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}
 
@@ -630,7 +644,7 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 		return nil
 	}
 
-	newQueueId, err := findQueueIdFromQueueValue(r.Header, e.Queue, trackerStmts)
+	newQueueId, err := findQueueIdFromQueueValue(e.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Queue has been lost forever and will be ignored: %v, on %v:%v at %v", e.Queue, r.Location.Filename, r.Location.Line, r.Time)
 		return nil
@@ -640,7 +654,7 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 		return errorutil.Wrap(err)
 	}
 
-	origQueueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	origQueueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	// TODO: this block is copy&pasted many times! It should be refactored!
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -657,11 +671,34 @@ func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair,
 	}
 
 	// this is an e-mail that postfix sometimes (if configured to do so) sends to itself before trying to deliver.
-	// As it's moved to another queue to be delivered, we queue the original and
-	// the newly created queue
+	// As it's moved to another queue to be delivered, we queue the original and the newly created queue
 	//nolint:sqlclosecheck
 	_, err = trackerStmts.Get(insertQueueParenting).Exec(origQueueId, newQueueId, queueParentingRelayType)
 	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	// by this point we might have already "filled the gap" of a replayed message that was waiting for its
+	// first "hop" to be filled out.
+	// if so, we dispatch it, cleaning the whole "chain".
+	var resultId int64
+
+	err = trackerStmts.Get(selectPreNotificationResultIdsForQueue).QueryRow(newQueueId).Scan(&resultId)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		// No result in prenotification state yet. All good, life continues...
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if _, err := trackerStmts.Get(deletePreNotificationEntryByQueueId).Exec(newQueueId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := markResultToBeNotified(trackerStmts, resultId); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -682,7 +719,7 @@ func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrRemoved)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v", p.Queue, r.Location.Filename, r.Location.Line)
@@ -761,7 +798,7 @@ func createResult(trackerStmts dbconn.TxPreparedStmts, r postfix.Record) (result
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 	if err != nil {
 		return resultInfo{}, errorutil.Wrap(err)
 	}
@@ -813,7 +850,7 @@ func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionData
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.BounceCreated)
 
-	bounceQueueId, err := findQueueIdFromQueueValue(r.Header, p.ChildQueue, trackerStmts)
+	bounceQueueId, err := findQueueIdFromQueueValue(p.ChildQueue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.ChildQueue, r.Location.Filename, r.Location.Line)
@@ -825,7 +862,7 @@ func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionData
 		return errorutil.Wrap(err)
 	}
 
-	origQueueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	origQueueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Warn().Msgf("Could not find queue %v for outbound e-mail, therefore ignoring it! On %v:%v",
 			p.Queue, r.Location.Filename, r.Location.Line)
@@ -883,7 +920,7 @@ func milterRejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataP
 
 	log.Warn().Msgf("Mail rejected by milter, queue: %s on %s:%v", p.Queue, r.Location.Filename, r.Location.Line)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	// sometimes the milter emits the same log line more than once,
 	// and in the second execution the queue is already deleted.
@@ -909,7 +946,7 @@ func rejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdReject)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Err(err).Msgf("Message probably already rejected with queue %s at %v", p.Queue, r.Location)
@@ -944,7 +981,7 @@ func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDat
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMessageExpired)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		log.Err(err).Msgf("Could not find queue %s at %v", p.Queue, r.Location)

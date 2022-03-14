@@ -50,6 +50,9 @@ const (
 	decrementPidUsageById
 	selectPidForPidAndHost
 	selectConnectionAuthCountForQueue
+	insertPreNotificationByQueueIdAndResultId
+	selectPreNotificationResultIdsForQueue
+	deletePreNotificationEntryByQueueId
 
 	lastTrackerStmtKey
 )
@@ -84,7 +87,7 @@ var trackerStmtsText = dbconn.StmtsText{
 		queues join connections on queues.connection_id = connections.id
 		join pids on connections.pid_id = pids.id
 	where
-		pids.host = ? and queues.queue = ?`,
+		queues.queue = ?`,
 	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	// TODO: perform a migration that remove filename and line fields
 	insertNotificationQueue:            `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
@@ -121,4 +124,7 @@ from
 where
 	queues.id = ?
 	and connection_data.key = ?`,
+	insertPreNotificationByQueueIdAndResultId: `insert into prenotification_results(queue_id, result_id) values(?, ?)`,
+	selectPreNotificationResultIdsForQueue:    `select result_id from prenotification_results where queue_id = ?`,
+	deletePreNotificationEntryByQueueId:       `delete from prenotification_results where queue_id = ?`,
 }
