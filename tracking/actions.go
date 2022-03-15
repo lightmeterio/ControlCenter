@@ -544,7 +544,12 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 		err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
 
 		if err != nil {
-			return false, errorutil.Wrap(err)
+			// TODO: this usually happens because the `disconnnect from` happens AFTER the `mail sent=...` action
+			// meaning that the SMTP connection lasted a bit longer and its end was logged a bit later.
+			// this is a bit difficult to fix, as it'd force us to "schedule" the generation of a delivery attempt result.
+			// FIXME: for now the workaround is just to mock the behaviour, which will result into imprecise data!
+			//return false, errorutil.Wrap(err)
+			authSuccessCount = 0
 		}
 
 		// authenticated queue, good to go!
