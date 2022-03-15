@@ -19,6 +19,17 @@ import (
 	"gitlab.com/lightmeter/controlcenter/version"
 )
 
+type dirs []string
+
+func (d *dirs) String() string {
+	return strings.Join(*d, ", ")
+}
+
+func (d *dirs) Set(s string) error {
+	*d = append(*d, s)
+	return nil
+}
+
 // nolint: maligned
 type Config struct {
 	ShouldWatchFromStdin bool
@@ -26,7 +37,7 @@ type Config struct {
 	ImportOnly           bool
 	RsyncedDir           bool
 	ShowVersion          bool
-	DirToWatch           string
+	DirsToWatch          []string
 	LogPatterns          []string
 	Address              string
 	LogLevel             zerolog.Level
@@ -90,9 +101,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.BoolVar(&conf.ShowVersion, "version", false, "Show Version Information")
 
-	fs.StringVar(&conf.DirToWatch, "watch_dir",
-		envutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
-		"Path to the directory where postfix stores its log files, to be watched")
+	dirsToWatchFromEnvironment := strings.Split(envutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv), ":")
+
+	var dirsToWatch dirs
+
+	fs.Var(&dirsToWatch, "watch_dir", "Path to the directories where postfix stores its log files, to be watched")
 
 	fs.StringVar(&conf.Address, "listen",
 		envutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
@@ -155,6 +168,8 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 		return Config{}, errorutil.Wrap(err)
 	}
 
+	conf.DirsToWatch = buildDirsToWatch(dirsToWatch, dirsToWatchFromEnvironment)
+
 	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
 	if err != nil {
 		return conf, err
@@ -178,4 +193,16 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}()
 
 	return conf, nil
+}
+
+func buildDirsToWatch(dirs dirs, dirsFromEnv []string) []string {
+	if len(dirs) > 0 && len(dirs[0]) > 0 {
+		return []string(dirs)
+	}
+
+	if len(dirsFromEnv) > 0 && len(dirsFromEnv[0]) > 0 {
+		return dirsFromEnv
+	}
+
+	return nil
 }
