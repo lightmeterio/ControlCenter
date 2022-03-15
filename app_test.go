@@ -55,7 +55,7 @@ func TestMain(t *testing.T) {
 		// Only import the logs in a workspace
 		config := config.Config{
 			WorkspaceDirectory: wsDir,
-			DirToWatch:         path.Join(logsDir, "logs_sample"),
+			DirsToWatch:        []string{path.Join(logsDir, "logs_sample")},
 			ImportOnly:         true,
 			LogFormat:          "default",
 		}

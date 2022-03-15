@@ -417,7 +417,7 @@ func mailQueuedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPai
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMailQueued)
 
-	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
+	queueId, err := findNewQueueIdOrCreateIncompleteOne(p.Queue, r, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// started reading the logs when a queue is referenced, but not known (it was on a previous and unknown log)
 		// just ignore it.
@@ -538,18 +538,30 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 	}
 
 	for {
-		var authSuccessCount int64
+		authSuccessCount, err := func(queueId int64) (int64, error) {
+			var authSuccessCount int64
 
-		//nolint:sqlclosecheck
-		err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
+			//nolint:sqlclosecheck
+			err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
+
+			if err != nil && errors.Is(err, sql.ErrNoRows) {
+				// TODO: this usually happens because the `disconnnect from` happens AFTER the `mail sent=...` action
+				// meaning that the SMTP connection lasted a bit longer and its end was logged a bit later.
+				// this is a bit difficult to fix, as it'd force us to "schedule" the generation of a delivery attempt result.
+				// FIXME: for now the workaround is just to mock the behaviour, which will result into imprecise data!
+				//return false, errorutil.Wrap(err)
+				return 0, nil
+			}
+
+			if err != nil {
+				return 0, errorutil.Wrap(err)
+			}
+
+			return authSuccessCount, nil
+		}(queueId)
 
 		if err != nil {
-			// TODO: this usually happens because the `disconnnect from` happens AFTER the `mail sent=...` action
-			// meaning that the SMTP connection lasted a bit longer and its end was logged a bit later.
-			// this is a bit difficult to fix, as it'd force us to "schedule" the generation of a delivery attempt result.
-			// FIXME: for now the workaround is just to mock the behaviour, which will result into imprecise data!
-			//return false, errorutil.Wrap(err)
-			authSuccessCount = 0
+			return false, errorutil.Wrap(err)
 		}
 
 		// authenticated queue, good to go!

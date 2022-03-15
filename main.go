@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/config"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
+	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirlogsource"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
 	"gitlab.com/lightmeter/controlcenter/logeater/filelogsource"
@@ -164,9 +165,24 @@ func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logso
 }
 
 func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Source, error) {
-	announcer, err := ws.ImportAnnouncer()
+	clock := &timeutil.RealClock{}
+
+	firstAnnouncer, err := ws.ImportAnnouncer()
 	if err != nil {
 		return nil, errorutil.Wrap(err)
+	}
+
+	announcerUsed := false
+
+	nextAnnouncer := func() announcer.ImportAnnouncer {
+		// only the first used source can notify progress.
+		// All the others use a fake one.
+		if !announcerUsed {
+			announcerUsed = true
+			return firstAnnouncer
+		}
+
+		return &announcer.EmptyImportAnnouncer{}
 	}
 
 	patterns := func(patterns []string) dirwatcher.LogPatterns {
@@ -177,44 +193,48 @@ func buildLogSource(ws *workspace.Workspace, conf config.Config) (logsource.Sour
 		return dirwatcher.BuildLogPatterns(patterns)
 	}(conf.LogPatterns)
 
-	if len(conf.DirToWatch) > 0 {
-		sum, err := ws.MostRecentLogTimeAndSum()
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
+	var sources logsource.ComposedSource
 
-		s, err := dirlogsource.New(conf.DirToWatch, sum, announcer, !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns, &timeutil.RealClock{})
-		if err != nil {
-			return nil, errorutil.Wrap(err)
-		}
-
-		return s, nil
+	sum, err := ws.MostRecentLogTimeAndSum()
+	if err != nil {
+		return nil, errorutil.Wrap(err)
 	}
 
-	builder, err := transform.Get(conf.LogFormat, &timeutil.RealClock{}, conf.LogYear)
+	for _, dir := range conf.DirsToWatch {
+		s, err := dirlogsource.New(dir, sum, nextAnnouncer(), !conf.ImportOnly, conf.RsyncedDir, conf.LogFormat, patterns, clock)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		sources = append(sources, s)
+	}
+
+	builder, err := transform.Get(conf.LogFormat, clock, conf.LogYear)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	if conf.ShouldWatchFromStdin {
-		s, err := filelogsource.New(os.Stdin, builder, announcer)
+		s, err := filelogsource.New(os.Stdin, builder, nextAnnouncer())
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return s, nil
+		sources = append(sources, s)
 	}
 
 	if len(conf.Socket) > 0 {
-		s, err := socketsource.New(conf.Socket, builder, announcer)
+		s, err := socketsource.New(conf.Socket, builder, nextAnnouncer())
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		return s, nil
+		sources = append(sources, s)
 	}
 
-	errorutil.Dief(nil, "No logs sources specified or import flag provided! Use -help to more info.")
+	if len(sources) == 0 {
+		errorutil.Dief(nil, "No logs sources specified or import flag provided! Use -help to more info.")
+	}
 
-	return nil, nil
+	return sources, nil
 }
