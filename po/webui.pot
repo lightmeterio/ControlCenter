@@ -202,6 +202,10 @@ msgstr ""
 msgid "Created with Lightmeter"
 msgstr ""
 
+#: ./frontend/controlcenter/src/components/detective.vue:75
+msgid "CSV"
+msgstr ""
+
 #: ./frontend/controlcenter/src/components/insights/summary/content.vue:8
 msgid "Date and Time"
 msgstr ""
@@ -294,6 +298,10 @@ msgstr ""
 
 #: ./frontend/controlcenter/src/components/detective.vue:54
 msgid "Expired"
+msgstr ""
+
+#: ./frontend/controlcenter/src/components/detective.vue:72
+msgid "Export search results to a CSV file"
 msgstr ""
 
 #: ./frontend/controlcenter/src/components/insights.vue:27
@@ -580,7 +588,7 @@ msgstr ""
 msgid "Message was sent to this server (relay)"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:140
+#: ./frontend/controlcenter/src/components/detective.vue:144
 msgid "message(s) found"
 msgstr ""
 
@@ -632,7 +640,7 @@ msgstr ""
 msgid "No insight matching selected filters"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:142
+#: ./frontend/controlcenter/src/components/detective.vue:146
 msgid "No message found"
 msgstr ""
 
@@ -672,7 +680,7 @@ msgstr ""
 msgid "Over To You"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:132
+#: ./frontend/controlcenter/src/components/detective.vue:136
 msgid "Page"
 msgstr ""
 
@@ -683,7 +691,7 @@ msgstr ""
 msgid "Password"
 msgstr ""
 
-#: ./frontend/controlcenter/src/components/detective.vue:95
+#: ./frontend/controlcenter/src/components/detective.vue:98
 msgid "Please check the given email addresses"
 msgstr ""
 
