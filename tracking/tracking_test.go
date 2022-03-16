@@ -583,20 +583,31 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(len(pub.results), ShouldEqual, 7)
 
 					So(pub.results[0][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[0][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-25 18:26:34 +0000`).Unix())
+
 					So(pub.results[1][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[1][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-25 18:26:36 +0000`).Unix())
+
 					So(pub.results[2][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[2][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-25 19:01:05 +0000`).Unix())
+
 					So(pub.results[3][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[3][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-30 12:46:06 +0000`).Unix())
+
 					So(pub.results[4][ResultStatusKey].Int64(), ShouldEqual, parser.DeferredStatus)
+					So(pub.results[4][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-40 16:46:07 +0000`).Unix())
 
 					So(pub.results[5][ResultStatusKey].Int64(), ShouldEqual, parser.ExpiredStatus)
 					So(pub.results[5][QueueDeliveryNameKey].Text(), ShouldEqual, "23EBE3D5C0")
 					So(pub.results[5][ParentQueueDeliveryNameKey].IsNone(), ShouldBeTrue)
+					So(pub.results[5][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-30 20:46:08 +0000`).Unix())
 
 					// the last one is a bounce message, sent back to the sender
 					So(pub.results[6][ResultStatusKey].Int64(), ShouldEqual, parser.SentStatus)
 					So(pub.results[6][QueueDeliveryNameKey].Text(), ShouldEqual, "A7E673C067")
 					So(pub.results[6][QueueMessageIDKey].Text(), ShouldEqual, "h-75055d2ab82e952d4ce9c3445@h-3857624469d1756194e464.com")
 					So(pub.results[6][ParentQueueDeliveryNameKey].Text(), ShouldEqual, "23EBE3D5C0")
+					So(pub.results[6][ResultDeliveryTimeKey].Int64(), ShouldEqual, timeutil.MustParseTime(`2020-09-30 20:46:08 +0000`).Unix())
 
 					So(countQueues(), ShouldEqual, 0)
 					So(countQueueData(), ShouldEqual, 0)
