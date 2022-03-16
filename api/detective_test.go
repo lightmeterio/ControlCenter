@@ -25,6 +25,8 @@ import (
 	"time"
 )
 
+const limit = detective.ResultsPerPage
+
 func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 	Convey("CheckMessageDeliveryHandler", t, func() {
 		ctrl := gomock.NewController(t)
@@ -55,14 +57,14 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 		emptyResult := detective.MessagesPage{}
 
 		Convey("No Sender", func() {
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "", "user2@example.org", interval, -1, "", 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "", "user2@example.org", interval, -1, "", 1, limit).Return(&emptyResult, emailutil.ErrInvalidEmail)
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_to=user2@example.org&status=-1&some_id=&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
 		})
 
 		Convey("No Recipient", func() {
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "", interval, -1, "", 1).Return(&emptyResult, emailutil.ErrInvalidEmail)
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "", interval, -1, "", 1, limit).Return(&emptyResult, emailutil.ErrInvalidEmail)
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&status=-1&some_id=&page=1", s.URL))
 			So(err, ShouldBeNil)
 			So(r.StatusCode, ShouldEqual, http.StatusUnprocessableEntity)
@@ -107,7 +109,7 @@ func TestDetectiveCheckMessageDeliveryHandler(t *testing.T) {
 				},
 			}
 
-			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, -1, "", 1).Return(&messages, nil)
+			m.EXPECT().CheckMessageDelivery(gomock.Any(), "user1@example.org", "user2@example.org", interval, -1, "", 1, limit).Return(&messages, nil)
 
 			r, err := http.Get(fmt.Sprintf("%s?from=1999-01-01&to=1999-12-31&mail_from=user1@example.org&mail_to=user2@example.org&status=-1&some_id=&page=1", s.URL))
 			So(err, ShouldBeNil)
@@ -181,7 +183,7 @@ func TestEscalation(t *testing.T) {
 		s := httptest.NewServer(httpmiddleware.New().WithEndpoint(detectiveEscalatorHandler{requester: e, detective: d}))
 
 		Convey("No message escalated", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, nil)
 
 			r, err := http.PostForm(s.URL, url.Values{
 				"from":      []string{"2000-01-01"},
@@ -196,7 +198,7 @@ func TestEscalation(t *testing.T) {
 		})
 
 		Convey("Internal error if detective check fails", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, errors.New(`Some error`))
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&detective.MessagesPage{}, errors.New(`Some error`))
 
 			r, err := http.PostForm(s.URL, url.Values{
 				"from":      []string{"2000-01-01"},
@@ -224,7 +226,7 @@ func TestEscalation(t *testing.T) {
 		})
 
 		Convey("Escalate issue", func() {
-			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+			d.EXPECT().CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&detective.MessagesPage{
 					PageNumber:   1,
 					FirstPage:    1,

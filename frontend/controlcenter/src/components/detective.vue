@@ -121,6 +121,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           <i class="fas fa-download"></i>
           <translate>Logs</translate>
         </b-button>
+        <b-button
+          v-show="showLogsDownloadButton"
+          v-on:click="exportCSV()"
+          variant="secondary"
+          size="sm"
+          style="margin-left: 1rem;"
+          v-b-tooltip.hover
+          :title="titleExportCSV"
+        >
+          <i class="fas fa-download"></i>
+          <translate>CSV</translate>
+        </b-button>
       </p>
     </b-container>
 
@@ -218,6 +230,9 @@ export default {
       return this.$gettext(
         "Download mail server logs for selected time interval"
       );
+    },
+    titleExportCSV: function() {
+      return this.$gettext("Export search results to a CSV file");
     }
   },
   methods: {
@@ -261,7 +276,8 @@ export default {
         interval.endDate,
         vue.statusSelected,
         vue.some_id,
-        vue.page
+        vue.page,
+        false
       ).then(function(response) {
         vue.results = response.data;
 
@@ -308,6 +324,22 @@ export default {
     downloadRawLogsInInterval() {
       let interval = this.buildDateInterval();
       let link = linkToRawLogsInInterval(interval.startDate, interval.endDate);
+      window.open(link);
+    },
+    exportCSV() {
+      let vue = this;
+      let interval = this.buildDateInterval();
+
+      let link = checkMessageDelivery(
+        vue.mail_from,
+        vue.mail_to,
+        interval.startDate,
+        interval.endDate,
+        vue.statusSelected,
+        vue.some_id,
+        vue.page,
+        true
+      );
       window.open(link);
     }
   },

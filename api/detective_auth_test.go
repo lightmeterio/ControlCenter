@@ -93,6 +93,8 @@ func TestDetectiveAuth(t *testing.T) {
 		detectiveURLSomeIDEmpty := "/api/v0/checkMessageDeliveryStatus?from=2020-01-01&to=2020-12-31&status=-1&some_id=&page=1"
 		detectiveURLSomeIDWhitespaceOnly := "/api/v0/checkMessageDeliveryStatus?from=2020-01-01&to=2020-12-31&status=-1&some_id=%20&page=1"
 
+		detectiveURLExportCSV := detectiveURL + "&csv=true"
+
 		c := buildCookieClient()
 
 		s, d, settingsWriter, clear := buildTestEnv(t)
@@ -100,7 +102,7 @@ func TestDetectiveAuth(t *testing.T) {
 
 		expect := func(d *mock_detective.MockDetective) {
 			d.EXPECT().
-				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				CheckMessageDelivery(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&detective.MessagesPage{}, nil)
 		}
 
@@ -208,6 +210,41 @@ func TestDetectiveAuth(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
 				})
+			})
+		})
+
+		Convey("CSV export only available to authenticated users", func() {
+			r, err := c.Get(s.URL + detectiveURL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
+
+			settings := detectivesettings.Settings{}
+			settings.EndUsersEnabled = true
+			detectivesettings.SetSettings(context.Background(), settingsWriter, settings)
+
+			// end-user can now access regular search…
+			expect(d)
+			r, err = c.Get(s.URL + detectiveURL)
+			So(err, ShouldBeNil)
+			So(r.StatusCode, ShouldEqual, http.StatusOK)
+
+			// … but not CSV export
+			Convey("CSV export still UNavailable when end-users search is enabled", func() {
+				r, err := c.Get(s.URL + detectiveURLExportCSV)
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusUnauthorized)
+			})
+
+			Convey("Once logged in, CSV export is available", func() {
+				r, err = c.PostForm(s.URL+"/login", url.Values{"email": {"alice@example.com"}, "password": {"super-secret"}})
+				So(err, ShouldBeNil)
+				So(r.StatusCode, ShouldEqual, http.StatusOK)
+				{
+					expect(d)
+					r, err := c.Get(s.URL + detectiveURLExportCSV)
+					So(err, ShouldBeNil)
+					So(r.StatusCode, ShouldEqual, http.StatusOK)
+				}
 			})
 		})
 	})

@@ -19,13 +19,15 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"strconv"
+	"strings"
 	"time"
 )
 
-const resultsPerPage = 100
+const ResultsPerPage = 100
 
 type Detective interface {
-	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, someID string, page int) (*MessagesPage, error)
+	CheckMessageDelivery(ctx context.Context, from, to string, interval timeutil.TimeInterval, status int, someID string, page int, limit int) (*MessagesPage, error)
 	OldestAvailableTime(context.Context) (time.Time, error)
 }
 
@@ -160,7 +162,7 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 
 var ErrNoAvailableLogs = errors.New(`No available logs`)
 
-func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (*MessagesPage, error) {
+func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int, limit int) (*MessagesPage, error) {
 	conn, release, err := d.deliveriesConnPool.AcquireContext(ctx)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
@@ -169,7 +171,7 @@ func (d *sqlDetective) CheckMessageDelivery(ctx context.Context, mailFrom string
 	defer release()
 
 	//nolint:sqlclosecheck
-	return checkMessageDelivery(ctx, d.rawLogsAccessor, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, someID, page)
+	return checkMessageDelivery(ctx, d.rawLogsAccessor, conn.GetStmt(checkMessageDeliveryKey), mailFrom, mailTo, interval, status, someID, page, limit)
 }
 
 func (d *sqlDetective) OldestAvailableTime(ctx context.Context) (time.Time, error) {
@@ -282,7 +284,7 @@ func parseLogRefs(ctx context.Context, rawLogsAccessor rawlogsdb.Accessor, conte
 
 // NOTE: we are checking rows.Err(), but the linter won't see that
 //nolint:gocognit
-func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accessor, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int) (messagesPage *MessagesPage, err error) {
+func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accessor, stmt *sql.Stmt, mailFrom string, mailTo string, interval timeutil.TimeInterval, status int, someID string, page int, limit int) (messagesPage *MessagesPage, err error) {
 	splitEmail := func(email string) (local, domain string, err error) {
 		if len(email) == 0 {
 			return "", "", nil
@@ -325,8 +327,8 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 		sql.Named("recipient_domain_like", fmt.Sprintf("%%%s", recipientDomain)),
 		sql.Named("someID", someID),
 		sql.Named("ref_type", tracking.ResultDeliveryLineChecksum),
-		sql.Named("limit", resultsPerPage),
-		sql.Named("offset", (page-1)*resultsPerPage),
+		sql.Named("limit", limit),
+		sql.Named("offset", (page-1)*limit),
 	)
 
 	if err != nil {
@@ -438,8 +440,60 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 	return &MessagesPage{
 		PageNumber:   page,
 		FirstPage:    1,
-		LastPage:     total/resultsPerPage + 1,
+		LastPage:     total/limit + 1,
 		TotalResults: total - grouped,
 		Messages:     messages,
 	}, nil
+}
+
+var CSVHeader = []string{
+	"Queue",
+	"MessageID",
+	"NumberOfAttempts",
+	"TimeMin",
+	"TimeMax",
+	"Status",
+	"DSN",
+	"Expired",
+	"MailFrom",
+	"MailTo",
+	"Relays",
+	"RawLogMsgs",
+}
+
+func (p *MessagesPage) ExportCSV() [][]string {
+	records := [][]string{}
+
+	for _, m := range p.Messages {
+		lineheader := []string{m.Queue, m.MessageID}
+
+		for _, d := range m.Entries {
+			record := d.ExportCSV()
+			records = append(records, append(lineheader, record...))
+		}
+	}
+
+	return records
+}
+
+const csvTimeFormat = time.RFC3339
+
+func (d *MessageDelivery) ExportCSV() []string {
+	exp := ""
+	if d.Expired != nil {
+		exp = d.Expired.Format(csvTimeFormat)
+	}
+
+	return []string{
+		strconv.Itoa(d.NumberOfAttempts),
+		d.TimeMin.Format(csvTimeFormat),
+		d.TimeMax.Format(csvTimeFormat),
+		parser.SmtpStatus(d.Status).String(),
+		d.Dsn,
+		exp,
+		d.MailFrom,
+		strings.Join(d.MailTo, "\n"),
+		strings.Join(d.Relays, "\n"),
+		strings.Join(d.RawLogMsgs, "\n"),
+	}
 }
