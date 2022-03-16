@@ -30,6 +30,8 @@ func init() {
 	lmsqlite3.Initialize(lmsqlite3.Options{})
 }
 
+const limit = detective.ResultsPerPage
+
 func buildDetective(t *testing.T, filename string, year int) (detective.Detective, func()) {
 	f, err := os.Open(filename)
 	So(err, ShouldBeNil)
@@ -112,30 +114,30 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 1)
+				messagesLowerCase, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesMixedCase, err := d.CheckMessageDelivery(bg, "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, -1, "", 1)
+				messagesMixedCase, err := d.CheckMessageDelivery(bg, "Sender@eXamplE.com", "ReciPient@Example.COM", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
 				// working partial searches
-				messagesPartialSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, "", 1)
+				messagesPartialSearch1, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch2, err := d.CheckMessageDelivery(bg, "@example.com", "example.com", correctInterval, -1, "", 1)
+				messagesPartialSearch2, err := d.CheckMessageDelivery(bg, "@example.com", "example.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch3, err := d.CheckMessageDelivery(bg, "", "@example.com", correctInterval, -1, "", 1)
+				messagesPartialSearch3, err := d.CheckMessageDelivery(bg, "", "@example.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch4, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1)
+				messagesPartialSearch4, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
 				// partial searches with no results
-				messagesPartialSearch5, err := d.CheckMessageDelivery(bg, "@test.org", "", correctInterval, -1, "", 1)
+				messagesPartialSearch5, err := d.CheckMessageDelivery(bg, "@test.org", "", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesPartialSearch6, err := d.CheckMessageDelivery(bg, "", "@domain.org", correctInterval, -1, "", 1)
+				messagesPartialSearch6, err := d.CheckMessageDelivery(bg, "", "@domain.org", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
 				queueID := "400643011B47"
@@ -145,19 +147,19 @@ func TestDetective(t *testing.T) {
 				wrongMessageID := "1234-abcd@example.com"
 
 				// someID searches
-				messagesMailFromToAndQueueID, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, queueID, 1)
+				messagesMailFromToAndQueueID, err := d.CheckMessageDelivery(bg, "example.com", "recipient@example.com", correctInterval, -1, queueID, 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
+				messagesQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesWrongQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongQueueID, 1)
+				messagesWrongQueueID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongQueueID, 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, messageID, 1)
+				messagesMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, messageID, 1, limit)
 				So(err, ShouldBeNil)
 
-				messagesWrongMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongMessageID, 1)
+				messagesWrongMessageID, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, wrongMessageID, 1, limit)
 				So(err, ShouldBeNil)
 
 				expectedTime := time.Date(year, time.January, 10, 16, 15, 30, 0, time.UTC)
@@ -207,7 +209,7 @@ func TestDetective(t *testing.T) {
 			})
 
 			Convey("Page number too big", func() {
-				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 2)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", correctInterval, -1, "", 2, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, &detective.MessagesPage{2, 1, 1, 0, noDeliveries})
 			})
@@ -218,7 +220,7 @@ func TestDetective(t *testing.T) {
 					time.Date(year+1, time.December, 31, 0, 0, 0, 0, time.Local),
 				}
 
-				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", wrongInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "sender@example.com", "recipient@example.com", wrongInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, noDeliveriesPage1)
 			})
@@ -267,19 +269,19 @@ func TestDetective(t *testing.T) {
 			}
 
 			Convey("Multi-recipient someID search should yield correct number of delivery attempts, and recipients", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, queueID, 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
 
 			Convey("Searching for relay name should find delivery as well", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "outlook.com", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "outlook.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
 
 			Convey("Searching for wrong relay should yield empty result", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "wrong.relay", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "wrong.relay", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, noDeliveriesPage1)
 			})
@@ -336,13 +338,13 @@ func TestDetective(t *testing.T) {
 			}
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-498b874f2bf0cf639807ad80e1@h-5e67b9b4406.com", "h-664d01@h-695da2287.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
 
 			Convey("Search for expired messages. Gitlab issue #616", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ExpiredStatus), "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ExpiredStatus), "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages, ShouldResemble, expectedResult)
 			})
@@ -357,7 +359,7 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("Message found", func() {
-				messages, err := d.CheckMessageDelivery(bg, "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "h-195704c@h-b7bed8eb24c5049d9.com", "h-493fac8f3@h-ea3f4afa.com", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 
 				So(messages, ShouldResemble, &detective.MessagesPage{
@@ -374,7 +376,7 @@ func TestDetective(t *testing.T) {
 									1,
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 2, 7, 0, time.UTC),
-									detective.Status(parser.SentStatus),
+									detective.Status(parser.ReceivedStatus),
 									"2.0.0",
 									[]string{"local"},
 									nil,
@@ -392,7 +394,7 @@ func TestDetective(t *testing.T) {
 									1,
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
 									time.Date(year, time.June, 20, 5, 4, 7, 0, time.UTC),
-									detective.Status(parser.SentStatus),
+									detective.Status(parser.ReceivedStatus),
 									"2.0.0",
 									[]string{"local"},
 									nil,
@@ -412,13 +414,13 @@ func TestDetective(t *testing.T) {
 			defer clear()
 
 			Convey("No status: return sent and received messages", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages.TotalResults, ShouldEqual, 2)
 			})
 
 			Convey("Sent: return only sent messages", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.SentStatus), "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.SentStatus), "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages.TotalResults, ShouldEqual, 1)
 				So(messages.Messages[0].Queue, ShouldEqual, "4FA51DFCAD")
@@ -426,12 +428,40 @@ func TestDetective(t *testing.T) {
 			})
 
 			Convey("Received: return only received messages", func() {
-				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ReceivedStatus), "", 1)
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.ReceivedStatus), "", 1, limit)
 				So(err, ShouldBeNil)
 				So(messages.TotalResults, ShouldEqual, 1)
 				So(messages.Messages[0].Queue, ShouldEqual, "DF1C3EB916")
 				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.ReceivedStatus)
 			})
 		})
+	})
+
+	Convey("CSV conversion", t, func() {
+		expectedTime := time.Date(2020, time.January, 10, 16, 15, 30, 0, time.UTC)
+		result := &detective.MessagesPage{1, 1, 1, 1,
+			detective.Messages{
+				detective.Message{
+					Queue:     "1234",
+					MessageID: "xf56",
+					Entries: []detective.MessageDelivery{
+						{
+							1,
+							expectedTime.In(time.UTC),
+							expectedTime.In(time.UTC),
+							detective.Status(parser.ReceivedStatus),
+							"2.0.0",
+							[]string{"host.com"},
+							nil,
+							"sender@example.com",
+							[]string{"recipient@example.com"},
+							[]string{`fake log line here`},
+						},
+					},
+				},
+			},
+		}
+
+		So(result.ExportCSV(), ShouldResemble, [][]string{{"1234", "xf56", "1", "2020-01-10T16:15:30Z", "2020-01-10T16:15:30Z", "received", "2.0.0", "", "sender@example.com", "recipient@example.com", "host.com", "fake log line here"}})
 	})
 }

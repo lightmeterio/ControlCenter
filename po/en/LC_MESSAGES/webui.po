@@ -220,6 +220,10 @@ msgstr "Continue"
 msgid "Created with Lightmeter"
 msgstr "Created with Lightmeter"
 
+#: frontend/controlcenter/src/components/detective.vue:75
+msgid "CSV"
+msgstr "CSV"
+
 #: frontend/controlcenter/src/components/insights/summary/content.vue:8
 msgid "Date and Time"
 msgstr "Date and Time"
@@ -313,6 +317,10 @@ msgstr "Events since %{start} were analysed, producing %{count} Insights"
 #: frontend/controlcenter/src/components/detective.vue:54
 msgid "Expired"
 msgstr "Expired"
+
+#: frontend/controlcenter/src/components/detective.vue:72
+msgid "Export search results to a CSV file"
+msgstr "Export search results to a CSV file"
 
 #: frontend/controlcenter/src/components/insights.vue:27
 msgid "Failed deliveries reported"
@@ -604,7 +612,7 @@ msgstr "Message tracing for everyone"
 msgid "Message was sent to this server (relay)"
 msgstr "Message was sent to this server (relay)"
 
-#: frontend/controlcenter/src/components/detective.vue:140
+#: frontend/controlcenter/src/components/detective.vue:144
 msgid "message(s) found"
 msgstr "message(s) found"
 
@@ -656,7 +664,7 @@ msgstr "No emails were sent or received between %{intFrom} and %{intTo}"
 msgid "No insight matching selected filters"
 msgstr "No insight matching selected filters"
 
-#: frontend/controlcenter/src/components/detective.vue:142
+#: frontend/controlcenter/src/components/detective.vue:146
 msgid "No message found"
 msgstr "No message found"
 
@@ -696,7 +704,7 @@ msgstr "Original response from %{recipient} (%{host})"
 msgid "Over To You"
 msgstr "Over To You"
 
-#: frontend/controlcenter/src/components/detective.vue:132
+#: frontend/controlcenter/src/components/detective.vue:136
 msgid "Page"
 msgstr "Page"
 
@@ -707,7 +715,7 @@ msgstr "Page"
 msgid "Password"
 msgstr "Password"
 
-#: frontend/controlcenter/src/components/detective.vue:95
+#: frontend/controlcenter/src/components/detective.vue:98
 msgid "Please check the given email addresses"
 msgstr "Please check the given email addresses"
 

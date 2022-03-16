@@ -602,7 +602,7 @@ func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 
 func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc postfix.RecordLocation, h parser.Header, p parser.SmtpSentStatus, resultId int64, sum postfix.Sum) error {
 	direction := func() MessageDirection {
-		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") {
+		if strings.HasSuffix(h.Daemon, "lmtp") || strings.HasSuffix(h.Daemon, "pipe") || strings.HasSuffix(h.Daemon, "virtual") || strings.HasSuffix(h.Daemon, "local") {
 			return MessageDirectionIncoming
 		}
 

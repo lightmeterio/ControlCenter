@@ -213,7 +213,8 @@ var SampleInsightContent = Content{
 	},
 	Messages: detective.Messages{
 		detective.Message{
-			Queue: "AAAAAAAAA",
+			Queue:     "AAAAAAAAA",
+			MessageID: "222222@example.com",
 			Entries: []detective.MessageDelivery{
 				{
 					NumberOfAttempts: 30,
@@ -221,6 +222,10 @@ var SampleInsightContent = Content{
 					TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 					Status:           detective.Status(parser.DeferredStatus),
 					Dsn:              "3.0.0",
+					Relays:           []string{"smtp.google.com", "smtp.outlook.com"},
+					MailFrom:         "sender@example.com",
+					MailTo:           []string{"recip1@example.com", "recip2@example.com"},
+					RawLogMsgs:       []string{"line1", "line2"},
 				},
 				{
 					NumberOfAttempts: 1,
@@ -228,11 +233,16 @@ var SampleInsightContent = Content{
 					TimeMax:          timeutil.MustParseTime(`2000-01-01 10:00:00 +0000`),
 					Status:           detective.Status(parser.ExpiredStatus),
 					Dsn:              "4.0.0",
+					Relays:           []string{"smtp.google.com", "smtp.outlook.com"},
+					MailFrom:         "sender@example.com",
+					MailTo:           []string{"recip1@example.com", "recip2@example.com"},
+					RawLogMsgs:       []string{"line3", "line4"},
 				},
 			},
 		},
 		detective.Message{
-			Queue: "CCCCCCCCC",
+			Queue:     "CCCCCCCCC",
+			MessageID: "111111@example.com",
 			Entries: []detective.MessageDelivery{
 				{
 					NumberOfAttempts: 1,
@@ -240,6 +250,10 @@ var SampleInsightContent = Content{
 					TimeMax:          timeutil.MustParseTime(`2000-01-03 10:00:00 +0000`),
 					Status:           detective.Status(parser.BouncedStatus),
 					Dsn:              "3.0.0",
+					Relays:           []string{"smtp.yahoo.com", "smtp.icloud.com"},
+					MailFrom:         "sender@example.com",
+					MailTo:           []string{"recip1@example.com", "recip2@example.com"},
+					RawLogMsgs:       []string{"line5", "line6"},
 				},
 			},
 		},
