@@ -208,7 +208,8 @@ export default {
       let from_to = vue.endpoint == "receivedMailsByMailbox" ? "to" : "from";
 
       let link =
-        "/#/detective?" +
+        window.location.pathname +
+        "#/detective?" +
         (seriesName
           ? "mail_" + from_to + "=" + encodeURIComponent(seriesName)
           : "") +
