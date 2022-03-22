@@ -13,33 +13,56 @@ import (
 func TestFilters(t *testing.T) {
 	// FIXME: meh! those tests are very ugly and covering very few cases!!!
 	Convey("Test Filters", t, func() {
-		filters, err := BuildFilters(FiltersDescription{
-			Rule1: FilterDescription{AcceptSender: "accept_sender@example1.com"},
-			Rule2: FilterDescription{RejectRecipient: "reject_recipient1@example2.com"},
-			Rule3: FilterDescription{RejectRecipient: "reject_recipient2@example3.com"},
+		Convey("By Sender and Recipient", func() {
+			filters, err := BuildFilters(FiltersDescription{
+				Rule1: FilterDescription{AcceptSender: "accept_sender@example1.com"},
+				Rule2: FilterDescription{RejectRecipient: "reject_recipient1@example2.com"},
+				Rule3: FilterDescription{RejectRecipient: "reject_recipient2@example3.com"},
+			})
+
+			So(err, ShouldBeNil)
+
+			So(filters.Reject(tracking.MappedResult{
+				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
+				tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
+				tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("reject_recipient1"),
+				tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example2.com"),
+				tracking.QueueMessageIDKey:            tracking.ResultEntryText("h6765hhjhg.example.com"),
+			}.Result()), ShouldBeTrue)
+
+			So(filters.Reject(tracking.MappedResult{
+				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
+				tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
+				tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("reject_recipient2"),
+				tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example3.com"),
+				tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			}.Result()), ShouldBeTrue)
+
+			So(filters.Reject(tracking.MappedResult{
+				tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
+				tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
+				tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("another_recipient2"),
+				tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example3.com"),
+				tracking.ResultMessageDirectionKey:    tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			}.Result()), ShouldBeFalse)
 		})
 
-		So(err, ShouldBeNil)
+		Convey("By message ID", func() {
+			filters, err := BuildFilters(FiltersDescription{
+				Rule4: FilterDescription{AcceptOutboundMessageID: `\.(example\.com|otherwise\.de)$`},
+			})
 
-		So(filters.Reject(tracking.MappedResult{
-			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
-			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
-			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("reject_recipient1"),
-			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example2.com"),
-		}.Result()), ShouldBeTrue)
+			So(err, ShouldBeNil)
 
-		So(filters.Reject(tracking.MappedResult{
-			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
-			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
-			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("reject_recipient2"),
-			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example3.com"),
-		}.Result()), ShouldBeTrue)
+			So(filters.Reject(tracking.MappedResult{
+				tracking.QueueMessageIDKey:         tracking.ResultEntryText("h6765hhjhg.example.com"),
+				tracking.ResultMessageDirectionKey: tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+			}.Result()), ShouldBeFalse)
 
-		So(filters.Reject(tracking.MappedResult{
-			tracking.QueueSenderLocalPartKey:      tracking.ResultEntryText("accept_sender"),
-			tracking.QueueSenderDomainPartKey:     tracking.ResultEntryText("example1.com"),
-			tracking.ResultRecipientLocalPartKey:  tracking.ResultEntryText("another_recipient2"),
-			tracking.ResultRecipientDomainPartKey: tracking.ResultEntryText("example3.com"),
-		}.Result()), ShouldBeFalse)
+			So(filters.Reject(tracking.MappedResult{
+				tracking.ResultMessageDirectionKey: tracking.ResultEntryInt64(int64(tracking.MessageDirectionOutbound)),
+				tracking.QueueMessageIDKey:         tracking.ResultEntryText("lalala@somethingelse.net"),
+			}.Result()), ShouldBeTrue)
+		})
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"regexp"
 )
 
 type Filters []Filter
@@ -21,6 +22,8 @@ func (filters Filters) Reject(r tracking.Result) bool {
 			return true
 		case FilterResultAccept:
 			return false
+		case FilterResultUndecided:
+			fallthrough
 		default:
 			continue
 		}
@@ -32,8 +35,9 @@ func (filters Filters) Reject(r tracking.Result) bool {
 var SettingsKey = `delivery_filters`
 
 type FilterDescription struct {
-	AcceptSender    string
-	RejectRecipient string
+	AcceptSender            string
+	RejectRecipient         string
+	AcceptOutboundMessageID string
 }
 
 // FIXME: meh! we read this description from the default settings, which use Mergo.
@@ -77,6 +81,15 @@ func BuildFilters(desc FiltersDescription) (Filters, error) {
 
 			filters = append(filters, &RejectFromRecipient{LocalPart: localPart, DomainPart: domainPart})
 		}
+
+		if len(d.AcceptOutboundMessageID) > 0 {
+			pattern, err := regexp.Compile(d.AcceptOutboundMessageID)
+			if err != nil {
+				return nil, errorutil.Wrap(err)
+			}
+
+			filters = append(filters, &AcceptOnlyOutboundMessageID{Pattern: pattern})
+		}
 	}
 
 	return filters, nil
@@ -94,12 +107,30 @@ type Filter interface {
 	Filter(r tracking.Result) FilterResult
 }
 
+func isAnyNone(r tracking.Result, keys ...int) bool {
+	for _, k := range keys {
+		if r[k].IsNone() {
+			return true
+		}
+	}
+
+	return false
+}
+
 type AcceptOnlyFromSender struct {
 	LocalPart  string
 	DomainPart string
 }
 
 func (f *AcceptOnlyFromSender) Filter(r tracking.Result) FilterResult {
+	if isAnyNone(r, tracking.QueueSenderLocalPartKey, tracking.QueueSenderDomainPartKey, tracking.ResultMessageDirectionKey) {
+		return FilterResultReject
+	}
+
+	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionOutbound {
+		return FilterResultUndecided
+	}
+
 	if r[tracking.QueueSenderLocalPartKey].Text() == f.LocalPart && r[tracking.QueueSenderDomainPartKey].Text() == f.DomainPart {
 		return FilterResultUndecided
 	}
@@ -113,9 +144,41 @@ type RejectFromRecipient struct {
 }
 
 func (f *RejectFromRecipient) Filter(r tracking.Result) FilterResult {
+	if isAnyNone(r, tracking.ResultRecipientLocalPartKey, tracking.ResultRecipientDomainPartKey, tracking.ResultMessageDirectionKey) {
+		return FilterResultUndecided
+	}
+
+	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionOutbound {
+		return FilterResultUndecided
+	}
+
 	if r[tracking.ResultRecipientLocalPartKey].Text() == f.LocalPart && r[tracking.ResultRecipientDomainPartKey].Text() == f.DomainPart {
 		return FilterResultReject
 	}
 
 	return FilterResultUndecided
+}
+
+type AcceptOnlyOutboundMessageID struct {
+	Pattern *regexp.Regexp
+}
+
+func (f *AcceptOnlyOutboundMessageID) Filter(r tracking.Result) FilterResult {
+	if isAnyNone(r, tracking.ResultMessageDirectionKey) {
+		return FilterResultUndecided
+	}
+
+	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionOutbound {
+		return FilterResultUndecided
+	}
+
+	if isAnyNone(r, tracking.QueueMessageIDKey) {
+		return FilterResultReject
+	}
+
+	if f.Pattern.MatchString(r[tracking.QueueMessageIDKey].Text()) {
+		return FilterResultUndecided
+	}
+
+	return FilterResultReject
 }
