@@ -153,7 +153,36 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		allDatabases.Closers.Add(db)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
+	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	filters, err := func() (deliverydb.Filters, error) {
+		var filtersDesc deliverydb.FiltersDescription
+
+		err := m.Reader.RetrieveJson(context.Background(), deliverydb.SettingsKey, &filtersDesc)
+		if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
+			return deliverydb.NoFilters, nil
+		}
+
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		filters, err := deliverydb.BuildFilters(filtersDesc)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		return filters, nil
+	}()
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping, filters)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -171,12 +200,6 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	auth, err := auth.NewAuth(allDatabases.Auth, options.AuthOptions)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

@@ -43,7 +43,7 @@ func TestReporters(t *testing.T) {
 
 		// fill delivery database with some values
 		{
-			delivery, err := deliverydb.New(db, &domainmapping.Mapper{})
+			delivery, err := deliverydb.New(db, &domainmapping.Mapper{}, deliverydb.NoFilters)
 			So(err, ShouldBeNil)
 
 			done, cancel := runner.Run(delivery)

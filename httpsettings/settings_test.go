@@ -92,7 +92,7 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 	connLogs, closeConnLogs := testutil.TempDBConnectionMigrated(t, "logs")
 
 	// NOTE: finish migration of logs
-	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping)
+	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping, deliverydb.NoFilters)
 	So(err, ShouldBeNil)
 
 	m, err := metadata.NewHandler(conn)
