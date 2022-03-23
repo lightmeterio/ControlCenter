@@ -15,8 +15,8 @@ func TestFilters(t *testing.T) {
 	Convey("Test Filters", t, func() {
 		Convey("Accept only outbound sender and inbound recipient", func() {
 			filters, err := BuildFilters(FiltersDescription{
-				Rule1: FilterDescription{AcceptOutboundSender: "accept_sender@example1.com"},
-				Rule2: FilterDescription{AcceptInboundRecipient: "accept_recipient1@example2.com"},
+				Rule1: FilterDescription{AcceptOutboundSender: "(accept_sender|another_accepted_sender)@example1.com"},
+				Rule2: FilterDescription{AcceptInboundRecipient: "accept_recipient[1234]@example2.com"},
 			})
 
 			So(err, ShouldBeNil)

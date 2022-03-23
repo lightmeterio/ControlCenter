@@ -76,21 +76,21 @@ func BuildFilters(desc FiltersDescription) (Filters, error) {
 		desc.Rule12,
 	} {
 		if len(d.AcceptOutboundSender) > 0 {
-			localPart, domainPart, err := emailutil.Split(d.AcceptOutboundSender)
+			pattern, err := regexp.Compile(d.AcceptOutboundSender)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}
 
-			filters = append(filters, &AcceptOnlyFromOutboundSender{LocalPart: localPart, DomainPart: domainPart})
+			filters = append(filters, &AcceptOnlyFromOutboundSender{pattern: pattern})
 		}
 
 		if len(d.AcceptInboundRecipient) > 0 {
-			localPart, domainPart, err := emailutil.Split(d.AcceptInboundRecipient)
+			pattern, err := regexp.Compile(d.AcceptInboundRecipient)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}
 
-			filters = append(filters, &AcceptOnlyFromInboundRecipient{LocalPart: localPart, DomainPart: domainPart})
+			filters = append(filters, &AcceptOnlyFromInboundRecipient{pattern: pattern})
 		}
 
 		if len(d.RejectInboundRecipient) > 0 {
@@ -138,8 +138,7 @@ func isAnyNone(r tracking.Result, keys ...int) bool {
 }
 
 type AcceptOnlyFromOutboundSender struct {
-	LocalPart  string
-	DomainPart string
+	pattern *regexp.Regexp
 }
 
 func (f *AcceptOnlyFromOutboundSender) Filter(r tracking.Result) FilterResult {
@@ -151,7 +150,8 @@ func (f *AcceptOnlyFromOutboundSender) Filter(r tracking.Result) FilterResult {
 		return FilterResultUndecided
 	}
 
-	if r[tracking.QueueSenderLocalPartKey].Text() == f.LocalPart && r[tracking.QueueSenderDomainPartKey].Text() == f.DomainPart {
+	// TODO: somehow optimize it not to allocate a new string every time
+	if f.pattern.MatchString(r[tracking.QueueSenderLocalPartKey].Text() + "@" + r[tracking.QueueSenderDomainPartKey].Text()) {
 		return FilterResultUndecided
 	}
 
@@ -159,8 +159,7 @@ func (f *AcceptOnlyFromOutboundSender) Filter(r tracking.Result) FilterResult {
 }
 
 type AcceptOnlyFromInboundRecipient struct {
-	LocalPart  string
-	DomainPart string
+	pattern *regexp.Regexp
 }
 
 func (f *AcceptOnlyFromInboundRecipient) Filter(r tracking.Result) FilterResult {
@@ -172,7 +171,8 @@ func (f *AcceptOnlyFromInboundRecipient) Filter(r tracking.Result) FilterResult 
 		return FilterResultUndecided
 	}
 
-	if r[tracking.ResultRecipientLocalPartKey].Text() == f.LocalPart && r[tracking.ResultRecipientDomainPartKey].Text() == f.DomainPart {
+	// TODO: somehow optimize it not to allocate a new string every time
+	if f.pattern.MatchString(r[tracking.ResultRecipientLocalPartKey].Text() + "@" + r[tracking.ResultRecipientDomainPartKey].Text()) {
 		return FilterResultUndecided
 	}
 
