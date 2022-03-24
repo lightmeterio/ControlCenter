@@ -25,7 +25,7 @@ type DB struct {
 	closers.Closers
 
 	connPair *dbconn.PooledPair
-	filters  Filters
+	filters  tracking.Filters
 }
 
 type stmtKey = int
@@ -169,7 +169,7 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters Filters) (*DB, error) {
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tracking.Filters) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -197,7 +197,7 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters Fil
 
 type resultsPublisher struct {
 	dbActions chan<- dbAction
-	filters   Filters
+	filters   tracking.Filters
 }
 
 func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.Stmt, args ...interface{}) (int64, error) {

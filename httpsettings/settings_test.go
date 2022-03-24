@@ -31,6 +31,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/message/catalog"
@@ -92,7 +93,7 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 	connLogs, closeConnLogs := testutil.TempDBConnectionMigrated(t, "logs")
 
 	// NOTE: finish migration of logs
-	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping, deliverydb.NoFilters)
+	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping, tracking.NoFilters)
 	So(err, ShouldBeNil)
 
 	m, err := metadata.NewHandler(conn)

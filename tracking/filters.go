@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package deliverydb
+package tracking
 
 import (
-	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"regexp"
@@ -15,7 +14,7 @@ type Filters []Filter
 
 var NoFilters = Filters{}
 
-func (filters Filters) Reject(r tracking.Result) bool {
+func (filters Filters) Reject(r Result) bool {
 	for _, f := range filters {
 		switch f.Filter(r) {
 		case FilterResultReject:
@@ -32,7 +31,7 @@ func (filters Filters) Reject(r tracking.Result) bool {
 	return false
 }
 
-var SettingsKey = `delivery_filters`
+var SettingsKey = `tracking_filters`
 
 type FilterDescription struct {
 	AcceptOutboundSender    string
@@ -124,10 +123,10 @@ const (
 )
 
 type Filter interface {
-	Filter(r tracking.Result) FilterResult
+	Filter(r Result) FilterResult
 }
 
-func isAnyNone(r tracking.Result, keys ...int) bool {
+func isAnyNone(r Result, keys ...int) bool {
 	for _, k := range keys {
 		if r[k].IsNone() {
 			return true
@@ -141,17 +140,17 @@ type AcceptOnlyFromOutboundSender struct {
 	pattern *regexp.Regexp
 }
 
-func (f *AcceptOnlyFromOutboundSender) Filter(r tracking.Result) FilterResult {
-	if isAnyNone(r, tracking.QueueSenderLocalPartKey, tracking.QueueSenderDomainPartKey, tracking.ResultMessageDirectionKey) {
+func (f *AcceptOnlyFromOutboundSender) Filter(r Result) FilterResult {
+	if isAnyNone(r, QueueSenderLocalPartKey, QueueSenderDomainPartKey, ResultMessageDirectionKey) {
 		return FilterResultReject
 	}
 
-	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionOutbound {
+	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionOutbound {
 		return FilterResultUndecided
 	}
 
 	// TODO: somehow optimize it not to allocate a new string every time
-	if f.pattern.MatchString(r[tracking.QueueSenderLocalPartKey].Text() + "@" + r[tracking.QueueSenderDomainPartKey].Text()) {
+	if f.pattern.MatchString(r[QueueSenderLocalPartKey].Text() + "@" + r[QueueSenderDomainPartKey].Text()) {
 		return FilterResultUndecided
 	}
 
@@ -162,17 +161,17 @@ type AcceptOnlyFromInboundRecipient struct {
 	pattern *regexp.Regexp
 }
 
-func (f *AcceptOnlyFromInboundRecipient) Filter(r tracking.Result) FilterResult {
-	if isAnyNone(r, tracking.ResultRecipientLocalPartKey, tracking.ResultRecipientDomainPartKey, tracking.ResultMessageDirectionKey) {
+func (f *AcceptOnlyFromInboundRecipient) Filter(r Result) FilterResult {
+	if isAnyNone(r, ResultRecipientLocalPartKey, ResultRecipientDomainPartKey, ResultMessageDirectionKey) {
 		return FilterResultReject
 	}
 
-	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionIncoming {
+	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionIncoming {
 		return FilterResultUndecided
 	}
 
 	// TODO: somehow optimize it not to allocate a new string every time
-	if f.pattern.MatchString(r[tracking.ResultRecipientLocalPartKey].Text() + "@" + r[tracking.ResultRecipientDomainPartKey].Text()) {
+	if f.pattern.MatchString(r[ResultRecipientLocalPartKey].Text() + "@" + r[ResultRecipientDomainPartKey].Text()) {
 		return FilterResultUndecided
 	}
 
@@ -184,16 +183,16 @@ type RejectFromInboundRecipient struct {
 	DomainPart string
 }
 
-func (f *RejectFromInboundRecipient) Filter(r tracking.Result) FilterResult {
-	if isAnyNone(r, tracking.ResultRecipientLocalPartKey, tracking.ResultRecipientDomainPartKey, tracking.ResultMessageDirectionKey) {
+func (f *RejectFromInboundRecipient) Filter(r Result) FilterResult {
+	if isAnyNone(r, ResultRecipientLocalPartKey, ResultRecipientDomainPartKey, ResultMessageDirectionKey) {
 		return FilterResultReject
 	}
 
-	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionIncoming {
+	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionIncoming {
 		return FilterResultUndecided
 	}
 
-	if r[tracking.ResultRecipientLocalPartKey].Text() == f.LocalPart && r[tracking.ResultRecipientDomainPartKey].Text() == f.DomainPart {
+	if r[ResultRecipientLocalPartKey].Text() == f.LocalPart && r[ResultRecipientDomainPartKey].Text() == f.DomainPart {
 		return FilterResultReject
 	}
 
@@ -204,20 +203,20 @@ type AcceptOnlyOutboundMessageID struct {
 	Pattern *regexp.Regexp
 }
 
-func (f *AcceptOnlyOutboundMessageID) Filter(r tracking.Result) FilterResult {
-	if isAnyNone(r, tracking.ResultMessageDirectionKey) {
+func (f *AcceptOnlyOutboundMessageID) Filter(r Result) FilterResult {
+	if isAnyNone(r, ResultMessageDirectionKey) {
 		return FilterResultUndecided
 	}
 
-	if tracking.MessageDirection(r[tracking.ResultMessageDirectionKey].Int64()) != tracking.MessageDirectionOutbound {
+	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionOutbound {
 		return FilterResultUndecided
 	}
 
-	if isAnyNone(r, tracking.QueueMessageIDKey) {
+	if isAnyNone(r, QueueMessageIDKey) {
 		return FilterResultReject
 	}
 
-	if f.Pattern.MatchString(r[tracking.QueueMessageIDKey].Text()) {
+	if f.Pattern.MatchString(r[QueueMessageIDKey].Text()) {
 		return FilterResultUndecided
 	}
 

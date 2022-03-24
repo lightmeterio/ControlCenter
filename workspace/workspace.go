@@ -158,19 +158,19 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	filters, err := func() (deliverydb.Filters, error) {
-		var filtersDesc deliverydb.FiltersDescription
+	filters, err := func() (tracking.Filters, error) {
+		var filtersDesc tracking.FiltersDescription
 
-		err := m.Reader.RetrieveJson(context.Background(), deliverydb.SettingsKey, &filtersDesc)
+		err := m.Reader.RetrieveJson(context.Background(), tracking.SettingsKey, &filtersDesc)
 		if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
-			return deliverydb.NoFilters, nil
+			return tracking.NoFilters, nil
 		}
 
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
-		filters, err := deliverydb.BuildFilters(filtersDesc)
+		filters, err := tracking.BuildFilters(filtersDesc)
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
