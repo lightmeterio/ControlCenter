@@ -772,5 +772,17 @@ func TestDovecotLogParsing(t *testing.T) {
 			So(p.ReasonExplanation, ShouldEqual, "Blocked for real")
 		})
 
+		Convey("Parse In-Reply-To header created by our milter", func() {
+			_, parsed, err := Parse(`Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="In-Reply-To", value="<da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>"`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(LightmeterDumpedHeader)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, `B9996EABB6`)
+			So(p.Key, ShouldEqual, "In-Reply-To")
+			So(p.Value, ShouldEqual, "<da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>")
+		})
 	})
 }
