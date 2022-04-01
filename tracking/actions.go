@@ -41,22 +41,24 @@ const (
 	MilterRejectActionType
 	RejectActionType
 	MessageExpiredActionType
+	LightmeterHeaderDumpActionType
 )
 
 var actions = map[ActionType]actionRecord{
-	ConnectActionType:           {impl: connectAction},
-	CloneActionType:             {impl: cloneAction},
-	CleanupProcessingActionType: {impl: cleanupProcessingAction},
-	MailQueuedActionType:        {impl: mailQueuedAction},
-	DisconnectActionType:        {impl: disconnectAction},
-	MailSentActionType:          {impl: mailSentAction},
-	CommitActionType:            {impl: commitAction},
-	MailBouncedActionType:       {impl: mailBouncedAction},
-	BounceCreatedActionType:     {impl: bounceCreatedAction},
-	PickupActionType:            {impl: pickupAction},
-	MilterRejectActionType:      {impl: milterRejectAction},
-	RejectActionType:            {impl: rejectAction},
-	MessageExpiredActionType:    {impl: messageExpiredAction},
+	ConnectActionType:              {impl: connectAction},
+	CloneActionType:                {impl: cloneAction},
+	CleanupProcessingActionType:    {impl: cleanupProcessingAction},
+	MailQueuedActionType:           {impl: mailQueuedAction},
+	DisconnectActionType:           {impl: disconnectAction},
+	MailSentActionType:             {impl: mailSentAction},
+	CommitActionType:               {impl: commitAction},
+	MailBouncedActionType:          {impl: mailBouncedAction},
+	BounceCreatedActionType:        {impl: bounceCreatedAction},
+	PickupActionType:               {impl: pickupAction},
+	MilterRejectActionType:         {impl: milterRejectAction},
+	RejectActionType:               {impl: rejectAction},
+	MessageExpiredActionType:       {impl: messageExpiredAction},
+	LightmeterHeaderDumpActionType: {impl: lightmeterHeaderDumpAction},
 }
 
 var emptyActionDataPair = actionDataPair{connectionActionData: nil, resultActionData: nil}
@@ -101,6 +103,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		return RejectActionType, emptyActionDataPair
 	case parser.QmgrMessageExpired:
 		return MessageExpiredActionType, emptyActionDataPair
+	case parser.LightmeterDumpedHeader:
+		return LightmeterHeaderDumpActionType, emptyActionDataPair
 	}
 
 	return UnsupportedActionType, emptyActionDataPair
@@ -866,6 +870,28 @@ func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDat
 	}
 
 	if err := markResultToBeNotified(trackerStmts, resultId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+	//nolint:forcetypeassert
+	p := r.Payload.(parser.LightmeterDumpedHeader)
+
+	if p.Key != `In-Reply-To` {
+		return nil
+	}
+
+	value := strings.TrimRight(strings.TrimLeft(p.Value, "<"), ">")
+
+	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueInReplyToHeaderKey, value: value}); err != nil {
 		return errorutil.Wrap(err)
 	}
 

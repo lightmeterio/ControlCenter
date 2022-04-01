@@ -65,6 +65,7 @@ const (
 	ParentQueueDeliveryNameKey
 
 	ResultDeliveryLineChecksum
+	QueueInReplyToHeaderKey
 
 	lasResulttKey
 )
@@ -122,5 +123,8 @@ var (
 		MessageIdIsCorruptedKey:    "messageid_is_corrupted",
 		MessageExpiredTime:         "message_expiration_time",
 		ParentQueueDeliveryNameKey: "parent_delivery_queue",
+
+		ResultDeliveryLineChecksum: "result_delivery_line_checksum",
+		QueueInReplyToHeaderKey:    "queue_in_reply_to_header",
 	}
 )

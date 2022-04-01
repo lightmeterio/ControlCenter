@@ -643,6 +643,16 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(pub.results[0][QueueMessageIDKey].Text(), ShouldEqual, "AFFBE802-D6B1-483C-ABE2-783F531DE68B@example.com")
 					So(pub.results[0][ResultMessageDirectionKey].Int64(), ShouldEqual, MessageDirectionIncoming)
 				})
+
+				Convey("Message with in-reply-to header", func() {
+					readFromTestFile("../test_files/postfix_logs/individual_files/30_in_reply_to_header.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 1)
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "B9996EABB6")
+					So(pub.results[0][QueueInReplyToHeaderKey].Text(), ShouldEqual, "da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com")
+				})
 			})
 
 			// we expected all results to have been consumed
