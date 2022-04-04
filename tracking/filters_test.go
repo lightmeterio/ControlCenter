@@ -101,7 +101,7 @@ func TestFilters(t *testing.T) {
 
 		Convey("By message ID", func() {
 			filters, err := BuildFilters(FiltersDescription{
-				Rule4: FilterDescription{AcceptOutboundMessageID: `\.(example\.com|otherwise\.de)$`},
+				Rule1: FilterDescription{AcceptOutboundMessageID: `\.(example\.com|otherwise\.de)$`},
 			})
 
 			So(err, ShouldBeNil)
@@ -119,6 +119,27 @@ func TestFilters(t *testing.T) {
 			// message-id missing
 			So(filters.Reject(MappedResult{
 				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionOutbound)),
+			}.Result()), ShouldBeTrue)
+		})
+
+		Convey("By In-Reply-To value, if it's a reply", func() {
+			filters, err := BuildFilters(FiltersDescription{
+				Rule1: FilterDescription{AcceptInReplyTo: `\.(example\.com|otherwise\.de)$`},
+			})
+
+			So(err, ShouldBeNil)
+
+			// no reply, do not reject
+			So(filters.Reject(MappedResult{}.Result()), ShouldBeFalse)
+
+			// matches the filter
+			So(filters.Reject(MappedResult{
+				QueueInReplyToHeaderKey: ResultEntryText(`reply@something.example.com`),
+			}.Result()), ShouldBeFalse)
+
+			// do not match the filter
+			So(filters.Reject(MappedResult{
+				QueueInReplyToHeaderKey: ResultEntryText(`reply@wrong.de`),
 			}.Result()), ShouldBeTrue)
 		})
 	})

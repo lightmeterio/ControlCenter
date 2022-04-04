@@ -38,6 +38,7 @@ type FilterDescription struct {
 	AcceptInboundRecipient  string
 	RejectInboundRecipient  string
 	AcceptOutboundMessageID string
+	AcceptInReplyTo         string
 }
 
 // FIXME: meh! we read this description from the default settings, which use Mergo.
@@ -108,6 +109,15 @@ func BuildFilters(desc FiltersDescription) (Filters, error) {
 			}
 
 			filters = append(filters, &AcceptOnlyOutboundMessageID{Pattern: pattern})
+		}
+
+		if len(d.AcceptInReplyTo) > 0 {
+			pattern, err := regexp.Compile(d.AcceptInReplyTo)
+			if err != nil {
+				return nil, errorutil.Wrap(err)
+			}
+
+			filters = append(filters, &AcceptInReplyTo{Pattern: pattern})
 		}
 	}
 
@@ -219,6 +229,23 @@ func (f *AcceptOnlyOutboundMessageID) Filter(r Result) FilterResult {
 	}
 
 	if f.Pattern.MatchString(r[QueueMessageIDKey].Text()) {
+		return FilterResultUndecided
+	}
+
+	return FilterResultReject
+}
+
+type AcceptInReplyTo struct {
+	Pattern *regexp.Regexp
+}
+
+func (f *AcceptInReplyTo) Filter(r Result) FilterResult {
+	// Do nothing if it's not a reply message
+	if isAnyNone(r, QueueInReplyToHeaderKey) {
+		return FilterResultUndecided
+	}
+
+	if f.Pattern.MatchString(r[QueueInReplyToHeaderKey].Text()) {
 		return FilterResultUndecided
 	}
 
