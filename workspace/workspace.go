@@ -118,6 +118,26 @@ var DefaultOptions = &Options{
 	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
 }
 
+func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
+	var filtersDesc tracking.FiltersDescription
+
+	err := reader.RetrieveJson(context.Background(), tracking.SettingsKey, &filtersDesc)
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
+		return tracking.NoFilters, nil
+	}
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	filters, err := tracking.BuildFilters(filtersDesc)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return filters, nil
+}
+
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
 	if options == nil {
 		options = DefaultOptions
@@ -153,7 +173,17 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		allDatabases.Closers.Add(db)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
+	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	filters, err := buildFilters(m.Reader)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping, filters)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -171,12 +201,6 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	}
 
 	auth, err := auth.NewAuth(allDatabases.Auth, options.AuthOptions)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

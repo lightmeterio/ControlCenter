@@ -64,7 +64,7 @@ func TestReporter(t *testing.T) {
 		logsDb, clear := testutil.TempDBConnectionMigrated(t, "logs")
 		defer clear()
 
-		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{})
+		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{}, tracking.NoFilters)
 		So(err, ShouldBeNil)
 
 		done, cancel := runner.Run(delivery)
