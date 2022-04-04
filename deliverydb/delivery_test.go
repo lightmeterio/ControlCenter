@@ -41,7 +41,7 @@ func TestDatabaseCreation(t *testing.T) {
 		defer closeConn()
 
 		Convey("Insert some values", func() {
-			db, err := New(conn, &fakeMapping)
+			db, err := New(conn, &fakeMapping, tracking.NoFilters)
 			So(err, ShouldBeNil)
 
 			done, cancel := runner.Run(db)
@@ -183,7 +183,7 @@ func TestEntriesInsertion(t *testing.T) {
 		defer closeConn()
 
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
-			db, err := New(conn, &fakeMapping)
+			db, err := New(conn, &fakeMapping, tracking.NoFilters)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
@@ -405,7 +405,7 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		// TODO: do not duplicate this function!
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
-			db, err := New(conn, &fakeMapping)
+			db, err := New(conn, &fakeMapping, tracking.NoFilters)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
@@ -730,7 +730,7 @@ func TestReopenDatabase(t *testing.T) {
 			conn, err := dbconn.Open(path.Join(dir, "logs.db"), 5)
 			So(err, ShouldBeNil)
 			So(migrator.Run(conn.RwConn.DB, databaseName), ShouldBeNil)
-			db, err := New(conn, &fakeMapping)
+			db, err := New(conn, &fakeMapping, tracking.NoFilters)
 			So(err, ShouldBeNil)
 			pub := db.ResultsPublisher()
 			dashboard, err := dashboard.New(conn.RoConnPool)

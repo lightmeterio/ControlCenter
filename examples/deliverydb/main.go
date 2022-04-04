@@ -72,7 +72,7 @@ func main() {
 	err = migrator.Run(conn.RwConn.DB, "logs")
 	errorutil.MustSucceed(err)
 
-	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping, tracking.NoFilters)
 	errorutil.MustSucceed(err)
 
 	pub := db.ResultsPublisher()
