@@ -5,7 +5,6 @@
 package tracking
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"regexp"
 )
@@ -93,12 +92,12 @@ func BuildFilters(desc FiltersDescription) (Filters, error) {
 		}
 
 		if len(d.RejectInboundRecipient) > 0 {
-			localPart, domainPart, err := emailutil.Split(d.RejectInboundRecipient)
+			pattern, err := regexp.Compile(d.RejectInboundRecipient)
 			if err != nil {
 				return nil, errorutil.Wrap(err)
 			}
 
-			filters = append(filters, &RejectFromInboundRecipient{LocalPart: localPart, DomainPart: domainPart})
+			filters = append(filters, &RejectFromInboundRecipient{pattern: pattern})
 		}
 
 		if len(d.AcceptOutboundMessageID) > 0 {
@@ -136,6 +135,11 @@ func isAnyNone(r Result, keys ...int) bool {
 	return false
 }
 
+func patternMatches(p *regexp.Regexp, r Result, localPart, domainPart int) bool {
+	// TODO: somehow optimize it not to allocate a new string every time
+	return p.MatchString(r[localPart].Text() + "@" + r[domainPart].Text())
+}
+
 type AcceptOnlyFromOutboundSender struct {
 	pattern *regexp.Regexp
 }
@@ -149,8 +153,7 @@ func (f *AcceptOnlyFromOutboundSender) Filter(r Result) FilterResult {
 		return FilterResultUndecided
 	}
 
-	// TODO: somehow optimize it not to allocate a new string every time
-	if f.pattern.MatchString(r[QueueSenderLocalPartKey].Text() + "@" + r[QueueSenderDomainPartKey].Text()) {
+	if patternMatches(f.pattern, r, QueueSenderLocalPartKey, QueueSenderDomainPartKey) {
 		return FilterResultUndecided
 	}
 
@@ -170,8 +173,7 @@ func (f *AcceptOnlyFromInboundRecipient) Filter(r Result) FilterResult {
 		return FilterResultUndecided
 	}
 
-	// TODO: somehow optimize it not to allocate a new string every time
-	if f.pattern.MatchString(r[ResultRecipientLocalPartKey].Text() + "@" + r[ResultRecipientDomainPartKey].Text()) {
+	if patternMatches(f.pattern, r, ResultRecipientLocalPartKey, ResultRecipientDomainPartKey) {
 		return FilterResultUndecided
 	}
 
@@ -179,8 +181,7 @@ func (f *AcceptOnlyFromInboundRecipient) Filter(r Result) FilterResult {
 }
 
 type RejectFromInboundRecipient struct {
-	LocalPart  string
-	DomainPart string
+	pattern *regexp.Regexp
 }
 
 func (f *RejectFromInboundRecipient) Filter(r Result) FilterResult {
@@ -192,7 +193,7 @@ func (f *RejectFromInboundRecipient) Filter(r Result) FilterResult {
 		return FilterResultUndecided
 	}
 
-	if r[ResultRecipientLocalPartKey].Text() == f.LocalPart && r[ResultRecipientDomainPartKey].Text() == f.DomainPart {
+	if patternMatches(f.pattern, r, ResultRecipientLocalPartKey, ResultRecipientDomainPartKey) {
 		return FilterResultReject
 	}
 
