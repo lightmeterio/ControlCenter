@@ -13,6 +13,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
+	"io"
 	"math"
 	"strings"
 	"time"
@@ -271,7 +272,7 @@ func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.
 	granularity := granularityInHour * int(time.Hour/time.Second)
 
 	//nolint:sqlclosecheck
-	return queryMailTrafficPerSender(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
+	return queryMailTrafficPerMailbox(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
 		granularity,
 
 		sql.Named("Outbound", tracking.MessageDirectionOutbound),
@@ -304,7 +305,71 @@ func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeu
 	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus /* <= not a bug*/, tracking.MessageDirectionIncoming)
 }
 
-func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+type queryable interface {
+	QueryContext(ctx context.Context, args ...interface{}) (queryableRows, error)
+}
+
+type queryableRows interface {
+	io.Closer
+	ForEach(func(queryableScanner) error) error
+}
+
+type queryableScanner interface {
+	Scan(...interface{}) error
+}
+
+type realQueryableScanner struct {
+	rows *sql.Rows
+}
+
+func (s *realQueryableScanner) Scan(args ...interface{}) error {
+	return s.rows.Scan(args...)
+}
+
+type realQueryableRows struct {
+	*sql.Rows
+}
+
+func (r *realQueryableRows) ForEach(f func(s queryableScanner) error) error {
+	scanner := realQueryableScanner{rows: r.Rows}
+
+	for r.Rows.Next() {
+		if err := f(&scanner); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err := r.Rows.Err(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+type realStmtWrap struct {
+	stmt *sql.Stmt
+}
+
+func (s *realStmtWrap) QueryContext(ctx context.Context, args ...interface{}) (queryableRows, error) {
+	rows, err := s.stmt.QueryContext(ctx, args...)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &realQueryableRows{
+		Rows: rows,
+	}, nil
+}
+
+func wrapStmt(stmt *sql.Stmt) queryable {
+	return &realStmtWrap{stmt: stmt}
+}
+
+func queryMailTrafficPerMailbox(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+	return queryMailTrafficPerMailboxWithQueryable(ctx, wrapStmt(stmt), granularity, args...)
+}
+
+func queryMailTrafficPerMailboxWithQueryable(ctx context.Context, stmt queryable, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
 	//nolint:sqlclosecheck
 	rows, err := stmt.QueryContext(ctx, append([]interface{}{sql.Named("granularity", granularity)}, args...)...)
 
@@ -324,7 +389,7 @@ func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity 
 		overallMaxTime int64 = math.MinInt64
 	)
 
-	for rows.Next() {
+	if err := rows.ForEach(func(scanner queryableScanner) error {
 		var (
 			mailbox          string
 			counters         []counter
@@ -332,21 +397,21 @@ func queryMailTrafficPerSender(ctx context.Context, stmt *sql.Stmt, granularity 
 			minTime, maxTime int64
 		)
 
-		if err := rows.Scan(&mailbox, &minTime, &maxTime, &rawCounters); err != nil {
-			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+		if err := scanner.Scan(&mailbox, &minTime, &maxTime, &rawCounters); err != nil {
+			return errorutil.Wrap(err)
 		}
 
 		if err := json.Unmarshal([]byte(rawCounters), &counters); err != nil {
-			return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+			return errorutil.Wrap(err)
 		}
 
 		basicResult[mailbox] = counters
 
 		overallMinTime = min(minTime, overallMinTime)
 		overallMaxTime = max(maxTime, overallMaxTime)
-	}
 
-	if err := rows.Err(); err != nil {
+		return nil
+	}); err != nil {
 		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 	}
 
