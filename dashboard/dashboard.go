@@ -318,23 +318,13 @@ type queryableScanner interface {
 	Scan(...interface{}) error
 }
 
-type realQueryableScanner struct {
-	rows *sql.Rows
-}
-
-func (s *realQueryableScanner) Scan(args ...interface{}) error {
-	return s.rows.Scan(args...)
-}
-
 type realQueryableRows struct {
 	*sql.Rows
 }
 
 func (r *realQueryableRows) ForEach(f func(s queryableScanner) error) error {
-	scanner := realQueryableScanner{rows: r.Rows}
-
 	for r.Rows.Next() {
-		if err := f(&scanner); err != nil {
+		if err := f(r); err != nil {
 			return errorutil.Wrap(err)
 		}
 	}
