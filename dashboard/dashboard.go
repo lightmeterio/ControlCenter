@@ -341,6 +341,7 @@ type realStmtWrap struct {
 }
 
 func (s *realStmtWrap) QueryContext(ctx context.Context, args ...interface{}) (QueryableRows, error) {
+	//nolint:sqlclosecheck
 	rows, err := s.stmt.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
