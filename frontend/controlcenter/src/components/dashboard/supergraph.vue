@@ -34,7 +34,7 @@ export default {
   watch: {
     graphDateRange: {
       handler(graphDateRange) {
-        this.redrawChart(graphDateRange.startDate, graphDateRange.endDate);
+        this.redrawChart(graphDateRange.startDate, graphDateRange.endDate, true);
       },
       deep: true
     }
@@ -150,7 +150,7 @@ export default {
 
     let vue = this;
     window.addEventListener("resize", function() {
-      vue.$refs.echart.resize();
+      vue.resizeAndRefresh();
     });
 
     window.addEventListener("keydown", this.keyListener);
@@ -161,6 +161,10 @@ export default {
     );
   },
   methods: {
+    resizeAndRefresh() {
+      this.$refs.echart.resize();
+      //this.$refs.echart.refresh();
+    },
     chartClass() {
       let bootstrapClass = {
         2: "col-md-6 col-12",
@@ -171,7 +175,7 @@ export default {
     zoomIn() {
       this.zoomed = true;
       this.$refs.chart.style.top = "" + window.scrollY + "px";
-      setTimeout(this.$refs.echart.resize, 50);
+      setTimeout(this.resizeAndRefresh, 50);
     },
     keyListener(event) {
       if (event.key === "Escape") {
@@ -181,7 +185,7 @@ export default {
     zoomOut() {
       this.zoomed = false;
       this.$refs.chart.style.top = 0;
-      setTimeout(this.$refs.echart.resize, 50);
+      setTimeout(this.resizeAndRefresh, 50);
     },
     formatTime(value, keepDate = false) {
       let val = new Date(value);
@@ -226,7 +230,7 @@ export default {
         "'> <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a>"
       );
     },
-    redrawChart(from, to) {
+    redrawChart(from, to, notMerge = undefined) {
       let vue = this;
 
       vue.granularity = (function() {
@@ -289,7 +293,8 @@ export default {
           }
         };
 
-        vue.$refs.echart.setOption(newOptions);
+        // FIXME: Ugly hack due a bug on echarts: https://github.com/apache/echarts/issues/6202
+        vue.$refs.echart.setOption(newOptions, notMerge);
       });
     }
   }
