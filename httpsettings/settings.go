@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imdario/mergo"
+	"gitlab.com/lightmeter/controlcenter/featureflags"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/insights"
@@ -136,6 +137,7 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		Walkthrough       walkthrough.Settings      `json:"walkthrough"`
 		Detective         detective.Settings        `json:"detective"`
 		Insights          insightsSettings.Settings `json:"insights"`
+		FeatureFlags      featureflags.Settings     `json:"feature_flags"`
 	}{}
 
 	ctx := r.Context()
@@ -175,6 +177,11 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
+	featureFlagsSettings, err := featureflags.GetSettings(ctx, h.reader)
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
+	}
+
 	if slackSettings != nil {
 		slackSettings.BearerToken = nil
 		allCurrentSettings.SlackNotification = *slackSettings
@@ -204,6 +211,10 @@ func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error
 
 	if insightsSettings != nil {
 		allCurrentSettings.Insights = *insightsSettings
+	}
+
+	if featureFlagsSettings != nil {
+		allCurrentSettings.FeatureFlags = *featureFlagsSettings
 	}
 
 	return httputil.WriteJson(w, &allCurrentSettings, http.StatusOK)

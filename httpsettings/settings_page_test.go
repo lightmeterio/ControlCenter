@@ -105,6 +105,9 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"enable_v2_dashboard": false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -189,6 +192,9 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"enable_v2_dashboard": false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -248,6 +254,9 @@ func TestSettingsPage(t *testing.T) {
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
+				},
+				"feature_flags": map[string]interface{}{
+					"enable_v2_dashboard": false,
 				},
 			}
 
@@ -355,6 +364,9 @@ func TestSettingsPage(t *testing.T) {
 					},
 					"walkthrough": map[string]interface{}{
 						"completed": false,
+					},
+					"feature_flags": map[string]interface{}{
+						"enable_v2_dashboard": false,
 					},
 				}
 
