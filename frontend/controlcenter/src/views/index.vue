@@ -62,9 +62,28 @@ SPDX-License-Identifier: AGPL-3.0-only
       >
       </b-toaster>
 
-      <div
-        class="row container time-interval card-section-heading sticky-date-select"
-      >
+      <maindashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV2Enabled"
+      ></maindashboard>
+
+      <graphdashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV1Enabled"
+      ></graphdashboard>
+
+      <import-progress-indicator
+        :label="generatingInsights"
+        @finished="handleProgressFinished"
+      ></import-progress-indicator>
+
+      <div class="row container d-flex align-items-center card-section-heading">
+        <div class="col-lg-2 col-md-2 col-3 p-2" v-if="insightsEnabled">
+          <h2 class="insights-title">
+            <translate>Insights</translate>
+          </h2>
+        </div>
+
         <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
             <translate>Time interval</translate>:
@@ -83,7 +102,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             >
             </DateRangePicker>
           </div>
-          <div class="p-1">
+          <div class="p-1" v-if="rawLogsIsEnabled">
             <b-button
               variant="primary"
               size="sm"
@@ -95,31 +114,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               ><translate>Logs</translate></b-button
             >
           </div>
-        </div>
-      </div>
-
-      <maindashboard
-        :graphDateRange="dashboardInterval"
-        v-if="dashboardV2Enabled"
-      ></maindashboard>
-
-      <graphdashboard
-        :graphDateRange="dashboardInterval"
-        v-if="dashboardV1Enabled"
-      ></graphdashboard>
-
-      <import-progress-indicator
-        :label="generatingInsights"
-        @finished="handleProgressFinished"
-      ></import-progress-indicator>
-
-      <div
-        class="row container d-flex align-items-center time-interval card-section-heading"
-      >
-        <div class="col-lg-2 col-md-2 col-3 p-2" v-if="insightsEnabled">
-          <h2 class="insights-title">
-            <translate>Insights</translate>
-          </h2>
         </div>
 
         <div class="col-lg-4 col-md-4 col-9 ml-auto p-2" v-if="insightsEnabled">
@@ -273,7 +267,8 @@ export default {
       statusMessageId: null,
       dashboardV2IsEnabled: false,
       dashboardV1IsEnabled: true,
-      insightsViewEnabled: true
+      insightsViewEnabled: true,
+      rawLogsEnabled: true
     };
   },
   created() {},
@@ -292,6 +287,9 @@ export default {
     },
     insightsEnabled() {
       return this.insightsViewEnabled;
+    },
+    rawLogsIsEnabled() {
+      return this.rawLogsEnabled;
     },
     greetingText() {
       // todo use better translate function for weekdays
@@ -464,6 +462,7 @@ export default {
         response.data.feature_flags.enable_v2_dashboard;
       vue.insightsViewEnabled = !response.data.feature_flags
         .disable_insights_view;
+      vue.rawLogsEnabled = !response.data.feature_flags.disable_raw_logs;
     });
   },
   destroyed() {

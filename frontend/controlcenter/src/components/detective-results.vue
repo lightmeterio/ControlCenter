@@ -43,6 +43,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
 
           <b-button
+            v-if="rawLogsEnabled"
             v-on:click="downloadRawLogsInInterval(result)"
             variant="primary"
             size="sm"
@@ -104,6 +105,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </span>
               </summary>
               <ul
+                v-if="rawLogsEnabled"
                 v-show="
                   delivery.log_msgs != null && delivery.log_msgs.length > 0
                 "
@@ -150,6 +152,10 @@ function formatTimeWithOffsetInSeconds(t, offsetInSeconds) {
 export default {
   mixins: [tracking],
   props: {
+    rawLogsEnabled: {
+      type: Boolean,
+      default: true
+    },
     results: {
       type: Array,
       default: null

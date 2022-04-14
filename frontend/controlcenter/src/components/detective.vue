@@ -111,6 +111,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p :class="searchResultClass">
         {{ searchResultText }}
         <b-button
+          v-if="rawLogsEnabled"
           v-show="showLogsDownloadButton"
           v-on:click="downloadRawLogsInInterval()"
           variant="primary"
@@ -138,6 +139,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-container>
 
     <detective-results
+      :rawLogsEnabled="rawLogsEnabled"
       :results="results.messages"
       :showQueues="!forEndUsers"
       :showFromTo="!forEndUsers"
@@ -169,7 +171,8 @@ import {
   checkMessageDelivery,
   escalateMessage,
   oldestAvailableTimeForMessageDetective,
-  linkToRawLogsInInterval
+  linkToRawLogsInInterval,
+  getSettings
 } from "@/lib/api.js";
 
 import tracking from "@/mixin/global_shared.js";
@@ -190,6 +193,10 @@ export default {
   components: { DateRangePicker },
   mixins: [tracking, auth, datepicker],
   props: {
+    rawLogsEnabled: {
+      type: Boolean,
+      default: true
+    },
     forEndUsers: {
       type: Boolean,
       default: false
@@ -395,6 +402,12 @@ export default {
         }
       });
     }
+
+    // FIXME: this code is in the wrong place and only increasing the technical debt.
+    // this component should not depend on any external value other than its props!!!
+    getSettings().then(function(response) {
+      vue.rawLogsEnabled = !response.data.feature_flags.disable_raw_logs;
+    });
   }
 };
 </script>
