@@ -7,6 +7,7 @@ package workspace
 import (
 	"context"
 	"errors"
+	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/connectionstats"
@@ -15,6 +16,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/featureflags"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -461,14 +463,26 @@ func (ws *Workspace) MostRecentLogTimeAndSum() (postfix.SumPair, error) {
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
-	return postfix.ComposedPublisher{
+	pub := postfix.ComposedPublisher{
 		ws.tracker.Publisher(),
 		ws.rblDetector.NewPublisher(),
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
-		ws.rawLogs.Publisher(),
 	}
+
+	flags, err := featureflags.GetSettings(context.Background(), ws.settingsMetaHandler.Reader)
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Fatal().Err(err).Msg("Should never have failed on retrieving feature flags!")
+	}
+
+	if flags != nil && flags.DisableRawLogs {
+		log.Debug().Msg("Disable raw logs!")
+		return pub
+	}
+
+	return append(pub, ws.rawLogs.Publisher())
 }
 
 func (ws *Workspace) HasLogs() bool {

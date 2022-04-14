@@ -106,7 +106,10 @@ func TestSettingsPage(t *testing.T) {
 					"completed": false,
 				},
 				"feature_flags": map[string]interface{}{
-					"enable_v2_dashboard": false,
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
 				},
 			}
 
@@ -193,7 +196,10 @@ func TestSettingsPage(t *testing.T) {
 					"completed": false,
 				},
 				"feature_flags": map[string]interface{}{
-					"enable_v2_dashboard": false,
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
 				},
 			}
 
@@ -256,7 +262,10 @@ func TestSettingsPage(t *testing.T) {
 					"completed": false,
 				},
 				"feature_flags": map[string]interface{}{
-					"enable_v2_dashboard": false,
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
 				},
 			}
 
@@ -366,7 +375,10 @@ func TestSettingsPage(t *testing.T) {
 						"completed": false,
 					},
 					"feature_flags": map[string]interface{}{
-						"enable_v2_dashboard": false,
+						"disable_v1_dashboard":  false,
+						"enable_v2_dashboard":   false,
+						"disable_insights_view": false,
+						"disable_raw_logs":      false,
 					},
 				}
 

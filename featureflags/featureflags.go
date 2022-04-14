@@ -14,6 +14,7 @@ type Settings struct {
 	DisableV1Dashboard  bool `json:"disable_v1_dashboard"`
 	EnableV2Dashboard   bool `json:"enable_v2_dashboard"`
 	DisableInsightsView bool `json:"disable_insights_view"`
+	DisableRawLogs      bool `json:"disable_raw_logs"`
 }
 
 var SettingsKey = `feature_flags`
