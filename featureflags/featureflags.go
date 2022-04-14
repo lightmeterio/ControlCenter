@@ -11,7 +11,9 @@ import (
 )
 
 type Settings struct {
-	EnableV2Dashboard bool `json:"enable_v2_dashboard"`
+	DisableV1Dashboard  bool `json:"disable_v1_dashboard"`
+	EnableV2Dashboard   bool `json:"enable_v2_dashboard"`
+	DisableInsightsView bool `json:"disable_insights_view"`
 }
 
 var SettingsKey = `feature_flags`

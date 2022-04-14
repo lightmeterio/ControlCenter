@@ -98,9 +98,15 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <maindashboard :graphDateRange="dashboardInterval"></maindashboard>
+      <maindashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV2Enabled"
+      ></maindashboard>
 
-      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
+      <graphdashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV1Enabled"
+      ></graphdashboard>
 
       <import-progress-indicator
         :label="generatingInsights"
@@ -110,13 +116,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div
         class="row container d-flex align-items-center time-interval card-section-heading"
       >
-        <div class="col-lg-2 col-md-2 col-3 p-2">
+        <div class="col-lg-2 col-md-2 col-3 p-2" v-if="insightsEnabled">
           <h2 class="insights-title">
             <translate>Insights</translate>
           </h2>
         </div>
 
-        <div class="col-lg-4 col-md-4 col-9 ml-auto p-2">
+        <div class="col-lg-4 col-md-4 col-9 ml-auto p-2" v-if="insightsEnabled">
           <form id="insights-form">
             <div
               class="form-group d-flex justify-content-end align-items-center"
@@ -212,6 +218,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
 
       <insights
+        v-if="insightsEnabled"
         class="row"
         v-show="shouldShowInsights"
         :insights="insights"
@@ -232,7 +239,8 @@ import {
   fetchInsights,
   getIsNotLoginOrNotRegistered,
   getUserInfo,
-  getStatusMessage
+  getStatusMessage,
+  getSettings
 } from "../lib/api.js";
 
 import tracking from "../mixin/global_shared.js";
@@ -262,7 +270,10 @@ export default {
       rawLogsDownloadsDisable: true,
 
       statusMessage: null,
-      statusMessageId: null
+      statusMessageId: null,
+      dashboardV2IsEnabled: false,
+      dashboardV1IsEnabled: true,
+      insightsViewEnabled: true
     };
   },
   created() {},
@@ -272,6 +283,15 @@ export default {
     },
     shouldShowInsights() {
       return this.isImportProgressFinished;
+    },
+    dashboardV2Enabled() {
+      return this.dashboardV2IsEnabled;
+    },
+    dashboardV1Enabled() {
+      return this.dashboardV1IsEnabled;
+    },
+    insightsEnabled() {
+      return this.insightsViewEnabled;
     },
     greetingText() {
       // todo use better translate function for weekdays
@@ -435,6 +455,15 @@ export default {
 
     getUserInfo().then(function(response) {
       vue.username = response.data.user.name;
+    });
+
+    getSettings().then(function(response) {
+      vue.dashboardV1IsEnabled = !response.data.feature_flags
+        .disable_v1_dashboard;
+      vue.dashboardV2IsEnabled =
+        response.data.feature_flags.enable_v2_dashboard;
+      vue.insightsViewEnabled = !response.data.feature_flags
+        .disable_insights_view;
     });
   },
   destroyed() {

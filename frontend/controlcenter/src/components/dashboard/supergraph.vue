@@ -34,7 +34,11 @@ export default {
   watch: {
     graphDateRange: {
       handler(graphDateRange) {
-        this.redrawChart(graphDateRange.startDate, graphDateRange.endDate, true);
+        this.redrawChart(
+          graphDateRange.startDate,
+          graphDateRange.endDate,
+          true
+        );
       },
       deep: true
     }
@@ -293,8 +297,10 @@ export default {
           }
         };
 
+        console.log(notMerge);
+
         // FIXME: Ugly hack due a bug on echarts: https://github.com/apache/echarts/issues/6202
-        vue.$refs.echart.setOption(newOptions, notMerge);
+        vue.$refs.echart.setOption(newOptions);
       });
     }
   }
