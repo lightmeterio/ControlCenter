@@ -118,6 +118,7 @@ func (h *Settings) SettingsForward(w http.ResponseWriter, r *http.Request) error
 	return handler(w, r)
 }
 
+// nolint:gocognit
 func (h *Settings) SettingsHandler(w http.ResponseWriter, r *http.Request) error {
 	// For now we only allow fetching settings
 	// TODO: use this endpoint as a generic way to set settings, making the other specialized endpoints obsolete.
