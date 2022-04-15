@@ -95,7 +95,7 @@ The following dependencies are needed during development:
 
 - Bash
 - [Git](https://git-scm.com) on any recent (as in 2020) version.
-- [Go compiler](https://golang.org/) version 1.15 or newer.
+- [Go compiler](https://golang.org/) version 1.18 or newer.
 - [GCC](https://gcc.gnu.org/) version 9.3 or newer.
 - Libc development files. Both [glibc](https://www.gnu.org/software/libc/) and [musl](https://www.musl-libc.org/) have been successfully tested.
 - [GNU Make](https://www.gnu.org/software/make/manual/make.html) or compatible.
