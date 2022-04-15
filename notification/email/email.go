@@ -26,6 +26,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -547,20 +548,9 @@ func (*Notifier) ValidateSettings(s core.Settings) error {
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	settings := &Settings{}
-
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingKey)
 }

@@ -6,8 +6,9 @@ package featureflags
 
 import (
 	"context"
+
 	"gitlab.com/lightmeter/controlcenter/metadata"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Settings struct {
@@ -19,16 +20,6 @@ type Settings struct {
 
 var SettingsKey = `feature_flags`
 
-// FIXME: this is copie&pasted from settings and other many places over the codebase
-// NOTE: this is a good candidate for using Go generics
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	var settings Settings
-
-	err := reader.RetrieveJson(ctx, SettingsKey, &settings)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }

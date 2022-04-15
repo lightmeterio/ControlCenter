@@ -5,9 +5,12 @@
 package tracking
 
 import (
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"regexp"
+
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
+
+var SettingsKey = `tracking_filters`
 
 type Filters []Filter
 
@@ -29,8 +32,6 @@ func (filters Filters) Reject(r Result) bool {
 
 	return false
 }
-
-var SettingsKey = `tracking_filters`
 
 type FilterDescription struct {
 	AcceptOutboundSender    string

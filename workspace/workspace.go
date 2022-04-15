@@ -7,6 +7,10 @@ package workspace
 import (
 	"context"
 	"errors"
+	"os"
+	"path"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
@@ -40,9 +44,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
-	"path"
-	"time"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Workspace struct {
@@ -121,9 +123,7 @@ var DefaultOptions = &Options{
 }
 
 func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
-	var filtersDesc tracking.FiltersDescription
-
-	err := reader.RetrieveJson(context.Background(), tracking.SettingsKey, &filtersDesc)
+	filtersDesc, err := settingsutil.Get[tracking.FiltersDescription](context.Background(), reader, tracking.SettingsKey)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return tracking.NoFilters, nil
 	}
@@ -132,7 +132,7 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	filters, err := tracking.BuildFilters(filtersDesc)
+	filters, err := tracking.BuildFilters(*filtersDesc)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

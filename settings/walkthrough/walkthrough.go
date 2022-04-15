@@ -6,8 +6,9 @@ package walkthrough
 
 import (
 	"context"
+
 	"gitlab.com/lightmeter/controlcenter/metadata"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Settings struct {
@@ -17,21 +18,9 @@ type Settings struct {
 const SettingKey = "walkthrough"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	var settings Settings
-
-	err := reader.RetrieveJson(ctx, SettingKey, &settings)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingKey)
 }
