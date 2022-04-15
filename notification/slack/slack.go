@@ -22,7 +22,7 @@ import (
 // TODO: make the notifications asynchronous!
 // Add context to PostMessage and to slack api call!
 
-const SettingKey = "messenger_slack"
+const SettingsKey = "messenger_slack"
 
 type MessagePoster interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
@@ -67,7 +67,7 @@ func New(policy core.Policy, reader metadata.Reader) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
-		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
+		if err := reader.RetrieveJson(context.Background(), SettingsKey, &s); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -206,9 +206,9 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	return settingsutil.Get[Settings](ctx, reader, SettingKey)
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }

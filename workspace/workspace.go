@@ -245,8 +245,8 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
 
 	notifiers := map[string]notification.Notifier{
-		slack.SettingKey: slack.New(notificationPolicies, m.Reader),
-		email.SettingKey: email.New(notificationPolicies, m.Reader),
+		slack.SettingsKey: slack.New(notificationPolicies, m.Reader),
+		email.SettingsKey: email.New(notificationPolicies, m.Reader),
 	}
 
 	policy := &insights.DefaultNotificationPolicy{}

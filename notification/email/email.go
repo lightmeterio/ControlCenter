@@ -47,7 +47,7 @@ PublicURL: {{.PublicURL}}
 Version: {{appVersion}}
 `
 
-const SettingKey = "messenger_email"
+const SettingsKey = "messenger_email"
 
 type SecurityType int
 
@@ -548,9 +548,9 @@ func (*Notifier) ValidateSettings(s core.Settings) error {
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	return settingsutil.Get[Settings](ctx, reader, SettingKey)
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }

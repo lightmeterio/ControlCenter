@@ -391,7 +391,7 @@ func (h *Settings) InitialSetupHandler(w http.ResponseWriter, r *http.Request) e
 		s = globalsettings.Settings{AppLanguage: appLanguage, LocalIP: globalsettings.IP{IP: net.ParseIP(postfixPublicIp)}}
 	}
 
-	result := h.writer.StoreJson(globalsettings.SettingKey, &s)
+	result := h.writer.StoreJson(globalsettings.SettingsKey, &s)
 
 	select {
 	case err := <-result.Done():
@@ -544,7 +544,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if shouldSetSlack {
-		slackNotifier, err := h.notificationCenter.Notifier(slack.SettingKey)
+		slackNotifier, err := h.notificationCenter.Notifier(slack.SettingsKey)
 		if err != nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
@@ -561,7 +561,7 @@ func (h *Settings) NotificationSettingsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if shouldSetEmail {
-		emailNotifier, err := h.notificationCenter.Notifier(email.SettingKey)
+		emailNotifier, err := h.notificationCenter.Notifier(email.SettingsKey)
 		if err != nil {
 			return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 		}
@@ -616,7 +616,7 @@ func (h *Settings) WalkthroughHandler(w http.ResponseWriter, r *http.Request) er
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	if err := h.writer.StoreJsonSync(r.Context(), walkthrough.SettingKey, &walkthrough.Settings{Completed: completed}); err != nil {
+	if err := h.writer.StoreJsonSync(r.Context(), walkthrough.SettingsKey, &walkthrough.Settings{Completed: completed}); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
@@ -633,7 +633,7 @@ func (h *Settings) DetectiveHandler(w http.ResponseWriter, r *http.Request) erro
 		return httperror.NewHTTPStatusCodeError(http.StatusBadRequest, errorutil.Wrap(err))
 	}
 
-	if err := h.writer.StoreJsonSync(r.Context(), detective.SettingKey, &detective.Settings{EndUsersEnabled: endUsersEnabled}); err != nil {
+	if err := h.writer.StoreJsonSync(r.Context(), detective.SettingsKey, &detective.Settings{EndUsersEnabled: endUsersEnabled}); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 
@@ -655,7 +655,7 @@ func (h *Settings) InsightsHandler(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 
-	if err := h.writer.StoreJsonSync(r.Context(), insightsSettings.SettingKey, settings); err != nil {
+	if err := h.writer.StoreJsonSync(r.Context(), insightsSettings.SettingsKey, settings); err != nil {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 	}
 

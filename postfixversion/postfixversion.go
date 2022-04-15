@@ -11,7 +11,7 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 )
 
-const SettingKey = "postfix_version"
+const SettingsKey = "postfix_version"
 
 type Publisher struct {
 	settingsWriter *metadata.AsyncWriter
@@ -19,7 +19,7 @@ type Publisher struct {
 
 func (p Publisher) Publish(r postfix.Record) {
 	if version, ok := r.Payload.(parser.Version); ok {
-		result := p.settingsWriter.StoreJson(SettingKey, version)
+		result := p.settingsWriter.StoreJson(SettingsKey, version)
 
 		go func() {
 			if err := <-result.Done(); err != nil {

@@ -22,14 +22,14 @@ type Settings struct {
 	MailInactivityMinInterval int `json:"mail_inactivity_min_interval"`
 }
 
-const SettingKey = "insights"
+const SettingsKey = "insights"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	settings, err := settingsutil.Get[Settings](ctx, reader, SettingKey)
+	settings, err := settingsutil.Get[Settings](ctx, reader, SettingsKey)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return &Settings{
 			// default settings

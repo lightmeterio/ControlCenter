@@ -120,8 +120,8 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 	emailNotifier := email.New(notification.PassPolicy, m.Reader)
 
 	notifiers := map[string]notification.Notifier{
-		slack.SettingKey: slackNotifier,
-		email.SettingKey: emailNotifier,
+		slack.SettingsKey: slackNotifier,
+		email.SettingsKey: emailNotifier,
 		"fake":           fakeNotifier,
 	}
 
@@ -272,7 +272,7 @@ func TestAppSettings(t *testing.T) {
 
 		Convey("Do not clean IP settings when updating the language", func() {
 			// First set an IP address manually
-			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
+			writer.StoreJson(globalsettings.SettingsKey, &globalsettings.Settings{
 				LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.1`)},
 				AppLanguage: "en",
 			}).Wait()
@@ -287,7 +287,7 @@ func TestAppSettings(t *testing.T) {
 
 			// The IP address must be intact
 			settings := globalsettings.Settings{}
-			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err = reader.RetrieveJson(context.Background(), globalsettings.SettingsKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.AppLanguage, ShouldEqual, "de")
@@ -306,7 +306,7 @@ func TestAppSettings(t *testing.T) {
 		c := &http.Client{}
 
 		Convey("Do not reset language when we clear general settings", func() {
-			writer.StoreJson(globalsettings.SettingKey, &globalsettings.Settings{
+			writer.StoreJson(globalsettings.SettingsKey, &globalsettings.Settings{
 				LocalIP:     globalsettings.IP{net.ParseIP(`127.0.0.1`)},
 				PublicURL:   "http://localhost:8080",
 				AppLanguage: "de",
@@ -314,7 +314,7 @@ func TestAppSettings(t *testing.T) {
 
 			// Check that the settings are set
 			settings := globalsettings.Settings{}
-			err := reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err := reader.RetrieveJson(context.Background(), globalsettings.SettingsKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.LocalIP.String(), ShouldEqual, `127.0.0.1`)
@@ -329,7 +329,7 @@ func TestAppSettings(t *testing.T) {
 
 			// The IP address and postfix URL must be cleared, but the language should stay
 			settings = globalsettings.Settings{}
-			err = reader.RetrieveJson(context.Background(), globalsettings.SettingKey, &settings)
+			err = reader.RetrieveJson(context.Background(), globalsettings.SettingsKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.LocalIP.IP, ShouldBeNil)
@@ -420,7 +420,7 @@ func TestSlackNotifications(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					mo := new(slack.Settings)
-					err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+					err = reader.RetrieveJson(dummyContext, slack.SettingsKey, mo)
 					So(err, ShouldBeNil)
 
 					So(mo.Channel, ShouldEqual, "donutloop")
@@ -454,7 +454,7 @@ func TestSlackNotifications(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 				mo := new(slack.Settings)
-				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+				err = reader.RetrieveJson(dummyContext, slack.SettingsKey, mo)
 				So(err, ShouldBeNil)
 
 				So(mo.Channel, ShouldEqual, "general")
@@ -484,7 +484,7 @@ func TestSlackNotifications(t *testing.T) {
 				So(r.StatusCode, ShouldEqual, http.StatusBadRequest)
 
 				mo := new(slack.Settings)
-				err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+				err = reader.RetrieveJson(dummyContext, slack.SettingsKey, mo)
 				So(errors.Is(err, metadata.ErrNoSuchKey), ShouldBeTrue)
 			})
 		})
@@ -515,7 +515,7 @@ func TestSlackNotifications(t *testing.T) {
 			So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 			mo := new(slack.Settings)
-			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			err = reader.RetrieveJson(dummyContext, slack.SettingsKey, mo)
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "general")
@@ -529,7 +529,7 @@ func TestSlackNotifications(t *testing.T) {
 
 			// The slack fields should be cleared
 			mo = new(slack.Settings)
-			err = reader.RetrieveJson(dummyContext, slack.SettingKey, mo)
+			err = reader.RetrieveJson(dummyContext, slack.SettingsKey, mo)
 			So(err, ShouldBeNil)
 
 			So(mo.Channel, ShouldEqual, "")
@@ -681,7 +681,7 @@ func TestEmailNotifications(t *testing.T) {
 			settings, err := email.GetSettings(context.Background(), reader)
 			So(err, ShouldBeNil)
 
-			err = reader.RetrieveJson(context.Background(), email.SettingKey, &settings)
+			err = reader.RetrieveJson(context.Background(), email.SettingsKey, &settings)
 			So(err, ShouldBeNil)
 
 			So(settings.Sender, ShouldEqual, "sender@example.com")
@@ -711,7 +711,7 @@ func TestWalkthroughSettings(t *testing.T) {
 		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		w := &walkthrough.Settings{}
-		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
+		So(errors.Is(reader.RetrieveJson(dummyContext, walkthrough.SettingsKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
 
 		c := &http.Client{}
 
@@ -760,7 +760,7 @@ func TestWalkthroughSettings(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					w := &walkthrough.Settings{}
-					So(reader.RetrieveJson(dummyContext, walkthrough.SettingKey, w), ShouldBeNil)
+					So(reader.RetrieveJson(dummyContext, walkthrough.SettingsKey, w), ShouldBeNil)
 					So(w.Completed, ShouldBeTrue)
 
 					Convey("Retrieve", func() {
@@ -790,7 +790,7 @@ func TestInsightsSettings(t *testing.T) {
 		handler := chain.WithEndpoint(httpmiddleware.CustomHTTPHandler(setup.SettingsForward))
 
 		w := &insightsSettings.Settings{}
-		So(errors.Is(reader.RetrieveJson(dummyContext, insightsSettings.SettingKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
+		So(errors.Is(reader.RetrieveJson(dummyContext, insightsSettings.SettingsKey, w), metadata.ErrNoSuchKey), ShouldBeTrue)
 
 		c := &http.Client{}
 
@@ -900,7 +900,7 @@ func TestInsightsSettings(t *testing.T) {
 					So(r.StatusCode, ShouldEqual, http.StatusOK)
 
 					i := &insightsSettings.Settings{}
-					So(reader.RetrieveJson(dummyContext, insightsSettings.SettingKey, i), ShouldBeNil)
+					So(reader.RetrieveJson(dummyContext, insightsSettings.SettingsKey, i), ShouldBeNil)
 					So(i.BounceRateThreshold, ShouldEqual, 53)
 
 					Convey("Retrieve", func() {

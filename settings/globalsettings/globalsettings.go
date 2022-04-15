@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SettingKey = "global"
+	SettingsKey = "global"
 )
 
 var (
@@ -88,9 +88,9 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 		return errorutil.Wrap(err)
 	}
 
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	return settingsutil.Get[Settings](ctx, reader, SettingKey)
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }

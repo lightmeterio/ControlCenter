@@ -39,14 +39,14 @@ type Settings struct {
 	Language string `json:"language"`
 }
 
-const SettingKey = "notifications"
+const SettingsKey = "notifications"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	return settingsutil.Get[Settings](ctx, reader, SettingKey)
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }
 
 func New(reader metadata.Reader, translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {

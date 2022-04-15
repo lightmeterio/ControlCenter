@@ -15,12 +15,12 @@ type Settings struct {
 	Completed bool `json:"completed"`
 }
 
-const SettingKey = "walkthrough"
+const SettingsKey = "walkthrough"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	return settingsutil.Set[Settings](ctx, writer, settings, SettingKey)
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	return settingsutil.Get[Settings](ctx, reader, SettingKey)
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }
