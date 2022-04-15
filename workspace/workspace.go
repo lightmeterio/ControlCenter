@@ -140,6 +140,8 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 	return filters, nil
 }
 
+// FIXME: yes, I know this function is big. Splitting it into small pieces should eventually be done!
+//nolint:maintidx
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
 	if options == nil {
 		options = DefaultOptions
