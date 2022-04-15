@@ -18,7 +18,7 @@ type Settings struct {
 	DisableRawLogs      bool `json:"disable_raw_logs"`
 }
 
-var SettingsKey = `feature_flags`
+const SettingsKey = `feature_flags`
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
 	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
