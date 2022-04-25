@@ -62,28 +62,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       >
       </b-toaster>
 
-      <maindashboard
-        :graphDateRange="dashboardInterval"
-        v-if="dashboardV2Enabled"
-      ></maindashboard>
-
-      <graphdashboard
-        :graphDateRange="dashboardInterval"
-        v-if="dashboardV1Enabled"
-      ></graphdashboard>
-
-      <import-progress-indicator
-        :label="generatingInsights"
-        @finished="handleProgressFinished"
-      ></import-progress-indicator>
-
-      <div class="row container d-flex align-items-center card-section-heading">
-        <div class="col-lg-2 col-md-2 col-3 p-2" v-if="insightsEnabled">
-          <h2 class="insights-title">
-            <translate>Insights</translate>
-          </h2>
-        </div>
-
+      <div
+        class="row container time-interval card-section-heading sticky-date-select"
+      >
         <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
             <translate>Time interval</translate>:
@@ -99,6 +80,8 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="dateRange"
               :showCustomRangeCalendars="false"
               :max-date="new Date()"
+              v-b-tooltip.hover.left
+              :title="titleDatepicker"
             >
             </DateRangePicker>
           </div>
@@ -115,8 +98,28 @@ SPDX-License-Identifier: AGPL-3.0-only
             >
           </div>
         </div>
+      </div>
 
-        <div class="col-lg-4 col-md-4 col-9 ml-auto p-2" v-if="insightsEnabled">
+      <maindashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV2Enabled"
+      ></maindashboard>
+
+      <graphdashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV1Enabled"
+      ></graphdashboard>
+
+      <div
+        class="row container d-flex align-items-center card-section-heading"
+        v-if="insightsEnabled"
+      >
+        <div class="col-lg-2 col-md-2 col-3 p-2">
+          <h2 class="insights-title">
+            <translate>Insights</translate>
+          </h2>
+        </div>
+        <div class="col-lg-4 col-md-4 col-9 ml-auto p-2">
           <form id="insights-form">
             <div
               class="form-group d-flex justify-content-end align-items-center"
@@ -218,6 +221,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         :insights="insights"
         @dateIntervalChanged="handleExternalDateIntervalChanged"
       ></insights>
+
+      <import-progress-indicator
+        :label="generatingInsights"
+        @finished="handleProgressFinished"
+      ></import-progress-indicator>
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -273,6 +281,11 @@ export default {
   },
   created() {},
   computed: {
+    titleDatepicker() {
+      return this.$gettext(
+        "Choose date interval - applies to all graphs and insights"
+      );
+    },
     titleDownloadLogs() {
       return this.$gettext("Download server logs for selected date interval");
     },

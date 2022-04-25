@@ -34,11 +34,7 @@ export default {
   watch: {
     graphDateRange: {
       handler(graphDateRange) {
-        this.redrawChart(
-          graphDateRange.startDate,
-          graphDateRange.endDate,
-          true
-        );
+        this.redrawChart(graphDateRange.startDate, graphDateRange.endDate);
       },
       deep: true
     }
@@ -234,7 +230,7 @@ export default {
         "'> <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a>"
       );
     },
-    redrawChart(from, to, notMerge = undefined) {
+    redrawChart(from, to) {
       let vue = this;
 
       vue.granularity = (function() {
@@ -296,8 +292,6 @@ export default {
             data: times
           }
         };
-
-        console.log(notMerge);
 
         // FIXME: Ugly hack due a bug on echarts: https://github.com/apache/echarts/issues/6202
         vue.$refs.echart.setOption(newOptions);
