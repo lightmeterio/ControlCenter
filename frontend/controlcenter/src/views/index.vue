@@ -55,8 +55,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <graphdashboard :graphDateRange="dashboardInterval"></graphdashboard>
-
       <b-toaster
         ref="statusMessage"
         name="statusMessage"
@@ -65,13 +63,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       </b-toaster>
 
       <div
-        class="row container d-flex align-items-center time-interval card-section-heading"
+        class="row container time-interval card-section-heading sticky-date-select"
       >
-        <div class="col-lg-2 col-md-2 col-3 p-2">
-          <h2 class="insights-title">
-            <translate>Insights</translate>
-          </h2>
-        </div>
         <div class="col-lg-6 col-md-6 col-9 p-2 d-flex">
           <label class="col-md-2 col-form-label sr-only">
             <translate>Time interval</translate>:
@@ -87,22 +80,46 @@ SPDX-License-Identifier: AGPL-3.0-only
               v-model="dateRange"
               :showCustomRangeCalendars="false"
               :max-date="new Date()"
+              v-b-tooltip.hover.left
+              :title="titleDatepicker"
             >
             </DateRangePicker>
           </div>
-          <div class="p-1">
+          <div class="p-1" v-if="rawLogsIsEnabled">
             <b-button
               variant="primary"
               size="sm"
               @click="downloadRawLogsInInterval"
               :disabled="rawLogsDownloadsDisable"
+              v-b-tooltip.hover
+              :title="titleDownloadLogs"
               ><i class="fas fa-download" style="margin-right: 0.25rem;"></i
               ><translate>Logs</translate></b-button
             >
           </div>
         </div>
+      </div>
 
-        <div class="col-lg-4 col-md-4 col-12 ml-auto p-2">
+      <maindashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV2Enabled"
+      ></maindashboard>
+
+      <graphdashboard
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV1Enabled"
+      ></graphdashboard>
+
+      <div
+        class="row container d-flex align-items-center card-section-heading"
+        v-if="insightsEnabled"
+      >
+        <div class="col-lg-2 col-md-2 col-3 p-2">
+          <h2 class="insights-title">
+            <translate>Insights</translate>
+          </h2>
+        </div>
+        <div class="col-lg-4 col-md-4 col-9 ml-auto p-2">
           <form id="insights-form">
             <div
               class="form-group d-flex justify-content-end align-items-center"
@@ -197,17 +214,18 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      <import-progress-indicator
-        :label="generatingInsights"
-        @finished="handleProgressFinished"
-      ></import-progress-indicator>
-
       <insights
+        v-if="insightsEnabled"
         class="row"
         v-show="shouldShowInsights"
         :insights="insights"
         @dateIntervalChanged="handleExternalDateIntervalChanged"
       ></insights>
+
+      <import-progress-indicator
+        :label="generatingInsights"
+        @finished="handleProgressFinished"
+      ></import-progress-indicator>
     </div>
     <mainfooter></mainfooter>
   </div>
@@ -223,7 +241,8 @@ import {
   fetchInsights,
   getIsNotLoginOrNotRegistered,
   getUserInfo,
-  getStatusMessage
+  getStatusMessage,
+  getSettings
 } from "../lib/api.js";
 
 import tracking from "../mixin/global_shared.js";
@@ -253,13 +272,37 @@ export default {
       rawLogsDownloadsDisable: true,
 
       statusMessage: null,
-      statusMessageId: null
+      statusMessageId: null,
+      dashboardV2IsEnabled: false,
+      dashboardV1IsEnabled: true,
+      insightsViewEnabled: true,
+      rawLogsEnabled: true
     };
   },
   created() {},
   computed: {
+    titleDatepicker() {
+      return this.$gettext(
+        "Choose date interval - applies to all graphs and insights"
+      );
+    },
+    titleDownloadLogs() {
+      return this.$gettext("Download server logs for selected date interval");
+    },
     shouldShowInsights() {
       return this.isImportProgressFinished;
+    },
+    dashboardV2Enabled() {
+      return this.dashboardV2IsEnabled;
+    },
+    dashboardV1Enabled() {
+      return this.dashboardV1IsEnabled;
+    },
+    insightsEnabled() {
+      return this.insightsViewEnabled;
+    },
+    rawLogsIsEnabled() {
+      return this.rawLogsEnabled;
     },
     greetingText() {
       // todo use better translate function for weekdays
@@ -424,6 +467,16 @@ export default {
     getUserInfo().then(function(response) {
       vue.username = response.data.user.name;
     });
+
+    getSettings().then(function(response) {
+      vue.dashboardV1IsEnabled = !response.data.feature_flags
+        .disable_v1_dashboard;
+      vue.dashboardV2IsEnabled =
+        response.data.feature_flags.enable_v2_dashboard;
+      vue.insightsViewEnabled = !response.data.feature_flags
+        .disable_insights_view;
+      vue.rawLogsEnabled = !response.data.feature_flags.disable_raw_logs;
+    });
   },
   destroyed() {
     window.clearInterval(this.updateDashboardAndInsightsIntervalID);
@@ -432,6 +485,12 @@ export default {
 </script>
 
 <style lang="less">
+.sticky-date-select {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
 #insights-page .greeting h3 {
   font: 22px/32px Inter;
   font-weight: bold;

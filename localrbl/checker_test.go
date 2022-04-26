@@ -57,7 +57,7 @@ func TestDnsRBL(t *testing.T) {
 					LocalIP: globalsettings.IP{net.ParseIP("11.22.33.44")},
 				}
 
-				meta.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)
+				meta.Writer.StoreJson(dummyContext, globalsettings.SettingsKey, &settings)
 			}
 
 			Convey("Panic on invalid number of workers", func() {

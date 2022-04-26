@@ -60,7 +60,7 @@ func TestHTTPAuth(t *testing.T) {
 		writer.StoreJsonSync(context.Background(), metadata.UuidMetaKey, uuid)
 
 		// store a postfix version to retrieve in /userInfo
-		writer.StoreJsonSync(context.Background(), postfixversion.SettingKey, "3.4.14")
+		writer.StoreJsonSync(context.Background(), postfixversion.SettingsKey, "3.4.14")
 
 		failedAttempts := 0
 

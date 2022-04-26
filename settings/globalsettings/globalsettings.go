@@ -7,14 +7,16 @@ package globalsettings
 import (
 	"context"
 	"errors"
-	"gitlab.com/lightmeter/controlcenter/metadata"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net"
 	"net/url"
+
+	"gitlab.com/lightmeter/controlcenter/metadata"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 const (
-	SettingKey = "global"
+	SettingsKey = "global"
 )
 
 var (
@@ -86,21 +88,9 @@ func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Set
 		return errorutil.Wrap(err)
 	}
 
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	var settings Settings
-
-	err := reader.RetrieveJson(ctx, SettingKey, &settings)
-
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return &settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }
