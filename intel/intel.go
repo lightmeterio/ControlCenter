@@ -240,7 +240,7 @@ func (d *Dispatcher) getGlobalSettings() (*string, *string) {
 
 func (d *Dispatcher) getPostfixVersion() *string {
 	var version string
-	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingKey, &version)
+	err := d.SettingsReader.RetrieveJson(context.Background(), postfixversion.SettingsKey, &version)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version")

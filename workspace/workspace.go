@@ -7,6 +7,11 @@ package workspace
 import (
 	"context"
 	"errors"
+	"os"
+	"path"
+	"time"
+
+	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/connectionstats"
@@ -15,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/featureflags"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -38,9 +44,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
-	"path"
-	"time"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Workspace struct {
@@ -119,9 +123,7 @@ var DefaultOptions = &Options{
 }
 
 func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
-	var filtersDesc tracking.FiltersDescription
-
-	err := reader.RetrieveJson(context.Background(), tracking.SettingsKey, &filtersDesc)
+	filtersDesc, err := settingsutil.Get[tracking.FiltersDescription](context.Background(), reader, tracking.SettingsKey)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return tracking.NoFilters, nil
 	}
@@ -130,7 +132,7 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	filters, err := tracking.BuildFilters(filtersDesc)
+	filters, err := tracking.BuildFilters(*filtersDesc)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -138,6 +140,8 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 	return filters, nil
 }
 
+// FIXME: yes, I know this function is big. Splitting it into small pieces should eventually be done!
+//nolint:maintidx
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
 	if options == nil {
 		options = DefaultOptions
@@ -243,8 +247,8 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
 
 	notifiers := map[string]notification.Notifier{
-		slack.SettingKey: slack.New(notificationPolicies, m.Reader),
-		email.SettingKey: email.New(notificationPolicies, m.Reader),
+		slack.SettingsKey: slack.New(notificationPolicies, m.Reader),
+		email.SettingsKey: email.New(notificationPolicies, m.Reader),
 	}
 
 	policy := &insights.DefaultNotificationPolicy{}
@@ -461,14 +465,26 @@ func (ws *Workspace) MostRecentLogTimeAndSum() (postfix.SumPair, error) {
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
-	return postfix.ComposedPublisher{
+	pub := postfix.ComposedPublisher{
 		ws.tracker.Publisher(),
 		ws.rblDetector.NewPublisher(),
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
-		ws.rawLogs.Publisher(),
 	}
+
+	flags, err := featureflags.GetSettings(context.Background(), ws.settingsMetaHandler.Reader)
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Fatal().Err(err).Msg("Should never have failed on retrieving feature flags!")
+	}
+
+	if flags != nil && flags.DisableRawLogs {
+		log.Debug().Msg("Disable raw logs!")
+		return pub
+	}
+
+	return append(pub, ws.rawLogs.Publisher())
 }
 
 func (ws *Workspace) HasLogs() bool {

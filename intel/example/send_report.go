@@ -62,7 +62,7 @@ func main() {
 	m, err := metadata.NewHandler(conn)
 	errorutil.MustSucceed(err)
 
-	err = m.Writer.StoreJson(context.Background(), globalsettings.SettingKey, globalsettings.Settings{
+	err = m.Writer.StoreJson(context.Background(), globalsettings.SettingsKey, globalsettings.Settings{
 		LocalIP:     globalsettings.IP{IP: net.ParseIP(*postfixIP)},
 		AppLanguage: "en",
 		PublicURL:   *publicURL,

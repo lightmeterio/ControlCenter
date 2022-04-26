@@ -91,7 +91,7 @@ func requireDetectiveAuth(auth *httpauth.Authenticator, settingsReader metadata.
 			isAuthenticated := isUserAuthenticated(auth, r)
 
 			settings := detectivesettings.Settings{}
-			err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+			err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingsKey, &settings)
 			if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 				return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
 			}

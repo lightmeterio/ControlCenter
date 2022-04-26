@@ -283,6 +283,28 @@ export function fetchGraphDataAsJsonWithTimeInterval(
     .catch(errorHandler);
 }
 
+export function fetchSentMailsByMailboxDataWithTimeInterval(
+  endpoint,
+  selectedDateFrom,
+  selectedDateTo,
+  granularityInHours
+) {
+  const timeIntervalUrlParams = function() {
+    return (
+      "from=" +
+      selectedDateFrom +
+      "&to=" +
+      selectedDateTo +
+      "&granularity=" +
+      granularityInHours
+    );
+  };
+
+  return axios
+    .get(BASE_URL + "api/v0/" + endpoint + "?" + timeIntervalUrlParams())
+    .catch(errorHandler);
+}
+
 function errorHandler(err) {
   alertError(err.response, null);
 }

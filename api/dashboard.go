@@ -15,6 +15,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -128,6 +129,71 @@ func (h deliveryStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	return servePairsFromTimeInterval(w, r, h.dashboard.DeliveryStatus, interval)
 }
 
+type trafficBySenderOverTimeHandler struct {
+	f func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error)
+}
+
+// @Summary Messages sent by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/sentMailsByMailbox  [get]
+
+// @Summary Messages bounced by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/bouncedMailsByMailbox  [get]
+
+// @Summary Messages deferred by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/deferredMailsByMailbox  [get]
+
+// @Summary Messages expired by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/expiredMailsByMailbox  [get]
+
+// @Summary Messages received by mailbox over time
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/receivedMailsByMailbox  [get]
+
+func (h trafficBySenderOverTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	interval := httpmiddleware.GetIntervalFromContext(r)
+
+	granularity, err := strconv.Atoi(r.Form.Get("granularity"))
+	if err != nil {
+		return httperror.NewHTTPStatusCodeError(http.StatusUnprocessableEntity, err)
+	}
+
+	result, err := h.f(r.Context(), interval, granularity)
+	if err != nil {
+		return err
+	}
+
+	return httputil.WriteJson(w, result, http.StatusOK)
+}
+
 type appVersionHandler struct{}
 
 type appVersion struct {
@@ -144,14 +210,24 @@ func (appVersionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error
 	return httputil.WriteJson(w, appVersion{Version: version.Version, Commit: version.Commit, TagOrBranch: version.TagOrBranch}, http.StatusOK)
 }
 
-func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, dashboard dashboard.Dashboard) {
+func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.Location, d dashboard.Dashboard) {
 	authenticated := httpmiddleware.WithDefaultStack(auth, httpmiddleware.RequestWithInterval(timezone))
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 
-	mux.Handle("/api/v0/countByStatus", authenticated.WithEndpoint(countByStatusHandler{dashboard}))
-	mux.Handle("/api/v0/topBusiestDomains", authenticated.WithEndpoint(topBusiestDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{dashboard}))
-	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{dashboard}))
+	for k, v := range map[string]func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error){
+		"/api/v0/sentMailsByMailbox":     d.SentMailsByMailbox,
+		"/api/v0/bouncedMailsByMailbox":  d.BouncedMailsByMailbox,
+		"/api/v0/deferredMailsByMailbox": d.DeferredMailsByMailbox,
+		"/api/v0/expiredMailsByMailbox":  d.ExpiredMailsByMailbox,
+		"/api/v0/receivedMailsByMailbox": d.ReceivedMailsByMailbox,
+	} {
+		mux.Handle(k, authenticated.WithEndpoint(trafficBySenderOverTimeHandler{v}))
+	}
+
+	mux.Handle("/api/v0/countByStatus", authenticated.WithEndpoint(countByStatusHandler{d}))
+	mux.Handle("/api/v0/topBusiestDomains", authenticated.WithEndpoint(topBusiestDomainsHandler{d}))
+	mux.Handle("/api/v0/topBouncedDomains", authenticated.WithEndpoint(topBouncedDomainsHandler{d}))
+	mux.Handle("/api/v0/topDeferredDomains", authenticated.WithEndpoint(topDeferredDomainsHandler{d}))
+	mux.Handle("/api/v0/deliveryStatus", authenticated.WithEndpoint(deliveryStatusHandler{d}))
 	mux.Handle("/api/v0/appVersion", unauthenticated.WithEndpoint(appVersionHandler{}))
 }

@@ -105,6 +105,12 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -189,6 +195,12 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -248,6 +260,12 @@ func TestSettingsPage(t *testing.T) {
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
+				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
 				},
 			}
 
@@ -355,6 +373,12 @@ func TestSettingsPage(t *testing.T) {
 					},
 					"walkthrough": map[string]interface{}{
 						"completed": false,
+					},
+					"feature_flags": map[string]interface{}{
+						"disable_v1_dashboard":  false,
+						"enable_v2_dashboard":   false,
+						"disable_insights_view": false,
+						"disable_raw_logs":      false,
 					},
 				}
 

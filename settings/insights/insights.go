@@ -7,8 +7,10 @@ package insights
 import (
 	"context"
 	"errors"
+
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Settings struct {
@@ -20,20 +22,14 @@ type Settings struct {
 	MailInactivityMinInterval int `json:"mail_inactivity_min_interval"`
 }
 
-const SettingKey = "insights"
+const SettingsKey = "insights"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	var settings Settings
-
-	err := reader.RetrieveJson(ctx, SettingKey, &settings)
+	settings, err := settingsutil.Get[Settings](ctx, reader, SettingsKey)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return &Settings{
 			// default settings
@@ -47,5 +43,5 @@ func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error)
 		return nil, errorutil.Wrap(err)
 	}
 
-	return &settings, nil
+	return settings, nil
 }

@@ -265,7 +265,7 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 // Check that end-users' detective is enabled, or user is authenticated
 func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader metadata.Reader) error {
 	settings := detectivesettings.Settings{}
-	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingsKey, &settings)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -341,7 +341,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader metadata.Reader
 	}
 
 	// retrieve postfix version
-	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingKey, &userSystemData.PostfixVersion)
+	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingsKey, &userSystemData.PostfixVersion)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version: %s", err)
