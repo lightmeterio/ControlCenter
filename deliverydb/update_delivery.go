@@ -19,7 +19,7 @@ import (
 )
 
 type delivery struct {
-	id, ts, checksum int64
+	id, ts int64
 }
 
 func updateDeliveryWithBounceInfoAction(runner *dbrunner.Runner, r postfix.Record, ttl int) func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
@@ -66,6 +66,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 	}
 
 	var deliveries []delivery
+
 	rows, err := tx.Query(stmtsText[selectDeliveries],
 		sql.Named("sender_user", senderU),
 		sql.Named("sender_domain", senderD),
@@ -81,6 +82,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 	defer rows.Close()
 
 	deliveries = []delivery{}
+
 	for rows.Next() {
 		var d delivery
 
