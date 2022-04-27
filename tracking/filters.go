@@ -241,7 +241,12 @@ type AcceptInReplyTo struct {
 
 func (f *AcceptInReplyTo) Filter(r Result) FilterResult {
 	// Do nothing if it's not a reply message
-	if isAnyNone(r, QueueInReplyToHeaderKey) {
+	if isAnyNone(r, QueueInReplyToHeaderKey, ResultMessageDirectionKey) {
+		return FilterResultUndecided
+	}
+
+	// We handle only inbound replies for now
+	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionIncoming {
 		return FilterResultUndecided
 	}
 

@@ -5,8 +5,9 @@
 package tracking
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestFilters(t *testing.T) {
@@ -132,14 +133,28 @@ func TestFilters(t *testing.T) {
 			// no reply, do not reject
 			So(filters.Reject(MappedResult{}.Result()), ShouldBeFalse)
 
+			// Do not try to handle outbound messages, even if they're replies too
+			So(filters.Reject(MappedResult{
+				QueueInReplyToHeaderKey:   ResultEntryText(`reply@wrong.de`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionOutbound)),
+			}.Result()), ShouldBeFalse)
+
 			// matches the filter
 			So(filters.Reject(MappedResult{
-				QueueInReplyToHeaderKey: ResultEntryText(`reply@something.example.com`),
+				QueueInReplyToHeaderKey:   ResultEntryText(`reply@something.example.com`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
+			}.Result()), ShouldBeFalse)
+
+			// the reply header matches, but it's an outbound msg
+			So(filters.Reject(MappedResult{
+				QueueInReplyToHeaderKey:   ResultEntryText(`reply@something.example.com`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionOutbound)),
 			}.Result()), ShouldBeFalse)
 
 			// do not match the filter
 			So(filters.Reject(MappedResult{
-				QueueInReplyToHeaderKey: ResultEntryText(`reply@wrong.de`),
+				QueueInReplyToHeaderKey:   ResultEntryText(`reply@wrong.de`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
 			}.Result()), ShouldBeTrue)
 		})
 	})
