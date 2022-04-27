@@ -12,6 +12,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
+	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -24,8 +25,9 @@ type DB struct {
 	*dbrunner.Runner
 	closers.Closers
 
-	connPair *dbconn.PooledPair
-	filters  tracking.Filters
+	connPair     *dbconn.PooledPair
+	filters      tracking.Filters
+	LogPublisher *logPublisher
 }
 
 type stmtKey = int
@@ -63,6 +65,9 @@ const (
 	deleteLogLinesRefsByDeliveryId
 
 	insertReplyInfo
+
+	selectDeliveries
+	updateDelivery
 
 	lastStmtKey
 )
@@ -144,6 +149,16 @@ where
 	insertLogLineRef:               `insert into log_lines_ref(delivery_id, ref_type, time, checksum) values(?, ?, ?, ?)`,
 	deleteLogLinesRefsByDeliveryId: `delete from log_lines_ref where delivery_id = ?`,
 	insertReplyInfo:                `insert into messageids_replies(original_id, reply_id) values(?, ?)`,
+	selectDeliveries: `
+		select id, delivery_ts
+		from deliveries
+		where sender_local_part = @sender_user
+			and sender_domain_part_id = (select id from remote_domains where domain = @sender_domain)
+			and recipient_local_part = @recipient_user
+			and recipient_domain_part_id = (select id from remote_domains where domain = @recipient_domain)
+			and delivery_ts >= @an_hour_ago
+	`,
+	updateDelivery: `update deliveries set dsn = @dsn, status = @status where id = @id `,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -190,12 +205,26 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tra
 		cleaningFrequency = time.Second * 30
 	)
 
+	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize))
+
 	return &DB{
-		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
-		Closers:  closers.New(stmts),
-		filters:  filters,
+		connPair:     connPair,
+		Runner:       runner,
+		Closers:      closers.New(stmts),
+		filters:      filters,
+		LogPublisher: &logPublisher{runner},
 	}, nil
+}
+
+type logPublisher struct {
+	runner *dbrunner.Runner
+}
+
+func (pub *logPublisher) Publish(r postfix.Record) {
+	switch r.Payload.(type) {
+	case parser.LightmeterRelayedBounce:
+		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(pub.runner, r, 10)
+	}
 }
 
 type resultsPublisher struct {

@@ -67,7 +67,9 @@ const (
 	ResultDeliveryLineChecksum
 	QueueInReplyToHeaderKey
 
-	lasResulttKey
+	ResultDeliveryLineRelayedBounce
+
+	lastResultKey
 )
 
 var (

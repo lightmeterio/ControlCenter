@@ -1,0 +1,11 @@
+Apr 27 14:30:24 lightmetermail postfix/smtpd[34589]: connect from unknown[247.53.187.18]
+Apr 27 14:30:25 lightmetermail postfix/smtpd[34589]: Anonymous TLS connection established from unknown[247.53.187.18]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Apr 27 14:30:26 lightmetermail postfix/smtpd[34589]: AEB0817CED6: client=unknown[247.53.187.18], sasl_method=PLAIN, sasl_username=h-77ff@h-e0a7c0355e2339add.com
+Apr 27 14:30:27 lightmetermail postfix/cleanup[34576]: AEB0817CED6: message-id=<h-431065871defcb92e6142811ad1@h-efe0e6cc7a50c8a1.com>
+Apr 27 14:30:27 lightmetermail opendkim[59]: AEB0817CED6: DKIM-Signature field added (s=default, d=h-e0a7c0355e2339add)
+Apr 27 14:30:27 lightmetermail postfix/qmgr[177]: AEB0817CED6: from=<h-77ff@h-e0a7c0355e2339add.com>, size=3115, nrcpt=2 (queue active)
+Apr 27 14:30:27 lightmetermail postfix/smtpd[34589]: disconnect from unknown[247.53.187.18] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Apr 27 14:30:27 lightmetermail postfix/smtp[34591]: Untrusted TLS connection established to h-ff797cc8150da7ad8091.h-3d7c704422b72[83.244.15.1]:587: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Apr 27 14:30:28 lightmetermail postfix/smtp[34591]: AEB0817CED6: to=<h-85aced2@h-04ec078cf6df16e03c.com>, relay=h-ff797cc8150da7ad8091.h-3d7c704422b72[83.244.15.1]:587, delay=2.1, delays=0.62/0.05/0.86/0.6, dsn=2.0.0, status=sent (250 Ok 010001805f291096-faccf9fa-b272-4ef7-bd4b-6a072596174a-000000)
+Apr 27 14:30:28 lightmetermail postfix/qmgr[177]: AEB0817CED6: removed
+Apr 27 14:30:38 lightmetermail lightmeter/relayed-bounce[54]: Bounce: code="5.6.7", sender=<h-77ff@h-e0a7c0355e2339add.com>, recipient=<h-85aced2@h-04ec078cf6df16e03c.com>, mta="h-6668c859feb3a3fa468d05.h-9f8f068470e0a72b", message="550 5.6.7 DNS domain h-97a777c7701de3e5b29a1b917bf does not exist [Message=InfoDomainNonexistent] [LastAttemptedServerName=h-97a777c7701de3e5b29a1b917bf] [h-ea6044783cd18cd236eb644.h-ae356a81c0f1953ae829d6902d5]"
