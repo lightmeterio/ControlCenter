@@ -5,7 +5,6 @@
 package workspace
 
 import (
-	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
@@ -34,7 +33,7 @@ func TestRelayedBounce(t *testing.T) {
 
 		// Status will only be updated if delivery is less than 1h-old
 		halfAnHourAgo := time.Now().UTC().Add(-30 * time.Minute)
-		modifiedLogs := strings.ReplaceAll(string(text), "Apr 26 19:16", halfAnHourAgo.Format("Jan 02 15:04"))
+		modifiedLogs := strings.ReplaceAll(string(text), "Apr 27 14:30", halfAnHourAgo.Format("Jan 02 15:04"))
 
 		// NOTE: detective sleep to leave time for the delivery to be created and updated
 		d, clear := buildDetectiveFromReader(t, strings.NewReader(modifiedLogs), year, 2*time.Second)
