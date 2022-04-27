@@ -11,7 +11,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       class="small-chart-overlay"
       @click="zoomIn()"
       v-on:keyup.enter="zoomOut()"
-    ></div>
+    >
+      <translate v-if="emptyData">Not enough data to create graph!</translate>
+    </div>
     <v-chart ref="echart" class="chart" :option="option" />
   </div>
 </template>
@@ -50,6 +52,7 @@ export default {
     return {
       granularity: false,
       zoomed: false,
+      emptyData: false,
       option: {
         animation: false,
         title: {
@@ -293,6 +296,8 @@ export default {
           }
         };
 
+        vue.emptyData = series.length == 0;
+
         // FIXME: Ugly hack due a bug on echarts: https://github.com/apache/echarts/issues/6202
         vue.$refs.echart.setOption(newOptions);
       });
@@ -318,6 +323,10 @@ export default {
       background-color: #0069d9;
       opacity: 0.05;
     }
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .chart {
