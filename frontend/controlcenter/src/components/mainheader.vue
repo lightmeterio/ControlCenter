@@ -26,7 +26,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               ></i
             ></router-link>
           </span>
-          <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
+          <span
+            v-on:click="trackClick('Settings', 'clickHeaderButton')"
+            v-if="!simpleViewEnabled"
+          >
             <router-link to="/settings">
               <i
                 class="fas fa-cog"
@@ -36,7 +39,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               ></i
             ></router-link>
           </span>
-          <span v-b-modal.modal-about v-on:click="onGetApplicationInfo">
+          <span
+            v-b-modal.modal-about
+            v-on:click="onGetApplicationInfo"
+            v-if="!simpleViewEnabled"
+          >
             <i
               class="fas fa-info-circle"
               data-toggle="tooltip"
@@ -158,6 +165,8 @@ export default {
     let vue = this;
 
     getSettings().then(function(response) {
+      vue.simpleViewEnabled = response.data.feature_flags.enable_simple_view;
+
       vue.setWalkthroughNeedsToRunAction(
         !response.data.walkthrough || !response.data.walkthrough.completed
       );
@@ -166,7 +175,8 @@ export default {
   data() {
     return {
       year: null,
-      applicationData: null
+      applicationData: null,
+      simpleViewEnabled: false
     };
   },
   computed: {
