@@ -8,7 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -16,7 +15,7 @@ import (
 )
 
 func TestRelayedBounce(t *testing.T) {
-	var year = time.Now().Year()
+	var year = 2020
 	var (
 		correctInterval = timeutil.TimeInterval{
 			time.Date(year, time.January, 0, 0, 0, 0, 0, time.Local),
@@ -28,15 +27,8 @@ func TestRelayedBounce(t *testing.T) {
 		f, err := os.Open("../test_files/postfix_logs/individual_files/31_relayed_bounce.log")
 		So(err, ShouldBeNil)
 
-		text, err := io.ReadAll(f)
-		So(err, ShouldBeNil)
-
-		// Status will only be updated if delivery is less than 1h-old
-		halfAnHourAgo := time.Now().UTC().Add(-30 * time.Minute)
-		modifiedLogs := strings.ReplaceAll(string(text), "Apr 27 14:30", halfAnHourAgo.Format("Jan 02 15:04"))
-
 		// NOTE: detective sleep to leave time for the delivery to be created and updated
-		d, clear := buildDetectiveFromReader(t, strings.NewReader(modifiedLogs), year, 2*time.Second)
+		d, clear := buildDetectiveFromReader(t, f, year, 2*time.Second)
 		defer clear()
 
 		messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1, limit)
