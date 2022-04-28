@@ -64,6 +64,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 	}
 
 	var deliveries []delivery
+
 	anHourAgo := time.Now().UTC().Add(-1 * time.Hour)
 
 	rows, err := tx.Query(stmtsText[selectDeliveries],
