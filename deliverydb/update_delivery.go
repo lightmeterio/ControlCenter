@@ -22,7 +22,7 @@ type delivery struct {
 	id, ts int64
 }
 
-func updateDeliveryWithBounceInfoAction(runner *dbrunner.Runner, r postfix.Record, ttl int) func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
+func updateDeliveryWithBounceInfoAction(actions chan dbrunner.Action, r postfix.Record, ttl int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		lrb, ok := r.Payload.(parser.LightmeterRelayedBounce)
 		if !ok {
@@ -44,15 +44,13 @@ func updateDeliveryWithBounceInfoAction(runner *dbrunner.Runner, r postfix.Recor
 			go func() {
 				time.Sleep(1 * time.Second)
 				log.Debug().Msgf("Retry action after one second")
-				runner.Actions <- updateDeliveryWithBounceInfoAction(runner, r, ttl-1)
+				actions <- updateDeliveryWithBounceInfoAction(actions, r, ttl-1)
 			}()
 		}
 
 		return nil
 	}
 }
-
-var anHourAgo = time.Now().UTC().Add(-1 * time.Hour)
 
 func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.LightmeterRelayedBounce) (bool, error) {
 	senderU, senderD, err := emailutil.Split(p.Sender)
@@ -66,6 +64,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 	}
 
 	var deliveries []delivery
+	anHourAgo := time.Now().UTC().Add(-1 * time.Hour)
 
 	rows, err := tx.Query(stmtsText[selectDeliveries],
 		sql.Named("sender_user", senderU),
@@ -79,7 +78,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 		return false, errorutil.Wrap(err)
 	}
 
-	defer rows.Close()
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
 	deliveries = []delivery{}
 

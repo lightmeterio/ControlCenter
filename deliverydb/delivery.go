@@ -223,7 +223,7 @@ type logPublisher struct {
 func (pub *logPublisher) Publish(r postfix.Record) {
 	switch r.Payload.(type) {
 	case parser.LightmeterRelayedBounce:
-		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(pub.runner, r, 10)
+		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(pub.runner.Actions, r, 10)
 	}
 }
 
