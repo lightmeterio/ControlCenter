@@ -6,6 +6,7 @@ package featureflags
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -36,7 +37,7 @@ func TestFeatures(t *testing.T) {
 		Convey("No value", func() {
 			reader := &fakeReader{}
 			_, err := GetSettings(context.Background(), reader)
-			So(err, ShouldWrap, metadata.ErrNoSuchKey)
+			So(errors.Is(err, metadata.ErrNoSuchKey), ShouldBeTrue)
 		})
 
 		Convey("Empty Value", func() {
