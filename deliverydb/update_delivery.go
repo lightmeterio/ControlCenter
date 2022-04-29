@@ -7,6 +7,8 @@ package deliverydb
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
@@ -15,26 +17,27 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 type delivery struct {
 	id, ts int64
 }
 
-func updateDeliveryWithBounceInfoAction(actions chan dbrunner.Action, r postfix.Record, ttl int) dbrunner.Action {
+func updateDeliveryWithBounceInfoAction(initialTime time.Time, actions chan dbrunner.Action, r postfix.Record, ttl int) dbrunner.Action {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		lrb, ok := r.Payload.(parser.LightmeterRelayedBounce)
 		if !ok {
+			log.Fatal().Msg("Crash now!!!!!")
 			return errorutil.Wrap(fmt.Errorf("Can't cast object into parser.LightmeterRelayedBounce: %v", r.Payload))
 		}
 
-		if ttl <= 0 {
-			log.Warn().Msgf("Couldn't find a delivery to update for relayed bounce %v", lrb)
+		if ttl < 0 {
+			log.Warn().Msgf("Could not find a delivery to update between %v (%v) and %v (%v) for relayed bounce %#v", initialTime, initialTime.Unix(), r.Time, r.Time.Unix(), lrb)
+
 			return nil
 		}
 
-		updated, err := updateDeliveryWithBounceInfo(tx, r, lrb)
+		updated, err := updateDeliveryWithBounceInfo(initialTime, tx, r, lrb)
 		if err != nil {
 			return err
 		}
@@ -44,7 +47,7 @@ func updateDeliveryWithBounceInfoAction(actions chan dbrunner.Action, r postfix.
 			go func() {
 				time.Sleep(1 * time.Second)
 				log.Debug().Msgf("Retry action after one second")
-				actions <- updateDeliveryWithBounceInfoAction(actions, r, ttl-1)
+				actions <- updateDeliveryWithBounceInfoAction(initialTime, actions, r, ttl-1)
 			}()
 		}
 
@@ -52,7 +55,7 @@ func updateDeliveryWithBounceInfoAction(actions chan dbrunner.Action, r postfix.
 	}
 }
 
-func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.LightmeterRelayedBounce) (bool, error) {
+func updateDeliveryWithBounceInfo(initialTime time.Time, tx *sql.Tx, r postfix.Record, p parser.LightmeterRelayedBounce) (updated bool, err error) {
 	senderU, senderD, err := emailutil.Split(p.Sender)
 	if err != nil {
 		return false, errorutil.Wrap(err)
@@ -63,14 +66,13 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 		return false, errorutil.Wrap(err)
 	}
 
-	var deliveries []delivery
-
 	rows, err := tx.Query(stmtsText[selectDeliveries],
 		sql.Named("sender_user", senderU),
 		sql.Named("sender_domain", senderD),
 		sql.Named("recipient_user", recipientU),
 		sql.Named("recipient_domain", recipientD),
-		sql.Named("an_hour_ago", r.Time.Add(-1*time.Hour).Unix()),
+		sql.Named("an_hour_ago", initialTime.Unix()),
+		sql.Named("current_time", r.Time.Unix()),
 	)
 
 	if err != nil {
@@ -79,7 +81,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 
 	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
-	deliveries = []delivery{}
+	deliveries := []delivery{}
 
 	for rows.Next() {
 		var d delivery
@@ -96,6 +98,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, r postfix.Record, p parser.Lightme
 	}
 
 	if len(deliveries) == 0 {
+		log.Debug().Msgf("No relayed bounces were updated between %v and %v. Try again later?! record = %#v", initialTime, r.Time, r)
 		return false, nil
 	}
 

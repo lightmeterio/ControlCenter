@@ -7,6 +7,8 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -16,7 +18,6 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 type dbAction = dbrunner.Action
@@ -156,7 +157,7 @@ where
 			and sender_domain_part_id = (select id from remote_domains where domain = @sender_domain)
 			and recipient_local_part = @recipient_user
 			and recipient_domain_part_id = (select id from remote_domains where domain = @recipient_domain)
-			and delivery_ts >= @an_hour_ago
+			and delivery_ts between @an_hour_ago and @current_time
 	`,
 	updateDelivery: `update deliveries set dsn = @dsn, status = @status where id = @id `,
 }
@@ -223,7 +224,7 @@ type logPublisher struct {
 func (pub *logPublisher) Publish(r postfix.Record) {
 	switch r.Payload.(type) {
 	case parser.LightmeterRelayedBounce:
-		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(pub.runner.Actions, r, 10)
+		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(r.Time.Add(-1*time.Hour), pub.runner.Actions, r, 10)
 	}
 }
 
