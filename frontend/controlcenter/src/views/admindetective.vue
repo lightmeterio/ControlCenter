@@ -40,6 +40,49 @@ SPDX-License-Identifier: AGPL-3.0-only
               Mailbox users
               <router-link to="/settings">in the settings</router-link>
             </li>
+            <li>
+              <translate>Explanation for the Results</translate>:
+              <ul>
+                <li>
+                  <translate>Sent</translate>:
+                  <translate
+                    >Outbound messages that succeeded to be sent</translate
+                  >
+                </li>
+                <li>
+                  <translate>Received</translate>:
+                  <translate>Inbound messages</translate>
+                </li>
+                <li>
+                  <translate>Bounced</translate>:
+                  <translate
+                    >Outbound messages that bounced permanently (hard
+                    bounce)</translate
+                  >
+                </li>
+                <li>
+                  <translate>Deferred</translate>:
+                  <translate
+                    >Outbound messages that bounced temporarily (soft
+                    bounce)</translate
+                  >
+                </li>
+                <li>
+                  <translate>Expired</translate>:
+                  <translate
+                    >Outbound messages that bounced temporarily too many times,
+                    resulting in a hard bounce</translate
+                  >
+                </li>
+                <li>
+                  <translate>Returned</translate>:
+                  <translate
+                    >Inbound messages sent back to the sender when bounces
+                    happen</translate
+                  >
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>
