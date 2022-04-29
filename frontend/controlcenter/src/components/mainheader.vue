@@ -18,13 +18,23 @@ SPDX-License-Identifier: AGPL-3.0-only
         <span class="buttons">
           <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
             <router-link to="/detective">
-              <i
-                class="fas fa-search"
+              <span v-if="!simpleViewEnabled">
+                <i
+                  class="fas fa-search"
+                  data-toggle="tooltip"
+                  data-placement="bottom"
+                  :title="Detective"
+                ></i>
+              </span>
+              <span
                 data-toggle="tooltip"
                 data-placement="bottom"
-                :title="Detective"
-              ></i
-            ></router-link>
+                title="Search messages"
+                v-if="simpleViewEnabled"
+              >
+                <translate>search</translate>
+              </span>
+            </router-link>
           </span>
           <span
             v-on:click="trackClick('Settings', 'clickHeaderButton')"
