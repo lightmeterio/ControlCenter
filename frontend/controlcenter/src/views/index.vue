@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <translate>Observatory</translate>
           </h1>
         </div>
-        <div class="col-5 col-sm-4 col-md-3 col-lg-2">
+        <div class="col-5 col-sm-4 col-md-3 col-lg-2" v-if="!simpleViewEnabled">
           <a
             :href="FeedbackMailtoLink"
             :title="FeedbackButtonTitle"
@@ -59,6 +59,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         ref="statusMessage"
         name="statusMessage"
         class="status-message"
+        v-if="!simpleViewEnabled"
       >
       </b-toaster>
 
@@ -225,6 +226,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <import-progress-indicator
         :label="generatingInsights"
         @finished="handleProgressFinished"
+        v-if="insightsViewEnabled"
       ></import-progress-indicator>
     </div>
     <mainfooter></mainfooter>
@@ -274,8 +276,9 @@ export default {
       statusMessage: null,
       statusMessageId: null,
       dashboardV2IsEnabled: false,
-      dashboardV1IsEnabled: true,
-      insightsViewEnabled: true,
+      dashboardV1IsEnabled: false,
+      simpleViewEnabled: true,
+      insightsViewEnabled: false,
       rawLogsEnabled: true
     };
   },
@@ -469,6 +472,8 @@ export default {
     });
 
     getSettings().then(function(response) {
+      vue.simpleViewEnabled = response.data.feature_flags.enable_simple_view;
+
       vue.dashboardV1IsEnabled = !response.data.feature_flags
         .disable_v1_dashboard;
       vue.dashboardV2IsEnabled =
