@@ -7,9 +7,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <header>
     <walkthrough
+      v-if="!simpleViewEnabled"
       :visible="walkthroughNeedsToRun"
       @finished="handleWalkthroughCompleted"
     ></walkthrough>
+
     <div class="navbar">
       <div class="container d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
