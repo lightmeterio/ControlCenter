@@ -9,7 +9,6 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"os"
-	"strings"
 	"testing"
 	"time"
 )
@@ -28,28 +27,25 @@ func TestRelayedBounce(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// NOTE: detective sleep to leave time for the delivery to be created and updated
-		d, clear := buildDetectiveFromReader(t, f, year, 2*time.Second)
+		d, clear := buildDetectiveFromReader(t, f, year)
 		defer clear()
 
 		messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, -1, "", 1, limit)
 		So(err, ShouldBeNil)
 
-		So(messages.TotalResults, ShouldEqual, 1)
+		So(messages.TotalResults, ShouldEqual, 2)
 
 		msgDeliveries := messages.Messages[0].Entries
 		So(len(msgDeliveries), ShouldEqual, 1)
 
 		msgDelivery := msgDeliveries[0]
-		So(msgDelivery.Dsn, ShouldEqual, "5.6.7")
+		So(msgDelivery.Dsn, ShouldEqual, "5.3.0")
 		So(msgDelivery.Status, ShouldEqual, parser.BouncedStatus)
 		So(len(msgDelivery.RawLogMsgs), ShouldEqual, 2)
 
-		firstLineNoDate := `lightmetermail postfix/smtp[34591]: AEB0817CED6: to=<h-85aced2@h-04ec078cf6df16e03c.com>, relay=h-ff797cc8150da7ad8091.h-3d7c704422b72[83.244.15.1]:587, delay=2.1, delays=0.62/0.05/0.86/0.6, dsn=2.0.0, status=sent (250 Ok 010001805f291096-faccf9fa-b272-4ef7-bd4b-6a072596174a-000000)`
+		So(msgDelivery.RawLogMsgs[0], ShouldEqual, `Apr 27 12:46:31 lightmetermail postfix/smtp[12770]: 202A613D2BC: to=<h-4258189ab6952@h-9ce99f28.com>, relay=h-ff797cc8150da7ad8091.h-3d7c704422b72[135.237.217.50]:587, delay=2.3, delays=0.72/0.06/0.84/0.64, dsn=2.0.0, status=sent (250 Ok 010001806b0f0f99-41060108-df04-45ed-8b3c-e2f5d9275ec9-000000)`)
 
 		// and we also get the lightmeter/relayed-bounce log line
-		secondLineNoDate := `lightmetermail lightmeter/relayed-bounce[54]: Bounce: code="5.6.7", sender=<h-77ff@h-e0a7c0355e2339add.com>, recipient=<h-85aced2@h-04ec078cf6df16e03c.com>, mta="h-6668c859feb3a3fa468d05.h-9f8f068470e0a72b", message="550 5.6.7 DNS domain h-97a777c7701de3e5b29a1b917bf does not exist [Message=InfoDomainNonexistent] [LastAttemptedServerName=h-97a777c7701de3e5b29a1b917bf] [h-ea6044783cd18cd236eb644.h-ae356a81c0f1953ae829d6902d5]"`
-
-		So(strings.HasSuffix(msgDelivery.RawLogMsgs[0], firstLineNoDate), ShouldBeTrue)
-		So(strings.HasSuffix(msgDelivery.RawLogMsgs[1], secondLineNoDate), ShouldBeTrue)
+		So(msgDelivery.RawLogMsgs[1], ShouldEqual, `Apr 27 12:46:34 lightmetermail lightmeter/relayed-bounce[62]: AC80013D2BC: Bounce: code="5.3.0", sender=<h-77ff@h-e0a7c0355e2339add.com>, recipient=<h-4258189ab6952@h-9ce99f28.com>, mta="h-676c0ed5fb08ee445040bc7ff918", message="554 rejected due to spam URL in content"`)
 	})
 }

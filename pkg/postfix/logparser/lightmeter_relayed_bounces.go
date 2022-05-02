@@ -13,6 +13,7 @@ func init() {
 }
 
 type LightmeterRelayedBounce struct {
+	Queue           string
 	Sender          string
 	Recipient       string
 	DeliveryCode    string
@@ -26,6 +27,7 @@ func (LightmeterRelayedBounce) isPayload() {
 
 func convertRelayedBounce(r rawparser.RawPayload) (Payload, error) {
 	return LightmeterRelayedBounce{
+		Queue:           r.LightmeterRelayedBounce.Queue,
 		Sender:          r.LightmeterRelayedBounce.Sender,
 		Recipient:       r.LightmeterRelayedBounce.Recipient,
 		DeliveryCode:    r.LightmeterRelayedBounce.DeliveryCode,

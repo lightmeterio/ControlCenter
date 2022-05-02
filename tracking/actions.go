@@ -6,6 +6,7 @@ package tracking
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -42,6 +43,7 @@ const (
 	RejectActionType
 	MessageExpiredActionType
 	LightmeterHeaderDumpActionType
+	LightmeterRelayedBounceType
 )
 
 var actions = map[ActionType]actionRecord{
@@ -59,6 +61,7 @@ var actions = map[ActionType]actionRecord{
 	RejectActionType:               {impl: rejectAction},
 	MessageExpiredActionType:       {impl: messageExpiredAction},
 	LightmeterHeaderDumpActionType: {impl: lightmeterHeaderDumpAction},
+	LightmeterRelayedBounceType:    {impl: lightmeterRelayedBounceAction},
 }
 
 var emptyActionDataPair = actionDataPair{connectionActionData: nil, resultActionData: nil}
@@ -105,6 +108,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		return MessageExpiredActionType, emptyActionDataPair
 	case parser.LightmeterDumpedHeader:
 		return LightmeterHeaderDumpActionType, emptyActionDataPair
+	case parser.LightmeterRelayedBounce:
+		return LightmeterRelayedBounceType, emptyActionDataPair
 	}
 
 	return UnsupportedActionType, emptyActionDataPair
@@ -892,6 +897,35 @@ func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair act
 	}
 
 	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueInReplyToHeaderKey, value: value}); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+type RelayedBounceInfos struct {
+	ParserInfos parser.LightmeterRelayedBounce
+	RecordTime  time.Time
+	RecordSum   postfix.Sum
+}
+
+func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+	//nolint:forcetypeassert
+	p := r.Payload.(parser.LightmeterRelayedBounce)
+
+	log.Info().Msgf("Debug: %s, %s", p.Queue, p)
+
+	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	value, err := json.Marshal(RelayedBounceInfos{p, r.Time, r.Sum})
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueRelayedBounceJsonKey, value: value}); err != nil {
 		return errorutil.Wrap(err)
 	}
 

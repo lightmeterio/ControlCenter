@@ -36,17 +36,10 @@ func buildDetective(t *testing.T, filename string, year int) (detective.Detectiv
 	f, err := os.Open(filename)
 	So(err, ShouldBeNil)
 
-	return buildDetectiveFromReader(t, f, year, 0)
+	return buildDetectiveFromReader(t, f, year)
 }
 
-func buildDetectiveWithTimeDelay(t *testing.T, filename string, year int, delay time.Duration) (detective.Detective, func()) {
-	f, err := os.Open(filename)
-	So(err, ShouldBeNil)
-
-	return buildDetectiveFromReader(t, f, year, delay)
-}
-
-func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int, delay time.Duration) (detective.Detective, func()) {
+func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int) (detective.Detective, func()) {
 	dir, clearDir := testutil.TempDir(t)
 
 	var err error
@@ -80,8 +73,6 @@ func buildDetectiveFromReader(t *testing.T, reader io.Reader, year int, delay ti
 	err = logReader.Run()
 	So(err, ShouldBeNil)
 
-	time.Sleep(delay) // not very elegant, but only way to test relayed bounces
-
 	cancel()
 	err = done()
 	So(err, ShouldBeNil)
@@ -111,7 +102,7 @@ func TestDetective(t *testing.T) {
 		)
 
 		Convey("Empty input logs", func() {
-			d, clear := buildDetectiveFromReader(t, bytes.NewReader(nil), year, 0)
+			d, clear := buildDetectiveFromReader(t, bytes.NewReader(nil), year)
 			defer clear()
 
 			_, err := d.OldestAvailableTime(bg)

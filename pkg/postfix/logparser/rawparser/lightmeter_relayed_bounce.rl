@@ -21,7 +21,11 @@ func parseRelayedBounce(data string) (LightmeterRelayedBounce, bool) {
 %%{
 	include common "common.rl";
 
-  code = [^"]+ >setTokBeg %{
+	headerQueueId = queueId >setTokBeg %{
+		r.Queue = data[tokBeg:p]
+	};
+	
+	code = [^"]+ >setTokBeg %{
     r.DeliveryCode = data[tokBeg:p]
   };
 
@@ -41,7 +45,7 @@ func parseRelayedBounce(data string) (LightmeterRelayedBounce, bool) {
 		r.DeliveryMessage = data[tokBeg:p]
 	};
 	
-	main := 'Bounce: code="' code '", sender=<' sender '>, recipient=<' recipient '>, mta="' mta '", message="' message '"' @{
+	main := headerQueueId ': Bounce: code="' code '", sender=<' sender '>, recipient=<' recipient '>, mta="' mta '", message="' message '"' @{
 		return r, true
 	};
 

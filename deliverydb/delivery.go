@@ -6,13 +6,14 @@ package deliverydb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -25,9 +26,8 @@ type DB struct {
 	*dbrunner.Runner
 	closers.Closers
 
-	connPair     *dbconn.PooledPair
-	filters      tracking.Filters
-	LogPublisher *logPublisher
+	connPair *dbconn.PooledPair
+	filters  tracking.Filters
 }
 
 type stmtKey = int
@@ -208,23 +208,11 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tra
 	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize))
 
 	return &DB{
-		connPair:     connPair,
-		Runner:       runner,
-		Closers:      closers.New(stmts),
-		filters:      filters,
-		LogPublisher: &logPublisher{runner},
+		connPair: connPair,
+		Runner:   runner,
+		Closers:  closers.New(stmts),
+		filters:  filters,
 	}, nil
-}
-
-type logPublisher struct {
-	runner *dbrunner.Runner
-}
-
-func (pub *logPublisher) Publish(r postfix.Record) {
-	switch r.Payload.(type) {
-	case parser.LightmeterRelayedBounce:
-		pub.runner.Actions <- updateDeliveryWithBounceInfoAction(pub.runner.Actions, r, 10)
-	}
 }
 
 type resultsPublisher struct {
@@ -401,6 +389,18 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		defer recoverFromError(&err, tr)
+
+		if !tr[tracking.QueueRelayedBounceJsonKey].IsNone() {
+			var rb tracking.RelayedBounceInfos
+			if err := json.Unmarshal(tr[tracking.QueueRelayedBounceJsonKey].Blob(), &rb); err != nil {
+				return err
+			}
+
+			err := updateDeliveryWithBounceInfo(tx, rb)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Error updating delivery with relayed-bounced infos (%s => %s)", rb.ParserInfos.Sender, rb.ParserInfos.Recipient)
+			}
+		}
 
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {

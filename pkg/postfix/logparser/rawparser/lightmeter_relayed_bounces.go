@@ -9,6 +9,7 @@ func init() {
 }
 
 type LightmeterRelayedBounce struct {
+	Queue           string
 	Sender          string
 	Recipient       string
 	DeliveryCode    string

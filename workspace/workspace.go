@@ -471,7 +471,6 @@ func (ws *Workspace) NewPublisher() postfix.Publisher {
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
-		ws.deliveries.LogPublisher,
 	}
 
 	flags, err := featureflags.GetSettings(context.Background(), ws.settingsMetaHandler.Reader)
