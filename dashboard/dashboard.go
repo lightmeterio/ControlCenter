@@ -8,15 +8,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"io"
+	"math"
+	"strings"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
-	"math"
-	"strings"
-	"time"
 )
 
 type Pair struct {
@@ -37,11 +38,13 @@ type Dashboard interface {
 	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
+
 	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	BouncedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	DeferredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	ExpiredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 	ReceivedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	InboundRepliesByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 }
 
 type sqlDashboard struct {
@@ -187,6 +190,61 @@ from
 			return errorutil.Wrap(err)
 		}
 
+		// NOTE: new learning: no available open source tool can indent SQL queries with CTE properly!
+		// as the query below is what I got using `sqlformat.org`, and gnu indent was even worse!
+		if err := db.PrepareStmt(`
+with messageids_of_replies as
+    (select distinct m_reply.id,
+                     m_reply.value as messageid_reply_value,
+                     m_original.value as messageid_original_value
+     from messageids m_original
+     join messageids_replies r on r.original_id = m_original.id
+     join messageids m_reply on r.reply_id = m_reply.id),
+     deliveries_in_range as
+    (select *
+     from deliveries where delivery_ts between @start and @end),
+     deliveries_with_replies as
+    (select *
+     from deliveries_in_range d
+     join messageids_of_replies m on d.message_id = m.id),
+     users as
+    (select distinct d.direction,
+                     d. recipient_local_part as local_part,
+                     d. recipient_domain_part_id as domain_part_id,
+                     rd. domain
+     from deliveries_with_replies d
+     join remote_domains rd on d. recipient_domain_part_id = rd. id
+     and recipient_local_part != ''
+     and d.direction = @Inbound
+     where rd.domain != ''),
+     bins as
+    (select cast (round (delivery_ts / (@granularity), 0.5) * (@granularity) as integer) as t,
+                 id,
+                 u.local_part,
+                 u.domain
+     from deliveries_in_range d
+     join users u on d. recipient_local_part = u.local_part
+     and d.recipient_domain_part_id = u.domain_part_id
+     order by t),
+     number_sent_mails_per_user_per_interval as
+    (select t,
+            count (id) as c,
+                  local_part || '@' || domain as mailbox
+     from bins
+     group by t,
+              local_part,
+              domain)
+select mailbox,
+       min (t) as min_r,
+           max (t) as max_r,
+               json_group_array (json_array (t, c))
+from number_sent_mails_per_user_per_interval group
+  by mailbox
+order
+  by t`, "inboundReplyVolumeByMailbox"); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}
 
@@ -262,7 +320,11 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 }
 
 func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int, status parser.SmtpStatus, direction tracking.MessageDirection) (MailTrafficPerSenderOverTimeResult, error) {
-	conn, release, err := d.pool.AcquireContext(ctx)
+	return executeQueryWithKey(ctx, d.pool, "outboundSentVolumeByMailbox", interval, granularityInHour, sql.Named("status", status), sql.Named("direction", direction))
+}
+
+func executeQueryWithKey(ctx context.Context, pool *dbconn.RoPool, key string, interval timeutil.TimeInterval, granularityInHour int, extraArgs ...interface{}) (MailTrafficPerSenderOverTimeResult, error) {
+	conn, release, err := pool.AcquireContext(ctx)
 	if err != nil {
 		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
 	}
@@ -272,17 +334,19 @@ func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.
 	granularity := granularityInHour * int(time.Hour/time.Second)
 
 	//nolint:sqlclosecheck
-	return queryMailTrafficPerMailbox(ctx, conn.GetStmt("outboundSentVolumeByMailbox"),
-		granularity,
+	return queryMailTrafficPerMailbox(ctx, conn.GetStmt(key), granularity, buildArgs(interval, extraArgs)...)
+}
 
+func buildArgs(interval timeutil.TimeInterval, args []interface{}) []interface{} {
+	return append([]interface{}{
 		sql.Named("Outbound", tracking.MessageDirectionOutbound),
 		sql.Named("Inbound", tracking.MessageDirectionIncoming),
 		sql.Named("Expired", parser.ExpiredStatus),
 
 		sql.Named("start", interval.From.Unix()),
-		sql.Named("end", interval.To.Unix()),
-		sql.Named("status", status),
-		sql.Named("direction", direction))
+		sql.Named("end", interval.To.Unix())},
+		args...,
+	)
 }
 
 func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
@@ -303,6 +367,10 @@ func (d sqlDashboard) ExpiredMailsByMailbox(ctx context.Context, interval timeut
 
 func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
 	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus /* <= not a bug*/, tracking.MessageDirectionIncoming)
+}
+
+func (d sqlDashboard) InboundRepliesByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return executeQueryWithKey(ctx, d.pool, "inboundReplyVolumeByMailbox", interval, granularityInHour)
 }
 
 type Queryable interface {
@@ -362,6 +430,7 @@ func queryMailTrafficPerMailbox(ctx context.Context, stmt *sql.Stmt, granularity
 }
 
 func queryMailTrafficPerMailboxWithQueryable(ctx context.Context, stmt Queryable, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+	// TODO: this can be simplified with: // rows, err := stmt.QueryContext(ctx, append(args, sql.Named("granularity", granularity)))
 	rows, err := stmt.QueryContext(ctx, append([]interface{}{sql.Named("granularity", granularity)}, args...)...)
 
 	if err != nil {
