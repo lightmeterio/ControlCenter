@@ -6,7 +6,9 @@ package deliverydb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -63,6 +65,9 @@ const (
 	deleteLogLinesRefsByDeliveryId
 
 	insertReplyInfo
+
+	selectDeliveries
+	updateDelivery
 
 	lastStmtKey
 )
@@ -144,6 +149,16 @@ where
 	insertLogLineRef:               `insert into log_lines_ref(delivery_id, ref_type, time, checksum) values(?, ?, ?, ?)`,
 	deleteLogLinesRefsByDeliveryId: `delete from log_lines_ref where delivery_id = ?`,
 	insertReplyInfo:                `insert into messageids_replies(original_id, reply_id) values(?, ?)`,
+	selectDeliveries: `
+		select id, delivery_ts
+		from deliveries
+		where sender_local_part = @sender_user
+			and sender_domain_part_id = (select id from remote_domains where domain = @sender_domain)
+			and recipient_local_part = @recipient_user
+			and recipient_domain_part_id = (select id from remote_domains where domain = @recipient_domain)
+			and delivery_ts >= @an_hour_ago
+	`,
+	updateDelivery: `update deliveries set dsn = @dsn, status = @status where id = @id `,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -190,9 +205,11 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tra
 		cleaningFrequency = time.Second * 30
 	)
 
+	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize))
+
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:   runner,
 		Closers:  closers.New(stmts),
 		filters:  filters,
 	}, nil
@@ -372,6 +389,18 @@ func valueOrNil(e tracking.ResultEntry) interface{} {
 func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error {
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		defer recoverFromError(&err, tr)
+
+		if !tr[tracking.QueueRelayedBounceJsonKey].IsNone() {
+			var rb tracking.RelayedBounceInfos
+			if err := json.Unmarshal(tr[tracking.QueueRelayedBounceJsonKey].Blob(), &rb); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			err := updateDeliveryWithBounceInfo(tx, rb)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Error updating delivery with relayed-bounced infos (%s => %s)", rb.ParserInfos.Sender, rb.ParserInfos.Recipient)
+			}
+		}
 
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {

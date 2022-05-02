@@ -784,5 +784,21 @@ func TestDovecotLogParsing(t *testing.T) {
 			So(p.Key, ShouldEqual, "In-Reply-To")
 			So(p.Value, ShouldEqual, "<da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>")
 		})
+
+		Convey("Parse relayed-bounce log line created by our milter", func() {
+			_, parsed, err := Parse(`Apr 25 05:19:38 lightmetermail lightmeter/relayed-bounce[54]: 0123456789A: Bounce: code="5.6.7", sender=<sender@domain.org>, recipient=<recipient@other.com>, mta="some.mta.net", message="550 5.6.7 DNS domain ''lala.com'' does not exist [Message=InfoDomainNonexistent] [LastAttemptedServerName=lala.com] [blah]"`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(LightmeterRelayedBounce)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, `0123456789A`)
+			So(p.Sender, ShouldEqual, `sender@domain.org`)
+			So(p.Recipient, ShouldEqual, "recipient@other.com")
+			So(p.DeliveryCode, ShouldEqual, "5.6.7")
+			So(p.DeliveryMessage, ShouldEqual, `550 5.6.7 DNS domain ''lala.com'' does not exist [Message=InfoDomainNonexistent] [LastAttemptedServerName=lala.com] [blah]`)
+			So(p.ReportingMTA, ShouldEqual, "some.mta.net")
+		})
 	})
 }

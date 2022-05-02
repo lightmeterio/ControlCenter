@@ -122,7 +122,7 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				join queues on d.queue_id = queues.id
 				join queues_filtered_by_condition q on q.queue_id = d.queue_id 
 				left join next_relays on d.relay_id = next_relays.id
-				left join log_lines_ref ref on d.id = ref.delivery_id and (ref.ref_type = @ref_type or ref.ref_type is null)
+				left join log_lines_ref ref on d.id = ref.delivery_id
 				group by d.queue_id, status, dsn
 			)
 			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay, log_refs
@@ -326,7 +326,6 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 		sql.Named("recipient_domain", recipientDomain),
 		sql.Named("recipient_domain_like", fmt.Sprintf("%%%s", recipientDomain)),
 		sql.Named("someID", someID),
-		sql.Named("ref_type", tracking.ResultDeliveryLineChecksum),
 		sql.Named("limit", limit),
 		sql.Named("offset", (page-1)*limit),
 	)

@@ -28,4 +28,5 @@ type RawPayload struct {
 	Version                     Version
 	DovecotAuthFailedWithReason DovecotAuthFailedWithReason
 	LightmeterDumpedHeader      LightmeterDumpedHeader
+	LightmeterRelayedBounce     LightmeterRelayedBounce
 }

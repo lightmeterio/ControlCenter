@@ -67,7 +67,10 @@ const (
 	ResultDeliveryLineChecksum
 	QueueInReplyToHeaderKey
 
-	lasResulttKey
+	ResultDeliveryLineRelayedBounce
+	QueueRelayedBounceJsonKey
+
+	lastResultKey
 )
 
 var (
@@ -126,5 +129,8 @@ var (
 
 		ResultDeliveryLineChecksum: "result_delivery_line_checksum",
 		QueueInReplyToHeaderKey:    "queue_in_reply_to_header",
+
+		ResultDeliveryLineRelayedBounce: "result_relivery_line_relayed_bounce",
+		QueueRelayedBounceJsonKey:       "queue_relayed_bounce_json_key",
 	}
 )

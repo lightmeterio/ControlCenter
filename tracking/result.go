@@ -232,7 +232,7 @@ func (e ResultEntry) MarshalZerologObject(event *zerolog.Event) {
 	}
 }
 
-type Result [lasResulttKey]ResultEntry
+type Result [lastResultKey]ResultEntry
 
 func (r Result) MarshalJSON() ([]byte, error) {
 	s := map[string]interface{}{}
