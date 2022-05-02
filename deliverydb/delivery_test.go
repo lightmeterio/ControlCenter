@@ -395,6 +395,100 @@ func TestEntriesInsertion(t *testing.T) {
 				})
 			})
 		})
+
+		Convey("Test Replied Message when the original message does not exist. Do not link message-ids", func() {
+			db, done, cancel, pub, _ := buildWs()
+
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("non-existing-message-id")
+				pub.Publish(r)
+			}
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			conn, release := db.connPair.RoConnPool.Acquire()
+			defer release()
+
+			var count int
+			err := conn.QueryRow(`select count(*) from messageids_replies`).Scan(&count)
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("Test Replied Message when the original message exists, linking the two messages", func() {
+			db, done, cancel, pub, _ := buildWs()
+
+			// first message, to receive a reply later
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("first-message-id")
+				pub.Publish(r)
+			}
+
+			// a second message, which receives no replies
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("second-message-id")
+				pub.Publish(r)
+			}
+
+			// a third message, as a reply to the first one
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("third-message-id")
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("first-message-id")
+				pub.Publish(r)
+			}
+
+			// a fourth message, simple one
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("fourth-message-id")
+				pub.Publish(r)
+			}
+
+			// a fifth message, as a reply to the third one, which is iin itself a reply
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("fifth-message-id")
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("third-message-id")
+				pub.Publish(r)
+			}
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			conn, release := db.connPair.RoConnPool.Acquire()
+			defer release()
+
+			type pair struct {
+				original string
+				reply    string
+			}
+
+			pairs := []pair{}
+
+			rows, err := conn.Query(`select m_original.value, m_reply.value from messageids m_original join messageids_replies r on m_original.id = r.original_id join messageids m_reply on m_reply.id = r.reply_id order by r.id`)
+			So(err, ShouldBeNil)
+
+			defer rows.Close()
+
+			for rows.Next() {
+				var pair pair
+				err := rows.Scan(&pair.original, &pair.reply)
+				So(err, ShouldBeNil)
+
+				pairs = append(pairs, pair)
+			}
+
+			So(rows.Err(), ShouldBeNil)
+			So(pairs, ShouldResemble, []pair{
+				{original: `first-message-id`, reply: `third-message-id`},
+				{original: `third-message-id`, reply: `fifth-message-id`},
+			})
+		})
 	})
 }
 

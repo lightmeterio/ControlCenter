@@ -22,6 +22,7 @@ const (
 	PayloadTypeCleanupMilterReject
 	PayloadTypeVersion
 	PayloadTypeDovecotAuthFailedWithReason
+	PayloadTypeLightmeterDumpedHeader
 
 	// types for SmtpMessageStatus extra message
 	PayloadTypeSmtpMessageStatusSentQueued

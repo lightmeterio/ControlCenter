@@ -62,6 +62,8 @@ const (
 	insertLogLineRef
 	deleteLogLinesRefsByDeliveryId
 
+	insertReplyInfo
+
 	lastStmtKey
 )
 
@@ -141,6 +143,7 @@ where
 	deleteMessageIdById:            `delete from messageids where id = ?`,
 	insertLogLineRef:               `insert into log_lines_ref(delivery_id, ref_type, time, checksum) values(?, ?, ?, ?)`,
 	deleteLogLinesRefsByDeliveryId: `delete from log_lines_ref where delivery_id = ?`,
+	insertReplyInfo:                `insert into messageids_replies(original_id, reply_id) values(?, ?)`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -433,6 +436,51 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 		if err != nil {
 			return errorutil.Wrap(err)
 		}
+	}
+
+	if !tr[tracking.QueueInReplyToHeaderKey].IsNone() && !tr[tracking.QueueMessageIDKey].IsNone() {
+		if err := handleReply(tx, stmts, tr); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+func getExistingMessageId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, value string) (int64, error) {
+	var id int64
+
+	//nolint:sqlclosecheck
+	err := stmts.Get(selectMessageIdsByValue).QueryRow(value).Scan(&id)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return id, nil
+}
+
+func handleReply(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tracking.Result) error {
+	origId, err := getExistingMessageId(tx, stmts, tr[tracking.QueueInReplyToHeaderKey].Text())
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	replyId, err := getExistingMessageId(tx, stmts, tr[tracking.QueueMessageIDKey].Text())
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(insertReplyInfo).Exec(origId, replyId); err != nil {
+		return errorutil.Wrap(err)
 	}
 
 	return nil
