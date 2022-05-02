@@ -29,8 +29,6 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, rb tracking.RelayedBounceInfos) er
 		return errorutil.Wrap(err)
 	}
 
-	var deliveries []delivery
-
 	rows, err := tx.Query(stmtsText[selectDeliveries],
 		sql.Named("sender_user", senderU),
 		sql.Named("sender_domain", senderD),
@@ -45,7 +43,7 @@ func updateDeliveryWithBounceInfo(tx *sql.Tx, rb tracking.RelayedBounceInfos) er
 
 	defer errorutil.UpdateErrorFromCloser(rows, &err)
 
-	deliveries = []delivery{}
+	deliveries := []delivery{}
 
 	for rows.Next() {
 		var d delivery

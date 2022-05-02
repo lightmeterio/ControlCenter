@@ -12,26 +12,12 @@ func init() {
 	registerHandler(rawparser.PayloadTypeLightmeterRelayedBounce, convertRelayedBounce)
 }
 
-type LightmeterRelayedBounce struct {
-	Queue           string
-	Sender          string
-	Recipient       string
-	DeliveryCode    string
-	DeliveryMessage string
-	ReportingMTA    string
-}
+type LightmeterRelayedBounce rawparser.LightmeterRelayedBounce
 
 func (LightmeterRelayedBounce) isPayload() {
 	// required by interface Payload
 }
 
 func convertRelayedBounce(r rawparser.RawPayload) (Payload, error) {
-	return LightmeterRelayedBounce{
-		Queue:           r.LightmeterRelayedBounce.Queue,
-		Sender:          r.LightmeterRelayedBounce.Sender,
-		Recipient:       r.LightmeterRelayedBounce.Recipient,
-		DeliveryCode:    r.LightmeterRelayedBounce.DeliveryCode,
-		DeliveryMessage: r.LightmeterRelayedBounce.DeliveryMessage,
-		ReportingMTA:    r.LightmeterRelayedBounce.ReportingMTA,
-	}, nil
+	return LightmeterRelayedBounce(r.LightmeterRelayedBounce), nil
 }

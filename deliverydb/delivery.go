@@ -393,7 +393,7 @@ func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error
 		if !tr[tracking.QueueRelayedBounceJsonKey].IsNone() {
 			var rb tracking.RelayedBounceInfos
 			if err := json.Unmarshal(tr[tracking.QueueRelayedBounceJsonKey].Blob(), &rb); err != nil {
-				return err
+				return errorutil.Wrap(err)
 			}
 
 			err := updateDeliveryWithBounceInfo(tx, rb)

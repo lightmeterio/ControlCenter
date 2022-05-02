@@ -904,16 +904,14 @@ func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair act
 }
 
 type RelayedBounceInfos struct {
-	ParserInfos parser.LightmeterRelayedBounce
-	RecordTime  time.Time
-	RecordSum   postfix.Sum
+	ParserInfos parser.LightmeterRelayedBounce `json:"parser_infos"`
+	RecordTime  time.Time                      `json:"record_time"`
+	RecordSum   postfix.Sum                    `json:"record_sum"`
 }
 
 func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.LightmeterRelayedBounce)
-
-	log.Info().Msgf("Debug: %s, %s", p.Queue, p)
 
 	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
 	if err != nil {

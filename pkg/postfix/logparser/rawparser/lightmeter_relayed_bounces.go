@@ -9,12 +9,12 @@ func init() {
 }
 
 type LightmeterRelayedBounce struct {
-	Queue           string
-	Sender          string
-	Recipient       string
-	DeliveryCode    string
-	DeliveryMessage string
-	ReportingMTA    string
+	Queue           string `json:"queue"`
+	Sender          string `json:"sender"`
+	Recipient       string `json:"recipient"`
+	DeliveryCode    string `json:"delivery_code"`
+	DeliveryMessage string `json:"delivery_message"`
+	ReportingMTA    string `json:"reporting_mta"`
 }
 
 func parseRelayedBouncePayload(payloadLine string) (RawPayload, error) {
