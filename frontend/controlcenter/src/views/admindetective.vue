@@ -35,10 +35,53 @@ SPDX-License-Identifier: AGPL-3.0-only
               Leave sender or recipient blank, to view all emails to or from
               someone, or some domain
             </li>
-            <li>
+            <li v-if="!simpleViewEnabled">
               You can enable a restricted view of the Message Detective for
               Mailbox users
               <router-link to="/settings">in the settings</router-link>
+            </li>
+            <li>
+              <translate>Explanation for the Results</translate>:
+              <ul>
+                <li>
+                  <translate>Sent</translate>:
+                  <translate
+                    >Outbound messages that succeeded to be sent</translate
+                  >
+                </li>
+                <li>
+                  <translate>Received</translate>:
+                  <translate>Inbound messages</translate>
+                </li>
+                <li>
+                  <translate>Bounced</translate>:
+                  <translate
+                    >Outbound messages that bounced permanently (hard
+                    bounce)</translate
+                  >
+                </li>
+                <li>
+                  <translate>Deferred</translate>:
+                  <translate
+                    >Outbound messages that bounced temporarily (soft
+                    bounce)</translate
+                  >
+                </li>
+                <li>
+                  <translate>Expired</translate>:
+                  <translate
+                    >Outbound messages that bounced temporarily too many times,
+                    resulting in a hard bounce</translate
+                  >
+                </li>
+                <li>
+                  <translate>Returned</translate>:
+                  <translate
+                    >Inbound messages sent back to the sender when bounces
+                    happen</translate
+                  >
+                </li>
+              </ul>
             </li>
           </ul>
         </div>
@@ -52,8 +95,22 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script>
+import { getSettings } from "../lib/api.js";
+
 export default {
-  name: "admindetective"
+  name: "admindetective",
+  data() {
+    return {
+      simpleViewEnabled: true
+    };
+  },
+  mounted() {
+    let vue = this;
+
+    getSettings().then(function(response) {
+      vue.simpleViewEnabled = response.data.feature_flags.enable_simple_view;
+    });
+  }
 };
 </script>
 
