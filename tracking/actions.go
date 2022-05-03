@@ -545,11 +545,11 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 			err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
 
 			if err != nil && errors.Is(err, sql.ErrNoRows) {
-				// TODO: this usually happens because the `disconnnect from` happens AFTER the `mail sent=...` action
+				// TODO: this usually happens because the `disconnect from` happens AFTER the `mail sent=...` action
 				// meaning that the SMTP connection lasted a bit longer and its end was logged a bit later.
 				// this is a bit difficult to fix, as it'd force us to "schedule" the generation of a delivery attempt result.
 				// FIXME: for now the workaround is just to mock the behaviour, which will result into imprecise data!
-				//return false, errorutil.Wrap(err)
+				// return false, errorutil.Wrap(err)
 				return 0, nil
 			}
 
@@ -589,6 +589,7 @@ func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, track
 
 		// a parent was found. Search deeper...
 		queueId = parentQueueId
+
 		continue
 	}
 }
