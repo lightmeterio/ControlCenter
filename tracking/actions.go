@@ -1149,7 +1149,7 @@ func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, actionDataPair 
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.LightmeterRelayedBounce)
 
-	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
