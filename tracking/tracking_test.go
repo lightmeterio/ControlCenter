@@ -742,6 +742,18 @@ Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="Referen
 					done()
 					So(len(pub.results), ShouldEqual, 0)
 				})
+
+				Convey("Bounce relay info", func() {
+					readFromTestFile("../test_files/postfix_logs/individual_files/31_relayed_bounce.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 2)
+
+					// TODO: those assertions are not testing much and it should be improved!
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "202A613D2BC")
+					So(pub.results[1][QueueDeliveryNameKey].Text(), ShouldEqual, "AC80013D2BC")
+				})
 			})
 
 			// we expected all results to have been consumed
