@@ -320,7 +320,12 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 }
 
 func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int, status parser.SmtpStatus, direction tracking.MessageDirection) (MailTrafficPerSenderOverTimeResult, error) {
-	return executeQueryWithKey(ctx, d.pool, "outboundSentVolumeByMailbox", interval, granularityInHour, sql.Named("status", status), sql.Named("direction", direction))
+	return executeQueryWithKey(ctx, d.pool, "outboundSentVolumeByMailbox", interval, granularityInHour,
+		sql.Named("status", status), sql.Named("direction", direction),
+		sql.Named("Outbound", tracking.MessageDirectionOutbound),
+		sql.Named("Inbound", tracking.MessageDirectionIncoming),
+		sql.Named("Expired", parser.ExpiredStatus),
+	)
 }
 
 func executeQueryWithKey(ctx context.Context, pool *dbconn.RoPool, key string, interval timeutil.TimeInterval, granularityInHour int, extraArgs ...interface{}) (MailTrafficPerSenderOverTimeResult, error) {
@@ -339,10 +344,6 @@ func executeQueryWithKey(ctx context.Context, pool *dbconn.RoPool, key string, i
 
 func buildArgs(interval timeutil.TimeInterval, args []interface{}) []interface{} {
 	return append([]interface{}{
-		sql.Named("Outbound", tracking.MessageDirectionOutbound),
-		sql.Named("Inbound", tracking.MessageDirectionIncoming),
-		sql.Named("Expired", parser.ExpiredStatus),
-
 		sql.Named("start", interval.From.Unix()),
 		sql.Named("end", interval.To.Unix())},
 		args...,
@@ -370,7 +371,7 @@ func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeu
 }
 
 func (d sqlDashboard) InboundRepliesByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
-	return executeQueryWithKey(ctx, d.pool, "inboundReplyVolumeByMailbox", interval, granularityInHour)
+	return executeQueryWithKey(ctx, d.pool, "inboundReplyVolumeByMailbox", interval, granularityInHour, sql.Named("Inbound", tracking.MessageDirectionIncoming))
 }
 
 type Queryable interface {

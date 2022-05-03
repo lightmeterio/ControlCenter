@@ -36,6 +36,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="expiredMailsByMailboxTitle"
       size="3"
     ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
+      endpoint="inboundRepliesByMailbox"
+      title="FIXME: Reply numbers!"
+      size="2"
+    ></dashboard-supergraph>
   </div>
 </template>
 
