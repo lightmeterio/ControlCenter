@@ -339,7 +339,10 @@ export default {
       let vue = this;
       vue.updateInsights();
       vue.updateDashboard();
-      vue.updateStatusMessage();
+
+      if (!vue.simpleViewEnabled) {
+        vue.updateStatusMessage();
+      }
     },
     handleExternalDateIntervalChanged(obj) {
       if (obj === undefined) {
