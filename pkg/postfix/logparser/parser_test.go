@@ -354,6 +354,21 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.OrigRecipientLocalPart, ShouldEqual, "root")
 		So(p.OrigRecipientDomainPart, ShouldEqual, "")
 	})
+
+	// Seems to be only for inbound mail with lmtp
+	Convey("Log line with optional conn_use", t, func() {
+		_, parsed, err := Parse(string(`Apr 12 10:25:08 servername postfix/lmtp[50925]: 5C5CA11CEAF: to=<user@local.domain>, orig_to=<user+alias@local.domain>, relay=local.domain[private/dovecot-lmtp], conn_use=4, delay=3.5, delays=0.22/3.1/0/0.15, dsn=2.0.0, status=sent (250 2.0.0 <user@local.domain> uCpzJ4RTVWK3xwAAAkqyCw Saved)`))
+		So(err, ShouldBeNil)
+		So(parsed, ShouldNotBeNil)
+		p, cast := parsed.(SmtpSentStatus)
+		So(cast, ShouldBeTrue)
+
+		So(p.Queue, ShouldEqual, "5C5CA11CEAF")
+		So(p.RecipientLocalPart, ShouldEqual, "user")
+		So(p.RecipientDomainPart, ShouldEqual, "local.domain")
+		So(p.Status, ShouldEqual, SentStatus)
+		So(p.ExtraMessage, ShouldEqual, `(250 2.0.0 <user@local.domain> uCpzJ4RTVWK3xwAAAkqyCw Saved)`)
+	})
 }
 
 func TestQmgrParsing(t *testing.T) {
