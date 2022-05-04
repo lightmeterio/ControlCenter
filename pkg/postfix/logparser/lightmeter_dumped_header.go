@@ -12,20 +12,12 @@ func init() {
 	registerHandler(rawparser.PayloadTypeLightmeterDumpedHeader, convertDumpedHeader)
 }
 
-type LightmeterDumpedHeader struct {
-	Queue string
-	Key   string
-	Value string
-}
+type LightmeterDumpedHeader rawparser.LightmeterDumpedHeader
 
 func (LightmeterDumpedHeader) isPayload() {
 	// required by interface Payload
 }
 
 func convertDumpedHeader(r rawparser.RawPayload) (Payload, error) {
-	return LightmeterDumpedHeader{
-		Key:   r.LightmeterDumpedHeader.Key,
-		Value: r.LightmeterDumpedHeader.Value,
-		Queue: r.LightmeterDumpedHeader.Queue,
-	}, nil
+	return LightmeterDumpedHeader(r.LightmeterDumpedHeader), nil
 }

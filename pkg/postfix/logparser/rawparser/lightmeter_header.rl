@@ -18,6 +18,8 @@ func parseDumpedHeader(data string) (LightmeterDumpedHeader, bool) {
 
 	var r LightmeterDumpedHeader
 
+  var valuesTokBeg int
+
 %%{
 	include common "common.rl";
 
@@ -29,11 +31,21 @@ func parseDumpedHeader(data string) (LightmeterDumpedHeader, bool) {
     r.Key = data[tokBeg:p]
   };
 
-  value = [^"]+ >setTokBeg %{
-    r.Value = data[tokBeg:p]
+  singleValue = [^>]+ >setTokBeg %{
+    r.Values = append(r.Values, data[tokBeg:p])
   };
-	
-	main := headerQueueId ': header name="' name '", value="' value '"' @{
+
+  singleValueWithBrackets = '<' singleValue '>';
+
+  singleValueMaybeWithBrackets = singleValueWithBrackets | singleValue;
+
+  singleValueTail = space+ singleValueMaybeWithBrackets;
+
+  values = singleValueMaybeWithBrackets >{ valuesTokBeg = p } singleValueTail*  %{
+    r.Value = data[valuesTokBeg:p]
+  };
+
+	main := headerQueueId ': header name="' name '", value="' values '"' @{
 		return r, true
 	};
 

@@ -782,7 +782,22 @@ func TestDovecotLogParsing(t *testing.T) {
 
 			So(p.Queue, ShouldEqual, `B9996EABB6`)
 			So(p.Key, ShouldEqual, "In-Reply-To")
+			So(p.Values, ShouldResemble, []string{`da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com`})
 			So(p.Value, ShouldEqual, "<da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>")
+		})
+
+		Convey("Parse References header created by our milter with many values", func() {
+			_, parsed, err := Parse(`Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="References", value="<abc@example.com> some_arbitrary_value <yxz@example.com>"`)
+			So(err, ShouldBeNil)
+			So(parsed, ShouldNotBeNil)
+
+			p, cast := parsed.(LightmeterDumpedHeader)
+			So(cast, ShouldBeTrue)
+
+			So(p.Queue, ShouldEqual, `B9996EABB6`)
+			So(p.Key, ShouldEqual, "References")
+			So(p.Values, ShouldResemble, []string{`abc@example.com`, `some_arbitrary_value`, `yxz@example.com`})
+			So(p.Value, ShouldEqual, "<abc@example.com> some_arbitrary_value <yxz@example.com>")
 		})
 
 		Convey("Parse relayed-bounce log line created by our milter", func() {
