@@ -259,6 +259,10 @@ func (f *AcceptInReplyTo) Filter(r Result) FilterResult {
 		references = append(references, r[QueueInReplyToHeaderKey].Text())
 	}
 
+	if len(references) == 0 {
+		return FilterResultUndecided
+	}
+
 	for _, reference := range references {
 		if f.Pattern.MatchString(reference) {
 			return FilterResultUndecided

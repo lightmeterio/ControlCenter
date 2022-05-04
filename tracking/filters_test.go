@@ -142,6 +142,12 @@ func TestFilters(t *testing.T) {
 				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionOutbound)),
 			}.Result()), ShouldBeFalse)
 
+			// Does not have a reply nor a references header
+			// We do not filter out
+			So(filters.Reject(MappedResult{
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
+			}.Result()), ShouldBeFalse)
+
 			// matches the filter
 			So(filters.Reject(MappedResult{
 				QueueInReplyToHeaderKey:   ResultEntryText(`reply@something.example.com`),
