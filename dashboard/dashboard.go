@@ -166,7 +166,7 @@ from
 					status = @status
 					or @status = @Expired and exists(
 						select *
-						from expired_queues eq 
+						from expired_queues eq
 						join delivery_queue dq on eq.queue_id = dq.queue_id
 						where delivery_id = d.id
 					)
@@ -190,58 +190,67 @@ from
 			return errorutil.Wrap(err)
 		}
 
-		// NOTE: new learning: no available open source tool can indent SQL queries with CTE properly!
-		// as the query below is what I got using `sqlformat.org`, and gnu indent was even worse!
 		if err := db.PrepareStmt(`
-with messageids_of_replies as
-    (select distinct m_reply.id,
-                     m_reply.value as messageid_reply_value,
-                     m_original.value as messageid_original_value
-     from messageids m_original
-     join messageids_replies r on r.original_id = m_original.id
-     join messageids m_reply on r.reply_id = m_reply.id),
-     deliveries_in_range as
-    (select *
-     from deliveries where delivery_ts between @start and @end),
-     deliveries_with_replies as
-    (select *
-     from deliveries_in_range d
-     join messageids_of_replies m on d.message_id = m.id),
-     users as
-    (select distinct d.direction,
-                     d. recipient_local_part as local_part,
-                     d. recipient_domain_part_id as domain_part_id,
-                     rd. domain
-     from deliveries_with_replies d
-     join remote_domains rd on d. recipient_domain_part_id = rd. id
-     and recipient_local_part != ''
-     and d.direction = @Inbound
-     where rd.domain != ''),
-     bins as
-    (select cast (round (delivery_ts / (@granularity), 0.5) * (@granularity) as integer) as t,
-                 id,
-                 u.local_part,
-                 u.domain
-     from deliveries_in_range d
-     join users u on d. recipient_local_part = u.local_part
-     and d.recipient_domain_part_id = u.domain_part_id
-     order by t),
-     number_sent_mails_per_user_per_interval as
-    (select t,
-            count (id) as c,
-                  local_part || '@' || domain as mailbox
-     from bins
-     group by t,
-              local_part,
-              domain)
+with messageids_of_replies
+     as (select m_reply.id,
+                m_reply.value    as messageid_reply_value,
+                m_original.value as messageid_original_value
+         from   messageids m_original
+                join messageids_replies r
+                  on r.original_id = m_original.id
+                join messageids m_reply
+                  on r.reply_id = m_reply.id),
+     deliveries_in_range
+     as (select *
+         from   deliveries
+         where  delivery_ts between @start and @end),
+     deliveries_with_replies
+     as (select *
+         from   deliveries_in_range d
+                join messageids_of_replies m
+                  on d.message_id = m.id),
+     users
+     as (select distinct d.direction,
+                         d.recipient_local_part     as local_part,
+                         d.recipient_domain_part_id as domain_part_id,
+                         rd.domain
+         from   deliveries_with_replies d
+                join remote_domains rd
+                  on d. recipient_domain_part_id = rd. id
+                     and recipient_local_part != ''
+                     and d.direction = @Inbound
+         where  rd.domain != ''),
+     bins
+     as (select cast (round (delivery_ts / ( @granularity ), 0.5) * (
+                      @granularity ) as
+                      integer)
+                as t,
+                id,
+                u.local_part,
+                u.domain
+         from   deliveries_with_replies d
+                join users u
+                  on d.recipient_local_part = u.local_part
+                     and d.recipient_domain_part_id = u.domain_part_id
+         order  by t),
+     number_sent_mails_per_user_per_interval
+     as (select t,
+                count (id) as c,
+                local_part
+                || '@'
+                || domain  as mailbox
+         from   bins
+         group  by t,
+                   local_part,
+                   domain)
 select mailbox,
        min (t) as min_r,
-           max (t) as max_r,
-               json_group_array (json_array (t, c))
-from number_sent_mails_per_user_per_interval group
-  by mailbox
-order
-  by t`, "inboundReplyVolumeByMailbox"); err != nil {
+       max (t) as max_r,
+       json_group_array (json_array (t, c))
+from   number_sent_mails_per_user_per_interval
+group  by mailbox
+order  by t
+`, "inboundReplyVolumeByMailbox"); err != nil {
 			return errorutil.Wrap(err)
 		}
 
