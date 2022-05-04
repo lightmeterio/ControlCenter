@@ -5,7 +5,10 @@
 package tracking
 
 import (
+	"encoding/json"
 	"testing"
+
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -156,6 +159,26 @@ func TestFilters(t *testing.T) {
 				QueueInReplyToHeaderKey:   ResultEntryText(`reply@wrong.de`),
 				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
 			}.Result()), ShouldBeTrue)
+
+			// matches the filter, in the `References` header, even if the `In-Reply-To` is wrong
+			So(filters.Reject(MappedResult{
+				QueueInReplyToHeaderKey:   ResultEntryText(`reply@wrong.de`),
+				QueueReferencesHeaderKey:  mustEncodeReferences(`arbitrary_value`, `reply@something.example.com`, `some_arbitrary_data`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
+			}.Result()), ShouldBeFalse)
+
+			// matches the filter, in the `References` header
+			So(filters.Reject(MappedResult{
+				QueueReferencesHeaderKey:  mustEncodeReferences(`arbitrary_value`, `reply@something.example.com`, `some_arbitrary_data`),
+				ResultMessageDirectionKey: ResultEntryInt64(int64(MessageDirectionIncoming)),
+			}.Result()), ShouldBeFalse)
 		})
 	})
+}
+
+func mustEncodeReferences(references ...string) ResultEntry {
+	v, err := json.Marshal(references)
+	errorutil.MustSucceed(err)
+
+	return ResultEntryBlob(v)
 }
