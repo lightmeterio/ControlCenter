@@ -14,6 +14,12 @@ SPDX-License-Identifier: AGPL-3.0-only
     ></dashboard-supergraph>
     <dashboard-supergraph
       :graphDateRange="graphDateRange"
+      endpoint="inboundRepliesByMailbox"
+      :title="inboundRepliesByMailboxTitle"
+      size="2"
+    ></dashboard-supergraph>
+    <dashboard-supergraph
+      :graphDateRange="graphDateRange"
       endpoint="receivedMailsByMailbox"
       :title="receivedMailsByMailboxTitle"
       size="2"
@@ -22,24 +28,18 @@ SPDX-License-Identifier: AGPL-3.0-only
       :graphDateRange="graphDateRange"
       endpoint="bouncedMailsByMailbox"
       :title="bouncedMailsByMailboxTitle"
-      size="3"
+      size="2"
     ></dashboard-supergraph>
     <dashboard-supergraph
       :graphDateRange="graphDateRange"
       endpoint="deferredMailsByMailbox"
       :title="deferredMailsByMailboxTitle"
-      size="3"
+      size="2"
     ></dashboard-supergraph>
     <dashboard-supergraph
       :graphDateRange="graphDateRange"
       endpoint="expiredMailsByMailbox"
       :title="expiredMailsByMailboxTitle"
-      size="3"
-    ></dashboard-supergraph>
-    <dashboard-supergraph
-      :graphDateRange="graphDateRange"
-      endpoint="inboundRepliesByMailbox"
-      title="FIXME: Reply numbers!"
       size="2"
     ></dashboard-supergraph>
   </div>
@@ -60,7 +60,8 @@ export default {
       bouncedMailsByMailboxTitle: this.$gettext("Bounced"),
       deferredMailsByMailboxTitle: this.$gettext("Deferred"),
       expiredMailsByMailboxTitle: this.$gettext("Expired"),
-      receivedMailsByMailboxTitle: this.$gettext("Received")
+      receivedMailsByMailboxTitle: this.$gettext("Received"),
+      inboundRepliesByMailboxTitle: this.$gettext("Replies")
     };
   }
 };
