@@ -46,7 +46,7 @@ export default {
 
       let convert = function(date, offset) {
         let local = moment(moment(date).format(DATE_YYYYMMDD) + " " + offset);
-        return moment.utc(local).format(DATE_YYYYMMDD + " hh:mm:ss");
+        return local.utc().format(DATE_YYYYMMDD + " HH:mm:ss");
       };
 
       let start = convert(vue.dateRange.startDate, "00:00:00");
