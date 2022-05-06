@@ -24,12 +24,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       :title="bouncedMailsByMailboxTitle"
       size="2"
     ></dashboard-supergraph>
-    <dashboard-supergraph
-      :graphDateRange="graphDateRange"
-      endpoint="expiredMailsByMailbox"
-      :title="expiredMailsByMailboxTitle"
-      size="2"
-    ></dashboard-supergraph>
   </div>
 </template>
 
