@@ -31,10 +31,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               <span
                 data-toggle="tooltip"
                 data-placement="bottom"
-                title="Search messages"
+                title="Search Messages"
                 v-if="simpleViewEnabled"
               >
-                <translate>search</translate>
+                <translate>Search Messages</translate>
               </span>
             </router-link>
           </span>

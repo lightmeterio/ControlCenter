@@ -77,8 +77,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <li>
                   <translate>Returned</translate>:
                   <translate
-                    >Inbound messages sent back to the sender when bounces
-                    happen</translate
+                    >Messages sent back to the original sender with technical
+                    information when a message bounces</translate
                   >
                 </li>
               </ul>
