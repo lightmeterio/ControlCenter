@@ -28,8 +28,6 @@ type Source struct {
 }
 
 func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns, clock timeutil.Clock) (logsource.Source, error) {
-	log.Debug().Msgf("Creating cacatua source for directory %s", dirname)
-
 	timeFormat, err := parsertimeutil.Get(logFormat)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
