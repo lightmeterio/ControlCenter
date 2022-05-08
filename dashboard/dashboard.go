@@ -191,24 +191,17 @@ from
 		}
 
 		if err := db.PrepareStmt(`
-with messageids_of_replies
-     as (select m_reply.id,
-                m_reply.value    as messageid_reply_value,
-                m_original.value as messageid_original_value
-         from   messageids m_original
-                join messageids_replies r
-                  on r.original_id = m_original.id
-                join messageids m_reply
-                  on r.reply_id = m_reply.id),
-     deliveries_in_range
+with deliveries_in_range
      as (select *
          from   deliveries
-         where  delivery_ts between @start and @end),
-     deliveries_with_replies
-     as (select *
-         from   deliveries_in_range d
-                join messageids_of_replies m
-                  on d.message_id = m.id),
+         where  delivery_ts between @start and @end
+		 ),
+		 deliveries_with_replies as (
+				select *
+				from  deliveries_in_range d
+				where delivery_ts
+					and exists (select * from messageids_replies where original_id = d.message_id)
+     ),
      users
      as (select distinct d.direction,
                          d.recipient_local_part     as local_part,
