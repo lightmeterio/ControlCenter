@@ -49,7 +49,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import tracking from "../mixin/global_shared.js";
 
 export default {
-  name: "mainhdashboard",
+  name: "maindashboard",
   mixins: [tracking],
   props: {
     graphDateRange: Object
