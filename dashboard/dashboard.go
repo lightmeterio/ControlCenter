@@ -199,8 +199,7 @@ with deliveries_in_range
 		 deliveries_with_replies as (
 				select *
 				from  deliveries_in_range d
-				where delivery_ts
-					and exists (select * from messageids_replies where original_id = d.message_id)
+				where exists (select * from messageids_replies where original_id = d.message_id)
      ),
      users
      as (select distinct d.direction,
