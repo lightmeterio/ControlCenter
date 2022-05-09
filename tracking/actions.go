@@ -65,19 +65,17 @@ var actions = map[ActionType]actionRecord{
 	LightmeterRelayedBounceType:    {impl: lightmeterRelayedBounceAction},
 }
 
-var emptyActionDataPair = actionDataPair{connectionActionData: nil, resultActionData: nil}
-
-func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
+func actionTypeForRecord(r postfix.Record) ActionType {
 	// FIXME: this function will get uglier over time :-(
 	switch p := r.Payload.(type) {
 	case parser.SmtpSentStatus:
 		switch p.Status {
 		case parser.BouncedStatus:
-			return MailBouncedActionType, emptyActionDataPair
+			return MailBouncedActionType
 		case parser.SentStatus, parser.ReceivedStatus:
-			return MailSentActionType, emptyActionDataPair
+			return MailSentActionType
 		case parser.DeferredStatus:
-			return MailBouncedActionType, emptyActionDataPair
+			return MailBouncedActionType
 		case parser.ExpiredStatus:
 			fallthrough
 		case parser.ReturnedStatus:
@@ -85,37 +83,37 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		case parser.RepliedStatus:
 			fallthrough
 		default:
-			return UnsupportedActionType, emptyActionDataPair
+			return UnsupportedActionType
 		}
 	case parser.SmtpdConnect:
-		return ConnectActionType, emptyActionDataPair
+		return ConnectActionType
 	case parser.SmtpdDisconnect:
-		return DisconnectActionType, emptyActionDataPair
+		return DisconnectActionType
 	case parser.SmtpdMailAccepted:
-		return CloneActionType, emptyActionDataPair
+		return CloneActionType
 	case parser.BounceCreated:
-		return BounceCreatedActionType, emptyActionDataPair
+		return BounceCreatedActionType
 	case parser.QmgrMailQueued:
-		return MailQueuedActionType, emptyActionDataPair
+		return MailQueuedActionType
 	case parser.CleanupMessageAccepted:
-		return CleanupProcessingActionType, emptyActionDataPair
+		return CleanupProcessingActionType
 	case parser.QmgrRemoved:
-		return CommitActionType, emptyActionDataPair
+		return CommitActionType
 	case parser.Pickup:
-		return PickupActionType, emptyActionDataPair
+		return PickupActionType
 	case parser.CleanupMilterReject:
-		return MilterRejectActionType, emptyActionDataPair
+		return MilterRejectActionType
 	case parser.SmtpdReject:
-		return RejectActionType, emptyActionDataPair
+		return RejectActionType
 	case parser.QmgrMessageExpired:
-		return MessageExpiredActionType, emptyActionDataPair
+		return MessageExpiredActionType
 	case parser.LightmeterDumpedHeader:
-		return LightmeterHeaderDumpActionType, emptyActionDataPair
+		return LightmeterHeaderDumpActionType
 	case parser.LightmeterRelayedBounce:
-		return LightmeterRelayedBounceType, emptyActionDataPair
+		return LightmeterRelayedBounceType
 	}
 
-	return UnsupportedActionType, emptyActionDataPair
+	return UnsupportedActionType
 }
 
 func insertConnectionWithPid(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int64, error) {
@@ -193,7 +191,7 @@ func createConnection(r postfix.Record, trackerStmts dbconn.TxPreparedStmts) (in
 	return connectionId, nil
 }
 
-func connectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func connectAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: check if there's already a connection there, as it should not be
 	// in case there be, it means some message has been lost in the way
 	connectionId, err := createConnection(r, trackerStmts)
@@ -309,7 +307,7 @@ func createQueue(time time.Time, connectionId int64, queue string, loc postfix.R
 
 // assign a queue, just created.
 // find the connection with a given pid, and append the queue to the connection
-func cloneAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func cloneAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpdMailAccepted)
 
@@ -323,7 +321,7 @@ func cloneAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, tr
 		return errorutil.Wrap(err)
 	}
 
-	if _, err := createOrFixQueue(r.Time, connectionId, p.Queue, r.Location, trackerStmts); err != nil {
+	if _, err := handler.CreateQueue(r.Time, connectionId, p.Queue, r.Location, trackerStmts); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -351,7 +349,7 @@ func decrementConnectionUsage(stmts dbconn.TxPreparedStmts, connectionId int64) 
 }
 
 // associate a queue to a message-id
-func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func cleanupProcessingAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMessageAccepted)
 
@@ -412,12 +410,12 @@ func findQueueIdFromQueueValue(queue string, trackerStmts dbconn.TxPreparedStmts
 	return queueId, nil
 }
 
-func mailQueuedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func mailQueuedAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	// I have the queue id and need to set the e-mail sender, size and nrcpt
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMailQueued)
 
-	queueId, err := findNewQueueIdOrCreateIncompleteOne(p.Queue, r, trackerStmts)
+	queueId, err := handler.FindQueue(p.Queue, r, trackerStmts)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// started reading the logs when a queue is referenced, but not known (it was on a previous and unknown log)
 		// just ignore it.
@@ -442,7 +440,7 @@ func mailQueuedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPai
 	return nil
 }
 
-func disconnectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func disconnectAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	connectionId, usageCounter, err := findConnectionIdAndUsageCounter(trackerStmts, r.Header)
 
 	// it's possible for a "disconnect" not to have a "connect", if I started reading the log
@@ -518,248 +516,12 @@ func createMailDeliveredResult(r postfix.Record, trackerStmts dbconn.TxPreparedS
 	return nil
 }
 
-func mailSentActionCanGenerateDeliveryResult(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts, p parser.SmtpSentStatus) (bool, error) {
-	// check if we are an internal relay, and it's possible that the logs from the previous hop are not yet known.
-	// NOTE: For now we support only outbound relayed messages for now.
-	direction := findMsgDirection(r.Header)
-
-	if direction == MessageDirectionIncoming {
-		// NOTE: we don't support relayed inbound messages yet
-		return true, nil
-	}
-
-	// goes in the queue chain until finding a queue that had an authenticated connection
-
-	var queueId int64
-
-	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
-	if err != nil {
-		return false, errorutil.Wrap(err)
-	}
-
-	for {
-		authSuccessCount, err := func(queueId int64) (int64, error) {
-			var authSuccessCount int64
-
-			//nolint:sqlclosecheck
-			err := trackerStmts.Get(selectConnectionAuthCountForQueue).QueryRow(queueId, ConnectionAuthSuccessCount).Scan(&authSuccessCount)
-
-			if err != nil && errors.Is(err, sql.ErrNoRows) {
-				// TODO: this usually happens because the `disconnect from` happens AFTER the `mail sent=...` action
-				// meaning that the SMTP connection lasted a bit longer and its end was logged a bit later.
-				// this is a bit difficult to fix, as it'd force us to "schedule" the generation of a delivery attempt result.
-				// FIXME: for now the workaround is just to mock the behaviour, which will result into imprecise data!
-				// return false, errorutil.Wrap(err)
-				return 0, nil
-			}
-
-			if err != nil {
-				return 0, errorutil.Wrap(err)
-			}
-
-			return authSuccessCount, nil
-		}(queueId)
-
-		if err != nil {
-			return false, errorutil.Wrap(err)
-		}
-
-		// authenticated queue, good to go!
-		if authSuccessCount > 0 {
-			return true, nil
-		}
-
-		var (
-			parentQueueId  int64
-			parentRecordId int64
-		)
-
-		// this queue was created from a connection without authentication.
-		// That means we are now in a relay, where the message started elsewhere.
-		err = trackerStmts.Get(selectQueueFromParentingNewQueue).QueryRow(queueId).Scan(&parentRecordId, &parentQueueId)
-
-		if err != nil && errors.Is(err, sql.ErrNoRows) {
-			// a gap was found, and it's marked to be "filled out" later
-			return false, nil
-		}
-
-		if err != nil {
-			return false, errorutil.Wrap(err)
-		}
-
-		// a parent was found. Search deeper...
-		queueId = parentQueueId
-
-		continue
-	}
-}
-
-func handleMailSentToExternalRelay(tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts, p parser.SmtpSentStatus) error {
-	canDeliver, err := mailSentActionCanGenerateDeliveryResult(tx, r, trackerStmts, p)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if !canDeliver {
-		// there are some gaps in the logs, so we're unable to notify a new delivery now.
-		// But we need to create a result and "schedule" it to be executed later,
-		// once the gap is filled.
-		resultInfo, err := createResult(trackerStmts, r)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
-		if err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		// Mark result to be notified only when all the gaps in the logs are filled.
-		if _, err := trackerStmts.Get(insertPreNotificationByQueueIdAndResultId).Exec(queueId, resultInfo.id); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	// here we know all is good for notifying a new delivery
-
-	// not internally queued
-	err = createMailDeliveredResult(r, trackerStmts)
-
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// TODO: More investigation is needed
-		return nil
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
-}
-
-const unknownConnectionId = -99
-
-func findNewQueueIdOrCreateIncompleteOne(queue string, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
-	newQueueId, err := findQueueIdFromQueueValue(queue, trackerStmts)
-	if err == nil {
-		return newQueueId, nil
-	}
-
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, errorutil.Wrap(err)
-	}
-
-	// The queue will be created in the future, as soon as the relevant logs arrive.
-	// As we don't know its connection yet, just fake it and replace it once we know it.
-	queueId, err := createQueue(r.Time, unknownConnectionId, queue, r.Location, trackerStmts)
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	return queueId, nil
-}
-
-func createOrFixQueue(time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
-	// If the queue already exists and is in a "incomplete" state, we have to "fix it".
-	queueId, err := findQueueIdFromQueueValue(queue, trackerStmts)
-
-	// brand new queue
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return createQueue(time, connectionId, queue, loc, trackerStmts)
-	}
-
-	if err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	// fix the queue, assigning the correction connection to it
-	if _, err := trackerStmts.Get(fixQueueConnectionId).Exec(connectionId, queueId); err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	if err := incrementConnectionUsage(trackerStmts, connectionId); err != nil {
-		return 0, errorutil.Wrap(err)
-	}
-
-	return queueId, nil
-}
-
-func mailSentAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func mailSentAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	// Check if message has been forwarded to the an internal relay
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
-	e, cast := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
-
-	sentToNextRelayHop := !cast || (cast && !e.InternalMTA && p.RelayPort == 25)
-
-	// delivery to the next relay outside of the system
-	if sentToNextRelayHop {
-		if err := handleMailSentToExternalRelay(tx, r, trackerStmts, p); err != nil {
-			return errorutil.Wrap(err)
-		}
-
-		return nil
-	}
-
-	origQueueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
-
-	// TODO: this block is copy&pasted many times! It should be refactored!
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// sometimes a queue has been created in a point earlier than what's known by us. Just ignore it then
-		// TODO: postfix can have very long living queues (that are active for many days)
-		// and can use such queue for delivering many e-mails.
-		// Right now we are not notifying any of those intermediate e-mails, which might not be desisable
-		// More investigation is needed
-		return nil
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	// here we know that the current queue is not the final one, so another one will be used to deliver
-	// to the final destination
-	newQueueId, err := findNewQueueIdOrCreateIncompleteOne(e.Queue, r, trackerStmts)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	// this is an e-mail that postfix sometimes (if configured to do so) sends to itself before trying to deliver.
-	// As it's moved to another queue to be delivered, we queue the original and the newly created queue
-	//nolint:sqlclosecheck
-	_, err = trackerStmts.Get(insertQueueParenting).Exec(origQueueId, newQueueId, queueParentingRelayType)
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	// by this point we might have already "filled the gap" of a replayed message that was waiting for its
-	// first "hop" to be filled out.
-	// if so, we dispatch it, cleaning the whole "chain".
-	var resultId int64
-
-	err = trackerStmts.Get(selectPreNotificationResultIdsForQueue).QueryRow(newQueueId).Scan(&resultId)
-
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// No result in prenotification state yet. All good, life continues...
-		return nil
-	}
-
-	if err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if _, err := trackerStmts.Get(deletePreNotificationEntryByQueueId).Exec(newQueueId); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	if err := markResultToBeNotified(trackerStmts, resultId); err != nil {
+	if err := handler.HandleMailSentAction(tx, r, p, trackerStmts); err != nil {
 		return errorutil.Wrap(err)
 	}
 
@@ -776,7 +538,7 @@ func markResultToBeNotified(trackerStmts dbconn.TxPreparedStmts, resultId int64)
 	return nil
 }
 
-func commitAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func commitAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrRemoved)
 
@@ -889,7 +651,7 @@ func createResult(trackerStmts dbconn.TxPreparedStmts, r postfix.Record) (result
 	return resultInfo{id: resultId, loc: r.Location}, nil
 }
 
-func mailBouncedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func mailBouncedAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	err := createMailDeliveredResult(r, trackerStmts)
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -907,7 +669,7 @@ func mailBouncedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPa
 	return nil
 }
 
-func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func bounceCreatedAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.BounceCreated)
 
@@ -945,7 +707,7 @@ func bounceCreatedAction(tx *sql.Tx, r postfix.Record, actionDataPair actionData
 }
 
 // Mail submitted locally on the machine via sendmail is being picked up
-func pickupAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func pickupAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.Pickup)
 
@@ -974,7 +736,7 @@ func pickupAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, t
 }
 
 // a milter rejects a message
-func milterRejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func milterRejectAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: notify this rejection to someone!!!
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.CleanupMilterReject)
@@ -1001,7 +763,7 @@ func milterRejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataP
 	return nil
 }
 
-func rejectAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func rejectAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	// TODO: Notify someone about the rejected message
 	// FIXME: this is almost copy&paste from milterRejectAction!!!
 	//nolint:forcetypeassert
@@ -1038,7 +800,7 @@ func createMessageExpiredMessage(resultId int64, loc postfix.RecordLocation, tim
 	return nil
 }
 
-func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func messageExpiredAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.QmgrMessageExpired)
 
@@ -1125,7 +887,7 @@ func handleReferencesHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postf
 	return nil
 }
 
-func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.LightmeterDumpedHeader)
 
@@ -1146,7 +908,7 @@ type RelayedBounceInfos struct {
 	RecordSum   postfix.Sum                    `json:"record_sum"`
 }
 
-func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.LightmeterRelayedBounce)
 
