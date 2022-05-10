@@ -227,7 +227,7 @@ export default {
         expiredMailsByMailbox: 3
       }[vue.endpoint];
 
-      let from_to = vue.endpoint == "receivedMailsByMailbox" ? "to" : "from";
+      let from_to = vue.endpoint in {"receivedMailsByMailbox": null, "inboundRepliesByMailbox": null} ? "to" : "from";
 
       let link =
         window.location.pathname +
