@@ -15,7 +15,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -51,12 +50,6 @@ func (p *Publisher) Publish(r postfix.Record) {
 }
 
 type actionImpl func(*sql.Tx, postfix.Record, NodeTypeHandler, dbconn.TxPreparedStmts) error
-
-type actionData func(*Tracker, int64, *sql.Tx, parser.Payload, dbconn.TxPreparedStmts) error
-
-type connectionActionData actionData
-
-type resultActionData actionData
 
 type actionRecord struct {
 	impl actionImpl
