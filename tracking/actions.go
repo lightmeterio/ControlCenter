@@ -82,6 +82,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 			fallthrough
 		case parser.ReturnedStatus:
 			fallthrough
+		case parser.RepliedStatus:
+			fallthrough
 		default:
 			return UnsupportedActionType, emptyActionDataPair
 		}
