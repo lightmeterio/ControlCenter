@@ -213,9 +213,15 @@ export default {
     detectiveLink(date, seriesName) {
       let vue = this;
 
+      // TODO: the graph should not know about each concrete usage of it.
+      // Right now it's quite difficult, so a way to model it is not to include the link
+      // to the detective page, but to emit a generic event with the time range, sender/recipient
+      // and catch the event in the dashboard, which will act accordingly.
+      // I am not sure though if this can be done with the tooltip formatter!
       let status = {
         sentMailsByMailbox: 0,
         receivedMailsByMailbox: 42,
+        inboundRepliesByMailbox: 43,
         bouncedMailsByMailbox: 1,
         deferredMailsByMailbox: 2,
         expiredMailsByMailbox: 3

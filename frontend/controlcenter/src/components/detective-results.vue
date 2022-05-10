@@ -193,7 +193,8 @@ export default {
         deferred: "status-deferred",
         expired: "status-expired",
         returned: "status-returned",
-        received: "status-received"
+        received: "status-received",
+        replied: "status-replied"
       }[status];
 
       return baseClass + customClass;
@@ -363,6 +364,10 @@ export default {
 
 .status-received {
   background-color: #ecf0f1;
+}
+
+.status-replied {
+  background-color: #227aaf;
 }
 
 .relays {
