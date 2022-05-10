@@ -93,6 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <option value="-1"><translate>Any status</translate></option>
           <option value="0"><translate>Sent</translate></option>
           <option value="42"><translate>Received</translate></option>
+          <option value="43"><translate>Replies</translate></option>
           <option value="1"><translate>Bounced</translate></option>
           <option value="2"><translate>Deferred</translate></option>
           <option value="3"><translate>Expired</translate></option>

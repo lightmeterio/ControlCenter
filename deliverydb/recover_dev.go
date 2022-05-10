@@ -8,9 +8,15 @@
 package deliverydb
 
 import (
+	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 )
 
-func recoverFromError(*error, tracking.Result) {
-	// Do not recover from panic on dev build
+func recoverFromError(err *error, tr tracking.Result) {
+	if r := recover(); r != nil {
+		log.Error().Object("result", tr).Msg("Failed to store delivery message")
+
+		// FIXME: horrendous workaround while we cannot figure out the cause of the issue!
+		*err = nil
+	}
 }

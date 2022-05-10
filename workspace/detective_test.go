@@ -9,6 +9,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -20,10 +25,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
-	"os"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -433,6 +434,21 @@ func TestDetective(t *testing.T) {
 				So(messages.TotalResults, ShouldEqual, 1)
 				So(messages.Messages[0].Queue, ShouldEqual, "DF1C3EB916")
 				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.ReceivedStatus)
+			})
+		})
+
+		Convey("Search for replies", func() {
+			d, clear := buildDetective(t, "../test_files/postfix_logs/individual_files/31_inbound_reply.log", year)
+			defer clear()
+
+			Convey("One reply is returned", func() {
+				messages, err := d.CheckMessageDelivery(bg, "", "", correctInterval, int(parser.RepliedStatus), "", 1, limit)
+				So(err, ShouldBeNil)
+				So(messages.TotalResults, ShouldEqual, 1)
+				So(messages.Messages[0].Queue, ShouldEqual, "ABD4E13D6B0")
+				So(messages.Messages[0].Entries[0].Status, ShouldEqual, parser.RepliedStatus)
+				So(messages.Messages[0].Entries[0].MailFrom, ShouldEqual, "original_recipient@example2.com")
+				So(messages.Messages[0].Entries[0].MailTo, ShouldResemble, []string{"original_sender@example1.com"})
 			})
 		})
 	})
