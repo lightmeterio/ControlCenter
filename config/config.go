@@ -45,6 +45,7 @@ type Config struct {
 	LogYear              int
 	Socket               string
 	LogFormat            string
+	MultiNodeType        string
 
 	EmailToChange          string
 	PasswordToReset        string
@@ -130,6 +131,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.StringVar(&conf.LogFormat, "log_format",
 		envutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
+
+	fs.StringVar(&conf.MultiNodeType, "node_type",
+		envutil.LookupEnvOrString("LIGHTMETER_NODE_TYPE", "single", lookupenv),
+		`How the logs from multiple servers are interpreted; "single" for independent servers or "multi" when messages are relayed among them`)
 
 	var unparsedDefaultSettings string
 

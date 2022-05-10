@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"gitlab.com/lightmeter/controlcenter/metadata"
 	"testing"
+
+	"gitlab.com/lightmeter/controlcenter/metadata"
 
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
@@ -204,5 +205,4 @@ func TestWatchDir(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(c.DirsToWatch, ShouldResemble, []string{"/dir3", "/dir4"})
 	})
-
 }

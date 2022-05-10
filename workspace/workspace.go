@@ -114,12 +114,14 @@ type Options struct {
 	IsUsingRsyncedLogs bool
 	DefaultSettings    metadata.DefaultValues
 	AuthOptions        auth.Options
+	NodeTypeHandler    tracking.NodeTypeHandler
 }
 
 var DefaultOptions = &Options{
 	IsUsingRsyncedLogs: false,
 	DefaultSettings:    metadata.DefaultValues{},
 	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
+	NodeTypeHandler:    &tracking.SingleNodeTypeHandler{},
 }
 
 func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
@@ -192,7 +194,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher())
+	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher(), options.NodeTypeHandler)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

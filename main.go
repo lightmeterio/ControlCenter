@@ -23,6 +23,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/server"
 	"gitlab.com/lightmeter/controlcenter/subcommand"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
@@ -143,10 +144,16 @@ func buildAuthOptions(conf config.Config) auth.Options {
 }
 
 func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logsource.Reader, error) {
+	nodeTypeHandler, err := tracking.BuildNodeTypeHandler(conf.MultiNodeType)
+	if err != nil {
+		return nil, logsource.Reader{}, errorutil.Wrap(err)
+	}
+
 	options := &workspace.Options{
 		IsUsingRsyncedLogs: conf.RsyncedDir,
 		DefaultSettings:    conf.DefaultSettings,
 		AuthOptions:        buildAuthOptions(conf),
+		NodeTypeHandler:    nodeTypeHandler,
 	}
 
 	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, options)
