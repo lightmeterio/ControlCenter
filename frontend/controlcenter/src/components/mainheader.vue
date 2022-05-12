@@ -188,7 +188,7 @@ export default {
     return {
       year: null,
       applicationData: null,
-      simpleViewEnabled: false
+      simpleViewEnabled: true
     };
   },
   computed: {
