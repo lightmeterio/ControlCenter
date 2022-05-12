@@ -80,12 +80,19 @@ export default {
               if (!dateDisplayed) {
                 dateDisplayed = true;
                 tt +=
-                  "<p><b>" + date + " </b>" + vue.detectiveLink(date) + "</p>";
+                  "<p><b><a href='" +
+                  vue.detectiveLink(date) +
+                  "'>" +
+                  date +
+                  " <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a></b></p>";
               }
 
               tt += "<div class='lm-serie'>";
 
               tt +=
+                "<a href='" +
+                vue.detectiveLink(date, s.seriesName) +
+                "'>" +
                 "<span class='lm-serieName' style='color: " +
                 s.color +
                 "'>" +
@@ -96,11 +103,14 @@ export default {
                 "<span class='lm-serieValue'>" +
                 s.value +
                 " </span>" +
-                vue.detectiveLink(date, s.seriesName) +
+                "<i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i>" +
+                "</a>" +
                 "</div>";
               tt += "</div>";
             });
+
             tt += "</div>";
+
             return tt;
           }
         },
@@ -227,7 +237,11 @@ export default {
         expiredMailsByMailbox: 3
       }[vue.endpoint];
 
-      let from_to = vue.endpoint in {"receivedMailsByMailbox": null, "inboundRepliesByMailbox": null} ? "to" : "from";
+      let from_to =
+        vue.endpoint in
+        { receivedMailsByMailbox: null, inboundRepliesByMailbox: null }
+          ? "to"
+          : "from";
 
       let link =
         window.location.pathname +
@@ -242,11 +256,7 @@ export default {
         "&statusSelected=" +
         encodeURIComponent(status);
 
-      return (
-        "<a href='" +
-        link +
-        "'> <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a>"
-      );
+      return link;
     },
     redrawChart(from, to) {
       let vue = this;
