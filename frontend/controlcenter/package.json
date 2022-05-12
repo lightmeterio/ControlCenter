@@ -18,7 +18,7 @@
     "plotly.js-dist": "^1.57.1",
     "posthog-js": "^1.12.5",
     "vue": "^2.6.12",
-    "vue-echarts": "^6.0.2",
+    "vue-echarts": "^6.0.3",
     "vue-ellipse-progress": "^1.3.0",
     "vue-gettext": "^2.1.10",
     "vue-json-pretty": "^1.8.1",
