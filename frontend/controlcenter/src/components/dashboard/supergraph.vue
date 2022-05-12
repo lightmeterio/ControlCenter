@@ -12,7 +12,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       @click="zoomIn()"
       v-on:keyup.enter="zoomOut()"
     >
-      <translate v-if="emptyData">Not enough data to create graph!</translate>
+      <translate v-if="emptyData">Not enough data</translate>
     </div>
     <v-chart ref="echart" class="chart" :option="option" />
   </div>
@@ -48,12 +48,22 @@ export default {
     [THEME_KEY]: "default"
   },
   data() {
+    let colors = [
+      "#2c9cd6",
+      "#7a82ab",
+      "#ff5c6f",
+      "#1d8caf",
+      "#87c528",
+      "#3dd9d6",
+      "#fce4c4"
+    ];
     let vue = this;
     return {
       granularity: false,
       zoomed: false,
       emptyData: false,
       option: {
+        color: colors,
         animation: false,
         title: {
           text: vue.title
@@ -65,7 +75,10 @@ export default {
           hideDelay: 2000,
           enterable: true,
           confine: true,
-          formatter: function(params) {
+          formatter: function(params, ticket, callback) {
+            console.log("ticket: ", ticket);
+            console.log("callback: ", callback);
+
             let dateDisplayed = false;
             let tt = "<div class='lm-tooltip'>";
 
@@ -74,6 +87,8 @@ export default {
               if (s.value == 0) {
                 return;
               }
+
+              console.log("Color: ", s.color);
 
               let date = vue.formatTime(s.axisValue, true);
 
@@ -148,16 +163,16 @@ export default {
         ],
         yAxis: [{ type: "value" }],
         series: [
-          // this is a dummy dataset to force the graph to stack the data
+          // FIXME: this is a dummy dataset to force the graph to stack the data. Very ugly hack!!!
           {
             type: "line",
             stack: "Total",
             showSymbol: false,
             areaStyle: {
               opacity: 0.8,
-              color: "black"
+              color: colors[0] // FIXME: I have no idea why this series persists and inpact the updates!!! But it's a very ugly hack!!!!
             },
-            data: []
+            data: [0]
           }
         ]
       }
