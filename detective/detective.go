@@ -470,16 +470,16 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 }
 
 var CSVHeader = []string{
-	"Queue",
+	"MailFrom",
+	"MailTo",
 	"MessageID",
+	"Queue",
 	"NumberOfAttempts",
 	"TimeMin",
 	"TimeMax",
 	"Status",
 	"DSN",
 	"Expired",
-	"MailFrom",
-	"MailTo",
 	"Relays",
 	"RawLogMsgs",
 }
@@ -488,11 +488,9 @@ func (p *MessagesPage) ExportCSV() [][]string {
 	records := [][]string{}
 
 	for _, m := range p.Messages {
-		lineheader := []string{m.Queue, m.MessageID}
-
 		for _, d := range m.Entries {
-			record := d.ExportCSV()
-			records = append(records, append(lineheader, record...))
+			record := d.ExportCSV(m.Queue, m.MessageID)
+			records = append(records, record)
 		}
 	}
 
@@ -501,21 +499,23 @@ func (p *MessagesPage) ExportCSV() [][]string {
 
 const csvTimeFormat = time.RFC3339
 
-func (d *MessageDelivery) ExportCSV() []string {
+func (d *MessageDelivery) ExportCSV(queue, messageid string) []string {
 	exp := ""
 	if d.Expired != nil {
 		exp = d.Expired.Format(csvTimeFormat)
 	}
 
 	return []string{
+		d.MailFrom,
+		strings.Join(d.MailTo, "\n"),
+		messageid,
+		queue,
 		strconv.Itoa(d.NumberOfAttempts),
 		d.TimeMin.Format(csvTimeFormat),
 		d.TimeMax.Format(csvTimeFormat),
 		parser.SmtpStatus(d.Status).String(),
 		d.Dsn,
 		exp,
-		d.MailFrom,
-		strings.Join(d.MailTo, "\n"),
 		strings.Join(d.Relays, "\n"),
 		strings.Join(d.RawLogMsgs, "\n"),
 	}

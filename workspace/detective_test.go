@@ -478,6 +478,6 @@ func TestDetective(t *testing.T) {
 			},
 		}
 
-		So(result.ExportCSV(), ShouldResemble, [][]string{{"1234", "xf56", "1", "2020-01-10T16:15:30Z", "2020-01-10T16:15:30Z", "received", "2.0.0", "", "sender@example.com", "recipient@example.com", "host.com", "fake log line here"}})
+		So(result.ExportCSV(), ShouldResemble, [][]string{{"sender@example.com", "recipient@example.com", "xf56", "1234", "1", "2020-01-10T16:15:30Z", "2020-01-10T16:15:30Z", "received", "2.0.0", "", "host.com", "fake log line here"}})
 	})
 }
