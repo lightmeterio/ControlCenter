@@ -6,12 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div ref="chart" :class="chartClass()">
-    <div
-      ref="overlay"
-      class="small-chart-overlay"
-      @click="zoomIn()"
-      v-on:keyup.enter="zoomOut()"
-    >
+    <div ref="overlay" class="small-chart-overlay" @click="zoomIn()">
       <translate v-if="emptyData">Not enough data</translate>
     </div>
     <v-chart ref="echart" class="chart" :option="option" />
@@ -60,7 +55,6 @@ export default {
     let vue = this;
     return {
       granularity: false,
-      zoomed: false,
       emptyData: false,
       option: {
         color: colors,
@@ -172,7 +166,7 @@ export default {
               opacity: 0.8,
               color: colors[0] // FIXME: I have no idea why this series persists and inpact the updates!!! But it's a very ugly hack!!!!
             },
-            data: [0]
+            data: []
           }
         ]
       }
@@ -207,12 +201,12 @@ export default {
         2: "col-md-6 col-12",
         3: "col-md-4 col-12"
       }[this.size];
-      return "small-chart " + bootstrapClass + (this.zoomed ? " zoomed" : "");
+
+      return "small-chart " + bootstrapClass;
     },
     zoomIn() {
-      this.zoomed = true;
-      this.$refs.chart.style.top = "" + window.scrollY + "px";
-      setTimeout(this.resizeAndRefresh, 50);
+      let element = this.$refs.echart.getDom();
+      element.requestFullscreen();
     },
     keyListener(event) {
       if (event.key === "Escape") {
@@ -220,9 +214,7 @@ export default {
       }
     },
     zoomOut() {
-      this.zoomed = false;
-      this.$refs.chart.style.top = 0;
-      setTimeout(this.resizeAndRefresh, 50);
+      document.exitFullscreen();
     },
     formatTime(value, keepDate = false) {
       let val = new Date(value);
@@ -347,7 +339,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.small-chart:not(.zoomed) {
+.small-chart {
   height: 300px;
   max-height: 66vh;
   padding: 1em;
@@ -374,17 +366,6 @@ export default {
     height: 100%;
   }
 }
-.small-chart.zoomed {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  max-width: 100%; /* override bootstrap col- */
-  height: 100%;
-  padding: 2em;
-  z-index: 100;
-  background: white;
-}
 </style>
 
 <!-- NOTE: following CSS is not scoped on purpose: the echarts tooltip is just below <body> -->
@@ -396,5 +377,9 @@ export default {
   .lm-serieValue {
     margin-left: 0.5em;
   }
+}
+
+::backdrop {
+  background-color: white;
 }
 </style>
