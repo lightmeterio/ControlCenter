@@ -451,5 +451,6 @@ button.btn-primary {
 .detective-body {
   padding-right: 0px;
   padding-left: 0px;
+  margin-bottom: 20px;
 }
 </style>
