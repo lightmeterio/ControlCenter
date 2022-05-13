@@ -70,9 +70,8 @@ export default {
           enterable: true,
           confine: true,
           formatter: function(params, ticket, callback) {
-            console.log("ticket: ", ticket);
-            console.log("callback: ", callback);
-
+            // TODO: instead of returning a html snippet, we we return a HTTPElement instead
+            // which will probably be much cleaner
             let dateDisplayed = false;
             let tt = "<div class='lm-tooltip'>";
 
@@ -81,8 +80,6 @@ export default {
               if (s.value == 0) {
                 return;
               }
-
-              console.log("Color: ", s.color);
 
               let date = vue.formatTime(s.axisValue, true);
 
@@ -184,8 +181,6 @@ export default {
       vue.resizeAndRefresh();
     });
 
-    window.addEventListener("keydown", this.keyListener);
-
     this.redrawChart(
       this.graphDateRange.startDate,
       this.graphDateRange.endDate
@@ -207,11 +202,6 @@ export default {
     zoomIn() {
       let element = this.$refs.echart.getDom();
       element.requestFullscreen();
-    },
-    keyListener(event) {
-      if (event.key === "Escape") {
-        this.zoomOut();
-      }
     },
     zoomOut() {
       document.exitFullscreen();
