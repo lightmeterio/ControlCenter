@@ -69,7 +69,7 @@ export default {
           hideDelay: 2000,
           enterable: true,
           confine: true,
-          formatter: function(params, ticket, callback) {
+          formatter: function(params) {
             // TODO: instead of returning a html snippet, we we return a HTTPElement instead
             // which will probably be much cleaner
             let dateDisplayed = false;
@@ -292,6 +292,7 @@ export default {
           let s = {
             name: mailbox,
             type: "line",
+            smooth: true,
             stack: "Total",
             lineStyle: {
               width: 1
