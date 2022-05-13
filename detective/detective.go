@@ -81,7 +81,12 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 					(
 						(status = @status and status not in (@ReceivedStatus, @RepliedStatus) and direction = @DirectionOutbound)  -- sent emails
 						or (@status = @ReceivedStatus and direction = @DirectionInbound)                                           -- received emails
-						or (@status = @RepliedStatus and direction = @DirectionInbound and exists(select * from messageids_replies mr where mr.reply_id = d.message_id))
+						or (
+							@status = @RepliedStatus
+								and direction = @DirectionInbound
+								and sender_local_part != '' -- bounce messages, where the sender is empty, are not replies!
+								and exists(select * from messageids_replies mr where mr.reply_id = d.message_id)
+						)
 						or @status = @NoStatus
 						or (@status = @ExpiredStatus and exists(select * from expired_queues where queue_id = q.id))
 					) and
