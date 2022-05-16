@@ -28,10 +28,10 @@ func (h *SingleNodeTypeHandler) FindQueue(queue string, r postfix.Record, stmts 
 }
 
 func (h *SingleNodeTypeHandler) HandleMailSentAction(tx *sql.Tx, r postfix.Record, p parser.SmtpSentStatus, trackerStmts dbconn.TxPreparedStmts) error {
-	e, messageQueuedInternally := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
+	e, cast := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageSentQueued)
 
 	// delivery to the next relay outside of the system
-	if !messageQueuedInternally {
+	if !cast || (cast && !e.InternalMTA) {
 		// not internally queued
 		err := createMailDeliveredResult(r, trackerStmts)
 

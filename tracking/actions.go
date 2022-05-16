@@ -517,7 +517,6 @@ func createMailDeliveredResult(r postfix.Record, trackerStmts dbconn.TxPreparedS
 }
 
 func mailSentAction(tx *sql.Tx, r postfix.Record, handler NodeTypeHandler, trackerStmts dbconn.TxPreparedStmts) error {
-	// Check if message has been forwarded to the an internal relay
 	//nolint:forcetypeassert
 	p := r.Payload.(parser.SmtpSentStatus)
 
