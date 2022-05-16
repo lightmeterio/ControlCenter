@@ -201,16 +201,21 @@ export default {
     },
     statusTitle: function(status) {
       return {
-        sent: this.$gettext("Message successfully sent"),
-        bounced: this.$gettext("Message refused by recipient's mail provider"),
-        deferred: this.$gettext("Message temporarily refused and retried"),
+        sent: this.$gettext("Outbound messages that succeeded to be sent"),
+        bounced: this.$gettext(
+          "Outbound messages that bounced permanently (hard bounce)"
+        ),
+        deferred: this.$gettext(
+          "Outbound messages that bounced temporarily (soft bounce)"
+        ),
         expired: this.$gettext(
-          "Message delivery abandoned after too many deferred attempts"
+          "Outbound messages that bounced temporarily too many times, resulting in a hard bounce"
         ),
         returned: this.$gettext(
-          "Return notification sent back to original sender"
+          "Messages sent back to the original sender with technical information when a message bounces"
         ),
-        received: this.$gettext("Received message")
+        received: this.$gettext("Inbound messaegs"),
+        replied: this.$gettext("Replies to outbound messages")
       }[status];
     },
     isExpired: function(result) {
