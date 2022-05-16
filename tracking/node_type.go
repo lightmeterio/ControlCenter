@@ -31,7 +31,7 @@ var ErrInvalidNodeType = errors.New(`Invalid Node Type`)
 
 func BuildNodeTypeHandler(typ string) (NodeTypeHandler, error) {
 	switch typ {
-	case "simple":
+	case "single":
 		return &SingleNodeTypeHandler{}, nil
 	case "multi":
 		return &MultiNodeTypeHandler{}, nil

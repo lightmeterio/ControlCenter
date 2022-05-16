@@ -6,6 +6,11 @@ package main
 
 import (
 	"context"
+	"os"
+	"path"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/config"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
@@ -16,10 +21,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	"os"
-	"path"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -58,6 +59,7 @@ func TestMain(t *testing.T) {
 			DirsToWatch:        []string{path.Join(logsDir, "logs_sample")},
 			ImportOnly:         true,
 			LogFormat:          "default",
+			MultiNodeType:      "single",
 		}
 
 		// first execution
