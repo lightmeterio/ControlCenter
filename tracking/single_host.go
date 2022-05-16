@@ -19,8 +19,8 @@ import (
 type SingleNodeTypeHandler struct {
 }
 
-func (h SingleNodeTypeHandler) CreateQueue(t time.Time, connectionId int64, queue string, location postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
-	return createQueue(t, connectionId, queue, location, trackerStmts)
+func (h SingleNodeTypeHandler) CreateQueue(t time.Time, connectionID int64, queue string, location postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	return createQueue(t, connectionID, queue, location, trackerStmts)
 }
 
 func (h *SingleNodeTypeHandler) FindQueue(queue string, r postfix.Record, stmts dbconn.TxPreparedStmts) (int64, error) {

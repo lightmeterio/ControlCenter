@@ -162,13 +162,13 @@ func findNewQueueIdOrCreateIncompleteOne(queue string, r postfix.Record, tracker
 	return queueId, nil
 }
 
-func createOrFixQueue(time time.Time, connectionId int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+func createOrFixQueue(time time.Time, connectionID int64, queue string, loc postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
 	// If the queue already exists and is in a "incomplete" state, we have to "fix it".
 	queueId, err := findQueueIdFromQueueValue(queue, trackerStmts)
 
 	// brand new queue
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return createQueue(time, connectionId, queue, loc, trackerStmts)
+		return createQueue(time, connectionID, queue, loc, trackerStmts)
 	}
 
 	if err != nil {
@@ -176,11 +176,11 @@ func createOrFixQueue(time time.Time, connectionId int64, queue string, loc post
 	}
 
 	// fix the queue, assigning the correction connection to it
-	if _, err := trackerStmts.Get(fixQueueConnectionId).Exec(connectionId, queueId); err != nil {
+	if _, err := trackerStmts.Get(fixQueueConnectionId).Exec(connectionID, queueId); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 
-	if err := incrementConnectionUsage(trackerStmts, connectionId); err != nil {
+	if err := incrementConnectionUsage(trackerStmts, connectionID); err != nil {
 		return 0, errorutil.Wrap(err)
 	}
 
@@ -190,8 +190,8 @@ func createOrFixQueue(time time.Time, connectionId int64, queue string, loc post
 type MultiNodeTypeHandler struct {
 }
 
-func (h MultiNodeTypeHandler) CreateQueue(t time.Time, connectionId int64, queue string, location postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
-	return createOrFixQueue(t, connectionId, queue, location, trackerStmts)
+func (h MultiNodeTypeHandler) CreateQueue(t time.Time, connectionID int64, queue string, location postfix.RecordLocation, trackerStmts dbconn.TxPreparedStmts) (int64, error) {
+	return createOrFixQueue(t, connectionID, queue, location, trackerStmts)
 }
 
 func (h *MultiNodeTypeHandler) FindQueue(queue string, r postfix.Record, stmts dbconn.TxPreparedStmts) (int64, error) {
