@@ -115,7 +115,7 @@ func main() {
 	err = migrator.Run(conn.RwConn.DB, "logtracker")
 	errorutil.MustSucceed(err)
 
-	t, err := tracking.New(conn, &pub, &tracking.SingleNodeType{})
+	t, err := tracking.New(conn, &pub, &tracking.SingleNodeTypeHandler{})
 
 	defer func() {
 		errorutil.MustSucceed(t.Close())
