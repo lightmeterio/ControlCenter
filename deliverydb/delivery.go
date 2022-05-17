@@ -70,6 +70,9 @@ const (
 	selectDeliveries
 	updateDelivery
 
+	deleteMessageIdReplyLinkOriginalById
+	deleteMessageIdReplyLinkReplyById
+
 	lastStmtKey
 )
 
@@ -159,7 +162,9 @@ where
 			and recipient_domain_part_id = (select id from remote_domains where domain = @recipient_domain)
 			and delivery_ts >= @an_hour_ago
 	`,
-	updateDelivery: `update deliveries set dsn = @dsn, status = @status where id = @id `,
+	updateDelivery:                       `update deliveries set dsn = @dsn, status = @status where id = @id `,
+	deleteMessageIdReplyLinkOriginalById: `delete from messageids_replies where original_id = ?`,
+	deleteMessageIdReplyLinkReplyById:    `delete from messageids_replies where reply_id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
