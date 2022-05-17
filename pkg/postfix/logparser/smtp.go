@@ -74,11 +74,12 @@ func (SmtpSentStatus) isPayload() {
 }
 
 type SmtpSentStatusExtraMessageSentQueued struct {
-	SmtpCode int
-	Dsn      string
-	IP       net.IP
-	Port     int
-	Queue    string
+	SmtpCode    int
+	Dsn         string
+	IP          net.IP
+	Port        int
+	Queue       string
+	InternalMTA bool
 }
 
 func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
@@ -243,10 +244,11 @@ func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, er
 	}
 
 	return SmtpSentStatusExtraMessageSentQueued{
-		Dsn:      p.Dsn,
-		IP:       ip,
-		Port:     port,
-		Queue:    p.Queue,
-		SmtpCode: smtpCode,
+		Dsn:         p.Dsn,
+		IP:          ip,
+		Port:        port,
+		Queue:       p.Queue,
+		SmtpCode:    smtpCode,
+		InternalMTA: p.InternalMTA,
 	}, nil
 }

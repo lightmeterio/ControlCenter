@@ -70,6 +70,8 @@ const (
 	ResultDeliveryLineRelayedBounce
 	QueueRelayedBounceJsonKey
 
+	ConnectionAuthSuccessCount
+
 	QueueReferencesHeaderKey
 
 	lastResultKey

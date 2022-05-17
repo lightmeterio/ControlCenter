@@ -8,6 +8,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"path"
+	"runtime"
+	"runtime/pprof"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/migrator"
@@ -22,12 +29,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"log"
-	"os"
-	"path"
-	"runtime"
-	"runtime/pprof"
-	"time"
 )
 
 type publisher struct {
@@ -114,7 +115,7 @@ func main() {
 	err = migrator.Run(conn.RwConn.DB, "logtracker")
 	errorutil.MustSucceed(err)
 
-	t, err := tracking.New(conn, &pub)
+	t, err := tracking.New(conn, &pub, &tracking.SingleNodeTypeHandler{})
 
 	defer func() {
 		errorutil.MustSucceed(t.Close())

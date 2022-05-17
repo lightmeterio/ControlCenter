@@ -7,17 +7,17 @@ package tracking
 import (
 	"database/sql"
 	"errors"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
-	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	_ "gitlab.com/lightmeter/controlcenter/tracking/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"reflect"
-	"sync"
-	"time"
 )
 
 /**
@@ -30,14 +30,8 @@ import (
 type ActionType int
 
 type actionTuple struct {
-	actionType     ActionType
-	record         postfix.Record
-	actionDataPair actionDataPair
-}
-
-type actionDataPair struct {
-	connectionActionData connectionActionData
-	resultActionData     resultActionData
+	actionType ActionType
+	record     postfix.Record
 }
 
 type Publisher struct {
@@ -45,24 +39,17 @@ type Publisher struct {
 }
 
 func (p *Publisher) Publish(r postfix.Record) {
-	actionType, actionDataPair := actionTypeForRecord(r)
+	actionType := actionTypeForRecord(r)
 
 	if actionType != UnsupportedActionType {
 		p.actions <- actionTuple{
-			actionType:     actionType,
-			actionDataPair: actionDataPair,
-			record:         r,
+			actionType: actionType,
+			record:     r,
 		}
 	}
 }
 
-type actionImpl func(*sql.Tx, postfix.Record, actionDataPair, dbconn.TxPreparedStmts) error
-
-type actionData func(*Tracker, int64, *sql.Tx, parser.Payload, dbconn.TxPreparedStmts) error
-
-type connectionActionData actionData
-
-type resultActionData actionData
+type actionImpl func(*sql.Tx, postfix.Record, NodeTypeHandler, dbconn.TxPreparedStmts) error
 
 type actionRecord struct {
 	impl actionImpl
@@ -84,6 +71,7 @@ type Tracker struct {
 	txActions        <-chan txActions
 	resultsToNotify  chan resultInfos
 	resultsNotifiers resultsNotifiers
+	nodeTypeHandler  NodeTypeHandler
 }
 
 func (t *Tracker) MostRecentLogTime() (time.Time, error) {
@@ -184,7 +172,7 @@ func buildResultsNotifier(
 
 const numberOfNotifiers = 1
 
-func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
+func New(conn *dbconn.PooledPair, pub ResultPublisher, handler NodeTypeHandler) (*Tracker, error) {
 	trackerStmts := dbconn.BuildPreparedStmts(lastTrackerStmtKey)
 
 	if err := dbconn.PrepareRwStmts(trackerStmtsText, conn.RwConn, &trackerStmts); err != nil {
@@ -208,6 +196,7 @@ func New(conn *dbconn.PooledPair, pub ResultPublisher) (*Tracker, error) {
 		actions:         trackerActions,
 		txActions:       txActions,
 		resultsToNotify: resultsToNotify,
+		nodeTypeHandler: handler,
 		Closers:         closers.New(trackerStmts),
 	}
 
@@ -287,7 +276,7 @@ func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx, trackerStmts dbcon
 	return tx, nil
 }
 
-func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
+func executeActionInTransaction(nodeTypeHandler NodeTypeHandler, conn dbconn.RwConn, tx *sql.Tx, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
 	actionRecord, found := actions[actionTuple.actionType]
@@ -297,13 +286,12 @@ func executeActionInTransaction(conn dbconn.RwConn, tx *sql.Tx, actionTuple acti
 	}
 
 	action := actionRecord.impl
-	actionDataPair := actionTuple.actionDataPair
 
 	if tx, err = startTransactionIfNeeded(conn, tx, trackerStmts, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = action(tx, actionTuple.record, actionDataPair, *txStmts); err != nil {
+	if err = action(tx, actionTuple.record, nodeTypeHandler, *txStmts); err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
 			//nolint:errorlint,forcetypeassert
 			asDeletionError := err.(*DeletionError)
@@ -488,10 +476,15 @@ loop:
 			//nolint:forcetypeassert
 			actionTuple := recv.Interface().(actionTuple)
 
-			if tx, err = executeActionInTransaction(t.dbconn.RwConn, tx, actionTuple, trackerStmts, &txStmts); err != nil {
+			if tx, err = executeActionInTransaction(t.nodeTypeHandler, t.dbconn.RwConn, tx, actionTuple, trackerStmts, &txStmts); err != nil {
 				errorutil.MustSucceed(err)
 				return errorutil.Wrap(err)
 			}
+
+			if err := debugTrackingAction(&tx, t, &batchId, trackerStmts, &txStmts); err != nil {
+				return errorutil.Wrap(err)
+			}
+
 		default:
 			panic("Read wrong select index!!!")
 		}

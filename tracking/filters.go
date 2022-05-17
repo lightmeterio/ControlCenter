@@ -11,8 +11,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-const SettingsKey = `tracking_filters`
-
 type Filters []Filter
 
 var NoFilters = Filters{}
