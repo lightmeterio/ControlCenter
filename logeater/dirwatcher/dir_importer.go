@@ -1303,6 +1303,8 @@ func (importer *DirectoryImporter) ImportOnly() error {
 }
 
 func (importer *DirectoryImporter) run(watch bool) error {
+	log.Debug().Msgf("Reading logs from directory %s", importer.content.dirName())
+
 	queues, err := buildQueuesForDirImporter(importer.content, importer.patterns, importer.sum.Time)
 
 	if err != nil {

@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"gitlab.com/lightmeter/controlcenter/metadata"
 	"testing"
+
+	"gitlab.com/lightmeter/controlcenter/metadata"
 
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
@@ -163,4 +164,45 @@ func TestDefaultSettings(t *testing.T) {
 		So(err, ShouldNotBeNil)
 	})
 
+}
+
+func TestWatchDir(t *testing.T) {
+	Convey("When not passed, get an empty array", t, func() {
+		c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldBeNil)
+	})
+
+	Convey("Passed one dir only via environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1`}
+		c, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1"})
+	})
+
+	Convey("Passed two dirs only via environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1:/dir2`}
+		c, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1", "/dir2"})
+	})
+
+	Convey("Passed one directory via command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir1"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1"})
+	})
+
+	Convey("Passed two directories via command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir1", "-watch_dir", "/dir2"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1", "/dir2"})
+	})
+
+	Convey("Command line overrides environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1:/dir2`}
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir3", "-watch_dir", "/dir4"}, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir3", "/dir4"})
+	})
 }
