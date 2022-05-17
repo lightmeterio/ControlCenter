@@ -189,12 +189,12 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping, filters)
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher(), options.NodeTypeHandler)
+	tracker, err := tracking.New(allDatabases.LogTracker, &tracking.FilteredPublisher{Publisher: deliveries.ResultsPublisher(), Filters: filters}, options.NodeTypeHandler)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

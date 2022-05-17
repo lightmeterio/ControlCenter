@@ -28,7 +28,6 @@ type DB struct {
 	closers.Closers
 
 	connPair *dbconn.PooledPair
-	filters  tracking.Filters
 }
 
 type stmtKey = int
@@ -193,7 +192,7 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tracking.Filters) (*DB, error) {
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -217,13 +216,11 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, filters tra
 		connPair: connPair,
 		Runner:   runner,
 		Closers:  closers.New(stmts),
-		filters:  filters,
 	}, nil
 }
 
 type resultsPublisher struct {
 	dbActions chan<- dbAction
-	filters   tracking.Filters
 }
 
 func getUniquePropertyFromAnotherTable(tx *sql.Tx, selectStmt, insertStmt *sql.Stmt, args ...interface{}) (int64, error) {
@@ -553,13 +550,11 @@ func handleReplyIfAny(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tracking.Resu
 }
 
 func (p *resultsPublisher) Publish(r tracking.Result) {
-	if !p.filters.Reject(r) {
-		p.dbActions <- buildAction(r)
-	}
+	p.dbActions <- buildAction(r)
 }
 
 func (db *DB) ResultsPublisher() tracking.ResultPublisher {
-	return &resultsPublisher{dbActions: db.Actions, filters: db.filters}
+	return &resultsPublisher{dbActions: db.Actions}
 }
 
 func (db *DB) HasLogs() bool {

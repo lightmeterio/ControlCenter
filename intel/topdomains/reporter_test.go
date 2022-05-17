@@ -9,6 +9,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -20,8 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -64,7 +65,7 @@ func TestReporter(t *testing.T) {
 		logsDb, clear := testutil.TempDBConnectionMigrated(t, "logs")
 		defer clear()
 
-		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{}, tracking.NoFilters)
+		delivery, err := deliverydb.New(logsDb, &domainmapping.Mapper{})
 		So(err, ShouldBeNil)
 
 		done, cancel := runner.Run(delivery)

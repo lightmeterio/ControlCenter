@@ -7,6 +7,14 @@ package httpsettings
 import (
 	"context"
 	"errors"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	slackAPI "github.com/slack-go/slack"
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,17 +39,9 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	insightsSettings "gitlab.com/lightmeter/controlcenter/settings/insights"
 	"gitlab.com/lightmeter/controlcenter/settings/walkthrough"
-	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"golang.org/x/text/message/catalog"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strings"
-	"testing"
-	"time"
 )
 
 var (
@@ -93,7 +93,7 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 	connLogs, closeConnLogs := testutil.TempDBConnectionMigrated(t, "logs")
 
 	// NOTE: finish migration of logs
-	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping, tracking.NoFilters)
+	_, err := deliverydb.New(connLogs, &domainmapping.DefaultMapping)
 	So(err, ShouldBeNil)
 
 	m, err := metadata.NewHandler(conn)
@@ -122,7 +122,7 @@ func buildTestSetup(t *testing.T) (*Settings, *metadata.AsyncWriter, metadata.Re
 	notifiers := map[string]notification.Notifier{
 		slack.SettingsKey: slackNotifier,
 		email.SettingsKey: emailNotifier,
-		"fake":           fakeNotifier,
+		"fake":            fakeNotifier,
 	}
 
 	center := notification.New(m.Reader, translator.New(catalog.NewBuilder()), notification.PassPolicy, notifiers)
