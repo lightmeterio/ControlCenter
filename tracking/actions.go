@@ -27,55 +27,17 @@ const (
 	MessageDirectionIncoming MessageDirection = 1
 )
 
-const (
-	UnsupportedActionType ActionType = iota
-	UninterestingActionType
-	ConnectActionType
-	CloneActionType
-	CleanupProcessingActionType
-	MailQueuedActionType
-	DisconnectActionType
-	MailSentActionType
-	CommitActionType
-	MailBouncedActionType
-	BounceCreatedActionType
-	PickupActionType
-	MilterRejectActionType
-	RejectActionType
-	MessageExpiredActionType
-	LightmeterHeaderDumpActionType
-	LightmeterRelayedBounceType
-)
-
-var actions = map[ActionType]actionRecord{
-	ConnectActionType:              {impl: connectAction},
-	CloneActionType:                {impl: cloneAction},
-	CleanupProcessingActionType:    {impl: cleanupProcessingAction},
-	MailQueuedActionType:           {impl: mailQueuedAction},
-	DisconnectActionType:           {impl: disconnectAction},
-	MailSentActionType:             {impl: mailSentAction},
-	CommitActionType:               {impl: commitAction},
-	MailBouncedActionType:          {impl: mailBouncedAction},
-	BounceCreatedActionType:        {impl: bounceCreatedAction},
-	PickupActionType:               {impl: pickupAction},
-	MilterRejectActionType:         {impl: milterRejectAction},
-	RejectActionType:               {impl: rejectAction},
-	MessageExpiredActionType:       {impl: messageExpiredAction},
-	LightmeterHeaderDumpActionType: {impl: lightmeterHeaderDumpAction},
-	LightmeterRelayedBounceType:    {impl: lightmeterRelayedBounceAction},
-}
-
-func actionTypeForRecord(r postfix.Record) ActionType {
+func actionForRecord(r postfix.Record) actionImpl {
 	// FIXME: this function will get uglier over time :-(
 	switch p := r.Payload.(type) {
 	case parser.SmtpSentStatus:
 		switch p.Status {
 		case parser.BouncedStatus:
-			return MailBouncedActionType
+			return mailBouncedAction
 		case parser.SentStatus, parser.ReceivedStatus:
-			return MailSentActionType
+			return mailSentAction
 		case parser.DeferredStatus:
-			return MailBouncedActionType
+			return mailBouncedAction
 		case parser.ExpiredStatus:
 			fallthrough
 		case parser.ReturnedStatus:
@@ -83,37 +45,37 @@ func actionTypeForRecord(r postfix.Record) ActionType {
 		case parser.RepliedStatus:
 			fallthrough
 		default:
-			return UnsupportedActionType
+			return nil
 		}
 	case parser.SmtpdConnect:
-		return ConnectActionType
+		return connectAction
 	case parser.SmtpdDisconnect:
-		return DisconnectActionType
+		return disconnectAction
 	case parser.SmtpdMailAccepted:
-		return CloneActionType
+		return cloneAction
 	case parser.BounceCreated:
-		return BounceCreatedActionType
+		return bounceCreatedAction
 	case parser.QmgrMailQueued:
-		return MailQueuedActionType
+		return mailQueuedAction
 	case parser.CleanupMessageAccepted:
-		return CleanupProcessingActionType
+		return cleanupProcessingAction
 	case parser.QmgrRemoved:
-		return CommitActionType
+		return commitAction
 	case parser.Pickup:
-		return PickupActionType
+		return pickupAction
 	case parser.CleanupMilterReject:
-		return MilterRejectActionType
+		return milterRejectAction
 	case parser.SmtpdReject:
-		return RejectActionType
+		return rejectAction
 	case parser.QmgrMessageExpired:
-		return MessageExpiredActionType
+		return messageExpiredAction
 	case parser.LightmeterDumpedHeader:
-		return LightmeterHeaderDumpActionType
+		return lightmeterHeaderDumpAction
 	case parser.LightmeterRelayedBounce:
-		return LightmeterRelayedBounceType
+		return lightmeterRelayedBounceAction
 	}
 
-	return UnsupportedActionType
+	return nil
 }
 
 func insertConnectionWithPid(trackerStmts dbconn.TxPreparedStmts, pidId int64) (int64, error) {
