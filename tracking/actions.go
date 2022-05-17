@@ -890,6 +890,10 @@ func handleInReplyToHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postfi
 	}
 
 	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
@@ -903,6 +907,10 @@ func handleInReplyToHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postfi
 
 func handleReferencesHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) error {
 	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
