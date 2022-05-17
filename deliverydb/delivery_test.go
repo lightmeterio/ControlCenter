@@ -6,6 +6,7 @@ package deliverydb
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"path"
 	"testing"
@@ -733,7 +734,8 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(206),
 		}.Result())
 
-		// a normal outbound message
+		// a normal outbound message, reply to the first message.
+		// It'll stop being a reply once the original is removed, as the link between them is broken
 		pub.Publish(tracking.MappedResult{
 			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
 			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Add(time.Minute * 5).Unix()),
@@ -762,6 +764,8 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A6"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(207),
+			// references the first message
+			tracking.QueueReferencesHeaderKey: mustEncodeReferences("message_id_1", "some_arbitrary_unused_value..."),
 		}.Result())
 
 		// delete two messages older than 6min, but not all yet
@@ -785,6 +789,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			deliveriesCount     int
 			messageIdsCount     int
 			logLinesRefCount    int
+			msgIdsLinkCount     int
 		)
 
 		ro, release := conn.RoConnPool.Acquire()
@@ -811,6 +816,9 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		So(ro.QueryRow(`select count(*) from log_lines_ref`).Scan(&logLinesRefCount), ShouldBeNil)
 		So(logLinesRefCount, ShouldEqual, 2)
+
+		So(ro.QueryRow(`select count(*) from messageids_replies`).Scan(&msgIdsLinkCount), ShouldBeNil)
+		So(msgIdsLinkCount, ShouldEqual, 0)
 	})
 }
 
@@ -871,4 +879,11 @@ func TestReopenDatabase(t *testing.T) {
 			So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 2)
 		})
 	})
+}
+
+func mustEncodeReferences(references ...string) tracking.ResultEntry {
+	v, err := json.Marshal(references)
+	errorutil.MustSucceed(err)
+
+	return tracking.ResultEntryBlob(v)
 }
