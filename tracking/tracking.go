@@ -24,14 +24,9 @@ import (
  * The tracker keeps state of the postfix actions, and notifies once the destiny of an e-mail is met.
  */
 
-// Every payload type has an action associated to it. The default action is to do nothing.
-// An action can use data obtained from the payload itself.
-
-type ActionType int
-
 type actionTuple struct {
-	actionType ActionType
-	record     postfix.Record
+	action actionImpl
+	record postfix.Record
 }
 
 type Publisher struct {
@@ -39,21 +34,17 @@ type Publisher struct {
 }
 
 func (p *Publisher) Publish(r postfix.Record) {
-	actionType := actionTypeForRecord(r)
+	action := actionForRecord(r)
 
-	if actionType != UnsupportedActionType {
+	if action != nil {
 		p.actions <- actionTuple{
-			actionType: actionType,
-			record:     r,
+			action: action,
+			record: r,
 		}
 	}
 }
 
 type actionImpl func(*sql.Tx, postfix.Record, NodeTypeHandler, dbconn.TxPreparedStmts) error
-
-type actionRecord struct {
-	impl actionImpl
-}
 
 type txActions struct {
 	size    uint
@@ -279,19 +270,11 @@ func startTransactionIfNeeded(conn dbconn.RwConn, tx *sql.Tx, trackerStmts dbcon
 func executeActionInTransaction(nodeTypeHandler NodeTypeHandler, conn dbconn.RwConn, tx *sql.Tx, actionTuple actionTuple, trackerStmts dbconn.PreparedStmts, txStmts *dbconn.TxPreparedStmts) (*sql.Tx, error) {
 	var err error
 
-	actionRecord, found := actions[actionTuple.actionType]
-
-	if !found {
-		log.Panic().Msgf("SPANK SPANK: Invalid/unsupported action!: %v", actionTuple)
-	}
-
-	action := actionRecord.impl
-
 	if tx, err = startTransactionIfNeeded(conn, tx, trackerStmts, txStmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	if err = action(tx, actionTuple.record, nodeTypeHandler, *txStmts); err != nil {
+	if err = actionTuple.action(tx, actionTuple.record, nodeTypeHandler, *txStmts); err != nil {
 		if err, isDeletionError := errorutil.ErrorAs(err, &DeletionError{}); isDeletionError {
 			//nolint:errorlint,forcetypeassert
 			asDeletionError := err.(*DeletionError)
