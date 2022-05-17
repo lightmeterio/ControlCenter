@@ -125,7 +125,7 @@ var DefaultOptions = &Options{
 }
 
 func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
-	filtersDesc, err := settingsutil.Get[tracking.FiltersDescription](context.Background(), reader, tracking.SettingsKey)
+	settings, err := settingsutil.Get[tracking.Settings](context.Background(), reader, tracking.SettingsKey)
 	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
 		return tracking.NoFilters, nil
 	}
@@ -134,7 +134,7 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
-	filters, err := tracking.BuildFilters(*filtersDesc)
+	filters, err := tracking.BuildFilters(settings.Filters)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

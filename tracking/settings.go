@@ -7,5 +7,5 @@ package tracking
 const SettingsKey = `tracking`
 
 type Settings struct {
-	Filters Filters `json:"filters"`
+	Filters FiltersDescription `json:"filters"`
 }
