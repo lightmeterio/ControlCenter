@@ -11,6 +11,17 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
+type FilteredPublisher struct {
+	Publisher ResultPublisher
+	Filters   Filters
+}
+
+func (p *FilteredPublisher) Publish(r Result) {
+	if !p.Filters.Reject(r) {
+		p.Publisher.Publish(r)
+	}
+}
+
 type Filters []Filter
 
 var NoFilters = Filters{}
