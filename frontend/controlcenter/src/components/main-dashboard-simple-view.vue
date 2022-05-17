@@ -20,26 +20,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     ></dashboard-supergraph>
     <dashboard-supergraph
       :graphDateRange="graphDateRange"
-      endpoint="receivedMailsByMailbox"
-      :title="receivedMailsByMailboxTitle"
-      size="2"
-    ></dashboard-supergraph>
-    <dashboard-supergraph
-      :graphDateRange="graphDateRange"
       endpoint="bouncedMailsByMailbox"
       :title="bouncedMailsByMailboxTitle"
-      size="2"
-    ></dashboard-supergraph>
-    <dashboard-supergraph
-      :graphDateRange="graphDateRange"
-      endpoint="deferredMailsByMailbox"
-      :title="deferredMailsByMailboxTitle"
-      size="2"
-    ></dashboard-supergraph>
-    <dashboard-supergraph
-      :graphDateRange="graphDateRange"
-      endpoint="expiredMailsByMailbox"
-      :title="expiredMailsByMailboxTitle"
       size="2"
     ></dashboard-supergraph>
   </div>
@@ -49,7 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import tracking from "../mixin/global_shared.js";
 
 export default {
-  name: "maindashboard",
+  name: "mainhdashboard",
   mixins: [tracking],
   props: {
     graphDateRange: Object
@@ -58,9 +40,7 @@ export default {
     return {
       sentMailsByMailboTitle: this.$gettext("Sent"),
       bouncedMailsByMailboxTitle: this.$gettext("Bounced"),
-      deferredMailsByMailboxTitle: this.$gettext("Deferred"),
       expiredMailsByMailboxTitle: this.$gettext("Expired"),
-      receivedMailsByMailboxTitle: this.$gettext("Received"),
       inboundRepliesByMailboxTitle: this.$gettext("Replies")
     };
   }

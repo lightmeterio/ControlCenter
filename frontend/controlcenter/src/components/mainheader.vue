@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div class="navbar">
       <div class="container d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
-          <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
+          <img src="@/assets/logo-color-120.svg" alt="Lightmeter logo" />
         </router-link>
         <span class="buttons">
           <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
@@ -31,10 +31,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               <span
                 data-toggle="tooltip"
                 data-placement="bottom"
-                title="Search messages"
+                title="Search"
                 v-if="simpleViewEnabled"
               >
-                <translate>search</translate>
+                <translate>Search Messages</translate>
               </span>
             </router-link>
           </span>
@@ -188,7 +188,7 @@ export default {
     return {
       year: null,
       applicationData: null,
-      simpleViewEnabled: false
+      simpleViewEnabled: true
     };
   },
   computed: {

@@ -49,7 +49,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         style="margin-left: 1em;"
       >
         <img
-          src="@/assets/logo-color-120.png"
+          src="@/assets/logo-color-120.svg"
           alt="Lightmeter logo"
           style="height: 24px;"
         />

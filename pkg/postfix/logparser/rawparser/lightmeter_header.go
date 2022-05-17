@@ -9,9 +9,10 @@ func init() {
 }
 
 type LightmeterDumpedHeader struct {
-	Key   string
-	Value string
-	Queue string
+	Key    string
+	Value  string
+	Queue  string
+	Values []string
 }
 
 func parseDumpHeaderPayload(payloadLine string) (RawPayload, error) {

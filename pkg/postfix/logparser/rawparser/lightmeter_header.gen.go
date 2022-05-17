@@ -14,7 +14,7 @@ package rawparser
 
 //line lightmeter_header.gen.go:16
 const lightmeter_header_start int = 1
-const lightmeter_header_first_final int = 51
+const lightmeter_header_first_final int = 65
 const lightmeter_header_error int = 0
 
 const lightmeter_header_en_main int = 1
@@ -30,13 +30,15 @@ func parseDumpedHeader(data string) (LightmeterDumpedHeader, bool) {
 
 	var r LightmeterDumpedHeader
 
+  var valuesTokBeg int
 
-//line lightmeter_header.gen.go:35
+
+//line lightmeter_header.gen.go:37
 	{
 	cs = lightmeter_header_start
 	}
 
-//line lightmeter_header.gen.go:40
+//line lightmeter_header.gen.go:42
 	{
 	if p == pe {
 		goto _test_eof
@@ -122,16 +124,18 @@ func parseDumpedHeader(data string) (LightmeterDumpedHeader, bool) {
 		goto st_case_38
 	case 39:
 		goto st_case_39
-	case 51:
-		goto st_case_51
 	case 40:
 		goto st_case_40
+	case 65:
+		goto st_case_65
 	case 41:
 		goto st_case_41
 	case 42:
 		goto st_case_42
 	case 43:
 		goto st_case_43
+	case 66:
+		goto st_case_66
 	case 44:
 		goto st_case_44
 	case 45:
@@ -140,12 +144,46 @@ func parseDumpedHeader(data string) (LightmeterDumpedHeader, bool) {
 		goto st_case_46
 	case 47:
 		goto st_case_47
+	case 67:
+		goto st_case_67
 	case 48:
 		goto st_case_48
 	case 49:
 		goto st_case_49
 	case 50:
 		goto st_case_50
+	case 68:
+		goto st_case_68
+	case 51:
+		goto st_case_51
+	case 69:
+		goto st_case_69
+	case 52:
+		goto st_case_52
+	case 53:
+		goto st_case_53
+	case 54:
+		goto st_case_54
+	case 55:
+		goto st_case_55
+	case 56:
+		goto st_case_56
+	case 57:
+		goto st_case_57
+	case 58:
+		goto st_case_58
+	case 59:
+		goto st_case_59
+	case 60:
+		goto st_case_60
+	case 61:
+		goto st_case_61
+	case 62:
+		goto st_case_62
+	case 63:
+		goto st_case_63
+	case 64:
+		goto st_case_64
 	}
 	goto st_out
 	st_case_1:
@@ -180,7 +218,7 @@ tr0:
 			goto _test_eof2
 		}
 	st_case_2:
-//line lightmeter_header.gen.go:184
+//line lightmeter_header.gen.go:222
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -190,10 +228,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st49
+					goto st63
 				}
 			case data[p] >= 71:
-				goto st49
+				goto st63
 			}
 		default:
 			goto st3
@@ -213,10 +251,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st48
+					goto st62
 				}
 			case data[p] >= 71:
-				goto st48
+				goto st62
 			}
 		default:
 			goto st4
@@ -236,10 +274,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st47
+					goto st61
 				}
 			case data[p] >= 71:
-				goto st47
+				goto st61
 			}
 		default:
 			goto st5
@@ -259,10 +297,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st46
+					goto st60
 				}
 			case data[p] >= 71:
-				goto st46
+				goto st60
 			}
 		default:
 			goto st6
@@ -282,10 +320,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st45
+					goto st59
 				}
 			case data[p] >= 71:
-				goto st45
+				goto st59
 			}
 		default:
 			goto st7
@@ -308,10 +346,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st44
+					goto st58
 				}
 			case data[p] >= 71:
-				goto st44
+				goto st58
 			}
 		default:
 			goto st8
@@ -334,10 +372,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st43
+					goto st57
 				}
 			case data[p] >= 71:
-				goto st43
+				goto st57
 			}
 		default:
 			goto st9
@@ -360,10 +398,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st42
+					goto st56
 				}
 			case data[p] >= 71:
-				goto st42
+				goto st56
 			}
 		default:
 			goto st10
@@ -386,10 +424,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st41
+					goto st55
 				}
 			case data[p] >= 71:
-				goto st41
+				goto st55
 			}
 		default:
 			goto st11
@@ -412,10 +450,10 @@ tr0:
 			switch {
 			case data[p] > 90:
 				if 97 <= data[p] && data[p] <= 122 {
-					goto st40
+					goto st54
 				}
 			case data[p] >= 71:
-				goto st40
+				goto st54
 			}
 		default:
 			goto st12
@@ -443,7 +481,7 @@ tr0:
 		}
 		goto st0
 tr14:
-//line lightmeter_header.rl:24
+//line lightmeter_header.rl:26
 
     r.Queue = data[tokBeg:p]
   
@@ -453,7 +491,7 @@ tr14:
 			goto _test_eof13
 		}
 	st_case_13:
-//line lightmeter_header.gen.go:457
+//line lightmeter_header.gen.go:495
 		if data[p] == 32 {
 			goto st14
 		}
@@ -593,13 +631,13 @@ tr38:
 			goto _test_eof28
 		}
 	st_case_28:
-//line lightmeter_header.gen.go:597
+//line lightmeter_header.gen.go:635
 		if data[p] == 34 {
 			goto tr40
 		}
 		goto st28
 tr40:
-//line lightmeter_header.rl:28
+//line lightmeter_header.rl:30
 
     r.Key = data[tokBeg:p]
   
@@ -609,7 +647,7 @@ tr40:
 			goto _test_eof29
 		}
 	st_case_29:
-//line lightmeter_header.gen.go:613
+//line lightmeter_header.gen.go:651
 		if data[p] == 44 {
 			goto st30
 		}
@@ -691,11 +729,20 @@ tr40:
 			goto _test_eof38
 		}
 	st_case_38:
-		if data[p] == 34 {
+		switch data[p] {
+		case 60:
+			goto tr51
+		case 62:
 			goto st0
 		}
 		goto tr50
+tr55:
+//line common.rl:29
+ tokBeg = p 
+	goto st39
 tr50:
+//line lightmeter_header.rl:44
+ valuesTokBeg = p 
 //line common.rl:29
  tokBeg = p 
 	goto st39
@@ -704,33 +751,614 @@ tr50:
 			goto _test_eof39
 		}
 	st_case_39:
-//line lightmeter_header.gen.go:708
-		if data[p] == 34 {
-			goto tr52
+//line lightmeter_header.gen.go:755
+		switch data[p] {
+		case 32:
+			goto tr53
+		case 34:
+			goto tr54
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr53
 		}
 		goto st39
-tr52:
-//line lightmeter_header.rl:32
+tr53:
+//line lightmeter_header.rl:34
 
-    r.Value = data[tokBeg:p]
+    r.Values = append(r.Values, data[tokBeg:p])
   
-//line lightmeter_header.rl:36
+	goto st40
+tr56:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line common.rl:29
+ tokBeg = p 
+	goto st40
+	st40:
+		if p++; p == pe {
+			goto _test_eof40
+		}
+	st_case_40:
+//line lightmeter_header.gen.go:787
+		switch data[p] {
+		case 32:
+			goto tr56
+		case 34:
+			goto tr57
+		case 60:
+			goto tr58
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr56
+		}
+		goto tr55
+tr54:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
 
 		return r, true
 	
+	goto st65
+tr57:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st65
+	st65:
+		if p++; p == pe {
+			goto _test_eof65
+		}
+	st_case_65:
+//line lightmeter_header.gen.go:837
+		switch data[p] {
+		case 32:
+			goto tr53
+		case 34:
+			goto tr54
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr53
+		}
+		goto st39
+tr58:
+//line common.rl:29
+ tokBeg = p 
+	goto st41
+	st41:
+		if p++; p == pe {
+			goto _test_eof41
+		}
+	st_case_41:
+//line lightmeter_header.gen.go:859
+		switch data[p] {
+		case 32:
+			goto tr60
+		case 34:
+			goto tr61
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr60
+		}
+		goto tr59
+tr59:
+//line common.rl:29
+ tokBeg = p 
+	goto st42
+	st42:
+		if p++; p == pe {
+			goto _test_eof42
+		}
+	st_case_42:
+//line lightmeter_header.gen.go:881
+		switch data[p] {
+		case 32:
+			goto tr63
+		case 34:
+			goto tr64
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr63
+		}
+		goto st42
+tr63:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st43
+tr60:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line common.rl:29
+ tokBeg = p 
+	goto st43
+tr84:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st43
+	st43:
+		if p++; p == pe {
+			goto _test_eof43
+		}
+	st_case_43:
+//line lightmeter_header.gen.go:921
+		switch data[p] {
+		case 32:
+			goto tr60
+		case 34:
+			goto tr61
+		case 60:
+			goto tr66
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr60
+		}
+		goto tr59
+tr64:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st66
+tr61:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st66
+tr85:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st66
+	st66:
+		if p++; p == pe {
+			goto _test_eof66
+		}
+	st_case_66:
+//line lightmeter_header.gen.go:987
+		switch data[p] {
+		case 32:
+			goto tr63
+		case 34:
+			goto tr64
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr63
+		}
+		goto st42
+tr65:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st44
+	st44:
+		if p++; p == pe {
+			goto _test_eof44
+		}
+	st_case_44:
+//line lightmeter_header.gen.go:1011
+		switch data[p] {
+		case 32:
+			goto st45
+		case 34:
+			goto tr68
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto st45
+		}
+		goto st0
+	st45:
+		if p++; p == pe {
+			goto _test_eof45
+		}
+	st_case_45:
+		switch data[p] {
+		case 32:
+			goto tr70
+		case 60:
+			goto tr71
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr70
+		}
+		goto tr69
+tr69:
+//line common.rl:29
+ tokBeg = p 
+	goto st46
+	st46:
+		if p++; p == pe {
+			goto _test_eof46
+		}
+	st_case_46:
+//line lightmeter_header.gen.go:1048
+		switch data[p] {
+		case 32:
+			goto tr73
+		case 34:
+			goto tr74
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr73
+		}
+		goto st46
+tr70:
+//line common.rl:29
+ tokBeg = p 
+	goto st47
+tr73:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st47
+tr75:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st47
+	st47:
+		if p++; p == pe {
+			goto _test_eof47
+		}
+	st_case_47:
+//line lightmeter_header.gen.go:1084
+		switch data[p] {
+		case 32:
+			goto tr75
+		case 34:
+			goto tr76
+		case 60:
+			goto tr71
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr75
+		}
+		goto tr69
+tr74:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st67
+tr76:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st67
+	st67:
+		if p++; p == pe {
+			goto _test_eof67
+		}
+	st_case_67:
+//line lightmeter_header.gen.go:1134
+		switch data[p] {
+		case 32:
+			goto tr73
+		case 34:
+			goto tr74
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr73
+		}
+		goto st46
+tr71:
+//line common.rl:29
+ tokBeg = p 
+	goto st48
+	st48:
+		if p++; p == pe {
+			goto _test_eof48
+		}
+	st_case_48:
+//line lightmeter_header.gen.go:1156
+		switch data[p] {
+		case 32:
+			goto tr78
+		case 34:
+			goto tr79
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr78
+		}
+		goto tr77
+tr77:
+//line common.rl:29
+ tokBeg = p 
+	goto st49
+	st49:
+		if p++; p == pe {
+			goto _test_eof49
+		}
+	st_case_49:
+//line lightmeter_header.gen.go:1178
+		switch data[p] {
+		case 32:
+			goto tr81
+		case 34:
+			goto tr82
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr81
+		}
+		goto st49
+tr81:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st50
+tr78:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+	goto st50
+	st50:
+		if p++; p == pe {
+			goto _test_eof50
+		}
+	st_case_50:
+//line lightmeter_header.gen.go:1210
+		switch data[p] {
+		case 32:
+			goto tr78
+		case 34:
+			goto tr79
+		case 60:
+			goto tr83
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr78
+		}
+		goto tr77
+tr82:
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st68
+tr79:
+//line common.rl:29
+ tokBeg = p 
+//line lightmeter_header.rl:34
+
+    r.Values = append(r.Values, data[tokBeg:p])
+  
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st68
+	st68:
+		if p++; p == pe {
+			goto _test_eof68
+		}
+	st_case_68:
+//line lightmeter_header.gen.go:1260
+		switch data[p] {
+		case 32:
+			goto tr81
+		case 34:
+			goto tr82
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr81
+		}
+		goto st49
+tr83:
+//line common.rl:29
+ tokBeg = p 
 	goto st51
 	st51:
 		if p++; p == pe {
 			goto _test_eof51
 		}
 	st_case_51:
-//line lightmeter_header.gen.go:728
-		goto st0
-	st40:
-		if p++; p == pe {
-			goto _test_eof40
+//line lightmeter_header.gen.go:1282
+		switch data[p] {
+		case 32:
+			goto tr78
+		case 34:
+			goto tr79
+		case 62:
+			goto tr65
 		}
-	st_case_40:
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr78
+		}
+		goto tr77
+tr68:
+//line lightmeter_header.rl:44
+
+    r.Value = data[valuesTokBeg:p]
+  
+//line lightmeter_header.rl:48
+
+		return r, true
+	
+	goto st69
+	st69:
+		if p++; p == pe {
+			goto _test_eof69
+		}
+	st_case_69:
+//line lightmeter_header.gen.go:1310
+		goto st0
+tr66:
+//line common.rl:29
+ tokBeg = p 
+	goto st52
+	st52:
+		if p++; p == pe {
+			goto _test_eof52
+		}
+	st_case_52:
+//line lightmeter_header.gen.go:1321
+		switch data[p] {
+		case 32:
+			goto tr60
+		case 34:
+			goto tr61
+		case 62:
+			goto tr65
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr60
+		}
+		goto tr59
+tr51:
+//line lightmeter_header.rl:44
+ valuesTokBeg = p 
+//line common.rl:29
+ tokBeg = p 
+	goto st53
+	st53:
+		if p++; p == pe {
+			goto _test_eof53
+		}
+	st_case_53:
+//line lightmeter_header.gen.go:1345
+		switch data[p] {
+		case 32:
+			goto tr84
+		case 34:
+			goto tr85
+		case 62:
+			goto st0
+		}
+		if 9 <= data[p] && data[p] <= 13 {
+			goto tr84
+		}
+		goto tr59
+	st54:
+		if p++; p == pe {
+			goto _test_eof54
+		}
+	st_case_54:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
@@ -744,189 +1372,189 @@ tr52:
 			goto st12
 		}
 		goto st0
-	st41:
+	st55:
 		if p++; p == pe {
-			goto _test_eof41
+			goto _test_eof55
 		}
-	st_case_41:
+	st_case_55:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st40
+				goto st54
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st40
+				goto st54
 			}
 		default:
-			goto st40
+			goto st54
 		}
 		goto st0
-	st42:
+	st56:
 		if p++; p == pe {
-			goto _test_eof42
+			goto _test_eof56
 		}
-	st_case_42:
+	st_case_56:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st41
+				goto st55
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st41
+				goto st55
 			}
 		default:
-			goto st41
+			goto st55
 		}
 		goto st0
-	st43:
+	st57:
 		if p++; p == pe {
-			goto _test_eof43
+			goto _test_eof57
 		}
-	st_case_43:
+	st_case_57:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st42
+				goto st56
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st42
+				goto st56
 			}
 		default:
-			goto st42
+			goto st56
 		}
 		goto st0
-	st44:
+	st58:
 		if p++; p == pe {
-			goto _test_eof44
+			goto _test_eof58
 		}
-	st_case_44:
+	st_case_58:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st43
+				goto st57
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st43
+				goto st57
 			}
 		default:
-			goto st43
+			goto st57
 		}
 		goto st0
-	st45:
+	st59:
 		if p++; p == pe {
-			goto _test_eof45
+			goto _test_eof59
 		}
-	st_case_45:
+	st_case_59:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st44
+				goto st58
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st44
+				goto st58
 			}
 		default:
-			goto st44
+			goto st58
 		}
 		goto st0
-	st46:
+	st60:
 		if p++; p == pe {
-			goto _test_eof46
+			goto _test_eof60
 		}
-	st_case_46:
+	st_case_60:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st45
+				goto st59
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st45
+				goto st59
 			}
 		default:
-			goto st45
+			goto st59
 		}
 		goto st0
-	st47:
+	st61:
 		if p++; p == pe {
-			goto _test_eof47
+			goto _test_eof61
 		}
-	st_case_47:
+	st_case_61:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st46
+				goto st60
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st46
+				goto st60
 			}
 		default:
-			goto st46
+			goto st60
 		}
 		goto st0
-	st48:
+	st62:
 		if p++; p == pe {
-			goto _test_eof48
+			goto _test_eof62
 		}
-	st_case_48:
+	st_case_62:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st47
+				goto st61
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st47
+				goto st61
 			}
 		default:
-			goto st47
+			goto st61
 		}
 		goto st0
-	st49:
+	st63:
 		if p++; p == pe {
-			goto _test_eof49
+			goto _test_eof63
 		}
-	st_case_49:
+	st_case_63:
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st48
+				goto st62
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st48
+				goto st62
 			}
 		default:
-			goto st48
+			goto st62
 		}
 		goto st0
 tr2:
 //line common.rl:29
  tokBeg = p 
-	goto st50
-	st50:
+	goto st64
+	st64:
 		if p++; p == pe {
-			goto _test_eof50
+			goto _test_eof64
 		}
-	st_case_50:
-//line lightmeter_header.gen.go:919
+	st_case_64:
+//line lightmeter_header.gen.go:1547
 		switch {
 		case data[p] < 65:
 			if 48 <= data[p] && data[p] <= 57 {
-				goto st49
+				goto st63
 			}
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
-				goto st49
+				goto st63
 			}
 		default:
-			goto st49
+			goto st63
 		}
 		goto st0
 	st_out:
@@ -968,24 +1596,42 @@ tr2:
 	_test_eof37: cs = 37; goto _test_eof
 	_test_eof38: cs = 38; goto _test_eof
 	_test_eof39: cs = 39; goto _test_eof
-	_test_eof51: cs = 51; goto _test_eof
 	_test_eof40: cs = 40; goto _test_eof
+	_test_eof65: cs = 65; goto _test_eof
 	_test_eof41: cs = 41; goto _test_eof
 	_test_eof42: cs = 42; goto _test_eof
 	_test_eof43: cs = 43; goto _test_eof
+	_test_eof66: cs = 66; goto _test_eof
 	_test_eof44: cs = 44; goto _test_eof
 	_test_eof45: cs = 45; goto _test_eof
 	_test_eof46: cs = 46; goto _test_eof
 	_test_eof47: cs = 47; goto _test_eof
+	_test_eof67: cs = 67; goto _test_eof
 	_test_eof48: cs = 48; goto _test_eof
 	_test_eof49: cs = 49; goto _test_eof
 	_test_eof50: cs = 50; goto _test_eof
+	_test_eof68: cs = 68; goto _test_eof
+	_test_eof51: cs = 51; goto _test_eof
+	_test_eof69: cs = 69; goto _test_eof
+	_test_eof52: cs = 52; goto _test_eof
+	_test_eof53: cs = 53; goto _test_eof
+	_test_eof54: cs = 54; goto _test_eof
+	_test_eof55: cs = 55; goto _test_eof
+	_test_eof56: cs = 56; goto _test_eof
+	_test_eof57: cs = 57; goto _test_eof
+	_test_eof58: cs = 58; goto _test_eof
+	_test_eof59: cs = 59; goto _test_eof
+	_test_eof60: cs = 60; goto _test_eof
+	_test_eof61: cs = 61; goto _test_eof
+	_test_eof62: cs = 62; goto _test_eof
+	_test_eof63: cs = 63; goto _test_eof
+	_test_eof64: cs = 64; goto _test_eof
 
 	_test_eof: {}
 	_out: {}
 	}
 
-//line lightmeter_header.rl:42
+//line lightmeter_header.rl:54
 
 
 	return r, false

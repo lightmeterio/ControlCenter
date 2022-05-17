@@ -93,6 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <option value="-1"><translate>Any status</translate></option>
           <option value="0"><translate>Sent</translate></option>
           <option value="42"><translate>Received</translate></option>
+          <option value="43"><translate>Replied</translate></option>
           <option value="1"><translate>Bounced</translate></option>
           <option value="2"><translate>Deferred</translate></option>
           <option value="3"><translate>Expired</translate></option>
@@ -416,7 +417,7 @@ export default {
 /* don't squeeze the inputs or datepicker too much, so they'll flex-wrap on smaller screens */
 input,
 .vue-daterange-picker {
-  min-width: 200px !important;
+  min-width: 180px !important;
   display: block !important;
 }
 
@@ -450,5 +451,6 @@ button.btn-primary {
 .detective-body {
   padding-right: 0px;
   padding-left: 0px;
+  margin-bottom: 20px;
 }
 </style>

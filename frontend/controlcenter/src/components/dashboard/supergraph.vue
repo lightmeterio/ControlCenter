@@ -6,13 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
   <div ref="chart" :class="chartClass()">
-    <div
-      ref="overlay"
-      class="small-chart-overlay"
-      @click="zoomIn()"
-      v-on:keyup.enter="zoomOut()"
-    >
-      <translate v-if="emptyData">Not enough data to create graph!</translate>
+    <div ref="overlay" class="small-chart-overlay" @click="zoomIn()">
+      <translate v-if="emptyData">Not enough data</translate>
     </div>
     <v-chart ref="echart" class="chart" :option="option" />
   </div>
@@ -48,12 +43,21 @@ export default {
     [THEME_KEY]: "default"
   },
   data() {
+    let colors = [
+      "#2c9cd6",
+      "#7a82ab",
+      "#ff5c6f",
+      "#1d8caf",
+      "#87c528",
+      "#3dd9d6",
+      "#fce4c4"
+    ];
     let vue = this;
     return {
       granularity: false,
-      zoomed: false,
       emptyData: false,
       option: {
+        color: colors,
         animation: false,
         title: {
           text: vue.title
@@ -66,6 +70,8 @@ export default {
           enterable: true,
           confine: true,
           formatter: function(params) {
+            // TODO: instead of returning a html snippet, we we return a HTTPElement instead
+            // which will probably be much cleaner
             let dateDisplayed = false;
             let tt = "<div class='lm-tooltip'>";
 
@@ -80,12 +86,19 @@ export default {
               if (!dateDisplayed) {
                 dateDisplayed = true;
                 tt +=
-                  "<p><b>" + date + " </b>" + vue.detectiveLink(date) + "</p>";
+                  "<p><b><a href='" +
+                  vue.detectiveLink(date) +
+                  "'>" +
+                  date +
+                  " <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a></b></p>";
               }
 
               tt += "<div class='lm-serie'>";
 
               tt +=
+                "<a href='" +
+                vue.detectiveLink(date, s.seriesName) +
+                "'>" +
                 "<span class='lm-serieName' style='color: " +
                 s.color +
                 "'>" +
@@ -96,11 +109,14 @@ export default {
                 "<span class='lm-serieValue'>" +
                 s.value +
                 " </span>" +
-                vue.detectiveLink(date, s.seriesName) +
+                "<i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i>" +
+                "</a>" +
                 "</div>";
               tt += "</div>";
             });
+
             tt += "</div>";
+
             return tt;
           }
         },
@@ -138,14 +154,14 @@ export default {
         ],
         yAxis: [{ type: "value" }],
         series: [
-          // this is a dummy dataset to force the graph to stack the data
+          // FIXME: this is a dummy dataset to force the graph to stack the data. Very ugly hack!!!
           {
             type: "line",
             stack: "Total",
             showSymbol: false,
             areaStyle: {
               opacity: 0.8,
-              color: "black"
+              color: colors[0] // FIXME: I have no idea why this series persists and inpact the updates!!! But it's a very ugly hack!!!!
             },
             data: []
           }
@@ -165,8 +181,6 @@ export default {
       vue.resizeAndRefresh();
     });
 
-    window.addEventListener("keydown", this.keyListener);
-
     this.redrawChart(
       this.graphDateRange.startDate,
       this.graphDateRange.endDate
@@ -182,22 +196,15 @@ export default {
         2: "col-md-6 col-12",
         3: "col-md-4 col-12"
       }[this.size];
-      return "small-chart " + bootstrapClass + (this.zoomed ? " zoomed" : "");
+
+      return "small-chart " + bootstrapClass;
     },
     zoomIn() {
-      this.zoomed = true;
-      this.$refs.chart.style.top = "" + window.scrollY + "px";
-      setTimeout(this.resizeAndRefresh, 50);
-    },
-    keyListener(event) {
-      if (event.key === "Escape") {
-        this.zoomOut();
-      }
+      let element = this.$refs.echart.getDom();
+      element.requestFullscreen();
     },
     zoomOut() {
-      this.zoomed = false;
-      this.$refs.chart.style.top = 0;
-      setTimeout(this.resizeAndRefresh, 50);
+      document.exitFullscreen();
     },
     formatTime(value, keepDate = false) {
       let val = new Date(value);
@@ -213,15 +220,25 @@ export default {
     detectiveLink(date, seriesName) {
       let vue = this;
 
+      // TODO: the graph should not know about each concrete usage of it.
+      // Right now it's quite difficult, so a way to model it is not to include the link
+      // to the detective page, but to emit a generic event with the time range, sender/recipient
+      // and catch the event in the dashboard, which will act accordingly.
+      // I am not sure though if this can be done with the tooltip formatter!
       let status = {
         sentMailsByMailbox: 0,
         receivedMailsByMailbox: 42,
+        inboundRepliesByMailbox: 43,
         bouncedMailsByMailbox: 1,
         deferredMailsByMailbox: 2,
         expiredMailsByMailbox: 3
       }[vue.endpoint];
 
-      let from_to = vue.endpoint == "receivedMailsByMailbox" ? "to" : "from";
+      let from_to =
+        vue.endpoint in
+        { receivedMailsByMailbox: null, inboundRepliesByMailbox: null }
+          ? "to"
+          : "from";
 
       let link =
         window.location.pathname +
@@ -236,11 +253,7 @@ export default {
         "&statusSelected=" +
         encodeURIComponent(status);
 
-      return (
-        "<a href='" +
-        link +
-        "'> <i class='fas fa-search' data-toggle='tooltip' data-placement='bottom'></i></a>"
-      );
+      return link;
     },
     redrawChart(from, to) {
       let vue = this;
@@ -279,6 +292,7 @@ export default {
           let s = {
             name: mailbox,
             type: "line",
+            smooth: true,
             stack: "Total",
             lineStyle: {
               width: 1
@@ -316,7 +330,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.small-chart:not(.zoomed) {
+.small-chart {
   height: 300px;
   max-height: 66vh;
   padding: 1em;
@@ -343,17 +357,6 @@ export default {
     height: 100%;
   }
 }
-.small-chart.zoomed {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  max-width: 100%; /* override bootstrap col- */
-  height: 100%;
-  padding: 2em;
-  z-index: 100;
-  background: white;
-}
 </style>
 
 <!-- NOTE: following CSS is not scoped on purpose: the echarts tooltip is just below <body> -->
@@ -365,5 +368,9 @@ export default {
   .lm-serieValue {
     margin-left: 0.5em;
   }
+}
+
+::backdrop {
+  background-color: white;
 }
 </style>

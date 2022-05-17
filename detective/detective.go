@@ -10,18 +10,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
-	"gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/emailutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const ResultsPerPage = 100
@@ -43,14 +44,20 @@ const (
 
 func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) (Detective, error) {
 	setup := func(db *dbconn.RoPooledConn) error {
+		// TODO: this query is way too big, complex and difficult to read.
+		// It is potentially slower than needed, as it might compute non-needed cases.
+		// We should refactor the detective to have an individual query for each kind of search.
+		// There are many issues with this suggested approach, and the main one is that it requires extensive
+		// tests to ensure that each and every search option has a query implemented for it.
 		if err := db.PrepareStmt(`
 			with
-			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id) as (
+			sent_deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id, is_reply) as (
 				select
 					d.id, d.delivery_ts, d.status, d.dsn, dq.queue_id, mid.value, d.direction, false,
 					sender_local_part    || '@' || sender_domain.domain    as mailfrom,
 					recipient_local_part || '@' || recipient_domain.domain as mailto,
-					d.next_relay_id
+					d.next_relay_id,
+					(@status = @RepliedStatus)
 				from
 					deliveries d
 				join
@@ -72,15 +79,21 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 					(recipient_domain.domain = @recipient_domain     collate nocase or @recipient_domain = '' or relay.hostname like @recipient_domain_like collate nocase) and
 					(delivery_ts between @start and @end) and
 					(
-						status = @status and status != @ReceivedStatus and direction = 0  -- sent emails
-						or @status = @ReceivedStatus and direction = 1                    -- received emails
-						or @status = -1
-						or @status = 3 and exists(select * from expired_queues where queue_id = q.id)
+						(status = @status and status not in (@ReceivedStatus, @RepliedStatus) and direction = @DirectionOutbound)  -- sent emails
+						or (@status = @ReceivedStatus and direction = @DirectionInbound)                                           -- received emails
+						or (
+							@status = @RepliedStatus
+								and direction = @DirectionInbound
+								and sender_local_part != '' -- bounce messages, where the sender is empty, are not replies!
+								and exists(select * from messageids_replies mr where mr.reply_id = d.message_id)
+						)
+						or @status = @NoStatus
+						or (@status = @ExpiredStatus and exists(select * from expired_queues where queue_id = q.id))
 					) and
 					(q.name = @someID or mid.value = @someID or @someID = '')
 			),
-			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id) as (
-				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, d.direction, true, mailfrom, mailto, d.next_relay_id
+			returned_deliveries(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id, is_reply) as (
+				select d.id, d.delivery_ts, d.status, d.dsn, sd.queue_id, mid.value, d.direction, true, mailfrom, mailto, d.next_relay_id, false
 				from
 					deliveries d
 				join
@@ -96,10 +109,10 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				join
 					messageids mid on mid.id = d.message_id
 			),
-			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id) as (
-				select id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id from sent_deliveries_filtered_by_condition
+			deliveries_filtered_by_condition(id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id, is_reply) as (
+				select id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id, is_reply from sent_deliveries_filtered_by_condition
 				union
-				select id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id from returned_deliveries
+				select id, delivery_ts, status, dsn, queue_id, message_id, direction, returned, mailfrom, mailto, relay_id, is_reply from returned_deliveries
 			),
 			queues_filtered_by_condition(delivery_id, queue_id, expired_ts, mailfrom, mailto) as (
 				select distinct deliveries_filtered_by_condition.id, delivery_queue.queue_id, expired_ts, mailfrom, mailto
@@ -107,7 +120,7 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				left join expired_queues eq on eq.queue_id = deliveries_filtered_by_condition.queue_id
 				join delivery_queue on delivery_queue.delivery_id = deliveries_filtered_by_condition.id
 			),
-			grouped_and_computed(log_refs, rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay) as (
+			grouped_and_computed(log_refs, rn, total, delivery_ts, status, dsn, queue_id, message_id, queue, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay, is_reply) as (
 				select
 					json_group_array(distinct iif(ref.time is null, json_object('invalid', true), json_object('time', ref.time, 'checksum', ref.checksum))),
 					row_number() over (order by delivery_ts),
@@ -117,7 +130,8 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 					d.direction as direction,
 					d.returned as returned,
 					d.mailfrom, json_group_array(distinct d.mailto),
-					json_group_array(distinct lm_host_domain_from_domain(coalesce(next_relays.hostname, 'local')))
+					json_group_array(distinct lm_host_domain_from_domain(coalesce(next_relays.hostname, 'local'))),
+					d.is_reply as is_reply
 				from deliveries_filtered_by_condition d
 				join queues on d.queue_id = queues.id
 				join queues_filtered_by_condition q on q.queue_id = d.queue_id 
@@ -125,7 +139,7 @@ func New(deliveriesConnPool *dbconn.RoPool, rawLogsAccessor rawlogsdb.Accessor) 
 				left join log_lines_ref ref on d.id = ref.delivery_id
 				group by d.queue_id, status, dsn
 			)
-			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay, log_refs
+			select total, status, dsn, queue, message_id, expired_ts, number_of_attempts, min_ts, max_ts, direction, returned, mailfrom, mailto, relay, log_refs, is_reply
 			from grouped_and_computed gac
 			order by delivery_ts, returned
 			limit @limit
@@ -320,6 +334,11 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 		sql.Named("end", interval.To.Unix()),
 		sql.Named("status", status),
 		sql.Named("ReceivedStatus", parser.ReceivedStatus),
+		sql.Named("RepliedStatus", parser.RepliedStatus),
+		sql.Named("ExpiredStatus", parser.ExpiredStatus),
+		sql.Named("DirectionInbound", tracking.MessageDirectionIncoming),
+		sql.Named("NoStatus", -1),
+		sql.Named("DirectionOutbound", tracking.MessageDirectionOutbound),
 		sql.Named("sender_local_part", senderLocal),
 		sql.Named("sender_domain", senderDomain),
 		sql.Named("recipient_local_part", recipientLocal),
@@ -359,9 +378,10 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 			mailTo           string
 			relay            string
 			logRefsContent   string
+			isReply          bool
 		)
 
-		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &direction, &returned, &mailFrom, &mailTo, &relay, &logRefsContent); err != nil {
+		if err := rows.Scan(&total, &status, &dsn, &queueName, &messageID, &expiredTs, &numberOfAttempts, &tsMin, &tsMax, &direction, &returned, &mailFrom, &mailTo, &relay, &logRefsContent, &isReply); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -371,6 +391,10 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 
 		if returned {
 			status = parser.ReturnedStatus
+		}
+
+		if isReply {
+			status = parser.RepliedStatus
 		}
 
 		index := func() int {
@@ -446,16 +470,16 @@ func checkMessageDelivery(ctx context.Context, rawLogsAccessor rawlogsdb.Accesso
 }
 
 var CSVHeader = []string{
-	"Queue",
+	"MailFrom",
+	"MailTo",
 	"MessageID",
+	"Queue",
 	"NumberOfAttempts",
 	"TimeMin",
 	"TimeMax",
 	"Status",
 	"DSN",
 	"Expired",
-	"MailFrom",
-	"MailTo",
 	"Relays",
 	"RawLogMsgs",
 }
@@ -464,11 +488,9 @@ func (p *MessagesPage) ExportCSV() [][]string {
 	records := [][]string{}
 
 	for _, m := range p.Messages {
-		lineheader := []string{m.Queue, m.MessageID}
-
 		for _, d := range m.Entries {
-			record := d.ExportCSV()
-			records = append(records, append(lineheader, record...))
+			record := d.ExportCSV(m.Queue, m.MessageID)
+			records = append(records, record)
 		}
 	}
 
@@ -477,21 +499,23 @@ func (p *MessagesPage) ExportCSV() [][]string {
 
 const csvTimeFormat = time.RFC3339
 
-func (d *MessageDelivery) ExportCSV() []string {
+func (d *MessageDelivery) ExportCSV(queue, messageid string) []string {
 	exp := ""
 	if d.Expired != nil {
 		exp = d.Expired.Format(csvTimeFormat)
 	}
 
 	return []string{
+		d.MailFrom,
+		strings.Join(d.MailTo, "\n"),
+		messageid,
+		queue,
 		strconv.Itoa(d.NumberOfAttempts),
 		d.TimeMin.Format(csvTimeFormat),
 		d.TimeMax.Format(csvTimeFormat),
 		parser.SmtpStatus(d.Status).String(),
 		d.Dsn,
 		exp,
-		d.MailFrom,
-		strings.Join(d.MailTo, "\n"),
 		strings.Join(d.Relays, "\n"),
 		strings.Join(d.RawLogMsgs, "\n"),
 	}
