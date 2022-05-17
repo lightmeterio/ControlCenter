@@ -5,6 +5,7 @@
 package tracking
 
 import (
+	"encoding/json"
 	"regexp"
 
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -240,18 +241,32 @@ type AcceptInReplyTo struct {
 }
 
 func (f *AcceptInReplyTo) Filter(r Result) FilterResult {
-	// Do nothing if it's not a reply message
-	if isAnyNone(r, QueueInReplyToHeaderKey, ResultMessageDirectionKey) {
-		return FilterResultUndecided
-	}
-
 	// We handle only inbound replies for now
-	if MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionIncoming {
+	if isAnyNone(r, ResultMessageDirectionKey) || MessageDirection(r[ResultMessageDirectionKey].Int64()) != MessageDirectionIncoming {
 		return FilterResultUndecided
 	}
 
-	if f.Pattern.MatchString(r[QueueInReplyToHeaderKey].Text()) {
+	references := []string{}
+
+	if !isAnyNone(r, QueueReferencesHeaderKey) {
+		if err := json.Unmarshal(r[QueueReferencesHeaderKey].Blob(), &references); err != nil {
+			// if it's not valid JSON, this is not my problem...
+			return FilterResultUndecided
+		}
+	}
+
+	if !isAnyNone(r, QueueInReplyToHeaderKey) {
+		references = append(references, r[QueueInReplyToHeaderKey].Text())
+	}
+
+	if len(references) == 0 {
 		return FilterResultUndecided
+	}
+
+	for _, reference := range references {
+		if f.Pattern.MatchString(reference) {
+			return FilterResultUndecided
+		}
 	}
 
 	return FilterResultReject

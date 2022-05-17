@@ -8,13 +8,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"strings"
-	"time"
 )
 
 type MessageDirection int
@@ -80,6 +81,8 @@ func actionTypeForRecord(r postfix.Record) (ActionType, actionDataPair) {
 		case parser.ExpiredStatus:
 			fallthrough
 		case parser.ReturnedStatus:
+			fallthrough
+		case parser.RepliedStatus:
 			fallthrough
 		default:
 			return UnsupportedActionType, emptyActionDataPair
@@ -881,23 +884,51 @@ func messageExpiredAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDat
 	return nil
 }
 
-func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
-	//nolint:forcetypeassert
-	p := r.Payload.(parser.LightmeterDumpedHeader)
-
-	if p.Key != `In-Reply-To` {
+func handleInReplyToHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) error {
+	if len(p.Values) == 0 {
 		return nil
 	}
-
-	value := strings.TrimRight(strings.TrimLeft(p.Value, "<"), ">")
 
 	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
 
-	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueInReplyToHeaderKey, value: value}); err != nil {
+	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueInReplyToHeaderKey, value: p.Values[0]}); err != nil {
 		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func handleReferencesHeader(p parser.LightmeterDumpedHeader, tx *sql.Tx, r postfix.Record, trackerStmts dbconn.TxPreparedStmts) error {
+	queueId, err := findQueueIdFromQueueValue(r.Header, p.Queue, trackerStmts)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	data, err := json.Marshal(p.Values)
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	if err := insertQueueDataValues(trackerStmts, queueId, kvData{key: QueueReferencesHeaderKey, value: data}); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+func lightmeterHeaderDumpAction(tx *sql.Tx, r postfix.Record, actionDataPair actionDataPair, trackerStmts dbconn.TxPreparedStmts) error {
+	//nolint:forcetypeassert
+	p := r.Payload.(parser.LightmeterDumpedHeader)
+
+	if p.Key == `In-Reply-To` {
+		return handleInReplyToHeader(p, tx, r, trackerStmts)
+	}
+
+	if p.Key == `References` {
+		return handleReferencesHeader(p, tx, r, trackerStmts)
 	}
 
 	return nil

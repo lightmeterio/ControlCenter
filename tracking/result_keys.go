@@ -70,6 +70,8 @@ const (
 	ResultDeliveryLineRelayedBounce
 	QueueRelayedBounceJsonKey
 
+	QueueReferencesHeaderKey
+
 	lastResultKey
 )
 
@@ -132,5 +134,6 @@ var (
 
 		ResultDeliveryLineRelayedBounce: "result_relivery_line_relayed_bounce",
 		QueueRelayedBounceJsonKey:       "queue_relayed_bounce_json_key",
+		QueueReferencesHeaderKey:        "queue_references_header",
 	}
 )

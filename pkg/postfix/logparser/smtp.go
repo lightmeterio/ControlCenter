@@ -32,6 +32,7 @@ var (
 		ExpiredStatus:  "expired",
 		ReturnedStatus: "returned",
 		ReceivedStatus: "received",
+		RepliedStatus:  "replied",
 	}
 )
 
@@ -45,7 +46,9 @@ const (
 	DeferredStatus SmtpStatus = 2
 	ExpiredStatus  SmtpStatus = 3
 	ReturnedStatus SmtpStatus = 4
+
 	ReceivedStatus SmtpStatus = 42 // not an actual status; used in Message Detective
+	RepliedStatus  SmtpStatus = 43 // not an actual status; used in Message Detective
 )
 
 type SmtpSentStatus struct {
@@ -96,6 +99,8 @@ func ParseStatus(s string) (SmtpStatus, error) {
 		return ExpiredStatus, nil
 	case "returned":
 		return ReturnedStatus, nil
+	case "replied":
+		return RepliedStatus, nil
 	}
 
 	return 0, ErrInvalidStatus

@@ -6,6 +6,10 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"strconv"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
@@ -14,9 +18,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
 	"gitlab.com/lightmeter/controlcenter/version"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type handler struct {
@@ -178,6 +179,15 @@ type trafficBySenderOverTimeHandler struct {
 // @Failure 422 {string} string "desc"
 // @Router /api/v0/receivedMailsByMailbox  [get]
 
+// @Summary Number of inbound replies
+// @Param from query string true "Initial date in the format 1999-12-23"
+// @Param to   query string true "Final date in the format 1999-12-23"
+// @Param granularity query integer 12 "Time granularity in hours"
+// @Produce json
+// @Success 200 {object} dashboard.MailTrafficPerSenderOverTimeResult
+// @Failure 422 {string} string "desc"
+// @Router /api/v0/inboundRepliesByMailbox [get]
+
 func (h trafficBySenderOverTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	interval := httpmiddleware.GetIntervalFromContext(r)
 
@@ -215,11 +225,12 @@ func HttpDashboard(auth *auth.Authenticator, mux *http.ServeMux, timezone *time.
 	unauthenticated := httpmiddleware.WithDefaultStackWithoutAuth()
 
 	for k, v := range map[string]func(context.Context, timeutil.TimeInterval, int) (dashboard.MailTrafficPerSenderOverTimeResult, error){
-		"/api/v0/sentMailsByMailbox":     d.SentMailsByMailbox,
-		"/api/v0/bouncedMailsByMailbox":  d.BouncedMailsByMailbox,
-		"/api/v0/deferredMailsByMailbox": d.DeferredMailsByMailbox,
-		"/api/v0/expiredMailsByMailbox":  d.ExpiredMailsByMailbox,
-		"/api/v0/receivedMailsByMailbox": d.ReceivedMailsByMailbox,
+		"/api/v0/sentMailsByMailbox":      d.SentMailsByMailbox,
+		"/api/v0/bouncedMailsByMailbox":   d.BouncedMailsByMailbox,
+		"/api/v0/deferredMailsByMailbox":  d.DeferredMailsByMailbox,
+		"/api/v0/expiredMailsByMailbox":   d.ExpiredMailsByMailbox,
+		"/api/v0/receivedMailsByMailbox":  d.ReceivedMailsByMailbox,
+		"/api/v0/inboundRepliesByMailbox": d.InboundRepliesByMailbox,
 	} {
 		mux.Handle(k, authenticated.WithEndpoint(trafficBySenderOverTimeHandler{v}))
 	}

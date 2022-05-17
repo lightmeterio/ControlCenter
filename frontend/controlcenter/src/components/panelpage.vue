@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <b-col lg="10">
                   <img
                     class="logo w-100"
-                    src="@/assets/logo-color-120.png"
+                    src="@/assets/logo-color-120.svg"
                     alt="Lightmeter logo"
                   />
                 </b-col>

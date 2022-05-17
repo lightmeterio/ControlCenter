@@ -7,6 +7,13 @@ package tracking
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
@@ -16,12 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
-	"io/ioutil"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 var _ = parser.Parse
@@ -652,6 +653,12 @@ func TestTrackingFromFiles(t *testing.T) {
 					So(len(pub.results), ShouldEqual, 1)
 					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "B9996EABB6")
 					So(pub.results[0][QueueInReplyToHeaderKey].Text(), ShouldEqual, "da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com")
+
+					var references []string
+
+					So(json.Unmarshal(pub.results[0][QueueReferencesHeaderKey].Blob(), &references), ShouldBeNil)
+
+					So(references, ShouldResemble, []string{`eyJjb252ZXJzYXRpb25fbWVzc2FnNV9sb2dfaWQiOjX6MjUyOTYzfQ==#012`, `da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com`})
 				})
 			})
 

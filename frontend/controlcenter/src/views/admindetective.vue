@@ -24,64 +24,40 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="card-body text-info">
           <div class="card-title">
             <i class="fa fa-info-circle"></i>
-            Usage
+            <translate>Usage</translate>
           </div>
           <ul class="card-text" style="margin-left: 0;padding-left: inherit;">
             <li>
-              You can use domains instead of email addresses (@domain.org,
-              domain.org)
+              <translate
+                >You can use domains instead of email addresses (@domain.org,
+                domain.org). Some common domains you can search for are:
+              </translate>
+              <ul>
+                <li>
+                  <strong>google.com</strong>:
+                  <translate
+                    >for GMail and other domains hosted by Google.</translate
+                  >
+                </li>
+                <li>
+                  <strong>outlook.com</strong>:
+                  <translate
+                    >for Outlook, Hotmail and other domains hosted by
+                    Microsoft.</translate
+                  >
+                </li>
+              </ul>
             </li>
             <li>
-              Leave sender or recipient blank, to view all emails to or from
-              someone, or some domain
+              <translate>
+                Leave sender or recipient blank, to view all emails to or from
+                someone, or some domain.
+              </translate>
             </li>
             <li v-if="!simpleViewEnabled">
               You can enable a restricted view of the Message Detective for
               Mailbox users
-              <router-link to="/settings">in the settings</router-link>
-            </li>
-            <li>
-              <translate>Explanation for the Results</translate>:
-              <ul>
-                <li>
-                  <translate>Sent</translate>:
-                  <translate
-                    >Outbound messages that succeeded to be sent</translate
-                  >
-                </li>
-                <li>
-                  <translate>Received</translate>:
-                  <translate>Inbound messages</translate>
-                </li>
-                <li>
-                  <translate>Bounced</translate>:
-                  <translate
-                    >Outbound messages that bounced permanently (hard
-                    bounce)</translate
-                  >
-                </li>
-                <li>
-                  <translate>Deferred</translate>:
-                  <translate
-                    >Outbound messages that bounced temporarily (soft
-                    bounce)</translate
-                  >
-                </li>
-                <li>
-                  <translate>Expired</translate>:
-                  <translate
-                    >Outbound messages that bounced temporarily too many times,
-                    resulting in a hard bounce</translate
-                  >
-                </li>
-                <li>
-                  <translate>Returned</translate>:
-                  <translate
-                    >Inbound messages sent back to the sender when bounces
-                    happen</translate
-                  >
-                </li>
-              </ul>
+              <router-link to="/settings">in the settings</router-link>.
             </li>
           </ul>
         </div>

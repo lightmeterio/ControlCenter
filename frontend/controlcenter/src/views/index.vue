@@ -103,8 +103,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <maindashboard
         :graphDateRange="dashboardInterval"
-        v-if="dashboardV2Enabled"
+        v-if="dashboardV2Enabled && !simpleViewEnabled"
       ></maindashboard>
+
+      <maindashboard-simple-view
+        :graphDateRange="dashboardInterval"
+        v-if="dashboardV2Enabled && simpleViewEnabled"
+      ></maindashboard-simple-view>
 
       <graphdashboard
         :graphDateRange="dashboardInterval"
