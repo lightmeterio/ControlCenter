@@ -660,6 +660,26 @@ func TestTrackingFromFiles(t *testing.T) {
 
 					So(references, ShouldResemble, []string{`eyJjb252ZXJzYXRpb25fbWVzc2FnNV9sb2dfaWQiOjX6MjUyOTYzfQ==#012`, `da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com`})
 				})
+
+				Convey("Message with in-reply-to header but no record of the queue creation", func() {
+					content := `
+Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="In-Reply-To", value="<da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>"
+`
+					postfixutil.ReadFromTestReader(strings.NewReader(content), t.Publisher(), 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)})
+					cancel()
+					done()
+					So(len(pub.results), ShouldEqual, 0)
+				})
+
+				Convey("Message with references header but no record of the queue creation", func() {
+					content := `
+Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="References", value="eyJjb252ZXJzYXRpb25fbWVzc2FnNV9sb2dfaWQiOjX6MjUyOTYzfQ==#012 <da454dd13590a0a65a3f492eb2c3932134c4f81cc7f452f1ee2452e0aa06411b@example.com>" 
+`
+					postfixutil.ReadFromTestReader(strings.NewReader(content), t.Publisher(), 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)})
+					cancel()
+					done()
+					So(len(pub.results), ShouldEqual, 0)
+				})
 			})
 
 			// we expected all results to have been consumed
