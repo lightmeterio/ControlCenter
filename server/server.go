@@ -5,7 +5,13 @@
 package server
 
 import (
+	"context"
 	"errors"
+	"net"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/api"
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth"
@@ -16,12 +22,10 @@ import (
 	"gitlab.com/lightmeter/controlcenter/newsletter"
 	"gitlab.com/lightmeter/controlcenter/po"
 	"gitlab.com/lightmeter/controlcenter/settings"
+	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/staticdata"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/workspace"
-	"net"
-	"net/http"
-	"time"
 )
 
 type HttpServer struct {
@@ -56,7 +60,24 @@ func (s *HttpServer) Start() error {
 
 	setup := httpsettings.NewSettings(writer, reader, initialSetupSettings, s.Workspace.NotificationCenter, s.Workspace.InsightsEngine())
 
-	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory)
+	publicURL, err := func() (*url.URL, error) {
+		globSettings, err := globalsettings.GetSettings(context.Background(), reader)
+		if err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+
+		if globSettings.PublicURL == "" {
+			return nil, nil
+		}
+
+		return url.Parse(globSettings.PublicURL)
+	}()
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	auth := auth.NewAuthenticator(s.Workspace.Auth(), s.WorkspaceDirectory, publicURL)
 
 	mux := http.NewServeMux()
 
