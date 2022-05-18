@@ -10,6 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"time"
+
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
@@ -20,16 +27,12 @@ import (
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
-	"mime"
-	"net/http"
-	"os"
-	"path"
-	"time"
 )
 
 type CookieStoreRegistrar struct {
 	auth.RegistrarWithSessionKeys
 	workspaceDirectory string
+	instanceURL        *url.URL
 }
 
 const SessionDuration = time.Hour * 24 * 7 // 1 week
@@ -42,14 +45,21 @@ func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	store.Options.MaxAge = int(SessionDuration.Seconds())
 	store.Options.SameSite = http.SameSiteStrictMode
 
+	if r.instanceURL != nil {
+		log.Debug().Msgf(`Setting session cookies to host "%s" and path: "%s"`, r.instanceURL.Hostname(), r.instanceURL.Path)
+		store.Options.Path = r.instanceURL.Path
+		store.Options.Domain = r.instanceURL.Hostname()
+	}
+
 	return store
 }
 
-func NewAuthenticator(auth auth.RegistrarWithSessionKeys, workspaceDirectory string) *Authenticator {
+func NewAuthenticator(auth auth.RegistrarWithSessionKeys, workspaceDirectory string, instanceURL *url.URL) *Authenticator {
 	return NewAuthenticatorWithOptions(
 		&CookieStoreRegistrar{
 			RegistrarWithSessionKeys: auth,
 			workspaceDirectory:       workspaceDirectory,
+			instanceURL:              instanceURL,
 		},
 	)
 }

@@ -6,6 +6,13 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/detective"
@@ -17,12 +24,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"net/http"
-	"net/http/cookiejar"
-	"net/http/httptest"
-	"net/url"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -49,7 +50,7 @@ func buildTestEnv(t *testing.T) (*httptest.Server, *mock_detective.MockDetective
 
 	detective := mock_detective.NewMockDetective(ctrl)
 
-	auth := auth.NewAuthenticator(registrar, dir)
+	auth := auth.NewAuthenticator(registrar, dir, nil)
 	mux := http.NewServeMux()
 
 	settingdDB, removeDB := testutil.TempDBConnectionMigrated(t, "master")
