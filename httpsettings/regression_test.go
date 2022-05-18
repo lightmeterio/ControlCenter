@@ -5,15 +5,16 @@
 package httpsettings
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/lightmeter/controlcenter/httpauth"
-	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
-	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/lightmeter/controlcenter/httpauth"
+	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
+	"gitlab.com/lightmeter/controlcenter/util/testutil"
 )
 
 func buildCookieClient() *http.Client {
@@ -37,7 +38,7 @@ func TestRegressions(t *testing.T) {
 			Password:   "super-secret",
 		}
 
-		auth := auth.NewAuthenticator(registrar, dir)
+		auth := auth.NewAuthenticator(registrar, dir, nil)
 		mux := http.NewServeMux()
 
 		setup.HttpSetup(mux, auth)
