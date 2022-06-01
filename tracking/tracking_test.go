@@ -1299,6 +1299,16 @@ Jan 20 19:48:04 teupos lightmeter/headers[161]: B9996EABB6: header name="Referen
 					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "202A613D2BC")
 					So(pub.results[1][QueueDeliveryNameKey].Text(), ShouldEqual, "AC80013D2BC")
 				})
+
+				Convey("Regression: Do not crash when not finding a queueid", func() {
+					content := `
+May 30 09:24:57 lightmetermail postfix/smtp[50013]: 26331199A57: to=<recipient@example.com>, relay=relay.example.com[1.2.3.4]:587, delay=2.3, delays=0.75/0.03/0.86/0.65, dsn=2.0.0, status=sent (250 Ok aaaa-bbbb-cccc)
+`
+					postfixutil.ReadFromTestReader(strings.NewReader(content), t.Publisher(), 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)})
+					cancel()
+					done()
+					So(len(pub.results), ShouldEqual, 0)
+				})
 			})
 
 			// we expected all results to have been consumed

@@ -205,7 +205,14 @@ func (h *MultiNodeTypeHandler) HandleMailSentAction(tx *sql.Tx, r postfix.Record
 
 	// delivery to the next relay outside of the system
 	if sentToNextRelayHop {
-		if err := handleMailSentToExternalRelay(tx, r, trackerStmts, p); err != nil {
+		err := handleMailSentToExternalRelay(tx, r, trackerStmts, p)
+
+		// if a queue cannot be found, ignore
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		if err != nil {
 			return errorutil.Wrap(err)
 		}
 
