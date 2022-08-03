@@ -95,7 +95,7 @@ type databases struct {
 	RawLogs        *dbconn.PooledPair
 }
 
-func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
+func newDb(directory string, databaseName string, shouldVacuum bool) (*dbconn.PooledPair, error) {
 	dbFilename := path.Join(directory, databaseName+".db")
 	connPair, err := dbconn.Open(dbFilename, 10)
 
@@ -105,6 +105,15 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 
 	if err := migrator.Run(connPair.RwConn.DB, databaseName); err != nil {
 		return nil, errorutil.Wrap(err)
+	}
+
+	if shouldVacuum {
+		// We must execute the vacuum outside of a transaction :-(
+		log.Debug().Msgf("Vacuuming database %s. It'll take a while...", databaseName)
+
+		if _, err := connPair.RwConn.DB.Exec("vacuum"); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
 	}
 
 	return connPair, nil
@@ -156,19 +165,20 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	allDatabases := databases{Closers: closers.New()}
 
 	for _, s := range []struct {
-		name string
-		db   **dbconn.PooledPair
+		name         string
+		db           **dbconn.PooledPair
+		shouldVacuum bool
 	}{
-		{"auth", &allDatabases.Auth},
-		{"connections", &allDatabases.Connections},
-		{"insights", &allDatabases.Insights},
-		{"intel-collector", &allDatabases.IntelCollector},
-		{"logs", &allDatabases.Logs},
-		{"logtracker", &allDatabases.LogTracker},
-		{"master", &allDatabases.Master},
-		{"rawlogs", &allDatabases.RawLogs},
+		{"auth", &allDatabases.Auth, false},
+		{"connections", &allDatabases.Connections, false},
+		{"insights", &allDatabases.Insights, false},
+		{"intel-collector", &allDatabases.IntelCollector, true},
+		{"logs", &allDatabases.Logs, false},
+		{"logtracker", &allDatabases.LogTracker, false},
+		{"master", &allDatabases.Master, false},
+		{"rawlogs", &allDatabases.RawLogs, false},
 	} {
-		db, err := newDb(workspaceDirectory, s.name)
+		db, err := newDb(workspaceDirectory, s.name, s.shouldVacuum)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err, "Error opening databases in directory ", workspaceDirectory)
