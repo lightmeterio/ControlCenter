@@ -86,6 +86,14 @@ func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
 	// required by Payload interface
 }
 
+type SmtpSentStatusExtraMessageNewUUID struct {
+	ID string
+}
+
+func (SmtpSentStatusExtraMessageNewUUID) isPayload() {
+	// required by Payload interface
+}
+
 var ErrInvalidStatus = errors.New(`Invalid Status`)
 
 func ParseStatus(s string) (SmtpStatus, error) {
@@ -214,41 +222,49 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 }
 
 func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, error) {
-	if s.ExtraMessagePayloadType != rawparser.PayloadTypeSmtpMessageStatusSentQueued {
-		return nil, nil
-	}
+	//nolint:exhaustive
+	switch s.ExtraMessagePayloadType {
+	case rawparser.PayloadTypeSmtpMessageStatusSentQueued:
+		p := s.ExtraMessageSmtpSentStatusSentQueued
 
-	p := s.ExtraMessageSmtpSentStatusSentQueued
+		optionalAtoi := func(v string) (int, error) {
+			if len(v) == 0 {
+				return 0, nil
+			}
 
-	optionalAtoi := func(v string) (int, error) {
-		if len(v) == 0 {
-			return 0, nil
+			return atoi(v)
 		}
 
-		return atoi(v)
-	}
+		smtpCode, err := optionalAtoi(p.SmtpCode)
+		if err != nil {
+			return nil, err
+		}
 
-	smtpCode, err := optionalAtoi(p.SmtpCode)
-	if err != nil {
-		return nil, err
-	}
+		port, err := optionalAtoi(p.Port)
+		if err != nil {
+			return nil, err
+		}
 
-	port, err := optionalAtoi(p.Port)
-	if err != nil {
-		return nil, err
-	}
+		ip, err := parseIP(p.IP)
+		if err != nil {
+			return nil, err
+		}
 
-	ip, err := parseIP(p.IP)
-	if err != nil {
-		return nil, err
-	}
+		return SmtpSentStatusExtraMessageSentQueued{
+			Dsn:         p.Dsn,
+			IP:          ip,
+			Port:        port,
+			Queue:       p.Queue,
+			SmtpCode:    smtpCode,
+			InternalMTA: p.InternalMTA,
+		}, nil
+	case rawparser.PayloadSmtpSentStatusExtraMessageNewUUID:
+		p := s.ExtraMessageSmtpSentStatusExtraMessageNewUUID
 
-	return SmtpSentStatusExtraMessageSentQueued{
-		Dsn:         p.Dsn,
-		IP:          ip,
-		Port:        port,
-		Queue:       p.Queue,
-		SmtpCode:    smtpCode,
-		InternalMTA: p.InternalMTA,
-	}, nil
+		return SmtpSentStatusExtraMessageNewUUID{
+			ID: p.ID,
+		}, nil
+	default:
+		return nil, nil
+	}
 }
