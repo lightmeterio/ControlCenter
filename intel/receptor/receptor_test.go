@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -285,7 +286,7 @@ func TestHTTPReceptor(t *testing.T) {
 				LastKnownEventID: "xyz"},
 			)
 
-			So(err, ShouldBeNil)
+			So(errors.Is(err, ErrRequestFailed), ShouldBeTrue)
 		})
 
 		Convey("Something goes wrong in the request, so we fail", func() {
@@ -297,7 +298,7 @@ func TestHTTPReceptor(t *testing.T) {
 				LastKnownEventID: "xyz"},
 			)
 
-			So(err, ShouldNotBeNil)
+			So(errors.Is(err, ErrRequestFailed), ShouldBeTrue)
 		})
 
 		drain := func(clock timeutil.Clock, options Options) {

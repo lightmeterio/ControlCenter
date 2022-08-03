@@ -103,6 +103,10 @@ func fetchNextEvent(tx *sql.Tx, options Options, requester Requester, clock time
 	// FIXME: doing a request in the middle of a transaction is bad, very bad.
 	// but unfortunately this is the only way for now :-(
 	response, err := requester.Request(context.Background(), payload)
+	if err != nil && errors.Is(err, ErrRequestFailed) {
+		return nil, nil
+	}
+
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
