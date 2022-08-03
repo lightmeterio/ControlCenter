@@ -42,7 +42,7 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (event *Ev
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.Error().Err(err).Msg("Could not obtain event")
-		return nil, nil
+		return nil, ErrRequestFailed
 	}
 
 	if response.StatusCode == http.StatusNoContent {
