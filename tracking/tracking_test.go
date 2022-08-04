@@ -701,6 +701,17 @@ func TestSingleNodeTrackingFromFiles(t *testing.T) {
 					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "202A613D2BC")
 					So(pub.results[1][QueueDeliveryNameKey].Text(), ShouldEqual, "AC80013D2BC")
 				})
+
+				Convey("A delivery to amazon should have the new message-id", func() {
+					readFromTestFile("../test_files/postfix_logs/individual_files/33_delivery_with_remote_id.log", t.Publisher())
+					cancel()
+					done()
+
+					So(len(pub.results), ShouldEqual, 1)
+
+					So(pub.results[0][QueueDeliveryNameKey].Text(), ShouldEqual, "B9996EABB6")
+					So(pub.results[0][ResultSentRemoteID].Text(), ShouldEqual, "1100018213535d84-abcdef87-74d3-4192-a8c5-e763ee11238f-000000")
+				})
 			})
 
 			// we expected all results to have been consumed
