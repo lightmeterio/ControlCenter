@@ -3550,3 +3550,231 @@ tr65:
 
 	return r, false
 }
+
+
+
+//line smtp.rl:158
+
+//line smtp.gen.go:3559
+const smtpSentStatusExtraMessageNewUUID_start int = 1
+const smtpSentStatusExtraMessageNewUUID_first_final int = 11
+const smtpSentStatusExtraMessageNewUUID_error int = 0
+
+const smtpSentStatusExtraMessageNewUUID_en_main int = 1
+
+
+//line smtp.rl:159
+
+func parseSmtpSentStatusExtraMessageNewUUID(data string) (SmtpSentStatusExtraMessageNewUUID, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := SmtpSentStatusExtraMessageNewUUID{}
+
+
+//line smtp.gen.go:3578
+	{
+	cs = smtpSentStatusExtraMessageNewUUID_start
+	}
+
+//line smtp.gen.go:3583
+	{
+	if p == pe {
+		goto _test_eof
+	}
+	switch cs {
+	case 1:
+		goto st_case_1
+	case 0:
+		goto st_case_0
+	case 2:
+		goto st_case_2
+	case 3:
+		goto st_case_3
+	case 4:
+		goto st_case_4
+	case 5:
+		goto st_case_5
+	case 6:
+		goto st_case_6
+	case 7:
+		goto st_case_7
+	case 8:
+		goto st_case_8
+	case 9:
+		goto st_case_9
+	case 10:
+		goto st_case_10
+	case 11:
+		goto st_case_11
+	}
+	goto st_out
+	st_case_1:
+		if data[p] == 40 {
+			goto st2
+		}
+		goto st0
+st_case_0:
+	st0:
+		cs = 0
+		goto _out
+	st2:
+		if p++; p == pe {
+			goto _test_eof2
+		}
+	st_case_2:
+		if data[p] == 50 {
+			goto st3
+		}
+		goto st0
+	st3:
+		if p++; p == pe {
+			goto _test_eof3
+		}
+	st_case_3:
+		if data[p] == 53 {
+			goto st4
+		}
+		goto st0
+	st4:
+		if p++; p == pe {
+			goto _test_eof4
+		}
+	st_case_4:
+		if data[p] == 48 {
+			goto st5
+		}
+		goto st0
+	st5:
+		if p++; p == pe {
+			goto _test_eof5
+		}
+	st_case_5:
+		if data[p] == 32 {
+			goto st6
+		}
+		goto st0
+	st6:
+		if p++; p == pe {
+			goto _test_eof6
+		}
+	st_case_6:
+		if data[p] == 79 {
+			goto st7
+		}
+		goto st0
+	st7:
+		if p++; p == pe {
+			goto _test_eof7
+		}
+	st_case_7:
+		if data[p] == 107 {
+			goto st8
+		}
+		goto st0
+	st8:
+		if p++; p == pe {
+			goto _test_eof8
+		}
+	st_case_8:
+		if data[p] == 32 {
+			goto st9
+		}
+		goto st0
+	st9:
+		if p++; p == pe {
+			goto _test_eof9
+		}
+	st_case_9:
+		if data[p] == 45 {
+			goto tr9
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto tr9
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto tr9
+			}
+		default:
+			goto tr9
+		}
+		goto st0
+tr9:
+//line common.rl:29
+ tokBeg = p 
+	goto st10
+	st10:
+		if p++; p == pe {
+			goto _test_eof10
+		}
+	st_case_10:
+//line smtp.gen.go:3717
+		switch data[p] {
+		case 41:
+			goto tr10
+		case 45:
+			goto st10
+		}
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st10
+			}
+		case data[p] > 90:
+			if 97 <= data[p] && data[p] <= 122 {
+				goto st10
+			}
+		default:
+			goto st10
+		}
+		goto st0
+tr10:
+//line smtp.rl:171
+
+    r.ID = data[tokBeg:p]
+  
+	goto st11
+	st11:
+		if p++; p == pe {
+			goto _test_eof11
+		}
+	st_case_11:
+//line smtp.gen.go:3748
+		goto st0
+	st_out:
+	_test_eof2: cs = 2; goto _test_eof
+	_test_eof3: cs = 3; goto _test_eof
+	_test_eof4: cs = 4; goto _test_eof
+	_test_eof5: cs = 5; goto _test_eof
+	_test_eof6: cs = 6; goto _test_eof
+	_test_eof7: cs = 7; goto _test_eof
+	_test_eof8: cs = 8; goto _test_eof
+	_test_eof9: cs = 9; goto _test_eof
+	_test_eof10: cs = 10; goto _test_eof
+	_test_eof11: cs = 11; goto _test_eof
+
+	_test_eof: {}
+	if p == eof {
+		switch cs {
+		case 11:
+//line smtp.rl:175
+
+		return r, true
+	
+//line smtp.gen.go:3770
+		}
+	}
+
+	_out: {}
+	}
+
+//line smtp.rl:181
+
+
+	return r, false
+}
