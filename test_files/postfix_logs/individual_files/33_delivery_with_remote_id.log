@@ -1,0 +1,8 @@
+Jan 20 19:48:05 teupos postfix/smtpd[2467304]: connect from unknown[1.2.3.4]
+Jan 20 19:48:04 teupos postfix/smtpd[2467304]: B9996EABB6: client=unknown[1.2.3.4], sasl_method=PLAIN, sasl_username=sender@internal.org
+Jan 20 19:48:05 teupos postfix/cleanup[2467311]: B9996EABB6: message-id=<h-74f3afb0208ad285a794d760c8feb0eee631@internal.org>
+Jan 20 19:48:05 teupos opendkim[12864]: B9996EABB6: DKIM-Signature field added (s=key, d=internal.org)
+Jan 20 19:48:05 teupos postfix/qmgr[1937864]: B9996EABB6: from=<sender@internal.org>, size=2239, nrcpt=2 (queue active)
+Jan 20 19:48:05 teupos postfix/smtpd[2467304]: disconnect from unknown[1.2.3.4] ehlo=1 auth=1 mail=1 rcpt=2 data=1 quit=1 commands=7
+Jan 20 19:48:07 teupos postfix/smtp[2467312]: B9996EABB6: to=<recipient1@external.org>, relay=example-com.mail.protection.outlook.com[12.11.12.13]:25, delay=2.7, delays=1.3/0.06/0.33/1, dsn=2.0.0, status=sent (250 Ok 1100018213535d84-abcdef87-74d3-4192-a8c5-e763ee11238f-000000)
+Jan 20 19:48:07 teupos postfix/qmgr[1937864]: B9996EABB6: removed

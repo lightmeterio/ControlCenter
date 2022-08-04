@@ -364,6 +364,19 @@ func TestSMTPParsing(t *testing.T) {
 			So(e.SmtpCode, ShouldEqual, 250)
 			So(e.Dsn, ShouldEqual, "2.0.0")
 		})
+
+		Convey("New ID coming from status=sent response, typical for amazon ses", func() {
+			_, parsed, err := Parse(string(`Jul 18 22:00:07 lightmetermail postfix/smtp[45145]: 4Lyb5328XVzj9Jl: ` +
+				`to=<recipient@example.com>, relay=email-smtp.us-east-1.amazonaws.com[1.2.3.4]:587, delay=2, ` +
+				`delays=0.29/0/0.83/0.91, dsn=2.0.0, status=sent (250 Ok 1100018213535d84-abcdef87-74d3-4192-a8c5-e763ee11238f-000000)`))
+
+			So(err, ShouldBeNil)
+			p, cast := parsed.(SmtpSentStatus)
+			So(cast, ShouldBeTrue)
+			e, cast := p.ExtraMessagePayload.(SmtpSentStatusExtraMessageNewUUID)
+			So(cast, ShouldBeTrue)
+			So(e.ID, ShouldEqual, `1100018213535d84-abcdef87-74d3-4192-a8c5-e763ee11238f-000000`)
+		})
 	})
 
 	Convey("Log line with optional orig_to as root", t, func() {
@@ -378,6 +391,7 @@ func TestSMTPParsing(t *testing.T) {
 		So(p.OrigRecipientLocalPart, ShouldEqual, "root")
 		So(p.OrigRecipientDomainPart, ShouldEqual, "")
 	})
+
 }
 
 func TestQmgrParsing(t *testing.T) {

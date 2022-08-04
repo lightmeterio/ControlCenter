@@ -152,3 +152,33 @@ func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtra
 
 	return r, false
 }
+
+
+%% machine smtpSentStatusExtraMessageNewUUID;
+%% write data;
+
+func parseSmtpSentStatusExtraMessageNewUUID(data string) (SmtpSentStatusExtraMessageNewUUID, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := SmtpSentStatusExtraMessageNewUUID{}
+
+%%{
+	include common "common.rl";
+
+  id = (alnum|'-')+ >setTokBeg %{
+    r.ID = data[tokBeg:p]
+  };
+
+	main := '(250 Ok ' id ')' %{
+		return r, true
+	};
+
+	write init;
+	write exec;
+}%%
+
+	return r, false
+}
