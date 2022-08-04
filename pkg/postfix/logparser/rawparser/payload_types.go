@@ -27,4 +27,5 @@ const (
 
 	// types for SmtpMessageStatus extra message
 	PayloadTypeSmtpMessageStatusSentQueued
+	PayloadSmtpSentStatusExtraMessageNewUUID
 )

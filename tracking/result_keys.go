@@ -74,6 +74,8 @@ const (
 
 	QueueReferencesHeaderKey
 
+	ResultSentRemoteID
+
 	lastResultKey
 )
 
@@ -137,5 +139,6 @@ var (
 		ResultDeliveryLineRelayedBounce: "result_relivery_line_relayed_bounce",
 		QueueRelayedBounceJsonKey:       "queue_relayed_bounce_json_key",
 		QueueReferencesHeaderKey:        "queue_references_header",
+		ResultSentRemoteID:              "result_sent_remote_id",
 	}
 )

@@ -575,6 +575,12 @@ func addResultData(trackerStmts dbconn.TxPreparedStmts, time time.Time, loc post
 		return errorutil.Wrap(err)
 	}
 
+	if messageWithRemoteId, ok := p.ExtraMessagePayload.(parser.SmtpSentStatusExtraMessageNewUUID); ok {
+		if err := insertResultDataValues(trackerStmts, resultId, kvData{key: ResultSentRemoteID, value: messageWithRemoteId.ID}); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
 	return nil
 }
 
