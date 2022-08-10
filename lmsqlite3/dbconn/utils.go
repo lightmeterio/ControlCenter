@@ -7,6 +7,7 @@ package dbconn
 import (
 	"context"
 	"database/sql"
+
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
@@ -117,26 +118,19 @@ type PooledPair struct {
 	Filename   string
 }
 
-func Open(filename string, poolSize int) (pair *PooledPair, err error) {
-	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
+func OpenRO(filename string, poolSize int) (pool *RoPool, err error) {
+	poolChan := make(chan *RoPooledConn, poolSize)
+	poolClosers := closers.New()
+	conns := []*RoPooledConn{}
 
 	defer func() {
 		if err != nil {
-			errorutil.UpdateErrorFromCloser(writer, &err)
+			errorutil.UpdateErrorFromCloser(poolClosers, &err)
 		}
 	}()
 
-	pool := &RoPool{
-		pool:    make(chan *RoPooledConn, poolSize),
-		Closers: closers.New(),
-	}
-
 	for i := 0; i < poolSize; i++ {
 		reader, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=ro&cache=private&_query_only=true&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
-
 		if err != nil {
 			return nil, errorutil.Wrap(err)
 		}
@@ -148,11 +142,44 @@ func Open(filename string, poolSize int) (pair *PooledPair, err error) {
 			Closers: closers.New(newConnCloser(filename, ROMode, reader)),
 		}
 
-		pool.conns = append(pool.conns, conn)
-		pool.Closers.Add(conn)
+		conns = append(conns, conn)
+		poolClosers.Add(conn)
 
-		pool.pool <- conn
+		poolChan <- conn
 	}
 
-	return &PooledPair{RwConn: RwConn{writer}, RoConnPool: pool, Closers: closers.New(newConnCloser(filename, RWMode, writer), pool), Filename: filename}, nil
+	return &RoPool{
+		pool:    poolChan,
+		conns:   conns,
+		Closers: poolClosers,
+	}, nil
+}
+
+func OpenRW(filename string) (conn RwConn, err error) {
+	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
+	if err != nil {
+		return RwConn{}, errorutil.Wrap(err)
+	}
+
+	return RwConn{writer}, nil
+}
+
+func Open(filename string, poolSize int) (pair *PooledPair, err error) {
+	writer, err := OpenRW(filename)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	defer func() {
+		if err != nil {
+			errorutil.UpdateErrorFromCloser(writer, &err)
+		}
+	}()
+
+	pool, err := OpenRO(filename, poolSize)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &PooledPair{RwConn: writer, RoConnPool: pool, Closers: closers.New(newConnCloser(filename, RWMode, writer.DB), pool), Filename: filename}, nil
 }
