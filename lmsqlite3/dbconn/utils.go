@@ -156,7 +156,10 @@ func OpenRO(filename string, poolSize int) (pool *RoPool, err error) {
 }
 
 func OpenRW(filename string) (conn RwConn, err error) {
-	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no`)
+	// use 5 seconds of busy timeout,
+	// allowing multiple writers to act without "database is busy" errors,
+	// forcing them to wait for 5seconds before giving up
+	writer, err := sql.Open("lm_sqlite3", `file:`+filename+`?mode=rwc&cache=private&_loc=auto&_journal=WAL&_sync=OFF&_mutex=no&_busy_timeout=5000`)
 	if err != nil {
 		return RwConn{}, errorutil.Wrap(err)
 	}
