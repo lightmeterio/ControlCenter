@@ -9,6 +9,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/connectionstats"
 	"gitlab.com/lightmeter/controlcenter/intel/collector"
@@ -18,9 +22,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -31,8 +32,8 @@ func TestReporters(t *testing.T) {
 	Convey("Test Reporters", t, func() {
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
 		defer closeConn()
-
-		stats, err := connectionstats.New(conn)
+		options := connectionstats.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+		stats, err := connectionstats.New(conn, options)
 		So(err, ShouldBeNil)
 
 		pub := stats.Publisher()

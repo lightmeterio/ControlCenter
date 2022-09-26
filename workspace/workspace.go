@@ -120,17 +120,19 @@ func newDb(directory string, databaseName string, shouldVacuum bool) (*dbconn.Po
 }
 
 type Options struct {
-	IsUsingRsyncedLogs bool
-	DefaultSettings    metadata.DefaultValues
-	AuthOptions        auth.Options
-	NodeTypeHandler    tracking.NodeTypeHandler
+	IsUsingRsyncedLogs    bool
+	DefaultSettings       metadata.DefaultValues
+	AuthOptions           auth.Options
+	NodeTypeHandler       tracking.NodeTypeHandler
+	DataRetentionDuration time.Duration
 }
 
 var DefaultOptions = &Options{
-	IsUsingRsyncedLogs: false,
-	DefaultSettings:    metadata.DefaultValues{},
-	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
-	NodeTypeHandler:    &tracking.SingleNodeTypeHandler{},
+	IsUsingRsyncedLogs:    false,
+	DefaultSettings:       metadata.DefaultValues{},
+	AuthOptions:           auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
+	NodeTypeHandler:       &tracking.SingleNodeTypeHandler{},
+	DataRetentionDuration: time.Hour * 24 * 30 * 3,
 }
 
 func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
@@ -152,6 +154,7 @@ func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
 }
 
 // FIXME: yes, I know this function is big. Splitting it into small pieces should eventually be done!
+//
 //nolint:maintidx
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
 	if options == nil {
@@ -199,7 +202,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping, deliverydb.Options{RetentionDuration: options.DataRetentionDuration})
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -211,7 +214,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 
 	rawLogsAccessor := rawlogsdb.NewAccessor(allDatabases.RawLogs.RoConnPool)
 
-	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn)
+	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn, rawlogsdb.Options{RetentionDuration: options.DataRetentionDuration})
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -316,7 +319,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	connStats, err := connectionstats.New(allDatabases.Connections)
+	connStats, err := connectionstats.New(allDatabases.Connections, connectionstats.Options{RetentionDuration: options.DataRetentionDuration})
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}

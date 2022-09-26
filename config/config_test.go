@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"testing"
+	"time"
 
 	"gitlab.com/lightmeter/controlcenter/metadata"
 
@@ -163,7 +164,27 @@ func TestDefaultSettings(t *testing.T) {
 		_, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
 		So(err, ShouldNotBeNil)
 	})
+}
 
+func TestDataRetentionDurationSettings(t *testing.T) {
+	Convey("When not passed, use 3months", t, func() {
+		c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, time.Hour*24*90)
+	})
+
+	Convey("Obtain from command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-data_retention_duration", `105d3h`}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, (time.Hour*24*105)+(time.Hour*3))
+	})
+
+	Convey("Obtain from environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_DATA_RETENTION_DURATION": `6w2m`}
+		c, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, (time.Hour*24*7*6)+(time.Minute*2))
+	})
 }
 
 func TestWatchDir(t *testing.T) {

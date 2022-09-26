@@ -7,6 +7,8 @@ package rawlogsdb
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
@@ -14,7 +16,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	_ "gitlab.com/lightmeter/controlcenter/rawlogsdb/migrations"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 type DB struct {
@@ -37,7 +38,11 @@ var stmtsText = dbconn.StmtsText{
 	deleteLogEntryKey:          `delete from logs where id = ?`,
 }
 
-func New(conn dbconn.RwConn) (*DB, error) {
+type Options struct {
+	RetentionDuration time.Duration
+}
+
+func New(conn dbconn.RwConn, options Options) (*DB, error) {
 	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
 	if err := dbconn.PrepareRwStmts(stmtsText, conn, &stmts); err != nil {
@@ -45,14 +50,12 @@ func New(conn dbconn.RwConn) (*DB, error) {
 	}
 
 	const (
-		// ~3 months. TODO: make it configurable
-		maxAge            = (time.Hour * 24 * 30 * 3)
 		cleaningBatchSize = 10000
 		cleaningFrequency = time.Second * 30
 	)
 
 	return &DB{
-		Runner:  dbrunner.New(500*time.Millisecond, 1024*1000, conn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:  dbrunner.New(500*time.Millisecond, 1024*1000, conn, stmts, cleaningFrequency, makeCleanAction(options.RetentionDuration, cleaningBatchSize)),
 		Closers: closers.New(stmts),
 	}, nil
 }
