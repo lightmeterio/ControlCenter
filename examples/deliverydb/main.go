@@ -12,6 +12,7 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -73,7 +74,7 @@ func main() {
 	err = migrator.Run(conn.RwConn.DB, "logs")
 	errorutil.MustSucceed(err)
 
-	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping, deliverydb.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)})
 	errorutil.MustSucceed(err)
 
 	pub := db.ResultsPublisher()

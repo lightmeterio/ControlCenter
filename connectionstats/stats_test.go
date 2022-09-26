@@ -7,6 +7,10 @@ package connectionstats
 import (
 	"context"
 	"encoding/json"
+	"strings"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -15,9 +19,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -227,8 +228,8 @@ Dec 30 10:40:57 mail postfix/smtpd[4567]: disconnect from example.com[1.2.3.4] e
 
 func buildContext(t *testing.T) (*Stats, *Accessor, postfix.Publisher, *dbconn.RoPool, func()) {
 	db, closeConn := testutil.TempDBConnectionMigrated(t, "connections")
-
-	stats, err := New(db)
+	options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+	stats, err := New(db, options)
 	So(err, ShouldBeNil)
 
 	pub := stats.Publisher()

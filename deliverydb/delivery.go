@@ -192,7 +192,11 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error) {
+type Options struct {
+	RetentionDuration time.Duration
+}
+
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, options Options) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -204,13 +208,11 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 	}
 
 	const (
-		// ~3 months. TODO: make it configurable
-		maxAge            = (time.Hour * 24 * 30 * 3)
 		cleaningBatchSize = 10000
 		cleaningFrequency = time.Second * 30
 	)
 
-	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize))
+	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(options.RetentionDuration, cleaningBatchSize))
 
 	return &DB{
 		connPair: connPair,

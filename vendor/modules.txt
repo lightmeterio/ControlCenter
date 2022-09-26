@@ -210,6 +210,9 @@ github.com/trustelem/zxcvbn/scoring
 # github.com/urfave/cli/v2 v2.2.0
 ## explicit; go 1.11
 github.com/urfave/cli/v2
+# github.com/xhit/go-str2duration/v2 v2.0.0
+## explicit; go 1.13
+github.com/xhit/go-str2duration/v2
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 ## explicit; go 1.11
 golang.org/x/crypto/bcrypt
