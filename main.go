@@ -150,10 +150,11 @@ func buildWorkspaceAndLogReader(conf config.Config) (*workspace.Workspace, logso
 	}
 
 	options := &workspace.Options{
-		IsUsingRsyncedLogs: conf.RsyncedDir,
-		DefaultSettings:    conf.DefaultSettings,
-		AuthOptions:        buildAuthOptions(conf),
-		NodeTypeHandler:    nodeTypeHandler,
+		IsUsingRsyncedLogs:    conf.RsyncedDir,
+		DefaultSettings:       conf.DefaultSettings,
+		AuthOptions:           buildAuthOptions(conf),
+		NodeTypeHandler:       nodeTypeHandler,
+		DataRetentionDuration: conf.DataRetentionDuration,
 	}
 
 	ws, err := workspace.NewWorkspace(conf.WorkspaceDirectory, options)

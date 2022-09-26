@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	str2duration "github.com/xhit/go-str2duration/v2"
+
 	"github.com/rs/zerolog"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/envutil"
@@ -63,6 +65,8 @@ type Config struct {
 
 	GenerateDovecotConfig bool
 	DovecotConfigIsOld    bool
+
+	DataRetentionDuration time.Duration
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -161,6 +165,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.BoolVar(&conf.GenerateDovecotConfig, "dovecot_conf_gen", false, "Generate Dovecot Configuration")
 	fs.BoolVar(&conf.DovecotConfigIsOld, "dovecot_conf_is_old", false, "Requires -dovecot_conf_gen. Use if if you're using a Dovecot older than 2.3.1")
 
+	var unparsedDataRetentionDuration string
+
+	fs.StringVar(&unparsedDataRetentionDuration, "data_retention_duration", envutil.LookupEnvOrString("LIGHTMETER_DATA_RETENTION_DURATION", "90d", lookupenv), "How long data should be kept in the databases, to prevent them growing forever")
+
 	fs.Usage = func() {
 		version.PrintVersion()
 		fmt.Fprintf(os.Stdout, "\n Example call: \n")
@@ -171,6 +179,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	if err := fs.Parse(cmdlineArgs); err != nil {
 		return Config{}, errorutil.Wrap(err)
+	}
+
+	conf.DataRetentionDuration, err = str2duration.ParseDuration(unparsedDataRetentionDuration)
+	if err != nil {
+		return conf, errorutil.Wrap(err)
 	}
 
 	conf.DirsToWatch = buildDirsToWatch(dirsToWatch, dirsToWatchFromEnvironment)

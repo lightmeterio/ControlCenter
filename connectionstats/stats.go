@@ -8,6 +8,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/connectionstats/migrations"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -16,7 +18,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 // We keep store in a database all the basic statistics (number and type of smtp commands)
@@ -304,23 +305,25 @@ type Stats struct {
 	conn *dbconn.PooledPair
 }
 
-func New(connPair *dbconn.PooledPair) (*Stats, error) {
+type Options struct {
+	RetentionDuration time.Duration
+}
+
+func New(connPair *dbconn.PooledPair, options Options) (*Stats, error) {
 	stmts := dbconn.BuildPreparedStmts(lastStmtKey)
 
 	if err := dbconn.PrepareRwStmts(stmtsText, connPair.RwConn, &stmts); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	// ~3 months. TODO: make it configurable
 	const (
-		maxAge            = (time.Hour * 24 * 30 * 3)
 		cleaningFrequency = time.Minute * 2
 		cleaningBatchSize = 1000
 	)
 
 	return &Stats{
 		conn:    connPair,
-		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:  dbrunner.New(500*time.Millisecond, 4096, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(options.RetentionDuration, cleaningBatchSize)),
 		Closers: closers.New(stmts),
 	}, nil
 }

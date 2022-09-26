@@ -21,15 +21,13 @@ type Options struct {
 
 	// How often should the reports be dispatched/sent?
 	ReportInterval time.Duration
+
+	RetentionDuration time.Duration
 }
 
 func NewRunner(conn dbconn.RwConn, options Options) *dbrunner.Runner {
 	stmts := dbconn.PreparedStmts{}
-
-	// ~3 months. TODO: make it configurable
-	const maxAge = (time.Hour * 24 * 30 * 3)
-
-	return dbrunner.New(options.CycleInterval, 10, conn, stmts, time.Hour*12, MakeCleanAction(maxAge))
+	return dbrunner.New(options.CycleInterval, 10, conn, stmts, time.Hour*12, MakeCleanAction(options.RetentionDuration))
 }
 
 func MakeCleanAction(maxAge time.Duration) dbrunner.Action {

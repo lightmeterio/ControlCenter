@@ -44,7 +44,7 @@ func TestReporters(t *testing.T) {
 
 		// fill delivery database with some values
 		{
-			delivery, err := deliverydb.New(db, &domainmapping.Mapper{})
+			delivery, err := deliverydb.New(db, &domainmapping.Mapper{}, deliverydb.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)})
 			So(err, ShouldBeNil)
 
 			done, cancel := runner.Run(delivery)

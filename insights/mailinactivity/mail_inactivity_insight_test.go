@@ -42,7 +42,8 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		defer closeConn()
 
 		buildWs := func() (*deliverydb.DB, func() error, func(), tracking.ResultPublisher) {
-			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+			options := deliverydb.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping, options)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
