@@ -1320,6 +1320,17 @@ May 30 09:24:57 lightmetermail postfix/smtp[50013]: 26331199A57: to=<recipient@e
 					done()
 					So(len(pub.results), ShouldEqual, 0)
 				})
+
+				Convey("Regression: do not crash when not finding a queue on custom lightmeter/relayed-bounce", func() {
+					content := `
+Nov 14 16:54:32 lightmetermail lightmeter/relayed-bounce[4196]: 4N9wQH3jVxz186Jh: Bounce: code="5.1.10", sender=<user@example.com>, recipient=<recipient@example2.com>, mta="prod.outlook.com", message="550 5.1.10 RESOLVER.ADR.RecipientNotFound; Recipient recipient@example.com not found by SMTP address lookup"
+`
+					postfixutil.ReadFromTestReader(strings.NewReader(content), t.Publisher(), 2020, &timeutil.FakeClock{Time: timeutil.MustParseTime(`2000-01-01 00:00:00 +0000`)})
+					cancel()
+					done()
+					So(len(pub.results), ShouldEqual, 0)
+				})
+
 			})
 
 			// we expected all results to have been consumed

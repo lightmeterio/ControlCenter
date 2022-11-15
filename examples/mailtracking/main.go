@@ -80,9 +80,30 @@ func main() {
 	// ensure workspace exists
 	errorutil.MustSucceed(os.MkdirAll(workspace, os.ModePerm))
 
+	pub := publisher{}
+
+	dbFilename := path.Join(workspace, "logtracker.db")
+	conn, err := dbconn.Open(dbFilename, 10)
+	errorutil.MustSucceed(err)
+
+	defer func() {
+		errorutil.MustSucceed(conn.Close())
+	}()
+
+	err = migrator.Run(conn.RwConn.DB, "logtracker")
+	errorutil.MustSucceed(err)
+
+	t, err := tracking.New(conn, &pub, &tracking.SingleNodeTypeHandler{})
+	errorutil.MustSucceed(err)
+
+	mostRecentTime, err := t.MostRecentLogTime()
+	errorutil.MustSucceed(err)
+
+	log.Printf("Most recent time: %v", mostRecentTime)
+
 	logSource, err := func() (logsource.Source, error) {
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, postfix.SumPair{}, &fakeAnnouncer{}, false, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
+			return dirlogsource.New(inputDirectory, postfix.SumPair{Time: mostRecentTime, Sum: nil}, &fakeAnnouncer{}, false, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
 		}
 
 		f, err := os.Open(inputFile)
@@ -102,30 +123,13 @@ func main() {
 
 	errorutil.MustSucceed(err)
 
-	pub := publisher{}
-
-	dbFilename := path.Join(workspace, "logtracker.db")
-	conn, err := dbconn.Open(dbFilename, 10)
-	errorutil.MustSucceed(err)
-
-	defer func() {
-		errorutil.MustSucceed(conn.Close())
-	}()
-
-	err = migrator.Run(conn.RwConn.DB, "logtracker")
-	errorutil.MustSucceed(err)
-
-	t, err := tracking.New(conn, &pub, &tracking.SingleNodeTypeHandler{})
-
 	defer func() {
 		errorutil.MustSucceed(t.Close())
 	}()
 
-	errorutil.MustSucceed(err)
-
 	publisher := t.Publisher()
 
-	logReader := logsource.NewReader(logSource, publisher)
+	logReader := logsource.NewReader(logSource, &debugPlublisher{p: publisher})
 
 	done, cancel := runner.Run(t)
 
@@ -150,6 +154,15 @@ func main() {
 			errorutil.LogFatalf(err, "could not write memory profile")
 		}
 	}
+}
+
+type debugPlublisher struct {
+	p postfix.Publisher
+}
+
+func (p *debugPlublisher) Publish(r postfix.Record) {
+	log.Printf("Publishing %#v", r)
+	p.p.Publish(r)
 }
 
 type fakeAnnouncer = announcer.DummyImportAnnouncer
