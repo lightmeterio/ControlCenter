@@ -880,6 +880,12 @@ func lightmeterRelayedBounceAction(tx *sql.Tx, r postfix.Record, handler NodeTyp
 	p := r.Payload.(parser.LightmeterRelayedBounce)
 
 	queueId, err := findQueueIdFromQueueValue(p.Queue, trackerStmts)
+
+	// queue not found. No problems. Just bail out. Fix #695
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
 	if err != nil {
 		return errorutil.Wrap(err)
 	}
