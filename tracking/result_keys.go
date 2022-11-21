@@ -137,6 +137,7 @@ var (
 		QueueInReplyToHeaderKey:    "queue_in_reply_to_header",
 
 		ResultDeliveryLineRelayedBounce: "result_relivery_line_relayed_bounce",
+		ConnectionAuthSuccessCount:      "connection_auth_success_count",
 		QueueRelayedBounceJsonKey:       "queue_relayed_bounce_json_key",
 		QueueReferencesHeaderKey:        "queue_references_header",
 		ResultSentRemoteID:              "result_sent_remote_id",
