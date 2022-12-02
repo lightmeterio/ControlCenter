@@ -6,22 +6,28 @@
 package httputil
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
-func WriteJson(w http.ResponseWriter, response interface{}, status int) error {
-	encodedJson, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("Error encoding error json response %w", err)
-	}
+func WriteJson(w http.ResponseWriter, response interface{}, status int) (err error) {
+	// use a 4KB buffer to improve write throughput, reducing the number of write() calls in the final socket
+	bufferedWriter := bufio.NewWriterSize(w, 4096)
 
+	defer errorutil.UpdateErrorFromCall(bufferedWriter.Flush, &err)
+
+	// FIXME: in case the json encoding fails before anything has been written to the socket,
+	// we should be able to return a 500 error.
 	w.Header()["Content-Type"] = []string{"application/json"}
 	w.WriteHeader(status)
 
-	_, err = w.Write(encodedJson)
-	if err != nil {
+	encoder := json.NewEncoder(bufferedWriter)
+
+	if err := encoder.Encode(response); err != nil {
 		return fmt.Errorf("Error write byte buffer %w", err)
 	}
 
