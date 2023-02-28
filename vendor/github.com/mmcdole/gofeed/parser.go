@@ -35,18 +35,29 @@ type Parser struct {
 	AtomTranslator Translator
 	RSSTranslator  Translator
 	JSONTranslator Translator
+	UserAgent      string
+	AuthConfig     *Auth
 	Client         *http.Client
 	rp             *rss.Parser
 	ap             *atom.Parser
 	jp             *json.Parser
 }
 
+// Auth is a structure allowing to
+// use the BasicAuth during the HTTP request
+// It must be instantiated with your new Parser
+type Auth struct {
+	Username string
+	Password string
+}
+
 // NewParser creates a universal feed parser.
 func NewParser() *Parser {
 	fp := Parser{
-		rp: &rss.Parser{},
-		ap: &atom.Parser{},
-		jp: &json.Parser{},
+		rp:        &rss.Parser{},
+		ap:        &atom.Parser{},
+		jp:        &json.Parser{},
+		UserAgent: "Gofeed/1.0",
 	}
 	return &fp
 }
@@ -88,16 +99,23 @@ func (f *Parser) ParseURL(feedURL string) (feed *Feed, err error) {
 
 // ParseURLWithContext fetches contents of a given url and
 // attempts to parse the response into the universal feed type.
+// You can instantiate the Auth structure with your Username and Password
+// to use the BasicAuth during the HTTP call.
+// It will be automatically added to the header of the request
 // Request could be canceled or timeout via given context
 func (f *Parser) ParseURLWithContext(feedURL string, ctx context.Context) (feed *Feed, err error) {
 	client := f.httpClient()
 
-	req, err := http.NewRequest("GET", feedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	req.Header.Set("User-Agent", "Gofeed/1.0")
+	req.Header.Set("User-Agent", f.UserAgent)
+
+	if f.AuthConfig != nil && f.AuthConfig.Username != "" && f.AuthConfig.Password != "" {
+		req.SetBasicAuth(f.AuthConfig.Username, f.AuthConfig.Password)
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {

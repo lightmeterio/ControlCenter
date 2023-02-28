@@ -1,8 +1,7 @@
 # go-smtp
 
-[![GoDoc](https://godoc.org/github.com/emersion/go-smtp?status.svg)](https://godoc.org/github.com/emersion/go-smtp)
+[![godocs.io](https://godocs.io/github.com/emersion/go-smtp?status.svg)](https://godocs.io/github.com/emersion/go-smtp)
 [![builds.sr.ht status](https://builds.sr.ht/~emersion/go-smtp/commits.svg)](https://builds.sr.ht/~emersion/go-smtp/commits?)
-[![codecov](https://codecov.io/gh/emersion/go-smtp/branch/master/graph/badge.svg)](https://codecov.io/gh/emersion/go-smtp)
 
 An ESMTP client and server library written in Go.
 
@@ -29,7 +28,7 @@ import (
 )
 
 func main() {
-	// Set up authentication information.
+	// Setup authentication information.
 	auth := sasl.NewPlainClient("", "user@example.com", "password")
 
 	// Connect to the server, authenticate, set the sender and recipient,
@@ -46,7 +45,40 @@ func main() {
 }
 ```
 
-If you need more control, you can use `Client` instead.
+If you need more control, you can use `Client` instead. For example, if you
+want to send an email via a server without TLS or auth support, you can do
+something like this:
+
+```go
+package main
+
+import (
+	"log"
+	"strings"
+
+	"github.com/emersion/go-smtp"
+)
+
+func main() {
+	// Setup an unencrypted connection to a local mail server.
+	c, err := smtp.Dial("localhost:25")
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	// Set the sender and recipient, and send the email all in one step.
+	to := []string{"recipient@example.net"}
+	msg := strings.NewReader("To: recipient@example.net\r\n" +
+		"Subject: discount Gophers!\r\n" +
+		"\r\n" +
+		"This is the email body.\r\n")
+	err := c.SendMail("sender@example.org", to, msg)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
 
 ### Server
 
@@ -66,23 +98,21 @@ import (
 // The Backend implements SMTP server methods.
 type Backend struct{}
 
-// Login handles a login command with username and password.
-func (bkd *Backend) Login(state *smtp.ConnectionState, username, password string) (smtp.Session, error) {
-	if username != "username" || password != "password" {
-		return nil, errors.New("Invalid username or password")
-	}
+func (bkd *Backend) NewSession(_ *smtp.Conn) (smtp.Session, error) {
 	return &Session{}, nil
 }
 
-// AnonymousLogin requires clients to authenticate using SMTP AUTH before sending emails
-func (bkd *Backend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, error) {
-	return nil, smtp.ErrAuthRequired
-}
-
-// A Session is returned after successful login.
+// A Session is returned after EHLO.
 type Session struct{}
 
-func (s *Session) Mail(from string, opts smtp.MailOptions) error {
+func (s *Session) AuthPlain(username, password string) error {
+	if username != "username" || password != "password" {
+		return errors.New("Invalid username or password")
+	}
+	return nil
+}
+
+func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	log.Println("Mail from:", from)
 	return nil
 }

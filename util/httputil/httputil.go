@@ -20,6 +20,8 @@ func WriteJson(w http.ResponseWriter, response interface{}, status int) (err err
 
 	defer errorutil.UpdateErrorFromCall(bufferedWriter.Flush, &err)
 
+	// FIXME: in case the json encoding fails before anything has been written to the socket,
+	// we should be able to return a 500 error.
 	w.Header()["Content-Type"] = []string{"application/json"}
 	w.WriteHeader(status)
 
