@@ -1,0 +1,14 @@
+# ControlCenter 2.0.0-RC8
+
+- Primitive support for multiple processing logs from multiple Postfix servers (disabled by default)
+- Initial support for interactive graphs (disabled by default)
+- Updated Go dependencies
+- Lots of small performance improvements
+
+In a nutshell, this is a maintenance release, consisting on the accumulated work from the past 11 months.
+
+ControlCenter is not actively developed anymore, as our focus as organization shifted from the Postfix monitoring space.
+
+This will hopefully be the last RC.
+
+See separate release notes on https://lightmeter.io for full changes.
