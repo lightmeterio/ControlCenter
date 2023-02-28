@@ -24,6 +24,7 @@ type Client struct {
 	// Text is the textproto.Conn used by the Client. It is exported to allow for
 	// clients to add extensions.
 	Text *textproto.Conn
+
 	// keep a reference to the connection so it can be used to create a TLS
 	// connection later
 	conn net.Conn
@@ -42,15 +43,21 @@ type Client struct {
 
 	// Time to wait for command responses (this includes 3xx reply to DATA).
 	CommandTimeout time.Duration
-
 	// Time to wait for responses after final dot.
 	SubmissionTimeout time.Duration
+
+	// Logger for all network activity.
+	DebugWriter io.Writer
 }
+
+// 30 seconds was chosen as it's the
+// same duration as http.DefaultTransport's timeout.
+var defaultTimeout = 30 * time.Second
 
 // Dial returns a new Client connected to an SMTP server at addr.
 // The addr must include a port, as in "mail.example.com:smtp".
 func Dial(addr string) (*Client, error) {
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, defaultTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +67,16 @@ func Dial(addr string) (*Client, error) {
 
 // DialTLS returns a new Client connected to an SMTP server via TLS at addr.
 // The addr must include a port, as in "mail.example.com:smtps".
+//
+// A nil tlsConfig is equivalent to a zero tls.Config.
 func DialTLS(addr string, tlsConfig *tls.Config) (*Client, error) {
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
+	tlsDialer := tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: defaultTimeout,
+		},
+		Config: tlsConfig,
+	}
+	conn, err := tlsDialer.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -72,36 +87,9 @@ func DialTLS(addr string, tlsConfig *tls.Config) (*Client, error) {
 // NewClient returns a new Client using an existing connection and host as a
 // server name to be used when authenticating.
 func NewClient(conn net.Conn, host string) (*Client, error) {
-	rwc := struct {
-		io.Reader
-		io.Writer
-		io.Closer
-	}{
-		Reader: lineLimitReader{
-			R: conn,
-			// Doubled maximum line length per RFC 5321 (Section 4.5.3.1.6)
-			LineLimit: 2000,
-		},
-		Writer: conn,
-		Closer: conn,
-	}
-
-	text := textproto.NewConn(rwc)
-	_, _, err := text.ReadResponse(220)
-	if err != nil {
-		text.Close()
-		if protoErr, ok := err.(*textproto.Error); ok {
-			return nil, toSMTPErr(protoErr)
-		}
-		return nil, err
-	}
-	_, isTLS := conn.(*tls.Conn)
 	c := &Client{
-		Text:       text,
-		conn:       conn,
 		serverName: host,
 		localName:  "localhost",
-		tls:        isTLS,
 		// As recommended by RFC 5321. For DATA command reply (3xx one) RFC
 		// recommends a slightly shorter timeout but we do not bother
 		// differentiating these.
@@ -110,11 +98,27 @@ func NewClient(conn net.Conn, host string) (*Client, error) {
 		// forwarding and also follows recommended timeouts.
 		SubmissionTimeout: 12 * time.Minute,
 	}
+
+	c.setConn(conn)
+
+	// Initial greeting timeout. RFC 5321 recommends 5 minutes.
+	c.conn.SetDeadline(time.Now().Add(5 * time.Minute))
+	defer c.conn.SetDeadline(time.Time{})
+
+	_, _, err := c.Text.ReadResponse(220)
+	if err != nil {
+		c.Text.Close()
+		if protoErr, ok := err.(*textproto.Error); ok {
+			return nil, toSMTPErr(protoErr)
+		}
+		return nil, err
+	}
+
 	return c, nil
 }
 
 // NewClientLMTP returns a new LMTP Client (as defined in RFC 2033) using an
-// existing connector and host as a server name to be used when authenticating.
+// existing connection and host as a server name to be used when authenticating.
 func NewClientLMTP(conn net.Conn, host string) (*Client, error) {
 	c, err := NewClient(conn, host)
 	if err != nil {
@@ -122,6 +126,37 @@ func NewClientLMTP(conn net.Conn, host string) (*Client, error) {
 	}
 	c.lmtp = true
 	return c, nil
+}
+
+// setConn sets the underlying network connection for the client.
+func (c *Client) setConn(conn net.Conn) {
+	c.conn = conn
+
+	var r io.Reader = conn
+	var w io.Writer = conn
+
+	r = &lineLimitReader{
+		R: conn,
+		// Doubled maximum line length per RFC 5321 (Section 4.5.3.1.6)
+		LineLimit: 2000,
+	}
+
+	r = io.TeeReader(r, clientDebugWriter{c})
+	w = io.MultiWriter(w, clientDebugWriter{c})
+
+	rwc := struct {
+		io.Reader
+		io.Writer
+		io.Closer
+	}{
+		Reader: r,
+		Writer: w,
+		Closer: conn,
+	}
+	c.Text = textproto.NewConn(rwc)
+
+	_, isTLS := conn.(*tls.Conn)
+	c.tls = isTLS
 }
 
 // Close closes the connection.
@@ -225,6 +260,8 @@ func (c *Client) ehlo() error {
 // StartTLS sends the STARTTLS command and encrypts all further communication.
 // Only servers that advertise the STARTTLS extension support this function.
 //
+// A nil config is equivalent to a zero tls.Config.
+//
 // If server returns an error, it will be of type *SMTPError.
 func (c *Client) StartTLS(config *tls.Config) error {
 	if err := c.hello(); err != nil {
@@ -245,9 +282,7 @@ func (c *Client) StartTLS(config *tls.Config) error {
 	if testHookStartTLS != nil {
 		testHookStartTLS(config)
 	}
-	c.conn = tls.Client(c.conn, config)
-	c.Text = textproto.NewConn(c.conn)
-	c.tls = true
+	c.setConn(tls.Client(c.conn, config))
 	return c.ehlo()
 }
 
@@ -395,10 +430,17 @@ type dataCloser struct {
 	c *Client
 	io.WriteCloser
 	statusCb func(rcpt string, status *SMTPError)
+	closed   bool
 }
 
 func (d *dataCloser) Close() error {
-	d.WriteCloser.Close()
+	if d.closed {
+		return fmt.Errorf("smtp: data writer closed twice")
+	}
+
+	if err := d.WriteCloser.Close(); err != nil {
+		return err
+	}
 
 	d.c.conn.SetDeadline(time.Now().Add(d.c.SubmissionTimeout))
 	defer d.c.conn.SetDeadline(time.Time{})
@@ -420,7 +462,6 @@ func (d *dataCloser) Close() error {
 			}
 			expectedResponses--
 		}
-		return nil
 	} else {
 		_, _, err := d.c.Text.ReadResponse(250)
 		if err != nil {
@@ -429,8 +470,10 @@ func (d *dataCloser) Close() error {
 			}
 			return err
 		}
-		return nil
 	}
+
+	d.closed = true
+	return nil
 }
 
 // Data issues a DATA command to the server and returns a writer that
@@ -444,7 +487,7 @@ func (c *Client) Data() (io.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &dataCloser{c, c.Text.DotWriter(), nil}, nil
+	return &dataCloser{c: c, WriteCloser: c.Text.DotWriter()}, nil
 }
 
 // LMTPData is the LMTP-specific version of the Data method. It accepts a callback
@@ -464,16 +507,14 @@ func (c *Client) LMTPData(statusCb func(rcpt string, status *SMTPError)) (io.Wri
 	if err != nil {
 		return nil, err
 	}
-	return &dataCloser{c, c.Text.DotWriter(), statusCb}, nil
+	return &dataCloser{c: c, WriteCloser: c.Text.DotWriter(), statusCb: statusCb}, nil
 }
 
-var testHookStartTLS func(*tls.Config) // nil, except for tests
-
-// SendMail connects to the server at addr, switches to TLS if
-// possible, authenticates with the optional mechanism a if possible,
-// and then sends an email from address from, to addresses to, with
-// message r.
-// The addr must include a port, as in "mail.example.com:smtp".
+// SendMail will use an existing connection to send an email from
+// address from, to addresses to, with message r.
+//
+// This function does not start TLS, nor does it perform authentication. Use
+// StartTLS and Auth before-hand if desirable.
 //
 // The addresses in the to parameter are the SMTP RCPT addresses.
 //
@@ -483,41 +524,9 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // fields such as "From", "To", "Subject", and "Cc".  Sending "Bcc"
 // messages is accomplished by including an email address in the to
 // parameter but not including it in the r headers.
-//
-// The SendMail function and the go-smtp package are low-level
-// mechanisms and provide no support for DKIM signing (see go-msgauth), MIME
-// attachments (see the mime/multipart package or the go-message package), or
-// other mail functionality.
-func SendMail(addr string, a sasl.Client, from string, to []string, r io.Reader) error {
-	if err := validateLine(from); err != nil {
-		return err
-	}
-	for _, recp := range to {
-		if err := validateLine(recp); err != nil {
-			return err
-		}
-	}
-	c, err := Dial(addr)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-	if err = c.hello(); err != nil {
-		return err
-	}
-	if ok, _ := c.Extension("STARTTLS"); ok {
-		if err = c.StartTLS(nil); err != nil {
-			return err
-		}
-	}
-	if a != nil && c.ext != nil {
-		if _, ok := c.ext["AUTH"]; !ok {
-			return errors.New("smtp: server doesn't support AUTH")
-		}
-		if err = c.Auth(a); err != nil {
-			return err
-		}
-	}
+func (c *Client) SendMail(from string, to []string, r io.Reader) error {
+	var err error
+
 	if err = c.Mail(from, nil); err != nil {
 		return err
 	}
@@ -539,6 +548,64 @@ func SendMail(addr string, a sasl.Client, from string, to []string, r io.Reader)
 		return err
 	}
 	return c.Quit()
+}
+
+var testHookStartTLS func(*tls.Config) // nil, except for tests
+
+// SendMail connects to the server at addr, switches to TLS, authenticates with
+// the optional SASL client, and then sends an email from address from, to
+// addresses to, with message r. The addr must include a port, as in
+// "mail.example.com:smtp".
+//
+// The addresses in the to parameter are the SMTP RCPT addresses.
+//
+// The r parameter should be an RFC 822-style email with headers
+// first, a blank line, and then the message body. The lines of r
+// should be CRLF terminated. The r headers should usually include
+// fields such as "From", "To", "Subject", and "Cc".  Sending "Bcc"
+// messages is accomplished by including an email address in the to
+// parameter but not including it in the r headers.
+//
+// SendMail is intended to be used for very simple use-cases. If you want to
+// customize SendMail's behavior, use a Client instead.
+//
+// The SendMail function and the go-smtp package are low-level
+// mechanisms and provide no support for DKIM signing (see go-msgauth), MIME
+// attachments (see the mime/multipart package or the go-message package), or
+// other mail functionality.
+func SendMail(addr string, a sasl.Client, from string, to []string, r io.Reader) error {
+	if err := validateLine(from); err != nil {
+		return err
+	}
+	for _, recp := range to {
+		if err := validateLine(recp); err != nil {
+			return err
+		}
+	}
+	c, err := Dial(addr)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	if err = c.hello(); err != nil {
+		return err
+	}
+	if ok, _ := c.Extension("STARTTLS"); !ok {
+		return errors.New("smtp: server doesn't support STARTTLS")
+	}
+	if err = c.StartTLS(nil); err != nil {
+		return err
+	}
+	if a != nil && c.ext != nil {
+		if _, ok := c.ext["AUTH"]; !ok {
+			return errors.New("smtp: server doesn't support AUTH")
+		}
+		if err = c.Auth(a); err != nil {
+			return err
+		}
+	}
+	return c.SendMail(from, to, r)
 }
 
 // Extension reports whether an extension is support by the server.
@@ -641,4 +708,15 @@ func toSMTPErr(protoErr *textproto.Error) *SMTPError {
 	smtpErr.EnhancedCode = enchCode
 	smtpErr.Message = msg
 	return smtpErr
+}
+
+type clientDebugWriter struct {
+	c *Client
+}
+
+func (cdw clientDebugWriter) Write(b []byte) (int, error) {
+	if cdw.c.DebugWriter == nil {
+		return len(b), nil
+	}
+	return cdw.c.DebugWriter.Write(b)
 }
