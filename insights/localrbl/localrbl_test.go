@@ -402,7 +402,7 @@ func TestLocalRBL(t *testing.T) {
 							LocalIP: globalsettings.IP{net.ParseIP("11.22.33.44")},
 						}
 
-						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingKey, &settings)
+						err := m.Writer.StoreJson(dummyContext, globalsettings.SettingsKey, &settings)
 
 						So(err, ShouldBeNil)
 					}

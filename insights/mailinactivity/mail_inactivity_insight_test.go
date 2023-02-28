@@ -7,6 +7,9 @@ package mailinactivity
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -23,8 +26,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"testing"
-	"time"
 )
 
 var (
@@ -41,7 +42,8 @@ func TestMailInactivityDetectorInsight(t *testing.T) {
 		defer closeConn()
 
 		buildWs := func() (*deliverydb.DB, func() error, func(), tracking.ResultPublisher) {
-			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+			options := deliverydb.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+			db, err := deliverydb.New(conn, &domainmapping.DefaultMapping, options)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()

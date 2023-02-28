@@ -138,9 +138,41 @@ func parseSmtpSentStatusExtraMessageSentQueued(data string) (SmtpSentStatusExtra
 		r.Queue = data[tokBeg:p]
 	};
 
-	selfDelivery = (smtpCode ' ' dsn ' from MTA(smtp:[' ip ']:' port '): ');
+	selfDelivery = 'from MTA(smtp:[' ip ']:' port '): 250 2.0.0 ' %{
+    r.InternalMTA = true
+  };
 
-	main := '(' selfDelivery '250 2.0.0 Ok: queued as ' queue ')' %{
+	main := '(' smtpCode ' ' dsn ' ' selfDelivery? 'Ok: queued as ' queue ')' %{
+		return r, true
+	};
+
+	write init;
+	write exec;
+}%%
+
+	return r, false
+}
+
+
+%% machine smtpSentStatusExtraMessageNewUUID;
+%% write data;
+
+func parseSmtpSentStatusExtraMessageNewUUID(data string) (SmtpSentStatusExtraMessageNewUUID, bool) {
+	cs, p, pe, eof := 0, 0, len(data), len(data)
+	tokBeg := 0
+
+	_ = eof
+
+	r := SmtpSentStatusExtraMessageNewUUID{}
+
+%%{
+	include common "common.rl";
+
+  id = (alnum|'-')+ >setTokBeg %{
+    r.ID = data[tokBeg:p]
+  };
+
+	main := '(250 Ok ' id ')' %{
 		return r, true
 	};
 

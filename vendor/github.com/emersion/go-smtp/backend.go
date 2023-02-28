@@ -1,24 +1,25 @@
 package smtp
 
 import (
-	"errors"
 	"io"
 )
 
 var (
-	ErrAuthRequired    = errors.New("Please authenticate first")
-	ErrAuthUnsupported = errors.New("Authentication not supported")
+	ErrAuthRequired = &SMTPError{
+		Code:         502,
+		EnhancedCode: EnhancedCode{5, 7, 0},
+		Message:      "Please authenticate first",
+	}
+	ErrAuthUnsupported = &SMTPError{
+		Code:         502,
+		EnhancedCode: EnhancedCode{5, 7, 0},
+		Message:      "Authentication not supported",
+	}
 )
 
 // A SMTP server backend.
 type Backend interface {
-	// Authenticate a user. Return smtp.ErrAuthUnsupported if you don't want to
-	// support this.
-	Login(state *ConnectionState, username, password string) (Session, error)
-
-	// Called if the client attempts to send mail without logging in first.
-	// Return smtp.ErrAuthRequired if you don't want to support this.
-	AnonymousLogin(state *ConnectionState) (Session, error)
+	NewSession(c *Conn) (Session, error)
 }
 
 type BodyType string
@@ -58,6 +59,9 @@ type MailOptions struct {
 	Auth *string
 }
 
+// Session is used by servers to respond to an SMTP client.
+//
+// The methods are called when the remote client issues the matching command.
 type Session interface {
 	// Discard currently processed message.
 	Reset()
@@ -65,14 +69,21 @@ type Session interface {
 	// Free all resources associated with session.
 	Logout() error
 
+	// Authenticate the user using SASL PLAIN.
+	AuthPlain(username, password string) error
+
 	// Set return path for currently processed message.
-	Mail(from string, opts MailOptions) error
+	Mail(from string, opts *MailOptions) error
 	// Add recipient for currently processed message.
 	Rcpt(to string) error
 	// Set currently processed message contents and send it.
+	//
+	// r must be consumed before Data returns.
 	Data(r io.Reader) error
 }
 
+// LMTPSession is an add-on interface for Session. It can be implemented by
+// LMTP servers to provide extra functionality.
 type LMTPSession interface {
 	// LMTPData is the LMTP-specific version of Data method.
 	// It can be optionally implemented by the backend to provide
@@ -90,6 +101,8 @@ type LMTPSession interface {
 	LMTPData(r io.Reader, status StatusCollector) error
 }
 
+// StatusCollector allows a backend to provide per-recipient status
+// information.
 type StatusCollector interface {
 	SetStatus(rcptTo string, err error)
 }

@@ -204,7 +204,7 @@ func TestSettings(t *testing.T) {
 
 		So(err, ShouldBeNil)
 
-		err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
+		err = m.Writer.StoreJson(context.Background(), SettingsKey, Settings{
 			Enabled:    true,
 			Recipients: "recipient@example.com",
 		})

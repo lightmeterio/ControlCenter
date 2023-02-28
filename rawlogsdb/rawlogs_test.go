@@ -8,6 +8,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -16,8 +19,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/postfixutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -26,8 +27,8 @@ func init() {
 
 func buildContext(t *testing.T) (*DB, postfix.Publisher, *dbconn.RoPool, func()) {
 	db, closeConn := testutil.TempDBConnectionMigrated(t, "rawlogs")
-
-	r, err := New(db.RwConn)
+	options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+	r, err := New(db.RwConn, options)
 	So(err, ShouldBeNil)
 
 	pub := r.Publisher()

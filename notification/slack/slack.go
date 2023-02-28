@@ -7,20 +7,22 @@ package slack
 import (
 	"context"
 	"errors"
+	"reflect"
+	"sync"
+
 	"github.com/slack-go/slack"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 	"gitlab.com/lightmeter/controlcenter/util/stringutil"
-	"reflect"
-	"sync"
 )
 
 // TODO: make the notifications asynchronous!
 // Add context to PostMessage and to slack api call!
 
-const SettingKey = "messenger_slack"
+const SettingsKey = "messenger_slack"
 
 type MessagePoster interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
@@ -65,7 +67,7 @@ func New(policy core.Policy, reader metadata.Reader) *Notifier {
 	fetchSettings := func() (*Settings, error) {
 		s := Settings{}
 
-		if err := reader.RetrieveJson(context.Background(), SettingKey, &s); err != nil {
+		if err := reader.RetrieveJson(context.Background(), SettingsKey, &s); err != nil {
 			return nil, errorutil.Wrap(err)
 		}
 
@@ -204,20 +206,9 @@ func (m *Notifier) Notify(n core.Notification, translator translator.Translator)
 }
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	settings := &Settings{}
-
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
-	if err != nil {
-		return nil, errorutil.Wrap(err, "could not get slack settings")
-	}
-
-	return settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }

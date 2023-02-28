@@ -7,6 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <b-container class="mt-5 detective-body">
     <b-form
+      ref="searchForm"
       @submit.prevent="
         page = 1;
         updateResults();
@@ -92,6 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <option value="-1"><translate>Any status</translate></option>
           <option value="0"><translate>Sent</translate></option>
           <option value="42"><translate>Received</translate></option>
+          <option value="43"><translate>Replied</translate></option>
           <option value="1"><translate>Bounced</translate></option>
           <option value="2"><translate>Deferred</translate></option>
           <option value="3"><translate>Expired</translate></option>
@@ -110,6 +112,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p :class="searchResultClass">
         {{ searchResultText }}
         <b-button
+          v-if="rawLogsEnabled"
           v-show="showLogsDownloadButton"
           v-on:click="downloadRawLogsInInterval()"
           variant="primary"
@@ -137,6 +140,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </b-container>
 
     <detective-results
+      :rawLogsEnabled="rawLogsEnabled"
       :results="results.messages"
       :showQueues="!forEndUsers"
       :showFromTo="!forEndUsers"
@@ -168,7 +172,8 @@ import {
   checkMessageDelivery,
   escalateMessage,
   oldestAvailableTimeForMessageDetective,
-  linkToRawLogsInInterval
+  linkToRawLogsInInterval,
+  getSettings
 } from "@/lib/api.js";
 
 import tracking from "@/mixin/global_shared.js";
@@ -189,6 +194,10 @@ export default {
   components: { DateRangePicker },
   mixins: [tracking, auth, datepicker],
   props: {
+    rawLogsEnabled: {
+      type: Boolean,
+      default: true
+    },
     forEndUsers: {
       type: Boolean,
       default: false
@@ -307,7 +316,7 @@ export default {
             vue.$gettext("message(s) found") +
             pageNb
           : vue.$gettext("No message found");
-        vue.$refs.searchResultText.scrollIntoView();
+        vue.$refs.searchForm.scrollIntoView();
       });
     },
     escalateMessage() {
@@ -344,16 +353,61 @@ export default {
     }
   },
   mounted() {
+    let vue = this;
+
+    let runSearch = false;
+    let dateFromParams = false;
+
+    let hash = window.location.hash.split("?");
+    if (hash.length > 1) {
+      let get = hash[1];
+      let params = {};
+      get.split("&").forEach(function(gp) {
+        let [k, v] = gp.split("=");
+        params[k] = decodeURIComponent(v);
+      });
+
+      ["mail_from", "mail_to", "statusSelected", "some_id"].forEach(function(
+        k
+      ) {
+        if (params[k]) {
+          vue[k] = params[k];
+          runSearch = true;
+        }
+      });
+
+      if (params.startDate && params.endDate) {
+        vue.dateRange = {
+          startDate: params.startDate,
+          endDate: params.endDate
+        };
+        dateFromParams = true;
+        runSearch = true;
+      }
+    }
+
     this.updateSelectedInterval(this.dateRange);
 
-    oldestAvailableTimeForMessageDetective().then(r => {
-      if (r.data.time != null) {
-        this.dateRange = {
-          startDate: r.data.time,
-          endDate: this.dateRange.endDate
-        };
-        this.updateSelectedInterval(this.dateRange);
-      }
+    if (runSearch) {
+      vue.updateResults();
+    }
+
+    if (!dateFromParams) {
+      oldestAvailableTimeForMessageDetective().then(r => {
+        if (r.data.time != null) {
+          this.dateRange = {
+            startDate: r.data.time,
+            endDate: this.dateRange.endDate
+          };
+          this.updateSelectedInterval(this.dateRange);
+        }
+      });
+    }
+
+    // FIXME: this code is in the wrong place and only increasing the technical debt.
+    // this component should not depend on any external value other than its props!!!
+    getSettings().then(function(response) {
+      vue.rawLogsEnabled = !response.data.feature_flags.disable_raw_logs;
     });
   }
 };
@@ -363,7 +417,7 @@ export default {
 /* don't squeeze the inputs or datepicker too much, so they'll flex-wrap on smaller screens */
 input,
 .vue-daterange-picker {
-  min-width: 200px !important;
+  min-width: 180px !important;
   display: block !important;
 }
 
@@ -397,5 +451,6 @@ button.btn-primary {
 .detective-body {
   padding-right: 0px;
   padding-left: 0px;
+  margin-bottom: 20px;
 }
 </style>

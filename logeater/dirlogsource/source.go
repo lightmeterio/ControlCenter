@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/logeater/dirwatcher"
+	"gitlab.com/lightmeter/controlcenter/logeater/logsource"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
@@ -26,7 +27,7 @@ type Source struct {
 	follow bool
 }
 
-func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns, clock timeutil.Clock) (*Source, error) {
+func New(dirname string, sum postfix.SumPair, announcer announcer.ImportAnnouncer, follow bool, rsynced bool, logFormat string, patterns dirwatcher.LogPatterns, clock timeutil.Clock) (logsource.Source, error) {
 	timeFormat, err := parsertimeutil.Get(logFormat)
 	if err != nil {
 		return nil, errorutil.Wrap(err)

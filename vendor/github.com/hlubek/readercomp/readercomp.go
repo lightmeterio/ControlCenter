@@ -46,12 +46,7 @@ func Equal(r1, r2 io.Reader, bufSize int) (bool, error) {
 			}
 		}
 
-		// If sizes don't match either of the readers hit EOF (can't catch up), so not equal
-		if n1 != n2 {
-			return false, nil
-		}
-
-		if !bytes.Equal(b1, b2) {
+		if !bytes.Equal(b1[:n1], b2[:n2]) {
 			return false, nil
 		}
 
