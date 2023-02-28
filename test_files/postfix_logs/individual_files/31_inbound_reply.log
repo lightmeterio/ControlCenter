@@ -1,0 +1,30 @@
+Apr 22 16:04:26 lightmetermail postfix/smtpd[2010]: connect from unknown[1.1.1.1]
+Apr 22 16:04:27 lightmetermail postfix/smtpd[2010]: Anonymous TLS connection established from unknown[1.1.1.1]: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Apr 22 16:04:28 lightmetermail postfix/smtpd[2010]: 97B24177716: client=unknown[1.1.1.1], sasl_method=PLAIN, sasl_username=original_sender@example1.com
+Apr 22 16:04:28 lightmetermail postfix/cleanup[2289]: 97B24177716: message-id=<dk17hoksdj1w1lwc3b7m2yhno-0@mailer.nylas.com>
+Apr 22 16:04:28 lightmetermail opendkim[59]: 97B24177716: DKIM-Signature field added (s=default, d=example1.com)
+Apr 22 16:04:29 lightmetermail postfix/qmgr[177]: 97B24177716: from=<original_sender@example1.com>, size=3764, nrcpt=2 (queue active)
+Apr 22 16:04:29 lightmetermail postfix/smtpd[2010]: disconnect from unknown[1.1.1.1] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Apr 22 16:04:29 lightmetermail postfix/smtp[2153]: Untrusted TLS connection established to email-smtp.us-east-1.amazonaws.com[3.3.3.3]:587: TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)
+Apr 22 16:04:30 lightmetermail postfix/smtp[2153]: 97B24177716: to=<original_recipient@example2.com>, relay=email-smtp.us-east-1.amazonaws.com[3.3.3.3]:587, delay=2.1, delays=0.59/0.04/0.89/0.6, dsn=2.0.0, status=sent (250 Ok 010001805204880d-1c44c665-2190-439a-be35-87019be5e2b5-000000)
+
+Apr 22 16:04:30 lightmetermail postfix/qmgr[177]: 97B24177716: removed
+Apr 27 16:45:44 lightmetermail postfix/smtpd[15545]: connect from unknown[2.2.2.2]
+Apr 27 16:45:44 lightmetermail postfix/smtpd[15545]: Anonymous TLS connection established from unknown[2.2.2.2]: TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits) key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256
+Apr 27 16:45:44 lightmetermail postfix/smtpd[15545]: ABD4E13D6B0: client=unknown[2.2.2.2]
+Apr 27 16:45:44 lightmetermail postfix/cleanup[15573]: ABD4E13D6B0: message-id=<CAJcL8KcWqtPC9aBbAViCcDpTCMGQFZ=vBPjhsqBiNOKR0hfU2w@mail.gmail.com>
+Apr 27 16:45:44 lightmetermail lightmeter/headers[152]: ABD4E13D6B0: header name="References", value="<dk17hoksdj1w1lwc3b7m2yhno-0@mailer.nylas.com> <010001806bd0a2a3-1c0c8f51-9dd4-463a-a3bd-7faae35e66b1-000000@email.amazonses.com>"
+Apr 27 16:45:44 lightmetermail lightmeter/headers[152]: ABD4E13D6B0: header name="In-Reply-To", value="<010001806bd0a2a3-1c0c8f51-9dd4-463a-a3bd-7faae35e66b1-000000@email.amazonses.com>"
+Apr 27 16:45:44 lightmetermail opendkim[67]: ABD4E13D6B0: [2.2.2.2] [2.2.2.2] not internal
+Apr 27 16:45:44 lightmetermail opendkim[67]: ABD4E13D6B0: not authenticated
+Apr 27 16:45:44 lightmetermail opendkim[67]: ABD4E13D6B0: DKIM verification successful
+Apr 27 16:45:44 lightmetermail opendkim[67]: ABD4E13D6B0: s=google d=werecover.com a=rsa-sha256 SSL 
+Apr 27 16:45:44 lightmetermail postfix/qmgr[204]: ABD4E13D6B0: from=<original_recipient@example2.com>, size=11803, nrcpt=1 (queue active) 
+Apr 27 16:45:44 lightmetermail dovecot: lmtp(15681): Connect from local
+Apr 27 16:45:44 lightmetermail dovecot: lmtp(original_sender@example1.com)<15681><AHQgLzhzaWJBPQAAAkqyCw>: sieve: msgid=<CAJcL8KcWqtPC9aBbAViCcDpTCMGQFZ=vBPjhsqBiNOKR0hfU2w@mail.gmail.com>: stored mail into mailbox 'INBOX' 
+Apr 27 16:45:44 lightmetermail postfix/lmtp[15532]: ABD4E13D6B0: to=<original_sender@example1.com>, relay=example.com[private/dovecot-lmtp], delay=0.1, delays=0.06/0.02/0/0.01, dsn=2.0.0, status=sent (250 2.0.0 <original_sender@example1.com> AHQgLzhzaWJBPQAAAkqyCw Saved)
+Apr 27 16:45:44 lightmetermail dovecot: lmtp(15681): Disconnect from local: Client has quit the connection (state=READY)
+Apr 27 16:45:44 lightmetermail postfix/qmgr[204]: ABD4E13D6B0: removed
+Apr 27 16:45:44 lightmetermail postfix/smtpd[15545]: disconnect from unknown[2.2.2.2] ehlo=2 starttls=1 mail=1 rcpt=1 bdat=1 quit=1 commands=7
+
+

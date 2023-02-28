@@ -9,21 +9,15 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div class="container">
       <div class="row justify-content-between">
         <div class="col-md-10 mt-md-0 mt-3 align-left">
-          <a
-            href="https://lightmeter.io/about/"
-            title="About Lightmeter"
-            target="_blank"
+          <a :href="projectLink" title="About Lightmeter" target="_blank"
             ><translate>Thank you for using Lightmeter</translate></a
           >. &copy; {{ year }}.
           <span class="link">
-            <a
-              href="https://lightmeter.io/privacy-policy/"
-              title="Read policy"
-              target="_blank"
+            <a :href="dataPolicyLink" title="Read policy" target="_blank"
               ><translate>Privacy Policy</translate></a
             ></span
           >
-          <span class="link">
+          <span class="link" v-if="!simpleViewEnabled">
             <a
               :href="FeedbackMailtoLink"
               :title="FeedbackButtonTitle"
@@ -32,7 +26,10 @@ SPDX-License-Identifier: AGPL-3.0-only
               ><translate>Feedback</translate></a
             ></span
           >
-          <b-button class="link" @click="runWalkthrough()"
+          <b-button
+            class="link"
+            @click="runWalkthrough()"
+            v-if="!simpleViewEnabled"
             ><translate>Walkthrough</translate></b-button
           >
         </div>
@@ -48,17 +45,35 @@ SPDX-License-Identifier: AGPL-3.0-only
 import tracking from "../mixin/global_shared.js";
 import shared_texts from "../mixin/shared_texts.js";
 import { mapActions } from "vuex";
+import { getSettings } from "../lib/api.js";
 
 export default {
   name: "mainfooter",
   mixins: [tracking, shared_texts],
   data() {
     return {
-      year: null
+      year: null,
+      simpleViewEnabled: true,
+      dataPolicyLink: "https://lightmeter.io/privacy-policy/",
+      projectLink: "https://lightmeter.io/about/"
     };
   },
   mounted() {
     this.year = new Date().getFullYear();
+
+    let vue = this;
+
+    getSettings().then(function(response) {
+      vue.simpleViewEnabled = response.data.feature_flags.enable_simple_view;
+
+      if (response.data.feature_flags.policy_link != null) {
+        vue.dataPolicyLink = response.data.feature_flags.policy_link;
+      }
+
+      if (response.data.feature_flags.project_link != null) {
+        vue.projectLink = response.data.feature_flags.project_link;
+      }
+    });
   },
   methods: {
     runWalkthrough() {

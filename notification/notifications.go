@@ -7,11 +7,13 @@ package notification
 import (
 	"context"
 	"errors"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/notification/core"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 	"golang.org/x/text/language"
 )
 
@@ -37,25 +39,14 @@ type Settings struct {
 	Language string `json:"language"`
 }
 
-const SettingKey = "notifications"
+const SettingsKey = "notifications"
 
 func SetSettings(ctx context.Context, writer *metadata.AsyncWriter, settings Settings) error {
-	if err := writer.StoreJsonSync(ctx, SettingKey, settings); err != nil {
-		return errorutil.Wrap(err)
-	}
-
-	return nil
+	return settingsutil.Set[Settings](ctx, writer, settings, SettingsKey)
 }
 
 func GetSettings(ctx context.Context, reader metadata.Reader) (*Settings, error) {
-	settings := &Settings{}
-
-	err := reader.RetrieveJson(ctx, SettingKey, settings)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	return settings, nil
+	return settingsutil.Get[Settings](ctx, reader, SettingsKey)
 }
 
 func New(reader metadata.Reader, translators translator.Translators, policy Policy, notifiers map[string]Notifier) *Center {

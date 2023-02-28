@@ -8,6 +8,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
+	"os"
+	"path"
+	"runtime"
+	"runtime/pprof"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/deliverydb"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
@@ -16,10 +22,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
-	"path"
-	"runtime"
-	"runtime/pprof"
 )
 
 // Implements an example program that gets an input the output of the `mailtracking`
@@ -72,7 +74,7 @@ func main() {
 	err = migrator.Run(conn.RwConn.DB, "logs")
 	errorutil.MustSucceed(err)
 
-	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping)
+	db, err := deliverydb.New(conn, &domainmapping.DefaultMapping, deliverydb.Options{RetentionDuration: (time.Hour * 24 * 30 * 3)})
 	errorutil.MustSucceed(err)
 
 	pub := db.ResultsPublisher()

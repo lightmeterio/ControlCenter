@@ -5,19 +5,21 @@
 package api
 
 import (
+	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/rawlogsdb"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 //nolint:structcheck,unused
@@ -123,7 +125,12 @@ func (h fetchRawLogLinesToWriterHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 	defer errorutil.UpdateErrorFromCall(releaseWriter, &err)
 
-	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, writer); err != nil {
+	// use a 4KB buffer to improve write throughput, reducing the number of write() calls in the final socket
+	bufferedWriter := bufio.NewWriterSize(writer, 4096)
+
+	defer errorutil.UpdateErrorFromCall(bufferedWriter.Flush, &err)
+
+	if err := h.accessor.FetchLogsInIntervalToWriter(r.Context(), interval, bufferedWriter); err != nil {
 		return errorutil.Wrap(err)
 	}
 

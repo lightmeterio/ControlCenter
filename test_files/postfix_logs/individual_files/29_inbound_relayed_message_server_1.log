@@ -1,0 +1,10 @@
+Mar  9 04:27:02 lightmetermail postfix/smtpd[1966]: connect from unknown[11.11.11.11]
+Mar  9 04:27:03 lightmetermail postfix/smtpd[1966]: Anonymous TLS connection established from unknown[11.11.11.11]: TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits)
+Mar  9 04:27:03 lightmetermail postfix/smtpd[1966]: 670FCA58C8: client=unknown[11.11.11.11], sasl_method=LOGIN, sasl_username=sender@sender.com
+Mar  9 04:27:03 lightmetermail postfix/cleanup[1969]: 670FCA58C8: message-id=<fa421b15dce6013dc6e14fec64e371b2@swift.generated>
+Mar  9 04:27:03 lightmetermail opendkim[42]: 670FCA58C8: DKIM-Signature field added (s=default, d=campfireremote.com)
+Mar  9 04:27:03 lightmetermail postfix/qmgr[150]: 670FCA58C8: from=<sender@sender.com>, size=852, nrcpt=2 (queue active)
+Mar  9 04:27:03 lightmetermail postfix/smtpd[1966]: disconnect from unknown[11.11.11.11] ehlo=2 starttls=1 auth=1 mail=1 rcpt=1 data=1 quit=1 commands=8
+Mar  9 04:27:03 lightmetermail postfix/smtp[1970]: Untrusted TLS connection established to mail2.example.com[33.33.33.33]:587: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits) key-exchange X25519 server-signature RSA-PSS (2048 bits)
+Mar  9 04:27:04 lightmetermail postfix/smtp[1970]: 670FCA58C8: to=<recipient@recipient.com>, relay=mail2.example.com[33.33.33.33]:587, delay=0.69, delays=0.22/0/0.35/0.12, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as F27E789349)
+Mar  9 04:27:04 lightmetermail postfix/qmgr[150]: 670FCA58C8: removed

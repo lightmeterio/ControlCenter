@@ -32,6 +32,7 @@ var (
 		ExpiredStatus:  "expired",
 		ReturnedStatus: "returned",
 		ReceivedStatus: "received",
+		RepliedStatus:  "replied",
 	}
 )
 
@@ -45,7 +46,9 @@ const (
 	DeferredStatus SmtpStatus = 2
 	ExpiredStatus  SmtpStatus = 3
 	ReturnedStatus SmtpStatus = 4
+
 	ReceivedStatus SmtpStatus = 42 // not an actual status; used in Message Detective
+	RepliedStatus  SmtpStatus = 43 // not an actual status; used in Message Detective
 )
 
 type SmtpSentStatus struct {
@@ -71,14 +74,23 @@ func (SmtpSentStatus) isPayload() {
 }
 
 type SmtpSentStatusExtraMessageSentQueued struct {
-	SmtpCode int
-	Dsn      string
-	IP       net.IP
-	Port     int
-	Queue    string
+	SmtpCode    int
+	Dsn         string
+	IP          net.IP
+	Port        int
+	Queue       string
+	InternalMTA bool
 }
 
 func (SmtpSentStatusExtraMessageSentQueued) isPayload() {
+	// required by Payload interface
+}
+
+type SmtpSentStatusExtraMessageNewUUID struct {
+	ID string
+}
+
+func (SmtpSentStatusExtraMessageNewUUID) isPayload() {
 	// required by Payload interface
 }
 
@@ -96,6 +108,8 @@ func ParseStatus(s string) (SmtpStatus, error) {
 		return ExpiredStatus, nil
 	case "returned":
 		return ReturnedStatus, nil
+	case "replied":
+		return RepliedStatus, nil
 	}
 
 	return 0, ErrInvalidStatus
@@ -208,40 +222,49 @@ func convertSmtpSentStatus(r rawparser.RawPayload) (Payload, error) {
 }
 
 func parseSmtpSentStatusExtraMessage(s rawparser.RawSmtpSentStatus) (Payload, error) {
-	if s.ExtraMessagePayloadType != rawparser.PayloadTypeSmtpMessageStatusSentQueued {
-		return nil, nil
-	}
+	//nolint:exhaustive
+	switch s.ExtraMessagePayloadType {
+	case rawparser.PayloadTypeSmtpMessageStatusSentQueued:
+		p := s.ExtraMessageSmtpSentStatusSentQueued
 
-	p := s.ExtraMessageSmtpSentStatusSentQueued
+		optionalAtoi := func(v string) (int, error) {
+			if len(v) == 0 {
+				return 0, nil
+			}
 
-	optionalAtoi := func(v string) (int, error) {
-		if len(v) == 0 {
-			return 0, nil
+			return atoi(v)
 		}
 
-		return atoi(v)
-	}
+		smtpCode, err := optionalAtoi(p.SmtpCode)
+		if err != nil {
+			return nil, err
+		}
 
-	smtpCode, err := optionalAtoi(p.SmtpCode)
-	if err != nil {
-		return nil, err
-	}
+		port, err := optionalAtoi(p.Port)
+		if err != nil {
+			return nil, err
+		}
 
-	port, err := optionalAtoi(p.Port)
-	if err != nil {
-		return nil, err
-	}
+		ip, err := parseIP(p.IP)
+		if err != nil {
+			return nil, err
+		}
 
-	ip, err := parseIP(p.IP)
-	if err != nil {
-		return nil, err
-	}
+		return SmtpSentStatusExtraMessageSentQueued{
+			Dsn:         p.Dsn,
+			IP:          ip,
+			Port:        port,
+			Queue:       p.Queue,
+			SmtpCode:    smtpCode,
+			InternalMTA: p.InternalMTA,
+		}, nil
+	case rawparser.PayloadSmtpSentStatusExtraMessageNewUUID:
+		p := s.ExtraMessageSmtpSentStatusExtraMessageNewUUID
 
-	return SmtpSentStatusExtraMessageSentQueued{
-		Dsn:      p.Dsn,
-		IP:       ip,
-		Port:     port,
-		Queue:    p.Queue,
-		SmtpCode: smtpCode,
-	}, nil
+		return SmtpSentStatusExtraMessageNewUUID{
+			ID: p.ID,
+		}, nil
+	default:
+		return nil, nil
+	}
 }

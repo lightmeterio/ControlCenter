@@ -11,14 +11,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/pressly/goose"
-	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"math"
 	"path/filepath"
 	"sort"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/pressly/goose"
+	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 func Run(database *sql.DB, databaseName string) error {
@@ -209,6 +210,7 @@ func Status(db *sql.DB, databaseName string) error {
 
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	/* #nosec */
+	//nolint:gosec
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", goose.TableName(), version)
 
 	var row goose.MigrationRecord

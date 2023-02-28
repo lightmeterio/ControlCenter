@@ -12,12 +12,25 @@ import (
 	"strings"
 	"time"
 
+	str2duration "github.com/xhit/go-str2duration/v2"
+
 	"github.com/rs/zerolog"
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/util/envutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/version"
 )
+
+type dirs []string
+
+func (d *dirs) String() string {
+	return strings.Join(*d, ", ")
+}
+
+func (d *dirs) Set(s string) error {
+	*d = append(*d, s)
+	return nil
+}
 
 // nolint: maligned
 type Config struct {
@@ -26,7 +39,7 @@ type Config struct {
 	ImportOnly           bool
 	RsyncedDir           bool
 	ShowVersion          bool
-	DirToWatch           string
+	DirsToWatch          []string
 	LogPatterns          []string
 	Address              string
 	LogLevel             zerolog.Level
@@ -34,6 +47,7 @@ type Config struct {
 	LogYear              int
 	Socket               string
 	LogFormat            string
+	MultiNodeType        string
 
 	EmailToChange          string
 	PasswordToReset        string
@@ -51,6 +65,8 @@ type Config struct {
 
 	GenerateDovecotConfig bool
 	DovecotConfigIsOld    bool
+
+	DataRetentionDuration time.Duration
 }
 
 func Parse(cmdlineArgs []string, lookupenv func(string) (string, bool)) (Config, error) {
@@ -90,9 +106,11 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 
 	fs.BoolVar(&conf.ShowVersion, "version", false, "Show Version Information")
 
-	fs.StringVar(&conf.DirToWatch, "watch_dir",
-		envutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv),
-		"Path to the directory where postfix stores its log files, to be watched")
+	dirsToWatchFromEnvironment := strings.Split(envutil.LookupEnvOrString("LIGHTMETER_WATCH_DIR", "", lookupenv), ":")
+
+	var dirsToWatch dirs
+
+	fs.Var(&dirsToWatch, "watch_dir", "Path to the directories where postfix stores its log files, to be watched")
 
 	fs.StringVar(&conf.Address, "listen",
 		envutil.LookupEnvOrString("LIGHTMETER_LISTEN", ":8080", lookupenv),
@@ -117,6 +135,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.StringVar(&conf.LogFormat, "log_format",
 		envutil.LookupEnvOrString("LIGHTMETER_LOG_FORMAT", "default", lookupenv),
 		"Expected log format from external sources (like logstash, etc.)")
+
+	fs.StringVar(&conf.MultiNodeType, "node_type",
+		envutil.LookupEnvOrString("LIGHTMETER_NODE_TYPE", "single", lookupenv),
+		`How the logs from multiple servers are interpreted; "single" for independent servers or "multi" when messages are relayed among them`)
 
 	var unparsedDefaultSettings string
 
@@ -143,6 +165,10 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	fs.BoolVar(&conf.GenerateDovecotConfig, "dovecot_conf_gen", false, "Generate Dovecot Configuration")
 	fs.BoolVar(&conf.DovecotConfigIsOld, "dovecot_conf_is_old", false, "Requires -dovecot_conf_gen. Use if if you're using a Dovecot older than 2.3.1")
 
+	var unparsedDataRetentionDuration string
+
+	fs.StringVar(&unparsedDataRetentionDuration, "data_retention_duration", envutil.LookupEnvOrString("LIGHTMETER_DATA_RETENTION_DURATION", "90d", lookupenv), "How long data should be kept in the databases, to prevent them growing forever")
+
 	fs.Usage = func() {
 		version.PrintVersion()
 		fmt.Fprintf(os.Stdout, "\n Example call: \n")
@@ -154,6 +180,13 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	if err := fs.Parse(cmdlineArgs); err != nil {
 		return Config{}, errorutil.Wrap(err)
 	}
+
+	conf.DataRetentionDuration, err = str2duration.ParseDuration(unparsedDataRetentionDuration)
+	if err != nil {
+		return conf, errorutil.Wrap(err)
+	}
+
+	conf.DirsToWatch = buildDirsToWatch(dirsToWatch, dirsToWatchFromEnvironment)
 
 	conf.LogLevel, err = zerolog.ParseLevel(strings.ToLower(stringLogLevel))
 	if err != nil {
@@ -178,4 +211,16 @@ func ParseWithErrorHandling(cmdlineArgs []string, lookupenv func(string) (string
 	}()
 
 	return conf, nil
+}
+
+func buildDirsToWatch(dirs dirs, dirsFromEnv []string) []string {
+	if len(dirs) > 0 && len(dirs[0]) > 0 {
+		return []string(dirs)
+	}
+
+	if len(dirsFromEnv) > 0 && len(dirsFromEnv[0]) > 0 {
+		return dirsFromEnv
+	}
+
+	return nil
 }

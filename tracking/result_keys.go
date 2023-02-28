@@ -65,8 +65,18 @@ const (
 	ParentQueueDeliveryNameKey
 
 	ResultDeliveryLineChecksum
+	QueueInReplyToHeaderKey
 
-	lasResulttKey
+	ResultDeliveryLineRelayedBounce
+	QueueRelayedBounceJsonKey
+
+	ConnectionAuthSuccessCount
+
+	QueueReferencesHeaderKey
+
+	ResultSentRemoteID
+
+	lastResultKey
 )
 
 var (
@@ -122,5 +132,14 @@ var (
 		MessageIdIsCorruptedKey:    "messageid_is_corrupted",
 		MessageExpiredTime:         "message_expiration_time",
 		ParentQueueDeliveryNameKey: "parent_delivery_queue",
+
+		ResultDeliveryLineChecksum: "result_delivery_line_checksum",
+		QueueInReplyToHeaderKey:    "queue_in_reply_to_header",
+
+		ResultDeliveryLineRelayedBounce: "result_relivery_line_relayed_bounce",
+		ConnectionAuthSuccessCount:      "connection_auth_success_count",
+		QueueRelayedBounceJsonKey:       "queue_relayed_bounce_json_key",
+		QueueReferencesHeaderKey:        "queue_references_header",
+		ResultSentRemoteID:              "result_sent_remote_id",
 	}
 )

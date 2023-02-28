@@ -6,6 +6,13 @@ package subcommand
 
 import (
 	"context"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
+	"net/url"
+	"path"
+	"testing"
+
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/httpauth"
@@ -16,12 +23,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/metadata"
 	"gitlab.com/lightmeter/controlcenter/pkg/runner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
-	"net/http"
-	"net/http/cookiejar"
-	"net/http/httptest"
-	"net/url"
-	"path"
-	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -60,7 +61,7 @@ func TestChangeUserInfo(t *testing.T) {
 		_, err = a.Register(dummyContext, "email@example.com", `Nora`, originalTestPassword)
 		So(err, ShouldBeNil)
 
-		authenticator := httpauthsub.NewAuthenticator(a, dir)
+		authenticator := httpauthsub.NewAuthenticator(a, dir, nil)
 
 		mux := http.NewServeMux()
 

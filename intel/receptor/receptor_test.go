@@ -8,6 +8,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/intel/blockedips"
@@ -18,10 +24,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -244,14 +246,22 @@ func TestHTTPReceptor(t *testing.T) {
 			return requestTimes[requestTimeIndex]
 		}
 
+		endpointResponseStatus := http.StatusNoContent
+		requestShouldFail := false
+
 		// this function mimics the actual events fetching endpoint from netint
 		endpoint := func(w http.ResponseWriter, r *http.Request) {
+			if requestShouldFail {
+				w.WriteHeader(http.StatusBadGateway)
+				return
+			}
+
 			instanceID := r.FormValue("instance-id")
 			eventID := r.FormValue("event-id")
 
 			event, err := m.Request(r.Context(), Payload{CreationTime: nextRequestTime(), InstanceID: instanceID, LastKnownEventID: eventID})
 			if event == nil {
-				w.WriteHeader(http.StatusNoContent)
+				w.WriteHeader(endpointResponseStatus)
 				return
 			}
 
@@ -266,6 +276,30 @@ func TestHTTPReceptor(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(endpoint))
 
 		requester := HTTPRequester{URL: s.URL, Timeout: 10 * time.Millisecond}
+
+		Convey("Request yields nothing", func() {
+			requestShouldFail = false
+
+			_, err := requester.Request(context.Background(), Payload{
+				CreationTime:     timeutil.MustParseTime(`2020-01-01 00:00:00 +0000`),
+				InstanceID:       "abc",
+				LastKnownEventID: "xyz"},
+			)
+
+			So(errors.Is(err, ErrRequestFailed), ShouldBeTrue)
+		})
+
+		Convey("Something goes wrong in the request, so we fail", func() {
+			requestShouldFail = true
+
+			_, err := requester.Request(context.Background(), Payload{
+				CreationTime:     timeutil.MustParseTime(`2020-01-01 00:00:00 +0000`),
+				InstanceID:       "abc",
+				LastKnownEventID: "xyz"},
+			)
+
+			So(errors.Is(err, ErrRequestFailed), ShouldBeTrue)
+		})
 
 		drain := func(clock timeutil.Clock, options Options) {
 			actions := make(chan dbrunner.Action, 1024)

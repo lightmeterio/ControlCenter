@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"gitlab.com/lightmeter/controlcenter/metadata"
 	"testing"
+	"time"
+
+	"gitlab.com/lightmeter/controlcenter/metadata"
 
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
@@ -162,5 +164,66 @@ func TestDefaultSettings(t *testing.T) {
 		_, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
 		So(err, ShouldNotBeNil)
 	})
+}
 
+func TestDataRetentionDurationSettings(t *testing.T) {
+	Convey("When not passed, use 3months", t, func() {
+		c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, time.Hour*24*90)
+	})
+
+	Convey("Obtain from command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-data_retention_duration", `105d3h`}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, (time.Hour*24*105)+(time.Hour*3))
+	})
+
+	Convey("Obtain from environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_DATA_RETENTION_DURATION": `6w2m`}
+		c, err := ParseWithErrorHandling([]string{"-workspace", "/lalala"}, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DataRetentionDuration, ShouldEqual, (time.Hour*24*7*6)+(time.Minute*2))
+	})
+}
+
+func TestWatchDir(t *testing.T) {
+	Convey("When not passed, get an empty array", t, func() {
+		c, err := ParseWithErrorHandling(noCmdline, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldBeNil)
+	})
+
+	Convey("Passed one dir only via environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1`}
+		c, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1"})
+	})
+
+	Convey("Passed two dirs only via environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1:/dir2`}
+		c, err := ParseWithErrorHandling(noCmdline, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1", "/dir2"})
+	})
+
+	Convey("Passed one directory via command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir1"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1"})
+	})
+
+	Convey("Passed two directories via command line", t, func() {
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir1", "-watch_dir", "/dir2"}, noEnv.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir1", "/dir2"})
+	})
+
+	Convey("Command line overrides environment", t, func() {
+		env := fakeEnv{"LIGHTMETER_WATCH_DIR": `/dir1:/dir2`}
+		c, err := ParseWithErrorHandling([]string{"-watch_dir", "/dir3", "-watch_dir", "/dir4"}, env.fakeLookupenv, flag.ContinueOnError)
+		So(err, ShouldBeNil)
+		So(c.DirsToWatch, ShouldResemble, []string{"/dir3", "/dir4"})
+	})
 }

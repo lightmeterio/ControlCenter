@@ -25,7 +25,7 @@ func init() {
 
 func getVersion(settingsReader metadata.Reader) (*string, error) {
 	var version *string
-	err := settingsReader.RetrieveJson(context.Background(), SettingKey, &version)
+	err := settingsReader.RetrieveJson(context.Background(), SettingsKey, &version)
 	unwrappedErr := errorutil.TryToUnwrap(err)
 	return version, unwrappedErr
 }

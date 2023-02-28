@@ -7,11 +7,12 @@ package deliverydb
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	"gitlab.com/lightmeter/controlcenter/pkg/dbrunner"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 func tryToDeleteMessageId(tx *sql.Tx, messageId int64, deliveryTime int64, stmts dbconn.TxPreparedStmts) error {
@@ -41,6 +42,16 @@ func tryToDeleteMessageId(tx *sql.Tx, messageId int64, deliveryTime int64, stmts
 
 	//nolint:sqlclosecheck
 	if _, err := stmts.Get(deleteMessageIdById).Exec(messageId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteMessageIdReplyLinkOriginalById).Exec(messageId); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	//nolint:sqlclosecheck
+	if _, err := stmts.Get(deleteMessageIdReplyLinkReplyById).Exec(messageId); err != nil {
 		return errorutil.Wrap(err)
 	}
 

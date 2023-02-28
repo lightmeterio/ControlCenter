@@ -31,7 +31,7 @@ func simpleDashboard(d dashboard.Dashboard) {
 	i, _ := timeutil.ParseTimeInterval("0000-01-01", "5000-01-01", time.UTC)
 
 	for {
-		s, _ := d.DeliveryStatus(context.Background(), i)
+		s, _ := d.SentMailsByMailbox(context.Background(), i, 1)
 		fmt.Println(s)
 		time.Sleep(time.Second * 1)
 	}
@@ -85,7 +85,7 @@ func main() {
 		errorutil.MustSucceed(err)
 
 		if len(inputDirectory) > 0 {
-			return dirlogsource.New(inputDirectory, sum, importAnnouncer, false, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
+			return dirlogsource.New(inputDirectory, sum, importAnnouncer, true, false, "default", dirwatcher.DefaultLogPatterns, &timeutil.RealClock{})
 		}
 
 		f, err := os.Open(inputFile)
@@ -111,7 +111,7 @@ func main() {
 
 	logReader := logsource.NewReader(logSource, pub)
 
-	//go simpleDashboard(ws.Dashboard())
+	go simpleDashboard(ws.Dashboard())
 
 	err = logReader.Run()
 
