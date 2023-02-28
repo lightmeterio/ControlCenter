@@ -7,13 +7,14 @@ package httpmiddleware
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gorilla/sessions"
 	"gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	httpauth "gitlab.com/lightmeter/controlcenter/httpauth/auth"
 	"gitlab.com/lightmeter/controlcenter/pkg/httperror"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"net/http"
-	"time"
 )
 
 type SessionName string
@@ -21,6 +22,7 @@ type SessionName string
 const SessionKey SessionName = auth.SessionName
 
 func GetSession(ctx context.Context) *sessions.Session {
+	//nolint:forcetypeassert
 	return ctx.Value(SessionKey).(*sessions.Session)
 }
 

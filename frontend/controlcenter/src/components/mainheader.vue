@@ -7,26 +7,41 @@ SPDX-License-Identifier: AGPL-3.0-only
 <template>
   <header>
     <walkthrough
+      v-if="!simpleViewEnabled"
       :visible="walkthroughNeedsToRun"
       @finished="handleWalkthroughCompleted"
     ></walkthrough>
+
     <div class="navbar">
       <div class="container d-flex justify-content-between">
         <router-link class="logo navbar-brand d-flex align-items-center" to="/">
-          <img src="@/assets/logo-color-120.png" alt="Lightmeter logo" />
+          <img src="@/assets/logo-color-120.svg" alt="Lightmeter logo" />
         </router-link>
         <span class="buttons">
           <span v-on:click="trackClick('Detective', 'clickHeaderButton')">
             <router-link to="/detective">
-              <i
-                class="fas fa-search"
+              <span v-if="!simpleViewEnabled">
+                <i
+                  class="fas fa-search"
+                  data-toggle="tooltip"
+                  data-placement="bottom"
+                  :title="Detective"
+                ></i>
+              </span>
+              <span
                 data-toggle="tooltip"
                 data-placement="bottom"
-                :title="Detective"
-              ></i
-            ></router-link>
+                title="Search"
+                v-if="simpleViewEnabled"
+              >
+                <translate>Search Messages</translate>
+              </span>
+            </router-link>
           </span>
-          <span v-on:click="trackClick('Settings', 'clickHeaderButton')">
+          <span
+            v-on:click="trackClick('Settings', 'clickHeaderButton')"
+            v-if="!simpleViewEnabled"
+          >
             <router-link to="/settings">
               <i
                 class="fas fa-cog"
@@ -36,7 +51,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               ></i
             ></router-link>
           </span>
-          <span v-b-modal.modal-about v-on:click="onGetApplicationInfo">
+          <span
+            v-b-modal.modal-about
+            v-on:click="onGetApplicationInfo"
+            v-if="!simpleViewEnabled"
+          >
             <i
               class="fas fa-info-circle"
               data-toggle="tooltip"
@@ -158,6 +177,8 @@ export default {
     let vue = this;
 
     getSettings().then(function(response) {
+      vue.simpleViewEnabled = response.data.feature_flags.enable_simple_view;
+
       vue.setWalkthroughNeedsToRunAction(
         !response.data.walkthrough || !response.data.walkthrough.completed
       );
@@ -166,7 +187,8 @@ export default {
   data() {
     return {
       year: null,
-      applicationData: null
+      applicationData: null,
+      simpleViewEnabled: true
     };
   },
   computed: {

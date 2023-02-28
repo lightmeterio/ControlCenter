@@ -1,3 +1,4 @@
+Jan 20 19:48:05 teupos postfix/smtpd[2467304]: connect from unknown[1.2.3.4]
 Jan 20 19:48:04 teupos postfix/smtpd[2467304]: B9996EABB6: client=unknown[1.2.3.4], sasl_method=PLAIN, sasl_username=sender@internal.org
 Jan 20 19:48:05 teupos postfix/cleanup[2467311]: B9996EABB6: message-id=<h-74f3afb0208ad285a794d760c8feb0eee631@internal.org>
 Jan 20 19:48:05 teupos opendkim[12864]: B9996EABB6: DKIM-Signature field added (s=key, d=internal.org)

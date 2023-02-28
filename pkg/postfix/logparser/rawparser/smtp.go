@@ -32,16 +32,22 @@ type RawSmtpSentStatus struct {
 	ExtraMessage            string
 
 	// parsed extra message
-	ExtraMessagePayloadType              PayloadType
-	ExtraMessageSmtpSentStatusSentQueued SmtpSentStatusExtraMessageSentQueued
+	ExtraMessagePayloadType                       PayloadType
+	ExtraMessageSmtpSentStatusSentQueued          SmtpSentStatusExtraMessageSentQueued
+	ExtraMessageSmtpSentStatusExtraMessageNewUUID SmtpSentStatusExtraMessageNewUUID
 }
 
 type SmtpSentStatusExtraMessageSentQueued struct {
-	SmtpCode string
-	Dsn      string
-	IP       string
-	Port     string
-	Queue    string
+	SmtpCode    string
+	Dsn         string
+	IP          string
+	Port        string
+	Queue       string
+	InternalMTA bool
+}
+
+type SmtpSentStatusExtraMessageNewUUID struct {
+	ID string
 }
 
 func parseSmtpPayload(payloadLine string) (RawPayload, error) {
@@ -51,11 +57,22 @@ func parseSmtpPayload(payloadLine string) (RawPayload, error) {
 		return RawPayload{PayloadType: PayloadTypeUnsupported}, ErrUnsupportedLogLine
 	}
 
-	// TODO: refactor this code when mode kinds of extra messages are parsed
-	if extraMessage, parsed := parseSmtpSentStatusExtraMessageSentQueued(r.ExtraMessage); parsed {
-		r.ExtraMessageSmtpSentStatusSentQueued = extraMessage
-		r.ExtraMessagePayloadType = PayloadTypeSmtpMessageStatusSentQueued
-	}
+	func() {
+		// TODO: refactor this code when mode kinds of extra messages are parsed
+		if extraMessage, parsed := parseSmtpSentStatusExtraMessageSentQueued(r.ExtraMessage); parsed {
+			r.ExtraMessageSmtpSentStatusSentQueued = extraMessage
+			r.ExtraMessagePayloadType = PayloadTypeSmtpMessageStatusSentQueued
+
+			return
+		}
+
+		if extraMessage, parsed := parseSmtpSentStatusExtraMessageNewUUID(r.ExtraMessage); parsed {
+			r.ExtraMessageSmtpSentStatusExtraMessageNewUUID = extraMessage
+			r.ExtraMessagePayloadType = PayloadSmtpSentStatusExtraMessageNewUUID
+
+			return
+		}
+	}()
 
 	return RawPayload{
 		PayloadType:       PayloadTypeSmtpMessageStatus,

@@ -33,7 +33,7 @@ func TestInitialSetup(t *testing.T) {
 			m, err := metadata.NewHandler(conn)
 			So(err, ShouldBeNil)
 
-			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
+			err = m.Writer.StoreJson(context.Background(), SettingsKey, Settings{
 				LocalIP:     IP{net.ParseIP(`22.33.44.55`)},
 				AppLanguage: "en",
 				PublicURL:   "http://example.com",
@@ -108,7 +108,7 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 		})
 
 		Convey("Empty values do not override defaults", func() {
-			err = m.Writer.StoreJson(context.Background(), SettingKey, Settings{
+			err = m.Writer.StoreJson(context.Background(), SettingsKey, Settings{
 				LocalIP:     IP{nil},
 				AppLanguage: "",
 				PublicURL:   "https://another.url.example.com",
@@ -144,7 +144,7 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 					PublicURL:   "http://example.com",
 				}
 
-				err = m.Writer.StoreJson(context.Background(), SettingKey, valueInOldFormat)
+				err = m.Writer.StoreJson(context.Background(), SettingsKey, valueInOldFormat)
 				So(err, ShouldBeNil)
 
 				// we then retrieve the settings in the new format
@@ -165,11 +165,11 @@ func TestSettingsFromDefaultValues(t *testing.T) {
 					PublicURL:   "http://example.com",
 				}
 
-				err = m.Writer.StoreJson(context.Background(), SettingKey, value)
+				err = m.Writer.StoreJson(context.Background(), SettingsKey, value)
 				So(err, ShouldBeNil)
 
 				var s oldFormat
-				err = m.Reader.RetrieveJson(context.Background(), SettingKey, &s)
+				err = m.Reader.RetrieveJson(context.Background(), SettingsKey, &s)
 				So(err, ShouldBeNil)
 
 				So(s, ShouldResemble, oldFormat{

@@ -191,6 +191,7 @@ func (r *Result) UnmarshalJSON(b []byte) error {
 
 		switch typ {
 		case ResultEntryTypeBlob:
+			//nolint:forcetypeassert
 			strValue := `"` + v.Value.(string) + `"`
 			length := base64.StdEncoding.DecodedLen(len(strValue))
 			entry.asBlob = make([]byte, length)
@@ -199,6 +200,7 @@ func (r *Result) UnmarshalJSON(b []byte) error {
 				return err
 			}
 		case ResultEntryTypeInt64:
+			//nolint:forcetypeassert
 			entry = ResultEntryInt64(int64(v.Value.(float64)))
 		case ResultEntryTypeText:
 			fallthrough
@@ -232,7 +234,7 @@ func (e ResultEntry) MarshalZerologObject(event *zerolog.Event) {
 	}
 }
 
-type Result [lasResulttKey]ResultEntry
+type Result [lastResultKey]ResultEntry
 
 func (r Result) MarshalJSON() ([]byte, error) {
 	s := map[string]interface{}{}

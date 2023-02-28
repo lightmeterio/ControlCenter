@@ -112,7 +112,7 @@ func centerWithTranslatorsAndDummyPolicy(t *testing.T, translators translator.Tr
 			return &fakeSlackPoster{}
 		}
 
-		return map[string]core.Notifier{slack.SettingKey: slackNotifier}
+		return map[string]core.Notifier{slack.SettingsKey: slackNotifier}
 	}()
 
 	center := NewWithCustomLanguageFetcher(translators, PassPolicy, func() (language.Tag, error) {

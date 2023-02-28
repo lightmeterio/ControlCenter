@@ -37,6 +37,8 @@ import authpagefooter from "./components/auth-page-footer";
 import panelpage from "./components/panelpage";
 import mainheader from "./components/mainheader";
 import graphdashboard from "./components/graph-dashboard";
+import maindashboard from "./components/main-dashboard";
+import maindashboardSimpleView from "./components/main-dashboard-simple-view";
 import alerts from "./components/alerts";
 import mainfooter from "./components/mainfooter";
 import insights from "./components/insights";
@@ -51,8 +53,12 @@ import insightLogViewerButton from "./components/insights/log-viewer-button";
 import blockedIPsInsightContent from "./components/insights/blockedips-content";
 import blockedIPsSummaryInsightContent from "./components/insights/blockedips-summary-content";
 
+import superGraph from "./components/dashboard/supergraph";
+
 Vue.component("insights", insights);
 Vue.component("graphdashboard", graphdashboard);
+Vue.component("maindashboard", maindashboard);
+Vue.component("maindashboard-simple-view", maindashboardSimpleView);
 Vue.component("language-switcher", languageSwitcher);
 Vue.component("auth-page-footer", authpagefooter);
 Vue.component("alerts", alerts);
@@ -71,6 +77,9 @@ Vue.component(
   "blockedips-insight-summary-content",
   blockedIPsSummaryInsightContent
 );
+
+// TODO: this graph should not be registered here, but by the maindashboard compoonent!!!
+Vue.component("dashboard-supergraph", superGraph);
 
 import translations from "./translation/translations.json";
 

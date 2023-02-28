@@ -10,6 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"time"
+
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/auth"
@@ -20,16 +27,12 @@ import (
 	detectivesettings "gitlab.com/lightmeter/controlcenter/settings/detective"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/httputil"
-	"mime"
-	"net/http"
-	"os"
-	"path"
-	"time"
 )
 
 type CookieStoreRegistrar struct {
 	auth.RegistrarWithSessionKeys
 	workspaceDirectory string
+	instanceURL        *url.URL
 }
 
 const SessionDuration = time.Hour * 24 * 7 // 1 week
@@ -42,14 +45,21 @@ func (r *CookieStoreRegistrar) CookieStore() sessions.Store {
 	store.Options.MaxAge = int(SessionDuration.Seconds())
 	store.Options.SameSite = http.SameSiteStrictMode
 
+	if r.instanceURL != nil {
+		log.Debug().Msgf(`Setting session cookies to host "%s" and path: "%s"`, r.instanceURL.Hostname(), r.instanceURL.Path)
+		store.Options.Path = r.instanceURL.Path
+		store.Options.Domain = r.instanceURL.Hostname()
+	}
+
 	return store
 }
 
-func NewAuthenticator(auth auth.RegistrarWithSessionKeys, workspaceDirectory string) *Authenticator {
+func NewAuthenticator(auth auth.RegistrarWithSessionKeys, workspaceDirectory string, instanceURL *url.URL) *Authenticator {
 	return NewAuthenticatorWithOptions(
 		&CookieStoreRegistrar{
 			RegistrarWithSessionKeys: auth,
 			workspaceDirectory:       workspaceDirectory,
+			instanceURL:              instanceURL,
 		},
 	)
 }
@@ -265,7 +275,7 @@ func IsNotLoginOrNotRegistered(auth *Authenticator, w http.ResponseWriter, r *ht
 // Check that end-users' detective is enabled, or user is authenticated
 func IsNotLoginAndNotEndUsersEnabled(auth *Authenticator, w http.ResponseWriter, r *http.Request, settingsReader metadata.Reader) error {
 	settings := detectivesettings.Settings{}
-	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingKey, &settings)
+	err := settingsReader.RetrieveJson(r.Context(), detectivesettings.SettingsKey, &settings)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		return httperror.NewHTTPStatusCodeError(http.StatusInternalServerError, errorutil.Wrap(err))
@@ -341,7 +351,7 @@ func HandleGetUserSystemData(auth *Authenticator, settingsReader metadata.Reader
 	}
 
 	// retrieve postfix version
-	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingKey, &userSystemData.PostfixVersion)
+	err = settingsReader.RetrieveJson(r.Context(), postfixversion.SettingsKey, &userSystemData.PostfixVersion)
 
 	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
 		log.Warn().Msgf("Unexpected error retrieving postfix version: %s", err)

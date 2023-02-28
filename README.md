@@ -95,7 +95,7 @@ The following dependencies are needed during development:
 
 - Bash
 - [Git](https://git-scm.com) on any recent (as in 2020) version.
-- [Go compiler](https://golang.org/) version 1.15 or newer.
+- [Go compiler](https://golang.org/) version 1.18 or newer.
 - [GCC](https://gcc.gnu.org/) version 9.3 or newer.
 - Libc development files. Both [glibc](https://www.gnu.org/software/libc/) and [musl](https://www.musl-libc.org/) have been successfully tested.
 - [GNU Make](https://www.gnu.org/software/make/manual/make.html) or compatible.
@@ -278,6 +278,7 @@ Here are all parameters you can set through environment variables, and their res
 - `LIGHTMETER_LOG_FORMAT=prepend-rfc3339` (`-log_format`)
 - `LIGHTMETER_LOG_FILE_PATTERNS=mail.log:mail.err:mail.warn:zimbra.log:maillog` (`-log_file_patterns`)
 - `LIGHTMETER_I_KNOW_WHAT_I_AM_DOING_NOT_USING_A_REVERSE_PROXY=true` (`-i_know_what_am_doing_not_using_a_reverse_proxy`)
+- `LIGHTMETER_NODE_TYPE="single"` (`-node_type`)
 
 ### Rotated files
 
@@ -320,6 +321,16 @@ In case you are having an error similar to:
 ```
 
 This means you should have a file `mail.log`, which means you should check your Postfix installation and ensure it's emitting logs properly.
+
+### Support for multiple servers
+
+There's some preliminary support for reading logs from multiple servers, when they are part of the `$mynetwork` postfix configuration.
+
+More work is needed, but it works well enough for our internal use cases.
+
+To enable it, set the environment variable `LIGHTMETER_NODE_TYPE=multi`, or use the command line argument `-node_type=multi`.
+
+**TODO**: document how it works, caveats and so on. This somehow references #4.
 
 ### Reading from Logstash
 

@@ -19,6 +19,38 @@ type Message struct {
 	PreviousMessage *Msg `json:"previous_message,omitempty"`
 }
 
+// Msg SubTypes (https://api.slack.com/events/message)
+const (
+	MsgSubTypeBotMessage                = "bot_message"                 // [Events API, RTM] A message was posted by an integration
+	MsgSubTypeMeMessage                 = "me_message"                  // [Events API, RTM] A /me message was sent
+	MsgSubTypeMessageChanged            = "message_changed"             // [Events API, RTM] A message was changed
+	MsgSubTypeMessageDeleted            = "message_deleted"             // [Events API, RTM] A message was deleted
+	MsgSubTypeMessageReplied            = "message_replied"             // [Events API, RTM] A message thread received a reply
+	MsgSubTypeReplyBroadcast            = "reply_broadcast"             // @Deprecated (No longer served) A message thread's reply was broadcast to a channel
+	MsgSubTypeThreadBroadcast           = "thread_broadcast"            // [Events API, RTM] A message thread's reply was broadcast to a channel
+	MsgSubTypeChannelJoin               = "channel_join"                // [Events API, RTM] A member joined a channel
+	MsgSubTypeChannelLeave              = "channel_leave"               // [Events API, RTM] A member left a channel
+	MsgSubTypeChannelTopic              = "channel_topic"               // [Events API, RTM] A channel topic was updated
+	MsgSubTypeChannelPurpose            = "channel_purpose"             // [Events API, RTM] A channel purpose was updated
+	MsgSubTypeChannelName               = "channel_name"                // [Events API, RTM] A channel was renamed
+	MsgSubTypeChannelArchive            = "channel_archive"             // [Events API, RTM] A channel was archived
+	MsgSubTypeChannelUnarchive          = "channel_unarchive"           // [Events API, RTM] A channel was unarchived
+	MsgSubTypeGroupJoin                 = "group_join"                  // [RTM] A member joined a group
+	MsgSubTypeGroupLeave                = "group_leave"                 // [RTM] A member left a group
+	MsgSubTypeGroupTopic                = "group_topic"                 // [RTM] A group topic was updated
+	MsgSubTypeGroupPurpose              = "group_purpose"               // [RTM] A group purpose was updated
+	MsgSubTypeGroupName                 = "group_name"                  // [RTM] A group was renamed
+	MsgSubTypeGroupArchive              = "group_archive"               // [RTM] A group was archived
+	MsgSubTypeGroupUnarchive            = "group_unarchive"             // [RTM] A group was unarchived
+	MsgSubTypeFileShare                 = "file_share"                  // [Events API, RTM] A file was shared into a channel
+	MsgSubTypeFileComment               = "file_comment"                // [RTM] A comment was added to a file
+	MsgSubTypeGileMention               = "file_mention"                // [RTM] A file was mentioned in a channel
+	MsgSubTypePinnedItem                = "pinned_item"                 // [RTM] An item was pinned in a channel
+	MsgSubTypeUnpinnedItem              = "unpinned_item"               // [RTM] An item was unpinned from a channel
+	MsgSubTypeEkmAccessDenied           = "ekm_access_denied"           // [Events API, RTM] Message content redacted due to Enterprise Key Management (EKM)
+	MsgSubTypeChannelPostingPermissions = "channel_posting_permissions" // [Events API, RTM] The posting permissions for a channel changed
+)
+
 // Msg contains information about a slack message
 type Msg struct {
 	// Basic Message
@@ -46,9 +78,10 @@ type Msg struct {
 	EventTimestamp   string `json:"event_ts,omitempty"`
 
 	// bot_message (https://api.slack.com/events/message/bot_message)
-	BotID    string `json:"bot_id,omitempty"`
-	Username string `json:"username,omitempty"`
-	Icons    *Icon  `json:"icons,omitempty"`
+	BotID      string      `json:"bot_id,omitempty"`
+	Username   string      `json:"username,omitempty"`
+	Icons      *Icon       `json:"icons,omitempty"`
+	BotProfile *BotProfile `json:"bot_profile,omitempty"`
 
 	// channel_join, group_join
 	Inviter string `json:"inviter,omitempty"`
@@ -70,6 +103,7 @@ type Msg struct {
 	ReplyCount   int     `json:"reply_count,omitempty"`
 	Replies      []Reply `json:"replies,omitempty"`
 	ParentUserId string  `json:"parent_user_id,omitempty"`
+	LatestReply  string  `json:"latest_reply,omitempty"`
 
 	// file_share, file_comment, file_mention
 	Files []File `json:"files,omitempty"`
@@ -95,8 +129,13 @@ type Msg struct {
 	ReplaceOriginal bool   `json:"replace_original"`
 	DeleteOriginal  bool   `json:"delete_original"`
 
+	// metadata
+	Metadata SlackMetadata `json:"metadata,omitempty"`
+
 	// Block type Message
 	Blocks Blocks `json:"blocks,omitempty"`
+	// permalink
+	Permalink string `json:"permalink,omitempty"`
 }
 
 const (
@@ -106,10 +145,30 @@ const (
 	ResponseTypeEphemeral = "ephemeral"
 )
 
+// ScheduledMessage contains information about a slack scheduled message
+type ScheduledMessage struct {
+	ID          string `json:"id"`
+	Channel     string `json:"channel_id"`
+	PostAt      int    `json:"post_at"`
+	DateCreated int    `json:"date_created"`
+	Text        string `json:"text"`
+}
+
 // Icon is used for bot messages
 type Icon struct {
 	IconURL   string `json:"icon_url,omitempty"`
 	IconEmoji string `json:"icon_emoji,omitempty"`
+}
+
+// BotProfile contains information about a bot
+type BotProfile struct {
+	AppID   string `json:"app_id,omitempty"`
+	Deleted bool   `json:"deleted,omitempty"`
+	Icons   *Icons `json:"icons,omitempty"`
+	ID      string `json:"id,omitempty"`
+	Name    string `json:"name,omitempty"`
+	TeamID  string `json:"team_id,omitempty"`
+	Updated int64  `json:"updated,omitempty"`
 }
 
 // Edited indicates that a message has been edited.

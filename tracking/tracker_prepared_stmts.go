@@ -49,6 +49,11 @@ const (
 	incrementPidUsageById
 	decrementPidUsageById
 	selectPidForPidAndHost
+	selectConnectionAuthCountForQueue
+	insertPreNotificationByQueueIdAndResultId
+	selectPreNotificationResultIdsForQueue
+	deletePreNotificationEntryByQueueId
+	fixQueueConnectionId
 
 	lastTrackerStmtKey
 )
@@ -80,10 +85,9 @@ var trackerStmtsText = dbconn.StmtsText{
 	selectQueueIdForQueue: `select
 		queues.id
 	from
-		queues join connections on queues.connection_id = connections.id
-		join pids on connections.pid_id = pids.id
+		queues
 	where
-		pids.host = ? and queues.queue = ?`,
+		queues.queue = ?`,
 	insertQueueParenting: `insert into queue_parenting(orig_queue_id, new_queue_id, parenting_type) values(?, ?, ?)`,
 	// TODO: perform a migration that remove filename and line fields
 	insertNotificationQueue:            `insert into notification_queues(result_id, filename, line) values(?, '', 0)`,
@@ -112,4 +116,16 @@ var trackerStmtsText = dbconn.StmtsText{
 	incrementPidUsageById:              `update pids set usage_counter = usage_counter + 1 where id = ?`,
 	decrementPidUsageById:              `update pids set usage_counter = usage_counter - 1 where id = ?`,
 	selectPidForPidAndHost:             `select id from pids where pid = ? and host = ?`,
+	selectConnectionAuthCountForQueue: `select 
+	connection_data.value
+from
+	queues join connections on queues.connection_id = connections.id
+		join connection_data on connection_data.connection_id = connections.id
+where
+	queues.id = ?
+	and connection_data.key = ?`,
+	insertPreNotificationByQueueIdAndResultId: `insert into prenotification_results(queue_id, result_id) values(?, ?)`,
+	selectPreNotificationResultIdsForQueue:    `select result_id from prenotification_results where queue_id = ?`,
+	deletePreNotificationEntryByQueueId:       `delete from prenotification_results where queue_id = ?`,
+	fixQueueConnectionId:                      `update queues set connection_id = ? where id = ?`,
 }

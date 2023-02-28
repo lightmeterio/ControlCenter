@@ -6,6 +6,12 @@ package deliverydb
 
 import (
 	"context"
+	"encoding/json"
+	"net"
+	"path"
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/dashboard"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
@@ -18,10 +24,6 @@ import (
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"net"
-	"path"
-	"testing"
-	"time"
 )
 
 var fakeMapping domainmapping.Mapper
@@ -40,8 +42,10 @@ func TestDatabaseCreation(t *testing.T) {
 		conn, closeConn := testutil.TempDBConnectionMigrated(t, databaseName)
 		defer closeConn()
 
+		options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+
 		Convey("Insert some values", func() {
-			db, err := New(conn, &fakeMapping)
+			db, err := New(conn, &fakeMapping, options)
 			So(err, ShouldBeNil)
 
 			done, cancel := runner.Run(db)
@@ -183,7 +187,8 @@ func TestEntriesInsertion(t *testing.T) {
 		defer closeConn()
 
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
-			db, err := New(conn, &fakeMapping)
+			options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+			db, err := New(conn, &fakeMapping, options)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
@@ -395,6 +400,100 @@ func TestEntriesInsertion(t *testing.T) {
 				})
 			})
 		})
+
+		Convey("Test Replied Message when the original message does not exist. Do not link message-ids", func() {
+			db, done, cancel, pub, _ := buildWs()
+
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("non-existing-message-id")
+				pub.Publish(r)
+			}
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			conn, release := db.connPair.RoConnPool.Acquire()
+			defer release()
+
+			var count int
+			err := conn.QueryRow(`select count(*) from messageids_replies`).Scan(&count)
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("Test Replied Message when the original message exists, linking the two messages", func() {
+			db, done, cancel, pub, _ := buildWs()
+
+			// first message, to receive a reply later
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("first-message-id")
+				pub.Publish(r)
+			}
+
+			// a second message, which receives no replies
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("second-message-id")
+				pub.Publish(r)
+			}
+
+			// a third message, as a reply to the first one
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("third-message-id")
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("first-message-id")
+				pub.Publish(r)
+			}
+
+			// a fourth message, simple one
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("fourth-message-id")
+				pub.Publish(r)
+			}
+
+			// a fifth message, as a reply to the third one, which is iin itself a reply
+			{
+				r := buildDefaultResult()
+				r[tracking.QueueMessageIDKey] = tracking.ResultEntryText("fifth-message-id")
+				r[tracking.QueueInReplyToHeaderKey] = tracking.ResultEntryText("third-message-id")
+				pub.Publish(r)
+			}
+
+			cancel()
+			So(done(), ShouldBeNil)
+
+			conn, release := db.connPair.RoConnPool.Acquire()
+			defer release()
+
+			type pair struct {
+				original string
+				reply    string
+			}
+
+			pairs := []pair{}
+
+			rows, err := conn.Query(`select m_original.value, m_reply.value from messageids m_original join messageids_replies r on m_original.id = r.original_id join messageids m_reply on m_reply.id = r.reply_id order by r.id`)
+			So(err, ShouldBeNil)
+
+			defer rows.Close()
+
+			for rows.Next() {
+				var pair pair
+				err := rows.Scan(&pair.original, &pair.reply)
+				So(err, ShouldBeNil)
+
+				pairs = append(pairs, pair)
+			}
+
+			So(rows.Err(), ShouldBeNil)
+			So(pairs, ShouldResemble, []pair{
+				{original: `first-message-id`, reply: `third-message-id`},
+				{original: `third-message-id`, reply: `fifth-message-id`},
+			})
+		})
 	})
 }
 
@@ -405,7 +504,8 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		// TODO: do not duplicate this function!
 		buildWs := func() (*DB, func() error, func(), tracking.ResultPublisher, dashboard.Dashboard) {
-			db, err := New(conn, &fakeMapping)
+			options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+			db, err := New(conn, &fakeMapping, options)
 			So(err, ShouldBeNil)
 			done, cancel := runner.Run(db)
 			pub := db.ResultsPublisher()
@@ -638,7 +738,8 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(206),
 		}.Result())
 
-		// a normal outbound message
+		// a normal outbound message, reply to the first message.
+		// It'll stop being a reply once the original is removed, as the link between them is broken
 		pub.Publish(tracking.MappedResult{
 			tracking.ResultStatusKey:              tracking.ResultEntryInt64(int64(parser.SentStatus)),
 			tracking.ResultDeliveryTimeKey:        tracking.ResultEntryInt64(baseTime.Add(time.Hour * 3).Add(time.Minute * 5).Unix()),
@@ -667,6 +768,8 @@ func TestCleaningOldEntries(t *testing.T) {
 			tracking.QueueDeliveryNameKey:         tracking.ResultEntryText("A6"),
 			tracking.ResultDSNKey:                 tracking.ResultEntryText("2.0.0"),
 			tracking.ResultDeliveryLineChecksum:   tracking.ResultEntryInt64(207),
+			// references the first message
+			tracking.QueueReferencesHeaderKey: mustEncodeReferences("message_id_1", "some_arbitrary_unused_value..."),
 		}.Result())
 
 		// delete two messages older than 6min, but not all yet
@@ -690,6 +793,7 @@ func TestCleaningOldEntries(t *testing.T) {
 			deliveriesCount     int
 			messageIdsCount     int
 			logLinesRefCount    int
+			msgIdsLinkCount     int
 		)
 
 		ro, release := conn.RoConnPool.Acquire()
@@ -716,6 +820,9 @@ func TestCleaningOldEntries(t *testing.T) {
 
 		So(ro.QueryRow(`select count(*) from log_lines_ref`).Scan(&logLinesRefCount), ShouldBeNil)
 		So(logLinesRefCount, ShouldEqual, 2)
+
+		So(ro.QueryRow(`select count(*) from messageids_replies`).Scan(&msgIdsLinkCount), ShouldBeNil)
+		So(msgIdsLinkCount, ShouldEqual, 0)
 	})
 }
 
@@ -730,7 +837,8 @@ func TestReopenDatabase(t *testing.T) {
 			conn, err := dbconn.Open(path.Join(dir, "logs.db"), 5)
 			So(err, ShouldBeNil)
 			So(migrator.Run(conn.RwConn.DB, databaseName), ShouldBeNil)
-			db, err := New(conn, &fakeMapping)
+			options := Options{RetentionDuration: (time.Hour * 24 * 30 * 3)}
+			db, err := New(conn, &fakeMapping, options)
 			So(err, ShouldBeNil)
 			pub := db.ResultsPublisher()
 			dashboard, err := dashboard.New(conn.RoConnPool)
@@ -776,4 +884,11 @@ func TestReopenDatabase(t *testing.T) {
 			So(countByStatus(dashboard, parser.SentStatus, interval), ShouldEqual, 2)
 		})
 	})
+}
+
+func mustEncodeReferences(references ...string) tracking.ResultEntry {
+	v, err := json.Marshal(references)
+	errorutil.MustSucceed(err)
+
+	return tracking.ResultEntryBlob(v)
 }

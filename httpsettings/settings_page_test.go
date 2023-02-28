@@ -6,17 +6,18 @@ package httpsettings
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/httpmiddleware"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3"
 	_ "gitlab.com/lightmeter/controlcenter/metadata/migrations"
 	"gitlab.com/lightmeter/controlcenter/notification/email"
 	"gitlab.com/lightmeter/controlcenter/notification/slack"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"testing"
 )
 
 func init() {
@@ -105,6 +106,13 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
+					"enable_simple_view":    false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -189,6 +197,13 @@ func TestSettingsPage(t *testing.T) {
 				"walkthrough": map[string]interface{}{
 					"completed": false,
 				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
+					"enable_simple_view":    false,
+				},
 			}
 
 			So(body, ShouldResemble, expected)
@@ -248,6 +263,13 @@ func TestSettingsPage(t *testing.T) {
 				},
 				"walkthrough": map[string]interface{}{
 					"completed": false,
+				},
+				"feature_flags": map[string]interface{}{
+					"disable_v1_dashboard":  false,
+					"enable_v2_dashboard":   false,
+					"disable_insights_view": false,
+					"disable_raw_logs":      false,
+					"enable_simple_view":    false,
 				},
 			}
 
@@ -355,6 +377,13 @@ func TestSettingsPage(t *testing.T) {
 					},
 					"walkthrough": map[string]interface{}{
 						"completed": false,
+					},
+					"feature_flags": map[string]interface{}{
+						"disable_v1_dashboard":  false,
+						"enable_v2_dashboard":   false,
+						"disable_insights_view": false,
+						"disable_raw_logs":      false,
+						"enable_simple_view":    false,
 					},
 				}
 

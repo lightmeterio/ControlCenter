@@ -13,27 +13,37 @@ SPDX-License-Identifier: AGPL-3.0-only
     >
       <li class="card-body">
         <div class="card-status-logs">
-          <ul class="status-list list-unstyled">
-            <li
-              v-for="(delivery, statusIndex) in result.entries"
-              :key="statusIndex"
-              :class="statusClass(delivery.status)"
-              v-b-tooltip.hover
-              :title="statusTitle(delivery.status)"
-            >
-              {{ delivery.status }}
-            </li>
-            <li
-              :class="statusClass('expired')"
-              v-b-tooltip.hover
-              :title="statusTitle('expired')"
-              v-show="isExpired(result)"
-            >
-              expired
-            </li>
-          </ul>
+          <div class="status-and-queue">
+            <ul class="status-list list-unstyled">
+              <li
+                v-for="(delivery, statusIndex) in result.entries"
+                :key="statusIndex"
+                :class="statusClass(delivery.status)"
+                v-b-tooltip.hover
+                :title="statusTitle(delivery.status)"
+              >
+                {{ delivery.status }}
+              </li>
+              <li
+                :class="statusClass('expired')"
+                v-b-tooltip.hover
+                :title="statusTitle('expired')"
+                v-show="isExpired(result)"
+              >
+                expired
+              </li>
+              <li
+                v-show="showQueues"
+                class="queue-name card-text"
+                v-translate="{ queue: result.queue, mid: result.message_id }"
+              >
+                Queue ID: <b>%{queue}</b> / Message ID: <b>%{mid}</b>
+              </li>
+            </ul>
+          </div>
 
           <b-button
+            v-if="rawLogsEnabled"
             v-on:click="downloadRawLogsInInterval(result)"
             variant="primary"
             size="sm"
@@ -46,67 +56,70 @@ SPDX-License-Identifier: AGPL-3.0-only
           </b-button>
         </div>
 
-        <div
-          v-show="showQueues"
-          class="queue-name card-text"
-          v-translate="{ queue: result.queue, mid: result.message_id }"
-        >
-          Queue ID: %{queue} / Message ID: %{mid}
-        </div>
-
-        <div v-show="showFromTo" class="card-text">
-          {{ result.entries[0].from }} → {{ result.entries[0].to.join(", ") }}
-        </div>
-
         <ul class="list-unstyled card-text">
           <li
             class="mt-3 card-text"
             v-for="(delivery, deliveryIndex) of result.entries"
             :key="deliveryIndex"
           >
-            <span
-              v-show="hasMultipleDeliveryAttempts(delivery)"
-              render-html="true"
-              v-translate="{
-                attempts: formatAttempts(delivery),
-                status: formatMultipleStatus(delivery),
-                code: formatMultipleDsn(delivery),
-                begin: formatMinTime(delivery),
-                end: formatMaxTime(delivery)
-              }"
-              class="mt-3 card-text"
-            >
-              %{attempts} delivery attempts %{status} with status code %{code}
-              from %{begin} to %{end}
-            </span>
+            <div v-show="showFromTo" class="card-text sender-recipient">
+              {{ delivery.from }} →
+              <span v-if="delivery.to.length <= 5">
+                {{ delivery.to.join(", ") }}
+              </span>
+              <span v-else> {{ delivery.to.length }} recipients </span>
+            </div>
 
-            <span
-              v-show="!hasMultipleDeliveryAttempts(delivery)"
-              render-html="true"
-              v-translate="{
-                status: formatMultipleStatus(delivery),
-                code: formatMultipleDsn(delivery),
-                time: formatMinTime(delivery)
-              }"
-              class="mt-3 card-text"
-            >
-              Message %{status} with status code %{code} at %{time}
-            </span>
-            <span class="relays" v-b-tooltip.hover :title="titleRelay">
-              ({{ delivery.relays.join(", ") }})
-            </span>
-            <ul
-              v-show="delivery.log_msgs != null && delivery.log_msgs.length > 0"
-              class="list-unstyled"
-            >
-              <li
-                v-for="(logMsg, logIndex) of delivery.log_msgs"
-                :key="logIndex"
-                class="raw-log card em small"
+            <details>
+              <summary>
+                <span
+                  v-show="hasMultipleDeliveryAttempts(delivery)"
+                  render-html="true"
+                  v-translate="{
+                    attempts: formatAttempts(delivery),
+                    status: formatMultipleStatus(delivery),
+                    code: formatMultipleDsn(delivery),
+                    begin: formatMinTime(delivery),
+                    end: formatMaxTime(delivery)
+                  }"
+                  class="mt-3 card-text"
+                >
+                  %{code} %{status} - %{attempts} delivery attempts from
+                  %{begin} to %{end}
+                </span>
+
+                <span
+                  v-show="!hasMultipleDeliveryAttempts(delivery)"
+                  render-html="true"
+                  v-translate="{
+                    status: formatMultipleStatus(delivery),
+                    code: formatMultipleDsn(delivery),
+                    time: formatMinTime(delivery)
+                  }"
+                  class="mt-3 card-text"
+                >
+                  %{code} %{status} %{time}
+                </span>
+                <span class="relays" v-b-tooltip.hover :title="titleRelay">
+                  ({{ delivery.relays.join(", ") }})
+                </span>
+              </summary>
+              <ul
+                v-if="rawLogsEnabled"
+                v-show="
+                  delivery.log_msgs != null && delivery.log_msgs.length > 0
+                "
+                class="list-unstyled"
               >
-                {{ logMsg }}
-              </li>
-            </ul>
+                <li
+                  v-for="(logMsg, logIndex) of delivery.log_msgs"
+                  :key="logIndex"
+                  class="raw-log card em small"
+                >
+                  {{ logMsg }}
+                </li>
+              </ul>
+            </details>
           </li>
         </ul>
       </li>
@@ -139,6 +152,10 @@ function formatTimeWithOffsetInSeconds(t, offsetInSeconds) {
 export default {
   mixins: [tracking],
   props: {
+    rawLogsEnabled: {
+      type: Boolean,
+      default: true
+    },
     results: {
       type: Array,
       default: null
@@ -176,23 +193,29 @@ export default {
         deferred: "status-deferred",
         expired: "status-expired",
         returned: "status-returned",
-        received: "status-received"
+        received: "status-received",
+        replied: "status-replied"
       }[status];
 
       return baseClass + customClass;
     },
     statusTitle: function(status) {
       return {
-        sent: this.$gettext("Message successfully sent"),
-        bounced: this.$gettext("Message refused by recipient's mail provider"),
-        deferred: this.$gettext("Message temporarily refused and retried"),
+        sent: this.$gettext("Outbound messages that succeeded to be sent"),
+        bounced: this.$gettext(
+          "Outbound messages that bounced permanently (hard bounce)"
+        ),
+        deferred: this.$gettext(
+          "Outbound messages that bounced temporarily (soft bounce)"
+        ),
         expired: this.$gettext(
-          "Message delivery abandoned after too many deferred attempts"
+          "Outbound messages that bounced temporarily too many times, resulting in a hard bounce"
         ),
         returned: this.$gettext(
-          "Return notification sent back to original sender"
+          "Messages sent back to the original sender with technical information when a message bounces"
         ),
-        received: this.$gettext("Received message")
+        received: this.$gettext("Inbound messaegs"),
+        replied: this.$gettext("Replies to outbound messages")
       }[status];
     },
     isExpired: function(result) {
@@ -311,14 +334,17 @@ export default {
 }
 
 .detective-result-time {
-  font-weight: bold;
-  color: #7d7d7d;
+  color: #7f8c8d;
 }
 
 .queue-name {
-  font-weight: bold;
-  color: #707070;
-  margin-top: 1em;
+  color: #7f8c8d;
+  font-size: 90%;
+  margin: 0.5em 0;
+}
+
+.sender-recipient {
+  margin: 0.5em 0;
 }
 
 .status-bounced {
@@ -343,6 +369,10 @@ export default {
 
 .status-received {
   background-color: #ecf0f1;
+}
+
+.status-replied {
+  background-color: #227aaf;
 }
 
 .relays {

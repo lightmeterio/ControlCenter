@@ -7,6 +7,11 @@ package workspace
 import (
 	"context"
 	"errors"
+	"os"
+	"path"
+	"time"
+
+	"github.com/rs/zerolog/log"
 	uuid "github.com/satori/go.uuid"
 	"gitlab.com/lightmeter/controlcenter/auth"
 	"gitlab.com/lightmeter/controlcenter/connectionstats"
@@ -15,6 +20,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/detective"
 	"gitlab.com/lightmeter/controlcenter/detective/escalator"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
+	"gitlab.com/lightmeter/controlcenter/featureflags"
 	"gitlab.com/lightmeter/controlcenter/i18n/translator"
 	"gitlab.com/lightmeter/controlcenter/insights"
 	insightsCore "gitlab.com/lightmeter/controlcenter/insights/core"
@@ -38,9 +44,7 @@ import (
 	"gitlab.com/lightmeter/controlcenter/settings/globalsettings"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"os"
-	"path"
-	"time"
+	"gitlab.com/lightmeter/controlcenter/util/settingsutil"
 )
 
 type Workspace struct {
@@ -91,7 +95,7 @@ type databases struct {
 	RawLogs        *dbconn.PooledPair
 }
 
-func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
+func newDb(directory string, databaseName string, shouldVacuum bool) (*dbconn.PooledPair, error) {
 	dbFilename := path.Join(directory, databaseName+".db")
 	connPair, err := dbconn.Open(dbFilename, 10)
 
@@ -103,21 +107,55 @@ func newDb(directory string, databaseName string) (*dbconn.PooledPair, error) {
 		return nil, errorutil.Wrap(err)
 	}
 
+	if shouldVacuum {
+		// We must execute the vacuum outside of a transaction :-(
+		log.Debug().Msgf("Vacuuming database %s. It'll take a while...", databaseName)
+
+		if _, err := connPair.RwConn.DB.Exec("vacuum"); err != nil {
+			return nil, errorutil.Wrap(err)
+		}
+	}
+
 	return connPair, nil
 }
 
 type Options struct {
-	IsUsingRsyncedLogs bool
-	DefaultSettings    metadata.DefaultValues
-	AuthOptions        auth.Options
+	IsUsingRsyncedLogs    bool
+	DefaultSettings       metadata.DefaultValues
+	AuthOptions           auth.Options
+	NodeTypeHandler       tracking.NodeTypeHandler
+	DataRetentionDuration time.Duration
 }
 
 var DefaultOptions = &Options{
-	IsUsingRsyncedLogs: false,
-	DefaultSettings:    metadata.DefaultValues{},
-	AuthOptions:        auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
+	IsUsingRsyncedLogs:    false,
+	DefaultSettings:       metadata.DefaultValues{},
+	AuthOptions:           auth.Options{AllowMultipleUsers: false, PlainAuthOptions: nil},
+	NodeTypeHandler:       &tracking.SingleNodeTypeHandler{},
+	DataRetentionDuration: time.Hour * 24 * 30 * 3,
 }
 
+func buildFilters(reader metadata.Reader) (tracking.Filters, error) {
+	settings, err := settingsutil.Get[tracking.Settings](context.Background(), reader, tracking.SettingsKey)
+	if err != nil && errors.Is(err, metadata.ErrNoSuchKey) {
+		return tracking.NoFilters, nil
+	}
+
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	filters, err := tracking.BuildFilters(settings.Filters)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return filters, nil
+}
+
+// FIXME: yes, I know this function is big. Splitting it into small pieces should eventually be done!
+//
+//nolint:maintidx
 func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, error) {
 	if options == nil {
 		options = DefaultOptions
@@ -130,19 +168,20 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	allDatabases := databases{Closers: closers.New()}
 
 	for _, s := range []struct {
-		name string
-		db   **dbconn.PooledPair
+		name         string
+		db           **dbconn.PooledPair
+		shouldVacuum bool
 	}{
-		{"auth", &allDatabases.Auth},
-		{"connections", &allDatabases.Connections},
-		{"insights", &allDatabases.Insights},
-		{"intel-collector", &allDatabases.IntelCollector},
-		{"logs", &allDatabases.Logs},
-		{"logtracker", &allDatabases.LogTracker},
-		{"master", &allDatabases.Master},
-		{"rawlogs", &allDatabases.RawLogs},
+		{"auth", &allDatabases.Auth, false},
+		{"connections", &allDatabases.Connections, false},
+		{"insights", &allDatabases.Insights, false},
+		{"intel-collector", &allDatabases.IntelCollector, true},
+		{"logs", &allDatabases.Logs, false},
+		{"logtracker", &allDatabases.LogTracker, false},
+		{"master", &allDatabases.Master, false},
+		{"rawlogs", &allDatabases.RawLogs, false},
 	} {
-		db, err := newDb(workspaceDirectory, s.name)
+		db, err := newDb(workspaceDirectory, s.name, s.shouldVacuum)
 
 		if err != nil {
 			return nil, errorutil.Wrap(err, "Error opening databases in directory ", workspaceDirectory)
@@ -153,30 +192,34 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		allDatabases.Closers.Add(db)
 	}
 
-	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping)
+	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
-	tracker, err := tracking.New(allDatabases.LogTracker, deliveries.ResultsPublisher())
+	filters, err := buildFilters(m.Reader)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	deliveries, err := deliverydb.New(allDatabases.Logs, &domainmapping.DefaultMapping, deliverydb.Options{RetentionDuration: options.DataRetentionDuration})
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	tracker, err := tracking.New(allDatabases.LogTracker, &tracking.FilteredPublisher{Publisher: deliveries.ResultsPublisher(), Filters: filters}, options.NodeTypeHandler)
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	rawLogsAccessor := rawlogsdb.NewAccessor(allDatabases.RawLogs.RoConnPool)
 
-	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn)
+	rawLogsDb, err := rawlogsdb.New(allDatabases.RawLogs.RwConn, rawlogsdb.Options{RetentionDuration: options.DataRetentionDuration})
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
 
 	auth, err := auth.NewAuth(allDatabases.Auth, options.AuthOptions)
-	if err != nil {
-		return nil, errorutil.Wrap(err)
-	}
-
-	m, err := metadata.NewDefaultedHandler(allDatabases.Master, options.DefaultSettings)
-
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -219,8 +262,8 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 	notificationPolicies := notification.Policies{insights.DefaultNotificationPolicy{}}
 
 	notifiers := map[string]notification.Notifier{
-		slack.SettingKey: slack.New(notificationPolicies, m.Reader),
-		email.SettingKey: email.New(notificationPolicies, m.Reader),
+		slack.SettingsKey: slack.New(notificationPolicies, m.Reader),
+		email.SettingsKey: email.New(notificationPolicies, m.Reader),
 	}
 
 	policy := &insights.DefaultNotificationPolicy{}
@@ -276,7 +319,7 @@ func NewWorkspace(workspaceDirectory string, options *Options) (*Workspace, erro
 		return nil, errorutil.Wrap(err)
 	}
 
-	connStats, err := connectionstats.New(allDatabases.Connections)
+	connStats, err := connectionstats.New(allDatabases.Connections, connectionstats.Options{RetentionDuration: options.DataRetentionDuration})
 	if err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -437,14 +480,26 @@ func (ws *Workspace) MostRecentLogTimeAndSum() (postfix.SumPair, error) {
 }
 
 func (ws *Workspace) NewPublisher() postfix.Publisher {
-	return postfix.ComposedPublisher{
+	pub := postfix.ComposedPublisher{
 		ws.tracker.Publisher(),
 		ws.rblDetector.NewPublisher(),
 		ws.logsLineCountPublisher,
 		ws.postfixVersionPublisher,
 		ws.connStats.Publisher(),
-		ws.rawLogs.Publisher(),
 	}
+
+	flags, err := featureflags.GetSettings(context.Background(), ws.settingsMetaHandler.Reader)
+
+	if err != nil && !errors.Is(err, metadata.ErrNoSuchKey) {
+		log.Fatal().Err(err).Msg("Should never have failed on retrieving feature flags!")
+	}
+
+	if flags != nil && flags.DisableRawLogs {
+		log.Debug().Msg("Disable raw logs!")
+		return pub
+	}
+
+	return append(pub, ws.rawLogs.Publisher())
 }
 
 func (ws *Workspace) HasLogs() bool {

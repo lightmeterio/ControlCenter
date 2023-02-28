@@ -7,12 +7,14 @@ package receptor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 type HTTPRequester struct {
@@ -40,11 +42,15 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (event *Ev
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.Error().Err(err).Msg("Could not obtain event")
-		return nil, nil
+		return nil, ErrRequestFailed
 	}
 
 	if response.StatusCode == http.StatusNoContent {
 		return nil, nil
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, ErrRequestFailed
 	}
 
 	defer errorutil.UpdateErrorFromCloser(response.Body, &err)
@@ -57,3 +63,5 @@ func (r *HTTPRequester) Request(ctx context.Context, payload Payload) (event *Ev
 
 	return &ev, nil
 }
+
+var ErrRequestFailed = errors.New(`Request Failed`)

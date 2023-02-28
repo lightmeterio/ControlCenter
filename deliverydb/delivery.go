@@ -6,7 +6,11 @@ package deliverydb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/rs/zerolog/log"
 	_ "gitlab.com/lightmeter/controlcenter/deliverydb/migrations"
 	"gitlab.com/lightmeter/controlcenter/domainmapping"
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
@@ -15,7 +19,6 @@ import (
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
 	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
-	"time"
 )
 
 type dbAction = dbrunner.Action
@@ -60,6 +63,14 @@ const (
 
 	insertLogLineRef
 	deleteLogLinesRefsByDeliveryId
+
+	insertReplyInfo
+
+	selectDeliveries
+	updateDelivery
+
+	deleteMessageIdReplyLinkOriginalById
+	deleteMessageIdReplyLinkReplyById
 
 	lastStmtKey
 )
@@ -140,6 +151,19 @@ where
 	deleteMessageIdById:            `delete from messageids where id = ?`,
 	insertLogLineRef:               `insert into log_lines_ref(delivery_id, ref_type, time, checksum) values(?, ?, ?, ?)`,
 	deleteLogLinesRefsByDeliveryId: `delete from log_lines_ref where delivery_id = ?`,
+	insertReplyInfo:                `insert into messageids_replies(original_id, reply_id) values(?, ?)`,
+	selectDeliveries: `
+		select id, delivery_ts
+		from deliveries
+		where sender_local_part = @sender_user
+			and sender_domain_part_id = (select id from remote_domains where domain = @sender_domain)
+			and recipient_local_part = @recipient_user
+			and recipient_domain_part_id = (select id from remote_domains where domain = @recipient_domain)
+			and delivery_ts >= @an_hour_ago
+	`,
+	updateDelivery:                       `update deliveries set dsn = @dsn, status = @status where id = @id `,
+	deleteMessageIdReplyLinkOriginalById: `delete from messageids_replies where original_id = ?`,
+	deleteMessageIdReplyLinkReplyById:    `delete from messageids_replies where reply_id = ?`,
 }
 
 func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
@@ -168,7 +192,11 @@ func setupDomainMapping(conn dbconn.RwConn, m *domainmapping.Mapper) error {
 	return nil
 }
 
-func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error) {
+type Options struct {
+	RetentionDuration time.Duration
+}
+
+func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper, options Options) (*DB, error) {
 	if err := setupDomainMapping(connPair.RwConn, mapping); err != nil {
 		return nil, errorutil.Wrap(err)
 	}
@@ -180,15 +208,15 @@ func New(connPair *dbconn.PooledPair, mapping *domainmapping.Mapper) (*DB, error
 	}
 
 	const (
-		// ~3 months. TODO: make it configurable
-		maxAge            = (time.Hour * 24 * 30 * 3)
 		cleaningBatchSize = 10000
 		cleaningFrequency = time.Second * 30
 	)
 
+	runner := dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(options.RetentionDuration, cleaningBatchSize))
+
 	return &DB{
 		connPair: connPair,
-		Runner:   dbrunner.New(500*time.Millisecond, 1024*1000, connPair.RwConn, stmts, cleaningFrequency, makeCleanAction(maxAge, cleaningBatchSize)),
+		Runner:   runner,
 		Closers:  closers.New(stmts),
 	}, nil
 }
@@ -367,6 +395,18 @@ func buildAction(tr tracking.Result) func(*sql.Tx, dbconn.TxPreparedStmts) error
 	return func(tx *sql.Tx, stmts dbconn.TxPreparedStmts) (err error) {
 		defer recoverFromError(&err, tr)
 
+		if !tr[tracking.QueueRelayedBounceJsonKey].IsNone() {
+			var rb tracking.RelayedBounceInfos
+			if err := json.Unmarshal(tr[tracking.QueueRelayedBounceJsonKey].Blob(), &rb); err != nil {
+				return errorutil.Wrap(err)
+			}
+
+			err := updateDeliveryWithBounceInfo(tx, rb)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Error updating delivery with relayed-bounced infos (%s => %s)", rb.ParserInfos.Sender, rb.ParserInfos.Recipient)
+			}
+		}
+
 		if tr[tracking.ResultStatusKey].Int64() == int64(parser.ExpiredStatus) {
 			if err := setQueueExpired(tr[tracking.QueueDeliveryNameKey].Text(), tr[tracking.MessageExpiredTime].Int64(), tx, stmts); err != nil {
 				return errorutil.Wrap(err)
@@ -428,6 +468,82 @@ func handleNonExpiredDeliveryAttempt(tr tracking.Result, tx *sql.Tx, stmts dbcon
 		//nolint:sqlclosecheck
 		_, err = stmts.Get(updateDeliveryWithOrigRecipient).Exec(origRecipientDomainPartId, rowId)
 		if err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	// if there's no message-id, don't even bother to try to do the reply-linking
+	if !tr[tracking.QueueMessageIDKey].IsNone() {
+		if err := handleReplyIfAny(tx, stmts, tr); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	return nil
+}
+
+func getExistingMessageId(tx *sql.Tx, stmts dbconn.TxPreparedStmts, value string) (int64, error) {
+	var id int64
+
+	//nolint:sqlclosecheck
+	err := stmts.Get(selectMessageIdsByValue).QueryRow(value).Scan(&id)
+	if err != nil {
+		return 0, errorutil.Wrap(err)
+	}
+
+	return id, nil
+}
+
+func handleReplyIfAny(tx *sql.Tx, stmts dbconn.TxPreparedStmts, tr tracking.Result) error {
+	replyId, err := getExistingMessageId(tx, stmts, tr[tracking.QueueMessageIDKey].Text())
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+
+	if err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	references := []string{}
+
+	if !tr[tracking.QueueReferencesHeaderKey].IsNone() {
+		if err := json.Unmarshal(tr[tracking.QueueReferencesHeaderKey].Blob(), &references); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	// try to add `In-Reply-To` as a reference, in case it's not already there
+	// This happens because almost always the content of `In-Reply-To` is already on `References`
+	// and we don't want to create duplicates
+	if !tr[tracking.QueueInReplyToHeaderKey].IsNone() {
+		reply := tr[tracking.QueueInReplyToHeaderKey].Text()
+
+		if found := func() bool {
+			for _, r := range references {
+				if r == reply {
+					return true
+				}
+			}
+
+			return false
+		}(); !found {
+			references = append(references, reply)
+		}
+	}
+
+	for _, reference := range references {
+		origId, err := getExistingMessageId(tx, stmts, reference)
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			// the references header might contain very arbitrary data, that we just ignore
+			continue
+		}
+
+		if err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		//nolint:sqlclosecheck
+		if _, err := stmts.Get(insertReplyInfo).Exec(origId, replyId); err != nil {
 			return errorutil.Wrap(err)
 		}
 	}

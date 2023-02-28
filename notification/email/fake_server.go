@@ -6,11 +6,12 @@ package email
 
 import (
 	"errors"
-	smtp "github.com/emersion/go-smtp"
-	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"io"
 	"net/mail"
 	"time"
+
+	smtp "github.com/emersion/go-smtp"
+	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 )
 
 type FakeMailBackend struct {
@@ -19,25 +20,23 @@ type FakeMailBackend struct {
 	Messages         []*mail.Message
 }
 
-// Login handles a login command with username and password.
-func (b *FakeMailBackend) Login(state *smtp.ConnectionState, username, password string) (smtp.Session, error) {
-	if username != b.ExpectedUser || password != b.ExpectedPassword {
-		return nil, errors.New("Invalid username or password")
-	}
-
+func (b *FakeMailBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	return &fakeSession{backend: b}, nil
-}
-
-// AnonymousLogin requires clients to authenticate using SMTP AUTH before sending emails
-func (b *FakeMailBackend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, error) {
-	return nil, smtp.ErrAuthRequired
 }
 
 type fakeSession struct {
 	backend *FakeMailBackend
 }
 
-func (s *fakeSession) Mail(from string, opts smtp.MailOptions) error {
+func (s *fakeSession) AuthPlain(username, password string) error {
+	if username != s.backend.ExpectedUser || password != s.backend.ExpectedPassword {
+		return errors.New("Invalid username or password")
+	}
+
+	return nil
+}
+
+func (s *fakeSession) Mail(from string, opts *smtp.MailOptions) error {
 	return nil
 }
 

@@ -7,11 +7,17 @@ package dashboard
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"io"
+	"math"
+	"strings"
+	"time"
+
 	"gitlab.com/lightmeter/controlcenter/lmsqlite3/dbconn"
 	parser "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser"
+	"gitlab.com/lightmeter/controlcenter/tracking"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"strings"
 )
 
 type Pair struct {
@@ -21,12 +27,24 @@ type Pair struct {
 
 type Pairs []Pair
 
+type MailTrafficPerSenderOverTimeResult struct {
+	Times  []int64            `json:"times"`
+	Values map[string][]int64 `json:"values"`
+}
+
 type Dashboard interface {
 	CountByStatus(context.Context, parser.SmtpStatus, timeutil.TimeInterval) (int, error)
 	TopBusiestDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopBouncedDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	TopDeferredDomains(context.Context, timeutil.TimeInterval) (Pairs, error)
 	DeliveryStatus(context.Context, timeutil.TimeInterval) (Pairs, error)
+
+	SentMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	BouncedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	DeferredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	ExpiredMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	ReceivedMailsByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
+	InboundRepliesByMailbox(context.Context, timeutil.TimeInterval, int) (MailTrafficPerSenderOverTimeResult, error)
 }
 
 type sqlDashboard struct {
@@ -115,6 +133,119 @@ from
 			return errorutil.Wrap(err)
 		}
 
+		if err := db.PrepareStmt(`
+			with deliveries_in_range as (
+				select * from deliveries where delivery_ts between @start and @end
+			),
+			users as (
+				select distinct
+						case d.direction when @Outbound then d.sender_local_part     else d.recipient_local_part     end as local_part,
+						case d.direction when @Outbound then d.sender_domain_part_id else d.recipient_domain_part_id end as domain_part_id,
+						rd.domain
+				from
+					deliveries_in_range d join remote_domains rd on
+						@direction = @Outbound and d.sender_domain_part_id = rd.id    and sender_local_part != ''
+						or
+						@direction = @Inbound  and d.recipient_domain_part_id = rd.id and recipient_local_part != ''
+				where
+					d.direction = @direction and domain != ''
+			),
+			bins as (
+				select
+					-- this round is equivalent to floor(), but using built-in functions (floor requires an external build flag)
+					cast(round(delivery_ts/(@granularity), 0.5)*(@granularity) as integer) as t,
+					id,
+					u.local_part,
+					u.domain
+				from
+					deliveries_in_range d join users u on
+						@direction = @Outbound and d.sender_local_part    = u.local_part and d.sender_domain_part_id    = u.domain_part_id
+						or
+						@direction = @Inbound  and d.recipient_local_part = u.local_part and d.recipient_domain_part_id = u.domain_part_id
+				where
+					status = @status
+					or @status = @Expired and exists(
+						select *
+						from expired_queues eq
+						join delivery_queue dq on eq.queue_id = dq.queue_id
+						where delivery_id = d.id
+					)
+				order by
+						t
+			),
+			number_sent_mails_per_user_per_interval as (
+				select
+					t, count(id) as c, local_part || '@' || domain as mailbox
+				from
+					bins
+				group by
+					t, local_part, domain
+			)
+			select
+				mailbox, min(t) as min_r, max(t) as max_r, json_group_array(json_array(t, c))
+			from
+				number_sent_mails_per_user_per_interval
+			group by mailbox
+			order by t`, "outboundSentVolumeByMailbox"); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := db.PrepareStmt(`
+with deliveries_in_range
+     as (select *
+         from   deliveries
+         where  delivery_ts between @start and @end
+		 ),
+		 deliveries_with_replies as (
+				select *
+				from  deliveries_in_range d
+				where sender_local_part != '' and exists (select * from messageids_replies where reply_id = d.message_id)
+     ),
+     users
+     as (select distinct d.direction,
+                         d.recipient_local_part     as local_part,
+                         d.recipient_domain_part_id as domain_part_id,
+                         rd.domain
+         from   deliveries_with_replies d
+                join remote_domains rd
+                  on d. recipient_domain_part_id = rd. id
+                     and recipient_local_part != ''
+                     and d.direction = @Inbound
+         where  rd.domain != ''),
+     bins
+     as (select cast (round (delivery_ts / ( @granularity ), 0.5) * (
+                      @granularity ) as
+                      integer)
+                as t,
+                id,
+                u.local_part,
+                u.domain
+         from   deliveries_with_replies d
+                join users u
+                  on d.recipient_local_part = u.local_part
+                     and d.recipient_domain_part_id = u.domain_part_id
+         order  by t),
+     number_sent_mails_per_user_per_interval
+     as (select t,
+                count (id) as c,
+                local_part
+                || '@'
+                || domain  as mailbox
+         from   bins
+         group  by t,
+                   local_part,
+                   domain)
+select mailbox,
+       min (t) as min_r,
+       max (t) as max_r,
+       json_group_array (json_array (t, c))
+from   number_sent_mails_per_user_per_interval
+group  by mailbox
+order  by t
+`, "inboundReplyVolumeByMailbox"); err != nil {
+			return errorutil.Wrap(err)
+		}
+
 		return nil
 	}
 
@@ -187,6 +318,213 @@ func (d sqlDashboard) DeliveryStatus(ctx context.Context, interval timeutil.Time
 
 	//nolint:sqlclosecheck
 	return deliveryStatus(ctx, conn.GetStmt("deliveryStatus"), interval)
+}
+
+func (d sqlDashboard) getVolumesBySender(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int, status parser.SmtpStatus, direction tracking.MessageDirection) (MailTrafficPerSenderOverTimeResult, error) {
+	return executeQueryWithKey(ctx, d.pool, "outboundSentVolumeByMailbox", interval, granularityInHour,
+		sql.Named("status", status), sql.Named("direction", direction),
+		sql.Named("Outbound", tracking.MessageDirectionOutbound),
+		sql.Named("Inbound", tracking.MessageDirectionIncoming),
+		sql.Named("Expired", parser.ExpiredStatus),
+	)
+}
+
+func executeQueryWithKey(ctx context.Context, pool *dbconn.RoPool, key string, interval timeutil.TimeInterval, granularityInHour int, extraArgs ...interface{}) (MailTrafficPerSenderOverTimeResult, error) {
+	conn, release, err := pool.AcquireContext(ctx)
+	if err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
+	defer release()
+
+	granularity := granularityInHour * int(time.Hour/time.Second)
+
+	//nolint:sqlclosecheck
+	return queryMailTrafficPerMailbox(ctx, conn.GetStmt(key), granularity, buildArgs(interval, extraArgs)...)
+}
+
+func buildArgs(interval timeutil.TimeInterval, args []interface{}) []interface{} {
+	return append([]interface{}{
+		sql.Named("start", interval.From.Unix()),
+		sql.Named("end", interval.To.Unix())},
+		args...,
+	)
+}
+
+func (d sqlDashboard) SentMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus, tracking.MessageDirectionOutbound)
+}
+
+func (d sqlDashboard) BouncedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.BouncedStatus, tracking.MessageDirectionOutbound)
+}
+
+func (d sqlDashboard) DeferredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.DeferredStatus, tracking.MessageDirectionOutbound)
+}
+
+func (d sqlDashboard) ExpiredMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.ExpiredStatus, tracking.MessageDirectionOutbound)
+}
+
+func (d sqlDashboard) ReceivedMailsByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return d.getVolumesBySender(ctx, interval, granularityInHour, parser.SentStatus /* <= not a bug*/, tracking.MessageDirectionIncoming)
+}
+
+func (d sqlDashboard) InboundRepliesByMailbox(ctx context.Context, interval timeutil.TimeInterval, granularityInHour int) (MailTrafficPerSenderOverTimeResult, error) {
+	return executeQueryWithKey(ctx, d.pool, "inboundReplyVolumeByMailbox", interval, granularityInHour, sql.Named("Inbound", tracking.MessageDirectionIncoming))
+}
+
+type Queryable interface {
+	QueryContext(ctx context.Context, args ...interface{}) (QueryableRows, error)
+}
+
+type QueryableRows interface {
+	io.Closer
+	ForEach(func(QueryableScanner) error) error
+}
+
+type QueryableScanner interface {
+	Scan(...interface{}) error
+}
+
+type realQueryableRows struct {
+	*sql.Rows
+}
+
+func (r *realQueryableRows) ForEach(f func(s QueryableScanner) error) error {
+	for r.Rows.Next() {
+		if err := f(r); err != nil {
+			return errorutil.Wrap(err)
+		}
+	}
+
+	if err := r.Rows.Err(); err != nil {
+		return errorutil.Wrap(err)
+	}
+
+	return nil
+}
+
+type realStmtWrap struct {
+	stmt *sql.Stmt
+}
+
+func (s *realStmtWrap) QueryContext(ctx context.Context, args ...interface{}) (QueryableRows, error) {
+	//nolint:sqlclosecheck,rowserrcheck
+	rows, err := s.stmt.QueryContext(ctx, args...)
+	if err != nil {
+		return nil, errorutil.Wrap(err)
+	}
+
+	return &realQueryableRows{
+		Rows: rows,
+	}, nil
+}
+
+func wrapStmt(stmt *sql.Stmt) Queryable {
+	return &realStmtWrap{stmt: stmt}
+}
+
+func queryMailTrafficPerMailbox(ctx context.Context, stmt *sql.Stmt, granularity int, args ...interface{}) (MailTrafficPerSenderOverTimeResult, error) {
+	//nolint:sqlclosecheck
+	return queryMailTrafficPerMailboxWithQueryable(ctx, wrapStmt(stmt), granularity, args...)
+}
+
+func queryMailTrafficPerMailboxWithQueryable(ctx context.Context, stmt Queryable, granularity int, args ...interface{}) (result MailTrafficPerSenderOverTimeResult, err error) {
+	// TODO: this can be simplified with: // rows, err := stmt.QueryContext(ctx, append(args, sql.Named("granularity", granularity)))
+	rows, err := stmt.QueryContext(ctx, append([]interface{}{sql.Named("granularity", granularity)}, args...)...)
+
+	if err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
+	defer errorutil.UpdateErrorFromCloser(rows, &err)
+
+	type counter [2]int64
+
+	basicResult := map[string][]counter{}
+
+	var (
+		// NOTE: we start with extreme values, obviously
+		overallMinTime int64 = math.MaxInt64
+		overallMaxTime int64 = math.MinInt64
+	)
+
+	if err := rows.ForEach(func(scanner QueryableScanner) error {
+		var (
+			mailbox          string
+			counters         []counter
+			rawCounters      string
+			minTime, maxTime int64
+		)
+
+		if err := scanner.Scan(&mailbox, &minTime, &maxTime, &rawCounters); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		if err := json.Unmarshal([]byte(rawCounters), &counters); err != nil {
+			return errorutil.Wrap(err)
+		}
+
+		basicResult[mailbox] = counters
+
+		overallMinTime = min(minTime, overallMinTime)
+		overallMaxTime = max(maxTime, overallMaxTime)
+
+		return nil
+	}); err != nil {
+		return MailTrafficPerSenderOverTimeResult{}, errorutil.Wrap(err)
+	}
+
+	compute := func(min, max int64) int64 {
+		return int64(float64(max-min) / float64(granularity))
+	}
+
+	resultLen := compute(overallMinTime, overallMaxTime) + 1
+
+	times := make([]int64, resultLen)
+
+	for t := overallMinTime; t <= overallMaxTime; t += int64(granularity) {
+		i := compute(overallMinTime, t)
+		times[i] = t
+	}
+
+	values := map[string][]int64{}
+
+	for k, v := range basicResult {
+		counters := make([]int64, resultLen)
+
+		for _, c := range v {
+			i := compute(overallMinTime, c[0])
+			counters[i] = c[1]
+		}
+
+		values[k] = counters
+	}
+
+	return MailTrafficPerSenderOverTimeResult{
+		Times:  times,
+		Values: values,
+	}, nil
+}
+
+// FIXME: yes, this is ugly
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+// FIXME: yes, this is ugly
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+
+	return b
 }
 
 func countByStatus(ctx context.Context, stmt *sql.Stmt, status parser.SmtpStatus, interval timeutil.TimeInterval) (int, error) {

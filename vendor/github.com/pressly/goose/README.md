@@ -22,7 +22,7 @@ Goose is a database migration tool. Manage your database schema by creating incr
     - goose pkg doesn't register any SQL drivers anymore,
       thus no driver `panic()` conflict within your codebase!
     - goose pkg doesn't have any vendor dependencies anymore
-- We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.  
+- We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.
 
 # Install
 
@@ -32,7 +32,7 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 
 For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
 
-    $ go build -tags='no_mysql no_sqlite no_psql' -i -o goose ./cmd/goose
+    $ go build -tags='no_postgres no_mysql no_sqlite3' -i -o goose ./cmd/goose
 
 
 # Usage
@@ -44,21 +44,8 @@ Drivers:
     postgres
     mysql
     sqlite3
+    mssql
     redshift
-
-Commands:
-    up                   Migrate the DB to the most recent version available
-    up-to VERSION        Migrate the DB to a specific VERSION
-    down                 Roll back the version by 1
-    down-to VERSION      Roll back to a specific VERSION
-    redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB
-    version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with the current timestamp
-
-Options:
-    -dir string
-        directory with migration files (default ".")
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -71,7 +58,33 @@ Examples:
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
+    goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+
+Options:
+
+  -dir string
+    	directory with migration files (default ".")
+  -table string
+    	migrations table name (default "goose_db_version")
+  -h	print help
+  -v	enable verbose mode
+  -version
+    	print version
+
+Commands:
+    up                   Migrate the DB to the most recent version available
+    up-by-one            Migrate the DB up by 1
+    up-to VERSION        Migrate the DB to a specific VERSION
+    down                 Roll back the version by 1
+    down-to VERSION      Roll back to a specific VERSION
+    redo                 Re-run the latest migration
+    reset                Roll back all migrations
+    status               Dump the migration status for the current DB
+    version              Print the current version of the database
+    create NAME [sql|go] Creates new migration file with the current timestamp
+    fix                  Apply sequential ordering to migrations
 ```
+
 ## create
 
 Create a new SQL migration.
@@ -101,6 +114,13 @@ Migrate up to a specific version.
 
     $ goose up-to 20170506082420
     $ OK    20170506082420_create_table.sql
+
+## up-by-one
+
+Migrate up a single migration from the current version
+
+    $ goose up-by-one
+    $ OK    20170614145246_change_type.sql
 
 ## down
 
@@ -167,7 +187,7 @@ DROP TABLE post;
 
 Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
 
-By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration 
+By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration
 file in order to skip transactions within that specific migration file. Both Up and Down migrations within this file will be run without transactions.
 
 By default, SQL statements are delimited by semicolons - in fact, query statements must end with a semicolon to be properly recognized by goose.
@@ -207,7 +227,7 @@ language plpgsql;
 3. Register your migration functions
 4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
-A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_rename_root.go) looks like:
+A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go) looks like:
 
 ```go
 package migrations
