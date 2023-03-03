@@ -36,8 +36,6 @@ type fileEntryList []fileEntry
 type fileQueues map[string]fileEntryList
 
 func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r filenameRecognizer, initialTime time.Time) fileEntryList {
-	entries := make(fileEntryList, 0, len(list))
-
 	type rec struct {
 		entry      fileEntry
 		index      int
@@ -104,13 +102,12 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 		return recs[i].index*int(r.order) < recs[j].index*int(r.order)
 	})
 
-	// NOTE: here we know we have at least one entry
-	for i, length, lastAddedRec := 0, len(recs), recs[0]; i < length; i++ {
-		if len(entries) == 0 {
-			entries = append(entries, lastAddedRec.entry)
-			continue
-		}
+	entries := make(fileEntryList, 0, len(list))
 
+	// NOTE: here we know we have at least one entry
+	entries = append(entries, recs[0].entry)
+
+	for i, lastAddedRec := 1, recs[0]; i < len(recs); i++ {
 		r := recs[i]
 
 		if r.index != lastAddedRec.index {
