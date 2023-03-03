@@ -9,6 +9,13 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"io"
+	"path"
+	"regexp"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/lightmeter/controlcenter/logeater/announcer"
 	"gitlab.com/lightmeter/controlcenter/pkg/closers"
@@ -17,12 +24,6 @@ import (
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/errorutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"io"
-	"path"
-	"regexp"
-	"sort"
-	"strconv"
-	"time"
 )
 
 type fileEntry struct {
@@ -38,8 +39,9 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 	entries := make(fileEntryList, 0, len(list))
 
 	type rec struct {
-		entry fileEntry
-		index int
+		entry      fileEntry
+		index      int
+		compressed bool
 	}
 
 	recs := []rec{}
@@ -70,7 +72,17 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 			return index
 		}()
 
-		recs = append(recs, rec{entry: entry, index: index})
+		recs = append(recs, rec{entry: entry, index: index, compressed: len(matches[5]) != 0})
+	}
+
+	// no need to do the sorting with no entries at all.
+	if len(recs) == 0 {
+		return fileEntryList{}
+	}
+
+	// No need to do the sorting for a single entry.
+	if len(recs) == 1 {
+		return fileEntryList{recs[0].entry}
 	}
 
 	sort.Slice(recs, func(i, j int) bool {
@@ -83,11 +95,28 @@ func sortedEntriesFilteredByPatternAndMoreRecentThanTime(list fileEntryList, r f
 			return false
 		}
 
+		// same filename, but one of them is compressed.
+		// the compressed goes first
+		if recs[i].index == recs[j].index {
+			return recs[i].compressed
+		}
+
 		return recs[i].index*int(r.order) < recs[j].index*int(r.order)
 	})
 
-	for _, r := range recs {
-		entries = append(entries, r.entry)
+	// NOTE: here we know we have at least one entry
+	for i, length, lastAddedRec := 0, len(recs), recs[0]; i < length; i++ {
+		if len(entries) == 0 {
+			entries = append(entries, lastAddedRec.entry)
+			continue
+		}
+
+		r := recs[i]
+
+		if r.index != lastAddedRec.index {
+			entries = append(entries, r.entry)
+			lastAddedRec = r
+		}
 	}
 
 	return entries
