@@ -160,7 +160,7 @@ msgstr "Bounce rate of %{rate}% between %{from} and %{to}"
 msgid "Bounce Rate Threshold"
 msgstr "Bounce Rate Threshold"
 
-#: frontend/controlcenter/src/components/detective.vue:51
+#: frontend/controlcenter/src/components/detective.vue:52
 msgid "Bounced"
 msgstr "Bounced"
 
@@ -220,6 +220,10 @@ msgstr "Continue"
 msgid "Created with Lightmeter"
 msgstr "Created with Lightmeter"
 
+#: frontend/controlcenter/src/components/detective.vue:75
+msgid "CSV"
+msgstr "CSV"
+
 #: frontend/controlcenter/src/components/insights/summary/content.vue:8
 msgid "Date and Time"
 msgstr "Date and Time"
@@ -232,7 +236,7 @@ msgstr "Day"
 msgid "Default: %{port}"
 msgstr "Default: %{port}"
 
-#: frontend/controlcenter/src/components/detective.vue:52
+#: frontend/controlcenter/src/components/detective.vue:53
 msgid "Deferred"
 msgstr "Deferred"
 
@@ -310,9 +314,13 @@ msgstr "Escalate"
 msgid "Events since %{start} were analysed, producing %{count} Insights"
 msgstr "Events since %{start} were analysed, producing %{count} Insights"
 
-#: frontend/controlcenter/src/components/detective.vue:53
+#: frontend/controlcenter/src/components/detective.vue:54
 msgid "Expired"
 msgstr "Expired"
+
+#: frontend/controlcenter/src/components/detective.vue:72
+msgid "Export search results to a CSV file"
+msgstr "Export search results to a CSV file"
 
 #: frontend/controlcenter/src/components/insights.vue:27
 msgid "Failed deliveries reported"
@@ -523,7 +531,7 @@ msgid "Login - %{mainPageTitle}"
 msgstr "Login - %{mainPageTitle}"
 
 #: frontend/controlcenter/src/components/detective-results.vue:16
-#: frontend/controlcenter/src/components/detective.vue:70
+#: frontend/controlcenter/src/components/detective.vue:71
 #: frontend/controlcenter/src/components/insights/log-viewer-button.vue:3
 #: frontend/controlcenter/src/views/index.vue:58
 msgid "Logs"
@@ -563,11 +571,11 @@ msgstr "Mail server public IP"
 msgid "Max 1 insight / X hours"
 msgstr "Max 1 insight / X hours"
 
-#: frontend/controlcenter/src/components/detective-results.vue:40
+#: frontend/controlcenter/src/components/detective-results.vue:41
 msgid "Message %{status} with status code %{code} at %{time}"
 msgstr "Message %{status} with status code %{code} at %{time}"
 
-#: frontend/controlcenter/src/components/detective-results.vue:64
+#: frontend/controlcenter/src/components/detective-results.vue:68
 msgid "Message delivery abandoned after too many deferred attempts"
 msgstr "Message delivery abandoned after too many deferred attempts"
 
@@ -584,15 +592,15 @@ msgstr "Message Detective - %{mainPageTitle}"
 msgid "Message ID"
 msgstr "Message ID"
 
-#: frontend/controlcenter/src/components/detective-results.vue:62
+#: frontend/controlcenter/src/components/detective-results.vue:66
 msgid "Message refused by recipient's mail provider"
 msgstr "Message refused by recipient's mail provider"
 
-#: frontend/controlcenter/src/components/detective-results.vue:61
+#: frontend/controlcenter/src/components/detective-results.vue:65
 msgid "Message successfully sent"
 msgstr "Message successfully sent"
 
-#: frontend/controlcenter/src/components/detective-results.vue:63
+#: frontend/controlcenter/src/components/detective-results.vue:67
 msgid "Message temporarily refused and retried"
 msgstr "Message temporarily refused and retried"
 
@@ -600,11 +608,15 @@ msgstr "Message temporarily refused and retried"
 msgid "Message tracing for everyone"
 msgstr "Message tracing for everyone"
 
-#: frontend/controlcenter/src/components/detective.vue:140
+#: frontend/controlcenter/src/components/detective-results.vue:140
+msgid "Message was sent to this server (relay)"
+msgstr "Message was sent to this server (relay)"
+
+#: frontend/controlcenter/src/components/detective.vue:144
 msgid "message(s) found"
 msgstr "message(s) found"
 
-#: frontend/controlcenter/src/components/detective-results.vue:52
+#: frontend/controlcenter/src/components/detective-results.vue:61
 msgid "More on status codes: %{openLink}IANA's reference list%{closeLink}"
 msgstr "More on status codes: %{openLink}IANA's reference list%{closeLink}"
 
@@ -652,7 +664,7 @@ msgstr "No emails were sent or received between %{intFrom} and %{intTo}"
 msgid "No insight matching selected filters"
 msgstr "No insight matching selected filters"
 
-#: frontend/controlcenter/src/components/detective.vue:142
+#: frontend/controlcenter/src/components/detective.vue:146
 msgid "No message found"
 msgstr "No message found"
 
@@ -692,7 +704,7 @@ msgstr "Original response from %{recipient} (%{host})"
 msgid "Over To You"
 msgstr "Over To You"
 
-#: frontend/controlcenter/src/components/detective.vue:132
+#: frontend/controlcenter/src/components/detective.vue:136
 msgid "Page"
 msgstr "Page"
 
@@ -703,7 +715,7 @@ msgstr "Page"
 msgid "Password"
 msgstr "Password"
 
-#: frontend/controlcenter/src/components/detective.vue:95
+#: frontend/controlcenter/src/components/detective.vue:98
 msgid "Please check the given email addresses"
 msgstr "Please check the given email addresses"
 
@@ -741,6 +753,14 @@ msgstr "RBLS for %{address}"
 msgid "Read more"
 msgstr "Read more"
 
+#: frontend/controlcenter/src/components/detective.vue:51
+msgid "Received"
+msgstr "Received"
+
+#: frontend/controlcenter/src/components/detective-results.vue:74
+msgid "Received message"
+msgstr "Received message"
+
 #: frontend/controlcenter/src/components/detective.vue:20
 msgid "Recipient Email Address"
 msgstr "Recipient Email Address"
@@ -775,11 +795,11 @@ msgstr "Reset general settings?"
 msgid "Reset slack notification settings?"
 msgstr "Reset slack notification settings?"
 
-#: frontend/controlcenter/src/components/detective-results.vue:67
+#: frontend/controlcenter/src/components/detective-results.vue:71
 msgid "Return notification sent back to original sender"
 msgstr "Return notification sent back to original sender"
 
-#: frontend/controlcenter/src/components/detective.vue:54
+#: frontend/controlcenter/src/components/detective.vue:55
 msgid "Returned"
 msgstr "Returned"
 
@@ -808,7 +828,7 @@ msgstr "Saved message detective settings"
 msgid "Saved notification settings"
 msgstr "Saved notification settings"
 
-#: frontend/controlcenter/src/components/detective.vue:60
+#: frontend/controlcenter/src/components/detective.vue:61
 msgid "Search"
 msgstr "Search"
 
@@ -1016,7 +1036,7 @@ msgstr "View all archived"
 msgid "View Details"
 msgstr "View Details"
 
-#: frontend/controlcenter/src/components/detective-results.vue:130
+#: frontend/controlcenter/src/components/detective-results.vue:135
 msgid "View mail server logs around this delivery (-10s +5s)"
 msgstr "View mail server logs around this delivery (-10s +5s)"
 
