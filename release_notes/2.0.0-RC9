@@ -1,0 +1,17 @@
+# ControlCenter 2.0.0-RC9
+
+It turns out I was wrong when said we'd not release another RC. Oops, I just did.
+
+It fixes an issue that makes the log parser get confused when parsing log files
+in the presence of compressed log files in the same directory (which is usually done)
+by logrotate.
+
+There's no Gitlab issue in this repo, but this is the relevant MR:
+
+- https://gitlab.com/lightmeter/controlcenter/-/merge_requests/988
+
+To reiterate, ControlCenter is not actively developed anymore, as our focus as
+organization shifted from the Postfix monitoring space.
+
+Being realist, there might eventually be some maintenance releases like the current one,
+but please do not expect new features.
