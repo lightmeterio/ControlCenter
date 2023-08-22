@@ -1,226 +1,223 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+
+# container_scanning:
+#   variables:
+#     DOCKER_IMAGE: ...
+#     DOCKER_USER: ...
+#     DOCKER_PASSWORD: ...
 include:
-  - template: Dependency-Scanning.gitlab-ci.yml
-  - template: License-Scanning.gitlab-ci.yml
-  - template: SAST.gitlab-ci.yml
-  - template: Code-Quality.gitlab-ci.yml
-
+- template: Dependency-Scanning.gitlab-ci.yml
+- template: License-Scanning.gitlab-ci.yml
+- template: SAST.gitlab-ci.yml
+- template: Code-Quality.gitlab-ci.yml
+- template: Jobs/Container-Scanning.gitlab-ci.yml
 variables:
-  SAST_DEFAULT_ANALYZERS: "gosec,secrets"
-  GO111MODULE: "on"
-
+  SAST_DEFAULT_ANALYZERS: gosec,secrets
+  GO111MODULE: 'on'
 stages:
-  - test
-  - security
-  - build
-  - acceptance-test
-  - package
-  - publish
-  - docker
-
-.on-non-tag:
+- test
+- security
+- build
+- acceptance-test
+- package
+- publish
+- docker
+".on-non-tag":
   rules:
-    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
-      when: never
-    - if: '$CI_COMMIT_TAG == null'
-      when: always
-    - if: '$CI_MERGE_REQUEST_EVENT_TYPE != null && $CI_MERGE_REQUEST_EVENT_TYPE != "detached"'
-      when: always
-
+  - if: $CI_MERGE_REQUEST_EVENT_TYPE == "detached"
+    when: never
+  - if: "$CI_COMMIT_TAG == null"
+    when: always
+  - if: $CI_MERGE_REQUEST_EVENT_TYPE != null && $CI_MERGE_REQUEST_EVENT_TYPE != "detached"
+    when: always
 reuse-lint:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   image:
     name: fsfe/reuse:latest
-    entrypoint: [""]
+    entrypoint:
+    - ''
   stage: test
   needs: []
   allow_failure: true
   script:
-    - reuse lint
-
+  - reuse lint
 lint:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   image: golangci/golangci-lint:v1.45-alpine
   stage: test
   allow_failure: true
   needs: []
   script:
-    - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=junit-xml --timeout=10m > golangci-output.xml
-    - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=checkstyle --timeout=10m > golangci-output-checkstyle.xml
+  - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=junit-xml
+    --timeout=10m > golangci-output.xml
+  - golangci-lint run -v --max-issues-per-linter=0 --max-same-issues=0 --out-format=checkstyle
+    --timeout=10m > golangci-output-checkstyle.xml
   artifacts:
     paths:
-      - golangci-output-checkstyle.xml
+    - golangci-output-checkstyle.xml
     reports:
       junit: golangci-output.xml
     expire_in: 7 days
-
-.go-builder:
-  extends: .on-non-tag
+".go-builder":
+  extends: ".on-non-tag"
   image: registry.gitlab.com/lightmeter/golang-builder-docker-image:latest
-
 depencencies_graph:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: build
   needs: []
   script:
-    - make dependencies.svg
+  - make dependencies.svg
   artifacts:
     paths:
-      - dependencies.svg
-
+    - dependencies.svg
 build:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: build
   needs: []
   script:
-    - make static_release
+  - make static_release
   artifacts:
     paths:
-      - ./lightmeter
+    - "./lightmeter"
     expire_in: 7 days
-
 dev-build:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: test
   needs: []
   script:
-    - make dev
-
+  - make dev
 test:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: test
   needs: []
   script:
-    - make mocks
-    - go test ./... -race -v | go run github.com/jstemmer/go-junit-report > report.xml
+  - make mocks
+  - go test ./... -race -v | go run github.com/jstemmer/go-junit-report > report.xml
   artifacts:
     reports:
       junit: report.xml
     expire_in: 7 days
-
 cover:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: test
   needs: []
   script:
-    - go get -u github.com/t-yuki/gocover-cobertura
-    - ./tools/go_test.sh -coverprofile=coverinfo_with_gen.txt
-    - grep -v '.gen.go' < coverinfo_with_gen.txt > coverinfo.txt
-    - go run github.com/t-yuki/gocover-cobertura < coverinfo.txt > cobertura.xml
-    - go tool cover -html=coverinfo.txt -o coverage.html
-    - go tool cover -func=coverinfo.txt
-  coverage: /^total:\s+.*\s(\d+\.\d+)%$/
+  - go get -u github.com/t-yuki/gocover-cobertura
+  - "./tools/go_test.sh -coverprofile=coverinfo_with_gen.txt"
+  - grep -v '.gen.go' < coverinfo_with_gen.txt > coverinfo.txt
+  - go run github.com/t-yuki/gocover-cobertura < coverinfo.txt > cobertura.xml
+  - go tool cover -html=coverinfo.txt -o coverage.html
+  - go tool cover -func=coverinfo.txt
+  coverage: "/^total:\\s+.*\\s(\\d+\\.\\d+)%$/"
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
         path: cobertura.xml
     paths:
-      - coverage.html
-      - coverinfo.txt
+    - coverage.html
+    - coverinfo.txt
     expire_in: 7 days
-
 acceptance-test:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   image: registry.gitlab.com/lightmeter/acceptance-tests-docker-image
   stage: acceptance-test
   needs:
-    - build
+  - build
   script:
-    - npm --prefix acceptance_tests link
-    - npm --prefix acceptance_tests test
+  - npm --prefix acceptance_tests link
+  - npm --prefix acceptance_tests test
   cache:
     key: "${CI_JOB_NAME}"
     paths:
-      - acceptance_tests/node_modules/
+    - acceptance_tests/node_modules/
   artifacts:
     when: always
     paths:
-      - acceptance_tests/reports/html-report/
+    - acceptance_tests/reports/html-report/
     reports:
       junit: acceptance_tests/reports/xml-report/result.xml
     expire_in: 7 days
   allow_failure: true
-
 publish-release:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   stage: publish
   image: registry.gitlab.com/gitlab-org/release-cli:v0.10.0
   needs:
-    - build
+  - build
   dependencies:
-    - build
+  - build
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "master"'
-      when: manual
+  - if: $CI_COMMIT_REF_NAME == "master"
+    when: manual
   script:
-    - ./ci/release_on_gitlab.sh
-
+  - "./ci/release_on_gitlab.sh"
 license_scanning:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   stage: test
   needs: []
-
 sast:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   stage: test
   needs: []
   artifacts:
     paths:
-      - gl-sast-report.json
+    - gl-sast-report.json
     expire_in: 7 days
-
 dependency_scanning:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   stage: test
   needs: []
-
 code_quality:
-  extends: .on-non-tag
+  extends: ".on-non-tag"
   stage: test
   needs: []
-
 publish-docker-image:
   rules:
-    - if: '$CI_COMMIT_TAG != null'
-      when: always
-    - if: '$SCHEDULED_DOCKER_IMAGE_TAG != null'
-      when: always
+  - if: "$CI_COMMIT_TAG != null"
+    when: always
+  - if: "$SCHEDULED_DOCKER_IMAGE_TAG != null"
+    when: always
   image:
     name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+    entrypoint:
+    - ''
   stage: docker
   needs: []
   script:
-    - sh ci/publish_docker_image.sh
-
-# NOTE: this step must come after the coverage report
-# as it collects some artefacts from it!
+  - sh ci/publish_docker_image.sh
 sonarcloud-check:
   stage: security
   dependencies:
-    - cover
-    - lint
+  - cover
+  - lint
   needs:
-    - cover
-    - lint
+  - cover
+  - lint
   image:
     name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [""]
+    entrypoint:
+    - ''
   cache:
     key: "${CI_JOB_NAME}"
     paths:
-      - .sonar/cache
+    - ".sonar/cache"
   script:
-    - sonar-scanner -Dsonar.projectVersion=$(cat VERSION.txt)
+  - sonar-scanner -Dsonar.projectVersion=$(cat VERSION.txt)
   rules:
-    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
-      when: never
-    - if: '$CI_COMMIT_TAG == null && $SONAR_HOST_URL != null'
-      when: always
-
+  - if: $CI_MERGE_REQUEST_EVENT_TYPE == "detached"
+    when: never
+  - if: "$CI_COMMIT_TAG == null && $SONAR_HOST_URL != null"
+    when: always
 usage_docs:
-  extends: .go-builder
+  extends: ".go-builder"
   stage: test
   needs: []
   script:
-    - make update_cli_docs
+  - make update_cli_docs
