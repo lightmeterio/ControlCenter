@@ -5,12 +5,14 @@
 package dirwatcher
 
 import (
+	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/lightmeter/controlcenter/pkg/postfix"
 	parsertimeutil "gitlab.com/lightmeter/controlcenter/pkg/postfix/logparser/timeutil"
 	"gitlab.com/lightmeter/controlcenter/util/testutil"
 	"gitlab.com/lightmeter/controlcenter/util/timeutil"
-	"testing"
 )
 
 func TestRegressionIssue368(t *testing.T) {
@@ -196,6 +198,37 @@ Mar  8 10:11:12 cloud2 postfix/qmgr[1428]: 5EEC73E8C6: removed`, ``),
 
 			So(pub.logs[0].Time, ShouldResemble, testutil.MustParseTime(`2021-01-02 06:25:07 +0000`))
 			So(pub.logs[len(pub.logs)-1].Time, ShouldResemble, testutil.MustParseTime(`2021-03-08 10:11:12 +0000`))
+		})
+	})
+}
+
+func TestDuplicatedFiles(t *testing.T) {
+	Convey("If the same file seems to be present in both compressed and non compressed form, choose the compressed ont", t, func() {
+		Convey("Some files are duplicated, due to rsync'ng generated artifacts", func() {
+			f := fileEntryList{
+				fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2023-03-02 19:38:51 +0100`)},
+				fileEntry{filename: "mail.log-20220722", modificationTime: testutil.MustParseTime(`2022-07-25 15:07:12 +0200`)},
+				fileEntry{filename: "mail.log-20220722.bz2", modificationTime: testutil.MustParseTime(`2022-07-25 15:07:12 +0200`)},
+				fileEntry{filename: "mail.log-20220728", modificationTime: testutil.MustParseTime(`2022-07-29 16:14:44 +0200`)},
+				fileEntry{filename: "mail.log-20220728.bz2", modificationTime: testutil.MustParseTime(`2022-07-29 16:14:44 +0200`)},
+				fileEntry{filename: "mail.log-20220731", modificationTime: testutil.MustParseTime(`2022-08-02 14:20:14 +0200`)},
+				fileEntry{filename: "mail.log-20220731.bz2", modificationTime: testutil.MustParseTime(`2022-08-02 14:20:14 +0200`)},
+				fileEntry{filename: "mail.log-20220804", modificationTime: testutil.MustParseTime(`2022-08-22 11:20:08 +0200`)},
+			}
+
+			// We ignore all files that have a correspondent compressed version of it
+			So(buildFilesToImport(f, BuildLogPatterns([]string{"mail.log", "mail.err", "mail.warn"}), time.Time{}), ShouldResemble,
+				fileQueues{
+					"mail.log": fileEntryList{
+						fileEntry{filename: "mail.log-20220722.bz2", modificationTime: testutil.MustParseTime(`2022-07-25 15:07:12 +0200`)},
+						fileEntry{filename: "mail.log-20220728.bz2", modificationTime: testutil.MustParseTime(`2022-07-29 16:14:44 +0200`)},
+						fileEntry{filename: "mail.log-20220731.bz2", modificationTime: testutil.MustParseTime(`2022-08-02 14:20:14 +0200`)},
+						fileEntry{filename: "mail.log-20220804", modificationTime: testutil.MustParseTime(`2022-08-22 11:20:08 +0200`)},
+						fileEntry{filename: "mail.log", modificationTime: testutil.MustParseTime(`2023-03-02 19:38:51 +0100`)},
+					},
+					"mail.err":  {},
+					"mail.warn": {},
+				})
 		})
 	})
 }
