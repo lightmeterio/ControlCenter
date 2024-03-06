@@ -5,6 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Lightmeter ControlCenter
 
+**_Note:_** This application has been [deprecated](https://controlcenter.app/new-domain-controlcenter-app/) and is unlikely to receive future updates.
+
+---
+
 [![pipeline status](https://gitlab.com/lightmeter/controlcenter/badges/master/pipeline.svg)](https://gitlab.com/lightmeter/controlcenter/-/commits/master)
 [![Translation status](https://translate.lightmeter.io/widgets/controlcenter/-/svg-badge.svg)](https://translate.lightmeter.io/engage/controlcenter/)
 <br/>
